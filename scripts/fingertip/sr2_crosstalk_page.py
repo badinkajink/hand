@@ -84,11 +84,11 @@ def fig_layouts(R, Z):
     fig, ax = plt.subplots(figsize=(8.6, 6.4))
     for f, x0, y0, w, h in (("thumb", -80, -55, 60, 110), ("index", 20, 25, 60, 60), ("middle", 20, -85, 60, 60)):
         ax.add_patch(plt.Rectangle((x0, y0), w, h, fill=False, ls=":", ec="0.5", lw=1.0))
-    cmap = plt.get_cmap("tab10")
+    cmap = plt.get_cmap("tab20")
     marker = {"thumb": "o", "index": "s", "middle": "^"}
     for k, (name, m) in enumerate(seen.items()):
         xy = m.reshape(3, 2)
-        c = cmap(k % 10)
+        c = cmap((2 * k) % 20 if k < 10 else (2 * k + 1) % 20)
         ax.plot(np.r_[xy[:, 0], xy[0, 0]], np.r_[xy[:, 1], xy[0, 1]], color=c, lw=1.0, alpha=0.6)
         for j, f in enumerate(F):
             ax.plot(*xy[j], marker[f], color=c, ms=8, mec="k", mew=0.5)
@@ -280,16 +280,21 @@ def sec_measurement(R, Z):
            "mux at 160 records/s. The lab's runner moves the fingers through the plans in 3 deg waypoints, pauses 3 s at "
            "each pose, and logs the servos' measured angles about 8.6 times a second. A zero pose comes every 12 poses. The "
            "mounts move only between layouts, with the fingers at the zero pose, and each layout opens with a 30 s baseline. "
-           "The mounts of every step are the station's stepper counts. From 14:11 on 11-05 the owner looked at each layout's "
-           "stepper move before its poses ran. Earlier that day the middle's X stage once skipped a 45 mm move unseen, so that "
-           "run (run3_from32) is left out. The middle's mount in run1_attended and run2_layouts is uncertain, and those runs "
-           "stay out of the magnet model and the layout table.</p>"
+           "The mounts of every step are the station's stepper counts. From 14:11 on 11-05 each layout's stepper move was checked "
+           "before its poses ran. The owner looked at the s1 layouts and at the HOM roll and press layouts. The HOM generalist, "
+           "twist and cover moves were checked by the lab's depth camera on the owner's go: every planned axis of 8 mm or more "
+           "read within 2.6 mm of the plan. Earlier that day the middle's X stage once skipped a 45 mm move unseen, so that "
+           "run (run3_from32) is left out. The middle's mount is uncertain in run1_attended and run2_layouts, and in the move "
+           "home that ended the HOM run. Those stretches stay out of the magnet model and the layout table.</p>"
            + table(["Date", "Dwells", "Layouts"], rows, "Data sets and the layouts they cover.", num_from=1))
     out += img(MEDIA / "20261105-layouts.png",
                "Mounts of every layout in the palm frame. Each layout's three mounts are joined in its colour, and the dotted "
                "rectangles are the stages' travel boxes.")
-    out += film(MEDIA / "20261105-timelapse.mp4", "The lab's camera on 11-05, one frame every 2 s, played at 20 times real "
-                "time.")
+    out += film(MEDIA / "20261105-timelapse.mp4", "The lab's camera on 11-05: 8 s of each layout it shows, a frame every 2 s "
+                "played at 10 frames/s, 20 times real time. The camera has no frames from 16:14 to 19:18, and the lab's lights "
+                "went out at 20:12, so roll, twist and cover are not in it. Cut from the lab's 15 min film "
+                "(<code>data/20261105-day/20261105-sr2_hand_timelapse_10fps.mp4</code>) by <code>sr2_crosstalk_film.py "
+                "timelapse</code>.")
     out += film(MEDIA / "20261105-film_cad_sweep.mp4", "The cad_v3 hand at the measured joints of the first random poses of "
                 "each layout, and each board's change in force equivalent: uncompensated (grey) and after the own-angle GP "
                 "(black). Red text marks a pose whose uncompensated change the contact viewer shows as a contact. The line at "
@@ -321,7 +326,12 @@ def sec_own(R):
                      n1(g["five_folds"]["p95_uT"], 2), n1(g.get("left_out_layout_all", {}).get("median_uT"), 2),
                      n1(g.get("left_out_layout_all", {}).get("p95_uT"), 2),
                      n1(g.get("home_only_to_layouts", {}).get("median_uT"), 2)))
-    out = ("<p>A finger's own pose changes its board by a median of 65 to 67 µT, about 2.3 N in force equivalent. Most of "
+    md = [R["own"][f]["change_uT"]["median"] for f in F if f in R["own"]]
+    mdN = [R["own"][f]["change_uT"]["median"] / R["uT_per_N"][f] for f in F if f in R["own"]]
+    nN = (f"about {np.mean(mdN):.1f} N" if round(min(mdN), 1) == round(max(mdN), 1)
+          else f"{min(mdN):.1f} to {max(mdN):.1f} N")
+    out = (f"<p>A finger's own pose changes its board by a median of {min(md):.0f} to {max(md):.0f} µT, {nN} in force "
+           "equivalent. Most of "
            "it is a field that is fixed to the hand, seen from a board that turns with the finger. A uniform field turned with "
            "each tip's frame leaves a median of 12.0 and 13.5 µT of the thumb's and middle's change (night of 11-04, "
            "<code>sr2_crosstalk_night.py</code>). A GP on the finger's three angles leaves "
@@ -397,7 +407,8 @@ def sec_neighbour(R):
             f"chips from the pads' poses, at two finger spacings. On these layouts the pads came no closer than {cl:.0f} mm "
             f"(driver's spacing), and the model gives 5 µT or more on {min(near)} to {max(near)} poses per board. There its "
             f"vector lines up with the leftover at a median cosine of {min(cs):.2f} to {max(cs):.2f}. At the driver's spacing "
-            f"the fitted gain is {min(g_d):.2f} to {max(g_d):.2f}: the model's field is two to three times too strong. At "
+            f"the fitted gain is {min(g_d):.2f} to {max(g_d):.2f}: the model's field is {1 / max(g_d):.1f} to {1 / min(g_d):.1f} "
+            "times too strong. At "
             f"cad_v3's spacing, with each finger about 6 mm further out, the gain is {min(g_c):.2f} to {max(g_c):.2f}. With its "
             f"gain, either spacing removes {min(sh):.2f} to {max(sh):.2f} of the leftover's energy on those poses. Within 50 mm "
             f"of another pad the own-angle GP leaves a median of {min(near50):.1f} to {max(near50):.1f} µT, against "
@@ -475,8 +486,8 @@ def sec_limits():
         "which the injection does not include.",
         "The joint angles are the servos' readings. The SCS0009's readout has 0.29 deg steps.",
         "The pad frames come from the cad_v2 model at the stepper counts. A stage that skipped a move would put a pad "
-        "elsewhere. The owner looked at every layout move from 14:11 on 11-05, and the runs before it with an uncertain "
-        "mount stay out of the magnet model.",
+        "elsewhere. Every layout move from 14:11 on 11-05 was checked, by the owner or by the lab's depth camera, and the "
+        "stretches with an uncertain mount stay out of the magnet model.",
     ]
     return "<ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>"
 
@@ -486,10 +497,10 @@ def sec_future():
         "Run the viewer on the hand with the own-angle GP subtracted live: <code>wrench_viewer.py</code> with a GP of each "
         "finger's three angles from the station's telemetry. Press each tip with a known force at the HEX-E. A false contact "
         "while the fingers move, or a press error above the injected one, falsifies the compensation.",
-        "Rerun this analysis with the HOM layouts once the lab has pushed hom1 (<code>sr2_crosstalk_hand.py --sets 20261104 "
-        "20261105</code>; the lab's push adds hom1 to <code>data/20261105-day/</code>). The cover and press layouts bring the "
-        "pads closer than these did. Where the pads come within 25 mm, a gain of the magnet model near 1 at cad_v3's spacing "
-        "supports the CAD's finger positions. A gain near 0.4 at the driver's spacing supports the driver's.",
+        "Bring the pads within 25 mm of each other in a plan of their own, the thumb against the index and against the "
+        "middle finger. The HOM layouts kept them 27 mm or more apart. There the magnet model's field is several times the "
+        "noise, and its gain tests the finger spacing: a gain near 1 at cad_v3's spacing supports the CAD's finger positions, "
+        "and a gain near 0.4 at the driver's spacing supports the driver's.",
         "Measure each finger's yaw axis in the palm frame with the UR5 (the cad_v3 page's Future work). It fixes the spacing "
         "the magnet model uses.",
         "Repeat one layout on another day, to measure how far the own-angle GP moves with the boards' drift.",
@@ -532,7 +543,7 @@ def lede_and_summary(R):
             f"{min(lo)} to {max(lo)} with the layout left out of the model's fit. UR5 presses added to the compensated frames "
             f"read with a median force error of {min(e_own):.0f} to {max(e_own):.0f} %, against {min(e_zero):.0f} to "
             f"{max(e_zero):.0f} % on the zero pose's noise. The two readouts, the board GP and the MLP ensemble, give errors "
-            f"within {gap:.0f} percentage points of each other.")
+            f"within {gap:.1f} percentage points of each other.")
     summary = (f"Uncompensated, the fingertip viewer on the SR2 hand would show a {th['frame_force_N_median']:.1f} N contact in "
                f"{100 * th['frames_shown_share']:.1f} % of the thumb's 50 ms frames with nothing touching. A GP of each board's "
                f"change from its finger's three angles leaves {min(own)} to {max(own)} false frames per board out of "

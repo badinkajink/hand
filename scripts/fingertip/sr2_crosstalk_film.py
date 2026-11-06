@@ -9,6 +9,7 @@ The mounts are placed as the driver commands them (handgeo.ORIGIN plus the mount
 uses cad_v2's kinematics.
 
     MUJOCO_GL=egl ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- .venv/bin/python scripts/fingertip/sr2_crosstalk_film.py [STEM] [--per-layout 16]
+    .venv/bin/python scripts/fingertip/sr2_crosstalk_film.py timelapse     # the page's cut of the lab's time-lapse
 """
 from __future__ import annotations
 
@@ -77,7 +78,33 @@ def panel(vals, title, font, small):
     return np.asarray(im)
 
 
+TIMELAPSE = EXP / "data/20261105-day/20261105-sr2_hand_timelapse_10fps.mp4"   # the lab's camera, a frame every 2 s at 10/s
+# (start in the lab's film, s; length, s; label): 8 s of each layout it shows. Starts read off the frames' burnt-in clocks;
+# the film has no frames from 16:14:22 to 19:17:54, and from 19:20 the frames are the depth capture's colour stream.
+SEGMENTS = ((301.9, 8.0, "g12, from 13:52"), (496.9, 8.0, "sv1_w6689, from 14:55"), (676.9, 8.0, "rv04_mid, from 15:53"),
+            (741.3, 8.0, "HOM press, from 19:18"), (831.3, 8.0, "HOM generalist, from 19:48"))
+
+
+def cmd_timelapse(out=MEDIA / "20261105-timelapse.mp4"):
+    """The page's cut of the lab's time-lapse: each segment scaled to 960 x 540 under a label bar with its layout."""
+    font = CF.FONT
+    parts, n = [], len(SEGMENTS)
+    for k, (t0, dur, lab) in enumerate(SEGMENTS):
+        parts.append(f"[0:v]trim=start={t0}:duration={dur},setpts=PTS-STARTPTS,scale=960:540,"
+                     f"pad=960:584:0:0:white,drawtext=fontfile={font}:text='{lab.replace(':', chr(92) + ':')}':x=14:y=550:"
+                     f"fontsize=26:fontcolor=black[s{k}]")
+    fc = ";".join(parts) + ";" + "".join(f"[s{k}]" for k in range(n)) + f"concat=n={n}:v=1:a=0[v]"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(TIMELAPSE), "-filter_complex", fc, "-map", "[v]",
+                    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "30", "-preset", "slow", "-movflags", "+faststart",
+                    str(out)], check=True)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", str(3 * 8.0 + 2.0), "-i", str(out), "-frames:v", "1",
+                    "-q:v", "3", str(out.with_suffix(".jpg"))], check=True)
+    print(f"wrote {out}: {sum(d for _, d, _ in SEGMENTS):.0f} s, {out.stat().st_size / 1e6:.1f} MB", flush=True)
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "timelapse":
+        return cmd_timelapse()
     ap = argparse.ArgumentParser()
     ap.add_argument("stem", nargs="?", default="20261105-sr2_crosstalk_hand_20261104_20261105")
     ap.add_argument("--per-layout", type=int, default=16)

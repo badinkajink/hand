@@ -76,7 +76,9 @@ SETS = {
     # the lab's push after hom1 (runs found by their events; run3_from32 left out: its middle X stage stayed at home
     # while the log moved it 45 mm)
     "20261105": dict(dir=DATA / "20261105-day", runs=None, logs=None, index_lost=None, skip=["run3_from32"],
-                     uncertain_middle=["run1_attended", "run2_layouts"]),   # manifest_122000_173130.json, "uncertain"
+                     uncertain_middle=["run1_attended", "run2_layouts",     # manifest_122000_173130.json, "uncertain"
+                                       "hom1/6_home_mounts"]),                  # manifest_173130_210000.json: the middle's
+                                                                                # move home at 20:55 is unconfirmed
 }
 # A mount in the palm frame from the station's stepper counts (telemetry "steppers", mm): offset + sign x position of
 # stepper J. Fitted on the 14 logged layout moves of 11-05, every residual 0.00 mm.
