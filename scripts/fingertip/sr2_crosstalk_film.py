@@ -57,7 +57,7 @@ def panel(vals, title, font, small):
         y = y0 + k * 170
         dr.text((20, y), f"{f.capitalize()} board", fill=COLOR[f], font=font)
         if f not in vals:
-            dr.text((20, y + 40), "no reading", fill=(90, 90, 90), font=small)
+            dr.text((20, y + 40), "not in the analysis (board lost, or not still)", fill=(90, 90, 90), font=small)
             continue
         raw, own, shown = vals[f]
         dr.rectangle([30, y + 42, xbar(raw), y + 70], fill=(150, 150, 150))
@@ -117,11 +117,12 @@ def main():
             d.qpos[adr[f"{f}_x"]], d.qpos[adr[f"{f}_y"]], d.qpos[adr[f"{f}_bridge"]] = x / 1000, y / 1000, y / 1000
             for jj, jn in enumerate(J):
                 d.qpos[adr[f"{f}_{jn}"]] = np.radians(q[3 * k + jj])
-        mujoco.mj_forward(m, d)
+        mujoco.mj_kinematics(m, d)
+        mujoco.mj_camlight(m, d)
 
     pose(np.zeros(9), mounts[chosen[0]])
-    look = np.mean([d.body(f"{f}_tip").xpos for f in F], 0) + [0, 0, 0.085]
-    cam = CF.free_cam(look, 0.40, 140, 4)
+    look = np.mean([d.body(f"{f}_tip").xpos for f in F], 0) + [0, 0, 0.075]
+    cam = CF.free_cam(look, 0.40, 180, 5)
     n, poster = 0, None
     prev = np.zeros(9)
     try:

@@ -13,6 +13,9 @@ the reading a viewer zeroed at the layout's zero pose would see. Mounts come fro
 telemetry (STEPPER); the manifest of 11-05 marks the middle's mount in run1_attended and run2_layouts as uncertain, and
 those rows stay out of the magnet model and of the layout moves.
 
+Poses whose joints moved more than 2 deg within the dwell, or whose board spread more than 25 uT over it, are left out of
+the models and tests (still()); each board's count is in the JSON.
+
 Analyses (each in the output JSON):
   noise       each zero dwell left out and predicted from its neighbours at the same mounts
   layouts     the change of every board at each layout move (the zero pose before and after), and the stepper steps
@@ -22,7 +25,7 @@ Analyses (each in the output JSON):
   neighbour   what the own-angle GP leaves, against the distance to the nearest other pad, and the magnet model's share
               of it: the field of the other tips' four N52 magnets at the board's chips (fingertip_crosstalk.reading;
               each tip's calibration of 2026-11-02 for its chips, poles and strength), the pad frames from the cad_v2
-              hand's forward kinematics (lab/handgeo.py), with one gain per receiving board and source tip fitted
+              hand's forward kinematics (lab/handgeo.py) at the driver's finger spacing and at cad_v3's (SPACING)
   viewer      the contact viewer's decision (wrench_viewer: the board's estimator at its defaults, a chi-square above
               25, at least 0.25 N, and the test for a field from outside the pad) on each pose's change with no contact
               on any tip: raw, after the own-angle GP, after it and the magnet model, and after the nine-angle GP
@@ -156,8 +159,9 @@ def steps(cfg, name):
             qc = np.array([e["joints"][f][j] for f in F for j in J]) if e.get("joints") else np.zeros(9)
             ks = k & np.isfinite(stp).all(1)
             mt = stepper_mounts(np.median(stp[ks], axis=0)) if ks.any() else dict(mounts)   # the counts, or the last log
+            span = float(np.max(q[k].max(0) - q[k].min(0))) if k.sum() >= 3 else np.nan   # a joint moving in the dwell
             out.append(dict(set=name, run=run.name, step=e["step"], op=e["op"], family=e["family"], t0=t0, t1=t1,
-                            q_cmd=qc, q=np.median(q[k], axis=0) if k.any() else qc, n_tel=int(k.sum()),
+                            q_cmd=qc, q=np.median(q[k], axis=0) if k.any() else qc, n_tel=int(k.sum()), q_span=span,
                             mounts=mt, mounts_from="steppers" if ks.any() else "log", torque_off=torque_off,
                             plan_clear=e.get("clearance_mm"),
                             mount_ok=not any(u in str(run) for u in cfg.get("uncertain_middle", []))))
@@ -347,13 +351,24 @@ class Kin:
         return out
 
 
+Q_SPAN, SD_MAX = 2.0, 25.0     # deg of a joint's travel within a dwell, uT of a board's spread over it (7.8 to 8.0 typical)
+
+
+def still(s, f):
+    """A dwell held still: no joint moved more than Q_SPAN in its telemetry, and the board's spread stayed under SD_MAX
+    (11-05: at rv04_mid the index board's reading stepped by about 180 uT halfway through a dwell, with no joint moving
+    more than 0.9 deg; 25 of 697 dwells of 11-05 had a joint move more than 2 deg)."""
+    return (not np.isfinite(s.get("q_span", np.nan)) or s["q_span"] <= Q_SPAN) and s["sd"].get(f, 0.0) <= SD_MAX
+
+
 def own_models(S, upn, names):
     """Own-pose GPs per board: inputs, tests and cross-validated predictions."""
     res, pred = {}, {}
     rng = np.random.default_rng(0)
     for f in F:
-        rows = [i for i, s in enumerate(S) if s["op"] == "joints" and not is_zero(s) and not s["torque_off"]
+        cand = [i for i, s in enumerate(S) if s["op"] == "joints" and not is_zero(s) and not s["torque_off"]
                 and f in s["d"] and np.isfinite(s["q"]).all() and not s["family"].startswith("test")]
+        rows = [i for i in cand if still(S[i], f)]
         if len(rows) < 30:
             continue
         own = [3 * F.index(f) + k for k in range(3)]
@@ -366,7 +381,7 @@ def own_models(S, upn, names):
                   "own_angles_mount": (np.c_[q[:, own], mt[:, mi]], np.r_[np.full(3, 5.0), 5.0, 5.0]),
                   "all_angles_mounts": (np.c_[q, mt], np.r_[np.full(9, 5.0), np.full(6, 5.0)])}
         folds = np.array_split(rng.permutation(len(rows)), 5)
-        out = dict(rows=len(rows), layouts={l: int((lay == l).sum()) for l in np.unique(lay)},
+        out = dict(rows=len(rows), left_out_moving=len(cand) - len(rows), layouts={l: int((lay == l).sum()) for l in np.unique(lay)},
                    change_uT=dict(median=pct(np.linalg.norm(Y, axis=1), 50), p95=pct(np.linalg.norm(Y, axis=1), 95),
                                   max=round(float(np.linalg.norm(Y, axis=1).max()), 1)))
         P = {}
@@ -407,64 +422,78 @@ def own_models(S, upn, names):
     return res, pred
 
 
+# Each finger's yaw axis in the palm frame: the driver's positions (handgeo.ORIGIN plus the mount) or cad_v3's travel boxes,
+# whose centres lie 6.18 mm further out along x_P and 2.40 (thumb) or 3.40 mm (index, middle) further out along y_P
+# (docs/experiments/20261104-cad_v3_hand, section "Finger travel against the driver's positions").
+SPACING = {"driver": {f: (0.0, 0.0) for f in F},
+           "cad_v3": {"thumb": (-6.18, -2.40), "index": (6.18, 3.40), "middle": (6.18, -3.40)}}
+
+
 def magnet_model(S, pred, upn):
-    """The other tips' magnets at each board's chips (change from the layout's zero pose), and its fit to what the
-    own-angle GP leaves."""
+    """The other tips' magnets at each board's chips (change from the layout's zero pose), at both finger spacings, and
+    their fit to what the own-angle GP leaves. Shares are taken on the poses with known mounts where either spacing's
+    model gives 5 uT or more: nominal (gain 1), one gain, and one gain per source tip."""
     kin = Kin()
     cal = {f: W.Calib.load(CALIB / f"20261102-v3_id_{TIP_ID[f]}-calib.json") for f in F}
     row = W.fe_row("four_05R4")
     model = {f: W.Model(cal[f], row) for f in F}
     src = {f: XT.source(row, cal[f].poles, cal[f].k) for f in F}
-    zero_pads = {}
     out, field = {}, {}
     for f, pr in pred.items():
         others = [g for g in F if g != f]
-        M = np.zeros((len(pr["rows"]), 2, 15))
-        dist = np.zeros(len(pr["rows"]))
-        for n, i in enumerate(pr["rows"]):
-            s = S[i]
-            Tq = kin.pads(s["mounts"], s["q"])
-            k = key(s["mounts"])
-            if k not in zero_pads:
-                zero_pads[k] = kin.pads(s["mounts"], np.zeros(9))
-            T0 = zero_pads[k]
-            for j, g in enumerate(others):
-                rel = np.linalg.inv(Tq[f]) @ Tq[g]
-                rel0 = np.linalg.inv(T0[f]) @ T0[g]
-                M[n, j] = (XT.reading(model[f], src[g], rel[:3, :3], rel[:3, 3])
-                           - XT.reading(model[f], src[g], rel0[:3, :3], rel0[:3, 3]))
-            c = Tq[f][:3, 3]
-            dist[n] = min(np.linalg.norm(Tq[g][:3, 3] - c) for g in others)
         R = pr["Y"] - pr["P"]["own_angles"]
         okm = np.array([S[i]["mount_ok"] for i in pr["rows"]])
-        big = (np.linalg.norm(M.sum(1), axis=1) >= 5.0) & okm   # the model's field above the noise (3.3 uT)
-        if big.sum() >= 20:
-            A = M[big].transpose(0, 2, 1).reshape(-1, 2)        # (rows * 15, 2)
-            gain = np.linalg.lstsq(A, R[big].ravel(), rcond=None)[0]
-        else:
-            gain = np.ones(2)
-        fit = (M * gain[None, :, None]).sum(1)
-        nominal = M.sum(1)
-        bins = ((0, 25), (25, 35), (35, 50), (50, 70), (70, 999))
-        rows = {}
-        for a, b in bins:
-            k = (dist >= a) & (dist < b) & okm
-            if not k.any():
-                continue
-            e0 = np.linalg.norm(R[k], axis=1)
-            e1 = np.linalg.norm(R[k] - fit[k], axis=1)
-            rows[f"{a}-{b} mm"] = dict(n=int(k.sum()), model_uT_median=pct(np.linalg.norm(M[k].sum(1), axis=1), 50),
-                                       model_uT_max=round(float(np.linalg.norm(M[k].sum(1), axis=1).max()), 1),
-                                       left_uT_median=pct(e0, 50), left_uT_p95=pct(e0, 95),
-                                       after_model_uT_median=pct(e1, 50), after_model_uT_p95=pct(e1, 95))
-        R, fit, nominal = R[okm], fit[okm], nominal[okm]
-        tot = float((R ** 2).sum())
-        out[f] = dict(rows_mounts_known=int(okm.sum()), rows_model_over_5uT=int(big.sum()), gain_fitted=bool(big.sum() >= 20),
-                      gain=dict(zip(others, np.round(gain, 3).tolist())),
-                      explained_share_fitted=round(1 - float(((R - fit) ** 2).sum()) / tot, 3),
-                      explained_share_nominal=round(1 - float(((R - nominal) ** 2).sum()) / tot, 3),
-                      by_distance=rows)
-        field[f] = dict(M=M, gain=gain, dist=dist, mount_ok=okm)
+        Ms, dists = {}, {}
+        for geo, dl in SPACING.items():
+            M = np.zeros((len(pr["rows"]), 2, 15))
+            dist = np.zeros(len(pr["rows"]))
+            zero_pads = {}
+            for n, i in enumerate(pr["rows"]):
+                s = S[i]
+                mt = {g: (s["mounts"][g][0] + dl[g][0], s["mounts"][g][1] + dl[g][1]) for g in F}
+                Tq = kin.pads(mt, s["q"])
+                k = key(s["mounts"])
+                if k not in zero_pads:
+                    zero_pads[k] = kin.pads(mt, np.zeros(9))
+                T0 = zero_pads[k]
+                for j, g in enumerate(others):
+                    rel = np.linalg.inv(Tq[f]) @ Tq[g]
+                    rel0 = np.linalg.inv(T0[f]) @ T0[g]
+                    M[n, j] = (XT.reading(model[f], src[g], rel[:3, :3], rel[:3, 3])
+                               - XT.reading(model[f], src[g], rel0[:3, :3], rel0[:3, 3]))
+                dist[n] = min(np.linalg.norm(Tq[g][:3, 3] - Tq[f][:3, 3]) for g in others)
+            Ms[geo], dists[geo] = M, dist
+        near = okm & np.any([np.linalg.norm(M.sum(1), axis=1) >= 5.0 for M in Ms.values()], axis=0)
+        o = dict(rows_mounts_known=int(okm.sum()), rows_near=int(near.sum()))
+        for geo, M in Ms.items():
+            tot = float((R[near] ** 2).sum()) if near.any() else np.nan
+            g1 = float(np.sum(M[near].sum(1) * R[near]) / max(np.sum(M[near].sum(1) ** 2), 1e-12)) if near.any() else 1.0
+            if near.sum() >= 10:
+                gains = np.linalg.lstsq(M[near].transpose(0, 2, 1).reshape(-1, 2), R[near].ravel(), rcond=None)[0]
+            else:
+                gains = np.ones(2)
+            sh = (lambda P_: round(1 - float(((R[near] - P_) ** 2).sum()) / tot, 3) if near.any() else None)
+            fit = (M * gains[None, :, None]).sum(1)
+            rows = {}
+            for lo, hi in ((0, 25), (25, 35), (35, 50), (50, 70), (70, 999)):
+                kk = (dists[geo] >= lo) & (dists[geo] < hi) & okm
+                if not kk.any():
+                    continue
+                e0 = np.linalg.norm(R[kk], axis=1)
+                e1 = np.linalg.norm(R[kk] - g1 * M[kk].sum(1), axis=1)
+                rows[f"{lo}-{hi} mm"] = dict(n=int(kk.sum()), model_uT_median=pct(np.linalg.norm(M[kk].sum(1), axis=1), 50),
+                                             model_uT_max=round(float(np.linalg.norm(M[kk].sum(1), axis=1).max()), 1),
+                                             left_uT_median=pct(e0, 50), left_uT_p95=pct(e0, 95),
+                                             after_model_uT_median=pct(e1, 50), after_model_uT_p95=pct(e1, 95))
+            cosv = (np.sum(M[near].sum(1) * R[near], 1) / (np.linalg.norm(M[near].sum(1), axis=1)
+                                                          * np.linalg.norm(R[near], axis=1) + 1e-12)) if near.any() else []
+            o[geo] = dict(closest_pad_mm=round(float(dists[geo][okm].min()), 1), one_gain=round(g1, 3),
+                          gains=dict(zip(others, np.round(gains, 3).tolist())), share_nominal=sh(M[near].sum(1)),
+                          share_one_gain=sh(g1 * M[near].sum(1)), share_gains=sh(fit[near]),
+                          cosine_median=pct(cosv, 50), by_distance=rows)
+            field.setdefault(f, {})[geo] = dict(M=M, g1=g1, dist=dists[geo])
+        field[f]["mount_ok"] = okm
+        out[f] = o
     return out, field
 
 
@@ -492,8 +521,9 @@ def viewer(S, pred, field, upn):
         Y = pr["Y"]
         model = {"raw": np.zeros_like(Y), "own_angles": pr["P"]["own_angles"],
                  "all_angles_mounts": pr["P"]["all_angles_mounts"]}
-        if f in field:
-            model["own_angles_and_magnets"] = pr["P"]["own_angles"] + (field[f]["M"] * field[f]["gain"][None, :, None]).sum(1)
+        for geo in SPACING:
+            if f in field and geo in field[f]:
+                model[f"own_angles_and_magnets_{geo}"] = pr["P"]["own_angles"] + field[f][geo]["g1"] * field[f][geo]["M"].sum(1)
         for extra in ("own_angles_left_out_layout", "own_angles_mount_left_out_layout", "own_angles_home_only"):
             if extra in pr["P"]:
                 model[extra] = pr["P"][extra]
@@ -706,7 +736,8 @@ def main():
         (("rows", np.array(pr["rows"])), ("Y", pr["Y"]), ("lay", pr["lay"].astype(str)),
          *((f"P_{n}", p) for n, p in pr["P"].items()),
          *((f"shown_{n}", v) for n, v in pr.get("shown", {}).items()),
-         *((("M", field[f]["M"]), ("dist", field[f]["dist"]), ("mount_ok", field[f]["mount_ok"])) if f in field else ()))},
+         *((("M", field[f]["driver"]["M"]), ("dist", field[f]["driver"]["dist"]), ("M_cad_v3", field[f]["cad_v3"]["M"]),
+            ("dist_cad_v3", field[f]["cad_v3"]["dist"]), ("mount_ok", field[f]["mount_ok"])) if f in field else ()))},
         q=np.array([s["q"] for s in S]), t=np.array([0.5 * (s["t0"] + s["t1"]) for s in S]),
         mounts=np.array([[s["mounts"][f][c] for f in F for c in (0, 1)] for s in S]),
         set=np.array([s["set"] for s in S]), run=np.array([s["run"] for s in S]),
