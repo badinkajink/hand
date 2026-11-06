@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# The night chain after run1_home stopped at 19:31 on 11-04, its index mcp saturating at the servo's protective torque near
-# 55 deg: the rest of the structured plan, then random s1, the structured plan and random s2, all with the index mcp at
+# The night chain after run1_home stopped at 19:31 on 11-04, its index mcp stopped near 55 deg (its EEPROM angle limit,
+# +58.6 deg, less droop, found on 11-06; not the protective torque as first thought): the rest of the structured plan, then random s1, the structured plan and random s2, all with the index mcp at
 # 50 deg at most and the middle mcp at 62 (plan_*_v2, plan_home_rest; about 2.2 h),
 # each in its own folder under logs/20261104-sr2_crosstalk/. The chain stops at the first plan that does not end
 # normally; that run has already put the hand at the zero pose and disabled the motors. The last plan disables them
