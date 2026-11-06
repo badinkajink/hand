@@ -24,6 +24,7 @@ import math
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -49,9 +50,14 @@ HOLD = V3 / "data/20261027-crosstalk_touchoffs.json"
 FVF = V3 / "data/20261028-four_vs_five_grid.json"   # feed 2026-10-28 00:59: stage 2's whole grid (the 00:18 file had its first 74 actions)
 SR2 = EXP / "20261104-sr2_hand_crosstalk"
 NIGHT = SR2 / "data/20261104-night_crosstalk_analysis.json"
-SEC = dict(terms=1, field=2, holder=3, hand=4, subtract=5, fit=6, sharpie=7, limits=8, future=9)
-FIG = dict(budget=1, holder=2, hovers=3, force=4, sweep=5, hand=6, sharpie=7, render=8)
-TAB = dict(field=1, holder=2, hovers=3, force=4, floor=5, moved=6, left=7, apart=8, crb=9)
+# feed 2026-11-05 19:25, commit 525931521; the rerun with the HOM layouts follows the lab's push
+LAYOUTS = SR2 / "data/20261105-sr2_crosstalk_hand_20261104_20261105.json"
+LAYOUT_ROWS = SR2 / "data/20261105-sr2_crosstalk_hand_20261104_20261105_rows.npz"
+SR2_PAGE = SR2 / "20261105-sr2_hand_fingertip_crosstalk.html"
+SR2_FILM, SR2_POSTER = SR2 / "media/20261105-film_cad_sweep.mp4", SR2 / "media/20261105-film_cad_sweep.jpg"
+SEC = dict(terms=1, field=2, holder=3, hand=4, layouts=5, subtract=6, fit=7, sharpie=8, limits=9, future=10)
+FIG = dict(budget=1, holder=2, hovers=3, force=4, sweep=5, hand=6, layouts_film=7, layouts=8, sharpie=9, render=10)
+TAB = dict(field=1, holder=2, hovers=3, force=4, floor=5, moved=6, left=7, apart=8, layouts_own=9, viewer=10, presses=11, crb=12)
 SHIFTED = ("-x+", "-x-", "-y+", "-y-")   # hover ids of the apex shifted 3 mm; the others are centred
 SHARPIE_W = (7.0, 11.0)   # about a sharpie's width (the coordinator's 01:28 line)
 L = dict(
@@ -909,6 +915,182 @@ def hand_section(R, rn, fa, mp4, poster):
     return p1 + p2 + film + p3 + tab_floor + tab_moved + p4 + p5 + fig + tab_left + p6 + tab_apart
 
 
+def layouts_numbers(A):
+    """The numbers of the analysis of 2026-11-04 and 11-05 that the lede, the summary and its section quote."""
+    own, view, pr, nb = A["own"], A["viewer"], A["presses_on_the_hand"], A["neighbour"]
+    perr = lambda test, rd: [pr[f][test][rd]["force_error_abs_median_pct"] for f in FINGERS]  # noqa: E731
+    ploc = lambda test, rd: [pr[f][test][rd]["location_error_median_mm"] for f in FINGERS]  # noqa: E731
+    near = lambda g, k: [v["by_distance"][k] for v in (nb[f][g] for f in FINGERS) if k in v["by_distance"]]  # noqa: E731
+    return dict(
+        share={f: 100 * view[f]["raw"]["frames_shown_share"] for f in FINGERS}, press=view["thumb"]["raw"]["frame_force_N_median"],
+        frames=[view[f]["own_angles"]["frames"] for f in FINGERS],
+        shown=[view[f]["own_angles"]["frames_shown"] for f in FINGERS],
+        shown_out=[view[f]["own_angles_left_out_layout"]["frames_shown"] for f in FINGERS],
+        change=[own[f]["change_uT"]["median"] for f in FINGERS],
+        change_N=[own[f]["change_uT"]["median"] / A["uT_per_N"][f] for f in FINGERS],
+        folds=[own[f]["own_angles"]["five_folds"] for f in FINGERS], out=[own[f]["own_angles"]["left_out_layout_all"] for f in FINGERS],
+        out_mount=[own[f]["own_angles_mount"]["left_out_layout_all"] for f in FINGERS],
+        home=[own[f]["own_angles"]["home_only_to_layouts"] for f in FINGERS],
+        press_comp=perr("own_angles", "board_gp") + perr("own_angles", "mlp"),
+        press_noise=perr("zero_pose_noise", "board_gp") + perr("zero_pose_noise", "mlp"),
+        gp_err=dict(raw=perr("raw", "board_gp"), comp=perr("own_angles", "board_gp"), noise=perr("zero_pose_noise", "board_gp")),
+        gp_loc=dict(raw=ploc("raw", "board_gp"), comp=ploc("own_angles", "board_gp"), noise=ploc("zero_pose_noise", "board_gp")),
+        moved=[v for m in A["layouts"] for v in m["change_uT"].values()], noise=[v["median_uT"] for v in A["noise"].values()],
+        closest={g: min(nb[f][g]["closest_pad_mm"] for f in FINGERS) for g in ("driver", "cad_v3")},
+        gain={g: [nb[f][g]["one_gain"] for f in FINGERS] for g in ("driver", "cad_v3")},
+        share_model=[nb[f][g]["share_one_gain"] for f in FINGERS for g in ("driver", "cad_v3")],
+        cos=[nb[f][g]["cosine_median"] for f in FINGERS for g in ("driver", "cad_v3")],
+        near50=[v["left_uT_median"] for v in near("driver", "35-50 mm")], far70=[v["left_uT_median"] for v in near("driver", "70-999 mm")],
+        under35=[v["n"] for v in near("driver", "25-35 mm")],
+        after_near=[v["after_model_uT_median"] for v in near("cad_v3", "35-50 mm")],
+        after_far=[v["after_model_uT_median"] for v in near("cad_v3", "70-999 mm")])
+
+
+def fig_layouts(A, Z):
+    """The analysis of 2026-11-04 and 11-05, from its rows at this page's width: what the own-angle GP leaves at each board by its
+    test, and the thumb's board through its first random poses."""
+    plt = P.plt_setup()
+    from matplotlib.lines import Line2D
+    RED, DBLUE = "#b03a2e", "#1f4e9c"
+    fig = plt.figure(figsize=(9.7, 7.9))
+    gs = fig.add_gridspec(2, 3, height_ratios=(1.2, 1.0), hspace=0.68, wspace=0.1)
+    styles = (("raw", "No compensation", "0.55", "-"), ("own_angles", "Own-angle GP, five folds", "k", "-"),
+              ("own_angles_left_out_layout", "Own-angle GP, layout left out", RED, "--"),
+              ("own_angles_home_only", "Own-angle GP, home only", DBLUE, ":"))
+    axs = []
+    for k, (f, tag) in enumerate(zip(FINGERS, "abc")):
+        ax = fig.add_subplot(gs[0, k], sharey=axs[0] if axs else None)
+        axs.append(ax)
+        Y = Z[f"{f}_Y"]
+        for key, _, col, ls in styles:
+            e = np.linalg.norm(Y if key == "raw" else Y - Z[f"{f}_P_{key}"], axis=1)
+            e = np.sort(e[np.isfinite(e)])
+            ax.plot(e, np.arange(1, len(e) + 1) / len(e), color=col, ls=ls, lw=1.7)
+        ax.axvline(float(np.median([v["median_uT"] for n, v in A["noise"].items() if n.endswith(f)])), color="0.4", lw=1, ls="-.")
+        ax.set_xscale("log")
+        ax.set_xlim(0.8, 300)
+        ax.set_title(f"({tag}) {FINGER_NAME[f]}\N{RIGHT SINGLE QUOTATION MARK}s board", loc="left")
+        if k == 1:
+            ax.set_xlabel("Change, or what the GP leaves (\N{MICRO SIGN}T)")
+        ax.grid(alpha=0.3, which="both")
+        if k:
+            ax.tick_params(labelleft=False)
+    axs[0].set_ylabel("Share of poses")
+    handles = [Line2D([], [], color=c, ls=ls, lw=1.7, label=lab) for _, lab, c, ls in styles]
+    handles.append(Line2D([], [], color="0.4", ls="-.", lw=1, label="Zero pose\N{RIGHT SINGLE QUOTATION MARK}s noise, median"))
+    fig.legend(handles=handles, loc="center", bbox_to_anchor=(0.5, 0.455), ncol=3, frameon=False)
+    ax = fig.add_subplot(gs[1, :])
+    f = "thumb"
+    upn = A["uT_per_N"][f]
+    fam = Z["family"].astype(str)[Z[f"{f}_rows"]]
+    sel = np.flatnonzero(np.char.startswith(fam, "random"))[:220]
+    raw = np.linalg.norm(Z[f"{f}_Y"][sel], axis=1) / upn
+    left = np.linalg.norm(Z[f"{f}_Y"][sel] - Z[f"{f}_P_own_angles"][sel], axis=1) / upn
+    i = np.arange(len(sel))
+    shown = np.flatnonzero(np.nan_to_num(Z[f"{f}_shown_raw"][sel]) > 0)
+    ax.plot(i, raw, color="0.55", lw=1.2, label="No compensation")
+    ax.plot(i, left, color="k", lw=1.2, label="Own-angle GP, five folds")
+    ax.plot(shown, raw[shown], "v", color=RED, ms=6, label="Contact shown with no compensation")
+    ax.axhline(0.25, color="0.4", ls="-.", lw=1, label="Viewer\N{RIGHT SINGLE QUOTATION MARK}s force threshold, 0.25 N")
+    ax.set_yscale("log")
+    ax.set_ylim(0.03, 90)
+    ax.set_xlim(0, len(sel))
+    ax.set_title(f"(d) Thumb\N{RIGHT SINGLE QUOTATION MARK}s board through its first {len(sel)} random poses", loc="left")
+    ax.set_xlabel("Random pose, in the order of the run")
+    ax.set_ylabel("Force equivalent (N)")
+    ax.legend(loc="upper right", ncol=2, frameon=False)
+    ax.grid(alpha=0.3, which="both")
+    out = MEDIA / "20261105-sr2_six_layouts.png"
+    fig.savefig(out, dpi=150, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out
+
+
+def layouts_section(A, Ln, rn, fl):
+    uT = "&#8202;&#181;T"
+    ref = lambda k: f"Table&#160;{TAB[k]}"  # noqa: E731
+    rng = lambda xs, f="{:.1f}": f"{f.format(min(xs))} to {f.format(max(xs))}"  # noqa: E731
+    sets = (Ln["folds"], Ln["out"], Ln["out_mount"], Ln["home"])
+    folds, out, out_mount, home = ([v["median_uT"] for v in x] for x in sets)
+    folds95, out95 = [v["p95_uT"] for v in Ln["folds"]], [v["p95_uT"] for v in Ln["out"]]
+    test = rn["gp"][1]["p95_uT"]
+    own, view, pr = A["own"], A["viewer"], A["presses_on_the_hand"]
+    idx_home = view["index"]["own_angles_home_only"]
+    p1 = (f"<p>Over two days and six layouts of the SR2 hand, the contact viewer with no compensation would show a contact with nothing touching in "
+          f"{Ln['share']['thumb']:.1f}&#8202;% of the thumb&#8217;s 50&#8202;ms frames, at a median of {Ln['press']:.1f}&#8202;N ({ref('viewer')}). The middle finger&#8217;s "
+          f"board shows {Ln['share']['middle']:.1f}&#8202;% and the index&#8217;s {Ln['share']['index']:.1f}&#8202;%. With the own-angle GP subtracted, "
+          f"{min(Ln['shown'])} to {max(Ln['shown'])} of {min(Ln['frames']):,} to {max(Ln['frames']):,} frames per board still show a contact, and "
+          f"{min(Ln['shown_out'])} to {max(Ln['shown_out'])} with the layout left out of its fit. UR5 presses added to the compensated frames read with a median force error of "
+          f"{rng(Ln['press_comp'], '{:.0f}')}&#8202;%, against {rng(Ln['press_noise'], '{:.0f}')}&#8202;% on the zero pose&#8217;s noise ({ref('presses')}). The analysis is "
+          f"<code>scripts/fingertip/sr2_crosstalk_hand.py</code>, with its results in <code>{LAYOUTS.relative_to(ROOT)}</code>. All of its tables are on "
+          + link(SR2_PAGE, "its result page") + ".</p>")
+    p2 = (f"<p>The analysis takes the night of Section&#160;{SEC['hand']} and the plan of 2026-11-05 up to 17:31, {A['steps']:,} steps in all. The plan took 120 random poses at each of "
+          "five grasp layouts of the transfer study, half of them with the thumb and the middle finger within 30&#8202;mm "
+          f"(<code>{(SR2 / 'plan/20261105-plan_layouts_s1.json').relative_to(ROOT)}</code>, 672 steps). It follows the owner&#8217;s direction of 2026-11-04. On 2026-11-05 the owner "
+          "lengthened the index&#8217;s cable through a second mux. An attended pass of 35 steps then ran with no blocked pose and no board fault. The first start stopped on step 32, with the "
+          "middle finger&#8217;s yaw servo 6.2&#176; short of its command, past the runner&#8217;s limit of 6&#176;. The owner swept that yaw by hand and found nothing restricting it. "
+          "A second start stopped after 8 steps, because the middle&#8217;s X stage stayed home through a 45&#8202;mm layout move, and that run is left out. The steppers are open loop, so the "
+          "middle&#8217;s mount in the two runs before it is uncertain, and they stay out of the magnet model. The plan from step 32 then ran from 13:49:27 to 17:31:24, all 643 steps "
+          "(<code>20261105-plan_layouts_s1_from32.json</code>). In the model a stage left behind reaches finger contact in five cases, so the owner confirmed each layout move after g12 by "
+          "looking at the stages. At 15:50 the middle&#8217;s yaw stuck 8.1&#176; short for about 5&#8202;s with nothing touching it, and the run went on with a limit of 10&#176; for the "
+          "yaw joints. The measured poses of the last four layouts came no closer than 11.3&#8202;mm in the model (<code>data/20261105-chain5/</code>, 523 dwells). "
+          f"Figure&#160;{FIG['layouts_film']} shows the hand at its measured poses.</p>")
+    with tempfile.TemporaryDirectory() as t:
+        mp4, poster = Path(t) / "film.mp4", Path(t) / "poster.jpg"
+        mp4.write_bytes(at_head(SR2_FILM))
+        poster.write_bytes(at_head(SR2_POSTER))
+        film = P.film(FIG["layouts_film"], mp4, poster,
+                      "The cad_v3 hand at the measured joints of the first random poses of each layout, with each board&#8217;s change in force equivalent: with no compensation (grey) "
+                      "and after the own-angle GP (black). Red text marks a pose whose uncompensated change the viewer shows as a contact. The line at 0.25&#8202;N is the viewer&#8217;s "
+                      f"force threshold. Film: <code>{SR2_FILM.relative_to(ROOT)}</code>, by <code>scripts/fingertip/sr2_crosstalk_film.py</code>.")
+    p3 = (f"<p>A finger&#8217;s own pose changes its board by a median of {rng(Ln['change'], '{:.0f}')}{uT}, {rng(Ln['change_N'])}&#8202;N in force equivalent ({ref('layouts_own')}, "
+          f"Figure&#160;{FIG['layouts']}a to c). The own-angle GP leaves {rng(folds)}{uT} at the median over five folds, and {rng(out)}{uT} with each layout left out. This page&#8217;s test was "
+          f"{test:.1f}{uT} at the 95th percentile at a layout left out of training, above which each layout would need its own training poses. That percentile is {rng(out95)}{uT}, against "
+          f"{rng(folds95)}{uT} over five folds, so the GP fails the test on every board. With the mount coordinates added to its inputs, as the plan had them, the GP leaves {rng(out_mount)}{uT} at the "
+          f"median at a layout left out. Fitted at home alone, it leaves {home[2]:.1f} and {home[0]:.1f}{uT} on the middle finger&#8217;s and the thumb&#8217;s boards. The index&#8217;s home poses are "
+          f"the night&#8217;s {own['index']['layouts']['home']} sweep steps, before its board stopped, with no random poses. Fitted on those it leaves {home[1]:.1f}{uT}, and "
+          f"{100 * idx_home['frames_shown_share']:.2f}&#8202;% of its frames show a contact. Moving the mounts changes the boards at the zero pose by {rng(Ln['moved'])}{uT}, beside a reference noise of "
+          f"{rng(Ln['noise'])}{uT}. A zero-pose reference taken at one layout is therefore good to within {max(Ln['moved']):.0f}{uT} at the others.</p>")
+    rows_own = [(FINGER_NAME[f], f"{own[f]['rows']:,}", f"{own[f]['change_uT']['median']:.1f}", f"{Ln['folds'][k]['median_uT']:.2f}", f"{Ln['folds'][k]['p95_uT']:.1f}",
+                 f"{Ln['out'][k]['median_uT']:.2f}", f"{Ln['out'][k]['p95_uT']:.1f}", f"{Ln['out_mount'][k]['median_uT']:.1f}", f"{Ln['home'][k]['median_uT']:.1f}")
+                for k, f in enumerate(FINGERS)]
+    tab_own = P.table(["Board", "Poses", "Change, median (&#181;T)", "Five folds, median (&#181;T)", "Five folds, 95th percentile (&#181;T)", "Layout left out, median (&#181;T)",
+                       "Layout left out, 95th percentile (&#181;T)", "Mounts as inputs too, layout left out, median (&#181;T)", "Home only, median (&#181;T)"],
+                      rows_own, num_cols=tuple(range(1, 9)), n=TAB["layouts_own"],
+                      caption="Each board&#8217;s change at the six layouts, and what the GP on the finger&#8217;s own three angles leaves of it, by its test.")
+    fig = P.fig(FIG["layouts"], fl,
+                "Results at six layouts of the SR2 hand. (a) to (c) Each board&#8217;s change over its poses, and what the own-angle GP leaves of it by its test, as the share of poses at or "
+                "under a value. (d) The thumb&#8217;s board in force equivalent: its change with no compensation, what the five-fold GP leaves, and the poses whose dwell the viewer shows as a "
+                f"contact with no compensation. Rows in <code>{LAYOUT_ROWS.relative_to(ROOT)}</code>.")
+    frac = lambda v: f"{v['frames_shown']:,} of {v['frames']:,}"  # noqa: E731
+    rows_view = [(FINGER_NAME[f], f"{view[f]['raw']['frames']:,}", f"{view[f]['raw']['frames_shown']:,}", f"{Ln['share'][f]:.2f}", f"{view[f]['raw']['frame_force_N_median']:.2f}",
+                  view[f]["own_angles"]["frames_shown"], view[f]["own_angles_left_out_layout"]["frames_shown"], frac(view[f]["own_angles_home_only"]))
+                 for f in FINGERS]
+    tab_view = P.table(["Board", "Frames", "No compensation, frames shown", "Its share (%)", "Its shown press, median (N)", "Own-angle GP, five folds, frames shown",
+                        "Layout left out, frames shown", "Home only, frames shown"],
+                       rows_view, num_cols=tuple(range(1, 8)), n=TAB["viewer"],
+                       caption="Contacts that the viewer shows on the 50&#8202;ms frames with nothing touching any tip. Home only tests the poses at the other layouts.")
+    pa = lambda f, test, rd: f"{pr[f][test][rd]['force_error_abs_median_pct']:.1f}"  # noqa: E731
+    pl = lambda f, rd: f"{pr[f]['own_angles'][rd]['location_error_median_mm']:.2f}"  # noqa: E731
+    rows_press = [(FINGER_NAME[f], pr[f]["own_angles"]["presses"], pa(f, "zero_pose_noise", "board_gp"), pa(f, "zero_pose_noise", "mlp"), pa(f, "raw", "board_gp"), pa(f, "raw", "mlp"),
+                   pa(f, "own_angles", "board_gp"), pa(f, "own_angles", "mlp"), pl(f, "board_gp"), pl(f, "mlp")) for f in FINGERS]
+    tab_press = P.table(["Board", "Presses", "Zero pose&#8217;s noise, board GP (%)", "Zero pose&#8217;s noise, ensemble (%)", "No compensation, board GP (%)", "No compensation, ensemble (%)",
+                         "Own-angle GP, board GP (%)", "Own-angle GP, ensemble (%)", "Own-angle GP, location error, board GP (mm)", "Own-angle GP, location error, ensemble (mm)"],
+                        rows_press, num_cols=tuple(range(1, 10)), n=TAB["presses"],
+                        caption="UR5 presses added to the hand&#8217;s frames: the median force error of the presses shown, by the frames they were added to and the readout, and the median location "
+                                "error on the compensated frames.")
+    rd = pr["readout"]
+    p4 = (f"<p>The injected presses come from a fifth of each tip&#8217;s calibration points, and both readouts were fitted without them: the board GP on {rd['training_holds_gp']:,} holds, at most 1,500 of a set, "
+          f"and the MLP ensemble on all {rd['training_holds']:,}. With no compensation the board GP&#8217;s force error is {rng(Ln['gp_err']['raw'])}&#8202;% and its location error "
+          f"{rng(Ln['gp_loc']['raw'], '{:.2f}')}&#8202;mm. On the compensated frames they are {rng(Ln['gp_err']['comp'])}&#8202;% and {rng(Ln['gp_loc']['comp'], '{:.2f}')}&#8202;mm, against "
+          f"{rng(Ln['gp_err']['noise'])}&#8202;% and {rng(Ln['gp_loc']['noise'], '{:.2f}')}&#8202;mm on the zero pose&#8217;s noise ({ref('presses')}).</p>")
+    p5 = (f"<p>What the own-angle GP leaves rises toward another pad: {rng(Ln['near50'])}{uT} at the median at 35 to 50&#8202;mm, against {rng(Ln['far70'])}{uT} beyond 70&#8202;mm. The pads came no "
+          f"closer than {Ln['closest']['driver']:.0f}&#8202;mm at the driver&#8217;s finger spacing and {Ln['closest']['cad_v3']:.0f}&#8202;mm at cad_v3&#8217;s. The magnet model lines up with the leftover at a "
+          f"median cosine of {rng(Ln['cos'], '{:.2f}')}. It needs a gain of {rng(Ln['gain']['driver'], '{:.2f}')} at the driver&#8217;s spacing and {rng(Ln['gain']['cad_v3'], '{:.2f}')} at cad_v3&#8217;s. With its "
+          f"gain it removes {100 * min(Ln['share_model']):.0f} to {100 * max(Ln['share_model']):.0f}&#8202;% of the leftover&#8217;s energy on the poses where it gives 5{uT} or more.</p>")
+    return p1 + p2 + film + p3 + tab_own + fig + tab_view + p4 + tab_press + p5
+
+
 def fig_hovers(H):
     """The map's hovers: each board's change against W, with the model with the net moments (fitted on the touch-off
     approaches) and the nominal model, scaled by the same gains."""
@@ -1004,7 +1186,7 @@ def fig_force(H, B, pg):
     return out
 
 
-def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
+def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -1040,23 +1222,23 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
     fsh = sorted(v[0] / pg["v3"] for v in fn["sw"].values())
     fsl = sorted(v[1] / pg["v3"] for v in fn["sw"].values())
     f5 = fn["five10"] / pg["v2"]
-    gp_med = [g["median_uT"] for g in rn["gp"]]
+    pc, pn = Ln["press_comp"], Ln["press_noise"]
     lede = (
-        f"On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most "
-        f"{rn['other_max']:.1f}&#8202;&#181;T, {rn['other_max_N']:.2f}&#8202;N. Rest readings differ by {rn['floor_median'][0]:.1f} to "
-        f"{rn['floor_median'][1]:.1f}&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to {rn['own_max']:.0f}&#8202;&#181;T, "
-        f"{rn['own_max_N']:.1f}&#8202;N. A Gaussian process on the finger&#8217;s own three joint angles left {gp_med[0]:.1f} and {gp_med[1]:.1f}"
-        f"&#8202;&#181;T at the median, with random poses in its training. With the thumb and the middle finger under 20&#8202;mm apart, "
-        f"{rn['near_med'][0]:.0f} to {rn['near_med'][1]:.0f}&#8202;&#181;T was left, at most {rn['near_max_N']:.2f}&#8202;N. On the UR5, two "
+        f"Over two days and six layouts of the SR2 hand, the contact viewer with no compensation would show a contact in {Ln['share']['thumb']:.1f}&#8202;% of the thumb&#8217;s "
+        f"50&#8202;ms frames with nothing touching, at a median of {Ln['press']:.1f}&#8202;N. The change comes mostly from the finger&#8217;s own pose, a median of "
+        f"{min(Ln['change']):.0f} to {max(Ln['change']):.0f}&#8202;&#181;T. With a Gaussian process on the finger&#8217;s own three joint angles subtracted, {min(Ln['shown'])} to {max(Ln['shown'])} of "
+        f"{min(Ln['frames']):,} to {max(Ln['frames']):,} frames per board still show a contact, and {min(Ln['shown_out'])} to {max(Ln['shown_out'])} with the layout left out of its fit. UR5 presses added to "
+        f"those frames read with a median force error of {min(pc):.0f} to {max(pc):.0f}&#8202;%, against {min(pn):.0f} to {max(pn):.0f}&#8202;% on the zero pose&#8217;s noise. "
+        f"At the home layout a finger moving alone changed the other fingertips&#8217; boards by at most {rn['other_max']:.1f}&#8202;&#181;T, {rn['other_max_N']:.2f}&#8202;N. On the UR5, two "
         f"four-magnet v3 tips with their pads touching changed each other&#8217;s boards by {min(con):.0f} to {max(con):.0f}&#8202;&#181;T. "
         f"A dipole model with each tip&#8217;s net moment, {min(shr):.0f} to {max(shr):.0f}&#8202;% of one magnet&#8217;s, explains {both(hov_held)} of the "
         f"change at {board} in {hn['n_hover']} hovers, against {both(hov_nom, neg)} without.")
     summary = (
-        f"Magnetic crosstalk between neighbouring fingertips: on the SR2 hand at its home layout a finger moving alone changed the other "
-        f"boards by at most {rn['other_max']:.1f} uT ({rn['other_max_N']:.2f} N), near the {rn['floor_median'][0]:.1f}-{rn['floor_median'][1]:.1f} uT "
-        f"between rest readings. A tip's own pose changed its board by up to {rn['own_max']:.0f} uT ({rn['own_max_N']:.1f} N), and a GP on the "
-        f"finger's own three angles left {gp_med[0]:.1f} and {gp_med[1]:.1f} uT at the median ({rn['near_med'][0]:.0f}-{rn['near_med'][1]:.0f} uT with the thumb and the "
-        f"middle finger under 20 mm apart). On the UR5 two four-magnet v3 tips touching changed each other's "
+        f"Magnetic crosstalk between neighbouring fingertips: over two days and six layouts of the SR2 hand the contact viewer with no compensation would show a contact in "
+        f"{Ln['share']['thumb']:.1f} % of the thumb's 50 ms frames with nothing touching (median {Ln['press']:.1f} N; middle {Ln['share']['middle']:.1f} %, index {Ln['share']['index']:.1f} %). "
+        f"A GP on the finger's own three angles leaves {min(Ln['shown'])}-{max(Ln['shown'])} of {min(Ln['frames']):,}-{max(Ln['frames']):,} frames per board ({min(Ln['shown_out'])}-{max(Ln['shown_out'])} with the layout "
+        f"left out), and injected UR5 presses read with {min(pc):.0f}-{max(pc):.0f} % median force error ({min(pn):.0f}-{max(pn):.0f} % on the zero pose's noise). At the home layout a finger moving alone changed the other "
+        f"boards by at most {rn['other_max']:.1f} uT ({rn['other_max_N']:.2f} N), against up to {rn['own_max']:.0f} uT ({rn['own_max_N']:.1f} N) from a tip's own pose. On the UR5 two four-magnet v3 tips touching changed each other's "
         f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1; at a sharpie's width "
         f"(W {SHARPIE_W[0]:.0f}-{SHARPIE_W[1]:.0f} mm) the change equals a {fsh[0]:.2f}-{fsh[1]:.2f} N face press, {fsl[0]:.2f}-{fsl[1]:.2f} N after the "
         f"dipole model with each tip's net moment ({min(shr):.0f}-{max(shr):.0f} % of one magnet), which explains "
@@ -1130,12 +1312,22 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
         ("Structured steps, random poses, five folds", "The structured steps are the single-finger families and the steps of the thumb and "
          "the middle finger toward each other. The random poses move all three fingers at once. In five folds, each fifth of the "
          "random poses is predicted by a GP trained on the other four fifths and the structured steps."),
+        ("Layout", "The three mounts&#8217; positions in the palm frame, set by the stepper gantries. g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308 are grasp layouts of the transfer study."),
+        ("Own-angle GP, layout left out, home only", f"The GP on the finger&#8217;s own three angles, with each change taken against the zero pose at the same layout. In Section&#160;{SEC['layouts']} its five folds split all of a "
+         "board&#8217;s poses at random. With a layout left out, every pose of that layout is predicted by the GP fitted on the other layouts. Home only: the poses at the other layouts are predicted by the GP fitted at home."),
+        ("Force equivalent", "A change in &#181;T over the tip&#8217;s change per newton on the UR5, 28.0 to 28.7&#8202;&#181;T/N."),
+        ("Injected press, force error, location error, readout", "An injected press is a UR5 press of the same tip, 0.25 to 3&#8202;N, whose change is added to a frame of the hand. The force error is |shown &#8722; true| / true. The location error is the "
+         "distance along the surface from the readout&#8217;s contact point to the press&#8217;s. A readout turns a board&#8217;s change into a contact point and force once the viewer shows a contact: the board GP (one GP from the 15 components to contact point and force) or "
+         "the ensemble of five networks of two hidden layers of 128 units."),
+        ("Pad distance, finger spacing, magnet model", "The pad distance is between the origins of two tips&#8217; pad frames in the cad_v2 hand&#8217;s forward kinematics, at the measured joints and the layout&#8217;s mounts. The finger spacing is the driver&#8217;s or "
+         "cad_v3&#8217;s, with each finger about 6&#8202;mm further out. The magnet model is the field of the other two tips&#8217; magnets at the board&#8217;s five chips, with each tip&#8217;s poles and strength from its calibration, as a change from the layout&#8217;s zero pose. "
+         "Its gain is one factor fitted to the leftover, and its share is the part of the leftover&#8217;s energy that it removes."),
         ("Uniform field turned with the tip", "A linear fit of a board&#8217;s change on the entries of $R(q)^\\top - R(0)^\\top$, with "
          "$R(q)$ the tip&#8217;s rotation in the CAD hand at the joint angles $q$. It represents a uniform field fixed to the hand. "
          "In the turned and moved fit the tip&#8217;s displacement is added as an input."),
-        ("Viewer, phantom contact", "The multi-board viewer&#8217;s estimator shows a contact when its fit explains a "
+        ("Viewer, false contact", "The contact viewer&#8217;s estimator (<code>src/sr2hand/driver/reskin5x/host/wrench_viewer.py</code>) shows a contact when its fit explains a "
          "&#967;&#178; of more than 25 and the force is at least 0.25&#8202;N. It uses a 2&#8202;&#181;T floor and 50&#8202;ms of "
-         "samples. A phantom contact is one shown with nothing pressing."),
+         "samples, a frame of 8 records at 160 records a second on the hand. A false contact is one shown with nothing pressing."),
         ("Steel test", "The viewer&#8217;s test for a foreign field: a field that varies slowly across the board, fitted as a "
          "far source, rejects a contact when its statistic &#923; exceeds 25 (" + link(L["steel"], "foreign-field page")
          + "). The part of the neighbour&#8217;s field that this fit does not absorb is listed as left after the far-field fit."),
@@ -1170,7 +1362,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
     tab1 = P.table(
         ["Neighbour", "Pose", "Field at the board (&#181;T)", "Left after the far-field fit (&#181;T)", "Contact shown (N)",
          "Shown with the steel test (N)", "Residual, 0.1&#8202;mm, 0.1&#176; (&#181;T)", "Residual, 0.3&#8202;mm, 0.3&#176; (&#181;T)",
-         "Residual, 1&#8202;mm, 1&#176; (&#181;T)", "Phantoms at 0.3&#8202;mm, 0.3&#176; (%)", "Gradient (&#181;T/mm)"],
+         "Residual, 1&#8202;mm, 1&#176; (&#181;T)", "False contacts at 0.3&#8202;mm, 0.3&#176; (%)", "Gradient (&#181;T/mm)"],
         [brow(r) for r in B["rows"]], num_cols=tuple(range(2, 11)), n=TAB["field"],
         caption=f"The neighbour&#8217;s field at v2 ID 1&#8217;s board by pose, and what is left after subtracting the field "
                 f"predicted at an erroneous pose. A 0.5&#8202;N press changes the board by {p05:.0f}&#8202;&#181;T. Gradient: the "
@@ -1193,9 +1385,9 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
         f"{r5('facing', 0)['pose_gradient_uT_per_mm']:.0f}&#8202;&#181;T per mm and {r5('facing', 0)['pose_gradient_uT_per_deg']:.0f}"
         f"&#8202;&#181;T per degree. Side by side it changes by {r5('side', 0)['pose_gradient_uT_per_mm']:,.0f}&#8202;&#181;T per mm. "
         "Small motions of the fingers therefore appear as a field that varies by tens to hundreds of &#181;T. Without the "
-        f"steel test the viewer would show a phantom contact of {min(r['shown_N'] for r in shown):.1f}&#8211;"
+        f"steel test the viewer would show a false contact of {min(r['shown_N'] for r in shown):.1f}&#8211;"
         f"{max(r['shown_N'] for r in shown):.0f}&#8202;N at {len(shown)} of the 22 poses. The steel test rejects all of them "
-        + (f"but one, an {gate4['shown_gate_N']:.1f}&#8202;N phantom from four magnets side by side at "
+        + (f"but one, an {gate4['shown_gate_N']:.1f}&#8202;N false contact from four magnets side by side at "
            f"{gate4['pose'].split('g ')[1]}." if gate4 else ".")
         + " Much of the side-by-side field is not a far field: "
         f"{r5('side', 0)['after_far_uT']:,.0f}&#8202;&#181;T of it is left after the steel test&#8217;s far-field fit at contact.</p>")
@@ -1212,6 +1404,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
 
     # 4. measured on the SR2 hand
     S_.append(("hand", "Crosstalk and own-pose change measured on the SR2 hand", hand_section(R, rn, fa, mp4, poster)))
+    S_.append(("layouts", "False contacts and the own-angle GP at six layouts of the SR2 hand", layouts_section(A, Ln, rn, fl)))
 
     # 5. subtraction from the joint angles
     sub = (
@@ -1223,7 +1416,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
         f"Facing, the residual stays below a 0.5&#8202;N press from 5&#8202;mm on ({k3(r5('facing', 5))['residual_uT_median']:.0f}"
         f"&#8202;&#181;T). Side by side it equals that press at 10&#8202;mm ({k3(r5('side', 10))['residual_uT_median']:.0f}&#8202;&#181;T) "
         f"and falls to {k3(r5('side', 20))['residual_uT_median']:.1f}&#8202;&#181;T at 20&#8202;mm.</p>"
-        f"<p>At 0.3&#8202;mm and 0.3&#176; the viewer shows a phantom contact in {100 * k3(r5('facing', 0))['shown_frac']:.0f}&#8202;% of "
+        f"<p>At 0.3&#8202;mm and 0.3&#176; the viewer shows a false contact in {100 * k3(r5('facing', 0))['shown_frac']:.0f}&#8202;% of "
         f"the draws facing and touching. Side by side within 5&#8202;mm it shows one in "
         f"{100 * min(k3(r5('side', g))['shown_frac'] for g in (0, 2, 5)):.0f}&#8211;"
         f"{100 * max(k3(r5('side', g))['shown_frac'] for g in (0, 2, 5)):.0f}&#8202;%, and the steel test passes "
@@ -1313,33 +1506,27 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
         "the UR5 and of ID 3 on the bench.</p>"
         f"<p>The sweep of Section&#160;{SEC['hand']} ran with the arm still, no contact on any tip and the gantries at the home layout. "
         f"Only {rn['near_n']} of its poses lie under 20&#8202;mm, and none under {CLOSEST_MM}&#8202;mm. The index&#8217;s board ended at 19:43:52. "
-        "The GP&#8217;s five folds predict random poses of the session that trained it, with the drift between zero dwells taken out.</p>")))
+        "The GP&#8217;s five folds predict random poses of the session that trained it, with the drift between zero dwells taken out.</p>"
+        f"<p>In Section&#160;{SEC['layouts']} nothing touched the tips, so contacts are only injected, and a press on the hand also moves the finger, which the injection does not include. "
+        "The pad frames come from the cad_v2 model at the stepper counts.</p>")))
 
     # 9. future work
     fw = [
-        ("The layout sweep on the SR2 hand.", "The plan took 120 random poses at each of five grasp layouts of the transfer "
-         f"study, half of them with the thumb and the middle finger within 30&#8202;mm (<code>{(SR2 / 'plan/20261105-plan_layouts_s1.json').relative_to(ROOT)}</code>, "
-         "672 steps). It follows the owner&#8217;s direction of 2026-11-04. On 2026-11-05 the owner lengthened the index&#8217;s cable through a second "
-         "mux. An attended pass of 35 steps then ran with no blocked pose and no board fault (<code>20261105-plan_layouts_attended.json</code>). The first start stopped "
-         "on step 32, with the middle finger&#8217;s yaw servo 6.2&#176; short of its command, past the runner&#8217;s limit of 6&#176;. The owner "
-         "swept that yaw by hand and found nothing restricting it. A second start stopped after 8 steps, because the middle&#8217;s X stage stayed home through a 45&#8202;mm layout move. "
-         "The steppers are open loop, so the middle&#8217;s mounts in the two earlier runs are uncertain. The plan from step 32 then ran from 13:49:27 to 17:31:24, all 643 steps "
-         "(<code>20261105-plan_layouts_s1_from32.json</code>). In the model a stage left behind reaches finger contact in five cases, so the owner confirmed each layout move after "
-         "g12 by looking at the stages (<code>plan/20261105-from32_chunks/</code>). One stop remained. At 15:50 the middle&#8217;s yaw stuck 8.1&#176; short for about 5&#8202;s with "
-         "nothing touching it, and the run went on with a limit of 10&#176; for the yaw joints. A second plan takes 120 random poses at each of four layouts of the HOM task-conflict "
-         "study, and 60 at a fifth (<code>plan/20261105-plan_layouts_hom_s1.json</code>, 607 steps). It has run since 18:01:08. The coordinator&#8217;s tolerance check puts two fingers "
-         "short of their goals along their moves, by up to that limit on a yaw and 3&#176; on mcp and pip (<code>scripts/fingertip/sr2_plan_tolerance_check.py</code>). Those fingers "
-         "would touch in the model&#8217;s collision spheres on 17 to 22 steps of each layout, at most 3.8&#8202;mm deep. So the runner now computes the clearance of the measured joints "
+        ("The HOM layouts on the SR2 hand.", "A second plan takes 120 random poses at each of four layouts of the HOM task-conflict study, and 60 at a fifth "
+         f"(<code>{(SR2 / 'plan/20261105-plan_layouts_hom_s1.json').relative_to(ROOT)}</code>, 607 steps). It has run since 18:01:08 on 2026-11-05. The coordinator&#8217;s tolerance check puts two fingers "
+         "short of their goals along their moves, by up to 10&#176; on a yaw and 3&#176; on mcp and pip (<code>scripts/fingertip/sr2_plan_tolerance_check.py</code>). Those fingers "
+         "would touch in the model&#8217;s collision spheres on 17 to 22 steps of each layout, at most 3.8&#8202;mm deep. So the runner computes the clearance of the measured joints "
          "after each pose and backs out under 5&#8202;mm (<code>lab/run_plan.py --min-clearance 5</code>). It also stops a run on a fault in the boards&#8217; stream. Replayed on the "
          "night&#8217;s log, that check gave no false alarm in 968 windows before 19:43:52 and flagged every window after. The runbook is <code>"
-         + str((SR2 / "README.md").relative_to(ROOT)) + "</code>. The analysis of these runs is in progress (<code>scripts/fingertip/sr2_crosstalk_hand.py</code>). "
-         "The GP takes the mount coordinates as inputs, so the term learned at some layouts is tested at the "
-         f"others. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile at a layout left out of training means that each layout needs its own "
-         "training poses."),
-        ("The thumb and the middle finger under 20&#8202;mm apart.", f"Only {rn['near_n']} poses lie there, and the closest step is {CLOSEST_MM}&#8202;mm apart in "
-         "the model. In the layout plan the straight moves clear 11.8 to 12.1&#8202;mm in the model. A replay in 3&#176; waypoints, with the closest pair&#8217;s "
-         f"joints at their extremes, gives at least 8.5&#8202;mm. The measured poses of the last four layouts came no closer than 11.3&#8202;mm in the model (<code>data/20261105-chain5/</code>, 523 dwells). The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the "
-         f"{rn['far_med'][0]:.1f} to {rn['far_med'][1]:.1f}&#8202;&#181;T of the far poses is left, the net moments do not describe the neighbour on the hand."),
+         + str((SR2 / "README.md").relative_to(ROOT)) + f"</code>. The analysis reruns with this run once the lab has pushed it (<code>sr2_crosstalk_hand.py --sets 20261104 20261105</code>). A share of frames shown above the "
+         f"{100 * max(A['viewer'][f]['own_angles_left_out_layout']['frames_shown_share'] for f in FINGERS):.2f}&#8202;% of Section&#160;{SEC['layouts']}, at a layout left out, means that the own-angle GP does not reach these layouts."),
+        ("The viewer on the hand with the own-angle GP subtracted live.", "<code>wrench_viewer.py</code> takes a GP of each finger&#8217;s three angles from the station&#8217;s telemetry. Each tip is then pressed with a "
+         f"known force at the HEX-E. A false contact while the fingers move, or a press error above the injected one of Section&#160;{SEC['layouts']}, falsifies the compensation."),
+        ("Pads under 25&#8202;mm apart.", f"The pads of Section&#160;{SEC['layouts']} came no closer than {Ln['closest']['driver']:.0f}&#8202;mm at the driver&#8217;s spacing, with {min(Ln['under35'])} to {max(Ln['under35'])} poses per "
+         f"board under 35&#8202;mm. At cad_v3&#8217;s spacing the magnet model with its gain leaves {min(Ln['after_near']):.1f} and {max(Ln['after_near']):.1f}&#8202;&#181;T at 35 to 50&#8202;mm, against "
+         f"{min(Ln['after_far']):.1f} to {max(Ln['after_far']):.1f}&#8202;&#181;T beyond 70&#8202;mm. The cover and press layouts of the HOM plan bring the pads closer. Where they come within 25&#8202;mm, a gain near 1 at cad_v3&#8217;s spacing supports the "
+         "CAD&#8217;s finger positions, and a gain near 0.4 at the driver&#8217;s spacing supports the driver&#8217;s. Measuring each finger&#8217;s yaw axis in the palm frame with the UR5 fixes that spacing (the cad_v3 page&#8217;s Future work). "
+         f"The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the far poses&#8217; value is left, the net moments do not describe the neighbour on the hand."),
         ("Random poses at the home layout in a new session.", "The first sweep stopped after 327 of the 600 random poses of "
          f"<code>{(SR2 / 'plan/20261104-plan_random_s1_v3.json').relative_to(ROOT)}</code>, and <code>20261104-plan_random_s2_v3.json</code> did not run. A GP trained on "
          f"the first sweep is then tested on those poses. More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means that the five folds of "
@@ -1348,10 +1535,6 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster):
          "room&#8217;s field. Zero dwells and about 20 random poses at a second orientation of the flange test this, moved under program control (owner: "
          f"no freedrive with the hand on the UR5). More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means the GP needs the "
          "hand&#8217;s orientation as an input."),
-        ("Phantom contacts during motion.", f"More than 0.25&#8202;N is left at {R['subtract']['thumb']['gp_own_angles_five_folds']['over_0p25N']} and "
-         f"{R['subtract']['middle']['gp_own_angles_five_folds']['over_0p25N']} of the {rn['random']} random poses. The sweep&#8217;s records, less the GP&#8217;s "
-         "prediction, go through the viewer&#8217;s estimator and its steel test. A contact shown with nothing touching means the subtraction is too "
-         "coarse for the viewer on the hand."),
         ("The neighbour&#8217;s field on the holder.", f"The map of the "
          + link(L["v3"], "plan for the four-magnet v3 tips") + " and the close hovers over the &#8722;y tip ran on 2026-10-27 "
          f"(Section&#160;{SEC['holder']}). The map&#8217;s geometry is drawn in Figure&#160;{FIG['render']}. Each held tip&#8217;s "
@@ -1421,7 +1604,10 @@ def build():
     rn = hand_numbers(R)
     fa = fig_hand(R, rn)
     mp4, poster = film_sweep()
-    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster)
+    A = json.loads(at_head(LAYOUTS))
+    Ln = layouts_numbers(A)
+    fl = fig_layouts(A, np.load(io.BytesIO(at_head(LAYOUT_ROWS)), allow_pickle=False))
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl)
     assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
@@ -1431,7 +1617,8 @@ def build():
               "<code>scripts/fingertip/fingertip_crosstalk_holder.py</code> (commits 53993cbc to d4fa2c07); v3 ID 1&#8217;s presses on the low "
               "sphere in session 225213-spherev3id1 against v2 ID 1&#8217;s, compared by "
               "<code>scripts/ur5/ur5_tip_calibration_four_vs_five.py</code> (commit 449464c4); the lab&#8217;s sweep of three v3 tips on the SR2 hand "
-              "on 2026-11-04, analysed by <code>scripts/fingertip/sr2_crosstalk_night.py</code> (commit 9a0e05a5). Analysis "
+              "on 2026-11-04, analysed by <code>scripts/fingertip/sr2_crosstalk_night.py</code> (commit 9a0e05a5), and with the lab&#8217;s plan of 2026-11-05 by "
+              "<code>scripts/fingertip/sr2_crosstalk_hand.py</code> (commit 52593152). Analysis "
               "<code>scripts/fingertip/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
