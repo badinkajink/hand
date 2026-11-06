@@ -213,7 +213,7 @@ cannot reach ends the run and the chain.
 | `run3_from32` | 13:32:40 to 13:36:24 | 8 of 643 | the lab's STOP: the middle's X stage had stayed at home |
 | `run4_from32` | 13:49:27 to 14:10:03 | 105 of 643 | g12 done; the lab's STOP, so the rest could run gated (below) |
 | `chain5` | 14:11:39 to 17:31:24 | 538 of 538 | chain done: four layouts and home, one stop (rv04_mid step 44) |
-| `hom1` | from 18:01:08 | 607 | running, with `--min-clearance 5` |
+| `hom1` | 18:01:08 to 20:58:11 | 607 of 607 | chain done: five HOM layouts and home; two stops from the lab's disk writes |
 
 In `run1_attended` the nine holds settled within 4.2 deg of their commands. The middle's yaw lagged most: 3.9 and
 4.2 deg at -37 and -22 deg. The boards gave 160.5 records/s, never under 152 in a second, with no zeroed chip. The
@@ -314,6 +314,28 @@ on 11 to 35 steps of each remaining layout and 17 to 22 of each HOM layout, up t
 It started at 18:01:08 from home, after corvus pulled the merges of QUEUE R35's parts B and C with the hand idle. The
 owner confirmed the roll move at 18:04: "yes, only the thumb x has moved, looks centered. the Y-axis on all of them
 have moved inward about the same".
+- Every pose ran, and the gate backed out none. The closest measured poses per layout: roll 14.6 mm, press 13.0,
+  generalist 10.8, twist 11.0, cover 11.9. The largest errors were 7.1 deg on a yaw and 5.6 deg on an mcp or pip.
+- Two stops, both the lab's doing. At 18:07 a `git worktree add` wrote GBs to corvus's disk, with memory tight
+  (`/dev/shm` held 9 GB). At 18:28 the first try of the data push did the same: its rate cap counted from the script's
+  start, so 240 MB went out at once. Both times the board logger fell behind, and the runner's board watch stopped roll
+  (18:09:10 at step 25, 18:29:02 at step 70). Roll resumed each time from the stopped step. The board log thinned to
+  120 to 150 records a second for about 3 min and 20 s, with no gap over 0.5 s. Since then nothing writes more than a
+  few MB a second on corvus while the hand runs.
+- The owner confirmed press at 19:17. Then, at 19:1x: "you can go ahead on this with my validation, and run the
+  remaining configurations with my go-ahead, but i wont be able to verify personally. maybe you can do some
+  intelligent geometry processing with the d435 to roughly estimate travel of each finger".
+- `lab/d435_rgbd.py` records the D435's colour and depth every 2 s. `lab/layout_travel.py` registers each finger's depth
+  patch from before a move on the frame after it, and converts the shift into palm x and y through the camera's 8 deg
+  turn and its perspective. Generalist read -19.9 and +19.6 mm (plan -20, +20). Twist read the carriages -16.0, +16.3
+  and +17.6 (-15, +15, +15) and the X stages -21.4 and +17.6 (-20, +20). Cover read the carriages +26.1, -26.5 and
+  -26.7 (+25, -25, -25). On frame pairs where nothing moved, every axis read 0 to 4 mm. The lab released those three
+  gates on these readings. The lab's lights went out at 20:12; depth, lit by the camera's own projector, read on.
+- The move home (20:55 to 20:57) read right for the thumb and the index. The middle stood hidden behind the thumb and is
+  unconfirmed: before the next run, the owner looks at the middle's two stages.
+- The data from 12:20 to 21:00 is in `data/20261105-day/` (branch `sr2-crosstalk-data-20261105`, 7f04aa8d1 and
+  097cdc0e3; merged at ddcb02497 for the first part). It holds the board log cut by t, every run's events, telemetry
+  and progress, and manifests that list the uncertain stretches.
 
 ## Known limits
 
