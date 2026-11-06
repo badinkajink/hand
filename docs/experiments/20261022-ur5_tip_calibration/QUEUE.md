@@ -1979,6 +1979,36 @@ push that answers it arrives.
       holder programs start, and `check_scripts.py` reports its 11 known problems. The lab's check above still runs on
       corvus before the arm next uses the rig or a rebuilt plan.
 
+- R36 (open, 12:3x on 11-06; owner, 12:3x in the workstation's window: "i put the ur5 computer in charge of doing more
+  sysid, it has the go ahead. should be mostly benign stuff anyway. you're the coordinator"). Servo identification of the
+  SR2 hand's nine SCS0009 servos as the hand hangs on the UR5, the arm powered off. The lab runs it; the workstation
+  checks the plans and fits the data. The protocol is
+  `docs/experiments/20261013-servo_identification/20261013-servo_identification_protocol.html`.
+  - The lab's plan (12:3x): at the home layout, one joint at a time, through `run_plan.py --min-clearance 5
+    --max-blocked 1 --keep-home`. (a) 09-02's staircase on every mcp and pip, 5 to 61 to 5 deg in 4 deg steps (the
+    index's mcp to 49), speed 80, dwells of 0.45 s. (b) The same on the yaws, -36 to +36 to -36 deg. (c) Yaw steps from
+    0 to +A, back, to -A and back for A 20, 30 and 40 deg, 10 s each, with `--ramp-deg 0` and `--max-err-yaw 15`. Two
+    passes of (a) and (b), and the registers read only with the station stopped. No stepper moves, no contact, no arm
+    motion; unattended; about 50 min. Data: `logs/20261106-sr2_sysid/` on corvus, pushed to branch
+    `sr2-sysid-20261106` after each block.
+  - The workstation's answer (12:43): approved with six changes.
+    1. The clearance check also at the middle's corners (80, -37.5) and (25, -85) palm mm, as well as home and cover's
+       mounts. The stages move one axis at a time, and joint 4 skipped a whole move on 11-05. In cad_v2 the moving
+       joint was let fall short toward zero by up to its limit and pass its goal by up to 3 deg (yaw) or 1.5 deg (mcp,
+       pip); the held joints were within 3 and 1.5 deg (`scripts/fingertip/sr2_plan_tolerance_check.py PLAN --box grav
+       --short-yaw 15 --at middle=X,Y`). With the middle at home every pair stays 40 mm or more apart. At (80, -37.5)
+       the middle's yaw at +40 comes 28.0 mm from the index, 20.5 mm with the box. At cover's mounts the thumb's mcp at
+       61 comes 24.1 mm from the middle (20.6 mm), and at (25, -85) 26.2 mm (22.0 mm).
+    2. 15 deg for (c), run after (a) and (b).
+    3. The registers last; then the station stays stopped, with no re-arm until the owner has looked at the middle.
+    4. Pass 2 of (a) and (b) with dwells of 2 s, for the steady droop.
+    5. (c) a second time with the tested finger's mcp at 40 deg.
+    6. The register reader to the workstation before it runs: read only, its addresses from Feetech's SCSCL map. A D435
+       frame of the fingertip cables at the start and at the end.
+  - Next: the lab's plan file, clearance check and register reader, and the workstation's check of them. Then the fits:
+    each joint's droop against the CAD's gravity torque, the gap between the staircase's up and down branches, and the
+    yaw stalls.
+
 - R30 (draft, 18:01 on 10-27; owner: "the 4 n52 magnet fingertips are about ready ... the fingertip indenter (for
   testing crosstalk) is also ready, and i could put the other two 4 n52 magnet fingertips on it (from now on ill just call
   them v3, no ids yet). then we could run a super complete calibration suite + crosstalk analysis"). The plan is

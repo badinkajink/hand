@@ -6,14 +6,21 @@ runner walks it. At each waypoint the pairs of fingers under 40 mm apart (cad_v2
 64 corners of a box on the pair's six joints, the third finger at the waypoint.
   --box sym     each joint anywhere within the runner's limits of the waypoint, +-10 deg on a yaw, +-6 on mcp and pip
   --box short   (default) each joint short of the waypoint along its move by up to SHORT deg or past it by up to PAST;
-                a joint that does not move keeps the interval of its last move. The night of 11-04 measured, at 711
+                a joint that does not move keeps the interval of its last move.
+  --box grav    hanging, gravity pulls every joint toward zero: each joint short of the waypoint toward zero by up to
+                SHORT (and past zero by at most PAST), or away from zero by up to PAST; on a move toward zero it may lag
+                up to its start (at most SHORT). A joint the move leaves at zero stays within PAST of it. Moves that
+                cross zero in one step are not modelled (the sysid plans of 11-06 have none). The night of 11-04 measured, at 711
                 dwells, shortfalls along the move of at most 3.2 to 5.6 deg on the yaws and 1.3 to 5.8 on mcp and pip
                 (p95 2.5 to 3.5 and 0.8 to 1.9), and overshoots of at most 2.5 to 3.0 deg on the yaws and 0.8 to 1.5 on
                 mcp and pip.
 Usage:
   .venv/bin/python scripts/fingertip/sr2_plan_tolerance_check.py CHUNK_DIR [FIRST_LAYOUT [FIRST_STEP]] [--box sym|short]
       [--short-yaw 10] [--past-yaw 3] [--short-curl 3] [--past-curl 1.5]
-FIRST_STEP is the index of the first step of FIRST_LAYOUT's poses chunk to check (default 0)."""
+  .venv/bin/python scripts/fingertip/sr2_plan_tolerance_check.py PLAN.json [--at middle=80,-37.5] [--box ...]
+FIRST_STEP is the index of the first step of FIRST_LAYOUT's poses chunk to check (default 0). A single plan file (the
+sysid plans of 11-06) is checked at its first mounts step, or at the home layout when it has none; --at FINGER=X,Y puts a
+finger's mounts at palm X, Y mm instead (repeatable), for a stage whose last move is unconfirmed."""
 import argparse
 import itertools
 import json
@@ -79,9 +86,25 @@ def interval(a, last, start, target):
     return e0, e1, d
 
 
+def grav_box(a, start, target, w):
+    """--box grav: each joint's offsets (lo, hi) about the waypoint w of the move start -> target."""
+    short = np.tile([a.short_yaw, a.short_curl, a.short_curl], 3)
+    past = np.tile([a.past_yaw, a.past_curl, a.past_curl], 3)
+    s = np.sign(np.where(w != 0, w, np.where(target != 0, target, start)))
+    lag = np.where(np.abs(start) > np.abs(target), np.clip(np.abs(start) - np.abs(w), 0.0, short), 0.0)
+    away = past + lag
+    toward = np.minimum(short, np.abs(w) + past)
+    lo, hi = np.where(s >= 0, -toward, -away), np.where(s >= 0, away, toward)
+    still = (start == 0) & (target == 0)
+    return np.where(still, -past, lo), np.where(still, past, hi)
+
+
 def walk(a, local, start, target, last):
     lo, hi, d = interval(a, last, start, target)
     n = int(np.max(np.abs(target - start)) // 3.0) + 1
+    if a.box == "grav":
+        ws = [start + (target - start) * i / n for i in range(n + 1)]
+        return min((at(local, w, *grav_box(a, start, target, w)) for w in ws), key=lambda r: r[1]), d
     return min((at(local, start + (target - start) * i / n, lo, hi) for i in range(n + 1)), key=lambda r: r[1]), d
 
 
@@ -90,14 +113,17 @@ def main():
     ap.add_argument("chunks")
     ap.add_argument("first", nargs="?", type=int, default=1)
     ap.add_argument("first_step", nargs="?", type=int, default=0)
-    ap.add_argument("--box", choices=("sym", "short"), default="short")
+    ap.add_argument("--box", choices=("sym", "short", "grav"), default="short")
     ap.add_argument("--short-yaw", type=float, default=10.0)
     ap.add_argument("--past-yaw", type=float, default=3.0)
     ap.add_argument("--short-curl", type=float, default=3.0)
     ap.add_argument("--past-curl", type=float, default=1.5)
+    ap.add_argument("--at", action="append", default=[], help="FINGER=X,Y: that finger's mounts at palm X, Y mm")
     a = ap.parse_args()
-    D, first, first_step = Path(a.chunks), a.first, a.first_step
     print(json.dumps(vars(a)), flush=True)
+    if a.chunks.endswith(".json"):
+        return check_plan(a)
+    D, first, first_step = Path(a.chunks), a.first, a.first_step
     for mf in sorted(D.glob("*_mounts.json"), key=lambda p: int(p.name.split("_")[0])):
         lay = mf.name[: -len("_mounts.json")]
         pf = D / f"{lay}_poses.json"
@@ -127,6 +153,38 @@ def main():
             w = m if m[1] <= r[1] else r
             print(f"   step {k}: {'move' if w is m else 'return'} nominal {w[0]:.1f}, tolerance {w[1]:.1f} mm {w[2]}"
                   + (f" at {json.dumps(pose(np.round(w[3], 1)))}" if w[3] is not None else ""), flush=True)
+
+
+HOME_PALM = {"thumb": (-80.0, -55.0), "index": (80.0, 85.0), "middle": (80.0, -85.0)}
+
+
+def check_plan(a):
+    """One plan file: every joints step walked from the last, and its safety return, at one set of mounts."""
+    steps = json.load(open(a.chunks))["steps"]
+    st0 = next((s for s in steps if s["op"] == "mounts"), None)
+    palm = {f: (st0["mounts"][f]["x"], st0["mounts"][f]["y"]) for f in F} if st0 else dict(HOME_PALM)
+    for spec in a.at:
+        f, xy = spec.split("=")
+        palm[f] = tuple(float(v) for v in xy.split(","))
+    local = {f: (palm[f][0] - ORIGIN[f][0], palm[f][1] - ORIGIN[f][1]) for f in F}
+    cur, last, rows = np.zeros(9), np.zeros(9), []
+    for k, st in enumerate(steps):
+        if st["op"] != "joints":
+            continue
+        tgt = np.array([st["joints"][f][j] for f in F for j in J], float)
+        mv, last = walk(a, local, cur, tgt, last)
+        ret = walk(a, local, tgt, np.zeros(9), last)[0] if np.any(tgt) else mv
+        rows.append((k, mv, ret, st.get("family")))
+        cur = tgt
+    neg = [r[0] for r in rows if min(r[1][1], r[2][1]) < 0]
+    print(f"mounts (palm mm) {json.dumps(palm)}; {len(rows)} joints steps: moves nominal "
+          f"{min(r[1][0] for r in rows):.1f} mm, with tolerance {min(r[1][1] for r in rows):.1f} mm; safety returns "
+          f"nominal {min(r[2][0] for r in rows):.1f} mm, with tolerance {min(r[2][1] for r in rows):.1f} mm; steps under "
+          f"0 with tolerance: {len(neg)} {neg[:20]}", flush=True)
+    for k, m, r, fam in sorted(rows, key=lambda r: min(r[1][1], r[2][1]))[:5]:
+        w = m if m[1] <= r[1] else r
+        print(f"   step {k} ({fam}): {'move' if w is m else 'return'} nominal {w[0]:.1f}, tolerance {w[1]:.1f} mm "
+              f"{w[2]}" + (f" at {json.dumps(pose(np.round(w[3], 1)))}" if w[3] is not None else ""), flush=True)
 
 
 if __name__ == "__main__":
