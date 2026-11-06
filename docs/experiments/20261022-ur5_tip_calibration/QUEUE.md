@@ -2023,7 +2023,7 @@ push that answers it arrives.
     waits for the owner; the registers are still read with the station stopped.
   - 13:12:49 to 13:44:50: the chain ran all six blocks to the end, with no pose blocked; the registers were read at 13:45
     with the station stopped, and it stays stopped (lab, 25a261ad6).
-  - Result (workstation, 14:5x): `docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html`
+  - Result (workstation, 14:1x): `docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html`
     (c658432e2; `scripts/hardware/sr2_servo_sysid_fit.py`, `_page.py`, `_film.py`). No drive within 2 encoder steps
     (0.59 deg), then 27.5 + 14.6 per mille a step: 0.55 N m/rad at the datasheet's stall torque scaled to the measured
     5.0-5.2 V supply, against the HOM plant's 0.72 with no dead band or friction. Friction bands of +-23 and +-27 mN m on
