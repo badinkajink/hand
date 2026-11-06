@@ -30,6 +30,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import docs_index  # noqa: E402
+import code_blocks as CB  # noqa: E402
+import hom_adjoint_widget as AW  # noqa: E402
+import hom_code_anchors as CA  # noqa: E402
 import hom_rows  # noqa: E402
 import hom_review_figures as HF  # noqa: E402
 import retro_style  # noqa: E402
@@ -60,6 +63,19 @@ REFS = [
 FIG = [0]
 FILM = [0]
 TAB = [0]
+ALG = [0]
+# figures and tables in the order they appear, so that the text can name a number before the item is drawn
+FIG_ORDER = ["pinpush", "eq1", "adjoint", "adjoint_explore", "planar", "brake", "geodesic", "filter_real", "filter_speed",
+             "calib_err",
+             "sensing", "mpc_twist", "mpc_step"]
+TAB_ORDER = ["eq1_twists", "filter_real", "diffs", "req", "gpu_check", "sensing", "calib", "mpc_timing", "mpc_planner"]
+FN = {k: i + 1 for i, k in enumerate(FIG_ORDER)}
+TN = {k: i + 1 for i, k in enumerate(TAB_ORDER)}
+FIG_CSS = (".alg { text-align: left !important; margin: 16px 0 !important; } .alg figcaption { margin-bottom: 6px; } "
+           "details.explore { margin: 10px 0 16px; } details.explore > summary { cursor: pointer; font-size: 17px; }")
+HOM = "src/sr2hand/control/hom.py"
+SURF = "src/sr2hand/control/surfaces.py"
+ALG_RE = re.compile(r"\\begin\{algorithmic\}.*?\\end\{algorithmic\}", re.S)
 
 
 def esc(s):
@@ -86,8 +102,10 @@ def data_uri(p, mime):
     return f"data:{mime};base64,{base64.b64encode(Path(p).read_bytes()).decode()}"
 
 
-def img(path, caption, width=None):
+def img(path, caption, width=None, key=None):
     FIG[0] += 1
+    if key is not None:
+        assert FN[key] == FIG[0], (key, FN[key], FIG[0])
     w = f' style="max-width:{width}px"' if width else ""
     return (f'<figure><img src="{data_uri(path, "image/png")}" alt=""{w}>'
             f'<figcaption>Figure {FIG[0]}. {caption}</figcaption></figure>')
@@ -102,8 +120,10 @@ def film(path, caption, poster=None):
             f'src="{data_uri(path, "video/mp4")}"></video><figcaption>Film {FILM[0]}. {caption}</figcaption></figure>')
 
 
-def table(head, body, caption, num_from=1):
+def table(head, body, caption, num_from=1, key=None):
     TAB[0] += 1
+    if key is not None:
+        assert TN[key] == TAB[0], (key, TN[key], TAB[0])
     h = "".join(f'<th class="{"n" if i >= num_from else ""}">{c}</th>' for i, c in enumerate(head))
     b = "".join("<tr>" + "".join(f'<td class="{"n" if i >= num_from else ""}">{c}</td>' for i, c in enumerate(r))
                 + "</tr>" for r in body)
@@ -111,12 +131,24 @@ def table(head, body, caption, num_from=1):
             f'<tbody>{b}</tbody></table></div>')
 
 
+def alg(caption, body):
+    """An algorithm as a LaTeX algorithmic block, rendered by texsvg; inline math inside it is \\( ... \\)."""
+    ALG[0] += 1
+    return (f'<figure class="alg"><figcaption><b>Algorithm&#160;{ALG[0]}.</b> {caption}</figcaption>'
+            f"\\begin{{algorithmic}}[1]\n{body}\n\\end{{algorithmic}}</figure>")
+
+
 def render(page_text, holder):
+    blocks = ALG_RE.findall(page_text)
+    page_text = ALG_RE.sub(lambda m: "\x00ALG\x00", page_text)
     items = [((m.group(1) if m.group(1) is not None else m.group(2)).strip(), m.group(1) is not None)
              for m in TEX_RE.finditer(page_text)]
-    svgs = iter(texsvg.render(items, cache_path=TEX_CACHE))
+    svgs = texsvg.render(items + [(b, "block") for b in blocks], cache_path=TEX_CACHE)
+    it = iter(svgs[:len(items)])
     holder.append(len(items))
-    return TEX_RE.sub(lambda m: next(svgs), page_text)
+    page_text = TEX_RE.sub(lambda m: next(it), page_text)
+    ib = iter(svgs[len(items):])
+    return re.sub("\x00ALG\x00", lambda m: next(ib), page_text)
 
 
 # ------------------------------------------------------------------------------------------------ data
@@ -241,8 +273,13 @@ def sec_terms():
     terms = [
         ("Hand-object mechanism (HOM)", "the hand, the object and the generalized contact frames, treated as one "
          "parallel mechanism whose contacts act as joints [1]."),
-        ("Twist", r"the angular velocity $\omega$ and linear velocity $v$ of a rigid body, six numbers. The adjoint "
-         r"$\mathrm{Ad}_T$ of a pose $T$ is the 6 by 6 matrix that re-expresses a twist in another frame [4]."),
+        ("Pose $T_{XY}$", r"the pose of frame $\{Y\}$ seen from frame $\{X\}$. Its rotation $R_{XY}$ has $\{Y\}$'s axes, "
+         r"written in $\{X\}$'s, as columns. Its position $p_{XY}$ is $\{Y\}$'s origin in $\{X\}$."),
+        ("Twist", r"the angular velocity $\omega$ of a rigid body and the velocity $v$ of its point at a frame's origin, "
+         r"both written in that frame's axes: six numbers. A body twist $\mathcal{V}^b_{PB}$ is the motion of $\{B\}$ "
+         r"relative to $\{P\}$, written in $\{B\}$."),
+        ("Adjoint", r"$\mathrm{Ad}_{T_{AB}}$, the 6 by 6 matrix that turns a twist measured at $\{B\}$ into the same motion "
+         r"measured at $\{A\}$ [4]: the same $\omega$, the velocity of $\{A\}$'s point, both in $\{A\}$'s axes."),
         ("Generalized contact frame (GCF)", "a pair of frames per finger, one fixed to the finger's distal link and "
          "one to the object. When the two bodies are apart, the frames sit at their closest points; when they touch, "
          "at the contact. Axis $x$ is the contact normal and axis $y$ is the finger's joint axis laid into the tangent "
@@ -254,10 +291,15 @@ def sec_terms():
          "pinch is two fingers on opposite sides of the object with equal and opposite forces. The pusher is one "
          "finger that turns the object about the pinch axis or supports it."),
         ("Centre of pressure (CoP)", "the force-weighted mean of the points where a fingertip touches the object."),
+        ("Shape operator $S$", "the rate at which a surface's normal turns per unit of travel along the surface; its "
+         "eigenvalues in the tangent plane are the principal curvatures (1/mm)."),
+        ("Geodesic step", "a move of a point along a surface; the library follows the arc of the osculating circle and "
+         "projects its end back onto the surface."),
         ("Servo plant", r"the simulated finger servos. The task study ran on the 1 N m plant, with stiffness $k_p$ = "
          "4 N m/rad and a 1 N m torque limit. The SCS0009 bench servo is 0.72 N m/rad, with a 0.18 N m stall torque."),
-        ("Sphere pads", "the printed TPU fingertip block modelled as 1 mm spheres in MuJoCo (pad builder v2), the "
-         "project's default fingertip."),
+        ("Sphere pads", "a fingertip modelled in MuJoCo as small spheres under its surface, the project's default "
+         "fingertip model: 1,018 spheres of 0.75 mm radius for the v4b pad (pad builder v2). The sensing runs of "
+         "Section 9, made on 29 October, used the printed TPU block of the cad_v1 hand."),
         ("Held", "the object ends no more than 15 mm below its start, and at least two fingers bear load."),
         ("Pinch-angle RMSE", "root-mean-square difference between the cylinder's angle about the pinch axis and the "
          "command (deg), for the pin-push and the press."),
@@ -310,36 +352,110 @@ measures against our magnetic fingertips.</p>"""
              "it. Arrows mark each finger's GCF axes: red the contact normal $x$, green the joint axis $y$. (b) Seen along "
              "the pinch axis, the pinch acts as a revolute joint and the middle finger as its actuator. Eq. (3) commands "
              "the turn through one speed $s$. The pinching pads are drawn at the equator; in the task they sit 15 deg "
-             "below it.")
+             "below it.", key="pinpush")
     return t
 
 
 def sec_twist():
-    t = r"""<p>Eq. (1) of the paper describes how a fingertip moves relative to the object. It applies whether or
-not the two touch. Place a frame $\{L_1\}$ on the finger's distal link at the point nearest the object. Place a frame
-$\{L_0\}$ on the object at the point nearest the finger. When the hand moves, $\{L_1\}$ moves relative to $\{L_0\}$ with
-a twist of six numbers. They describe how the finger moves at the contact. It can turn about the normal (spin) or about the two tangent axes
-(roll). It can move along the normal (separation) or within the tangent plane (slide).</p>
-<p>A wheel on a road is the reference case. Rolling without slipping is a nonzero roll with zero slide and zero
-separation: the contact point is the wheel's instantaneous centre of rotation. Skidding is a slide. Lifting off is a
-negative separation.</p>
-<p>The twist follows from the two bodies' own twists relative to the palm $\{P\}$:</p>
-$$\mathcal{V}^{b}_{L_0L_1} = \mathrm{Ad}_{T_{L_1B_1}}\,\mathcal{V}^{b}_{PB_1} - \mathrm{Ad}_{T_{L_1B_0}}\,\mathcal{V}^{b}_{PB_0}. \qquad (1)$$
-<p>$\mathcal{V}^{b}_{PB_1}$ is the distal link's twist, expressed in the link's frame $\{B_1\}$, and
-$\mathcal{V}^{b}_{PB_0}$ is the object's twist in the object's frame $\{B_0\}$. The adjoint moves a twist to another
-frame. For a pose with rotation $R$ and position $p$,</p>
-$$\mathrm{Ad}_T = \begin{bmatrix} R & 0 \\ [p]\,R & R \end{bmatrix}, \qquad \mathcal{V} = \begin{bmatrix}\omega \\ v\end{bmatrix},$$
-<p>where $[p]$ is the matrix of the cross product with $p$. The lower-left block adds the lever-arm velocity
-$\omega \times r$: a body that turns also moves the points away from its axis. The finger's twist comes from its joint
-rates $u$ through the link Jacobian, $\mathcal{V}^{b}_{PB_1} = J^{b}_{PB_1}(\theta)\,u$, so Eq. (1) is linear in $u$:</p>
-$$\mathcal{V}_{L_0L_1} = A\,u + b, \qquad A = \mathrm{Ad}_{T_{L_1B_1}} J^{b}_{PB_1}, \qquad b = -\mathrm{Ad}_{T_{L_1B_0}}\,\mathcal{V}^{b}_{PB_0}.$$
-<p>In our library $A$ and $b$ are computed by <code>HomController.eq1_rows</code>. The object twist in $b$ is the
-commanded one, so each finger moves as if the object already followed the command. That makes the object the
-mechanism's output link: command its twist, and every finger works out how to move along with it.</p>
-<p>The frames are defined apart as well as in contact. Apart, the origins are the witness points, the two bodies'
-closest points, and the normal is the direction between them. A finger can therefore be told to approach the object,
-travel round it at a constant gap, or roll its fingertip round it, all with the same six numbers. The paper's Exp. A
-does exactly that.</p>"""
+    N = json.loads((ROWS / "20261106-eq1_figures.json").read_text())
+    E, A = N["eq1"], N["adjoint"]
+    T = E["table"]
+    t = fill(r"""<p>Eq. (1) gives the velocity of the fingertip relative to the object at one point and in one set of axes,
+those of the finger's generalized contact frame $\{L_1\}$. It is the difference of two velocities: the finger's own
+motion and the object's, each moved to $\{L_1\}$ by an adjoint,</p>
+$$\mathcal{V}^{b}_{L_0L_1} = \textcolor[HTML]{00838F}{\mathrm{Ad}_{T_{L_1B_1}}\,\mathcal{V}^{b}_{PB_1}} - \textcolor[HTML]{D9730D}{\mathrm{Ad}_{T_{L_1B_0}}\,\mathcal{V}^{b}_{PB_0}}. \qquad (1)$$
+<p>Figure <<f1>> follows the equation on a planar finger with the SR2 finger's dimensions and the v4b pad, beside the 25 mm
+cylinder. Panel (a) shows the frames and the poses; panels (b) to (d) compute the two terms and their difference. The
+symbols read as follows.</p>
+<ul>
+<li>$\{P\}$ is the palm frame. $\{B_1\}$ is fixed to the finger's distal link at its PIP axis, and $\{B_0\}$ to the
+object. $\{L_1\}$ sits on the pad at the point nearest the object, or at the contact. $\{L_0\}$ sits on the object at
+the point nearest the pad. The $x$ axes of the two are opposite contact normals.</li>
+<li>$T_{XY}$ is the pose of $\{Y\}$ seen from $\{X\}$. Its rotation $R_{XY}$ has $\{Y\}$'s axes, written in
+$\{X\}$'s, as columns. Its position $p_{XY}$ is $\{Y\}$'s origin in $\{X\}$.</li>
+<li>A twist $\mathcal{V} = (\omega, v)$ is six numbers. The angular velocity $\omega$ is the body's. The velocity $v$
+is that of the body's point at the frame's origin. Both are written in the frame's axes.</li>
+<li>$\mathcal{V}^{b}_{PB_1}$ is the motion of $\{B_1\}$ relative to $\{P\}$, written in $\{B_1\}$ itself. The
+superscript $b$, for body twist, marks this choice of frame.</li>
+</ul>""", f1=FN["eq1"])
+    t += img(MEDIA / "20261106-eq1_terms.png", fill(r"""Eq. (1) on a planar finger: links of 30.8 and 36.4 mm, the
+v4b pad's apex 10.55 mm from the finger's axis, the 25 mm cylinder <<gap>> mm away. Every joint axis and every frame's
+$y$ axis points at the reader. (a) The frames and the poses: an arrow from $\{X\}$ to $\{Y\}$ stands for
+$T_{XY}$; teal and orange mark the two poses whose adjoints appear in Eq. (1). (b) The finger's term: the MCP turns at
+<<u0>> deg/s and the PIP at <<u1>> deg/s. (c) The object's term: the cylinder turns at <<w0>> deg/s and its centre moves
+at <<v0>> mm/s. (d) Their difference at $p_1$, split along $\{L_1\}$'s axes. Arrows: 1 mm per mm/s; purple, the
+lever-arm terms $\omega\times r$. <code>scripts/hom/hom_eq1_figures.py eq1</code>.""",
+        gap=f"{E['gap']:.0f}", u0=f"{E['u_deg'][0]:+.0f}", u1=f"{E['u_deg'][1]:+.0f}", w0=f"{E['w_obj_deg']:+.0f}",
+        v0=f"{math.hypot(*E['v_obj_body']):.0f}"), key="eq1")
+    t += fill(r"""<p>The adjoint moves a twist from one frame to another frame on the same rigid body (Figure <<f2>>). The
+body has one angular velocity, but each of its points moves at its own velocity. Measured at $\{A\}$ instead of
+$\{B\}$, the angular velocity is unchanged. The velocity of $\{A\}$'s point is the velocity at $\{B\}$ plus the lever-arm
+velocity $\omega\times r$, where $r$ runs from $\{B\}$ to $\{A\}$. Both are then written in $\{A\}$'s axes. With
+$T_{AB} = (R_{AB}, p_{AB})$ the pose of $\{B\}$ seen from $\{A\}$,</p>
+$$\begin{bmatrix}\omega_A\\ v_A\end{bmatrix} = \underbrace{\begin{bmatrix} R_{AB} & 0\\ [p_{AB}]\,R_{AB} & R_{AB}\end{bmatrix}}_{\mathrm{Ad}_{T_{AB}}\ (6\times 6)}\begin{bmatrix}\omega_B\\ v_B\end{bmatrix}, \qquad [p]\,a = p\times a .$$
+<p>Each block is 3 by 3. The two diagonal blocks only rewrite a vector in $\{A\}$'s axes. The lower-left block is the
+lever arm: $[p_{AB}]R_{AB}\,\omega_B = p_{AB}\times\omega = \omega\times r$, because $r = -p_{AB}$. It is the only block
+that mixes rotation into translation. The upper-right zero means that a translation never produces a rotation. In Figure
+<<f2>> the body turns at <<w>> deg/s. Its twist reads (<<b0>>; <<b1>>, <<b2>>) in $\{B\}$'s axes and (<<a0>>; <<a1>>,
+<<a2>>) in $\{A\}$'s, in deg/s and mm/s. Both triples describe the same motion. Figure <<f3>> lets the reader move
+$\{A\}$ and change the twist.</p>""", f2=FN["adjoint"], f3=FN["adjoint_explore"], w=f"{A['w_deg']:.0f}",
+              b0=f"{A['V_B_in_B'][0]:.0f}", b1=f"{A['V_B_in_B'][1]:.1f}", b2=f"{A['V_B_in_B'][2]:.1f}",
+              a0=f"{A['V_A_in_A'][0]:.0f}", a1=f"{A['V_A_in_A'][1]:.1f}", a2=f"{A['V_A_in_A'][2]:.1f}")
+    t += img(MEDIA / "20261106-eq1_adjoint.png", r"""What $\mathrm{Ad}_{T_{AB}}$ does to a twist. Grey arrows: the
+velocities of the body's points, all set by one twist. The cross marks the point at rest, about which the body turns at
+this instant. At $\{A\}$ the velocity is $v_B$ (dashed teal) plus the lever-arm term $\omega\times r$ (purple). Below, the
+matrix's blocks in the colours of the arrows they produce. Arrows: 0.42 mm per mm/s. <code>scripts/hom/hom_eq1_figures.py
+adjoint</code>.""", key="adjoint")
+    FIG[0] += 1
+    assert FN["adjoint_explore"] == FIG[0]
+    t += ('<details class="explore"><summary>Figure ' + str(FIG[0]) + ': the adjoint to explore (drag $\\{A\\}$, turn it, '
+          'change the twist)</summary>' + AW.html(
+              "Figure " + str(FIG[0]) + ". The body of Figure " + str(FN["adjoint"]) + " with its twist and frame "
+              "{A} under the reader's control. The numbers give the twist at {B} in {B}'s axes and the twist at {A} in "
+              "{A}'s axes. The planar adjoint keeps three rows of the 6 by 6 matrix: the rotation about y and the "
+              "velocities along x and z. Its first column, under the 1, is the lever arm. The turn of {A} changes "
+              "only the numbers, not the arrows.") + "</details>")
+    t += fill(r"""<p>Panels (b) to (d) of Figure <<f1>> apply the adjoint twice, at $\{L_1\}$'s origin $p_1$.</p>
+<ul>
+<li>(b) The finger. The distal link turns at $\omega_1$, the sum of the MCP and PIP rates. Its origin on the PIP axis
+moves at $v_{B_1}$, because the MCP joint turns. $\mathrm{Ad}_{T_{L_1B_1}}$ gives the velocity of the pad's point at
+$p_1$: $v_1(p_1) = v_{B_1} + \omega_1\times r_1$.</li>
+<li>(c) The object. It turns at $\omega_0$ and its centre moves at $v_{B_0}$. $\mathrm{Ad}_{T_{L_1B_0}}$ gives the
+velocity that the object's motion gives the point $p_1$: $v_0(p_1) = v_{B_0} + \omega_0\times r_0$. In contact, $p_1$ is
+the contact point. Apart, $p_1$ lies between the bodies, and the object's motion is extended to it as if the object were
+larger.</li>
+<li>(d) The difference, written in $\{L_1\}$'s axes, gives HOM's six commands. Its angular part $\omega_1 - \omega_0$
+splits into the spin about $x_1$ and the rolls about $y_1$ and $z_1$. Its linear part $v_1 - v_0$ splits into the
+separation along $x_1$, positive when the gap closes, and the slides along $y_1$ and $z_1$. In the plane three of the six
+are nonzero: the roll about $y_1$, the separation and the slide along $z_1$. A wheel rolling on a road has roll and no
+slide or separation.</li>
+</ul>
+<p>Table <<t1>> gives every twist of the example in the frame it is written in. In the plane the angular velocity reads
+the same in every frame, because all joint axes are parallel. The linear velocity changes with the point and with the
+axes.</p>""", f1=FN["eq1"], t1=TN["eq1_twists"])
+    names = [("$\\mathcal{V}^{b}_{PB_1}$", "the finger, at $\\{B_1\\}$", "$\\{B_1\\}$", "V_PB1"),
+             ("$\\mathrm{Ad}_{T_{L_1B_1}}\\mathcal{V}^{b}_{PB_1}$", "the finger, at $p_1$", "$\\{L_1\\}$", "Ad_L1B1_V_PB1"),
+             ("$\\mathcal{V}^{b}_{PB_0}$", "the object, at $\\{B_0\\}$", "$\\{B_0\\}$", "V_PB0"),
+             ("$\\mathrm{Ad}_{T_{L_1B_0}}\\mathcal{V}^{b}_{PB_0}$", "the object, at $p_1$", "$\\{L_1\\}$", "Ad_L1B0_V_PB0"),
+             ("$\\mathcal{V}^{b}_{L_0L_1}$", "finger relative to object, at $p_1$", "$\\{L_1\\}$", "V_L0L1")]
+    rows = [[n, d, f, f"{T[k][0]:+.0f}", f"{T[k][1]:+.1f}", f"{T[k][2]:+.1f}"] for n, d, f, k in names]
+    t += table(["Twist", "Motion", "Axes", "$\\omega_y$ (deg/s)", "$v_x$ (mm/s)", "$v_z$ (mm/s)"], rows,
+               "The twists of Figure " + str(FN["eq1"]) + ", each in the axes of the frame it is written in. The "
+               "last row is the first $\\{L_1\\}$ row less the second: roll $y$, separation and slide $z$.", num_from=3,
+               key="eq1_twists")
+    t += r"""<p>The library computes Eq. (1) without forming an adjoint matrix (<code>HomController.eq1_rows</code>).
+MuJoCo's <code>mj_jac</code> gives the Jacobians $J_r$ and $J_p$ of the pad's point at $p_1$ in world axes. For the joint
+rates $u$, $J_r u$ and $J_p u$ are then $\omega_1$ and $v_1(p_1)$. The rotation $R_1^{\mathsf T}$, whose rows
+are $\{L_1\}$'s axes, writes them in $\{L_1\}$'s axes. That is the first term of Eq. (1), $A u$. The vector $b$ is the
+second term written out: the object's angular velocity and the velocity of its point at $p_1$, rotated the same way,
+with a minus sign:</p>
+$$\mathcal{V}_{L_0L_1} = A\,u + b, \qquad A = \begin{bmatrix} R_1^{\mathsf T}J_r\\ R_1^{\mathsf T}J_p\end{bmatrix}, \qquad b = -\begin{bmatrix} R_1^{\mathsf T}\,\omega_o\\ R_1^{\mathsf T}\big(v_o + \omega_o\times(p_1 - o)\big)\end{bmatrix}.$$
+<p>Here $o$ is the object's origin and $(\omega_o, v_o)$ the object's twist in world axes. The object twist in $b$ is
+the commanded one, so each finger moves as if the object already followed the command. That makes the object the
+mechanism's output link. The frames exist apart as well as in contact. The same six numbers therefore command a finger
+to approach the object, to travel round it at a constant gap, or to roll round it, as in the paper's Exp. A.</p>"""
+    t += CB.block(HOM, CB.find_def(HOM, "HomController.eq1_rows"),
+                  "Code: Eq. (1) as the rows $A$ and $b$, <code>HomController.eq1_rows</code>")
     return t
 
 
@@ -363,8 +479,9 @@ $w_{\mathrm{healthy}} \ll w_{\mathrm{damp}} \ll w_i$.</li>
 <p>Angular and linear velocities have different units, so the weights also set an exchange rate. The paper does not
 print its weights. Our library divides the linear rows by a length $\ell$ = 20 mm. A slide error of 20 mm/s therefore
 costs as much as a roll error of 1 rad/s.</p>
-<p>Figure 2 shows Eq. (2) on the smallest case that still has its trade-offs: a planar two-joint finger beside a fixed 25 mm
-cylinder. Its links are the SR2 finger's, 30.8 and 26.6 mm long, with a 10.55 mm fingertip radius. In the plane only three
+<p>Figure <<fp>> shows Eq. (2) on the smallest case that still has its trade-offs: a planar two-joint finger beside a fixed 25 mm
+cylinder. Its links are the SR2 finger's with the v4b tip, 30.8 and 36.4 mm long, with the pad's apex 10.55 mm from the
+finger's axis. In the plane only three
 components exist (roll about the joint axis, separation and slide), and the finger has two joint rates. Each panel
 commands one component for one second and asks for zero in the other two:</p>
 <ul>
@@ -379,14 +496,14 @@ to swing, and Eq. (2) trades the remaining roll error against <<p3>> mm/s of sep
 its $x$ axis track best, because they map onto flexion. Rotation about $x$ tracks worst, because it needs abduction,
 which disturbs every other component.</p>"""
     t = fill(t, g1=f"{g1:.1f}", s2=f"{m2[2]:.1f}", p2=f"{m2[1]:.1f}", r3=f"{math.degrees(m3[0]):.1f}",
-             p3=f"{abs(m3[1]):.1f}", s3=f"{abs(m3[2]):.1f}")
+             p3=f"{abs(m3[1]):.1f}", s3=f"{abs(m3[2]):.1f}", fp=FN["planar"])
     t += img(MEDIA / "20261029-planar_eq1_eq2.png",
              "Eq. (1) and Eq. (2) on a planar two-joint finger with the SR2 link lengths beside a fixed 25 mm "
              "cylinder (grey). Each panel commands one relative velocity for 1 s from the same start, 6 mm from the "
              "cylinder, with zero requested in the other two. Fainter drawings are earlier; dots mark the finger's GCF "
              "origin; dashes trace the fingertip's centre. The box gives the components achieved, averaged over the "
              "second. Computed by <code>scripts/hom/hom_review_figures.py planar</code> (unit weights, $\\ell$ = 20 mm, "
-             "no joint limits).")
+             "no joint limits).", key="planar")
     return t
 
 
@@ -416,57 +533,204 @@ pinch axis, swings down until gravity's torque about the axis equals the two pad
 $$m g d \cos\varphi = 2\mu N\,\bar r(N) \quad\Longrightarrow\quad \cos\varphi = \frac{2\mu N\,\bar r(N)}{m g d}.$$
 <p>Here $\varphi$ is the angle below horizontal. The friction torque grows as $N^{5/4}$, faster than the force, because
 the patch grows with it. Lowering the pinch force therefore lowers the tool smoothly, like a brake. For the 24.5 g tool
-at $d$ = 15 mm the law gives 45 deg at <<n45>> N per pad. Figure 3 compares it with two earlier studies. On the two-pad
+at $d$ = 15 mm the law gives 45 deg at <<n45>> N per pad. Figure <<fb>> compares it with two earlier studies. On the two-pad
 rig, Drake, the sphere pads and condim 4 passed 45 deg at 1.20, 1.23 and 1.20 N. On the SR2 hand they passed 45 deg at 1.26, 1.28 and 1.33 N. They passed 80 deg at 0.40, 0.41 and 0.45 N, where the
 law gives 0.41 N.</p>
 <p>Our pin-push uses a different pusher from the paper's demonstration. The demonstration pushes with the back of a
 finger, where the SR2 hand has no fingertip. So the middle finger's pad touches the cylinder with its normal along the
 pinch axis and sticks. Its tangential motion drags the cylinder round by friction. A drive force of 0.75 N tracked
 best; at 0.5 N the friction drive slipped.</p>"""
-    t = fill(t, n45=f"{n45:.2f}")
+    t = fill(t, n45=f"{n45:.2f}", fb=FN["brake"])
     t += img(MEDIA / "20261029-pinch_brake_law.png",
              "The pinch as a revolute joint with friction: the angle at which a pinched 24.5 g tool hangs (centre of "
              "mass 15 mm from the pinch axis, friction coefficient 1) against the pinch force per pad. The line is the "
              "brake law. Squares are the two-pad rig and circles the SR2 hand, each with Drake hydroelastic, 1 mm "
              "sphere pads and condim 4 (pages of 2026-10-01: <code>20261001-hom_contact_patch</code> and "
-             "<code>20261001-hom_hand_brake</code>). Below 0.12 N the pinch cannot support the tool's weight.")
+             "<code>20261001-hom_hand_brake</code>). Below 0.12 N the pinch cannot support the tool's weight.", key="brake")
     return t
 
 
-def sec_filter(fres):
-    t = r"""<p>The impedance controller presses at a point and along a direction. Using the GCF origin itself would
-be unstable, because the instantaneous contact point jumps with tiny motions and, on hardware, with sensor noise. The
-paper therefore treats the measured origin as a noisy reading and filters it. A frame $\{C_j\}$ moves along each body's
-surface: $j$ = 1 on the finger, 0 on the object. Each step it moves by the velocity that rolling and sliding kinematics
-predict, plus a correction toward the measurement:</p>
+def sec_filter():
+    G = json.loads((ROWS / "20261106-eq1_figures.json").read_text())["geodesic"]
+    t = fill(r"""<p>The impedance controller presses at a point and along a direction. The paper estimates both with a
+complementary filter, one per finger. It keeps an estimate of the contact point on the pad and one on the object. Each
+period it moves both along their surfaces by the motion that the commanded roll and slide predict, plus a fraction of the
+gap to the measured contact point. The estimate on the pad and the pad's normal there are the impedance's action point
+and direction.</p>
+<p>In our library both surfaces are analytic (<code>src/sr2hand/control/surfaces.py</code>). The v4b pad is a
+half-ellipsoid with semi-axes of 8.5 mm in depth, 7.4 mm across, 11 mm toward the tip and 22 mm toward the PIP joint.
+The object is a sphere or a cylinder. The plant's sphere pads are not the controller's surface. They are the contact model
+of the simulated hand: <<npad>> spheres of <<rp>> mm radius per fingertip, <<sp>> mm apart (Figure <<f1>>a). Their contacts
+give the centre of pressure, which is the measurement, as a fingertip sensor's estimate would be on the bench. The
+measurement is projected onto the analytic pad; the projection is the origin $p_{L_1}$ of the contact frame. The
+closest-point queries, the curvature and the geodesic tracer all use the analytic surfaces, never the sphere pads. On the
+palmar face the spheres' outer surfaces lie within 0.05 mm of the half-ellipsoid (<<pct>> % of <<npal>> spheres), so the
+plant and the controller model the same pad. The paper queries meshes instead: python-fcl and fcpw on convex
+decompositions for the closest points, and libigl for the curvature at the vertices. On the analytic pad the normal and
+the curvature have closed forms. The curvature enters through the shape operator $S$, the turn of the normal per
+millimetre of travel along the surface.</p>""", npad=f"{G['n_pads']:,}", rp=f"{G['r_pad']:.2f}", sp=f"{G['spacing_mm']:.2f}",
+             f1=FN["geodesic"], pct=f"{100 * G['palmar_envelope_within_0p05mm']:.0f}", npal=G["n_palmar"])
+    t += r"""<p>Eqs. (4) to (6) of the paper, with $j$ = 1 for the finger and $j$ = 0 for the object, are</p>
 $$p_{B_jC_j}[t+1] = \mathrm{trace\_geodesic}\!\left(p_{B_jC_j}[t],\; \dot g_j\,\Delta t\right) \qquad (4)$$
 $$\dot g_j = \dot g_{j,\mathrm{ref}} + k_j\,E\left(p_{B_jL_j}[t] - p_{B_jC_j}[t]\right) \qquad (5)$$
 $$k_j = k_{\min} + (k_{\max} - k_{\min})\left(1 - e^{-3\lVert \dot g_{j,\mathrm{ref}}\rVert/\alpha}\right) \qquad (6)$$
-<p>$\dot g_{j,\mathrm{ref}}$ is the velocity along the surface that the commanded roll and slide imply. It follows from the surfaces' curvatures through the roll-slide kinematics of [3]. $E$ keeps the two tangent components, and the
-geodesic trace moves the point along the surface by $\dot g_j \Delta t$.</p>
-<p>The gain sets the filter's character. With no commanded rolling, $k_j = k_{\min}$ and the frame drifts slowly
-toward the measurement, which smooths it. Our library uses $k_{\min}$ = 5 s$^{-1}$, a time constant of 0.2 s. With fast
-commanded rolling, $k_j$ rises toward $k_{\max}$ (100 s$^{-1}$, 10 ms) and the frame follows the measurement closely.
-$\alpha$ (20 mm/s) is the speed at which the gain passes 95 % of its range.</p>
-<p>In discrete time each step closes the fraction $k\,\Delta t$ of the gap to the measurement. At $k_{\max}$ that
-fraction is 1 at 100 Hz and 2 at 50 Hz. Above 1, every step overshoots the measurement and amplifies its noise; at 2
-the filter no longer converges. Figure 4 shows both rates on a contact point read with σ = 0.4 mm, the fingertips'
-location error at 1.5 N and above:</p>
-<ul>
-<li>When the 1 s roll is commanded (a), the filter follows within <<a100>> mm RMS at 100 Hz and <<a50>> mm at 50 Hz.</li>
-<li>When the same roll happens without a command (b), the gain stays at $k_{\min}$. The filter then lags the contact by
-about 0.2 s, an error of <<b100>> mm RMS at either rate.</li>
-</ul>
-<p>In the four tasks of our study the commanded roll and slide are always zero. The filter therefore runs at
-$k_{\min}$ throughout, as a 0.2 s low-pass on the contact point. On the 50 Hz bench, $k_{\max}$ should stay at or below
-50 s$^{-1}$.</p>"""
-    t = fill(t, a100=f"{fres[(True, 0.01)]:.2f}", a50=f"{fres[(True, 0.02)]:.2f}", b100=f"{fres[(False, 0.01)]:.2f}")
-    t += img(MEDIA / "20261029-contact_filter.png",
-             "The complementary filter of Eqs. (4) to (6) in one dimension, with our library's gains (5 and "
-             "100 s$^{-1}$, $\\alpha$ = 20 mm/s). The contact point rolls 7.4 mm along the pad in one second, a 40 deg/s "
-             "roll on a 10.55 mm fingertip, and is measured with 0.4 mm noise (grey). (a) The roll is commanded, so the "
-             "gain rises. (b) The roll is not commanded, so the gain stays at its minimum. "
-             "<code>scripts/hom/hom_review_figures.py filter</code>.")
+<p>$p_{B_jC_j}$ is the estimate in body $j$'s frame and $p_{B_jL_j}$ the measured contact frame's origin. $E$ keeps the
+two tangent components of their difference. $\dot g_{j,\mathrm{ref}}$ is the velocity along the surface that the
+commanded relative twist implies. It solves the rolling and sliding kinematics of [3] for both surfaces at once:</p>
+$$\begin{bmatrix} S\,\mathrm{Ad}_{T_{C_1C_0}}\,G_0(K_0) & -S\,G_1(K_1)\end{bmatrix}\begin{bmatrix}\dot g_{0,\mathrm{ref}}\\ \dot g_{1,\mathrm{ref}}\end{bmatrix} = S\,\mathcal{V}_{L_0L_1,\mathrm{ref}} .$$
+<p>$K_j$ is the shape operator in the tangent plane. $G_j(K_j)$ maps a velocity along the surface to the twist of the
+frame that moves with it. $S$ keeps the four rows of rolling and sliding. The adjoint of Eq. (1) appears again: it
+moves the object frame's twist to the finger's frame. Algorithm 1 is one period of
+<code>ContactFilter.update</code>.</p>"""
+    t += alg("One period of the contact-point filter for one finger (<code>ContactFilter.update</code>).", r"""\Require the estimates \(p_{C_0}\) on the object and \(p_{C_1}\) on the pad; the measured frame origins \(p_{L_0}, p_{L_1}\); the commanded relative twist \(\mathcal{V}_{\mathrm{ref}}\); the period \(\Delta t\)
+\State \(K_0, K_1 \gets\) the shape operators at \(p_{C_0}\) and \(p_{C_1}\), in each frame's tangent axes \Comment{surfaces.py}
+\State \((\dot g_{0,\mathrm{ref}}, \dot g_{1,\mathrm{ref}}) \gets\) the least-squares solution of the rolling and sliding kinematics \Comment{roll\_slide\_rates}
+\For{\(j \in \{0, 1\}\)}
+\State \(k_j \gets k_{\min} + (k_{\max} - k_{\min})\,(1 - e^{-3\,\lVert\dot g_{j,\mathrm{ref}}\rVert/\alpha})\) \Comment{Eq. (6)}
+\State \(\dot g_j \gets \dot g_{j,\mathrm{ref}} + k_j\,E\,(p_{L_j} - p_{C_j})\) \Comment{Eq. (5)}
+\State \(p_{C_j} \gets\) the end of the osculating-circle arc of length \(\lVert\dot g_j\rVert\,\Delta t\) from \(p_{C_j}\) along \(\dot g_j\), projected onto the surface \Comment{Eq. (4)}
+\EndFor
+\State \Return \(p_{C_1}\) and the pad's normal there, the impedance's action point and direction""")
+    t += fill(r"""<p>The geodesic tracer follows the surface's osculating circle in the direction of travel (Figure
+<<f1>>b). In a tangent direction $t$ the surface bends with the curvature $\kappa = t^{\mathsf T} S\,t$. A step of
+length $s$ follows the circle of radius $1/\kappa$ in the plane of $t$ and the normal, and its end is projected back onto
+the surface. On the v4b pad a step of 0.2 mm, 20 mm/s for 10 ms, ends <<e02>> nm off the surface before the projection.
+A step of 1 mm ends <<e1>> &micro;m off.</p>
+<p>The gain sets how far the estimate trusts the measurement (Figure <<f1>>c). With no commanded roll or slide the
+reference speed is zero and $k = k_{\min}$ = 5 s$^{-1}$. Each 10 ms period then closes 5 % of the gap, a low-pass with a
+time constant of 0.2 s. In the four tasks of our study the commanded roll and slide are always zero, so the filter never
+leaves $k_{\min}$. A commanded roll raises $k$ toward $k_{\max}$ = 100 s$^{-1}$, and the estimate then follows the
+measurement within a period or two. One period closes the fraction $k\,\Delta t$ of the gap. Above 1 every step
+overshoots the measurement and amplifies its noise. $k_{\max}$ must therefore stay at or below 100 s$^{-1}$ at 100 Hz
+and 50 s$^{-1}$ at the bench's 50 Hz.</p>""", f1=FN["geodesic"], e02=f"{1e3 * G['arc_end_off_surface_um']['0.2']:.0f}",
+              e1=f"{G['arc_end_off_surface_um']['1.0']:.1f}")
+    t += img(MEDIA / "20261106-geodesic_filter.png", fill(r"""The contact-point filter on the v4b pad. (a) The pad in the
+plant and in the controller. A 40 mm sphere pressed 0.3 mm into the pad touches <<nc>> of the plant's sphere pads. Their
+contacts' centre of pressure lies <<cop>> mm inside the controller's half-ellipsoid and is projected onto it. (b) One
+period: the process step $\dot g_{\mathrm{ref}}\Delta t$ from the commanded roll and the correction toward the measured
+point. Their sum moves the estimate along an arc of the osculating circle. (c) The gain of Eq. (6), with
+$k_{\min}$ = 5 s$^{-1}$, $k_{\max}$ = 100 s$^{-1}$ and $\alpha$ = 20 mm/s, the library's values; the paper does not print
+its own. <code>scripts/hom/hom_eq1_figures.py geodesic</code>.""", nc=G["contacts"],
+        cop=f"{G['cop_to_surface_mm']:.2f}"), key="geodesic")
+    t += CB.block(HOM, CB.find_def(HOM, "ContactFilter.update"),
+                  "Code: one filter period, Eqs. (4) to (6), <code>ContactFilter.update</code>")
+    t += CB.block(SURF, CB.find_def(SURF, "Surface.geodesic_step"),
+                  "Code: the geodesic tracer, <code>Surface.geodesic_step</code>")
+    lo, _ = CB.find_def(HOM, "surface_jacobian")
+    _, hi = CB.find_def(HOM, "roll_slide_rates")
+    t += CB.block(HOM, (lo, hi), "Code: the rolling and sliding kinematics, <code>surface_jacobian</code> and "
+                  "<code>roll_slide_rates</code>")
+    t += CB.block(HOM, CB.find_def(HOM, "Mirror.gcf_from_cop"),
+                  "Code: the measured contact frame from the centre of pressure, <code>Mirror.gcf_from_cop</code>")
+    t += CB.block(SURF, CB.find_def(SURF, "HalfEllipsoid"), "Code: the v4b pad's surface, <code>HalfEllipsoid</code> "
+                  "(closest point and shape operator)")
+    t += sec_filter_real()
+    return t
+
+
+def sec_filter_real():
+    """The filter on the UR5 calibration's rolls of the magnetic fingertips (scripts/hom/hom_filter_real_check.py)."""
+    p = ROWS / "20261106-filter_real_check.json"
+    if not p.exists():                                # keep the numbering of the figures and tables after it
+        FIG[0] += 2
+        TAB[0] += 1
+        return "<p>The check of the filter on the UR5 calibration data is pending.</p>"
+    return FILTER_REAL(json.loads(p.read_text()))
+
+
+def FILTER_REAL(R):
+    """The text, figure and table of the filter on the UR5 rolls (rows of scripts/hom/hom_filter_real_check.py) and at task
+    speeds (scripts/hom/hom_filter_speed_check.py)."""
+    Sm = R["summary"]
+    F = Sm["by_force"]
+    f4, f15 = F["4N"], F["1.5N"]
+    seats = Sm["seats"]
+    tips = sorted(int(v["tip"]) for v in seats.values())
+    rate = st.median([v["record_rate_hz"] for v in seats.values()])
+    gp_loc = [v["gp"]["roll_holds_0p4s_means"]["location_mm"] for v in seats.values()]
+    trav = [r["travel_mm"] for r in R["rows"]]
+    near = st.median([r["truth_to_nearest_training_point_mm"]["median"] for r in R["rows"]])
+    turn = st.median([r["turn_rate_deg_s"]["mean_moving"] for r in R["rows"]])
+    P4, P15 = f4["pooled"], f15["pooled"]
+    lag = {k: st.median([r["metrics"][k]["lag_ms"] for r in R["rows"] if r["press_N"] == 4.0])
+           for k in ("kmin_truthfed", "roll_truthfed")}
+    pf = Sm["pad_fit"]["dome"]
+    t = fill(r"""<p>The filter was run on real measurements from the UR5 calibration. On the night of 3 November the UR5
+rolled its 12.5 mm rod over three calibrated tips held on the inverted rig, v3 IDs <<tips>>. After a press to
+4 N, and again after one to 1.5 N, the rod turned about its contact line to +3, +6, &minus;3 and &minus;6 deg. It turned
+at about <<turn>> deg/s and held each angle for 0.4 s. That gives <<n>> rolls and <<nrec>> records at <<rate>> records/s per
+board. The robot's pose, the HEX-E and the rig's registration give the true contact point at every record. The tip's
+board gives an estimate through a Gaussian process trained on the same tip's presses and slides. No roll is in its
+training, although the rolls pass a median <<near>> mm from contact points it was trained on. On the rolls' held angles
+its estimate was <<gl0>> to <<gl1>> mm from the truth (one 0.4 s mean per hold). The controller's half-ellipsoid fits the
+calibration's pad mesh within <<pf>> mm RMS over its <<pfn>> dome vertices, so the truth and the filter use the same
+surface. The library's own <code>ContactFilter</code> ran on the estimates. During a roll the contact moved <<tr0>> to
+<<tr1>> mm along the pad at about 0.05 mm/s (Figure <<fr>>, Table <<tr>>).</p>""",
+             tips=", ".join(str(x) for x in tips[:-1]) + " and " + str(tips[-1]), turn=f"{turn:.1f}", n=Sm["n_rolls"],
+             nrec=f"{Sm['n_records']:,}", rate=f"{rate:.0f}", near=f"{near:.2f}", gl0=f"{min(gp_loc):.2f}",
+             gl1=f"{max(gp_loc):.2f}", pf=f"{pf['rms_mm']:.3f}", pfn=pf["n"], tr0=f"{min(trav):.1f}",
+             tr1=f"{max(trav):.1f}", fr=FN["filter_real"], tr=TN["filter_real"])
+    t += img(MEDIA / "20261106-filter_real_roll.png", fill(r"""The library's contact filter on the tips' real estimates
+during the UR5's rod rolls. (a) One roll at 4 N of v3 ID 5, along the roll's direction. Black: the contact point from the
+robot. Grey: the tip's estimate at every record. Blue: the filter at $k_{\min}$, as in the four tasks. Orange, under the
+blue: the filter given the commanded roll. Below, the rod's turn. (b) The RMS distance along the pad between
+estimate and truth at the held angles and while turning, pooled over the <<n>> rolls of the three tips.
+<code>scripts/hom/hom_filter_real_check.py figure</code>.""", n=Sm["n_rolls"]), key="filter_real")
+    names = {"raw": "Tip's estimate, projected on the pad", "kmin": "Filter at $k_{\\min}$ (the tasks)",
+             "roll": "Filter with the roll commanded", "kmin50": "Filter at $k_{\\min}$, 50 Hz",
+             "roll50": "Filter with the roll commanded, 50 Hz"}
+    rows = []
+    for FF, lab in ((f4, "4"), (f15, "1.5")):
+        for sname, nm in names.items():
+            x = FF["pooled"][sname]
+            rows.append([nm, lab, f"{x['hold_rms']:.2f}", f"{x['move_rms']:.2f}", f"{x['jitter_rms']:.3f}"])
+    t += table(["Estimate", "Press (N)", "RMS at the held angles (mm)", "RMS while turning (mm)",
+                "Step between frames, RMS (mm)"], rows,
+               "The contact point estimated during the rolls against the robot's: distances along the pad, pooled over the "
+               "11 rolls of each press force. The step between frames is the RMS change of the estimate from one record "
+               "to the next, or from one 20 ms period to the next at 50 Hz, at the held angles.", num_from=1,
+               key="filter_real")
+    t += fill(r"""<p>The filter at $k_{\min}$ removed nearly all of the scatter from record to record: the step fell from
+<<j0>> to <<j1>> mm at 4 N. Its RMS error fell from <<h0>> to <<h1>> mm at the held angles and from <<m0>> to <<m1>> mm
+while turning. At 1.5 N it fell from <<h2>> to <<h3>> mm. The remaining error is the estimate's offset at each place on
+the pad, and no filter of the measurement removes it. It is <<b4>> mm along the pad at 4 N and <<b15>> mm at 1.5 N, the
+median of each roll's mean error at the holds. Commanding the roll changed the errors by less than 0.003 mm. At 0.05 mm/s the reference
+speed of Eq. (6) stayed far below $\alpha$ = 20 mm/s, and the gain rose at most to <<gm>> s$^{-1}$. Fed the true contact
+point instead of the estimate, the filter trails it by <<lk>> ms at $k_{\min}$ and by <<lr>> ms with the roll commanded.
+With the estimate as input the lag cannot be measured. The board's zero in this check is interpolated between the rests
+before and after each action, as in the calibration's analysis; a controller has only the rest before.</p>""",
+              j0=f"{P4['raw']['jitter_rms']:.2f}", j1=f"{P4['kmin']['jitter_rms']:.3f}", h0=f"{P4['raw']['hold_rms']:.2f}",
+              h1=f"{P4['kmin']['hold_rms']:.2f}", m0=f"{P4['raw']['move_rms']:.2f}", m1=f"{P4['kmin']['move_rms']:.2f}",
+              h2=f"{P15['raw']['hold_rms']:.2f}", h3=f"{P15['kmin']['hold_rms']:.2f}",
+              b4=f"{f4['raw_bias_tangential_mm_median']:.2f}", b15=f"{f15['raw_bias_tangential_mm_median']:.2f}",
+              gm=f"{max(f4['gain_roll_max'], f15['gain_roll_max']):.1f}", lk=f"{lag['kmin_truthfed']:.0f}",
+              lr=f"{lag['roll_truthfed']:.0f}")
+    V = json.loads((ROWS / "20261106-filter_speed_check.json").read_text())
+    rs = V["results"]
+    g = lambda v, s_, k="move_rms_median": f"{rs[v][s_][k]:.2f}"  # noqa: E731
+    t += fill(r"""<p>The tasks move the contact much faster: up to 7 mm in 3 s across the pads in the twist's ramp, and
+7.4 mm/s in a roll of 40 deg/s on the pad. Figure <<fs>> adds each roll's measured error, along the roll's direction
+and sampled at the bench's 50 Hz, to a contact that moves along the pad for 1 s at such a speed. At rest the filter's
+error is <<k0>> mm, against <<r0>> mm for the tip's estimate. At $k_{\min}$, the four tasks' setting, the filter trails a
+moving contact by 0.2 s of travel. Its RMS error while moving was <<k2>> mm at 2.3 mm/s, <<k7>> mm at 7.4 mm/s and
+<<k20>> mm at 20 mm/s. With the roll commanded, the library's gain rises with the speed toward $k_{\max}$ = 100
+s$^{-1}$. At 50 Hz each period then overshoots the measurement, and the estimate oscillates about the contact: <<c7>> mm
+at 7.4 mm/s. A cap of 25 s$^{-1}$ gives <<q7>> mm. A gain held at $k_{\min}$ gives <<z7>> mm at every speed, because
+the commanded motion moves the estimate along with the contact. This replay is one-dimensional, and its commanded motion
+equals the contact's by construction. In a task the two differ when the pad slips, and a higher gain then corrects the
+estimate sooner.</p>
+<p>On the bench the action point would therefore stay within the estimate's own error of the contact. That error is
+about 0.5 mm at 4 N and 0.7 mm at 1.5 N. On the pad's face a 0.5 mm error turns the pressing direction by 2.0 deg along the
+finger toward the tip and by 4.4 deg across it. At the apex the pad bends by 0.070 per mm toward the tip, 0.018 per mm
+toward the PIP and 0.155 per mm across. At 50 Hz, $k_{\max}$ should be capped near 25 s$^{-1}$ rather than the library's 100 s$^{-1}$.</p>""",
+              fs=FN["filter_speed"], k0=g("0", "k_min"), r0=g("0", "raw"), k2=g("2.3", "k_min"), k7=g("7.4", "k_min"),
+              k20=g("20", "k_min"), c7=g("7.4", "commanded"), q7=g("7.4", "commanded_k25"), z7=g("7.4", "commanded_kmin"))
+    t += img(MEDIA / "20261106-filter_speed.png", r"""The filter at task speeds with the tips' real errors, at the bench's
+50 Hz. (a) One 4 N roll's measured error is added to a contact that rests, moves along the pad at 7.4 mm/s for 1 s, and
+rests again. The filter at $k_{\min}$ trails it. Given the commanded roll, the library's gain schedule oscillates, and a
+gain held at $k_{\min}$ follows the contact. (b) The RMS error while moving, median over every 2.5 s window of the 22 rolls' error
+sequences, against the contact's speed; $k_{\max}$ is the cap of Eq. (6). <code>scripts/hom/hom_filter_speed_check.py</code>.""",
+             key="filter_speed")
     return t
 
 
@@ -496,17 +760,21 @@ def sec_ours():
         ("Pinch forces", "equal", "the thumb adds the pusher's force along the pinch axis", "the pusher presses along the axis"),
         ("Palm and object pose", "floating palm; object pose from the simulator", "palm fixed on the gantry; tag tracker on the bench", ""),
     ]
-    t = """<p>Our library, <code>src/sr2hand/control/hom.py</code> with <code>surfaces.py</code>, implements Eqs. (1) to
-(6) as printed and passes 24 tests (<code>tests/test_hom_control.py</code>). The method page lists every difference
-from the paper with its reason; Table 1 condenses them. Most follow from two facts about our hand. Its servos accept
-position targets only, and its fingertips are modelled as sphere pads in MuJoCo.</p>
-<p>A subpage follows the code substep by substep, with the numbers of a twist and a pin-push on the v4b fingertip:
-<a href="20261030-hom_controller_code_walkthrough.html">Implementation of the HOM controller on the SR2 hand with the v4b
-fingertip</a> (<code>20261030-hom_controller_code_walkthrough.html</code>).</p>"""
-    t += table(["Item", "Paper [1]", "Our library", "Reason"],
-               [[a, b, c, d_] for a, b, c, d_ in diffs],
+    t = f"""<p>Our library, <code>src/sr2hand/control/hom.py</code> with <code>surfaces.py</code>, implements Eqs. (1) to
+(6) as printed. Its 24 unit tests compared each equation with a closed form or with finite differences. They were removed
+on 2026-11-03 with the repository's other tests of code that does not move hardware (commit <code>fd2100da0</code>); the
+last version is <code>git show fd2100da0^:tests/test_hom_control.py</code>. The method page lists every difference from
+the paper with its reason; Table {TN["diffs"]} condenses them. Most follow from two facts about our hand. Its servos
+accept position targets only, and its fingertips are modelled as sphere pads in MuJoCo.</p>
+<p>A subpage follows the code substep by substep, with the numbers of a twist and a pin-push on the v4b fingertip. Each
+of its sections ends with the code it describes: <a href="20261030-hom_controller_code_walkthrough.html">Implementation of
+the HOM controller on the SR2 hand with the v4b fingertip</a>
+(<code>20261030-hom_controller_code_walkthrough.html</code>).</p>"""
+    t += table(["Item", "Paper [1]", "Our library and its code", "Reason"],
+               [[a, b, c + (f"<br>{CA.cell(a)}" if CA.cell(a) else ""), d_] for a, b, c, d_ in diffs],
                "Differences between the paper's implementation and ours (condensed from the method page, "
-               "<code>20261021-hom_controller_method_and_implementation.html</code>, Section 10).", num_from=9)
+               "<code>20261021-hom_controller_method_and_implementation.html</code>, Section 10).", num_from=9,
+               key="diffs")
     t += r"""<p>The largest change is how force is applied. A position servo is a torsional spring of stiffness $k_p$
 between its target and its shaft. To press with force $F$ along the contact normal $x_1$, the joints need the torques
 $J^{\mathsf T}(F x_1)$, where $J$ is the Jacobian of the contact point. Placing each servo target that many springs'
@@ -534,8 +802,8 @@ ramp.</li>
 <p>A sampling planner (pinned iCEM) tracked the pinch angle to 0.5 deg. It did so by squeezing with 14 to 22 N per pad,
 against 4 N under HOM.</p>
 <p>A batched version of this controller runs the four tasks and the sensing variants on MuJoCo-Warp, thousands of
-runs at once (<code>scripts/hom/hom_gpu.py</code>). Tables 3 and 4 come from it; Section 9 compares it with this library on
-the same runs. The foundational-pose review page uses it to score thousands of hand layouts
+runs at once (<code>scripts/hom/hom_gpu.py</code>). Tables """ + str(TN["sensing"]) + " and " + str(TN["calib"]) + """ come from it. Section 9 compares it with this
+library on the same runs (Table """ + str(TN["gpu_check"]) + """). The foundational-pose review page uses it to score thousands of hand layouts
 (<code>docs/experiments/20261029-foundational_pose_review/</code>).</p>"""
     fd = ROOT / "docs/experiments/20261029-foundational_pose_review"
     fv = fd / "rows" / "films_v4b.json"
@@ -579,7 +847,7 @@ point and force come out in the fingertip's frame. The finger's forward kinemati
              "on the UR5 between 22 and 25 October (sessions sphere2, cb1t and cb2t). Solid lines are the trained "
              "Gaussian-process model on held-out presses; dashed lines are the untrained physical model. From the "
              "fingertip calibration page, <code>20261026-fingertip_calibration</code>; the four-magnet v3 tips of 28 and "
-             "29 October reach 0.26 and 0.29 mm on the same sphere indenter.")
+             "29 October reach 0.26 and 0.29 mm on the same sphere indenter.", key="calib_err")
     return t
 
 
@@ -588,7 +856,7 @@ def req_table():
     rows = [
         ["Contact point", "GCF origin; the impedance's action point",
          "0.25-0.53 mm at 1.5 N and above; 0.59-0.75 mm under 1 N; 1.10-1.60 mm at 0.5 N and under (each tip trained on "
-         "its own presses)", "sufficient (Table 4)"],
+         "its own presses)", f"sufficient (Table {TN['sensing']})"],
         ["Normal force", "touching (0.02 N in simulation); the optional force loop",
          "5-6 %; noise-equivalent force 62-83 mN; display floor 0.25 N", "sufficient for touch; force loop untested on hardware"],
         ["Normal direction", "not used: the GCF normal comes from the surfaces", "2.2 deg", "not needed"],
@@ -600,18 +868,20 @@ def req_table():
         ["Drift", "a phantom force reads as contact", "a press leaves about 0.3 N for minutes; warm-up reads 1-2 N; the "
          "Earth's field turning with the finger moved the zero up to 71 &micro;T", "open on a moving finger"],
         ["Neighbouring fingertips", "every fingertip reads independently", "facing tips at 7-11 mm read 0.31-0.64 N, "
-         "0.12-0.23 N after the model; side by side not measured", "open"],
+         "0.12-0.23 N after the model. On the SR2 hand, uncompensated, the thumb would show a 3.6 N contact in 15.9 % "
+         "of its frames with nothing touching; a model of each board from its finger's angles leaves 0 to 3 false "
+         "frames of 14,916 to 21,000", "compensated on the hand"],
         ["Coverage", "the GCF of the distal link", "face 53-89 % of presses within 1 mm; flanks 28 % within 1.5 mm; no "
          "sensing on links", "links press objects in the twist"],
         ["Calibration", "one model per fingertip", "10.7-12.6 h of UR5 time per tip; another tip's model is 1.0-2.5 mm "
-         "off", "costly; three tips needed"],
-        ["Integration", "an input of <code>hom_bench.py</code>", "no tip on the hand; the estimator is not connected "
-         "to the adapter", "not started"],
+         "off", "done for v3 IDs 1 to 6 by 4 November"],
+        ["Integration", "an input of <code>hom_bench.py</code>", "v3 IDs 1, 3 and 2 on the SR2 hand's thumb, index and "
+         "middle finger since 4 November; the estimator is not connected to the adapter", "not started"],
     ]
     return table(["Quantity", "Use in the controller", "Fingertips, measured on the UR5", "Status for HOM"], rows,
                  "What the controller uses against what the fingertips measured. Fingertip numbers from the calibration, "
-                 "drift, crosstalk and overnight pages of 22 to 29 October and the printed-fingertip overview.",
-                 num_from=9)
+                 "drift, crosstalk and overnight pages of 22 October to 5 November and the printed-fingertip overview.",
+                 num_from=9, key="req")
 
 
 VAR_SHORT = {"rate50": "Exact sensing", "notip0": "No tips, exact pose", "notip": "No tips", "tip": "Tips",
@@ -620,7 +890,7 @@ VAR_SHORT = {"rate50": "Exact sensing", "notip0": "No tips, exact pose", "notip"
              "cal_tipfl": "Tips, force loop"}
 
 
-def sim_table(S, variants, caption):
+def sim_table(S, variants, caption, key=None):
     nr = max((x["n"] for x in S.values()), default=12)
     head = ["Variant", f"Held, of {nr}:<br>pin-push, press,<br>roll, twist", "Pin-push<br>RMSE<br>(deg)",
             "Press<br>RMSE<br>(deg)", "Roll<br>RMSE<br>/step", "Twist<br>RMSE<br>/step", "Twist<br>ramp<br>(deg)",
@@ -640,7 +910,7 @@ def sim_table(S, variants, caption):
             x = S.get((t, v))
             row.append("" if x is None or x["dF"] is None else ("0" if v == "rate50" else f"{x['dF']:.2f}"))
         body.append(row)
-    return table(head, body, caption)
+    return table(head, body, caption, key=key)
 
 
 def sec_eval(S):
@@ -668,9 +938,9 @@ def sec_eval(S):
 simulation, the contact point they would add changes little: with the joint angles and the object's pose, the
 controller's own witness points track as well. The force is different. On position servos it is set open loop by Eq.
 (7), so calibration errors of 1 deg per joint and 1 mm in the object's pose make the pinch force wrong by a median
-<<dfp>> N on the pin-push. A loop closed on the fingertips' measured force brings that to <<dfpl>> N. Table 2 sets the
+<<dfp>> N on the pin-push. A loop closed on the fingertips' measured force brings that to <<dfpl>> N. Table <<tr>> sets the
 controller's needs beside what the fingertips measured on the UR5.</p>""",
-             dfp=g("pinpush", "cal_notip", "dF", "{:.2f}"), dfpl=g("pinpush", "cal_tipfl", "dF", "{:.2f}"))
+             dfp=g("pinpush", "cal_notip", "dF", "{:.2f}"), dfpl=g("pinpush", "cal_tipfl", "dF", "{:.2f}"), tr=TN["req"])
     t += req_table()
     t += r"""<p>The simulation separates what each source of sensing contributes. It runs the four tasks of the task
 study at 50 Hz, the bench's rate, with the same sizes and seeds. The fingertip model (<code>hom_tasks.tip_reading</code>)
@@ -685,11 +955,11 @@ corrupts each tip contact's true centre of pressure in three ways:</p>
     t += fill(r"""<p>The tables come from the GPU controller (<code>scripts/hom/hom_gpu.py</code>) with <<ns>> seeds per size,
 <<nr>> runs per task and variant. It draws each run's calibration offsets and fingertip errors as the CPU runner does,
 from the same seeds; only the noise of each control period differs. On the CPU runner's 528 runs it gives the same held
-outcome in <<sa>> % of runs (Table 3). Its medians match the CPU's within the spread between seeds. That spread is large
+outcome in <<sa>> % of runs (Table <<tg>>). Its medians match the CPU's within the spread between seeds. That spread is large
 for the force error under calibration errors. Its median over the CPU's three seeds is <<c3>> N on the pin-push; over 30
 seeds it is <<c30>> N, and blocks of three seeds give medians from <<blo>> to <<bhi>> N.</p>""",
               ns=nseed, nr=nrun, sa=f"{100 * gsame:.0f}", c3=f"{cpu3:.2f}", c30=g("pinpush", "cal_notip", "dF", "{:.2f}"),
-              blo=f"{blk[0]:.2f}", bhi=f"{blk[1]:.2f}")
+              blo=f"{blk[0]:.2f}", bhi=f"{blk[1]:.2f}", tg=TN["gpu_check"])
     vb = []
     for x in G:
         nd = 1 if x["task"] in ("pinpush", "press") else 2
@@ -700,13 +970,13 @@ seeds it is <<c30>> N, and blocks of three seeds give medians from <<blo>> to <<
                "task. At 50 Hz the eleven sensing variants with seeds 0 to 2; at 100 Hz exact sensing with seeds 0 to 9. "
                "Score: the median over held runs of the pinch-angle RMSE (deg) or the velocity RMSE per step. Rows "
                "<code>rows/sensing.jsonl</code>, <code>sensing_gpu_val.jsonl</code>, <code>cpu_val_base.jsonl</code>, "
-               "<code>gpu_val_base.jsonl</code>.")
-    t += "<p>Table 4 gives the outcomes of the sensing variants.</p>"
+               "<code>gpu_val_base.jsonl</code>.", key="gpu_check")
+    t += f"<p>Table {TN['sensing']} gives the outcomes of the sensing variants.</p>"
     t += sim_table(S, VARIANTS[:8], f"The four tasks under simulated sensing at 50 Hz on the GPU controller: {nrun} "
                    f"runs per task (four sizes, {nseed} seeds). Held runs out of all runs; medians over held runs of the "
                    "tracking errors and of the twist's ramp on three pads, integrated over the 20 ms control period. The "
                    "force error is the mean over the three pads of the difference in mean pad force from the same run "
-                   "with exact sensing, median over runs. Rows in <code>rows/sensing_gpu.jsonl</code>.")
+                   "with exact sensing, median over runs. Rows in <code>rows/sensing_gpu.jsonl</code>.", key="sensing")
     t += fill(r"""<p>Three results stand out.</p>
 <ul>
 <li>Without fingertips and with the exact object pose, tracking stays close to exact sensing. The pin-push error is
@@ -732,8 +1002,9 @@ loop.</p>""",
              f"Every run of the GPU controller under the sensing variants, {nrun} per column (circles, spread "
              "sideways; bars mark medians). Top four panels: tracking errors of the held runs, with the held count above "
              "each column. Bottom two: the pinch tasks' force error per pad against the same run with exact sensing. Red "
-             "columns, right of the dotted line, add calibration errors. <code>scripts/hom/hom_review_figures.py sensing</code>.")
-    t += fill(r"""<p>Table 5 adds calibration errors that stay constant within a run. Each joint reports and executes
+             "columns, right of the dotted line, add calibration errors. <code>scripts/hom/hom_review_figures.py sensing</code>.",
+             key="sensing")
+    t += fill(r"""<p>Table <<tc>> adds calibration errors that stay constant within a run. Each joint reports and executes
 an angle offset by σ 1 deg, and the tracker's object frame is offset by σ 1 mm per axis. The fingertips' location
 estimate cannot see such errors, but their force reading can.</p>
 <ul>
@@ -760,14 +1031,15 @@ Its pinch-angle error is <<a6>> deg, against <<a7>>.</li>
               ht=h("twist", "cal_tipfl"), ht0=h("twist", "cal_tip"), a6=g("pinpush", "cal_tipfl"),
               a7=g("pinpush", "cal_tip"), h1r=h("pinpush", "rate50"), h2r=h("press", "rate50"),
               hp1=h("pinpush", "cal_tipfl"), hp0=h("pinpush", "cal_tip"), hq1=h("press", "cal_tipfl"),
-              hq0=h("press", "cal_tip"))
+              hq0=h("press", "cal_tip"), tc=TN["calib"])
     t += sim_table(S, VARIANTS[8:], "The four tasks with calibration errors (each joint off by σ 1 deg, the object "
-                   "frame off by σ 1 mm per axis, both constant within a run), as in Table 4.")
+                   f"frame off by σ 1 mm per axis, both constant within a run), as in Table {TN['sensing']}.", key="calib")
     t += r"""<p>In simulation, these four tasks tolerate about three times the fingertips' measured static errors. The force reading
 corrects the calibration errors of a real hand. Four gaps remain before a transfer:</p>
 <ul>
-<li>No tip is mounted on the hand, and the estimator is not connected to <code>hom_bench.py</code>.</li>
-<li>Three tips need 32 to 38 h of UR5 calibration, and another tip's model is 1.0 to 2.5 mm off.</li>
+<li>Three calibrated tips are on the SR2 hand since 4 November, but the estimator is not connected to
+<code>hom_bench.py</code>.</li>
+<li>Each tip took 10.7 to 12.6 h of UR5 calibration, and another tip's model is 1.0 to 2.5 mm off.</li>
 <li>The latency from press to estimate has not been measured; the variants assume 40 ms.</li>
 <li>The zero of a turning fingertip moves with the Earth's field: by up to 71 &micro;T over the UR5 calibration
 motions. On the robot's tip, a drift of 53 &micro;T read as a 1.0 N press. That is the size of the force errors the loop corrects. A force loop on a moving finger therefore needs the zero
@@ -783,13 +1055,18 @@ light force, a 5 % gain error, 0.07 N noise, a 0.25 N detection floor and a 40 m
 drift of a turning finger and neighbouring fingertips' fields were not measured and are not modelled.</li>
 <li>Every run uses the tasks' 1 N m plant, with $k_p$ = 4 N m/rad. The SCS0009 is 5.6 times softer, so each millimetre
 of geometric error gives a smaller force error (Eq. 7).</li>
+<li>The sensing runs of Section 9 were made on 29 October with the TPU block, pads of 10 MPa and the 1 N m plant. They
+predate the v4b tip and the 2.5 MPa pads of 30 October and the SCS0009 plant runs of 2 November. The HOM plant page of 2
+November shows that the servo and the scene friction reorder HOM layouts and that the pad modulus barely does.</li>
+<li>The filter was checked on real measurements only on the UR5's slow rolls (Section 6); its behaviour at task speeds
+combines those measurements with a simulated contact path, and the tips' latency is not measured.</li>
 <li>The controller's model is the convex fingertip block while the plant uses sphere pads; no variant changes the
 friction, mass or servo model.</li>
 <li>The tasks are the four demonstrations with 25 g objects; the paper's screwdriver pick, load and wield is not part of
 this grid.</li>
-<li>Tables 4 and 5 come from the GPU controller: float32 physics, a solver tolerance of 10<sup>-6</sup> with 20
+<li>Tables """ + str(TN["sensing"]) + " and " + str(TN["calib"]) + """ come from the GPU controller: float32 physics, a solver tolerance of 10<sup>-6</sup> with 20
 iterations, and pads that meet only the object. Single runs of the pinch tasks differ between it and the CPU runner more
-than their medians do (Table 3).</li>
+than their medians do (Table """ + str(TN["gpu_check"]) + """).</li>
 </ul>"""
 
 
@@ -862,14 +1139,14 @@ the plan. Perturbations of 5 deg/s left it unchanged until the planned turn was 
     t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_twist_call280.png",
              "Twist of the 40 mm sphere on grid layout 280, v4b fingertip: a constant 30 deg/s ramp against the MPC over "
              "HOM's commands (64 samples). Top: the sphere's twist. Middle: the MPC's commanded rate and force scale. "
-             "Bottom: pad forces.")
+             "Bottom: pad forces.", key="mpc_twist")
     rows = [[str(k), f"{go[k]['ms_per_period']:.1f}", f"{ge[k]['ms_per_period']:.1f}", f"{r['ms_per_period']:.1f}",
              f"{r['ms_parts']['controller_graph']:.1f}", f"{r['ms_parts']['physics']:.1f}"] for k, r in sorted(gr.items())]
     t += table(["Worlds", "Period, before the changes (ms)", "Period, eager (ms)", "Period, graph (ms)",
                 "Controller as a graph (ms)", "Physics, 10 steps (ms)"],
                rows, f"Wall time of one control period on the {tim['gpu'].replace('NVIDIA GeForce ', '')} with no other "
                "job: the batched controller before the changes of this section, the changed one run eagerly, and the "
-               "changed one captured as a CUDA graph.", num_from=0)
+               "changed one captured as a CUDA graph.", num_from=0, key="mpc_timing")
     p2 = mp / "timing_p2ms.json"
     if p2.exists():                                  # the planner's worlds at a 2 ms physics step (2026-10-30, 12:29)
         g2 = {r["k"]: r for r in json.loads(p2.read_text())["rows"]}
@@ -920,17 +1197,22 @@ times real time. Two iterations every 0.2 s <<a2>>, at <<x2>> times real time.<<
                     "Times real time", "Time to 45 deg (s)", "Turn on three pads (deg)", "First pad lost (s)"], rows2,
                    "The MPC over HOM's commands on grid layout 280 with 64 samples and a horizon of 0.3 s: the planner's "
                    "physics step, its iterations and the interval between replannings. Times from the task's start; the "
-                   "replanning is the median wall time.", num_from=1)
+                   "replanning is the median wall time.", num_from=1, key="mpc_planner")
         t += img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261030-mpc_planner_step.png",
                  "The planner's physics step and replanning on grid layout 280. Left: the sphere's twist, with the first "
-                 "period in which a pad pressed under 0.05 N (circles). Right: the rate of each plan's first knot.")
+                 "period in which a pad pressed under 0.05 N (circles). Right: the rate of each plan's first knot.",
+                 key="mpc_step")
     return t
 
 
 def sec_future():
     return """<ol>
+<li>Repeat the roll check of Section 6 with the board's zero taken from the rest before each action only, as a
+controller has it. Run the rolls at task speeds, with the lab program's turn rate raised to about 20 deg/s, 7 mm/s at the
+pad (<code>scripts/hom/hom_filter_real_check.py run</code> on the new sessions). The filter with $k_{\\max}$ = 25
+s$^{-1}$ is fit for the bench if its RMS error while turning stays within 0.1 mm of its error at the held angles.</li>
 <li>Measure the fingertip's latency from a UR5 press to the estimate (timestamped RTDE pose against the board's record
-time). Rerun Table 5's force-loop variants with the measured value in place of the assumed 40 ms.</li>
+time). Rerun Table """ + str(TN["calib"]) + """'s force-loop variants with the measured value in place of the assumed 40 ms.</li>
 <li>Calibrate the zero of a moving fingertip. Record the board while the UR5 turns an untouched tip through the finger's
 range, and fit the field change as a function of orientation. The fit passes if a 90 deg turn then leaves less than
 0.25 N.</li>
@@ -938,21 +1220,20 @@ range, and fit the field change as a function of orientation. The fit passes if 
 <code>hom_bench.simulate</code>. The replay must give the same contact frames as the plant's own contacts within
 0.5 mm.</li>
 <li>Rerun the calibration-error variants on the SCS0009 plant (0.72 N m/rad, 0.18 N m). Then run them on the chain
-study's screwdriver load step, where the brake's angle depends on the pinch force (Figure 3).</li>
+study's screwdriver load step, where the brake's angle depends on the pinch force (Figure """ + str(FN["brake"]) + """).</li>
 <li>Tune the force loop per task on the GPU controller: its gain from 0.0025 to 0.02 m/s per newton and a cap on its
 closing speed, 30 seeds per point, with calibration errors (<code>scripts/hom/hom_gpu.py run --layouts design</code>). The
 loop is ready for the bench if one setting holds the twist in 95 % of runs while keeping the pin-push's force error
 under 0.5 N.</li>
 <li>Replan every 0.1 s with one iteration, 32 samples, a 2 ms physics step and a horizon of 0.2 s
-(<code>hom_mpc_gpu.py run --k 32 --phys-ms 2 --iters 1</code> with <code>H_KNOTS</code> 2). By the periods of Table 7 a
+(<code>hom_mpc_gpu.py run --k 32 --phys-ms 2 --iters 1</code> with <code>H_KNOTS</code> 2). By the periods of Table """ + str(TN["mpc_timing"]) + """ a
 replanning would take about 0.11 s. The setting is good enough if it runs in real time and still stops at the three-pad
 limit of layout 280.</li>
 <li>Give the gradient planner a cost it can follow: a penalty that rises smoothly as a pad's force falls below 0.5 N,
 in place of the count of periods with a pad lost. It is worth keeping if it then stops at the three-pad limit of layout
 280, as the cross-entropy method does, with its 13 worlds per step.</li>
-<li>Mount one tip on the index finger and run the pin-push on the bench with and without the
-force loop, scoring the
-pinch angle from the tags. The claim of Table 5 fails if the force loop does not lower the force spread across runs.</li>
+<li>Run the pin-push on the SR2 hand, whose fingers have calibrated tips since 4 November, with and without the force
+loop, scoring the pinch angle from the tags. The claim of Table """ + str(TN["calib"]) + """ fails if the force loop does not lower the force spread across runs.</li>
 </ol>"""
 
 
@@ -961,7 +1242,16 @@ def sec_files():
     return f"""<p>References:</p><ul>{rows}</ul>
 <p>Files:</p><ul>
 <li>This page: <code>{OUT.relative_to(ROOT)}</code>, built by <code>scripts/hom/hom_review_page.py</code> with
-<code>scripts/hom/hom_review_page.template.html</code>; figures by <code>scripts/hom/hom_review_figures.py</code>.</li>
+<code>scripts/hom/hom_review_page.template.html</code>; figures by <code>scripts/hom/hom_review_figures.py</code>, and those
+of Eq. (1), the adjoint and the filter by <code>scripts/hom/hom_eq1_figures.py</code> (numbers in
+<code>rows/20261106-eq1_figures.json</code>); the adjoint to explore by <code>scripts/hom/hom_adjoint_widget.py</code>;
+the code excerpts by <code>scripts/docs/code_blocks.py</code>, linked to the commit that last changed each file.</li>
+<li>The filter on the UR5 rolls: <code>~/.claude/bin/resguard.sh run --mem 5G --cpu 500 -- env OPENBLAS_NUM_THREADS=4
+.venv/bin/python scripts/hom/hom_filter_real_check.py run --seats 2 3 1</code> (rows
+<code>rows/20261106-filter_real_check.json</code>, traces <code>rows/20261106-filter_real_traces.npz</code>; sessions
+<code>20261103-172647-rod21</code>, <code>20261103-202017-rod32</code> and <code>20261103-214753-rod13</code> under
+<code>docs/experiments/20261022-ur5_tip_calibration/lab/</code>), then <code>hom_filter_real_check.py figure</code> and
+<code>scripts/hom/hom_filter_speed_check.py</code> (rows <code>rows/20261106-filter_speed_check.json</code>).</li>
 <li>Controller: <code>src/sr2hand/control/hom.py</code>, <code>surfaces.py</code>, <code>hom_bench.py</code>; tests
 <code>tests/test_hom_control.py</code>.</li>
 <li>Tasks and the sensing variants: <code>scripts/hom/hom_tasks.py</code> (<code>VARIANTS</code>, <code>tip_reading</code>);
@@ -969,10 +1259,10 @@ rows <code>{(ROWS / 'sensing.jsonl').relative_to(ROOT)}</code>; run with
 <code>.venv/bin/python scripts/hom/hom_tasks.py run --tasks pinpush press roll twist --seeds 0 1 2 --variants rate50
 notip0 notip tip tip3 tipbias tipfl tipflb cal_notip cal_tip cal_tipfl --rows-file
 ../20261029-hom_control_review/rows/sensing</code>.</li>
-<li>The GPU controller: <code>scripts/hom/hom_gpu.py</code>; Tables 4 and 5 from <code>.venv/bin/python scripts/hom/hom_gpu.py
+<li>The GPU controller: <code>scripts/hom/hom_gpu.py</code>; Tables {TN["sensing"]} and {TN["calib"]} from <code>.venv/bin/python scripts/hom/hom_gpu.py
 run --task pinpush press roll twist --layouts design --variants rate50 notip0 notip tip tipbias tip3 tipfl tipflb
 cal_notip cal_tip cal_tipfl --seeds 0 1 ... 29 --out sensing_gpu --rows-dir
-docs/experiments/20261029-hom_control_review/rows</code> (rows <code>sensing_gpu.jsonl</code>); Table 3 from the same
+docs/experiments/20261029-hom_control_review/rows</code> (rows <code>sensing_gpu.jsonl</code>); Table {TN["gpu_check"]} from the same
 command with seeds 0 to 2 (<code>sensing_gpu_val.jsonl</code>) and <code>hom_gpu.py compare</code>. Angles of rows
 scored before the evening of 2026-10-29 are rescaled to their controller period on loading
 (<code>scripts/hom/hom_rows.py</code>).</li>
@@ -989,7 +1279,8 @@ def assemble(sections, title, h1, eyebrow, lede, byline, summary):
                      for k, (sid, hd, body) in enumerate(sections, 1))
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": title, "H1": h1, "EYEBROW": eyebrow, "LEDE": lede, "BYLINE": byline, "TOC": toc,
-                 "SECTIONS": secs, "FOOTER": str(OUT.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
+                 "SECTIONS": secs, "FOOTER": str(OUT.relative_to(ROOT)),
+                 "TEXCSS": texsvg.CSS + texsvg.BLOCK_CSS + CB.CSS + FIG_CSS}.items():
         page = page.replace("{{" + k + "}}", v)
     n = []
     page = render(page, n)
@@ -1009,25 +1300,14 @@ def main():
     for vref in ((0.0, 20.0, 0.0), (0.0, 0.0, 20.0), (math.radians(40.0), 0.0, 0.0)):
         run = HF.planar_run(vref, th0, C, R, T=1.0)
         planar.append((vref, np.array([s["v_ach"] for s in run]).mean(0), run[-1]["gap"]))
-    rng = np.random.default_rng(4)
-    fres = {}
-    speed = math.radians(40.0) * HF.RHO
-    for commanded in (True, False):
-        for dt in (0.01, 0.02):
-            tt = np.arange(0.0, 3.0, dt)
-            truth = np.clip(tt - 1.0, 0, 1.0) * speed
-            gref = np.where((tt >= 1.0) & (tt < 2.0), speed, 0.0) if commanded else np.zeros_like(tt)
-            meas = truth + rng.normal(size=tt.size) * 0.4
-            est = HF.filt(meas, gref, dt)
-            fres[(commanded, dt)] = float(np.sqrt(np.mean((est - truth) ** 2)))
     S = summary(table_rows())
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
         ("paper", "The HOM paper: a hand and a tool as one mechanism", sec_paper()),
-        ("eq1", "Relative contact velocities, Eq. (1)", sec_twist()),
+        ("eq1", "Relative contact velocities and the adjoint, Eq. (1)", sec_twist()),
         ("eq2", "Joint velocities by least squares, Eq. (2)", sec_lsq(planar)),
         ("eq3", "Pinch and pusher, Eq. (3), and the pinch's friction torque", sec_sub()),
-        ("filter", "Contact estimation for the impedance controller, Eqs. (4) to (6)", sec_filter(fres)),
+        ("filter", "Contact-point filter and geodesic tracing, Eqs. (4) to (6)", sec_filter()),
         ("ours", "The MuJoCo implementation on the SR2 hand", sec_ours()),
         ("sensing", "Contact sensing in simulation and on the bench", sec_sensing()),
         ("eval", "The magnetic fingertips as the controller's contact sensor", sec_eval(S)),
@@ -1044,15 +1324,20 @@ position servos and held the object in 11, 7, 12 and 12 of 12 runs of four demon
 fingertip input is one contact point and one normal force. In simulation the contact point matters little: without
 fingertips, the controller's own geometry tracks as well. The force matters. Calibration errors of 1 deg and 1 mm put
 the open-loop pinch force off by a median <<f1>> N. A loop on the magnetic fingertips' measured force cuts that error to
-<<f2>> N. No fingertip is on the hand yet.""", f1=f"{g('pinpush', 'cal_notip'):.2f}", f2=f"{g('pinpush', 'cal_tipfl'):.2f}")
+<<f2>> N. On the UR5's rolls of three calibrated tips, the contact filter cut the record-to-record scatter of the tips'
+contact estimate from 0.76 to 0.02 mm; its error stayed at the estimate's own, 0.46 mm at 4 N. Three calibrated tips are
+on the SR2 hand since 4 November; their estimator is not yet connected to the controller.""", f1=f"{g('pinpush', 'cal_notip'):.2f}", f2=f"{g('pinpush', 'cal_tipfl'):.2f}")
     summary_text = fill("""The HOM controller's MuJoCo version on the SR2 hand tracks as well without fingertip contact points
 as with them. Joint and object calibration errors of 1 deg and 1 mm make its open-loop pinch force wrong by a median
 <<f1>> N; a loop on the magnetic fingertips' measured force (located to 0.25-0.53 mm, force within about 5 %) brings it
-to <<f2>> N, but the same loop dropped the sphere in <<tw>> twist runs.""", f1=f"{g('pinpush', 'cal_notip'):.2f}",
+to <<f2>> N, but the same loop dropped the sphere in <<tw>> twist runs. On UR5 rolls of three calibrated tips the contact
+filter cut the estimate's scatter from 0.76 to 0.02 mm, and its error stayed at the estimate's own, 0.46 mm at 4 N.""",
+                        f1=f"{g('pinpush', 'cal_notip'):.2f}",
                         f2=f"{g('pinpush', 'cal_tipfl'):.2f}",
                         tw=f"{S[('twist', 'cal_tipfl')]['n'] - S[('twist', 'cal_tipfl')]['held']} of "
                            f"{S[('twist', 'cal_tipfl')]['n']}")
-    byline = ("Review and simulation, 2026-10-29. Paper: arXiv 2609.25619v2 [1]. Controller: "
+    byline = ("Review and simulation, 2026-10-29; figures of Eq. (1), the adjoint and the filter, and the filter on UR5 "
+              "data, 2026-11-06. Paper: arXiv 2609.25619v2 [1]. Controller: "
               "<code>src/sr2hand/control/hom.py</code>. Hand: the CAD-model SR2 hand on the 1 N m plant with 1 mm "
               "sphere pads. Fingertips: the four-magnet v3 tips calibrated on the UR5. Builder: "
               "<code>scripts/hom/hom_review_page.py</code>. Code walkthrough: "
