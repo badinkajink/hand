@@ -8,12 +8,14 @@ angle and load) and holds_c.tsv (the moving yaw's samples during each hold). Thi
 
   controller  the load (the firmware's drive, per mille of full duty, sign of measured minus commanded) against the error
               in encoder steps (300/1024 deg): the dead band, the step at its edge and the slope
-  torque      at rest the joint sticks wherever |c d + tau_g| <= f, with d = -load the drive, c the torque per unit of
-              drive, tau_g the gravity torque on the joint from the cad_v3 model at the arm's pose of the SR2 night (key
-              sr2_night) and f the static friction. The gravity torques reach 11 mN m on the mcp joints and 16 mN m on
-              the yaws, below the yaws' friction, so they do not fix c: a least-squares c from them came out near zero.
-              c is therefore the datasheet's, 2.3 kg cm of stall torque at 6 V scaled to the supply's 5.0-5.2 V, and
-              each servo's friction band is the spread of c d + tau_g over its dwells (5th to 95th percentile).
+  torque      at rest the joint sticks wherever |c d + tau_g - tau_b| <= f, with d = -load the drive, c the torque per
+              unit of drive, tau_g the gravity torque on the joint from the cad_v3 model at the arm's pose of the SR2
+              night (key sr2_night), tau_b a constant bias and f the static friction. The gravity torques reach 11 mN m
+              on the mcp joints and 16 mN m on the yaws, no more than the friction, so they do not fix c: a
+              least-squares c from them came out near zero. c is therefore the datasheet's, 2.3 kg cm of stall torque
+              at 6 V scaled to the supply's 5.0-5.2 V. Over the steady dwells (2 s and 10 s) of a servo that moved in
+              its block, the band runs from the 5th to the 95th percentile of c d + tau_g: tau_b is its midpoint and
+              f its half-width.
   stalls      from holds_c.tsv: each yaw step's final shortfall, the time to come within one step of it, and the drift
               over the hold.
 
@@ -143,19 +145,29 @@ def controller(recs):
             "by_sign": {str(k): v for k, v in side.items()}, "n": int(sum(table[int(s)][0] for s in ks))}
 
 
+STEADY = ("a2", "b2", "c", "c40")       # dwells of 2 s and 10 s
+
+
 def friction_bands(recs, c):
-    """Per servo, r = c d + tau_g (N m) over every dwell: a joint at rest has |r - tau_b| <= f. The band's centre tau_b
-    and half-width f from the 5th and 95th percentiles; also the medians on the dwells reached moving up and down."""
+    """Per servo, r = c d + tau_g (N m) over the steady dwells (blocks a2, b2, c, c40) of a servo that has moved in its
+    block: a joint at rest has |r - tau_b| <= f. The band runs from the 5th to the 95th percentile of r: tau_b is their
+    midpoint and f half their difference. Also: the largest gravity torque held with zero drive, a lower bound on f from
+    the friction alone."""
     out = {}
     for f in F:
         for j in J:
-            rs = [r for r in recs if (r["finger"], r["joint"]) == (f, j) and np.isfinite(r["load"])]
+            rs = [r for r in recs if (r["finger"], r["joint"]) == (f, j) and r["block"] in STEADY and r["dir"] != 0
+                  and np.isfinite(r["load"])]
             res = np.array([c * -r["load"] + r["tau_g"] for r in rs])
+            p5, p95 = np.percentile(res, [5, 95])
+            mid = float((p5 + p95) / 2)
+            dev = np.abs(res - mid)
+            zero = [abs(r["tau_g"]) for r in rs if r["load"] == 0]
             up = np.array([c * -r["load"] + r["tau_g"] for r in rs if r["dir"] > 0])
             dn = np.array([c * -r["load"] + r["tau_g"] for r in rs if r["dir"] < 0])
-            p5, p95 = np.percentile(res, [5, 95])
-            out[f"{f}_{j}"] = {"n": len(rs), "centre_Nm": float((p5 + p95) / 2), "half_width_Nm": float((p95 - p5) / 2),
-                               "max_abs_Nm": float(np.max(np.abs(res))),
+            out[f"{f}_{j}"] = {"n": len(rs), "centre_Nm": mid, "half_width_Nm": float((p95 - p5) / 2),
+                               "p5_Nm": float(p5), "p95_Nm": float(p95), "max_abs_Nm": float(dev.max()),
+                               "zero_drive_n": len(zero), "zero_drive_tau_g_max_Nm": float(max(zero)) if zero else None,
                                "median_up_Nm": float(np.median(up)) if len(up) else None,
                                "median_down_Nm": float(np.median(dn)) if len(dn) else None,
                                "tau_g_max_Nm": float(np.max(np.abs([r["tau_g"] for r in rs])))}
