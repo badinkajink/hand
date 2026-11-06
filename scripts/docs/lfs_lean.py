@@ -16,7 +16,8 @@ empty repository under the same name, then `push` from the bare mirror. Afterwar
     python3 scripts/docs/lfs_lean.py catalog [--repo DIR] [--refs REF ...]    # sizes by category, upload set, missing
     python3 scripts/docs/lfs_lean.py refresh --mirror DIR                      # the mirror's branches from the main clone
     python3 scripts/docs/lfs_lean.py stage --mirror DIR                        # hard-link the upload set into its LFS store
-    python3 scripts/docs/lfs_lean.py push --mirror DIR [--dry-run]             # push every branch, upload the set, verify
+    python3 scripts/docs/lfs_lean.py push --mirror DIR [--dry-run] [--allow-missing]   # push branches, upload, verify
+    python3 scripts/docs/lfs_lean.py lost --out FILE                           # the objects only GitHub had
     python3 scripts/docs/lfs_lean.py verify [--repo DIR]                       # every upload object present on GitHub?
     python3 scripts/docs/lfs_lean.py install-hook                              # the main clone's filtered pre-push hook
     (git runs)  python3 scripts/docs/lfs_lean.py pre-push REMOTE URL < refs     # the hook itself
@@ -199,6 +200,19 @@ def lfs_batch(oids_sizes, operation="download"):
     return out
 
 
+def cmd_lost(a):
+    """The LFS objects that the refs name and that this clone does not have, with their paths: what GitHub alone had."""
+    repo = Path(a.repo)
+    recs = pointers(repo, ["refs/heads/main", "--remotes=origin"])
+    store = lfs_store(repo)
+    rows = [(category(sorted(r["paths"])[0]), r["size"], sorted(r["paths"])[0], o) for o, r in recs.items()
+            if not obj_path(store, o).exists()]
+    rows.sort()
+    Path(a.out).write_text("category\tbytes\tpath\toid\n" + "".join(f"{c}\t{s}\t{p}\t{o}\n" for c, s, p, o in rows))
+    print(f"{len(rows)} objects, {sum(r[1] for r in rows) / 1e9:.2f} GB -> {a.out}")
+    return 0
+
+
 def cmd_verify(a):
     repo = Path(a.repo)
     revs = heads(repo) if git(repo, "rev-parse", "--is-bare-repository").strip() == "true" else ["--remotes=origin"]
@@ -221,11 +235,14 @@ def cmd_push(a):
     up, _ = selection(recs)
     store = lfs_store(m)
     miss = [o for o in up if not obj_path(store, o).exists()]
-    if miss:
-        print(f"{len(miss)} upload objects are missing in the mirror's store: run stage (and fetch them first)")
+    if miss and not a.allow_missing:
+        print(f"{len(miss)} upload objects are missing in the mirror's store: run stage (and fetch them first), or "
+              f"pass --allow-missing to push without them")
         return 1
-    print(f"branches: {len(heads(m))}; upload set: {len(up)} objects, "
-          f"{sum(recs[o]['size'] for o in up) / 1e9:.2f} GB")
+    up = {o for o in up if o not in miss}
+    print(f"branches: {len(heads(m))}; upload set present: {len(up)} objects, "
+          f"{sum(recs[o]['size'] for o in up) / 1e9:.2f} GB; missing and not uploaded: {len(miss)} objects, "
+          f"{sum(recs[o]['size'] for o in miss) / 1e9:.2f} GB")
     if a.dry_run:
         return 0
     env = dict(os.environ, GIT_LFS_SKIP_PUSH="1")
@@ -234,8 +251,10 @@ def cmd_push(a):
     for k in range(0, len(oids), 200):
         subprocess.run(["git", "-C", str(m), "lfs", "push", "--object-id", a.remote, *oids[k:k + 200]], check=True)
         print(f"uploaded {min(k + 200, len(oids))} of {len(oids)}", flush=True)
-    a.repo = str(m)
-    return cmd_verify(a)
+    have = lfs_batch([(o, recs[o]["size"]) for o in oids])
+    n = sum(1 for o in oids if have.get(o))
+    print(f"uploaded objects on GitHub: {n} of {len(oids)}")
+    return 0 if n == len(oids) else 1
 
 
 HOOK = """#!/bin/sh
@@ -273,9 +292,9 @@ def cmd_pre_push(a):
     store = lfs_store(ROOT)
     miss = [o for o in oids if not obj_path(store, o).exists()]
     if miss:
-        print(f"lfs_lean: {len(miss)} objects of the upload set are missing locally; not pushing", file=sys.stderr)
-        return 1
-    ol = sorted(oids)
+        print(f"lfs_lean: {len(miss)} objects of the upload set are missing locally and are not uploaded",
+              file=sys.stderr)
+    ol = sorted(o for o in oids if o not in miss)
     if os.environ.get("LFS_LEAN_DRY"):                  # a test: name the objects instead of uploading them
         print(f"lfs_lean: would upload {len(ol)} objects", file=sys.stderr)
         return 0
@@ -299,6 +318,10 @@ def main():
         s.add_argument("--source", default=str(ROOT))
         s.add_argument("--remote", default=REMOTE_URL)
         s.add_argument("--dry-run", action="store_true")
+        s.add_argument("--allow-missing", action="store_true", help="push without the upload objects missing here")
+    lo = sp.add_parser("lost")
+    lo.add_argument("--repo", default=str(ROOT))
+    lo.add_argument("--out", required=True)
     v = sp.add_parser("verify")
     v.add_argument("--repo", default=str(ROOT))
     sp.add_parser("install-hook")
@@ -307,6 +330,7 @@ def main():
     h.add_argument("url", nargs="?")
     a = p.parse_args()
     return {"catalog": cmd_catalog, "refresh": cmd_refresh, "stage": cmd_stage, "push": cmd_push, "verify": cmd_verify,
+            "lost": cmd_lost,
             "install-hook": cmd_install_hook, "pre-push": cmd_pre_push}[a.cmd](a)
 
 
