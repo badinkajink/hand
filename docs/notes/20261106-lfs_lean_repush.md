@@ -24,15 +24,16 @@ commits that could not be pushed, the remote `github` and an LFS store of hard l
    1,464 objects (1.64 GB) exist only on GitHub: 469 old page versions, 632 data rows, 119 videos, 189 images and
    others. Downloads are refused (HTTP 403) until the budget allows them, and deleting the repository before they are
    downloaded loses them.
-2. Workstation: `git lfs fetch --all origin` in `/home/humanoid/Programs/hand`, then
+2. Workstation: `git fetch origin` (the branches the lab pushed meanwhile) and `git lfs fetch --all origin` in
+   `/home/humanoid/Programs/hand`, then `refresh` the bare copy; then
    `python3 scripts/docs/lfs_lean.py catalog` must report 0 objects missing here, and `stage` then `push --dry-run`
    (`--mirror /home/humanoid/Programs/hand-lean.git`) must report no missing upload objects.
 3. Owner: no session pushes during the switch (the lab on corvus pushes branches).
 4. Owner: delete `badinkajink/hand` (Settings, Danger zone) and create an empty public repository `hand` under the same
    account, with no README, licence or .gitignore. The old one has no issues, pull requests, releases, forks, stars or
    wiki; its deploy keys and collaborators, if any, must be added again.
-5. Workstation: `python3 scripts/docs/lfs_lean.py refresh --mirror /home/humanoid/Programs/hand-lean.git`, `stage`,
-   then `push`: the branches with the LFS upload off, then the upload set by object id, then `verify` against GitHub's
+5. Workstation: `python3 scripts/docs/lfs_lean.py refresh --mirror /home/humanoid/Programs/hand-lean.git` (the local
+   commits made meanwhile; GitHub's branches as fetched in step 2), `stage`, then `push`: the branches with the LFS upload off, then the upload set by object id, then `verify` against GitHub's
    LFS API. Then `git fetch origin` and `python3 scripts/docs/lfs_lean.py install-hook` in the main clone, so that later
    pushes upload only the upload set.
 6. Owner: the budget can return to $0, since 4.36 GiB is under the included 10 GiB.
