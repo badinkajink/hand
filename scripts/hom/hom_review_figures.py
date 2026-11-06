@@ -27,8 +27,9 @@ D = ROOT / "docs/experiments/20261029-hom_control_review"
 MEDIA = D / "media"
 ROWS = D / "rows"
 
-# CAD-model SR2 finger (scripts/hom/hand_object_scale_kin.py, SCALE_HAND=cad_v1), mm
-L1, L2, RHO = 30.80, 26.61, 10.55
+# the SR2 finger with the v4b tip (scripts/hom/hand_object_scale_kin.py, SCALE_HAND=cad_v2; 26.61 mm with the TPU block
+# of cad_v1 before 2026-11-06), mm
+L1, L2, RHO = 30.80, 36.36, 10.55
 ELL = 20.0                      # mm: the linear rows of Eq. (2) are divided by ell (src/sr2hand/control/hom.py)
 C_THUMB, C_INDEX, C_MIDDLE = "#1f4e9c", "#b03a2e", "#2e7d32"
 
@@ -58,7 +59,7 @@ def fig_schematic():
     plt = plt_setup()
     from matplotlib.patches import Circle, FancyArrowPatch, Rectangle
     r, L, yp, ym = 12.5, 100.0, 20.0, -32.5
-    fig, (a, b) = plt.subplots(1, 2, figsize=(12.5, 5.6), gridspec_kw={"width_ratios": [1.0, 1.25]})
+    fig, (a, b) = plt.subplots(1, 2, figsize=(10.5, 4.9), gridspec_kw={"width_ratios": [1.0, 1.25]})
     # top view, palm frame (x across, y along the cylinder)
     a.add_patch(Rectangle((-r, -L / 2), 2 * r, L, fc="#d9d9d9", ec="k", lw=1.2))
     pads = {"thumb": (-(r + RHO), yp, C_THUMB), "index": (r + RHO, yp, C_INDEX), "middle": (r + RHO, ym, C_MIDDLE)}
@@ -166,7 +167,7 @@ def fig_planar():
     C = pad0 + (RHO + R + 6.0) * np.array([math.cos(al), math.sin(al)])
     cases = [("separation +20 mm/s", (0.0, 20.0, 0.0)), ("slide +20 mm/s", (0.0, 0.0, 20.0)),
              ("roll +40 deg/s", (math.radians(40.0), 0.0, 0.0))]
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5.6))
+    fig, axs = plt.subplots(1, 3, figsize=(8.28, 3.5))
     stats = []
     for ax, (name, vref) in zip(axs, cases):
         run = planar_run(vref, th0, C, R, T=1.0)
@@ -184,17 +185,16 @@ def fig_planar():
         va = np.array([s["v_ach"] for s in run])
         mean = va.mean(0)
         stats.append((name, mean, run[-1]["gap"]))
-        ax.set_title(name)
+        ax.set_title(name, fontsize=12.5)
         ax.set_aspect("equal")
-        ax.set_xlim(-12, 82)
-        ax.set_ylim(-78, 8)
-        ax.set_xlabel("x (mm)")
-        txt = (f"achieved, mean over 1 s:\nroll {math.degrees(mean[0]):+.1f} deg/s\n"
-               f"separation {mean[1]:+.1f} mm/s\nslide {mean[2]:+.1f} mm/s\nend gap {run[-1]['gap']:.1f} mm")
-        ax.text(-9, -76, txt, fontsize=11.5, va="bottom")
-    axs[0].set_ylabel("z (mm)")
-    fig.tight_layout()
-    save(fig, "20261029-planar_eq1_eq2.png")
+        ax.set_xlim(-6, 84)
+        ax.set_ylim(-78, 6)
+        ax.set_xlabel("x (mm)", fontsize=12)
+        ax.tick_params(labelsize=11)
+    axs[0].set_ylabel("z (mm)", fontsize=12)
+    fig.tight_layout(pad=0.4, w_pad=0.6)
+    fig.savefig(MEDIA / "20261029-planar_eq1_eq2.png", dpi=200, facecolor="white")
+    plt.close(fig)
     return stats
 
 
@@ -314,7 +314,7 @@ def fig_sensing():
     panels = [("pinpush", "rmse", "pin-push: pinch-angle RMSE (deg)"), ("press", "rmse", "press: pinch-angle RMSE (deg)"),
               ("roll", "rmse", "roll: velocity RMSE per step"), ("twist", "rmse", "twist: velocity RMSE per step"),
               ("pinpush", "force", "pin-push: force error per pad (N)"), ("press", "force", "press: force error per pad (N)")]
-    fig, axs = plt.subplots(3, 2, figsize=(17, 12.5), sharex=True)
+    fig, axs = plt.subplots(6, 1, figsize=(8.28, 14.5), sharex=True)
     x = np.arange(len(VAR_ORDER))
     cap = {"roll": 2.5, "twist": 2.5}                    # velocity RMSE per step: a few calibration runs reach 12
     for ax, (task, kind, title) in zip(axs.flat, panels):
@@ -325,7 +325,7 @@ def fig_sensing():
             if kind == "rmse":
                 vals = [task_score(r) for r in rr if r.get("held") and task_score(r) is not None]
                 held = sum(bool(r.get("held")) for r in rr)
-                ax.text(k, 1.02, f"{held}/{len(rr)}", transform=ax.get_xaxis_transform(), ha="center", fontsize=11)
+                ax.text(k, 1.02, f"{held}", transform=ax.get_xaxis_transform(), ha="center", fontsize=11)
             else:
                 vals = []
                 for r in rr:
@@ -339,26 +339,28 @@ def fig_sensing():
                 top = cap.get(task) if kind == "rmse" else None
                 if top is not None and max(vals) > top:
                     k_over = sum(v > top for v in vals)
-                    ax.text(k, top * 0.985, f"{k_over} above", ha="center", va="top", fontsize=9.5, color="#555555")
+                    ax.text(k, top * 0.985, f"{k_over}\nabove", ha="center", va="top", fontsize=10.5, color="#555555")
                     keep = [v <= top for v in vals]
                     xx, vals_p = xx[keep], [v for v in vals if v <= top]
                 else:
                     vals_p = vals
                 ax.plot(xx, vals_p, "o", ms=3.5 if many else 6, mfc="none", mec=col, alpha=0.45 if many else 0.85)
                 ax.plot([k - 0.34, k + 0.34], [np.median(vals)] * 2, color="k", lw=2.4)
-        ax.set_title(title, pad=18 if kind == "rmse" else 6)
+        ax.set_title(title + (", held runs" if kind == "rmse" else ""), pad=16 if kind == "rmse" else 5, fontsize=12.5,
+                     loc="left")
+        ax.tick_params(labelsize=11)
         ax.axvline(7.5, color="#888888", ls=":", lw=1.2)
         ax.grid(axis="y", color="#e2e2e2")
         ax.set_ylim(bottom=0)
-    for ax in axs[2]:
-        ax.set_xticks(x)
-        ax.set_xticklabels([VAR_LABEL[v] for v in VAR_ORDER], fontsize=10)
-    axs[0, 0].set_ylim(0, 26)
-    axs[0, 1].set_ylim(0, 20)
-    axs[1, 0].set_ylim(0, cap["roll"])
-    axs[1, 1].set_ylim(0, cap["twist"])
-    fig.tight_layout()
-    save(fig, "20261029-sensing_variants.png")
+    axs[-1].set_xticks(x)
+    axs[-1].set_xticklabels([VAR_LABEL[v] for v in VAR_ORDER], fontsize=11)
+    axs[0].set_ylim(0, 26)
+    axs[1].set_ylim(0, 20)
+    axs[2].set_ylim(0, cap["roll"])
+    axs[3].set_ylim(0, cap["twist"])
+    fig.tight_layout(h_pad=0.6)
+    fig.savefig(MEDIA / "20261029-sensing_variants.png", dpi=200, facecolor="white")
+    plt.close(fig)
     return {"rows": name, "n": len(rows)}
 
 

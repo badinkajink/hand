@@ -27,7 +27,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import code_blocks as CB  # noqa: E402
 import docs_index  # noqa: E402
+import hom_code_anchors as CA  # noqa: E402
 import hom_rows  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
@@ -139,6 +141,14 @@ def assemble(sections, title, h1, eyebrow, lede, byline, out, summary):
 
 # ================================================================================================ the method page
 
+H, SF = "src/sr2hand/control/hom.py", "src/sr2hand/control/surfaces.py"
+
+
+def L(path, name, text=None):
+    """A def's lines on GitHub, named in code font."""
+    return CB.link(path, CB.find_def(path, name), f"<code>{text or name}</code>")
+
+
 def method_page():
     S = []
     S.append(("terms", "Terms and symbols", r"""
@@ -192,7 +202,11 @@ $y$ axes are aligned as closely as the tangent plane allows with the finger body
 the finger's own flexion, and $z=x\times y$.</p>
 <p>In the library, <code>Mirror.gcf_witness</code> takes the witness points from <code>mj_geomDistance</code> between the TPU
 block's convex mesh and the object on a kinematic copy of the scene. <code>Mirror.gcf_from_cop</code> projects the pads'
-centre of pressure onto analytic surfaces of the block (a box with 2.7&#8202;mm rounded edges) and of the object.</p>"""))
+centre of pressure onto analytic surfaces of the block (a box with 2.7&#8202;mm rounded edges) and of the object. Since
+2026-10-30 the fingertip is the v4b pad, a half-ellipsoid (<code>surfaces.HalfEllipsoid</code>); the code walkthrough of
+that date (<a href="../20261029-hom_control_review/20261030-hom_controller_code_walkthrough.html">20261030-hom_controller_code_walkthrough.html</a>)
+follows every substep with it, and the review page explains Eq. (1) and the filter with figures
+(<a href="../20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html">20261029-hom_control_and_fingertip_sensing.html</a>).</p>"""))
 
     S.append(("eq1", "Relative contact twist, Eq. (1)", r"""
 <p>For every finger the paper writes the relative contact twist from the body twists of the finger body $\{B_1\}$ and the object
@@ -306,19 +320,19 @@ turned by fingers 1 and 3 in release-and-turn cycles.</li>
 intrinsic tactile sensing for the centre of pressure and fusion with motion capture.</p>"""))
 
     S.append(("codemap", "Code map", table(
-        ["Paper", "Library (src/sr2hand/control/)", "Test (tests/test_hom_control.py)"],
-        [["GCFs, Sec. III-B", "<code>Mirror.gcf_witness</code>, <code>Mirror.gcf_from_cop</code>, <code>Gcf</code>",
+        ["Paper", "Library (src/sr2hand/control/), linked to its lines on GitHub", "Test (removed on 2026-11-03)"],
+        [["GCFs, Sec. III-B", L(H, "Mirror.gcf_witness") + ", " + L(H, "Mirror.gcf_from_cop") + ", " + L(H, "Gcf"),
           "<code>test_gcf_convention</code>"],
-         ["Eq. (1)", "<code>HomController.eq1_rows</code>", "<code>test_eq1_rows_match_finite_differences</code>"],
-         ["Eq. (2)", "<code>solve_eq2</code>", "<code>test_eq2_unbounded_matches_closed_form</code>, <code>test_eq2_respects_bounds</code>"],
-         ["Eq. (3), pinch frame", "<code>pusher_body_twist</code>, <code>pinch_frame</code>", "<code>test_pusher_twist_is_rotation_about_pinch_axis</code>"],
-         ["Anti-windup", "<code>HomController.step</code>, <code>HomParams.aw_dist</code>", "the tasks' pick (Section 3 of the results page)"],
-         ["Roll-slide kinematics", "<code>surface_jacobian</code>, <code>roll_slide_rates</code>", "<code>test_roll_slide_*</code> (three)"],
-         ["Eqs. (4)-(6)", "<code>ContactFilter</code>, <code>FilterParams</code>", "<code>test_filter_smooths_static_noise</code>"],
-         ["Geodesic tracer", "<code>Surface.geodesic_step</code> (surfaces.py)", "<code>test_geodesic_step_*</code> (two)"],
-         ["Closest points, curvature", "<code>Sphere</code>, <code>Cylinder</code>, <code>RoundedBox</code>, <code>Plane</code>, <code>Posed</code>",
+         ["Eq. (1)", L(H, "HomController.eq1_rows"), "<code>test_eq1_rows_match_finite_differences</code>"],
+         ["Eq. (2)", L(H, "solve_eq2"), "<code>test_eq2_unbounded_matches_closed_form</code>, <code>test_eq2_respects_bounds</code>"],
+         ["Eq. (3), pinch frame", L(H, "pusher_body_twist") + ", " + L(H, "pinch_frame"), "<code>test_pusher_twist_is_rotation_about_pinch_axis</code>"],
+         ["Anti-windup", CB.link(H, CB.find_span(H, "v_ref = np.asarray(c.v_ref, float).copy()", until="v_ref[SEP] = 0.0", within="HomController.step"), "<code>HomController.step</code>") + ", " + L(H, "HomParams") + " (<code>aw_dist</code>)", "the tasks' pick (Section 3 of the results page)"],
+         ["Roll-slide kinematics", L(H, "surface_jacobian") + ", " + L(H, "roll_slide_rates"), "<code>test_roll_slide_*</code> (three)"],
+         ["Eqs. (4)-(6)", L(H, "ContactFilter") + ", " + L(H, "FilterParams"), "<code>test_filter_smooths_static_noise</code>"],
+         ["Geodesic tracer", L(SF, "Surface.geodesic_step") + " (surfaces.py)", "<code>test_geodesic_step_*</code> (two)"],
+         ["Closest points, curvature", ", ".join(L(SF, c) for c in ("Sphere", "Cylinder", "RoundedBox", "HalfEllipsoid", "Plane", "Posed")),
           "<code>test_*_queries</code>, <code>test_rounded_box_*</code>, <code>test_plane</code>"],
-         ["Impedance", "servo offsets in <code>HomController.step</code>; <code>reanchor</code>",
+         ["Impedance", "servo offsets in " + CB.link(H, CB.find_span(H, "off_gap, off_force, off_grav, gap = ", until="out[f] = np.clip(", within="HomController.step"), "<code>HomController.step</code>") + "; " + L(H, "HomController.reanchor", "reanchor"),
           "<code>test_impedance_target_on_the_surface_from_a_lagging_reference</code>"]],
         num_from=9, caption="Where each part of the paper's method is implemented and checked.", n=1)))
 
@@ -362,8 +376,10 @@ intrinsic tactile sensing for the centre of pressure and fusion with motion capt
     ]
     S.append(("differences", "Differences from the paper", r"""
 <p>The library follows the paper's equations and conventions. Table 2 lists every place where it differs, why, and the
-setting a comparison with the reference implementation should check first.</p>""" + table(
-        ["Item", "Paper [1]", "This library", "Reason"], diffs, num_from=9,
+setting a comparison with the reference implementation should check first. Each entry of the library's column links the
+lines that implement it on GitHub.</p>""" + table(
+        ["Item", "Paper [1]", "This library and its code", "Reason"],
+        [[a, b, c + (f"<br>{CA.cell(a)}" if CA.cell(a) else ""), d] for a, b, c, d in diffs], num_from=9,
         caption="Differences between the paper's implementation and the library.", n=2)))
 
     S.append(("earlier", "Earlier HOM code in this repository", r"""
@@ -389,7 +405,9 @@ controllers; new work uses the library.</p>""" + table(
 needs it cannot run there yet. The library keeps it as an option (<code>HomParams.force_loop_gain</code>, off by default).</p>"""))
 
     S.append(("verification", "Verification", r"""
-<p><code>tests/test_hom_control.py</code> has 21 tests, all passing at commit @@COMMIT@@:</p>
+<p><code>tests/test_hom_control.py</code> had 21 tests, all passing when this page was first built. They were removed
+on 2026-11-03 with the repository's other tests of code that does not move hardware (commit <code>fd2100da0</code>); the
+last version is <code>git show fd2100da0^:tests/test_hom_control.py</code>. They checked:</p>
 <ul>
 <li>Surfaces: closest points of the rounded block against 60,000 sampled surface points, the block's shape operator on a face (0),
 an edge ($1/r$ across, 0 along) and a corner ($1/r$), cylinder side, cap and interior queries, sphere and plane queries, a posed
@@ -407,7 +425,7 @@ spring's press; the earlier gap stops short by the lag.</li>
 <li>The bench adapter: 2&#8202;s of the roll task at 50&#8202;Hz through the bench's units give the controller&#39;s own targets
 without adjustment, a replay of the stream gives them again, and a plan with other mounts is refused.</li>
 </ul>
-<p>Run them with <code>PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests/test_hom_control.py -q</code>.</p>"""))
+"""))
 
     S.append(("expa", "Exp. A on the library and the units of Eq. (2)", expa_section()))
 
@@ -451,13 +469,13 @@ Earlier controllers: <code>scripts/hom/hom_control.py</code>, <code>hom_chain.py
     lede = (r"The relative contact-velocity controller of the HOM paper [1] is implemented in <code>src/sr2hand/control/</code> "
             r"as one library for MuJoCo hands with position servos, in the paper's conventions: generalized contact frames, the "
             r"relative contact twist of Eq. (1), the least squares of Eq. (2), the pinch and pusher sub-assemblies with Eq. (3), "
-            r"the anti-windup of the separation velocity and the complementary filter of Eqs. (4)&#8211;(6). Twenty-one tests check it "
-            r"against closed forms and finite differences (Eq. (1) to 1e-4 relative), and the paper's Exp. A on the CAD-model hand "
+            r"the anti-windup of the separation velocity and the complementary filter of Eqs. (4)&#8211;(6). Twenty-one tests checked it "
+            r"against closed forms and finite differences (Eq. (1) to 1e-4 relative) until 2026-11-03, and the paper's Exp. A on the CAD-model hand "
             r"gives the paper's ranking (roll about $y$ and separation best) when Eq. (2) weighs 100&#8202;mm/s like 1&#8202;rad/s. It differs from the paper in the " + str(len(diffs)) + r" places of "
             r"Table 2, mostly where position servos replace torque control and sphere pads replace hydroelastic contact; the three "
             r"earlier HOM controllers in this repository differ more (Table 3).")
     summary = ("The HOM paper's controller (GCFs, Eqs. 1-6, pinch and pusher) implemented as one MuJoCo library for position-servo "
-               "hands; 21 tests pass; " + str(len(diffs)) + " differences from the paper listed, mostly servos for torque control and pads for "
+               "hands, checked by 21 tests until they were removed on 2026-11-03; " + str(len(diffs)) + " differences from the paper listed, mostly servos for torque control and pads for "
                "hydroelastic contact; the three earlier controllers differ more.")
     assemble(S, "HOM controller implementation", "Hand-object mechanism control: the method and its MuJoCo implementation",
              "Reorientation mechanisms and control &#183; 2026-10-21", lede,

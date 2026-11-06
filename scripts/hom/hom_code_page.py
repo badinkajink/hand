@@ -30,6 +30,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import code_blocks as CB  # noqa: E402
 import docs_index  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
@@ -44,6 +45,33 @@ TEX_RE = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.S)
 GRID = ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2d_v4b"
 REVIEW = "20261029-hom_control_and_fingertip_sensing.html"
 METHOD = "../20261021-hom_framework/20261021-hom_controller_method_and_implementation.html"
+HOMP, SURF = "src/sr2hand/control/hom.py", "src/sr2hand/control/surfaces.py"
+TASKS, GPUF = "scripts/hom/hom_tasks.py", "scripts/hom/hom_gpu.py"
+
+
+def LK(path, qualname, text=None):
+    """A link to a def's lines on GitHub, named in code font."""
+    return CB.link(path, CB.find_def(path, qualname), f"<code>{text or qualname}</code>")
+
+
+def STEP(text, until, name="step"):
+    """A link to the lines of HomController.step from the line with `text` to the one with `until`."""
+    return CB.link(HOMP, CB.find_span(HOMP, text, until=until, within="HomController.step"), f"<code>{name}</code>")
+
+
+SPANS = {   # the parts of HomController.step that the substeps name: (first line's text, last line's text)
+    "pinch": ("if cmd.pinch is not None and abs(cmd.s) > 0", "self.M = self.M_key = None"),
+    "V": ("V = np.asarray(cmd.object_twist, float)", "V = V + pusher_body_twist"),
+    "aw": ("v_ref = np.asarray(c.v_ref, float).copy()", "v_ref[SEP] = 0.0"),
+    "ref": ("tr = self.theta_ref[f] + dt * u", "self.theta_ref[f] = np.clip(tr"),
+    "act": ("p_act, n_act = g.p1, g.x1", "p_act, n_act = flt.update"),
+    "imp": ("off_gap, off_force, off_grav, gap = ", "out[f] = np.clip("),
+}
+
+
+def step_block(key, title, **kw):
+    a, b = SPANS[key]
+    return CB.block(HOMP, CB.find_span(HOMP, a, until=b, within="HomController.step"), title, **kw)
 FINGERS = ("thumb", "index", "middle")
 JOINTS = ("yaw", "MCP", "PIP")
 COMP = ("spin", "roll y", "roll z", "sep", "slide y", "slide z")
@@ -632,26 +660,26 @@ def build():
     def ex(f, key, k=1, conv=deg):
         return conv(p_tw["fingers"][f][key], k)
     rows = [
-        ["1. Measurement", "Sec. III-E (inputs)", "<code>Measurement</code>, filled by <code>hom_tasks.rollout</code> "
-         "from <code>Plant.state</code>", f"$\\theta$ = ({ex('index', 'theta')}) deg; pad force {ix['F']:.2f} N"],
-        ["2. Kinematic copy", "", "<code>Mirror.set_state</code>: joint angles and object pose, then "
+        ["1. Measurement", "Sec. III-E (inputs)", LK(HOMP, "Measurement") + ", filled by "
+         + LK(TASKS, "rollout", "hom_tasks.rollout") + " from " + LK(TASKS, "Plant.state"), f"$\\theta$ = ({ex('index', 'theta')}) deg; pad force {ix['F']:.2f} N"],
+        ["2. Kinematic copy", "", LK(HOMP, "Mirror.set_state") + ": joint angles and object pose, then "
          "<code>mj_kinematics</code>", "tip pose and joint axes at the measured state"],
-        ["3. Contact frame", "Sec. III-B", "<code>HomController.gcf</code> &rarr; <code>Mirror.gcf_from_cop</code> or "
-         "<code>gcf_witness</code>", f"from the CoP; distance {ix['dist_mm']:.2f} mm (pressed in)"],
-        ["4. Command", "Sec. III-E (sliders)", "<code>Schedule.__call__</code> &rarr; <code>HandCommand</code>",
+        ["3. Contact frame", "Sec. III-B", LK(HOMP, "HomController.gcf") + " &rarr; "
+         + LK(HOMP, "Mirror.gcf_from_cop") + " or " + LK(HOMP, "Mirror.gcf_witness", "gcf_witness"), f"from the CoP; distance {ix['dist_mm']:.2f} mm (pressed in)"],
+        ["4. Command", "Sec. III-E (sliders)", LK(TASKS, "Schedule.__call__") + " &rarr; " + LK(HOMP, "HandCommand"),
          f"$v_{{\\mathrm{{ref}}}}$ = 0; $w$ = (1, 0, 0, 1, 1, 1); $F$ = {ix['force']:.1f} N; sphere at 40 deg/s about the "
          f"vertical"],
-        ["5. Object twist", "Eq. (3) for a pusher", "<code>step</code>: <code>cmd.object_twist</code>, plus "
-         "<code>pusher_body_twist</code>", f"$V$ = ({deg(ix['V'][:3], 1)}) deg/s, body axes"],
-        ["6. Anti-windup", "Sec. III-C", "<code>step</code>: $v_{\\mathrm{sep,ref}} = 0$ within 0.5 mm",
+        ["5. Object twist", "Eq. (3) for a pusher", STEP(*SPANS["V"]) + ": <code>cmd.object_twist</code>, plus "
+         + LK(HOMP, "pusher_body_twist"), f"$V$ = ({deg(ix['V'][:3], 1)}) deg/s, body axes"],
+        ["6. Anti-windup", "Sec. III-C", STEP(*SPANS["aw"]) + ": $v_{\\mathrm{sep,ref}} = 0$ within 0.5 mm",
          "inactive: $v_{\\mathrm{sep,ref}}$ is already 0"],
-        ["7. Relative twist rows", "Eq. (1)", "<code>HomController.eq1_rows</code>", "$A$ (6 x 3) and $b$, Table 3"],
-        ["8. Joint rates", "Eq. (2)", "<code>solve_eq2</code> (SciPy BVLS)", f"$u$ = ({ex('index', 'u')}) deg/s"],
-        ["9. Reference", "Sec. III-C", "<code>step</code>: $\\theta_{\\mathrm{ref}} \\mathrel{+}= u\\,\\Delta t$, "
+        ["7. Relative twist rows", "Eq. (1)", LK(HOMP, "HomController.eq1_rows"), "$A$ (6 x 3) and $b$, Table 3"],
+        ["8. Joint rates", "Eq. (2)", LK(HOMP, "solve_eq2") + " (SciPy BVLS)", f"$u$ = ({ex('index', 'u')}) deg/s"],
+        ["9. Reference", "Sec. III-C", STEP(*SPANS["ref"]) + ": $\\theta_{\\mathrm{ref}} \\mathrel{+}= u\\,\\Delta t$, "
          "clipped", f"$\\theta_{{\\mathrm{{ref}}}}$ = ({ex('index', 'tr', 2)}) deg"],
-        ["10. Action point", "Eqs. (4)&ndash;(6)", "<code>ContactFilter.update</code>",
+        ["10. Action point", "Eqs. (4)&ndash;(6)", LK(HOMP, "ContactFilter.update"),
          f"gain $k$ = {ix['k'][1]:.0f} s$^{{-1}}$; point on the pad, normal $n_a$"],
-        ["11. Servo targets", "Sec. III-C/D (impedance)", "<code>step</code>: three offsets, Eq. (7)",
+        ["11. Servo targets", "Sec. III-C/D (impedance)", STEP(*SPANS["imp"]) + ": three offsets, Eq. (7)",
          f"gap step ({ex('index', 'off_gap', 2)}), force ({ex('index', 'off_force', 2)}), gravity "
          f"({ex('index', 'off_grav', 2)}) deg; target ({ex('index', 'q_cmd', 2)}) deg"],
     ]
@@ -1004,7 +1032,9 @@ middle finger is curled to its MCP limit. <code>scripts/hom/hom_reanchor_check.p
     s_plant = fill(r"""<p><code>hom_tasks.Plant</code> wraps the pads scene in MuJoCo. Each v4b pad is modelled as
 <<npad>> spheres of <<rpad>> mm radius, with stiffnesses from pad builder v2. The cassette, cap and DIP link are packs of rigid
 spheres. The object weighs <<mass>> g. Every joint is a position servo with $k_p$ = <<kp>> N m/rad, a torque limit of
-<<tau>> N m and <<damp>> N m s/rad of damping, the bench plant of the SR2 hand. The friction coefficient of the pads is
+<<tau>> N m and <<damp>> N m s/rad of damping, the work plant of the HOM study. The SR2 hand's SCS0009 servo has
+0.72 N m/rad and a 0.18 N m stall torque (HOM plant page of 2 November). The pads' modulus is 10 MPa,
+the value of the cached scenes of 30 October; the project's pads have used 2.5 MPa since then. The friction coefficient of the pads is
 <<mu>>, with an elliptic friction cone. <code>set_targets</code> writes the servo targets; <code>advance</code> steps the
 physics at <<dt>> ms up to the next period. <code>contacts</code> sums each finger's pad contacts on the object into a
 normal force and a centre of pressure, the quantities a fingertip sensor reports. The force of the finger's other bodies
@@ -1154,8 +1184,9 @@ Hand-Object Mechanism for Dexterous Tool Manipulation", arXiv 2609.25619v2, 2026
 <li>This page: <code>{OUT.relative_to(ROOT)}</code>, built by <code>scripts/hom/hom_code_page.py</code> (template
 <code>scripts/hom/hom_review_page.template.html</code>); the parent page: <a href="{REVIEW}">{REVIEW}</a>.</li>
 <li>Controller: <code>src/sr2hand/control/hom.py</code> (<code>HomController.step</code> reports every
-intermediate in its info dict), <code>src/sr2hand/control/surfaces.py</code>; tests
-<code>tests/test_hom_control.py</code>.</li>
+intermediate in its info dict), <code>src/sr2hand/control/surfaces.py</code>. Their unit tests were removed on
+2026-11-03 with the other tests of code that does not move hardware (commit <code>fd2100da0</code>); the last version
+is <code>git show fd2100da0^:tests/test_hom_control.py</code>.</li>
 <li>Rollouts, films and keyframes: <code>~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python
 scripts/hom/hom_code_trace.py</code>, rows <code>{(ROWS / '20261030-code_twist.json').relative_to(ROOT)}</code> and
 <code>20261030-code_pinpush.json</code>.</li>
@@ -1164,12 +1195,74 @@ scripts/hom/hom_code_trace.py</code>, rows <code>{(ROWS / '20261030-code_twist.j
 against <code>{GRID.relative_to(ROOT)}/twist_d40.jsonl</code> and <code>pinpush_d25.jsonl</code>.</li>
 <li>Re-anchor: <code>scripts/hom/hom_reanchor_check.py cpu</code> (rows <code>{(ROWS / '20261030-reanchor_check.json').relative_to(ROOT)}</code>)
 and <code>grid</code> (rows <code>{(GRID.parent / 'grid2d_v4b_reanchor').relative_to(ROOT)}</code>, from
-<code>hom_gpu.py run --variants reanchor</code>, script <code>logs/20261030-hom_reanchor/queue.sh</code>); test
-<code>tests/test_hom_control.py::test_reanchor_in_contact_beyond_the_cut</code>.</li>
+<code>hom_gpu.py run --variants reanchor</code>, script <code>logs/20261030-hom_reanchor/queue.sh</code>).</li>
 <li>Tasks: <code>scripts/hom/hom_tasks.py</code>; GPU controller <code>scripts/hom/hom_gpu.py</code>; grasps
 <code>scripts/hom/fp_sr2_toy.py</code>; the v4b hand <code>scripts/hardware/build_cad_v2_finger.py</code>,
 <code>assets/mjcf/experimental/20261030-cad_v2</code>.</li>
 </ul>"""
+
+    # ---------------------------------------------------------------- the code of each section, collapsed
+    s_period += fill(r"""<p>Each section below ends with the code it describes, collapsed. A link opens the same lines on
+GitHub, at the commit that last changed the file. The whole period is <code>HomController.step</code>:</p>""")
+    s_period += CB.block(HOMP, CB.find_def(HOMP, "HomController.step"),
+                         "Code: one control period, <code>HomController.step</code> (substeps 2 to 11)")
+    s_period += CB.block(TASKS, CB.find_span(TASKS, "meas = H.Measurement(", before=2, after=2, within="rollout"),
+                         "Code: substep 1, the measurement handed to the controller, in <code>hom_tasks.rollout</code>")
+    s_model += CB.block(HOMP, CB.find_def(HOMP, "Mirror.set_state"), "Code: substep 2, the kinematic copy, "
+                        "<code>Mirror.set_state</code>")
+    s_model += CB.block(TASKS, CB.find_def(TASKS, "tip_surface"), "Code: the pad's surface in the tip frame, "
+                        "<code>hom_tasks.tip_surface</code>")
+    s_model += CB.block(SURF, CB.find_def(SURF, "HalfEllipsoid"), "Code: the v4b pad, <code>HalfEllipsoid</code>")
+    s_model += CB.block(SURF, CB.find_def(SURF, "ellipsoid_closest"), "Code: the closest point of an ellipsoid, "
+                        "<code>ellipsoid_closest</code>")
+    s_gcf += CB.block(HOMP, CB.find_def(HOMP, "HomController.gcf"), "Code: substep 3, the choice of the source, "
+                      "<code>HomController.gcf</code>")
+    s_gcf += CB.block(HOMP, CB.find_def(HOMP, "Mirror.gcf_witness"), "Code: the frames from the witness points, "
+                      "<code>Mirror.gcf_witness</code>")
+    s_gcf += CB.block(HOMP, CB.find_def(HOMP, "Mirror.gcf_from_cop"), "Code: the frames from the centre of pressure, "
+                      "<code>Mirror.gcf_from_cop</code>")
+    s_gcf += CB.block(HOMP, CB.find_def(HOMP, "frame_from_normal"), "Code: the axes from the normal and the PIP axis, "
+                      "<code>frame_from_normal</code>")
+    s_eq1 += fill(r"""<p>The review page draws Eq. (1) term by term and shows what the adjoint does
+(<a href="<<rv>>#eq1">Section 3</a>).</p>""", rv=REVIEW)
+    s_eq1 += CB.block(HOMP, CB.find_def(HOMP, "HomController.eq1_rows"), "Code: substep 7, Eq. (1), "
+                      "<code>HomController.eq1_rows</code>")
+    s_eq2 += CB.block(HOMP, CB.find_def(HOMP, "solve_eq2"), "Code: substep 8, Eq. (2), <code>solve_eq2</code>")
+    s_eq2 += CB.block(GPUF, CB.find_span(GPUF, "# Eq. (2): min", until="u_sol = th.minimum(th.maximum(u_sol",
+                                         within="Batch.control"),
+                      "Code: Eq. (2) on the GPU, the 27 patterns of free and bound rates, in <code>Batch.control</code>")
+    s_ref += step_block("aw", "Code: substep 6, the reference relative twist and the anti-windup, in "
+                        "<code>HomController.step</code>")
+    s_ref += step_block("ref", "Code: substep 9, the joint reference and the lead limit, in "
+                        "<code>HomController.step</code>")
+    s_eq3 += CB.block(HOMP, CB.find_def(HOMP, "pinch_frame"), "Code: the pinch frame $\\{M\\}$, <code>pinch_frame</code>")
+    s_eq3 += CB.block(HOMP, CB.find_def(HOMP, "pusher_body_twist"), "Code: Eq. (3), <code>pusher_body_twist</code>")
+    s_eq3 += step_block("pinch", "Code: $\\{M\\}$ fixed to the object when the pusher starts, in "
+                        "<code>HomController.step</code>")
+    s_eq3 += step_block("V", "Code: substep 5, the object twist that a finger follows, in <code>HomController.step</code>")
+    s_flt += fill(r"""<p>The review page explains the filter with the v4b pad's geometry and runs it on the UR5
+calibration's rolls of the magnetic fingertips (<a href="<<rv>>#filter">Section 6</a>).</p>""", rv=REVIEW)
+    s_flt += step_block("act", "Code: substep 10, the action point from the filter or the contact frame, in "
+                        "<code>HomController.step</code>")
+    s_flt += CB.block(HOMP, CB.find_def(HOMP, "ContactFilter.update"), "Code: one filter period, Eqs. (4) to (6), "
+                      "<code>ContactFilter.update</code>")
+    s_flt += CB.block(SURF, CB.find_def(SURF, "Surface.geodesic_step"), "Code: the geodesic step, "
+                      "<code>Surface.geodesic_step</code>")
+    s_imp += step_block("imp", "Code: substep 11, the three servo offsets of Eq. (7), in <code>HomController.step</code>")
+    s_imp += CB.block(HOMP, CB.find_def(HOMP, "HomController.reanchor"), "Code: the re-anchor, "
+                      "<code>HomController.reanchor</code>")
+    s_plant += CB.block(TASKS, CB.find_def(TASKS, "Plant.contacts"), "Code: the pads' normal force and centre of "
+                        "pressure, <code>Plant.contacts</code>")
+    s_plant += CB.block(TASKS, CB.find_def(TASKS, "Plant.state"), "Code: what the controller receives, "
+                        "<code>Plant.state</code>")
+    s_tasks += CB.block(TASKS, CB.find_def(TASKS, "Schedule.__call__"), "Code: substep 4, the commands of every period, "
+                        "<code>Schedule.__call__</code>")
+    s_tasks += CB.block(TASKS, CB.find_def(TASKS, "mode_weights"), "Code: the weights of each role, "
+                        "<code>mode_weights</code>")
+    s_gpu += CB.block(GPUF, CB.find_def(GPUF, "Batch.control"), "Code: one period of the batched controller, "
+                      "<code>Batch.control</code>")
+    s_gpu += CB.block(GPUF, CB.find_def(GPUF, "Batch._ell_newton"), "Code: the pad's closest point on the GPU, "
+                      "<code>Batch._ell_newton</code>")
 
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
@@ -1216,7 +1309,7 @@ own seeds agree.""",
     page = TEMPLATE.read_text()
     for k, v in {"TITLE": "HOM controller code", "H1": "Implementation of the HOM controller on the SR2 hand with the "
                  "v4b fingertip", "EYEBROW": "Reorientation mechanisms and control", "LEDE": lede, "BYLINE": byline,
-                 "TOC": toc, "SECTIONS": secs, "FOOTER": str(OUT.relative_to(ROOT)), "TEXCSS": texsvg.CSS}.items():
+                 "TOC": toc, "SECTIONS": secs, "FOOTER": str(OUT.relative_to(ROOT)), "TEXCSS": texsvg.CSS + CB.CSS}.items():
         page = page.replace("{{" + k + "}}", v)
     nf = []
     page = render(page, nf)
