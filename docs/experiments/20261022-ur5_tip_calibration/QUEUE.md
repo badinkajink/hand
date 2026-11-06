@@ -1978,6 +1978,13 @@ push that answers it arrives.
       within 4.4e-16 rad, a 10 mm `proximal_extension_mm` moves the index contact by 10.0 mm, the rig, tip, ATI and
       holder programs start, and `check_scripts.py` reports its 11 known problems. The lab's check above still runs on
       corvus before the arm next uses the rig or a rebuilt plan.
+    - 13:11 on 11-06, lab: the check passes (NOTES.md, "QUEUE R35 part C", `42bff0a22`, merged into main at `fc684134d`).
+      Nothing moved the robot, and nothing ran in the simulator. `dry-check --real --chain` on part B's three runs gives
+      the same printout with both codes and bitwise the same JSON. Both flag "j6 on segment 0" on the swap plan's first
+      travel, as in part B. The `--q-seed` sphere-cell tip plan has the same 152 actions with both codes, with the same
+      ids, stages, kinds and twists, and the same 19 drops. Its joint targets agree to the plans' rounding of 0.1 deg.
+      Four drops (grav-08, grav-11, fgrav-04 and fgrav-05) change only their reason, from "no IK" to "joint 5 outside the
+      wrist window". The arm may now use the rig and rebuilt plans with main's code.
 
 - R36 (open, 12:3x on 11-06; owner, 12:3x in the workstation's window: "i put the ur5 computer in charge of doing more
   sysid, it has the go ahead. should be mostly benign stuff anyway. you're the coordinator"). Servo identification of the
