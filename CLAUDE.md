@@ -68,8 +68,11 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 - **GitHub's LFS stores the pages and their media only (owner, 2026-11-06).** The repository was deleted and re-pushed
   with the same history on 2026-11-06 (`docs/notes/20261106-lfs_lean_repush.md`), and the owner set an LFS budget that
   evening. This clone's pre-push hook (`scripts/docs/lfs_lean.py install-hook`, on while `git config lfslean.upload
-  true`) uploads only the upload set of `lfs_lean.upload`: pages, figures, films and PDFs under `docs/`, the meshes (stl,
-  obj) under `assets/`, and the print file of the v3 tips' four-magnet pad 05R4. STEP, 3mf and zipped CAD files (owner:
+  true`) uploads only the upload set of `lfs_lean.upload`: pages, figures, films and PDFs under `docs/`, `docs/pages.json`
+  and each page's `texsvg_cache.json`, the meshes (stl, obj) under `assets/`, and the print file of the v3 tips'
+  four-magnet pad 05R4. GitHub refuses a push whose commits name LFS objects it does not have (GH008), so the hook stops a
+  push whose commits contain other LFS files and lists them: take them out of the commit, or ask the owner. Never run
+  `git lfs push --all` (GitHub's hint for GH008): it uploads every recording and data row here. STEP, 3mf and zipped CAD files (owner:
   "remove the cad files, particularly the 3mf files"), data rows (json, jsonl, csv, npz) and raw recordings stay on the
   workstation; on GitHub they are pointers without content, and they move between machines by rsync over Tailscale (the
   workstation is `humanoid-desktop`). `docs/**/*.bin` is in `.gitignore`. Fresh clones skip LFS content by `.lfsconfig`;

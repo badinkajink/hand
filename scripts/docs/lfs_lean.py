@@ -4,7 +4,8 @@ only be for the docpage videos/content", "i would like to keep the commits, link
 
 The git history is pushed unchanged, so every commit hash, and every link to a commit or to a page's version, stays
 valid. Of the LFS objects that its pointers name, only the upload set goes to GitHub: the pages and their media under
-docs/ (html, png, jpg, gif, svg, mp4, webm, mov, pdf) and the simulator's meshes under assets/ (stl, obj, png). CAD
+docs/ (html, png, jpg, gif, svg, mp4, webm, mov, pdf), the docs index docs/pages.json and each page's formula cache
+texsvg_cache.json, and the simulator's meshes under assets/ (stl, obj, png). CAD
 exchange and print files (step, 3mf, zipped exports) stay local (owner, 2026-11-06 evening: "remove the cad files,
 particularly the 3mf files (besides the most recent fingertip w 4 magnets)"), except the four-magnet pad 05R4 of the v3
 tips (KEEP). Raw robot recordings (*.bin) and data rows (json, jsonl, csv, npz, npy) stay on the workstation and move by
@@ -14,7 +15,9 @@ GitHub keeps every LFS object ever pushed to a repository and frees the storage 
 the switch is: fetch every object that exists only on GitHub (needs an LFS budget above zero), delete and recreate the
 empty repository under the same name, then `push` from the bare mirror. Afterwards the main clone's pre-push hook
 (`install-hook`) uploads only the upload set of each push, when `git config lfslean.upload true` (off from the
-afternoon of 2026-11-06, when the account had no budget, until the owner set one that evening).
+afternoon of 2026-11-06, when the account had no budget, until the owner set one that evening). Since then GitHub
+refuses a push whose commits name LFS objects that it does not have (GH008), so the hook stops a push whose commits
+contain LFS files outside the upload set and lists them.
 
     python3 scripts/docs/lfs_lean.py catalog [--repo DIR] [--refs REF ...]    # sizes by category, upload set, missing
     python3 scripts/docs/lfs_lean.py refresh --mirror DIR                      # the mirror's branches from the main clone
@@ -52,7 +55,7 @@ POINTER = re.compile(r"^([0-9a-f]{40}) blob \d+\n(version https://git-lfs[^\n]*\
 
 def upload(path: str) -> bool:
     """Whether an LFS file at this path belongs to the upload set."""
-    if path in KEEP:
+    if path in KEEP or path == "docs/pages.json" or path.endswith("/texsvg_cache.json"):   # the docs index; a page's formulas
         return True
     ext = os.path.splitext(path)[1].lower()
     if path.startswith("docs/"):
@@ -294,14 +297,35 @@ def cmd_pre_push(a):
                         text=True).stdout.strip() == "true"
     if not on:
         return 0
-    oids = set()
+    oids, local = set(), {}
     zero = "0" * 40
     for line in sys.stdin.read().splitlines():
         parts = line.split()
         if len(parts) != 4 or parts[1] == zero:
             continue
         recs = pointers(ROOT, [parts[1], "--not", f"--remotes={a.remote}"])
-        oids |= selection(recs)[0]
+        up, keep = selection(recs)
+        oids |= up
+        local.update({o: recs[o] for o in keep})
+    if local:
+        # GitHub refuses a push whose commits name LFS objects it does not have (GH008), so a commit with files kept
+        # local cannot be pushed until they leave the commit or join the upload set. Stop here with their names
+        # instead; never answer GH008 with `git lfs push --all`, which uploads every recording and data row here.
+        try:
+            have = lfs_batch([(o, r["size"]) for o, r in local.items()])
+        except Exception:                                # offline or refused: name them all
+            have = {}
+        miss = {o: r for o, r in local.items() if not have.get(o)}
+        if miss:
+            print(f"lfs_lean: {len(miss)} LFS files in these commits are kept local (CAD and print files, data rows, "
+                  f"recordings; {sum(r['size'] for r in miss.values()) / 1e6:.1f} MB), and GitHub refuses pointers "
+                  "without content (GH008). Take them out of the commits, or ask the owner to widen the upload set "
+                  "(scripts/docs/lfs_lean.py upload). Never run `git lfs push --all`.", file=sys.stderr)
+            for o, r in sorted(miss.items(), key=lambda x: sorted(x[1]["paths"])[0])[:30]:
+                print(f"  {r['size'] / 1e6:8.2f} MB  {sorted(r['paths'])[0]}", file=sys.stderr)
+            if len(miss) > 30:
+                print(f"  ... and {len(miss) - 30} more", file=sys.stderr)
+            return 1
     if not oids:
         return 0
     store = lfs_store(ROOT)
