@@ -291,7 +291,7 @@ def sec_terms():
          "pinch is two fingers on opposite sides of the object with equal and opposite forces. The pusher is one "
          "finger that turns the object about the pinch axis or supports it."),
         ("Centre of pressure (CoP)", "the force-weighted mean of the points where a fingertip touches the object."),
-        ("Shape operator $S$", "the rate at which a surface's normal turns per unit of travel along the surface; its "
+        ("Shape operator $K$", "the rate at which a surface's normal turns per unit of travel along the surface; its "
          "eigenvalues in the tangent plane are the principal curvatures (1/mm)."),
         ("Geodesic step", "a move of a point along a surface; the library follows the arc of the osculating circle and "
          "projects its end back onto the surface."),
@@ -567,8 +567,10 @@ closest-point queries, the curvature and the geodesic tracer all use the analyti
 palmar face the spheres' outer surfaces lie within 0.05 mm of the half-ellipsoid (<<pct>> % of <<npal>> spheres), so the
 plant and the controller model the same pad. The paper queries meshes instead: python-fcl and fcpw on convex
 decompositions for the closest points, and libigl for the curvature at the vertices. On the analytic pad the normal and
-the curvature have closed forms. The curvature enters through the shape operator $S$, the turn of the normal per
-millimetre of travel along the surface.</p>""", npad=f"{G['n_pads']:,}", rp=f"{G['r_pad']:.2f}", sp=f"{G['spacing_mm']:.2f}",
+the curvature have closed forms. The curvature enters through the shape operator $K$, the turn of the normal per
+millimetre of travel along the surface. On a sphere of radius $R$ the normal turns by $1/R$ per millimetre in every
+direction. On a cylinder it turns by $1/R$ around the axis and not at all along it. On a plane $K = 0$. At the v4b pad's
+apex the normal turns 8.9 deg/mm across the finger and 4.0 deg/mm toward the tip.</p>""", npad=f"{G['n_pads']:,}", rp=f"{G['r_pad']:.2f}", sp=f"{G['spacing_mm']:.2f}",
              f1=FN["geodesic"], pct=f"{100 * G['palmar_envelope_within_0p05mm']:.0f}", npal=G["n_palmar"])
     t += r"""<p>Eqs. (4) to (6) of the paper, with $j$ = 1 for the finger and $j$ = 0 for the object, are</p>
 $$p_{B_jC_j}[t+1] = \mathrm{trace\_geodesic}\!\left(p_{B_jC_j}[t],\; \dot g_j\,\Delta t\right) \qquad (4)$$
@@ -578,7 +580,8 @@ $$k_j = k_{\min} + (k_{\max} - k_{\min})\left(1 - e^{-3\lVert \dot g_{j,\mathrm{
 two tangent components of their difference. $\dot g_{j,\mathrm{ref}}$ is the velocity along the surface that the
 commanded relative twist implies. It solves the rolling and sliding kinematics of [3] for both surfaces at once:</p>
 $$\begin{bmatrix} S\,\mathrm{Ad}_{T_{C_1C_0}}\,G_0(K_0) & -S\,G_1(K_1)\end{bmatrix}\begin{bmatrix}\dot g_{0,\mathrm{ref}}\\ \dot g_{1,\mathrm{ref}}\end{bmatrix} = S\,\mathcal{V}_{L_0L_1,\mathrm{ref}} .$$
-<p>$K_j$ is the shape operator in the tangent plane. $G_j(K_j)$ maps a velocity along the surface to the twist of the
+<p>$K_j$ is surface $j$'s shape operator at its contact point, as a 2 by 2 matrix in the tangent axes.
+$G_j(K_j)$ maps a velocity along the surface to the twist of the
 frame that moves with it. $S$ keeps the four rows of rolling and sliding. The adjoint of Eq. (1) appears again: it
 moves the object frame's twist to the finger's frame. Algorithm 1 is one period of
 <code>ContactFilter.update</code>.</p>"""
@@ -592,7 +595,7 @@ moves the object frame's twist to the finger's frame. Algorithm 1 is one period 
 \EndFor
 \State \Return \(p_{C_1}\) and the pad's normal there, the impedance's action point and direction""")
     t += fill(r"""<p>The geodesic tracer follows the surface's osculating circle in the direction of travel (Figure
-<<f1>>b). In a tangent direction $t$ the surface bends with the curvature $\kappa = t^{\mathsf T} S\,t$. A step of
+<<f1>>b). In a tangent direction $t$ the surface bends with the curvature $\kappa = t^{\mathsf T} K\,t$. A step of
 length $s$ follows the circle of radius $1/\kappa$ in the plane of $t$ and the normal, and its end is projected back onto
 the surface. On the v4b pad a step of 0.2 mm, 20 mm/s for 10 ms, ends <<e02>> nm off the surface before the projection.
 A step of 1 mm ends <<e1>> &micro;m off.</p>
