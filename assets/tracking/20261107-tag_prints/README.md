@@ -12,3 +12,5 @@ Settings for both: matte white and matte black PLA on the P1S with the AMS, 0.4 
 Frames: the plate's tag map (`object_tracking_mjcf.plate_maps`) is the file's frame moved down by 3 mm; the block frame B (`sr2hand.tracking.tags.HexBlock`) is the file's frame moved down by 8.5 mm, z_B up, face k's normal at 60k deg from x_B.
 
 Check: each tag face of the black body drawn at 20 px/mm from the mesh decodes as its own id, with corners 0.015 to 0.027 mm RMS from the map; in each face's plane the white and black areas sum to the face's area. Numbers in `20261107-tag_prints.json`.
+
+Bambu Studio project: `20261107-tag_prints_p1s.3mf`, both parts on one plate, the white bodies on filament 2 and the black cells on filament 3 (AMS slots 2 and 3), presets 0.20mm Standard @BBL X1C and Bambu PLA Basic @BBL P1S 0.4 nozzle for the Bambu Lab P1S 0.4 nozzle. Sliced by the command line: 3.3 h, 61.6 g white and 9.2 g black, 67 filament loads. It is not in git (3MF files stay off GitHub); `object_tracking_print.py bambu` rebuilds it.

@@ -3,8 +3,9 @@
 the tag test plate and the hexagonal tag block. Each part is two STL files in one frame, a white body and its black
 cells, which together fill the part; the black cells are flush with the tag faces. The tags are those of the maps that
 the simulation and the tracker use (object_tracking_mjcf.plate_maps and block_map), so a print matches them. The files
-lie in print orientation on z = 0 (owner, 2026-10-19), and no slicer projects are written (owner, 2026-11-07: "i dont
-need the 3mfs, i can plate things myself").
+lie in print orientation on z = 0 (owner, 2026-10-19). STLs are the deliverable (owner, 2026-11-07: "i dont need the
+3mfs, i can plate things myself"); `bambu` writes a Bambu Studio project of the two-colour parts, which the owner asked
+for the same day.
 
   plate   170 x 70 x 3 mm, printed face up. Upper row tag36h11 ids 0-4, lower row tag25h9 ids 0-4, at 10, 12, 13, 14
           and 16 mm (the edge of the black square) on a 30 mm pitch. Black cells 0.6 mm deep, three 0.2 mm layers. Two
@@ -18,6 +19,8 @@ need the 3mfs, i can plate things myself").
         ~/miniconda3/envs/femtip/bin/python scripts/hardware/object_tracking_print.py build
     ~/.claude/bin/resguard.sh run --mem 2G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
         ~/miniconda3/bin/python scripts/hardware/object_tracking_print.py check [--preview PNG]
+    ~/.claude/bin/resguard.sh run --mem 3G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
+        ~/miniconda3/bin/python scripts/hardware/object_tracking_print.py bambu
 
 build needs manifold3d (the femtip environment) and checks that the two bodies fill the part without overlap. check
 needs pupil_apriltags and OpenCV (the camera stack). It draws each tag face of the black body at 20 px/mm from the
@@ -292,8 +295,138 @@ def write_readme(rep):
          f"Check: each tag face of the black body drawn at {PPM:.0f} px/mm from the mesh decodes as its own id, with "
          f"corners {min(rms):.3f} to {max(rms):.3f} mm RMS from the map; in each face's plane the white and black "
          "areas sum to the face's area. Numbers in `" + REPORT.name + "`."]
+    if "bambu" in rep:
+        q = rep["bambu"]
+        L += ["",
+              f"Bambu Studio project: `{Path(q['project']).name}`, both parts on one plate, the white bodies on filament "
+              f"{q['filament']['white']} and the black cells on filament {q['filament']['black']} (AMS slots "
+              f"{q['filament']['white']} and {q['filament']['black']}), presets {q['presets']['process']} and "
+              f"{q['presets']['filament']} for the {q['presets']['machine']}. Sliced by the command line: "
+              f"{q['prediction_s'] / 3600:.1f} h, {q['used_g'].get(str(q['filament']['white']), 0):.1f} g white and "
+              f"{q['used_g'].get(str(q['filament']['black']), 0):.1f} g black, "
+              f"{q['filament_loads']} filament loads. It is not in git (3MF files stay off GitHub); "
+              "`object_tracking_print.py bambu` rebuilds it."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
     print("wrote", (OUT / "README.md").relative_to(ROOT))
+
+
+# The Bambu Studio project (owner, 2026-11-07: "im gonna put white filament on amshead 2, and black filament on ams head
+# 3. can you prepare the 3mf for bambustudio"). Filaments 1-3 of the project stand for AMS slots 1-3: the white bodies
+# print with filament 2 and the black cells with filament 3; filament 1 is unused. The project is not committed (3MF files
+# stay off GitHub, owner 2026-11-06); `bambu` rebuilds it.
+PROJECT = OUT / f"{DATE}-tag_prints_p1s.3mf"
+P1S = dict(machine="Bambu Lab P1S 0.4 nozzle", process="0.20mm Standard @BBL X1C",
+           filament="Bambu PLA Basic @BBL P1S 0.4 nozzle")
+P1S_PROCESS = dict(curr_bed_type="Textured PEI Plate", brim_type="no_brim", sparse_infill_pattern="gyroid",
+                   wipe_tower_x=["175"], wipe_tower_y=["160"])     # the prime tower on the bed and clear of both parts
+COLOURS = ("#898989", "#FFFFFF", "#000000")
+FILAMENT = {"white": 2, "black": 3}
+PLACE = {"plate": (110.0, 70.0), "block": (60.0, 170.0)}           # mm on the bed: the centre of each white body
+BED = 256.0                                                        # mm: the P1S's printable square
+
+
+def extrusion_bounds(gcode):
+    """(x0, y0, x1, y1) of the extruding moves of a Bambu G-code's printed features and prime tower (absolute XY,
+    relative E). The printer's own purges are left out: the start sequence's line at y = -3 mm (feature "Custom") and the
+    flushes at the purge chute behind the bed inside each filament change (M620 ... M621)."""
+    import re
+    x = y = feat = None
+    change = False
+    lo, hi = np.full(2, np.inf), np.full(2, -np.inf)
+    for line in gcode.splitlines():
+        if line.startswith("; FEATURE:"):
+            feat = line[10:].strip()
+        elif re.match(r"\s*M620 S\d+A", line):
+            change = True
+        elif re.match(r"\s*M621 S", line):
+            change = False
+        m = re.match(r"G[01] ([^;]*)", line)
+        if not m:
+            continue
+        w = dict((t[0], float(t[1:])) for t in m.group(1).split() if t[0] in "XYE" and len(t) > 1)
+        x, y = w.get("X", x), w.get("Y", y)
+        if w.get("E", 0.0) > 0 and x is not None and y is not None and feat not in (None, "Custom") and not change:
+            lo, hi = np.minimum(lo, (x, y)), np.maximum(hi, (x, y))
+    return np.concatenate([lo, hi])
+
+
+def cmd_bambu(a):
+    """The project through Bambu Studio's command line: each part assembled from its two STLs as one object with two
+    parts, sliced once so that its G-code can be checked (the owner slices again in the GUI)."""
+    import re
+    import shutil
+    import subprocess
+    import zipfile
+
+    import trimesh
+
+    import dip_fit_print_plates as DF        # bbl_preset (presets with the printer's G-code templates), BAMBU, the check
+    work = ROOT / f"logs/{DATE}-tag_prints/bambu"
+    work.mkdir(parents=True, exist_ok=True)
+    (work / "machine.json").write_text(json.dumps(DF.bbl_preset("machine", P1S["machine"]), indent=1))
+    (work / "process.json").write_text(json.dumps(DF.bbl_preset("process", P1S["process"], P1S_PROCESS), indent=1))
+    fils = []
+    for k, col in enumerate(COLOURS, 1):
+        fils.append(work / f"filament{k}.json")
+        fils[-1].write_text(json.dumps(DF.bbl_preset("filament", P1S["filament"], {"filament_colour": [col]}), indent=1))
+    objs = [{"path": str(stl(part, colour)), "count": 1, "filaments": [FILAMENT[colour]], "assemble_index": [k],
+             "pos_x": [PLACE[part][0]], "pos_y": [PLACE[part][1]], "pos_z": [0.0]}
+            for k, part in enumerate(("plate", "block"), 1) for colour in ("white", "black")]
+    (work / "assemble.json").write_text(json.dumps(
+        {"plates": [{"plate_name": "tag plate and block", "need_arrange": False, "objects": objs}]}, indent=1))
+    # --export-3mf takes a bare name: the command line joins it to --outputdir
+    cmd = DF.BAMBU + ["--debug", "1", "--arrange", "0", "--orient", "0",
+                      "--load-settings", f"{work / 'machine.json'};{work / 'process.json'}",
+                      "--load-filaments", ";".join(str(f) for f in fils),
+                      "--load-assemble-list", str(work / "assemble.json"),
+                      "--slice", "0", "--export-3mf", PROJECT.name, "--outputdir", str(work)]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    (work / "cli.log").write_text(r.stdout + r.stderr)
+    res = json.loads((work / "result.json").read_text())
+    if res.get("return_code") != 0:
+        raise SystemExit(f"Bambu Studio: {res.get('error_string')} (log {work / 'cli.log'})")
+    shutil.copy(work / PROJECT.name, PROJECT)
+    with zipfile.ZipFile(PROJECT) as z:
+        msets = z.read("Metadata/model_settings.config").decode()
+        info = z.read("Metadata/slice_info.config").decode()
+        gcode = z.read("Metadata/plate_1.gcode").decode(errors="replace")
+        proj = json.loads(z.read("Metadata/project_settings.config"))
+    problems = DF.check_bambu_gcode(gcode, "P1S", 220, 55)
+    # each object's white part on filament 2 and its black on 3, offset from each other as in the STLs
+    parts = re.findall(r'<part id="\d+"[^>]*>.*?key="matrix" value="([^"]+)".*?key="source_file" value="([^"]+)"'
+                       r'.*?key="extruder" value="(\d+)"', msets, re.S)
+    placed = {f: (np.array(m.split(), float).reshape(4, 4)[:3, 3], int(e)) for m, f, e in parts}
+    offsets = {}
+    for part in ("plate", "block"):
+        t = {c: placed[stl(part, c).name] for c in ("white", "black")}
+        ctr = {c: trimesh.load(stl(part, c), force="mesh").bounds.mean(0) for c in ("white", "black")}
+        off = (t["black"][0] - t["white"][0]) - (ctr["black"] - ctr["white"])
+        offsets[part] = float(np.abs(off).max())
+        if t["white"][1] != FILAMENT["white"] or t["black"][1] != FILAMENT["black"] or offsets[part] > 1e-4:
+            problems.append(f"{part}: filaments {t['white'][1]} and {t['black'][1]}, black part off by {off} mm")
+    loads = [int(v) for v in re.findall(r"^\s*M620 S(\d+)A", gcode, re.M)]
+    if sorted(set(loads)) != [FILAMENT["white"] - 1, FILAMENT["black"] - 1]:
+        problems.append(f"filaments loaded {sorted(set(loads))}")
+    box = extrusion_bounds(gcode)
+    if box[:2].min() < 0 or box[2:].max() > BED:
+        problems.append(f"extrusion outside the bed {box}")
+    used = {i: float(g) for i, g in re.findall(r'<filament id="(\d+)"[^>]*used_g="([\d.]+)"', info)}
+    rep = json.loads(REPORT.read_text())
+    rep["bambu"] = {"project": str(PROJECT.relative_to(ROOT)), "presets": P1S, "process": P1S_PROCESS,
+                    "colours": COLOURS, "filament": FILAMENT, "place_mm": PLACE,
+                    "prediction_s": float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1)),
+                    "used_g": used, "filament_loads": len(loads),
+                    "layers": int(re.search(r"; total layer number: (\d+)", gcode).group(1)),
+                    "extrusion_box_mm": np.round(box, 2).tolist(), "part_offset_err_mm": offsets,
+                    "flush_volumes_matrix": proj.get("flush_volumes_matrix"), "problems": problems}
+    REPORT.write_text(json.dumps(rep, indent=1))
+    write_readme(rep)
+    b = rep["bambu"]
+    print(f"{PROJECT.relative_to(ROOT)}: {b['prediction_s'] / 60:.0f} min, {b['layers']} layers, "
+          f"{b['filament_loads']} filament loads, used {used} g, extrusion box {b['extrusion_box_mm']}")
+    print("problems:", problems or "none")
+    if problems:
+        raise SystemExit(1)
 
 
 def main():
@@ -302,8 +435,9 @@ def main():
     sub.add_parser("build")
     p = sub.add_parser("check")
     p.add_argument("--preview", help="PNG of the drawn faces with the map's and the detected corners")
+    sub.add_parser("bambu")
     a = ap.parse_args()
-    {"build": cmd_build, "check": cmd_check}[a.cmd](a)
+    {"build": cmd_build, "check": cmd_check, "bambu": cmd_bambu}[a.cmd](a)
 
 
 if __name__ == "__main__":

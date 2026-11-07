@@ -89,3 +89,6 @@ assets/fem/
 
 # raw robot recordings stay on the workstation and move by rsync (owner, 2026-11-06); tracked ones stay tracked
 docs/**/*.bin
+
+# Bambu Studio projects of the tag prints: rebuilt by scripts/hardware/object_tracking_print.py bambu; 3MF files stay off GitHub (owner, 2026-11-06)
+assets/tracking/**/*.3mf
