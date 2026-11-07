@@ -4,15 +4,17 @@ only be for the docpage videos/content", "i would like to keep the commits, link
 
 The git history is pushed unchanged, so every commit hash, and every link to a commit or to a page's version, stays
 valid. Of the LFS objects that its pointers name, only the upload set goes to GitHub: the pages and their media under
-docs/ (html, png, jpg, gif, svg, mp4, webm, mov, pdf, zip, 3mf, step) and the CAD files under assets/. Raw robot
-recordings (*.bin) and data rows (json, jsonl, csv, npz, npy) stay on the workstation and move by rsync; on GitHub their
-pointers stay in the history without content.
+docs/ (html, png, jpg, gif, svg, mp4, webm, mov, pdf) and the simulator's meshes under assets/ (stl, obj, png). CAD
+exchange and print files (step, 3mf, zipped exports) stay local (owner, 2026-11-06 evening: "remove the cad files,
+particularly the 3mf files (besides the most recent fingertip w 4 magnets)"), except the four-magnet pad 05R4 of the v3
+tips (KEEP). Raw robot recordings (*.bin) and data rows (json, jsonl, csv, npz, npy) stay on the workstation and move by
+rsync; on GitHub their pointers stay in the history without content.
 
 GitHub keeps every LFS object ever pushed to a repository and frees the storage only when the repository is deleted, so
 the switch is: fetch every object that exists only on GitHub (needs an LFS budget above zero), delete and recreate the
 empty repository under the same name, then `push` from the bare mirror. Afterwards the main clone's pre-push hook
-(`install-hook`) uploads only the upload set of each push, when `git config lfslean.upload true`; it is off since the
-owner's decision of 2026-11-06 to keep LFS content local and move it by rsync.
+(`install-hook`) uploads only the upload set of each push, when `git config lfslean.upload true` (off from the
+afternoon of 2026-11-06, when the account had no budget, until the owner set one that evening).
 
     python3 scripts/docs/lfs_lean.py catalog [--repo DIR] [--refs REF ...]    # sizes by category, upload set, missing
     python3 scripts/docs/lfs_lean.py refresh --mirror DIR                      # the mirror's branches from the main clone
@@ -39,14 +41,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 REMOTE_URL = "git@github.com:badinkajink/hand.git"
 SLUG = "badinkajink/hand.git"
-DOC_EXT = {".html", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".mp4", ".webm", ".mov", ".pdf", ".zip", ".3mf", ".step"}
-ASSET_EXT = {".stl", ".step", ".3mf", ".obj", ".png"}
+DOC_EXT = {".html", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".mp4", ".webm", ".mov", ".pdf"}
+ASSET_EXT = {".stl", ".obj", ".png"}
+KEEP = {"assets/cad_v2/fingertip_prints/pads_05R4_four_magnets_x3_xl.3mf",   # the v3 tips' pads, printed from 10-26
+        "docs/experiments/20261018-dip_link_board_mount/v4/b/print/"
+        "20261026-dip_link_print_pad_ell11_4c_05R4_x3_85a_t2_g30.3mf"}       # the same file
 POINTER = re.compile(r"^([0-9a-f]{40}) blob \d+\n(version https://git-lfs[^\n]*\noid sha256:([0-9a-f]{64})\nsize (\d+))",
                      re.M)
 
 
 def upload(path: str) -> bool:
     """Whether an LFS file at this path belongs to the upload set."""
+    if path in KEEP:
+        return True
     ext = os.path.splitext(path)[1].lower()
     if path.startswith("docs/"):
         return ext in DOC_EXT
@@ -259,8 +266,8 @@ def cmd_push(a):
 
 
 HOOK = """#!/bin/sh
-# Filtered LFS upload (scripts/docs/lfs_lean.py, owner 2026-11-06): only the doc pages, their media and the CAD files
-# go to GitHub's LFS; raw recordings and data rows stay local. Replaces git-lfs's own pre-push hook.
+# Filtered LFS upload (scripts/docs/lfs_lean.py, owner 2026-11-06): only the doc pages, their media and the simulator's
+# meshes go to GitHub's LFS; CAD and print files, raw recordings and data rows stay local. Replaces git-lfs's own hook.
 command -v git-lfs >/dev/null 2>&1 || { echo >&2 "git-lfs is not installed"; exit 2; }
 exec python3 "$(git rev-parse --show-toplevel)/scripts/docs/lfs_lean.py" pre-push "$@"
 """
