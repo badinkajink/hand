@@ -5,8 +5,10 @@ fetch results from the ur5 calibration coordinator and update results ... namely
 The coordinator appends one JSON line per update to docs/experiments/20261027-v3_tip_calibration_and_crosstalk/feed.jsonl
 (`time`, `kind`, `summary`, `files`, `commit`; the README there, "Results feed for the doc-writing session") and commits
 it; its result commits start with "Crosstalk:". It also commits analyses with no feed line (owner, 2026-10-29 15:2x, when
-the job widened to the calibration of every v3 tip). This script only reads git. Every --interval seconds it reads the
-feed at HEAD and HEAD's last 300 commits with the files each changes. News is a feed line past the count in --state, or a
+the job widened to the calibration of every v3 tip). This script only reads. Every --interval seconds it reads the feed
+and HEAD's last 300 commits with the files each changes. The feed is read at HEAD, or from the working copy when that has
+more lines: since 11-07 GitHub refuses a push of LFS pointers without content (GH008), and the feed is an LFS file outside
+scripts/docs/lfs_lean.py's upload set, so a new line may stay uncommitted. News is a feed line past the count in --state, or a
 commit not in --state that starts with "Crosstalk:", "SR2 hand" or "SR2 crosstalk" (a run's start or stop on the hand, which
 the crosstalk page's plan items state; 11-05) or changes the v3 folder's data/ or README.md or an analysis of the
 inverted rig (ANALYSES; step 43 of the note, 11-04) and is not this job's own (subjects in MINE). Beside git it lists the coordinator's analysed holds of the v3 tips from ID 3 on
@@ -79,12 +81,22 @@ def show(path):
     return blob
 
 
+def feed_lines():
+    """The feed's lines at HEAD, or in the working copy when it has more (the module's docstring, GH008)."""
+    head = [ln for ln in show(FEED).splitlines() if ln.strip()]
+    try:
+        work = [ln for ln in (ROOT / FEED).read_text().splitlines() if ln.strip()]
+    except OSError:
+        return head
+    return work if len(work) > len(head) else head
+
+
 def snapshot():
     """The feed's lines, and among HEAD's last 300 commits those with a subject in PREFIX and the others that change the v3
     folder's data/ or README.md or a rig analysis and are not this job's (merges list no files, so they count only by
     subject), less the commits that change only the SR2 analysis's scripts."""
     head = git("rev-parse", "--short=8", "HEAD").strip()
-    lines = [ln for ln in show(FEED).splitlines() if ln.strip()]
+    lines = feed_lines()
     commits = []
     for rec in git("log", "-300", "--format=%x00%h%x09%aI%x09%s", "--name-only").split("\x00"):
         rows = [r for r in rec.splitlines() if r.strip()]
