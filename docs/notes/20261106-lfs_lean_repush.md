@@ -65,3 +65,19 @@ code and notes go through.
 Owner: "ok we'll just stick to local git + rsync". No LFS content goes to GitHub: the hook uploads nothing unless
 `git config lfslean.upload true`, and git pushes send the history and the pointers. Pages, media, data rows and
 recordings move by rsync.
+
+## Upload with a budget, 20:1x on 2026-11-06
+
+The owner set an LFS budget on the account in the evening and asked to leave the CAD files out: "remove the cad files,
+particularly the 3mf files (besides the most recent fingertip w 4 magnets). i dont think we need costly 3mf plating for
+anything". The upload set of commit 11d132fb9 is the pages, figures, films and PDFs under `docs/` and the meshes (stl,
+obj) under `assets/`, which the MuJoCo scenes load. STEP, 3mf and zipped CAD exports (0.51 GB) stay local, except the
+print file of the four-magnet pad 05R4 that the v3 tips were printed from
+(`assets/cad_v2/fingertip_prints/pads_05R4_four_magnets_x3_xl.3mf`; the same file is in the DIP-link folder).
+`push --allow-missing` uploaded 4,135 objects, 2.88 GB, and GitHub's LFS API reports all 4,135; the other 794 objects
+of the set (1.27 GB) are among the lost ones. The hook is on again (`git config lfslean.upload true`).
+
+A clone elsewhere fetches the pages from GitHub after `git config lfs.fetchexclude ''` and
+`git config lfs.fetchinclude 'docs/**/*.html'`: `git lfs pull` fetches the 120 pages of the current tree, and every
+later checkout fetches the pages it changes. On a clone with an empty LFS store the two HOM pages arrived in full
+(5,136,148 and 5,060,065 bytes) and `git status` stayed clean.

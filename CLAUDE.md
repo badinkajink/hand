@@ -63,13 +63,17 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
   `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
-- **No LFS content on GitHub; local git and rsync (owner, 2026-11-06: "we'll just stick to local git + rsync").** GitHub
-  has the history and the code; every LFS file there (pages, media, data rows, raw recordings) is a pointer without
-  content, and fresh clones skip LFS by `.lfsconfig`. The content stays on the workstation and moves between machines
-  by rsync over Tailscale (the workstation is `humanoid-desktop`). This clone's pre-push hook (`scripts/docs/lfs_lean.py
-  install-hook`) uploads nothing unless `git config lfslean.upload true`, and `docs/**/*.bin` is in `.gitignore`. The
-  repository was deleted and re-pushed with the same history on 2026-11-06 (`docs/notes/20261106-lfs_lean_repush.md`);
-  GitHub's LFS budget is the account's, per billing cycle.
+- **GitHub's LFS stores the pages and their media only (owner, 2026-11-06).** The repository was deleted and re-pushed
+  with the same history on 2026-11-06 (`docs/notes/20261106-lfs_lean_repush.md`), and the owner set an LFS budget that
+  evening. This clone's pre-push hook (`scripts/docs/lfs_lean.py install-hook`, on while `git config lfslean.upload
+  true`) uploads only the upload set of `lfs_lean.upload`: pages, figures, films and PDFs under `docs/`, the meshes (stl,
+  obj) under `assets/`, and the print file of the v3 tips' four-magnet pad 05R4. STEP, 3mf and zipped CAD files (owner:
+  "remove the cad files, particularly the 3mf files"), data rows (json, jsonl, csv, npz) and raw recordings stay on the
+  workstation; on GitHub they are pointers without content, and they move between machines by rsync over Tailscale (the
+  workstation is `humanoid-desktop`). `docs/**/*.bin` is in `.gitignore`. Fresh clones skip LFS content by `.lfsconfig`;
+  `git config lfs.fetchexclude ''` and `git config lfs.fetchinclude 'docs/**/*.html'` make a clone's checkouts fetch the
+  pages, and `git lfs pull` fetches them once. The 1,464 objects that only the old repository had are lost, old versions
+  of 84 pages among them (`docs/notes/20261106-lfs_objects_only_on_github.tsv`).
 
 ## Hardware — two hosts, and which one owns what
 

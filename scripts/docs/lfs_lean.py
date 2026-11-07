@@ -277,11 +277,12 @@ def cmd_install_hook(a):
     hook = Path(git(ROOT, "rev-parse", "--git-path", "hooks/pre-push").strip())
     hook = hook if hook.is_absolute() else ROOT / hook
     old = hook.read_text() if hook.exists() else ""
-    if old and "lfs_lean.py" not in old:
+    saved = bool(old) and "lfs_lean.py" not in old
+    if saved:
         hook.with_suffix(".lfs-default").write_text(old)
     hook.write_text(HOOK)
     hook.chmod(0o755)
-    print(f"installed {hook}" + (f" (the previous hook saved as {hook.with_suffix('.lfs-default')})" if old else ""))
+    print(f"installed {hook}" + (f" (the previous hook saved as {hook.with_suffix('.lfs-default')})" if saved else ""))
     return 0
 
 
