@@ -144,23 +144,8 @@ def project_world(cam, T_WC, P_W_m):
 
 # ------------------------------------------------------------------------------------------------ step 1: tag size
 
-PLATE_SIZES = (10.0, 12.0, 13.0, 14.0, 16.0)
-PLATE_FAMILIES = ("tag36h11", "tag25h9")
-PLATE_PITCH = 30.0
-
-
-def plate_maps():
-    """{family: TagMap} of the test plate in its frame (mm): z out of the plate toward the camera, x right, y up; ids
-    0-4 of each family left to right in PLATE_SIZES, tag36h11 in the upper row."""
-    out = {}
-    for row, fam in enumerate(PLATE_FAMILIES):
-        tm = TG.TagMap(fam, PLATE_SIZES[0])
-        for k, s in enumerate(PLATE_SIZES):
-            one = TG.plate_map(fam, s, [k], [np.array([(k - 2) * PLATE_PITCH, (0.5 - row) * PLATE_PITCH, 0.0])],
-                               normal=(0, 0, 1), right=(1, 0, 0))
-            tm.corners[k], tm.frames[k] = one.corners[k], one.frames[k]
-        out[fam] = tm
-    return out
+PLATE_SIZES, PLATE_FAMILIES, PLATE_PITCH = OM.PLATE_SIZES, OM.PLATE_FAMILIES, OM.PLATE_PITCH
+plate_maps = OM.plate_maps                # shared with the print files (object_tracking_print.py)
 
 
 def plate_model():

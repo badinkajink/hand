@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""MJCF pieces of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by
-scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv) and scripts/hardware/object_tracking_sim.py
-(rendering and detection, ~/miniconda3/bin/python). Only xml.etree: no MuJoCo import.
+"""MJCF pieces and tag layouts of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/),
+shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv),
+scripts/hardware/object_tracking_sim.py (rendering and detection, ~/miniconda3/bin/python) and
+scripts/hardware/object_tracking_print.py (the print files). Only xml.etree: no MuJoCo import.
 
 The as-built object (plan, "Objects and tag blocks", with the owner's changes of 2026-11-05): the HOM object (25 mm x
 100 mm cylinder or 40 mm sphere), a 4 mm PLA stem from the middle of its underside or its lower pole, and the hollow
@@ -40,6 +41,24 @@ POCKET_CLEAR = 0.3             # mm per side
 POCKET_WALL = 3.0              # mm
 FRICTION_PLA = "0.35 0.005 0.0001"
 R_OB = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, -1.0, 0.0]])   # columns: x_B, y_B, z_B in O
+PLATE_SIZES = (10.0, 12.0, 13.0, 14.0, 16.0)   # mm: the tags of step 1's test plate
+PLATE_FAMILIES = ("tag36h11", "tag25h9")
+PLATE_PITCH = 30.0             # mm
+PLATE_DIMS = (170.0, 70.0, 3.0)                # mm: width, height and thickness
+
+
+def plate_maps():
+    """{family: TagMap} of the test plate in its frame (mm): z out of the plate toward the camera, x right, y up; ids
+    0-4 of each family left to right in PLATE_SIZES, tag36h11 in the upper row."""
+    out = {}
+    for row, fam in enumerate(PLATE_FAMILIES):
+        tm = TG.TagMap(fam, PLATE_SIZES[0])
+        for k, s in enumerate(PLATE_SIZES):
+            one = TG.plate_map(fam, s, [k], [np.array([(k - 2) * PLATE_PITCH, (0.5 - row) * PLATE_PITCH, 0.0])],
+                               normal=(0, 0, 1), right=(1, 0, 0))
+            tm.corners[k], tm.frames[k] = one.corners[k], one.frames[k]
+        out[fam] = tm
+    return out
 
 
 def block_map(shape):

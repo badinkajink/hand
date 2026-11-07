@@ -248,19 +248,21 @@ Finger layouts and their search: the morphology generators, IK retargeting of th
 | `retarget_keyframe_ik.py` | Retarget the 'about-to-contact' open keyframe across morphologies via fingertip IK. |
 | `sweep_perp_thumb.py` | Can a perp morphology recruit the THUMB onto the reoriented shaft — without losing the swing? |
 
-## docs/ (27)
+## docs/ (29)
 
 Builders of the home page, the topic overviews and the page indices, and the parts every page builder uses: the page style, LaTeX to SVG, the prose check and the figure check.
 
 | script | what it does |
 |---|---|
 | `check_scripts.py` | Static checks of scripts/ after the move into topic folders (2026-11-03). |
+| `code_blocks.py` | Collapsible source excerpts for result pages, each linked to its lines on GitHub (owner, 2026-11-06: "collapsible code blocks (linkable to the github file line) that really directly correspond to the step in the algorith |
 | `contact_overview_page.py` | Build docs/overviews/contact_model.html, the topic overview of the fingertip contact model. |
 | `docs_changelog.py` | Revisions of the documentation pages (owner, 2026-11-02: "we should also have a changelog for these pages ... |
 | `docs_home_page.py` | Build docs/index.html, the home page of the documentation: the hand in two sentences, the topics with their state and links, how to fetch the result pages, and where the code is; and docs/pages.html, the index of every r |
 | `docs_index.py` | Indices of the documentation, rebuilt from the result pages themselves (owner, 2026-10-20: "we dont have a good way to automate index updates ... |
 | `docs_inventory.py` | Inventory of the result pages under docs/experiments: date, file, title, topic, builder, artifact. |
 | `interactive_figure.py` | Interactive data figures for the result pages: the default view is an inline SVG drawn at build time, and a small page script adds a hover readout, series toggles, x-zoom by drag and a CSV download of the figure's data. |
+| `lfs_lean.py` | Keep the repository's Git LFS storage on GitHub to the documentation's content (owner, 2026-11-06: "LFS should really only be for the docpage videos/content", "i would like to keep the commits, links, hyperlinks intact") |
 | `mj_snap.py` | Render a MuJoCo scene to PNG(s) so an agent can *look* at it. |
 | `mjwasm_embed.py` | MuJoCo viewer for static result pages: MuJoCo 3.14.0 (WebAssembly) and three.js r147, inlined. |
 | `overview_chain_text.py` | Text of the topic overview docs/overviews/grasp_to_gait_chain.html (builder: scripts/docs/topic_overview_page.py). |
@@ -442,7 +444,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `v3b_pad_b00_magnets_xl.py` | Concept b's 11/22 pad at groove fit B00 (0.00 mm per flank) with its 3 x 2 mm magnets and their pauses, 85A, on the Prusa XL's tool 2: the five magnets of the v2 tip (--magnets five) or the four of the 10-18 print (--mag |
 | `v3b_ur5v2_pla_plate.py` | Bambu Lab P1S PLA plates of 2026-10-20: the UR5e calibration mount v2 with its two indenters and three covers of DIP link b v3 at three wall clearances (plate "calibration"), and DIP link b v3 (plate "link"). |
 
-## hardware/ (43)
+## hardware/ (47)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -457,7 +459,8 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `calibrate_plant_kp.py` | Find the actuator gain and torque ceiling that reproduce the bench's measured shortfall. |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
-| `object_tracking_mjcf.py` | MJCF pieces of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv) and scripts/hardware/object |
+| `object_tracking_mjcf.py` | MJCF pieces and tag layouts of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv), scripts/ha |
+| `object_tracking_print.py` | Print files of steps 1 and 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/): the tag test plate and the hexagonal tag block. |
 | `object_tracking_rollouts.py` | Step 2 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), the physics: the HOM tasks of the five layouts of the task-conflict study (generalist (70,110); specialists twist (100,70 |
 | `object_tracking_sim.py` | Steps 1-3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, the camera side. |
 | `object_tracking_sim_page.py` | Builds docs/experiments/20261105-object_tracking_sim/20261105-object_tracking_sim.html: steps 1 to 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, with the owne |
@@ -491,8 +494,11 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `replay_real_v1_hardware_log.py` | Replay a real_v1 hardware command log in MuJoCo and emit an analysis-friendly NPZ. |
 | `run_tracker_service.sh` | Workstation companion launcher: the counterpart to ~/run_control_station.sh on the CB1. |
 | `servo_identification_protocol_page.py` | Page: identification protocol for the SR2 hand's serial-bus servos (draft, 2026-10-13). |
+| `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
+| `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
+| `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
 
-## hom/ (70)
+## hom/ (75)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -518,10 +524,12 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hand_object_scale_post_probe.py` | Traces of the HOM turn on chosen cells of the hand-object scale study, with and without the support post: per 10 ms tick the turn angle, the post's normal force on the object, the object's rise from its post-grip height  |
 | `hand_object_scale_protocol.py` | The bench protocol of the hand-object scale study, generated from the simulated landscape: which cells, at which grasp, how many trials, in what order, and how many bench hours. |
 | `hand_object_scale_sim.py` | Grasp robustness and in-hand reorientation over the (layout, object) cells of the hand-object scale study, in CPU MuJoCo on the bench-calibrated servo plant with the printed TPU fingertip as 1 mm sphere pads. |
+| `hom_adjoint_widget.py` | An explorable version of the adjoint figure of the HOM review page (scripts/hom/hom_eq1_figures.py adjoint): a planar rigid body with frames {B} and {A}; the reader drags {A}, turns it, and sets the twist (w, v_B) of the |
 | `hom_chain.py` | The screwdriver load-and-insert chain under relative contact-velocity control on the real_v1 (SR2) hand, in MuJoCo and Drake. |
 | `hom_chain_figures.py` | Theory figures for docs/experiments/20261002-hom_chain: Drake's hydroelastic pressure field on the real_v1 fingertip against MuJoCo's sphere-packed pad, both pressed onto the screwdriver at the same pinch force, from the |
 | `hom_chain_page.py` | Build docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html from the study's jsonl files. |
 | `hom_chain_study.py` | Driver for docs/experiments/20261002-hom_chain: Exp 1 of arXiv 2609.25619 on D8, the nominal chain filmed in six contact models, a perturbed MuJoCo batch (seeds 1-10), and a close-up of the sphere-packed pad. |
+| `hom_code_anchors.py` | Where each difference between the HOM paper (arXiv 2609.25619v2) and our library is implemented: links to the lines on GitHub for the difference tables of the method page (scripts/hom/hom_framework_page.py) and the revie |
 | `hom_code_page.py` | Walkthrough page of the HOM controller's code (src/sr2hand/control/hom.py, surfaces.py; scripts/hom/hom_tasks.py, scripts/hom/hom_gpu.py), a subpage of the HOM review page, 2026-10-30. |
 | `hom_code_trace.py` | Instrumented rollouts of the HOM controller for the code-walkthrough page (scripts/hom/hom_code_page.py), 2026-10-30. |
 | `hom_compute.py` | Compute ledger and CPU-against-GPU throughput of the HOM studies (owner, 2026-11-03: "let's make sure we're timing this all for compute-tracking purposes and throughput measuring, including cpu vs gpu speedups"). |
@@ -531,7 +539,10 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_control.py` | Relative contact-velocity control of arXiv 2609.25619 (Wang, Oh, Pollard) on the real_v1 hand. |
 | `hom_ea.py` | The evolutionary search of Yang et al. |
 | `hom_ea_grasp.py` | The evolutionary search of scripts/hom/hom_ea.py with the grasp in the genome (owner, 2026-11-03: "can't we score and refine a grasp based off how well the grasp (+morphology) executes the HOM control? |
+| `hom_eq1_figures.py` | Explanatory figures of Eq. |
 | `hom_films.py` | Films of the HOM tasks on the SR2 hand with the v4b fingertip, for the two 10-29 pages and the code walkthrough (2026-10-30; owner: "some of the videos on these pages use the incorrect older fingertips ... |
+| `hom_filter_real_check.py` | The contact filter of the HOM controller (src/sr2hand/control/hom.py ContactFilter, arXiv 2609.25619 Eqs. |
+| `hom_filter_speed_check.py` | The contact filter of the HOM controller at task speeds, with the magnetic fingertips' real errors (owner, 2026-11-06: "how well would this work on real? |
 | `hom_framework_page.py` | Pages of the 2026-10-21 HOM controller study: the method page (the HOM paper's controller and its MuJoCo implementation in src/sr2hand/control/) and the results page (four tasks across object sizes, scripts/hom/hom_tasks |
 | `hom_fresh_seeds.py` | Fresh-seed check of the one-design picks of hom_plant_transfer.py (2026-11-03; owner: "let's do those three remaining tasks", the first being this check). |
 | `hom_gpu.py` | HOM control of the four tasks of scripts/hom/hom_tasks.py (pin-push, press, roll, twist) on MuJoCo-Warp: many hand layouts, seeds and sensing variants as parallel GPU worlds, with the controller of src/sr2hand/control/ho |

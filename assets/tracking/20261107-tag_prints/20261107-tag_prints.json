@@ -1,0 +1,373 @@
+{
+ "what": "tag test plate (step 1) and tag block (step 3) as white and black STLs",
+ "script": "scripts/hardware/object_tracking_print.py",
+ "plate": {
+  "files": {
+   "white": {
+    "file": "assets/tracking/20261107-tag_prints/20261107-tag_test_plate_white.stl",
+    "triangles": 1726,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -85.0,
+      -35.0,
+      0.0
+     ],
+     [
+      85.0,
+      35.0,
+      3.0
+     ]
+    ]
+   },
+   "black": {
+    "file": "assets/tracking/20261107-tag_prints/20261107-tag_test_plate_black.stl",
+    "triangles": 1458,
+    "watertight": true,
+    "shells": 10,
+    "bounds_mm": [
+     [
+      -65.005,
+      -23.005,
+      2.4
+     ],
+     [
+      68.005,
+      23.005,
+      3.0
+     ]
+    ]
+   }
+  },
+  "volume_mm3": {
+   "solid": 35645.6802,
+   "white": 34890.0507,
+   "black": 755.6296,
+   "black_expected": 752.1348,
+   "overlap": -0.0
+  },
+  "ok": true,
+  "black_z_mm": [
+   2.4,
+   3.0
+  ],
+  "two_colour_layers": 3,
+  "tags": {
+   "tag36h11": {
+    "0": 10.0,
+    "1": 12.0,
+    "2": 13.0,
+    "3": 14.0,
+    "4": 16.0
+   },
+   "tag25h9": {
+    "0": 10.0,
+    "1": 12.0,
+    "2": 13.0,
+    "3": 14.0,
+    "4": 16.0
+   }
+  },
+  "check": {
+   "ok": true,
+   "ppm": 20.0,
+   "tags": [
+    {
+     "family": "tag36h11",
+     "id": 0,
+     "edge_mm": 10.0,
+     "found": [
+      0
+     ],
+     "corner_rms_mm": 0.021
+    },
+    {
+     "family": "tag36h11",
+     "id": 1,
+     "edge_mm": 12.0,
+     "found": [
+      1
+     ],
+     "corner_rms_mm": 0.0207
+    },
+    {
+     "family": "tag36h11",
+     "id": 2,
+     "edge_mm": 13.0,
+     "found": [
+      2
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 3,
+     "edge_mm": 14.0,
+     "found": [
+      3
+     ],
+     "corner_rms_mm": 0.0213
+    },
+    {
+     "family": "tag36h11",
+     "id": 4,
+     "edge_mm": 16.0,
+     "found": [
+      4
+     ],
+     "corner_rms_mm": 0.0214
+    },
+    {
+     "family": "tag25h9",
+     "id": 0,
+     "edge_mm": 10.0,
+     "found": [
+      0
+     ],
+     "corner_rms_mm": 0.0147
+    },
+    {
+     "family": "tag25h9",
+     "id": 1,
+     "edge_mm": 12.0,
+     "found": [
+      1
+     ],
+     "corner_rms_mm": 0.0266
+    },
+    {
+     "family": "tag25h9",
+     "id": 2,
+     "edge_mm": 13.0,
+     "found": [
+      2
+     ],
+     "corner_rms_mm": 0.0235
+    },
+    {
+     "family": "tag25h9",
+     "id": 3,
+     "edge_mm": 14.0,
+     "found": [
+      3
+     ],
+     "corner_rms_mm": 0.0215
+    },
+    {
+     "family": "tag25h9",
+     "id": 4,
+     "edge_mm": 16.0,
+     "found": [
+      4
+     ],
+     "corner_rms_mm": 0.0264
+    }
+   ],
+   "faces": [
+    {
+     "normal": [
+      -0.0,
+      0.0,
+      1.0
+     ],
+     "white_mm2": 10622.511,
+     "black_mm2": 1259.3824,
+     "face_mm2": 11881.8934,
+     "gap_mm2": -3e-06
+    }
+   ]
+  }
+ },
+ "block": {
+  "files": {
+   "white": {
+    "file": "assets/tracking/20261107-tag_prints/20261107-tag_block_ids10-15_white.stl",
+    "triangles": 1160,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -15.0,
+      -17.321,
+      0.0
+     ],
+     [
+      15.0,
+      17.321,
+      17.0
+     ]
+    ]
+   },
+   "black": {
+    "file": "assets/tracking/20261107-tag_prints/20261107-tag_block_ids10-15_black.stl",
+    "triangles": 972,
+    "watertight": true,
+    "shells": 6,
+    "bounds_mm": [
+     [
+      -15.0,
+      -16.243,
+      1.995
+     ],
+     [
+      15.0,
+      16.243,
+      15.005
+     ]
+    ]
+   }
+  },
+  "volume_mm3": {
+   "solid": 13015.0416,
+   "white": 12279.9183,
+   "black": 735.1233,
+   "black_expected": 731.4531,
+   "overlap": -0.0
+  },
+  "ok": true,
+  "black_z_mm": [
+   1.995,
+   15.005
+  ],
+  "two_colour_layers": 65,
+  "tags": {
+   "tag36h11": {
+    "10": 13.0,
+    "11": 13.0,
+    "12": 13.0,
+    "13": 13.0,
+    "14": 13.0,
+    "15": 13.0
+   }
+  },
+  "check": {
+   "ok": true,
+   "ppm": 20.0,
+   "tags": [
+    {
+     "family": "tag36h11",
+     "id": 10,
+     "edge_mm": 13.0,
+     "found": [
+      10
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 11,
+     "edge_mm": 13.0,
+     "found": [
+      11
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 12,
+     "edge_mm": 13.0,
+     "found": [
+      12
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 13,
+     "edge_mm": 13.0,
+     "found": [
+      13
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 14,
+     "edge_mm": 13.0,
+     "found": [
+      14
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "family": "tag36h11",
+     "id": 15,
+     "edge_mm": 13.0,
+     "found": [
+      15
+     ],
+     "corner_rms_mm": 0.0219
+    }
+   ],
+   "faces": [
+    {
+     "normal": [
+      1.0,
+      0.0,
+      0.0
+     ],
+     "white_mm2": 175.0196,
+     "black_mm2": 119.4291,
+     "face_mm2": 294.4486,
+     "gap_mm2": -1.5e-05
+    },
+    {
+     "normal": [
+      0.5,
+      0.866,
+      -0.0
+     ],
+     "white_mm2": 182.9251,
+     "black_mm2": 111.5236,
+     "face_mm2": 294.4486,
+     "gap_mm2": -4e-06
+    },
+    {
+     "normal": [
+      -0.5,
+      0.866,
+      0.0
+     ],
+     "white_mm2": 164.4734,
+     "black_mm2": 129.9752,
+     "face_mm2": 294.4486,
+     "gap_mm2": -4e-06
+    },
+    {
+     "normal": [
+      -1.0,
+      0.0,
+      0.0
+     ],
+     "white_mm2": 172.3465,
+     "black_mm2": 122.1021,
+     "face_mm2": 294.4486,
+     "gap_mm2": -1.5e-05
+    },
+    {
+     "normal": [
+      -0.5,
+      -0.866,
+      0.0
+     ],
+     "white_mm2": 172.3304,
+     "black_mm2": 122.1183,
+     "face_mm2": 294.4486,
+     "gap_mm2": -4e-06
+    },
+    {
+     "normal": [
+      0.5,
+      -0.866,
+      0.0
+     ],
+     "white_mm2": 164.4735,
+     "black_mm2": 129.9751,
+     "face_mm2": 294.4486,
+     "gap_mm2": -4e-06
+    }
+   ]
+  }
+ }
+}

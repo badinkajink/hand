@@ -282,8 +282,8 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 
 | Part | Made by | Notes |
 |---|---|---|
-| Tag test plate | session, printed | step 1 |
-| Tag blocks: cylinder, sphere, spare | session, printed | P1S with AMS, matte black and white PLA |
+| Tag test plate | session, printed | step 1; STLs in `assets/tracking/20261107-tag_prints/` (2026-11-07) |
+| Tag blocks: cylinder, sphere, spare | session, printed | P1S with AMS, matte black and white PLA; the step-3 block (ids 10-15, 4.2 mm bore) in the same folder |
 | Cylinder and sphere | session, printed | infill for 25 g; stem and block in one piece with the lower half |
 | Flat seat on a pedestal | session, printed | fixed to the table under the block |
 | Turntable adapter and 20° wedge | session, printed | step 3 |
