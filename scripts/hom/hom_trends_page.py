@@ -38,7 +38,10 @@ TASKS = ("twist", "roll", "pinpush", "press")
 NAMES = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
 OBJ = {"twist": "sphere", "roll": "sphere", "pinpush": "cylinder", "press": "cylinder"}
 DEFAULT = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
-REFS = [P.REFS[0], P.REFS[1], P.REFS[5]]           # [1] foundational pose, [2] HOM, [3] Yang et al.
+REFS = [P.REFS[0], P.REFS[1], P.REFS[5],           # [1] foundational pose, [2] HOM, [3] Yang et al.
+        '[4] J. Borràs and A. M. Dollar, "Dimensional synthesis of three-fingered robot hands for maximal precision '
+        'manipulation workspace", IJRR 34(14):1731-1746, 2015.']
+SCALE = "../20261008-hand_object_scale/20261008-finger_spacing_object_size.html"
 CPU_TOL = 0.04                                      # a best layout's CPU score agrees with its GPU score within this
 L_SIZES = {"twist": (30.0, 40.0, 50.0, 63.0), "roll": (30.0, 40.0, 50.0, 63.0), "pinpush": (10.0, 16.0, 25.0, 40.0),
            "press": (10.0, 16.0, 25.0, 40.0)}        # the Sobol study's sizes, hom_landscape.SIZES
@@ -246,6 +249,51 @@ def trend_stats(Tn, task):
             "rollouts": [p_[1]["rollouts"] for p_ in pts if p_[2].get("ea") and not p_[2].get("grid")]}
 
 
+def summary_stats(out):
+    """trend_stats per task from a live search's summary (rows/<out>/summary.json), or None."""
+    p_ = ROWS / out / "summary.json"
+    if not p_.exists():
+        return None
+    Tn = {k: v for k, v in json.loads(p_.read_text()).items() if isinstance(v, dict) and "task" in v}
+    St = {task: trend_stats(Tn, task) for task in TASKS}
+    return St if all(St.values()) else None
+
+
+def earlier_slopes():
+    """The slopes of the earlier pages, for the table of Section 2. Workspace: the ridge fits of the 10-08 scale study
+    (landscape.json, families.diag.fits: sphere palm radius and cylinder half x_sep against the object's radius). Grids:
+    the design page's largest-basin peaks at three sizes per object, from the smallest size to the largest, with every
+    grasp (fp_review_page.grid_size_numbers) and with clear grasps (hom_landscape.OVERLAP/summary.json). Servo: this
+    page's searches rerun on the SCS0009 plant at 2.5 MPa (rows/ea_live_sv25)."""
+    import hom_landscape as L
+    out = {}
+    lp = ROOT / "docs/experiments/20261008-hand_object_scale/landscape.json"
+    if lp.exists():
+        F = json.loads(lp.read_text())["families"]["diag"]["fits"]
+        out["work"] = {k: F.get(f"{k}:kin") for k in ("sphere", "cylinder")}
+    by = {}
+    for (task, sz), g in P.grid_size_numbers().items():
+        by.setdefault(task, {})[sz] = (g["peak"][0], g["flat"])
+    if all(len(by.get(task, {})) >= 2 for task in TASKS):
+        out["grid_all"] = {task: (by[task][max(by[task])][0] - by[task][min(by[task])][0]) /
+                           (max(by[task]) - min(by[task])) for task in TASKS}
+        out["flat_roll"] = [f for _x, f in by["roll"].values()]
+        out["grid_span"] = {task: (min(by[task]), max(by[task])) for task in TASKS}
+    op = L.OVERLAP / "summary.json"
+    if op.exists():
+        S_ = json.loads(op.read_text())
+        clear = {}
+        for task in TASKS:
+            pk = {float(k.split("_d")[1]): v["peak_clear"][0] for k, v in S_.items()
+                  if k.startswith(task + "_d") and isinstance(v, dict) and v.get("peak_clear")}
+            if len(pk) >= 2:
+                clear[task] = (pk[max(pk)] - pk[min(pk)]) / (max(pk) - min(pk))
+        if len(clear) == len(TASKS):
+            out["grid_clear"] = clear
+    out["servo"] = summary_stats("ea_live_sv25")
+    return out
+
+
 def repeat_share(out="ea_live"):
     """Share of the live searches' rollouts that repeat a layout drawn twice in one generation (rows beyond a grasp's
     three seeds)."""
@@ -329,11 +377,18 @@ def sec_terms():
          "is kept and the best eighth are the parents. A child is a parent moved by up to 15 mm per coordinate, rounded "
          "to the 5 mm lattice. Population: the layouts per generation. Budget: the rollouts after which no generation "
          "starts."),
+        ("Work plant, SCS0009 plant", "the finger servos' model in the scenes: 4 N&#8201;m/rad and 1 N&#8201;m in the "
+         "work plant, 4.4 times stronger than the hand's SCS0009 servos, and 0.72 N&#8201;m/rad and 0.18 N&#8201;m in "
+         "the SCS0009 plant."),
         ("Within 0.05", "a search succeeds when its best layout so far scores within 0.05 of the full grid's best."),
         ("Near set, centroid", "the layouts a search ran that score within 0.05 of the best one it reached. The centroid "
          "is their mean $x_{sep}$ and $y_{sep}$."),
         ("Slope", "the least-squares slope of the near set's centroid against the object's diameter, in mm of mount "
-         "spacing per mm of diameter."),
+         "spacing per mm of diameter. Section SEC[trends] also lists slopes measured on earlier pages, each defined in "
+         "its table's caption."),
+        ("Fixed-contact workspace, palm radius", "the object poses that the hand reaches while every pad stays at its "
+         "point on the object (Borràs and Dollar [4]); the palm radius is the radius of the circle through the three "
+         "mounts (mm)."),
         ("Reach", "the share of the 625 layouts on which the pose toy finds the task's pose for the object."),
         ("Spearman, best tenth kept", "Spearman's rank correlation of two runs' scores over the layouts both ran, and "
          "the share of one run's best tenth of layouts that is in the other's best tenth."),
@@ -379,7 +434,8 @@ cylinder to <<prm>> at <<prd>> mm.</p>""",
     far = [n for d_, n in zip(tw["d"], tw["near_n"]) if d_ >= 50]
     t += fill(r"""<p>The best layouts move with the object (Figures <<f1>> and <<f2>>). The near set's centroid moves
 $x_{sep}$ out by <<sx_tw>> mm per millimetre of diameter in the twist, <<sx_ro>> in the roll, <<sx_pp>> in the pin-push
-and <<sx_pr>> in the press. A slope of 1 keeps each mount at a fixed distance from the object's surface. On spheres
+and <<sx_pr>> in the press. A slope of 1 keeps each mount at a fixed distance from the object's surface, the rule that
+Borràs and Dollar [4] derived for the fixed-contact workspace (Table <<tb2>>). On spheres
 $y_{sep}$ narrows, by <<sy_tw>> mm per millimetre in the twist and <<sy_ro>> in the roll. On cylinders it widens, by
 <<sy_pp>> in the pin-push and <<sy_pr>> in the press. At <<edge>> of its <<n_pr>> sizes the press's best $y_{sep}$ is 155
 mm or more, within 15 mm of the lattice's edge.</p>
@@ -388,7 +444,7 @@ as its scores differ little between layouts. The share of the lattice that reach
 (Figure <<f3>>). The tripod is reached on <<r25>> % of the layouts at 25 mm, <<rmax>> % at <<dmax>> mm and <<r80>> % at
 80 mm. The pinch is reached on <<p8>> % at 8 mm and <<pmax>> % at <<pdmax>> mm. The press is reached on <<q>> % at
 every size.</p>""",
-              f1=f1, f2=f1 + 1, f3=f1 + 2, sx_tw=f"{tw['slope_x']:.2f}", sx_ro=f"{ro['slope_x']:.2f}",
+              f1=f1, f2=f1 + 1, f3=f1 + 2, tb2=tb + 1, sx_tw=f"{tw['slope_x']:.2f}", sx_ro=f"{ro['slope_x']:.2f}",
               sx_pp=f"{pp['slope_x']:.2f}", sx_pr=f"{pr['slope_x']:.2f}", sy_tw=f"{-tw['slope_y']:.2f}",
               sy_ro=f"{-ro['slope_y']:.2f}", sy_pp=f"{pp['slope_y']:.2f}", sy_pr=f"{pr['slope_y']:.2f}", edge=edge,
               n_pr=len(pr["d"]), far=span(far, "{:d}"), ro_n=span(ro["near_n"], "{:d}"),
@@ -435,6 +491,7 @@ every size.</p>""",
     t += img(MEDIA / "20261030-size_trends_cyl.png", f"Cylinders, drawn as Figure {f1}.")
     t += img(MEDIA / "20261030-size_reach.png",
              "Layouts of the 625 that reach each pose, against the object's diameter.")
+    t += sec_earlier(N, St)
 
     def cap(i, task):
         parts = [f"{k} mm: layout ({v['layout'][0]:.0f}, {v['layout'][1]:.0f}) mm, score {v['score']:.2f} here and "
@@ -443,6 +500,50 @@ every size.</p>""",
                 f"grasp, CPU plant, seed 0. " + " ".join(parts) + f" <code>scripts/hom/hom_films.py sizes_{task}</code>.")
     for task in ("twist", "roll", "pinpush", "press"):
         t += v4b_film(f"sizes_{task}", lambda i, task=task: cap(i, task))
+    return t
+
+
+def sec_earlier(N, St):
+    """The slopes of this section beside those of the earlier pages (earlier_slopes)."""
+    E = N.get("earlier") or {}
+    W, ga, gc, sv, gs = (E.get(k) for k in ("work", "grid_all", "grid_clear", "servo", "grid_span"))
+    if not (W and W.get("sphere") and W.get("cylinder") and ga and gc and sv and gs):
+        return ""
+    ws, wc = W["sphere"], W["cylinder"]
+    three = ("twist", "pinpush", "press")
+    tb = P.TAB[0] + 1
+    t = fill(r"""<p>Three earlier studies measured the same slope (Table <<tb>>). On the <a href="<<scale>>">scale page</a>
+of 2026-10-08, the real_v1 hand's fixed-contact workspace is largest along a ridge, where each mount sits a fixed distance
+outside the object. Over <<sn>> spheres the palm radius at the ridge is <<sa>>&#8201;$r$ + <<sb>> mm, with $r$ the
+object's radius. Over <<cn>> cylinders half of $x_{sep}$ at the ridge is <<ca>>&#8201;$r$ + <<cb>> mm. The fits'
+residuals are <<sr>> and <<cr>> mm RMS. Borràs and Dollar [4] derived the same rule for three two-link fingers, a palm
+radius of the object's radius plus half a finger.</p>
+<p>On the <a href="<<design>>">design page</a>'s grids at three sizes per object, the peak of the largest basin of good
+layouts moved <<a0>> to <<a1>> mm per millimetre of diameter in the twist, the pin-push and the press. With clear grasps
+only, it moved <<c0>> to <<c1>>. The roll's grid maps are flat: <<rf0>> to <<rf1>> % of the layouts score within 0.1 of
+the best. Rerun on the hand's SCS0009 servos at 2.5 MPa, the searches of this section give <<v0>> to <<v1>>.</p>""",
+             tb=tb, scale=SCALE, design=DESIGN, sn=ws["n"], sa=f"{ws['alpha']:.2f}", sb=f"{ws['beta_mm']:.1f}",
+             cn=wc["n"], ca=f"{wc['alpha']:.2f}", cb=f"{wc['beta_mm']:.1f}", sr=f"{ws['rms_mm']:.1f}",
+             cr=f"{wc['rms_mm']:.1f}", a0=f"{min(ga[k] for k in three):.2f}", a1=f"{max(ga[k] for k in three):.2f}",
+             c0=f"{min(gc[k] for k in three):.2f}", c1=f"{max(gc[k] for k in three):.2f}",
+             rf0=f"{100 * min(E['flat_roll']):.0f}", rf1=f"{100 * max(E['flat_roll']):.0f}",
+             v0=f"{min(sv[k]['slope_x'] for k in TASKS):.2f}", v1=f"{max(sv[k]['slope_x'] for k in TASKS):.2f}")
+    work, servo = "CAD hand, work plant, 10 MPa", "CAD hand, SCS0009 plant, 2.5 MPa"
+    rows = [["Workspace ridge, 2026-10-08", "real_v1 hand, kinematics only"]
+            + [f"{(ws if OBJ[k] == 'sphere' else wc)['alpha']:.2f}" for k in TASKS],
+            ["Grid peaks, every grasp, 2026-10-30", work] + [f"{ga[k]:.2f}" for k in TASKS],
+            ["Grid peaks, clear grasps, 2026-10-30", work] + [f"{gc[k]:.2f}" for k in TASKS],
+            ["Near-set centroids, this section, 2026-10-31", work] + [f"{St[k]['slope_x']:.2f}" for k in TASKS],
+            ["The same searches, 2026-11-02", servo] + [f"{sv[k]['slope_x']:.2f}" for k in TASKS]]
+    sph, cyl = gs["twist"], gs["pinpush"]
+    t += table(["Measurement", "Hand and plant", "Twist", "Roll", "Pin-push", "Press"], rows,
+               "Slope of the best layouts' $x_{sep}$ against the object's diameter, in mm per mm, in five measurements. "
+               "Workspace ridge: the fits of the 10-08 scale page against the object's radius, the palm radius over "
+               "spheres (under the twist and the roll) and half of $x_{sep}$ over cylinders (under the pin-push and the "
+               "press). Grid peaks: the design page's largest basin, from the smallest size to the largest "
+               f"({sph[0]:g} and {sph[1]:g} mm spheres, {cyl[0]:g} and {cyl[1]:g} mm cylinders), with every grasp and "
+               "with grasps whose fingers stay 2 mm apart. Near-set centroids: least squares over 9 or 10 sizes per "
+               "task. A slope of 1 keeps each mount a fixed distance outside the object.", num_from=2)
     return t
 
 
@@ -858,6 +959,12 @@ cylinder fell 10 mm at <<tds>> s, in the turn's down stroke (Film <<fm>>). The c
 
 
 def sec_limits(N):
+    sv = (N.get("earlier") or {}).get("servo")
+    St = {task: trend_stats(N["trends"], task) for task in TASKS} if N.get("trends") else {}
+    m = lambda v: f"{v:.2f}".replace("-", "&#8722;")  # noqa: E731
+    ys = (f" The slopes in $y_{{sep}}$ do not persist: the press's changes from {m(St['press']['slope_y'])} to "
+          f"{m(sv['press']['slope_y'])}, and the twist's from {m(St['twist']['slope_y'])} to {m(sv['twist']['slope_y'])}."
+          if sv and all(St.values()) else "")
     return fill(r"""<ul>
 <li>The GPU evaluator keeps its collision filter, so contact between two fingers during a task is missed there. The best
 layouts are re-run on the CPU plant, at seed 0 only.</li>
@@ -872,13 +979,10 @@ only in the CPU check, at the default objects.</li>
 <li>Every run uses the work plant (4 N&#8201;m/rad, 1 N&#8201;m), 4.4 times stronger than the hand's SCS0009 servos, and
 the scenes cached on 2026-10-30, whose pads have a modulus of 10 MPa. The scenes have used 2.5 MPa, fitted to the v3
 tips' presses, since that evening (<a href="<<contact>>">contact model page</a>). The study was rerun on the SCS0009
-plant (0.72 N&#8201;m/rad, 0.18 N&#8201;m) at 2.5 MPa. There the near sets' slopes in $x_{sep}$ are 1.41, 0.57, 1.20
-and 1.09 mm per mm of diameter for the twist, roll, pin-push and press, against 0.98, 0.59, 0.98 and 1.11 here. The
-slopes in $y_{sep}$ do not persist: the press's changes sign, from 0.88 to &#8722;0.43, and the twist's falls from
-&#8722;0.73 to &#8722;0.16. On the work plant at 2.5 MPa, 68 % of the 380 layouts checked on the CPU score within 0.05
-of their 10 MPa scores. The servo, the pad modulus and the scene friction are compared on the
-<a href="20261102-hom_plant_modulus.html">plant and modulus page</a>.</li>
-</ul>""", contact=CONTACT, rep=f"{100 * (repeat_share() or 0):.1f}")
+plant at 2.5 MPa, and Section SEC[trends] compares its slopes in $x_{sep}$ with these.<<ys>> On the work plant at
+2.5 MPa, 68 % of the 380 layouts checked on the CPU score within 0.05 of their 10 MPa scores. The servo, the pad modulus
+and the scene friction are compared on the <a href="20261102-hom_plant_modulus.html">plant and modulus page</a>.</li>
+</ul>""", contact=CONTACT, rep=f"{100 * (repeat_share() or 0):.1f}", ys=ys)
 
 
 def sec_future(N):
@@ -971,14 +1075,24 @@ def lede_and_summary(N):
         if all(nn) and not any(x["touch"] for x in nn):
             table_s += (" With no penetration of the table allowed, no finger touched it, and the pin-push held the "
                         f"cylinder in {span([x['held'] for x in nn], '{:d}')} of 20 runs, against {pp_c['held']}.")
+    E = N.get("earlier") or {}
+    sv, W = E.get("servo"), E.get("work") or {}
+    svx = [sv[k]["slope_x"] for k in TASKS] if sv else None
+    wa = [W[k]["alpha"] for k in ("sphere", "cylinder") if W.get(k)]
+    rule = ((f" On a model of the hand's SCS0009 servos the slopes are {span(svx)}. A slope of 1 keeps each mount a fixed "
+             "distance outside the object. That is Borràs and Dollar's rule for the fixed-contact workspace, and the "
+             f"real_v1 hand's workspace follows it with a slope of {span(wa)}.") if svx and wa else "")
     lede = fill("""Over 19 object sizes, the best layout of the SR2 hand moves with the object. In all four HOM tasks the
-thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter. The spacing of the index and the
-middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary algorithm in
-6,000 rollouts, which came within 0.05 of a full grid's best in every test run. The CPU plant with every contact gave the
-best layout's score within <<tol>> at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx), tol=CPU_TOL, ok=ok, n=n, tb=table_s)
+thumb's mount moves away from the finger pair by <<sx>> mm per millimetre of diameter.<<rule>> The spacing of the index
+and the middle narrows on spheres and widens on cylinders. Each size was searched with Yang et al.'s evolutionary
+algorithm in 6,000 rollouts, which came within 0.05 of a full grid's best in every test run. The CPU plant with every
+contact gave the best layout's score within <<tol>> at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx), rule=rule,
+                tol=CPU_TOL, ok=ok, n=n, tb=table_s)
     summary = fill("""Across 19 object sizes the SR2 hand's best layout under HOM control moves with the object: the
-thumb's mount moves out <<sx>> mm per mm of diameter in all four tasks, found by an evolutionary search in 6,000 rollouts
-per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx, "{:.1f}"), ok=ok, n=n,
+thumb's mount moves out <<sx>> mm per mm of diameter in all four tasks<<sv>>, found by an evolutionary search in 6,000
+rollouts per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=span(sx, "{:.1f}"), ok=ok, n=n,
+                   sv=(f" ({span(svx, '{:.1f}')} on the SCS0009 servos; a slope of 1 is Borràs and Dollar's workspace "
+                       "rule)" if svx else ""),
                    tb=(f" With a table under the object, no press and no pinch of a cylinder under {p_first:g} mm "
                        "clears it." if p_first else ""))
     return lede, " ".join(summary.split())
@@ -986,7 +1100,8 @@ per size and confirmed on the CPU plant at <<ok>> of <<n>> sizes.<<tb>>""", sx=s
 
 def main():
     N = {"rerun": rerun_numbers(), "trends": trend_numbers("grid2dff"), "trends_gr": trend_numbers("grid2dgr"),
-         "ground": ground_numbers(), "gr_grid": gr_grid_numbers(), "table": table_numbers(), "sobol": sobol_numbers()}
+         "ground": ground_numbers(), "gr_grid": gr_grid_numbers(), "table": table_numbers(), "sobol": sobol_numbers(),
+         "earlier": earlier_slopes()}
     sections = [
         ("terms", "Terms and metrics", sec_terms()),
         ("trends", "Best layouts across object sizes", sec_trends(N)),
