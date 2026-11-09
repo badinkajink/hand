@@ -799,10 +799,12 @@ class Batch:
         dist = th.where(sep, dc, -th.linalg.norm(q2 - s_sup, dim=-1))
         return p1, p0, x1, dist
 
+    @staticmethod
     def _quat_mat(q):
         from sr2hand.rl.math import quat_to_mat
         return quat_to_mat(q)
 
+    @staticmethod
     def _quat_mul(a, b):
         from sr2hand.rl.math import quat_mul as torch_quat_mul
         return torch_quat_mul(a, b)

@@ -80,7 +80,7 @@ Jobs on the DeltaAI cluster.
 | `make_inline_breadth_queue.py` | Emit packed-queue manifests for the inline-hand questions that breadth can answer. |
 | `make_seed_manifest.py` | Write the (design, seed) manifest that deltaai_seed_array.slurm consumes. |
 
-## contact/ (82)
+## contact/ (84)
 
 Fingertip contact models and simulators: the sphere pads, the contact bed, the reorientation on each backend, Drake, Newton, MuJoCo-Warp and DiffMJX.
 
@@ -133,6 +133,8 @@ Fingertip contact models and simulators: the sphere pads, the contact bed, the r
 | `gpu_scaling_mjwarp.py` | MuJoCo-Warp GPU scaling of the sphere-pad holding fixture (2026-10-05). |
 | `hydroelastic_arm_integral.py` | Friction arm of the hydroelastic pressure law on the contact bed's geometry, integrated directly with no simulator: compliant fingertip sphere R = 10.55 mm with Drake's field p = E (1 - rho/R) against a rigid tool, every |
 | `make_pad_morphology_run.py` | A morphology run whose frozen scene has the printed TPU fingertip instead of the legacy box tip. |
+| `mujoco4_port.py` | MuJoCo 3.6.0 against 4.0.0 for the hand's contact simulation (2026-11-08). |
+| `mujoco4_port_page.py` | Builds docs/experiments/20261108-mujoco4_port/20261108-mujoco4_contact_and_stack.html: MuJoCo 3.6.0 against 4.0.0 for the sphere-pad contact model and the repository's simulation components (owner, 2026-11-08: "i am more |
 | `native_compliance_page.py` | Build docs/experiments/20261007-native_compliance/20261007-native_presliding_compliance.html. |
 | `newton_hand_throughput.py` | GPU physics throughput of the hand holding the tool: MuJoCo-Warp against Newton, per fingertip contact model. |
 | `newton_hydro_tests_page.py` | Build docs/experiments/20261007-newton_hydro_tests/20261007-newton_hydroelastic_friction_reduction_edge.html. |
