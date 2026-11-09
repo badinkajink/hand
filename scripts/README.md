@@ -500,7 +500,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
 
-## hom/ (75)
+## hom/ (77)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -568,6 +568,8 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_review_page.py` | Review page of the HOM paper (arXiv 2609.25619v2), of its MuJoCo implementation on the SR2 hand (src/sr2hand/control/), and of the magnetic fingertips as the controller's contact sensor, 2026-10-29. |
 | `hom_rows.py` | Rows of the HOM task runs (scripts/hom/hom_tasks.py, scripts/hom/hom_gpu.py) as the page builders read them, without the simulation stack. |
 | `hom_score_refine_page.py` | Builds docs/experiments/20261103-hom_score_refine/20261103-hom_score_refine.html: each SR2 layout scored three ways under HOM control (S1 the best of its sampled grasps at HOM's defaults; S2 the grasp refined on the HOM  |
+| `hom_search_compare.py` | Particle swarm optimization against the evolutionary algorithm of Yang et al., random search, a Sobol sequence and the FP paper's RRT, on the stored full grids of the SR2 layout study (owner, 2026-11-09: "see if particle |
+| `hom_search_methods_page.py` | Builds docs/experiments/20261029-foundational_pose_review/20261109-hom_search_methods.html: the search methods of the SR2 layout study explained from first principles (the evolutionary algorithm of Yang et al., particle  |
 | `hom_table_check.py` | The CPU runner with a table under the object until the lift, the full version of the ground check (owner, 2026-10-30: "doing these tasks with an initial grasp, raise, and then manipulate"; scripts/hom/hom_ground.py is th |
 | `hom_task_conflict.py` | Tasks whose best finger layouts differ: one layout for all of them (a generalist), or a change of layout between tasks (owner, 2026-11-03 20:3x: "how can we accommodate tasks with conflicting morphology objectives? |
 | `hom_task_conflict_page.py` | Builds docs/experiments/20261103-hom_task_conflict/20261104-hom_task_conflict.html: one SR2 finger layout for the four HOM tasks against one layout per task, on performance alone (owner, 2026-11-03 20:3x: "how can we acc |
