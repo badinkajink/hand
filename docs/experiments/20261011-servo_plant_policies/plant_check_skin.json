@@ -1,3 +1,44 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8b21c99e7dd4ae955a577b77a3ca200100d43b197b6340f2369db9ee2c115592
-size 799
+{
+ "plant": {
+  "kp": 0.72,
+  "kv": 0.0,
+  "forcerange": 0.18,
+  "damping": 0.0144,
+  "frictionloss": 0.0
+ },
+ "spec": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+ "skin": {
+  "N_ref": 5.0,
+  "a": 0.0029370389707289767,
+  "kt": 52272.10626436443,
+  "kth": 0.4659398519040306,
+  "ct": 234.05377024319418,
+  "cth": 0.0026082027984416483,
+  "G": 3448275.8620689656,
+  "nu": 0.45,
+  "E": 10000000.0
+ },
+ "checks": [
+  {
+   "run": "results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7skin",
+   "step60": {
+    "tool_z_mm_median": 109.31228637695312,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     25.3,
+     14.2,
+     8.1
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 109.39900207519531,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     25.0,
+     14.8,
+     7.4
+    ]
+   }
+  }
+ ]
+}

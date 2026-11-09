@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:be342251ac15c31358843e063cee40065ac2444f15e7ff916c454cb6bfb68aba
-size 176
+{"held": true, "theta_rmse_deg": 3.73, "F_mean": {"thumb": 3.217, "index": 3.092, "middle": 0.15}, "gap_mm": 23.194, "score": 0.814, "cpu": 0.814, "frames": 138, "plant": null}

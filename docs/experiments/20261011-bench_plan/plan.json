@@ -1,3 +1,635 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:89d76215617102f67322c9c916db6d04230d66af8cd87f2a38699c0eeb93ba88
-size 11441
+{
+ "meta": {
+  "date": "2026-10-11",
+  "revised": "2026-10-11, servo plant",
+  "plant": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+  "rows": "docs/experiments/20261011-bench_plan/servo_plant",
+  "comparison": {
+   "plant": "kp4_kv0_fr1_fl0_dp0.08",
+   "turn": "docs/experiments/20261008-hand_object_scale/turn.jsonl",
+   "hold": "docs/experiments/20261011-bench_plan/work_plant/hold.jsonl"
+  },
+  "band_deg": 60.0,
+  "rule": "five layouts centred on the band at the simulation's step of 0.125 in t (the band's middle layout and two on each side); a cylinder without a band is centred on its layout of largest median held turn",
+  "decision": "stage 2 if a band cell succeeds in >= 8 of 12, both edge cells in <= 2 of 12, and the drop load's rank correlation with standoff <= -0.8",
+  "push_test": {
+   "cell": {
+    "d_mm": 10,
+    "t": 0.75,
+    "turn_cand": 4
+   },
+   "step_N": 0.25,
+   "hold_s": 3,
+   "predictions": {
+    "index@kp0.72_kv0_fr0.18_fl0_dp0.0144": {
+     "k": 0.2865,
+     "F": 4.0676,
+     "joint": "MCP",
+     "q_deg": [
+      0.0,
+      -3.98,
+      31.72
+     ]
+    },
+    "thumb@kp0.72_kv0_fr0.18_fl0_dp0.0144": {
+     "k": 0.2865,
+     "F": 4.0676,
+     "joint": "MCP",
+     "q_deg": [
+      0.0,
+      -3.98,
+      31.72
+     ]
+    },
+    "index@kp4_kv0_fr1_fl0_dp0.08": {
+     "k": 1.5918,
+     "F": 22.598,
+     "joint": "MCP",
+     "q_deg": [
+      0.0,
+      -3.98,
+      31.72
+     ]
+    },
+    "thumb@kp4_kv0_fr1_fl0_dp0.08": {
+     "k": 1.5918,
+     "F": 22.598,
+     "joint": "MCP",
+     "q_deg": [
+      0.0,
+      -3.98,
+      31.72
+     ]
+    }
+   }
+  }
+ },
+ "hours": {
+  "stage1": {
+   "cells": 5,
+   "turn_trials": 60,
+   "ballast_series": 10,
+   "h_turn": 1.5,
+   "h_ballast": 1.0,
+   "h_reconf": 0.041666666666666664,
+   "days": 1,
+   "h_day": 0.875,
+   "h_push": 0.65,
+   "total": 4.066666666666666
+  },
+  "stage2": {
+   "cells": 10,
+   "turn_trials": 120,
+   "ballast_series": 20,
+   "h_turn": 3.0,
+   "h_ballast": 2.0,
+   "h_reconf": 0.08333333333333333,
+   "days": 2,
+   "h_day": 1.75,
+   "h_push": 0.0,
+   "total": 6.833333333333333
+  }
+ },
+ "cells": [
+  {
+   "stage": 1,
+   "shape": "cylinder",
+   "d_mm": 10,
+   "t": 0.375,
+   "x_sep_mm": 77.5,
+   "y_sep_mm": 87.5,
+   "mount_distance_mm": 38.75,
+   "standoff_mm": 33.75,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 5,
+    "h_mm": 61.5,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 2,
+    "h_mm": 62.5,
+    "spread_mm": 42.5
+   },
+   "sim_turn_deg": 29.28,
+   "sim_turn_placements_deg": [
+    0.0,
+    29.28,
+    36.48
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 2.456,
+   "sim_pull3_N": 0.96,
+   "sim_1Nm": {
+    "turn_deg": 90.59,
+    "drop_N": 5.896
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 1,
+   "shape": "cylinder",
+   "d_mm": 10,
+   "t": 0.5,
+   "x_sep_mm": 70.0,
+   "y_sep_mm": 80.0,
+   "mount_distance_mm": 35.0,
+   "standoff_mm": 30.0,
+   "in_band": true,
+   "turn_grasp": {
+    "cand": 5,
+    "h_mm": 63.5,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 2,
+    "h_mm": 64.0,
+    "spread_mm": 42.5
+   },
+   "sim_turn_deg": 76.39,
+   "sim_turn_placements_deg": [
+    76.39,
+    90.0,
+    54.79
+   ],
+   "sim_successes": 2,
+   "sim_drop_N": 3.116,
+   "sim_pull3_N": 0.892,
+   "sim_1Nm": {
+    "turn_deg": 91.78,
+    "drop_N": 7.636
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 1,
+   "shape": "cylinder",
+   "d_mm": 10,
+   "t": 0.625,
+   "x_sep_mm": 62.5,
+   "y_sep_mm": 72.5,
+   "mount_distance_mm": 31.25,
+   "standoff_mm": 26.25,
+   "in_band": true,
+   "turn_grasp": {
+    "cand": 5,
+    "h_mm": 65.5,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 2,
+    "h_mm": 65.0,
+    "spread_mm": 42.5
+   },
+   "sim_turn_deg": 81.24,
+   "sim_turn_placements_deg": [
+    81.24,
+    0.0,
+    83.78
+   ],
+   "sim_successes": 2,
+   "sim_drop_N": 5.196,
+   "sim_pull3_N": 1.316,
+   "sim_1Nm": {
+    "turn_deg": 33.1,
+    "drop_N": 9.456
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 1,
+   "shape": "cylinder",
+   "d_mm": 10,
+   "t": 0.75,
+   "x_sep_mm": 55.0,
+   "y_sep_mm": 65.0,
+   "mount_distance_mm": 27.5,
+   "standoff_mm": 22.5,
+   "in_band": true,
+   "turn_grasp": {
+    "cand": 4,
+    "h_mm": 65.0,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 2,
+    "h_mm": 66.0,
+    "spread_mm": 42.5
+   },
+   "sim_turn_deg": 100.03,
+   "sim_turn_placements_deg": [
+    86.03,
+    100.03,
+    118.85
+   ],
+   "sim_successes": 3,
+   "sim_drop_N": 8.556,
+   "sim_pull3_N": 3.028,
+   "sim_1Nm": {
+    "turn_deg": 43.21,
+    "drop_N": 11.216
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 1,
+   "shape": "cylinder",
+   "d_mm": 10,
+   "t": 0.875,
+   "x_sep_mm": 47.5,
+   "y_sep_mm": 57.5,
+   "mount_distance_mm": 23.75,
+   "standoff_mm": 18.75,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 6,
+    "h_mm": 67.0,
+    "spread_mm": 22.5
+   },
+   "hold_grasp": {
+    "cand": 4,
+    "h_mm": 66.0,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 37.81,
+   "sim_turn_placements_deg": [
+    40.53,
+    37.81,
+    24.36
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 9.236,
+   "sim_pull3_N": 9.12,
+   "sim_1Nm": {
+    "turn_deg": 22.46,
+    "drop_N": 11.836
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 16,
+   "t": 0.375,
+   "x_sep_mm": 77.5,
+   "y_sep_mm": 87.5,
+   "mount_distance_mm": 38.75,
+   "standoff_mm": 30.75,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 6,
+    "h_mm": 55.5,
+    "spread_mm": 22.5
+   },
+   "hold_grasp": {
+    "cand": 5,
+    "h_mm": 63.0,
+    "spread_mm": 32.5
+   },
+   "sim_turn_deg": 27.76,
+   "sim_turn_placements_deg": [
+    0.0,
+    27.76,
+    37.22
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 3.056,
+   "sim_pull3_N": 1.252,
+   "sim_1Nm": {
+    "turn_deg": 89.31,
+    "drop_N": 5.956
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 16,
+   "t": 0.5,
+   "x_sep_mm": 70.0,
+   "y_sep_mm": 80.0,
+   "mount_distance_mm": 35.0,
+   "standoff_mm": 27.0,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 1,
+    "h_mm": 62.5,
+    "spread_mm": 42.5
+   },
+   "hold_grasp": {
+    "cand": 2,
+    "h_mm": 65.0,
+    "spread_mm": 42.5
+   },
+   "sim_turn_deg": 26.45,
+   "sim_turn_placements_deg": [
+    26.25,
+    26.55,
+    26.45
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 4.916,
+   "sim_pull3_N": 1.488,
+   "sim_1Nm": {
+    "turn_deg": 28.25,
+    "drop_N": 7.856
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 16,
+   "t": 0.625,
+   "x_sep_mm": 62.5,
+   "y_sep_mm": 72.5,
+   "mount_distance_mm": 31.25,
+   "standoff_mm": 23.25,
+   "in_band": true,
+   "turn_grasp": {
+    "cand": 4,
+    "h_mm": 65.0,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 5,
+    "h_mm": 66.5,
+    "spread_mm": 32.5
+   },
+   "sim_turn_deg": 77.34,
+   "sim_turn_placements_deg": [
+    77.34,
+    81.92,
+    73.08
+   ],
+   "sim_successes": 3,
+   "sim_drop_N": 7.036,
+   "sim_pull3_N": 4.092,
+   "sim_1Nm": {
+    "turn_deg": 27.09,
+    "drop_N": 9.476
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 16,
+   "t": 0.75,
+   "x_sep_mm": 55.0,
+   "y_sep_mm": 65.0,
+   "mount_distance_mm": 27.5,
+   "standoff_mm": 19.5,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 2,
+    "h_mm": 66.5,
+    "spread_mm": 42.5
+   },
+   "hold_grasp": {
+    "cand": 8,
+    "h_mm": 66.5,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 44.27,
+   "sim_turn_placements_deg": [
+    56.28,
+    44.27,
+    34.99
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 8.436,
+   "sim_pull3_N": 4.96,
+   "sim_1Nm": {
+    "turn_deg": 26.68,
+    "drop_N": 11.196
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 16,
+   "t": 0.875,
+   "x_sep_mm": 47.5,
+   "y_sep_mm": 57.5,
+   "mount_distance_mm": 23.75,
+   "standoff_mm": 15.75,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 3,
+    "h_mm": 67.5,
+    "spread_mm": 22.5
+   },
+   "hold_grasp": {
+    "cand": 0,
+    "h_mm": 67.0,
+    "spread_mm": 32.5
+   },
+   "sim_turn_deg": 30.71,
+   "sim_turn_placements_deg": [
+    33.51,
+    30.71,
+    29.99
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 8.816,
+   "sim_pull3_N": 8.688,
+   "sim_1Nm": {
+    "turn_deg": 13.98,
+    "drop_N": 11.196
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 25,
+   "t": -0.125,
+   "x_sep_mm": 107.5,
+   "y_sep_mm": 117.5,
+   "mount_distance_mm": 53.75,
+   "standoff_mm": 41.25,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 4,
+    "h_mm": 46.5,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 6,
+    "h_mm": 41.5,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 36.39,
+   "sim_turn_placements_deg": [
+    34.46,
+    37.36,
+    36.39
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 2.996,
+   "sim_pull3_N": 3.012,
+   "sim_1Nm": {
+    "turn_deg": 27.64,
+    "drop_N": 4.276
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 25,
+   "t": 0.0,
+   "x_sep_mm": 100.0,
+   "y_sep_mm": 110.0,
+   "mount_distance_mm": 50.0,
+   "standoff_mm": 37.5,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 1,
+    "h_mm": 53.0,
+    "spread_mm": 42.5
+   },
+   "hold_grasp": {
+    "cand": 6,
+    "h_mm": 45.0,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 38.4,
+   "sim_turn_placements_deg": [
+    38.4,
+    47.62,
+    16.87
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 2.836,
+   "sim_pull3_N": 2.844,
+   "sim_1Nm": {
+    "turn_deg": 33.98,
+    "drop_N": 4.036
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 25,
+   "t": 0.125,
+   "x_sep_mm": 92.5,
+   "y_sep_mm": 102.5,
+   "mount_distance_mm": 46.25,
+   "standoff_mm": 33.75,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 4,
+    "h_mm": 54.0,
+    "spread_mm": 32.5
+   },
+   "hold_grasp": {
+    "cand": 8,
+    "h_mm": 55.5,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 43.97,
+   "sim_turn_placements_deg": [
+    43.97,
+    32.78,
+    47.62
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 2.916,
+   "sim_pull3_N": 1.516,
+   "sim_1Nm": {
+    "turn_deg": 64.15,
+    "drop_N": 4.836
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 25,
+   "t": 0.25,
+   "x_sep_mm": 85.0,
+   "y_sep_mm": 95.0,
+   "mount_distance_mm": 42.5,
+   "standoff_mm": 30.0,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 7,
+    "h_mm": 57.5,
+    "spread_mm": 22.5
+   },
+   "hold_grasp": {
+    "cand": 8,
+    "h_mm": 59.0,
+    "spread_mm": 22.5
+   },
+   "sim_turn_deg": 34.44,
+   "sim_turn_placements_deg": [
+    67.48,
+    29.95,
+    34.44
+   ],
+   "sim_successes": 1,
+   "sim_drop_N": 4.036,
+   "sim_pull3_N": 4.048,
+   "sim_1Nm": {
+    "turn_deg": 54.56,
+    "drop_N": 6.276
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  },
+  {
+   "stage": 2,
+   "shape": "cylinder",
+   "d_mm": 25,
+   "t": 0.375,
+   "x_sep_mm": 77.5,
+   "y_sep_mm": 87.5,
+   "mount_distance_mm": 38.75,
+   "standoff_mm": 26.25,
+   "in_band": false,
+   "turn_grasp": {
+    "cand": 1,
+    "h_mm": 63.0,
+    "spread_mm": 42.5
+   },
+   "hold_grasp": {
+    "cand": 3,
+    "h_mm": 61.0,
+    "spread_mm": 32.5
+   },
+   "sim_turn_deg": 27.7,
+   "sim_turn_placements_deg": [
+    27.7,
+    20.36,
+    28.69
+   ],
+   "sim_successes": 0,
+   "sim_drop_N": 5.536,
+   "sim_pull3_N": 1.196,
+   "sim_1Nm": {
+    "turn_deg": 28.37,
+    "drop_N": 9.076
+   },
+   "n_turn": 12,
+   "n_ballast": 2
+  }
+ ]
+}

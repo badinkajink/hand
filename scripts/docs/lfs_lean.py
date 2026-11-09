@@ -8,8 +8,9 @@ docs/ (html, png, jpg, gif, svg, mp4, webm, mov, pdf), the docs index docs/pages
 texsvg_cache.json, and the simulator's meshes under assets/ (stl, obj, png). CAD
 exchange and print files (step, 3mf, zipped exports) stay local (owner, 2026-11-06 evening: "remove the cad files,
 particularly the 3mf files (besides the most recent fingertip w 4 magnets)"), except the four-magnet pad 05R4 of the v3
-tips (KEEP). Raw robot recordings (*.bin) and data rows (json, jsonl, csv, npz, npy) stay on the workstation and move by
-rsync; on GitHub their pointers stay in the history without content.
+tips (KEEP). Raw robot recordings (*.bin) and the data files committed before 2026-11-09 (json, jsonl, csv, npz, npy) stay on
+the workstation and move by rsync; on GitHub their pointers stay in the history without content. Since 2026-11-09
+data files are ordinary git files, and the pre-commit hook (`pre-commit`) stops one over 2 MB.
 
 GitHub keeps every LFS object ever pushed to a repository and frees the storage only when the repository is deleted, so
 the switch is: fetch every object that exists only on GitHub (needs an LFS budget above zero), delete and recreate the
@@ -25,7 +26,8 @@ contain LFS files outside the upload set and lists them.
     python3 scripts/docs/lfs_lean.py push --mirror DIR [--dry-run] [--allow-missing]   # push branches, upload, verify
     python3 scripts/docs/lfs_lean.py lost --out FILE                           # the objects only GitHub had
     python3 scripts/docs/lfs_lean.py verify [--repo DIR]                       # every upload object present on GitHub?
-    python3 scripts/docs/lfs_lean.py install-hook                              # the main clone's filtered pre-push hook
+    python3 scripts/docs/lfs_lean.py install-hook                              # the main clone's pre-push and pre-commit hooks
+    (git runs)  python3 scripts/docs/lfs_lean.py pre-commit                    # data files over 2 MB stay out of git
     (git runs)  python3 scripts/docs/lfs_lean.py pre-push REMOTE URL < refs     # the hook itself
 """
 from __future__ import annotations
@@ -276,17 +278,54 @@ exec python3 "$(git rev-parse --show-toplevel)/scripts/docs/lfs_lean.py" pre-pus
 """
 
 
+PRE_COMMIT = """#!/bin/sh
+# Data files (json, jsonl, csv, tsv, npz, npy, ...) are ordinary git files up to lfslean.maxplain bytes (default 2 MB);
+# a larger one stays out of git and moves by rsync (scripts/docs/lfs_lean.py pre-commit, owner 2026-11-09).
+exec python3 "$(git rev-parse --show-toplevel)/scripts/docs/lfs_lean.py" pre-commit
+"""
+DATA_EXT = {".json", ".jsonl", ".csv", ".tsv", ".npz", ".npy", ".pkl", ".h5", ".hdf5", ".parquet"}
+MAX_PLAIN = 2_000_000
+
+
 def cmd_install_hook(a):
-    hook = Path(git(ROOT, "rev-parse", "--git-path", "hooks/pre-push").strip())
-    hook = hook if hook.is_absolute() else ROOT / hook
-    old = hook.read_text() if hook.exists() else ""
-    saved = bool(old) and "lfs_lean.py" not in old
-    if saved:
-        hook.with_suffix(".lfs-default").write_text(old)
-    hook.write_text(HOOK)
-    hook.chmod(0o755)
-    print(f"installed {hook}" + (f" (the previous hook saved as {hook.with_suffix('.lfs-default')})" if saved else ""))
+    for name, text in (("pre-push", HOOK), ("pre-commit", PRE_COMMIT)):
+        hook = Path(git(ROOT, "rev-parse", "--git-path", f"hooks/{name}").strip())
+        hook = hook if hook.is_absolute() else ROOT / hook
+        old = hook.read_text() if hook.exists() else ""
+        saved = bool(old) and "lfs_lean.py" not in old
+        if saved:
+            hook.with_suffix(".lfs-default").write_text(old)
+        hook.write_text(text)
+        hook.chmod(0o755)
+        print(f"installed {hook}" + (f" (the previous hook saved as {hook.with_suffix('.lfs-default')})" if saved else ""))
     return 0
+
+
+def cmd_pre_commit(a):
+    """The data rule (owner, 2026-11-09: "use LFS for only truly enduring, necessary large artifacts that cannot be normal
+    git objects"; raw data "can live offline for now"): a data file staged as an ordinary git object may not exceed
+    lfslean.maxplain bytes. Larger ones stay out of git, listed in .gitignore, and move by rsync."""
+    cfg = subprocess.run(["git", "-C", str(ROOT), "config", "--get", "lfslean.maxplain"], capture_output=True, text=True)
+    limit = int(cfg.stdout.strip() or MAX_PLAIN)
+    paths = [p for p in git(ROOT, "diff", "--cached", "--name-only", "-z", "--diff-filter=AM").split("\0")
+             if p and os.path.splitext(p)[1].lower() in DATA_EXT]
+    if not paths:
+        return 0
+    attrs = git(ROOT, "check-attr", "filter", "--stdin", inp="\n".join(paths) + "\n")
+    lfs = {ln.split(": filter: ")[0] for ln in attrs.splitlines() if ln.endswith(": filter: lfs")}
+    plain = [p for p in paths if p not in lfs]
+    if not plain:
+        return 0
+    sizes = git(ROOT, "cat-file", "--batch-check=%(objectsize)", inp="".join(f":{p}\n" for p in plain)).split()
+    big = [(int(s), p) for s, p in zip(sizes, plain) if s.isdigit() and int(s) > limit]
+    if not big:
+        return 0
+    print(f"lfs_lean: {len(big)} data files over {limit / 1e6:g} MB are staged as ordinary git files. Large data stays out "
+          "of git (owner, 2026-11-09): unstage each (git rm --cached FILE), list it in .gitignore and copy it by rsync. "
+          "Commit a smaller summary instead.", file=sys.stderr)
+    for s, p in sorted(big, reverse=True)[:30]:
+        print(f"  {s / 1e6:8.2f} MB  {p}", file=sys.stderr)
+    return 1
 
 
 def cmd_pre_push(a):
@@ -364,13 +403,14 @@ def main():
     v = sp.add_parser("verify")
     v.add_argument("--repo", default=str(ROOT))
     sp.add_parser("install-hook")
+    sp.add_parser("pre-commit")
     h = sp.add_parser("pre-push")
     h.add_argument("remote")
     h.add_argument("url", nargs="?")
     a = p.parse_args()
     return {"catalog": cmd_catalog, "refresh": cmd_refresh, "stage": cmd_stage, "push": cmd_push, "verify": cmd_verify,
             "lost": cmd_lost,
-            "install-hook": cmd_install_hook, "pre-push": cmd_pre_push}[a.cmd](a)
+            "install-hook": cmd_install_hook, "pre-push": cmd_pre_push, "pre-commit": cmd_pre_commit}[a.cmd](a)
 
 
 if __name__ == "__main__":

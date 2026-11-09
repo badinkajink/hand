@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b1a434170fe1bbc75f06d68773d2cef90b6a31a61fefae158c645e7a3a2e4902
-size 370
+{"crf": null, "film": [[["docs/experiments/20261008-contact_model_policies/media/20261008-d6_work_tpu27pads1_40M_s0_best.mp4", "Working plant: 1 N\u00b7m, 42\u201344 N grip"], ["docs/experiments/20261011-servo_plant_policies/media/20261011-d6_servo_tpu27pads1_40M_s0_best.mp4", "Servo-limited plant: 0.18 N\u00b7m, 18\u201320 N grip"]]], "poster_t": null, "width": null}

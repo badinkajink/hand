@@ -1,3 +1,74 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:695017ba5ac27a5cd9155cbdb7d5cc060a61cec6f3a3da0b2eb12cc6ef93947f
-size 1283
+{
+ "plant": {
+  "kp": 4.0,
+  "kv": 0.0,
+  "forcerange": 1.0,
+  "damping": 0.08,
+  "frictionloss": 0.0
+ },
+ "checks": [
+  {
+   "run": "results/phase1/real_v1/20261006-sv1_u0308_b050_work_tip",
+   "step60": {
+    "tool_z_mm_median": 105.45101928710938,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 105.37435150146484,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "run": "results/phase1/real_v1/20261006-sv1_u0308_b050_work_tip_tpu2.7mesh",
+   "step60": {
+    "tool_z_mm_median": 107.27061462402344,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 107.71820068359375,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "run": "results/phase1/real_v1/20261006-sv1_u0308_b050_work_tip_tpu2.7pads1",
+   "step60": {
+    "tool_z_mm_median": 107.68016052246094,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     59.6,
+     39.0,
+     17.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 107.813720703125,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     65.0,
+     39.0,
+     18.0
+    ]
+   }
+  }
+ ]
+}

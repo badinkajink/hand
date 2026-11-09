@@ -1,3 +1,144 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:762a14f0f78bffd3ea0f0f72de06dbaa2e5c6e21d1b594eb278c021373f2ffa4
-size 2896
+{
+  "design": "rv04_mid",
+  "mounts_palm_mm": {
+    "thumb": [
+      -35.0,
+      0.0
+    ],
+    "index": [
+      35.0,
+      40.0
+    ],
+    "middle": [
+      35.0,
+      -40.0
+    ]
+  },
+  "poses": [
+    {
+      "name": "open",
+      "ramp_s": 0.0,
+      "hold_s": 0.0,
+      "joints": {
+        "thumb": {
+          "yaw": 8.746,
+          "mcp": 0.754,
+          "pip": 22.967
+        },
+        "index": {
+          "yaw": -7.017,
+          "mcp": -0.904,
+          "pip": 26.046
+        },
+        "middle": {
+          "yaw": 7.017,
+          "mcp": -0.904,
+          "pip": 26.046
+        }
+      }
+    },
+    {
+      "name": "grip",
+      "ramp_s": 0.5,
+      "hold_s": 0.8,
+      "joints": {
+        "thumb": {
+          "yaw": 8.746,
+          "mcp": 24.916,
+          "pip": 0.074
+        },
+        "index": {
+          "yaw": -7.017,
+          "mcp": 25.017,
+          "pip": 0.131
+        },
+        "middle": {
+          "yaw": 7.017,
+          "mcp": 25.017,
+          "pip": 0.131
+        }
+      }
+    },
+    {
+      "name": "turn_end",
+      "ramp_s": 1.1,
+      "hold_s": 1.6,
+      "joints": {
+        "thumb": {
+          "yaw": -9.722,
+          "mcp": -1.506,
+          "pip": 28.721
+        },
+        "index": {
+          "yaw": -30.071,
+          "mcp": 15.73,
+          "pip": 0.006
+        },
+        "middle": {
+          "yaw": 35.664,
+          "mcp": 8.488,
+          "pip": 28.779
+        }
+      }
+    }
+  ],
+  "meta": {
+    "object": "medium",
+    "scene": "/home/humanoid/Programs/hand/assets/mjcf/experimental/20260829-deploy_envelope/scene_tp0d0150p0d0000p0d0000_in0d0150n0d0150p0d0000_mn0d0150p0d0150p0d0000__medium__bench100py-35__flat15w21T.xml",
+    "source": "scripts/real_v1_export_plan.py",
+    "replay_initial_qpos": [
+      0.0,
+      0.0,
+      0.1,
+      0.7071067811865475,
+      0.7071067811865475,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.10250000000000001,
+      0.0,
+      0.0,
+      0.0,
+      0.15264932839526513,
+      0.013159676269750955,
+      0.4008414713814508,
+      -0.12246105741734138,
+      -0.015772344026115232,
+      0.45458930223229993,
+      0.12246105741734138,
+      -0.015772344026115232,
+      0.45458930223229993
+    ],
+    "replay_base_ctrl": [
+      0.0,
+      0.0,
+      0.10250000000000001,
+      0.0,
+      0.0,
+      0.0,
+      0.15264932839526513,
+      0.434861471684524,
+      0.001283699150165695,
+      -0.12246105741734135,
+      0.4366351377022462,
+      0.0022894697601190286,
+      0.12246105741734133,
+      0.4366351377022462,
+      0.0022894697601190247
+    ],
+    "straddle_mm": 32.0,
+    "thumb_axial_mm": 10.0,
+    "squeeze_mm": 10.0,
+    "grip_depth_mm": 65.0,
+    "axis_k": 0.45,
+    "angle_deg": -80.0,
+    "turn_steps": 550,
+    "budget_rad": 0.5,
+    "pad_width_mm": 21.1,
+    "flat_pads": true,
+    "bench_height_mm": 100.0,
+    "post_y_mm": -35.0,
+    "palm_lift_mm": 0.0
+  }
+}

@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a44b3f35db164d700170028b5ebcf959fc4760affa99907874b04be5057aeea1
-size 144
+{"held": true, "ramp_three_pads_max_deg": 93.45, "w_rmse_ratio": 1.516, "gap_mm": 3.015, "score": 1.0, "cpu": 1.0, "frames": 195, "plant": null}

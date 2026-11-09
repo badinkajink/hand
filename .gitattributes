@@ -6,13 +6,12 @@ docs/**/*.png filter=lfs diff=lfs merge=lfs -text
 docs/**/*.jpg filter=lfs diff=lfs merge=lfs -text
 docs/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
 docs/**/*.pdf filter=lfs diff=lfs merge=lfs -text
-docs/**/*.npz filter=lfs diff=lfs merge=lfs -text
-docs/**/*.npy filter=lfs diff=lfs merge=lfs -text
+# Data files (json, jsonl, csv, npz, npy) are ordinary git files from 2026-11-09 (owner: "use LFS for only truly
+# enduring, necessary large artifacts that cannot be normal git objects"); one over 2 MB stays out of git (pre-commit
+# hook of scripts/docs/lfs_lean.py) and moves by rsync. Data files committed before stay LFS pointers until rewritten.
+docs/**/texsvg_cache.json filter=lfs diff=lfs merge=lfs -text
 docs/**/*.zip filter=lfs diff=lfs merge=lfs -text
 docs/**/*.3mf filter=lfs diff=lfs merge=lfs -text
-docs/**/*.jsonl filter=lfs diff=lfs merge=lfs -text
-docs/**/*.csv filter=lfs diff=lfs merge=lfs -text
-docs/**/*.json filter=lfs diff=lfs merge=lfs -text
 docs/experiments/**/*.html filter=lfs diff=lfs merge=lfs -text
 docs/experiments/20260906-turn_elev/ur5 filter=lfs diff=lfs merge=lfs -text
 docs/experiments/20261009-contact_overview/20261009-sphere_pad_contact_model.html !text -filter -merge -diff

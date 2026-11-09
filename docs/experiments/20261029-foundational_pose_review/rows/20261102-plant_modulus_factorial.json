@@ -1,3 +1,1093 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f3f85506edc4f9109df74edd6dadab5f2582d98ad0d69f55ad1e434446bf2e01
-size 18655
+{
+ "set": "factorial",
+ "grids": {
+  "work plant, 10 MPa": "grid2dff_v4b",
+  "work plant, 2.5 MPa": "grid2dff_v4b_w25",
+  "SCS0009, 10 MPa": "grid2dff_v4b_svE10",
+  "SCS0009, 2.5 MPa": "grid2dff_v4b_sv25"
+ },
+ "pairs": {
+  "twist_d40|work plant, 10 MPa|work plant, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.971,
+   "top_tenth_kept": 0.769,
+   "best_a": {
+    "call": 357,
+    "xy": [
+     110,
+     85
+    ],
+    "on_a": 1.0,
+    "on_b": 0.919
+   },
+   "best_b": {
+    "call": 396,
+    "xy": [
+     115,
+     155
+    ],
+    "on_b": 0.995,
+    "on_a": 0.517
+   },
+   "same_best_grasp": 0.786,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.469,
+   "median_b": 0.48,
+   "above_half_a": 0.463,
+   "above_half_b": 0.469
+  },
+  "twist_d40|work plant, 10 MPa|SCS0009, 10 MPa": {
+   "layouts": 527,
+   "spearman": 0.516,
+   "top_tenth_kept": 0.327,
+   "best_a": {
+    "call": 357,
+    "xy": [
+     110,
+     85
+    ],
+    "on_a": 1.0,
+    "on_b": 0.964
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 0.856
+   },
+   "same_best_grasp": 0.207,
+   "median_loss_keeping_a_grasp_on_b": 0.076,
+   "median_a": 0.469,
+   "median_b": 0.311,
+   "above_half_a": 0.463,
+   "above_half_b": 0.294
+  },
+  "twist_d40|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.588,
+   "top_tenth_kept": 0.404,
+   "best_a": {
+    "call": 357,
+    "xy": [
+     110,
+     85
+    ],
+    "on_a": 1.0,
+    "on_b": 0.911
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 0.856
+   },
+   "same_best_grasp": 0.237,
+   "median_loss_keeping_a_grasp_on_b": 0.104,
+   "median_a": 0.469,
+   "median_b": 0.361,
+   "above_half_a": 0.463,
+   "above_half_b": 0.324
+  },
+  "twist_d40|work plant, 2.5 MPa|SCS0009, 10 MPa": {
+   "layouts": 527,
+   "spearman": 0.483,
+   "top_tenth_kept": 0.308,
+   "best_a": {
+    "call": 396,
+    "xy": [
+     115,
+     155
+    ],
+    "on_a": 0.995,
+    "on_b": 0.0
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 0.838
+   },
+   "same_best_grasp": 0.218,
+   "median_loss_keeping_a_grasp_on_b": 0.069,
+   "median_a": 0.48,
+   "median_b": 0.311,
+   "above_half_a": 0.469,
+   "above_half_b": 0.294
+  },
+  "twist_d40|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.571,
+   "top_tenth_kept": 0.385,
+   "best_a": {
+    "call": 396,
+    "xy": [
+     115,
+     155
+    ],
+    "on_a": 0.995,
+    "on_b": 0.272
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 0.838
+   },
+   "same_best_grasp": 0.243,
+   "median_loss_keeping_a_grasp_on_b": 0.104,
+   "median_a": 0.48,
+   "median_b": 0.361,
+   "above_half_a": 0.469,
+   "above_half_b": 0.324
+  },
+  "twist_d40|SCS0009, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.857,
+   "top_tenth_kept": 0.654,
+   "best_a": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_a": 1.0,
+    "on_b": 1.0
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 1.0
+   },
+   "same_best_grasp": 0.484,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.311,
+   "median_b": 0.361,
+   "above_half_a": 0.294,
+   "above_half_b": 0.324
+  },
+  "roll_d40|work plant, 10 MPa|work plant, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.971,
+   "top_tenth_kept": 0.904,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.675,
+    "on_b": 0.668
+   },
+   "best_b": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_b": 0.668,
+    "on_a": 0.675
+   },
+   "same_best_grasp": 0.689,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.493,
+   "median_b": 0.494,
+   "above_half_a": 0.463,
+   "above_half_b": 0.452
+  },
+  "roll_d40|work plant, 10 MPa|SCS0009, 10 MPa": {
+   "layouts": 527,
+   "spearman": 0.566,
+   "top_tenth_kept": 0.192,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.675,
+    "on_b": 0.464
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.648,
+    "on_a": 0.481
+   },
+   "same_best_grasp": 0.144,
+   "median_loss_keeping_a_grasp_on_b": 0.075,
+   "median_a": 0.493,
+   "median_b": 0.464,
+   "above_half_a": 0.463,
+   "above_half_b": 0.277
+  },
+  "roll_d40|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.619,
+   "top_tenth_kept": 0.096,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.675,
+    "on_b": 0.466
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.654,
+    "on_a": 0.481
+   },
+   "same_best_grasp": 0.154,
+   "median_loss_keeping_a_grasp_on_b": 0.072,
+   "median_a": 0.493,
+   "median_b": 0.471,
+   "above_half_a": 0.463,
+   "above_half_b": 0.304
+  },
+  "roll_d40|work plant, 2.5 MPa|SCS0009, 10 MPa": {
+   "layouts": 527,
+   "spearman": 0.552,
+   "top_tenth_kept": 0.192,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.668,
+    "on_b": 0.464
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.648,
+    "on_a": 0.481
+   },
+   "same_best_grasp": 0.152,
+   "median_loss_keeping_a_grasp_on_b": 0.07,
+   "median_a": 0.494,
+   "median_b": 0.464,
+   "above_half_a": 0.452,
+   "above_half_b": 0.277
+  },
+  "roll_d40|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.6,
+   "top_tenth_kept": 0.115,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.668,
+    "on_b": 0.466
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.654,
+    "on_a": 0.481
+   },
+   "same_best_grasp": 0.169,
+   "median_loss_keeping_a_grasp_on_b": 0.063,
+   "median_a": 0.494,
+   "median_b": 0.471,
+   "above_half_a": 0.452,
+   "above_half_b": 0.304
+  },
+  "roll_d40|SCS0009, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.889,
+   "top_tenth_kept": 0.692,
+   "best_a": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_a": 0.648,
+    "on_b": 0.654
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.654,
+    "on_a": 0.648
+   },
+   "same_best_grasp": 0.455,
+   "median_loss_keeping_a_grasp_on_b": 0.003,
+   "median_a": 0.464,
+   "median_b": 0.471,
+   "above_half_a": 0.277,
+   "above_half_b": 0.304
+  },
+  "pinpush_d25|work plant, 10 MPa|work plant, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.87,
+   "top_tenth_kept": 0.791,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.91,
+    "on_b": 0.898
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.898,
+    "on_a": 0.91
+   },
+   "same_best_grasp": 0.487,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.733,
+   "median_b": 0.731,
+   "above_half_a": 0.876,
+   "above_half_b": 0.906
+  },
+  "pinpush_d25|work plant, 10 MPa|SCS0009, 10 MPa": {
+   "layouts": 437,
+   "spearman": 0.36,
+   "top_tenth_kept": 0.256,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.91,
+    "on_b": 0.881
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.881,
+    "on_a": 0.91
+   },
+   "same_best_grasp": 0.108,
+   "median_loss_keeping_a_grasp_on_b": 0.138,
+   "median_a": 0.733,
+   "median_b": 0.425,
+   "above_half_a": 0.876,
+   "above_half_b": 0.384
+  },
+  "pinpush_d25|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.408,
+   "top_tenth_kept": 0.186,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.91,
+    "on_b": 0.744
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.744,
+    "on_a": 0.91
+   },
+   "same_best_grasp": 0.117,
+   "median_loss_keeping_a_grasp_on_b": 0.155,
+   "median_a": 0.733,
+   "median_b": 0.502,
+   "above_half_a": 0.876,
+   "above_half_b": 0.503
+  },
+  "pinpush_d25|work plant, 2.5 MPa|SCS0009, 10 MPa": {
+   "layouts": 437,
+   "spearman": 0.299,
+   "top_tenth_kept": 0.256,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.898,
+    "on_b": 0.881
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.881,
+    "on_a": 0.898
+   },
+   "same_best_grasp": 0.089,
+   "median_loss_keeping_a_grasp_on_b": 0.15,
+   "median_a": 0.731,
+   "median_b": 0.425,
+   "above_half_a": 0.906,
+   "above_half_b": 0.384
+  },
+  "pinpush_d25|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.363,
+   "top_tenth_kept": 0.233,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.898,
+    "on_b": 0.744
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.744,
+    "on_a": 0.898
+   },
+   "same_best_grasp": 0.096,
+   "median_loss_keeping_a_grasp_on_b": 0.157,
+   "median_a": 0.731,
+   "median_b": 0.502,
+   "above_half_a": 0.906,
+   "above_half_b": 0.503
+  },
+  "pinpush_d25|SCS0009, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.895,
+   "top_tenth_kept": 0.674,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.881,
+    "on_b": 0.744
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.744,
+    "on_a": 0.881
+   },
+   "same_best_grasp": 0.437,
+   "median_loss_keeping_a_grasp_on_b": 0.004,
+   "median_a": 0.425,
+   "median_b": 0.502,
+   "above_half_a": 0.384,
+   "above_half_b": 0.503
+  },
+  "press_d25|work plant, 10 MPa|work plant, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": 0.864,
+   "top_tenth_kept": 0.556,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.917,
+    "on_b": 0.862
+   },
+   "best_b": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_b": 0.862,
+    "on_a": 0.917
+   },
+   "same_best_grasp": 0.626,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.751,
+   "median_b": 0.717,
+   "above_half_a": 0.835,
+   "above_half_b": 0.854
+  },
+  "press_d25|work plant, 10 MPa|SCS0009, 10 MPa": {
+   "layouts": 369,
+   "spearman": -0.3,
+   "top_tenth_kept": 0.0,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.917,
+    "on_b": 0.29
+   },
+   "best_b": {
+    "call": 228,
+    "xy": [
+     85,
+     65
+    ],
+    "on_b": 0.783,
+    "on_a": 0.729
+   },
+   "same_best_grasp": 0.114,
+   "median_loss_keeping_a_grasp_on_b": 0.141,
+   "median_a": 0.751,
+   "median_b": 0.341,
+   "above_half_a": 0.835,
+   "above_half_b": 0.241
+  },
+  "press_d25|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": -0.099,
+   "top_tenth_kept": 0.056,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.917,
+    "on_b": 0.292
+   },
+   "best_b": {
+    "call": 170,
+    "xy": [
+     70,
+     150
+    ],
+    "on_b": 0.816,
+    "on_a": 0.808
+   },
+   "same_best_grasp": 0.141,
+   "median_loss_keeping_a_grasp_on_b": 0.131,
+   "median_a": 0.751,
+   "median_b": 0.419,
+   "above_half_a": 0.835,
+   "above_half_b": 0.287
+  },
+  "press_d25|work plant, 2.5 MPa|SCS0009, 10 MPa": {
+   "layouts": 369,
+   "spearman": -0.356,
+   "top_tenth_kept": 0.0,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.862,
+    "on_b": 0.29
+   },
+   "best_b": {
+    "call": 228,
+    "xy": [
+     85,
+     65
+    ],
+    "on_b": 0.783,
+    "on_a": 0.701
+   },
+   "same_best_grasp": 0.114,
+   "median_loss_keeping_a_grasp_on_b": 0.141,
+   "median_a": 0.717,
+   "median_b": 0.341,
+   "above_half_a": 0.854,
+   "above_half_b": 0.241
+  },
+  "press_d25|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": -0.159,
+   "top_tenth_kept": 0.028,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.862,
+    "on_b": 0.292
+   },
+   "best_b": {
+    "call": 170,
+    "xy": [
+     70,
+     150
+    ],
+    "on_b": 0.816,
+    "on_a": 0.778
+   },
+   "same_best_grasp": 0.136,
+   "median_loss_keeping_a_grasp_on_b": 0.134,
+   "median_a": 0.717,
+   "median_b": 0.419,
+   "above_half_a": 0.854,
+   "above_half_b": 0.287
+  },
+  "press_d25|SCS0009, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": 0.77,
+   "top_tenth_kept": 0.611,
+   "best_a": {
+    "call": 228,
+    "xy": [
+     85,
+     65
+    ],
+    "on_a": 0.783,
+    "on_b": 0.766
+   },
+   "best_b": {
+    "call": 170,
+    "xy": [
+     70,
+     150
+    ],
+    "on_b": 0.816,
+    "on_a": 0.43
+   },
+   "same_best_grasp": 0.423,
+   "median_loss_keeping_a_grasp_on_b": 0.009,
+   "median_a": 0.341,
+   "median_b": 0.419,
+   "above_half_a": 0.241,
+   "above_half_b": 0.287
+  }
+ },
+ "robust": {
+  "twist_d40|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "grids": [
+    "work plant, 2.5 MPa",
+    "SCS0009, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "work plant, 2.5 MPa": {
+     "xy": [
+      115,
+      155
+     ],
+     "score": 0.995
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      100,
+      70
+     ],
+     "score": 1.0
+    }
+   },
+   "one_layout": {
+    "xy": [
+     110,
+     110
+    ],
+    "grasp": {
+     "work plant, 2.5 MPa": 10,
+     "SCS0009, 2.5 MPa": 10
+    },
+    "score": {
+     "work plant, 2.5 MPa": 0.948,
+     "SCS0009, 2.5 MPa": 1.0
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     110,
+     110
+    ],
+    "grasp": 10,
+    "score": {
+     "work plant, 2.5 MPa": 0.948,
+     "SCS0009, 2.5 MPa": 1.0
+    }
+   }
+  },
+  "twist_d40|SCS0009, 2.5 MPa|SCS0009, 10 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "SCS0009, 10 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      100,
+      70
+     ],
+     "score": 1.0
+    },
+    "SCS0009, 10 MPa": {
+     "xy": [
+      100,
+      70
+     ],
+     "score": 1.0
+    }
+   },
+   "one_layout": {
+    "xy": [
+     100,
+     70
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 4,
+     "SCS0009, 10 MPa": 4
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 1.0,
+     "SCS0009, 10 MPa": 1.0
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     100,
+     70
+    ],
+    "grasp": 4,
+    "score": {
+     "SCS0009, 2.5 MPa": 1.0,
+     "SCS0009, 10 MPa": 1.0
+    }
+   }
+  },
+  "roll_d40|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "grids": [
+    "work plant, 2.5 MPa",
+    "SCS0009, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "work plant, 2.5 MPa": {
+     "xy": [
+      100,
+      110
+     ],
+     "score": 0.668
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      85,
+      170
+     ],
+     "score": 0.654
+    }
+   },
+   "one_layout": {
+    "xy": [
+     90,
+     130
+    ],
+    "grasp": {
+     "work plant, 2.5 MPa": 12,
+     "SCS0009, 2.5 MPa": 12
+    },
+    "score": {
+     "work plant, 2.5 MPa": 0.649,
+     "SCS0009, 2.5 MPa": 0.6
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     90,
+     130
+    ],
+    "grasp": 12,
+    "score": {
+     "work plant, 2.5 MPa": 0.649,
+     "SCS0009, 2.5 MPa": 0.6
+    }
+   }
+  },
+  "roll_d40|SCS0009, 2.5 MPa|SCS0009, 10 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "SCS0009, 10 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      85,
+      170
+     ],
+     "score": 0.654
+    },
+    "SCS0009, 10 MPa": {
+     "xy": [
+      85,
+      170
+     ],
+     "score": 0.648
+    }
+   },
+   "one_layout": {
+    "xy": [
+     85,
+     170
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 12,
+     "SCS0009, 10 MPa": 12
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.654,
+     "SCS0009, 10 MPa": 0.648
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     85,
+     170
+    ],
+    "grasp": 12,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.654,
+     "SCS0009, 10 MPa": 0.648
+    }
+   }
+  },
+  "pinpush_d25|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "grids": [
+    "work plant, 2.5 MPa",
+    "SCS0009, 2.5 MPa"
+   ],
+   "layouts": 437,
+   "own": {
+    "work plant, 2.5 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.898
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.744
+    }
+   },
+   "one_layout": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": {
+     "work plant, 2.5 MPa": 12,
+     "SCS0009, 2.5 MPa": 12
+    },
+    "score": {
+     "work plant, 2.5 MPa": 0.898,
+     "SCS0009, 2.5 MPa": 0.744
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": 12,
+    "score": {
+     "work plant, 2.5 MPa": 0.898,
+     "SCS0009, 2.5 MPa": 0.744
+    }
+   }
+  },
+  "pinpush_d25|SCS0009, 2.5 MPa|SCS0009, 10 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "SCS0009, 10 MPa"
+   ],
+   "layouts": 437,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.744
+    },
+    "SCS0009, 10 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.881
+    }
+   },
+   "one_layout": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 12,
+     "SCS0009, 10 MPa": 12
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.744,
+     "SCS0009, 10 MPa": 0.881
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": 12,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.744,
+     "SCS0009, 10 MPa": 0.881
+    }
+   }
+  },
+  "press_d25|work plant, 2.5 MPa|SCS0009, 2.5 MPa": {
+   "grids": [
+    "work plant, 2.5 MPa",
+    "SCS0009, 2.5 MPa"
+   ],
+   "layouts": 369,
+   "own": {
+    "work plant, 2.5 MPa": {
+     "xy": [
+      95,
+      155
+     ],
+     "score": 0.862
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      70,
+      150
+     ],
+     "score": 0.816
+    }
+   },
+   "one_layout": {
+    "xy": [
+     70,
+     150
+    ],
+    "grasp": {
+     "work plant, 2.5 MPa": 14,
+     "SCS0009, 2.5 MPa": 5
+    },
+    "score": {
+     "work plant, 2.5 MPa": 0.778,
+     "SCS0009, 2.5 MPa": 0.816
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     70,
+     150
+    ],
+    "grasp": 5,
+    "score": {
+     "work plant, 2.5 MPa": 0.775,
+     "SCS0009, 2.5 MPa": 0.816
+    }
+   }
+  },
+  "press_d25|SCS0009, 2.5 MPa|SCS0009, 10 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "SCS0009, 10 MPa"
+   ],
+   "layouts": 369,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      70,
+      150
+     ],
+     "score": 0.816
+    },
+    "SCS0009, 10 MPa": {
+     "xy": [
+      85,
+      65
+     ],
+     "score": 0.783
+    }
+   },
+   "one_layout": {
+    "xy": [
+     85,
+     65
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 14,
+     "SCS0009, 10 MPa": 13
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.766,
+     "SCS0009, 10 MPa": 0.783
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     70,
+     65
+    ],
+    "grasp": 0,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.74,
+     "SCS0009, 10 MPa": 0.749
+    }
+   }
+  }
+ }
+}

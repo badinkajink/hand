@@ -1,3 +1,1346 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:19bbd26e8550756a78fd149f5e3985ed1417464ed9fbdd83b37ffd8b1f0b6204
-size 62813
+{
+ "title": "Run plan for the finite-element calibration of Drake's pressure field and the 1 mm pads on the 85A printed fingertips",
+ "date": "2026-10-18",
+ "branch": "calibration (workflow of 2026-10-18; planning stage)",
+ "paths": {
+  "study": "docs/experiments/20261018-fe_contact_calibration/",
+  "scripts": "scripts/fe_contact_calibration*.py (this stage: scripts/fe_contact_calibration_prior.py)",
+  "logs": "logs/20261018-fe_contact_calibration/ (gitignored scene caches and run logs)",
+  "prior_rows": [
+   "prior/fits95.json",
+   "prior/patch95.json",
+   "prior/replays.json",
+   "prior/bed85.json"
+  ]
+ },
+ "owner_request_2026_10_18": [
+  "why couldn't we just calibrate drake's field to the FEM? isn't that the whole point of doing the FEM? as long as the model is internally consistent",
+  "i still want to try the quarter ellipsoid / capsule prints, if they can be modeled well"
+ ],
+ "answer": "Drake's field can be calibrated to the finite elements, and the readiness study did it for the block, but one modulus reproduces one load case, and at the modulus that gets the approach right the curved tips' contact patch comes out about twice the printed tip's. On 2026-10-16 the 85A block's modulus (7.55 MPa) was fitted to its finite elements under the 25 mm rod over 0.5-3 N (worst error 24 %; bed approach 66 µm against 61 µm at 1 N). The capsule and half-ellipsoids never had 85A finite elements: their 13.4-15.0 MPa are the block's value times a 95A ratio, and the 11/22 half-ellipsoid had no finite elements at all.\n\nOne modulus falls short because Drake's pressure at a point depends only on the overlap there, while the printed tip's solid skin spreads a load over millimetres of gyroid. In the 95A rows of 2026-10-15 the finite-element approach grows as F^0.78-0.82 and the rod sinks 0.75-0.77 as far as a 2 mm-radius sphere; Drake gives F^0.50-0.52 and 0.41-0.47. A modulus fitted under the rod over 0.5-3 N leaves 20-29 % RMS approach error there and 82-124 % under the sphere, and Drake's patch at 1 N is 1.9-2.0 times the finite elements' (RMS radius 0.92 against 0.47 mm on the capsule), so the twist arm that resists the turn is about doubled. On the curved tips a series spring of 11-14 N/mm in front of a stiff local field (230-500 MPa) fits the approach within 5-7 % RMS on both indenters and the patch within 7-14 %.\n\nThe normal stiffness itself barely moves the tasks: the servo plant is 3.4-4.7 mm/N at the fingertip against the tip's 0.05-0.15 mm/N, and a 32 % modulus change moved the block's D1-D8 replays by 0.64 deg against a 3.6 deg spread between start placements. Internal consistency is a separate property. Pads and Drake agree within 1.4 deg on the block and 2.8 deg on the 16/32 half-ellipsoid. The 46 and 82 deg on the capsule and the 11/22 come from the block's plans run on tips they were not designed for: the runs part during the turn, and Drake keeps the tool on 2 and 4 of 8 hands where every pad seed drops it, with approach equal within 3 % but pad creep of 0.7-1.4 deg/s against Drake's 0.005 deg/s.\n\nThe run stage computes 85A finite elements of the four printed tips, tests one modulus, a modulus fitted to the twist arm and the spring against them, and replays per-tip iCEM and D1-D8 plans in both simulators; a tip counts as modelled well when its approach is within 25 % RMS, its twist arm within 0.70-1.15 of the finite elements' and the two simulators agree on its iCEM replays as they do on the block.",
+ "terms": {
+  "approach_um": "travel of the indenter along the palmar normal from first touch of the tip's surface at a given normal load, in um; finite-element and simulator values are model values, bench values pending",
+  "force_exponent": "n in approach ~ F^n between 0.5 and 3 N, n = ln(a(3 N) / a(0.5 N)) / ln 6; a linear spring gives 1, a local (Winkler) law 0.5 under a point contact and 2/3 under a line contact",
+  "rod_over_sphere": "approach under the 12.5 mm-radius rod (the 25 mm bench and bed tool) over approach under the 2 mm-radius sphere at the apex, at 1 N",
+  "r_rms_mm": "pressure-weighted RMS distance of the contact pressure from its centre in the face plane, mm",
+  "r_bar_mm": "twist arm: pressure-weighted mean distance from the pressure centre, mm; the full-slip torque about the contact normal is mu N r_bar",
+  "onset_arm_mm": "a simulator's twist-onset torque on the bed (case T2, 25 mm tool) over mu N, mm",
+  "creep_deg_s": "steady twist rate of the tool under a held torque below the onset torque (bed T2), deg/s",
+  "rms_angle_deg": "RMS over a run (20 ms samples) of the angle between two runs' tool orientations, deg",
+  "same_branch": "both runs keep the tool (held) and end within 15 deg of each other",
+  "seed_spread_deg": "median rms_angle_deg between runs of one model from different start placements (seeds 1 and 2 against seed 0), over same-branch pairs",
+  "held": "the replay scripts' held_end: the tool less than 20 mm below its start and at least two fingers loaded at the end of the run",
+  "E": "Drake: hydroelastic modulus of the tip's compliant convex hull, pressure p = E (1 - g), g the gauge about the hull's volume centroid (0 on the surface, 1 at the centroid). Pads: the modulus in K_i = E a_i / h_i (builder v2: a_i the pad's area share, h_i its depth below the volume centroid)",
+  "k_s, E_loc": "series spring between the DIP link and the tip's contact geometry along the palmar normal (N/mm) and the local modulus of the field or pads behind it; approach = F / k_s + local approach at E_loc",
+  "U, M1, M2, M3": "calibration variants (run.calibrations)",
+  "numerics": "planner: MuJoCo 1 ms, impratio 100, Newton 100 iterations; RL trainer: 2 ms, impratio 10, 10 iterations; Drake 1.57: SAP, 1 ms, relaxation time 0.01 s",
+  "task cylinders": "cylinders of radius 5, 8 and 12.5 mm (the 10, 16 and 25 mm cells and the bench tool)"
+ },
+ "prior": {
+  "calibrated_before": [
+   {
+    "date": "2026-10-09/10",
+    "study": "docs/experiments/20261009-tpu_tip_fem",
+    "what": "one pad modulus fitted to finite elements of the printed 95A 20 % block under the 25 mm rod, 0.5-3 N",
+    "result": "pads missed the finite-element approach by 20-28 % over 0.5-3 N (finite-element force ~ approach^1.07, pads ^1.5) and the twist arm by 7-23 % (short)",
+    "adopted": "no; the pipeline kept 10 MPa"
+   },
+   {
+    "date": "2026-10-13",
+    "study": "docs/experiments/20261013-magnet_layouts",
+    "what": "face compliance of the 95A block",
+    "result": "87-95 um/N under a 0.6 mm patch at 15 face points against 38.5 um/N under the 25 mm rod: the solid skin spreads a load over millimetres of core",
+    "adopted": "-"
+   },
+   {
+    "date": "2026-10-15",
+    "study": "docs/experiments/20261015-curved_tips/stiffness",
+    "what": "finite elements of the 95A 20 % block, capsule r 8.5 mm, half-ellipsoid 16/32 and quarter-ellipsoid 11/22 (one 4.76 x 1.59 mm magnet) under a 2 mm-radius sphere at 7 palm points and the 25 mm rod at z 0 and +-4 mm, 0.5/1/3 N; Drake, pads v1 and v2 at 10 MPa; pads with a per-pad map from the finite-element patch stiffness",
+    "result": "one modulus per tip, scaled to the sphere at the apex at 1 N, leaves 23-30 % RMS approach error (Drake) and 27-38 % (pads) over the sphere positions and 34-61 % over the rod positions; the per-pad map is no better; the modulus that fits under the rod is 15-27 MPa (Drake) and 13-31 MPa (pads v2)",
+    "adopted": "no"
+   },
+   {
+    "date": "2026-10-16",
+    "study": "docs/experiments/20261016-sim2real_fingertip_readiness",
+    "what": "85A finite elements (solid 12 MPa, the NinjaFlex 85A value standing in for Siraya's unmeasured one; 30 and 50 % gyroid) of the block with four 3 x 2 mm magnets under the 25 mm rod at 0.5/1/3 N; E* = log-RMS fit of the law p = E* d / 8.5 mm over the three loads",
+    "result": "block 30 %: E* 7.55 MPa, worst error 24 %; finite elements 31.94/60.76/162.25 um at 0.5/1/3 N and twist arm 3.37 mm at 1 N, against 37.87/66.26/131.53 um (pads v2) and 42.41/66.24/134.9 um (Drake) on the bed, onset arms 2.58 and 2.54 mm. Capsule and half-ellipsoids: no 85A finite elements; E = 7.55 MPa times the 95A rod-fitted ratio to the block (capsule 1.78, 16/32 1.99; the 11/22 half-ellipsoid 1.88, the mean of the other two, as it had no finite elements at all) = 13.4, 15.0 and 14.2 MPa",
+    "adopted": "yes: the readiness scenes, bed, cells and replays (calibration U below)"
+   }
+  ],
+  "why_one_modulus_falls_short": {
+   "mechanism": "Drake's field and the pads are local laws: the pressure at a point depends only on the overlap there, so under a curved contact the patch area and the force grow with the approach as on a Winkler foundation (approach ~ F^0.5) and a larger indenter sinks much less at the same load. The printed tip is a shell of solid TPU (two 0.45 mm perimeters, four 0.2 mm skins) over a soft gyroid core: the skin spreads any load over millimetres, so most of the approach is the structure's, nearly linear in force and nearly independent of the indenter.",
+   "rows_95A": "finite elements: approach ~ F^0.78-0.82 on the curved tips under both indenters (block 0.82 under the sphere, 0.93 under the rod); rod_over_sphere 0.75-0.77 (block 0.28). Drake: F^0.51-0.52 under the sphere and F^0.50 under the rod on the curved tips (block under the rod 0.65, a line contact), rod_over_sphere 0.41-0.47 (block 0.15); pads v2: F^0.59-0.62 under the sphere and 0.47-0.48 under the rod, rod_over_sphere 0.47-0.57 (block 0.17)",
+   "one_modulus_per_tip_95A": [
+    {
+     "tip": "tcd_rs3_re3",
+     "fe_exponent_sphere_apex": 0.82,
+     "fe_exponent_rod_z0": 0.93,
+     "fe_rod_over_sphere_1N": 0.28,
+     "drake": {
+      "rod_fit_E_MPa": 14.1,
+      "rod_rms_pct": 20.4,
+      "sphere_rms_pct": 124.1,
+      "sphere_mean_pct": 112.9,
+      "fit_at_1N_E_MPa": 15.3,
+      "fit_at_1N_err_pct": {
+       "0.5": 21.7,
+       "1": -0.0,
+       "3": -26.2
+      },
+      "all_probes_fit_E_MPa": 32.3,
+      "all_probes_rod_rms_pct": 42.3,
+      "all_probes_sphere_rms_pct": 52.1,
+      "spring_k_s_N_per_mm": 29.4,
+      "spring_E_loc_MPa": 105.0,
+      "spring_rod_rms_pct": 6.3,
+      "spring_sphere_rms_pct": 17.1,
+      "spring_max_pct": 42.7
+     },
+     "v2": {
+      "rod_fit_E_MPa": 13.1,
+      "rod_rms_pct": 16.4,
+      "sphere_rms_pct": 91.0,
+      "sphere_mean_pct": 83.5,
+      "fit_at_1N_E_MPa": 13.4,
+      "fit_at_1N_err_pct": {
+       "0.5": 21.3,
+       "1": 0.0,
+       "3": -19.3
+      },
+      "all_probes_fit_E_MPa": 23.4,
+      "all_probes_rod_rms_pct": 33.0,
+      "all_probes_sphere_rms_pct": 49.5,
+      "spring_k_s_N_per_mm": 35.7,
+      "spring_E_loc_MPa": 65.0,
+      "spring_rod_rms_pct": 12.6,
+      "spring_sphere_rms_pct": 31.1,
+      "spring_max_pct": 76.9
+     }
+    },
+    {
+     "tip": "tcd_cap8.5",
+     "fe_exponent_sphere_apex": 0.82,
+     "fe_exponent_rod_z0": 0.82,
+     "fe_rod_over_sphere_1N": 0.76,
+     "drake": {
+      "rod_fit_E_MPa": 21.5,
+      "rod_rms_pct": 28.8,
+      "sphere_rms_pct": 107.1,
+      "sphere_mean_pct": 95.5,
+      "fit_at_1N_E_MPa": 19.3,
+      "fit_at_1N_err_pct": {
+       "0.5": 27.3,
+       "1": -0.0,
+       "3": -28.2
+      },
+      "all_probes_fit_E_MPa": 52.3,
+      "all_probes_rod_rms_pct": 37.9,
+      "all_probes_sphere_rms_pct": 39.5,
+      "spring_k_s_N_per_mm": 10.8,
+      "spring_E_loc_MPa": 501.0,
+      "spring_rod_rms_pct": 6.6,
+      "spring_sphere_rms_pct": 6.5,
+      "spring_max_pct": 13.7
+     },
+     "v2": {
+      "rod_fit_E_MPa": 21.2,
+      "rod_rms_pct": 28.0,
+      "sphere_rms_pct": 78.5,
+      "sphere_mean_pct": 68.2,
+      "fit_at_1N_E_MPa": 23.8,
+      "fit_at_1N_err_pct": {
+       "0.5": 19.0,
+       "1": -0.0,
+       "3": -31.7
+      },
+      "all_probes_fit_E_MPa": 38.2,
+      "all_probes_rod_rms_pct": 32.6,
+      "all_probes_sphere_rms_pct": 41.0,
+      "spring_k_s_N_per_mm": 12.8,
+      "spring_E_loc_MPa": 492.0,
+      "spring_rod_rms_pct": 7.3,
+      "spring_sphere_rms_pct": 30.1,
+      "spring_max_pct": 71.0
+     }
+    },
+    {
+     "tip": "tcd_ell7.4x8.5x16x32",
+     "fe_exponent_sphere_apex": 0.81,
+     "fe_exponent_rod_z0": 0.82,
+     "fe_rod_over_sphere_1N": 0.77,
+     "drake": {
+      "rod_fit_E_MPa": 26.6,
+      "rod_rms_pct": 24.2,
+      "sphere_rms_pct": 94.5,
+      "sphere_mean_pct": 85.4,
+      "fit_at_1N_E_MPa": 27.5,
+      "fit_at_1N_err_pct": {
+       "0.5": 26.9,
+       "1": 0.0,
+       "3": -29.1
+      },
+      "all_probes_fit_E_MPa": 60.6,
+      "all_probes_rod_rms_pct": 35.4,
+      "all_probes_sphere_rms_pct": 34.8,
+      "spring_k_s_N_per_mm": 12.0,
+      "spring_E_loc_MPa": 472.0,
+      "spring_rod_rms_pct": 5.4,
+      "spring_sphere_rms_pct": 5.1,
+      "spring_max_pct": 10.7
+     },
+     "v2": {
+      "rod_fit_E_MPa": 24.5,
+      "rod_rms_pct": 22.6,
+      "sphere_rms_pct": 68.2,
+      "sphere_mean_pct": 59.6,
+      "fit_at_1N_E_MPa": 26.5,
+      "fit_at_1N_err_pct": {
+       "0.5": 16.4,
+       "1": -0.0,
+       "3": -31.4
+      },
+      "all_probes_fit_E_MPa": 42.2,
+      "all_probes_rod_rms_pct": 28.3,
+      "all_probes_sphere_rms_pct": 38.6,
+      "spring_k_s_N_per_mm": 15.2,
+      "spring_E_loc_MPa": 281.0,
+      "spring_rod_rms_pct": 7.7,
+      "spring_sphere_rms_pct": 26.4,
+      "spring_max_pct": 65.1
+     }
+    },
+    {
+     "tip": "tcd_qell7.4x8.5x11x22",
+     "fe_exponent_sphere_apex": 0.78,
+     "fe_exponent_rod_z0": 0.8,
+     "fe_rod_over_sphere_1N": 0.75,
+     "drake": {
+      "rod_fit_E_MPa": 20.2,
+      "rod_rms_pct": 21.8,
+      "sphere_rms_pct": 82.1,
+      "sphere_mean_pct": 73.8,
+      "fit_at_1N_E_MPa": 21.9,
+      "fit_at_1N_err_pct": {
+       "0.5": 24.6,
+       "1": -0.0,
+       "3": -26.7
+      },
+      "all_probes_fit_E_MPa": 42.3,
+      "all_probes_rod_rms_pct": 32.6,
+      "all_probes_sphere_rms_pct": 31.6,
+      "spring_k_s_N_per_mm": 14.4,
+      "spring_E_loc_MPa": 228.0,
+      "spring_rod_rms_pct": 5.2,
+      "spring_sphere_rms_pct": 5.7,
+      "spring_max_pct": 10.5
+     },
+     "v2": {
+      "rod_fit_E_MPa": 30.0,
+      "rod_rms_pct": 18.8,
+      "sphere_rms_pct": 55.9,
+      "sphere_mean_pct": 46.2,
+      "fit_at_1N_E_MPa": 31.2,
+      "fit_at_1N_err_pct": {
+       "0.5": 18.0,
+       "1": 0.0,
+       "3": -23.4
+      },
+      "all_probes_fit_E_MPa": 46.8,
+      "all_probes_rod_rms_pct": 24.5,
+      "all_probes_sphere_rms_pct": 35.7,
+      "spring_k_s_N_per_mm": 18.1,
+      "spring_E_loc_MPa": 250.0,
+      "spring_rod_rms_pct": 8.3,
+      "spring_sphere_rms_pct": 24.7,
+      "spring_max_pct": 71.9
+     }
+    }
+   ],
+   "one_modulus_reading": "fitted under the rod over 0.5-3 N (three positions): 20-29 % RMS approach error at the rod in Drake (16-28 % pads) and 82-124 % RMS under the 2 mm sphere (pads 56-91 %), the models too compliant there; fitted at 1 N under the rod: 16-27 % too compliant at 0.5 N and 19-32 % too stiff at 3 N; fitted over every probe: 25-42 % at the rod and 32-52 % under the sphere",
+   "patch_under_rod_1N_95A": [
+    {
+     "tip": "tcd_cap8.5",
+     "fe_r_rms_mm": 0.474,
+     "fe_contact_nodes": 23,
+     "drake_rod_fit": {
+      "E_MPa": 19.3,
+      "r_rms_mm": 0.923,
+      "r_bar_mm": 0.851,
+      "over_fe": 1.95
+     },
+     "drake_spring": {
+      "E_loc_MPa": 501.0,
+      "k_s_N_per_mm": 10.8,
+      "approach_um": 117.4,
+      "fe_approach_um": 122.7,
+      "r_rms_mm": 0.41,
+      "over_fe": 0.86
+     },
+     "pads_v2_rod_fit": {
+      "E_MPa": 23.8,
+      "r_rms_mm": 0.808,
+      "pads_in_contact": 8,
+      "over_fe": 1.7
+     }
+    },
+    {
+     "tip": "tcd_ell7.4x8.5x16x32",
+     "fe_r_rms_mm": 0.423,
+     "fe_contact_nodes": 17,
+     "drake_rod_fit": {
+      "E_MPa": 27.5,
+      "r_rms_mm": 0.801,
+      "r_bar_mm": 0.737,
+      "over_fe": 1.89
+     },
+     "drake_spring": {
+      "E_loc_MPa": 472.0,
+      "k_s_N_per_mm": 12.0,
+      "approach_um": 112.8,
+      "fe_approach_um": 117.7,
+      "r_rms_mm": 0.393,
+      "over_fe": 0.93
+     },
+     "pads_v2_rod_fit": {
+      "E_MPa": 26.5,
+      "r_rms_mm": 0.678,
+      "pads_in_contact": 6,
+      "over_fe": 1.6
+     }
+    },
+    {
+     "tip": "tcd_rs3_re3",
+     "fe_r_rms_mm": 3.2,
+     "fe_contact_nodes": 50,
+     "drake_rod_fit": {
+      "E_MPa": 15.3,
+      "r_rms_mm": 2.745,
+      "r_bar_mm": 2.417,
+      "over_fe": 0.86
+     },
+     "drake_spring": {
+      "E_loc_MPa": 105.0,
+      "k_s_N_per_mm": 29.4,
+      "approach_um": 46.3,
+      "fe_approach_um": 43.4,
+      "r_rms_mm": 2.637,
+      "over_fe": 0.82
+     },
+     "pads_v2_rod_fit": {
+      "E_MPa": 13.4,
+      "r_rms_mm": 2.802,
+      "pads_in_contact": 20,
+      "over_fe": 0.88
+     }
+    }
+   ],
+   "patch_reading": "at the modulus that gives the finite-element approach under the rod at 1 N, Drake's patch radius is 1.95x the finite elements' on the capsule and 1.89x on the 16/32 half-ellipsoid, the pads' 1.70x and 1.60x (6-8 pads in contact); on the block 0.86x (Drake) and 0.88x (pads). The twist arm r_bar scales with the patch radius, so the rod-fitted models give the curved tips about twice the print's torsional friction and the block about 0.8 of it",
+   "series_spring_95A": "k_s and E_loc fitted over every probe and force: Drake 5.2-6.6 % RMS at the rod and 5.1-6.5 % under the sphere on the curved tips (k_s 10.8-14.4 N/mm, E_loc 228-501 MPa; max 10.5-13.8 %), block 6.3 and 17.1 % (k_s 29.4 N/mm); pads 7.0-8.4 % at the rod on the curved tips (block 12.6 %) and 24.6-31.7 % under the sphere (1 mm pads under a 2 mm sphere). Drake's patch with the spring: 0.86x (capsule), 0.93x (16/32) and 0.82x (block) the finite elements'"
+  }
+ },
+ "control_relevance": {
+  "servo_chain": {
+   "servo_plant_compliance_mm_per_N": "3.4-4.7 at the fingertip toward the tool (ad-hoc identification of 2026-10-13: kp 0.72 N m/rad, effort limit 0.18 N m)",
+   "tip_compliance_mm_per_N": "0.05 (85A block finite elements, 1 to 3 N) to 0.15 (curved tips)",
+   "effect_of_a_30_pct_tip_stiffness_error": "0.3-1.3 % of the chain's compliance: the grip force under a position-commanded squeeze changes by at most 1.3 % and not at all at the 0.18 N m limit; the tool moves by about 0.3 x 150 um = 45 um per finger"
+  },
+  "modulus_change_on_D1_D8": {
+   "block4_g30|block_e10": {
+    "change": "modulus 7.55 against 10 MPa (+32 %); tip 3.73 against 6.33 g; board against none",
+    "pairs": 24,
+    "held_agree": 24,
+    "both_held_same_branch": 22,
+    "median_rms_angle_same_branch_deg": 0.64,
+    "median_rms_dN_same_branch_N": 0.098,
+    "median_rms_dpos_same_branch_mm": 0.16
+   },
+   "block4_g30|block4_g50": {
+    "change": "modulus 7.55 against 16.4 MPa (x2.17); tip 3.73 against 4.49 g",
+    "pairs": 24,
+    "held_agree": 24,
+    "both_held_same_branch": 21,
+    "median_rms_angle_same_branch_deg": 1.0,
+    "median_rms_dN_same_branch_N": 0.154,
+    "median_rms_dpos_same_branch_mm": 0.51
+   },
+   "cap_g30|cap_g50": {
+    "change": "modulus 13.4 against 29.2 MPa (x2.17)",
+    "pairs": 24,
+    "held_agree": 14,
+    "both_held_same_branch": 4,
+    "median_rms_angle_same_branch_deg": 3.22,
+    "median_rms_dN_same_branch_N": 0.206,
+    "median_rms_dpos_same_branch_mm": 0.84
+   },
+   "ell16_g30|ell16_g50": {
+    "change": "modulus 15.0 against 32.6 MPa (x2.17)",
+    "pairs": 24,
+    "held_agree": 15,
+    "both_held_same_branch": 13,
+    "median_rms_angle_same_branch_deg": 4.75,
+    "median_rms_dN_same_branch_N": 0.27,
+    "median_rms_dpos_same_branch_mm": 1.41
+   }
+  },
+  "pads_seed_spread_D1_D8": {
+   "block4_g30": {
+    "pairs": 16,
+    "same_branch": 14,
+    "median_rms_angle_same_branch_deg": 3.63,
+    "median_rms_angle_all_deg": 3.89
+   },
+   "block4_g50": {
+    "pairs": 16,
+    "same_branch": 16,
+    "median_rms_angle_same_branch_deg": 4.43,
+    "median_rms_angle_all_deg": 4.43
+   },
+   "block_e10": {
+    "pairs": 16,
+    "same_branch": 15,
+    "median_rms_angle_same_branch_deg": 4.06,
+    "median_rms_angle_all_deg": 4.55
+   },
+   "cap_g30": {
+    "pairs": 16,
+    "same_branch": 8,
+    "median_rms_angle_same_branch_deg": 4.94,
+    "median_rms_angle_all_deg": 8.06
+   },
+   "ell11_g30": {
+    "pairs": 16,
+    "same_branch": 4,
+    "median_rms_angle_same_branch_deg": 5.44,
+    "median_rms_angle_all_deg": 79.78
+   },
+   "ell16_g30": {
+    "pairs": 16,
+    "same_branch": 14,
+    "median_rms_angle_same_branch_deg": 4.45,
+    "median_rms_angle_all_deg": 4.67
+   }
+  },
+  "modulus_reading": "on the block's own plans a 32 % modulus change (7.55 against 10 MPa, with 2.6 g more tip and no board) moves the tool by 0.64 deg median RMS (0.10 N per finger, 0.16 mm), a sixth of the pads' start-placement spread of 3.6 deg; a factor 2.17 moves it by 1.0 deg. On the curved tips under the block's plans the factor 2.17 changes the held outcome of 10 (capsule) and 9 (16/32) of 24 runs",
+  "pads_vs_drake_D1_D8_U": {
+   "block4_g30": {
+    "hands": 8,
+    "held_agree": 8,
+    "both_held_same_branch": 8,
+    "median_rms_angle_all_deg": 1.38,
+    "median_rms_angle_same_branch_deg": 1.38,
+    "median_rms_dN_same_branch_N": 0.113,
+    "median_rms_dT_same_branch_N": 0.148,
+    "rms_angle_first_2s_deg_range": [
+     0.25,
+     2.41
+    ],
+    "t_apart_10deg_s_range": [
+     3.06,
+     3.06
+    ],
+    "pads_held_seed0": 8,
+    "drake_held_seed0": 8,
+    "drake_held_where_all_three_pad_seeds_dropped": []
+   },
+   "cap_g30": {
+    "hands": 8,
+    "held_agree": 5,
+    "both_held_same_branch": 4,
+    "median_rms_angle_all_deg": 46.0,
+    "median_rms_angle_same_branch_deg": 3.34,
+    "median_rms_dN_same_branch_N": 0.225,
+    "median_rms_dT_same_branch_N": 0.215,
+    "rms_angle_first_2s_deg_range": [
+     0.35,
+     1.74
+    ],
+    "t_apart_10deg_s_range": [
+     2.36,
+     2.66
+    ],
+    "pads_held_seed0": 4,
+    "drake_held_seed0": 7,
+    "drake_held_where_all_three_pad_seeds_dropped": [
+     "D6",
+     "D8"
+    ]
+   },
+   "ell11_g30": {
+    "hands": 8,
+    "held_agree": 4,
+    "both_held_same_branch": 2,
+    "median_rms_angle_all_deg": 82.16,
+    "median_rms_angle_same_branch_deg": 2.35,
+    "median_rms_dN_same_branch_N": 0.148,
+    "median_rms_dT_same_branch_N": 0.154,
+    "rms_angle_first_2s_deg_range": [
+     0.48,
+     1.53
+    ],
+    "t_apart_10deg_s_range": [
+     2.36,
+     2.7
+    ],
+    "pads_held_seed0": 2,
+    "drake_held_seed0": 6,
+    "drake_held_where_all_three_pad_seeds_dropped": [
+     "D3",
+     "D4",
+     "D5",
+     "D8"
+    ]
+   },
+   "ell16_g30": {
+    "hands": 8,
+    "held_agree": 8,
+    "both_held_same_branch": 7,
+    "median_rms_angle_all_deg": 2.83,
+    "median_rms_angle_same_branch_deg": 2.82,
+    "median_rms_dN_same_branch_N": 0.158,
+    "median_rms_dT_same_branch_N": 0.131,
+    "rms_angle_first_2s_deg_range": [
+     0.34,
+     1.81
+    ],
+    "t_apart_10deg_s_range": [
+     2.36,
+     2.66
+    ],
+    "pads_held_seed0": 8,
+    "drake_held_seed0": 8,
+    "drake_held_where_all_three_pad_seeds_dropped": []
+   }
+  },
+  "disagreement_reading": "pads and Drake agree on the block (1.38 deg median RMS, 8 of 8 kept by both) and on the 16/32 half-ellipsoid (2.83 deg). On the capsule and the 11/22 half-ellipsoid the block's plans run off their design tip: the two simulators agree within 0.35-1.74 deg for the first 2 s, part during the turn (10 deg apart at 2.36-2.70 s; the tool starts turning at 2.26-2.38 s on the block), and Drake keeps the tool on 2 and 4 of 8 hands where all three pad seeds drop it. The normal stiffness is equal there (bed approach under the rod within 3 % at 1 N); the pads creep 0.71-1.37 deg/s under a sub-onset twist at 1 N against Drake's 0.005 deg/s (6.4-6.8 deg/s at the RL numerics), and their onset arm is 2-10 % shorter",
+  "block_turn_onset_5deg_s": {
+   "D1": 2.36,
+   "D2": 2.26,
+   "D3": 2.32,
+   "D4": 2.26,
+   "D5": 2.32,
+   "D6": 2.38,
+   "D7": 2.26,
+   "D8": 2.28
+  },
+  "bed_85A_rows": {
+   "block4_g30|v2": {
+    "E_MPa": 7.55,
+    "approach_um": {
+     "0.5": 37.87,
+     "1": 66.26,
+     "3": 131.53
+    },
+    "onset_arm_mm": {
+     "1": 2.579,
+     "3": 2.719
+    },
+    "spin_arm_mm": 4.969,
+    "twist_creep_deg_s": {
+     "1": 0.2451,
+     "3": 0.3464
+    },
+    "touching": {
+     "0.5": 20,
+     "1": 20,
+     "3": 44
+    }
+   },
+   "block4_g30|drake": {
+    "E_MPa": 7.55,
+    "approach_um": {
+     "0.5": 42.41,
+     "1": 66.24,
+     "3": 134.9
+    },
+    "onset_arm_mm": {
+     "1": 2.544,
+     "3": 2.652
+    },
+    "spin_arm_mm": 4.094,
+    "twist_creep_deg_s": {
+     "1": 0.0229,
+     "3": 0.0439
+    },
+    "touching": {
+     "0.5": 570,
+     "1": 655,
+     "3": 928
+    }
+   },
+   "block4_g30|v1": {
+    "E_MPa": 7.55,
+    "approach_um": {
+     "0.5": 38.39,
+     "1": 67.29,
+     "3": 132.62
+    },
+    "onset_arm_mm": {
+     "1": 2.566,
+     "3": 2.722
+    },
+    "spin_arm_mm": 4.969,
+    "twist_creep_deg_s": {
+     "1": 0.2501,
+     "3": 0.345
+    },
+    "touching": {
+     "0.5": 20,
+     "1": 20,
+     "3": 44
+    }
+   },
+   "cap_g30|v2": {
+    "E_MPa": 13.45,
+    "approach_um": {
+     "0.5": 108.89,
+     "1": 147.75,
+     "3": 252.05
+    },
+    "onset_arm_mm": {
+     "1": 0.844,
+     "3": 1.096
+    },
+    "spin_arm_mm": 1.34,
+    "twist_creep_deg_s": {
+     "1": 0.7066,
+     "3": 1.1961
+    },
+    "touching": {
+     "0.5": 8,
+     "1": 11,
+     "3": 16
+    }
+   },
+   "cap_g30|drake": {
+    "E_MPa": 13.45,
+    "approach_um": {
+     "0.5": 105.58,
+     "1": 147.7,
+     "3": 252.29
+    },
+    "onset_arm_mm": {
+     "1": 0.941,
+     "3": 1.213
+    },
+    "spin_arm_mm": 1.395,
+    "twist_creep_deg_s": {
+     "1": 0.0052,
+     "3": 0.0087
+    },
+    "touching": {
+     "0.5": 317,
+     "1": 413,
+     "3": 665
+    }
+   },
+   "cap_g30|v1": {
+    "E_MPa": 13.45,
+    "approach_um": {
+     "0.5": 99.85,
+     "1": 137.5,
+     "3": 234.22
+    },
+    "onset_arm_mm": {
+     "1": 0.825,
+     "3": 1.011
+    },
+    "spin_arm_mm": 1.215,
+    "twist_creep_deg_s": {
+     "1": 0.7592,
+     "3": 1.185
+    },
+    "touching": {
+     "0.5": 8,
+     "1": 11,
+     "3": 16
+    }
+   },
+   "ell16_g30|v2": {
+    "E_MPa": 15.01,
+    "approach_um": {
+     "0.5": 115.72,
+     "1": 161.96,
+     "3": 265.75
+    },
+    "onset_arm_mm": {
+     "1": 0.849,
+     "3": 0.973
+    },
+    "spin_arm_mm": 1.079,
+    "twist_creep_deg_s": {
+     "1": 1.2195,
+     "3": 1.3542
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 10,
+     "3": 16
+    }
+   },
+   "ell16_g30|drake": {
+    "E_MPa": 15.01,
+    "approach_um": {
+     "0.5": 112.7,
+     "1": 157.95,
+     "3": 270.66
+    },
+    "onset_arm_mm": {
+     "1": 0.865,
+     "3": 1.115
+    },
+    "spin_arm_mm": 1.13,
+    "twist_creep_deg_s": {
+     "1": 0.0046,
+     "3": 0.0068
+    },
+    "touching": {
+     "0.5": 422,
+     "1": 625,
+     "3": 1022
+    }
+   },
+   "ell16_g30|v1": {
+    "E_MPa": 15.01,
+    "approach_um": {
+     "0.5": 107.74,
+     "1": 154.26,
+     "3": 253.53
+    },
+    "onset_arm_mm": {
+     "1": 0.824,
+     "3": 0.95
+    },
+    "spin_arm_mm": 1.053,
+    "twist_creep_deg_s": {
+     "1": 1.4699,
+     "3": 1.3049
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 8,
+     "3": 14
+    }
+   },
+   "ell11_g30|v2": {
+    "E_MPa": 14.23,
+    "approach_um": {
+     "0.5": 124.27,
+     "1": 174.36,
+     "3": 285.52
+    },
+    "onset_arm_mm": {
+     "1": 0.82,
+     "3": 0.959
+    },
+    "spin_arm_mm": 0.982,
+    "twist_creep_deg_s": {
+     "1": 1.3724,
+     "3": 1.453
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 12,
+     "3": 14
+    }
+   },
+   "ell11_g30|drake": {
+    "E_MPa": 14.23,
+    "approach_um": {
+     "0.5": 121.5,
+     "1": 170.55,
+     "3": 292.8
+    },
+    "onset_arm_mm": {
+     "1": 0.856,
+     "3": 1.102
+    },
+    "spin_arm_mm": 1.031,
+    "twist_creep_deg_s": {
+     "1": 0.0045,
+     "3": 0.0066
+    },
+    "touching": {
+     "0.5": 446,
+     "1": 637,
+     "3": 1013
+    }
+   },
+   "ell11_g30|v1": {
+    "E_MPa": 14.23,
+    "approach_um": {
+     "0.5": 114.81,
+     "1": 167.43,
+     "3": 268.73
+    },
+    "onset_arm_mm": {
+     "1": 0.78,
+     "3": 0.934
+    },
+    "spin_arm_mm": 0.949,
+    "twist_creep_deg_s": {
+     "1": 1.7633,
+     "3": 1.3293
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 10,
+     "3": 14
+    }
+   },
+   "block4_g30|rl": {
+    "E_MPa": 7.55,
+    "approach_um": {
+     "0.5": 37.87,
+     "1": 66.26,
+     "3": 131.53
+    },
+    "onset_arm_mm": {
+     "1": 2.66,
+     "3": 2.828
+    },
+    "spin_arm_mm": 4.964,
+    "twist_creep_deg_s": {
+     "1": 2.5192,
+     "3": 3.7996
+    },
+    "touching": {
+     "0.5": 20,
+     "1": 20,
+     "3": 44
+    }
+   },
+   "block4_g30|E0.5x": {
+    "E_MPa": 3.77,
+    "approach_um": {
+     "0.5": 66.26,
+     "1": 104.01,
+     "3": 207.11
+    },
+    "onset_arm_mm": {
+     "1": 2.66,
+     "3": 2.883
+    },
+    "spin_arm_mm": 4.856,
+    "twist_creep_deg_s": {
+     "1": 0.3103,
+     "3": 0.5624
+    },
+    "touching": {
+     "0.5": 20,
+     "1": 41,
+     "3": 47
+    }
+   },
+   "block4_g30|E2x": {
+    "E_MPa": 15.1,
+    "approach_um": {
+     "0.5": 23.67,
+     "1": 37.87,
+     "3": 89.97
+    },
+    "onset_arm_mm": {
+     "1": 2.619,
+     "3": 2.611
+    },
+    "spin_arm_mm": 6.017,
+    "twist_creep_deg_s": {
+     "1": 0.1244,
+     "3": 0.3205
+    },
+    "touching": {
+     "0.5": 20,
+     "1": 20,
+     "3": 40
+    }
+   },
+   "cap_g30|rl": {
+    "E_MPa": 13.45,
+    "approach_um": {
+     "0.5": 108.87,
+     "1": 147.75,
+     "3": 252.03
+    },
+    "onset_arm_mm": {
+     "1": 0.835,
+     "3": 1.044
+    },
+    "spin_arm_mm": 1.356,
+    "twist_creep_deg_s": {
+     "1": 6.835,
+     "3": 10.19
+    },
+    "touching": {
+     "0.5": 8,
+     "1": 11,
+     "3": 16
+    }
+   },
+   "cap_g30|E0.5x": {
+    "E_MPa": 6.72,
+    "approach_um": {
+     "0.5": 147.75,
+     "1": 207.78,
+     "3": 356.12
+    },
+    "onset_arm_mm": {
+     "1": 0.987,
+     "3": 1.332
+    },
+    "spin_arm_mm": 1.577,
+    "twist_creep_deg_s": {
+     "1": 1.1045,
+     "3": 1.468
+    },
+    "touching": {
+     "0.5": 11,
+     "1": 16,
+     "3": 22
+    }
+   },
+   "cap_g30|E2x": {
+    "E_MPa": 26.89,
+    "approach_um": {
+     "0.5": 80.74,
+     "1": 108.89,
+     "3": 179.93
+    },
+    "onset_arm_mm": {
+     "1": 0.767,
+     "3": 0.901
+    },
+    "spin_arm_mm": 1.158,
+    "twist_creep_deg_s": {
+     "1": 0.7173,
+     "3": 0.9057
+    },
+    "touching": {
+     "0.5": 5,
+     "1": 8,
+     "3": 12
+    }
+   },
+   "ell16_g30|rl": {
+    "E_MPa": 15.01,
+    "approach_um": {
+     "0.5": 115.72,
+     "1": 161.98,
+     "3": 265.77
+    },
+    "onset_arm_mm": {
+     "1": 0.666,
+     "3": 0.897
+    },
+    "spin_arm_mm": 1.096,
+    "twist_creep_deg_s": {
+     "1": 6.4014,
+     "3": 11.425
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 10,
+     "3": 16
+    }
+   },
+   "ell16_g30|E0.5x": {
+    "E_MPa": 7.5,
+    "approach_um": {
+     "0.5": 161.95,
+     "1": 216.45,
+     "3": 373.34
+    },
+    "onset_arm_mm": {
+     "1": 0.937,
+     "3": 1.192
+    },
+    "spin_arm_mm": 1.295,
+    "twist_creep_deg_s": {
+     "1": 0.9983,
+     "3": 1.5721
+    },
+    "touching": {
+     "0.5": 10,
+     "1": 12,
+     "3": 24
+    }
+   },
+   "ell16_g30|E2x": {
+    "E_MPa": 30.01,
+    "approach_um": {
+     "0.5": 75.02,
+     "1": 115.72,
+     "3": 189.26
+    },
+    "onset_arm_mm": {
+     "1": 0.671,
+     "3": 0.922
+    },
+    "spin_arm_mm": 0.912,
+    "twist_creep_deg_s": {
+     "1": 1.9571,
+     "3": 0.8454
+    },
+    "touching": {
+     "0.5": 4,
+     "1": 4,
+     "3": 12
+    }
+   }
+  },
+  "quantities_that_decide_the_curved_tip_runs": [
+   "twist arm r_bar: 0.82-0.94 mm on the curved tips against 2.54-2.58 mm on the block in the simulators at the readiness moduli, and about half of that in the 95A finite elements; it sets the torque mu N r_bar the pinch resists during the turn",
+   "torsional creep below onset: 0.71-1.37 deg/s (pads, planner numerics), 6.4-11 deg/s (pads, RL numerics), 0.005 deg/s (Drake) at 1 N",
+   "patch location on the curved surface, which moves as the fingers roll the tool; the same geometry in both simulators",
+   "friction coefficient: 1.0 in every model, Siraya 85A's unmeasured",
+   "normal stiffness: through the patch and the arm only (arm ~ E^-0.13 to E^-0.25 on the curved tips: the bed's E x0.5 and x2 arms move the capsule's onset arm by +17 % and -9 %)"
+  ]
+ },
+ "model_options": {
+  "drake": [
+   {
+    "option": "modulus E of the compliant convex (gauge field)",
+    "reproduces": "the approach at one load case, or a log-RMS compromise over the forces of one indenter",
+    "does_not_reproduce": "the force exponent, the indenter dependence, the patch at the same E",
+    "run": "M1 and M2"
+   },
+   {
+    "option": "compliant volume mesh (.vtk tetrahedra) whose field comes from the depth below the boundary, p = E d / d_max",
+    "reproduces": "another foundation-depth map (d_max one depth for the whole tip, as builder v1's 8.5 mm)",
+    "does_not_reproduce": "the exponent and the indenter dependence: the law stays local; the 2026-10-15 rows put the map's effect at 2.3 points of RMS error or less",
+    "run": "analytic check on the capsule in phase B; simulators only if it beats the convex field by more than 5 points"
+   },
+   {
+    "option": "TPU layer of thickness t over a rigid core",
+    "reproduces": "a stiffer local law (a modulus scale) and a hard stop at depth t",
+    "does_not_reproduce": "the exponent and the indenter dependence; the stop sits at 1.8 mm or more of TPU (over the magnets), ten times the task approaches, and Drake computes rigid-rigid contact as point contact",
+    "run": "no"
+   },
+   {
+    "option": "hydroelastic margin",
+    "reproduces": "earlier contact detection (a shift of first touch)",
+    "does_not_reproduce": "any change of the law",
+    "run": "no"
+   },
+   {
+    "option": "relaxation time (Hunt-Crossley dissipation)",
+    "reproduces": "rate-dependent normal force",
+    "does_not_reproduce": "any static quantity",
+    "run": "no (0.01 s as before)"
+   },
+   {
+    "option": "series spring: a prismatic joint between the DIP link and the tip body along the palmar normal with a JointActuator at PdControllerGains(p = k_s, d = c_s) and target 0, which SAP integrates implicitly",
+    "reproduces": "the near-linear exponent, the indenter independence and, with a stiff local field, the patch (95A rows: 5-7 % RMS approach on both indenters, patch 0.86-0.93x)",
+    "does_not_reproduce": "the tangential compliance of the skin",
+    "run": "M3 (analytic; simulators in the one-tip spring check)"
+   }
+  ],
+  "pads": [
+   {
+    "option": "modulus E in K_i = E a_i / h_i",
+    "reproduces": "as Drake's E",
+    "does_not_reproduce": "as Drake's E",
+    "run": "M1 and M2"
+   },
+   {
+    "option": "per-pad stiffness map (v1 one depth, v2 centroid depth, 2026-10-15 map from the finite-element patch stiffness)",
+    "reproduces": "the spatial variation of stiffness over the face",
+    "does_not_reproduce": "the exponent and the indenter dependence; the fitted map was no better than v2 (shape RMS 0.28-0.38 against 0.27-0.34)",
+    "run": "no"
+   },
+   {
+    "option": "solimp shaping (impedance as a function of penetration)",
+    "reproduces": "a nonlinear force-penetration curve per pad, which can move the force exponent",
+    "does_not_reproduce": "the indenter dependence (the pads stay independent); it also changes the regularization that sets the creep",
+    "run": "no"
+   },
+   {
+    "option": "pad spacing 0.5 mm (rs 0.375 mm) against 1 mm",
+    "reproduces": "the twist arm of a small patch: at the stiff local moduli of M2 and M3 a 0.4 mm patch radius covers 1-4 pads at 1 mm spacing",
+    "does_not_reproduce": "-",
+    "run": "rule R4"
+   },
+   {
+    "option": "series spring: a slide joint between the DIP link and the tip body along the palmar normal, the spring as a joint equality constraint with solref (0.01, 1) and solimp d0 = 1 - 1/(tc^2 k_s w), w the joint's inverse weight (the pads' own stiffness mapping, solved implicitly by the constraint solver)",
+    "reproduces": "as Drake's spring",
+    "does_not_reproduce": "the tangential compliance",
+    "run": "the one-tip spring check"
+   },
+   {
+    "option": "impratio (100 planner, 10 RL, 1000 tested)",
+    "reproduces": "the creep rate below onset",
+    "does_not_reproduce": "-",
+    "run": "check arm on the capsule's and the 11/22's D1-D8 replays"
+   }
+  ]
+ },
+ "run": {
+  "tips": [
+   {
+    "name": "block4_g30",
+    "role": "control",
+    "fe_key": "tcd_rs3_re3",
+    "sim_key": "tcd_rs3_re3_p0.2",
+    "print": "print/20261016-siraya85a_block_four_d3x2_depth5_seat2p7_g30 (readiness study)",
+    "build": "x: back face on the bed, 0.2 mm layers",
+    "magnets": "four 3 x 2 mm N52 at y +-3 mm, z_c +-3.5 mm, tops 5.0 mm under the palmar face",
+    "U_E_MPa": 7.55
+   },
+   {
+    "name": "cap_g30",
+    "fe_key": "tcd_cap8.5",
+    "sim_key": "tcd_cap8.5_u0.1",
+    "print": "print/20261016-siraya85a_tcd_cap8p5_four_d3x2_depth5_seat2p7_g30",
+    "build": "z: upright on the mount face, 0.1 mm layers",
+    "magnets": "four 3 x 2 mm, tops 5.0 mm under the apex",
+    "U_E_MPa": 13.446
+   },
+   {
+    "name": "ell16_g30",
+    "fe_key": "tcd_ell7.4x8.5x16x32",
+    "sim_key": "tcd_ell7.4x8.5x16x32_u0.1",
+    "print": "print/20261016-siraya85a_tcd_ell7p4x8p5x16x32_four_d3x2_depth5p5_seat2p7_g30",
+    "build": "z",
+    "magnets": "four 3 x 2 mm, tops 5.5 mm under the apex",
+    "U_E_MPa": 15.006
+   },
+   {
+    "name": "ell11_g30",
+    "fe_key": "tcd_ell7.4x8.5x11x22",
+    "sim_key": "tcd_ell7.4x8.5x11x22_u0.1",
+    "print": "print/20261016-siraya85a_tcd_ell7p4x8p5x11x22_four_d3x2_depth7_seat2p7_g30",
+    "build": "z",
+    "magnets": "four 3 x 2 mm, tops 7.0 mm under the apex",
+    "U_E_MPa": 14.226,
+    "note": "the flat-backed half-ellipsoid the owner counts as the quarter ellipsoid; its first finite elements (the 2026-10-15 rows are of the quarter-ellipsoid tcd_qell7.4x8.5x11x22 with its back plane fixed)"
+   }
+  ],
+  "recipe": "w85_30 of scripts/tpu_tip_magnet.py: solid TPU 12 MPa (NinjaFlex 85A standing in for Siraya 85A, unmeasured), Poisson 0.45; 30 % gyroid homogenized from docs/experiments/20261009-tpu_tip_fem/cells.jsonl in each tip's print orientation; two 0.45 mm perimeters and four 0.2 mm skins around every outline, the pockets' included; NdFeB magnets (160 GPa) bonded in their pockets, positions and depths read from the print sheets (magnet.top_depth_mm, pockets[].y_mm, z_mm); back face (x = -8.5 mm in the insert frame) and mount face fixed",
+  "calibrations": {
+   "U": "the readiness moduli, the same E for pads v2 and Drake: block 7.55, capsule 13.446, 16/32 15.006, 11/22 14.226 MPa",
+   "M1": "approach fit (the owner's proposal): one E per tip and simulator model by log-RMS of approach over the task cylinders (radius 5, 8 and 12.5 mm across the finger at z 0 and +-4 mm; 8 and 12.5 mm along the finger at y 0) at 0.5, 1 and 3 N",
+   "M2": "twist-arm fit: one E per tip and simulator model by log-RMS of r_bar over the 8 and 12.5 mm cylinders across the finger at z 0, at 1 and 3 N",
+   "M3": "series spring: E_loc = the M2 modulus, k_s by log-RMS of approach over the task cylinders and forces with approach = F / k_s + local approach at E_loc; one k_s per tip for both simulators (the mean of their two fits); damping ratio 1 on the tip's printed mass"
+  },
+  "phases": [
+   {
+    "id": "A",
+    "name": "Finite elements of the four printed tips",
+    "script": "scripts/fe_contact_calibration_fe.py (new): scripts/curved_tips_stiffness.py cmd_fe generalized: the shape's geometry hooks through curved_tips_fe.install (back face fixed at x = -8.5 mm), four magnets through a tpu_tip_magnet_layouts-style occupancy at the sheet's depth, tpu_tip_magnet.classes in the print orientation, recipe w85_30; --count gives the voxel classes and the dof without a solve",
+    "probes": "sphere radius 2 mm at the apex, y 2.6, 4.1, 5.2 mm and z +4, -4, -7 mm; cylinders across the finger (axis along y) of radius 5, 8 and 12.5 mm at z 0, +4, -4 mm; cylinders along the finger (axis along z) of radius 8 and 12.5 mm at y 0",
+    "forces_N": [
+     0.5,
+     1,
+     3,
+     6
+    ],
+    "force_note": "0.5-3 N is the fit range: per-finger normal force in the D1-D8 replays 0.2-2.5 N (10th-90th percentile, 2-6 s), 99th percentile 3.1 N. 6 N reaches toward the iCEM cells' thumb loads (up to 11 N) and is reported, not fitted: the finite elements are linear and small-strain",
+    "readings": "per probe and force: approach, local stiffness dF/d(approach), contact nodes, pressure centre, r_rms, r_bar, half-extents in y and z; at the 12.5 mm rod at z 0 and 1 N also the face's tangential compliance along y and z (sticking contact) and each magnet's rigid motion",
+    "grid": "curved_tips_stiffness.fe_grid with its fine y zone widened over both pocket columns (y -4.6 to 6.0 mm at 0.35 mm); keep n_dof at or below 190k so the peak stays under 6 GB (2.8-3.6 GB measured at 140-174k dof on 2026-10-15; 6-9 GB at 259k dof on 2026-10-16)",
+    "regression": "block approach under the 12.5 mm rod at z 0 within 10 % of the 2026-10-16 rows (31.9, 60.8, 162.2 um at 0.5, 1, 3 N; a different grid and the tcd_rs3_re3 surface)",
+    "grid_check": "the capsule again at 0.2 mm in y and z over |y| <= 2 mm, |z - z_c| <= 2.5 mm, only if the first run's measured peak x 1.3 x 1.3 stays under 6 GB: approach within 5 % and r_bar within 10 % of the base grid; otherwise reported as not run",
+    "command": "~/.claude/bin/resguard.sh run --mem 6G --cpu 900 -- taskset -c 4-11 env OMP_NUM_THREADS=8 OPENBLAS_NUM_THREADS=8 NUMPY_MADVISE_HUGEPAGE=0 /usr/bin/time -v ~/miniconda3/envs/femtip/bin/python scripts/fe_contact_calibration_fe.py fe --tip cap_g30; later tips at --mem = measured peak x 1.3",
+    "rows": "docs/experiments/20261018-fe_contact_calibration/fe/fe.jsonl (one fsynced row per tip and probe), fe/meta.jsonl (grid, dof, timings, peak memory)",
+    "wall_min": 25
+   },
+   {
+    "id": "B",
+    "name": "Model curves and fits",
+    "script": "scripts/fe_contact_calibration_fit.py (new): curves and fit",
+    "curves": "per tip (sim_key) and probe of phase A: Drake's field (curved_tips_stiffness.NearField, hull at 0.25 mm, E 10 MPa), pads v2 at 1 mm and at 0.5 mm spacing (pad radius 0.75 of the spacing), pads v1 at 1 mm: force on the 44-point approach grid and r_rms, r_bar and the pressure centre at each point; curved_tips_stiffness.Probe generalized to the cylinder's radius and axis. Every curve scales with E, so one curve per model gives every modulus",
+    "field_check": "the capsule with the depth field p = E d / d_max (d the depth below the hull from a scipy cKDTree of surface samples, queries chunked at 4,096 points): RMS approach residuals of M1 against the convex field's",
+    "fit": "M1, M2, M3 per tip and model (Drake; pads v2 at the spacing of rule R4) by Nelder-Mead on ln E and ln k_s; residual tables for approach at the task cylinders and under the sphere, r_bar at the 8 and 12.5 mm cylinders, pads in contact at 1 N",
+    "command": "~/.claude/bin/resguard.sh run --mem 2G --cpu 900 -- taskset -c 4-11 env OMP_NUM_THREADS=8 .venv/bin/python scripts/fe_contact_calibration_fit.py curves --tip cap_g30 (each tip in turn), then fit",
+    "rows": "fit/curves.jsonl, fit/fits.json (the calibrated parameters, labelled model)",
+    "wall_min": 25
+   },
+   {
+    "id": "C",
+    "name": "Bed in the simulators",
+    "script": "scripts/fe_contact_calibration_sim.py bed: the cases of scripts/sim2real_fingertip_bed.py (curved_tips_bed static at 0.5, 1, 3 N; T2 at 1 and 3 N; spin at 1 rad/s and 1 N; T1 at 1 N) through its model_of at the calibrated E",
+    "arms": "per tip, M1 and M2: pads v2 at the planner numerics and Drake; pads at the RL numerics for M2; pads at 0.5 mm where rule R4 applies; the capsule at M3 with the series spring (pads and Drake, static and T2). U is in the 2026-10-16 bed rows",
+    "checks": "simulator static approach within 5 % of the phase-B curve at the same E (the implementation); bed onset arm against the finite-element r_bar (criterion twist_arm); RL against planner numerics (criterion numerics); Drake's onset arm within 15 % of its own curve's r_bar, else rule R5",
+    "command": "PY=logs/20261001-hom_contact/venv/bin/python; ~/.claude/bin/resguard.sh run --mem 3G --cpu 200 -- taskset -c 4 $PY scripts/fe_contact_calibration_sim.py bed --tips block4_g30 cap_g30 ell16_g30 ell11_g30 --calib M1 M2",
+    "rows": "bed/{static,T2,spin,T1}.jsonl",
+    "wall_min": 24
+   },
+   {
+    "id": "D1",
+    "name": "iCEM command replays on the CAD hand (the internal-consistency test)",
+    "same_commands": "(a) the eight pinned-iCEM rows of the 30 % tips in docs/experiments/20261016-sim2real_fingertip_readiness/cells/icem.jsonl (cells cylinder:16:0.625 and cylinder:25:0.125, their logged candidates): reset at the seed's placement, the candidate's grip targets for t_grip 0.8 s, then each logged command u (nine joint targets) at its 20 ms tick, the post's collisions off at t_post_off (0.8 s, when the planner takes over, as in hand_object_scale_mpc), to 6.3 s. Plants: MuJoCo pads (sim2real_fingertip_cells.setup with E set per calibration) and Drake (curved_tips_cell_drake.CellDrake with E, functools.partial as in sim2real_fingertip_cell10.py, and the variant's tip mesh). Calibrations U, M1 and M2; seeds 0, 1, 2. Every 20 ms: tool pose, each finger's normal and friction force on the tool, finger joint angles (for the films)",
+    "own_plans": "(b) pinned iCEM re-planned on the M2 pads of each curved tip on cylinder:16:0.625 (hand_object_scale_planners icem_pin, seed 0), its commands replayed as in (a) on M2 pads and M2 Drake at seeds 0-2",
+    "smoke": "replaying a logged sequence on the U pads at seed 0 reproduces the logged trace (final turn within 1 deg) before anything else runs",
+    "rows": "replays/icem.jsonl (one fsynced row per plan, plant, calibration and seed)",
+    "wall_min": 37,
+    "wall_note": "(a) 72 Drake runs at about 15 s and 72 pad runs at about 1 s (2026-10-16 CAD-hand cell runs: Drake 11-14 s, pads 0.3-0.4 s); (b) three iCEM plans at about 5 min (200-310 s on 2026-10-16) and 18 replays"
+   },
+   {
+    "id": "D2",
+    "name": "D1-D8 replays (the block's plans, off-design on the curved tips)",
+    "protocol": "scripts/sim2real_fingertip_replays.py's protocol with E per calibration, pad scenes cached under logs/20261018-fe_contact_calibration/replay_scenes/<tip>_<calibration>/",
+    "arms": "pads at the planner numerics, M1 and M2, four tips x eight hands x seeds 0-2; pads at the RL numerics, M2; Drake at M2, seed 0, the three curved tips (the block's M2 equals its M1 by rule R3; its Drake control is the 2026-10-16 U rows unless time remains); check arms at U on the capsule and the 11/22, seeds 0-2: pads at impratio 1000 (creep) and pads at 0.5 mm spacing (discreteness); spring check: the capsule's M3 pads (slide spring) against its M2 pads, seeds 0-2",
+    "rows": "replays/d1d8.jsonl with the 20 ms traces",
+    "wall_min": 45,
+    "wall_note": "pads 1-2.5 s per run (about 15 min); Drake 61-100 s per run on 2026-10-16 (24 runs, about 30 min)"
+   },
+   {
+    "id": "E",
+    "name": "Films, figures and page",
+    "films": "per curved tip, the (b) replay at seed 0 with pads and Drake side by side, 640 x 480 panels under label bars, pads touching the tool red; the Drake panel replays its recorded joint angles and tool pose kinematically in the MuJoCo scene; every poster frame looked at at its displayed size",
+    "figures": "approach against force per tip (finite elements, Drake and pads at U, M1, M3); patch maps under the 12.5 mm rod at 1 N (finite-element nodal pressure, Drake field pressure, pad forces); r_bar against force; agreement per tip and calibration (held agreement, same-branch RMS angle, force differences) beside the seed spread",
+    "page": "docs/experiments/20261018-fe_contact_calibration/20261018-fe_contact_calibration.html, title 'Calibration of Drake's pressure field and the 1 mm pads to finite elements of the 85A printed fingertips', from scripts/fe_contact_calibration_page.py and docs/experiments/20261018-fe_contact_calibration/page.template.html (inside the branch's paths); retro_style.apply, scripts/texsvg.py for p = E (1 - g), K_i = E a_i / h_i, the series law and r_bar; a Terms and metrics block; summary.json beside it. INDEX row, links and publication by the window",
+    "wall_min": 15
+   }
+  ],
+  "decision_rules": [
+   "R1: a tip keeps M1 when M1 passes approach and twist_arm in both simulators",
+   "R2: otherwise M3 when it passes approach and twist_arm; trajectories then run M2 in its place when the spring check passes (capsule D1-D8 pads, M3 against M2: same-branch median RMS angle at most 1 deg and per-finger normal force at most 0.05 N RMS)",
+   "R3: M2 equals M1 on a tip whose r_bar changes by less than 5 % over E x0.5 to x2 (the arm cannot set E there; the block's bed onset arm is 2.62-2.66 mm over that range)",
+   "R4: pads at 0.5 mm spacing for a calibration whose 1 mm pads have fewer than 6 pads in contact at 1 N under the 8 or 12.5 mm cylinder, or miss twist_arm where the 0.5 mm pads pass",
+   "R5: Drake's tool resolution hint from 0.5 to 0.2 mm when its bed onset arm differs from its own curve's r_bar by more than 15 %",
+   "R6: if the 85A finite elements break prediction P1 (curved-tip exponent below 0.65 or rod_over_sphere below 0.55), M1 becomes the main calibration and phases C-D run M1 in place of M2"
+  ],
+  "indentation_validation": {
+   "model": "per tip, the finite-element approach under the 12.5 mm rod at z 0 at 0.5, 1 and 3 N and the calibrated models' approach (phase B curves, phase C simulators), all labelled model, in one table and one figure",
+   "bench_pending": [
+    "indentation step of the readiness procedure (docs/experiments/20261016-sim2real_fingertip_readiness/bench/procedure.json: 25 mm rod at the contact point, 0.5, 1, 3 N on the load cell, tip on a rigid back, three repeats) on each printed tip: one solid-modulus scale lambda per material by log-RMS (every calibrated modulus and k_s scales with lambda, since the finite elements are linear); pass: residual after lambda at most 10 % RMS and bench force exponent within 0.10 of the finite elements'",
+    "a 4 mm steel ball at the apex at 0.5, 1, 3 N on each curved tip: the finite elements predict ball/rod approach 1.2-1.6 at 1 N (95A rows: 1.30-1.33), a local law 2.1-2.5; a bench ratio of 2 or more breaks the finite elements' skin-over-core response",
+    "a twist test: the rod pressed at 1 and 3 N and turned about the normal until slip; onset torque / (mu N), mu from a pull test, against the finite elements' r_bar and the models' arms"
+   ]
+  },
+  "consistency_metrics": "per pair of runs (pads and Drake at one calibration, same plan and seed): held agreement, rms_angle_deg, the time they first differ by 10 deg, per-finger normal-force and friction-force RMS differences (20 ms samples); summarized per tip as held agreement, the median over same-branch pairs, and the pads' own seed spread on the same plans; reported against the U values of the same runs",
+  "rules": [
+   "one heavy process at a time on cores 4-11; ~/.claude/bin/resguard.sh status before every launch, quoted in the log; every heavy launch through resguard.sh run with --mem from a measured peak x 1.3 (finite elements at most 6 GB, Drake 3 GB, MuJoCo 2 GB, page 1 GB); the owner arrives about noon and the desktop then takes more memory",
+   "read new lines of ~/.claude/resguard_events.jsonl after each heavy run; a kill is reported in the next message to the window and the job relaunched from its fsynced rows (this stage: the watchdog killed the prior patch job at 09:59:16 at memory PSI full 20.6 with 12.6 GB available; relaunched, resumable per tip)",
+   "commit only this branch's paths, each named as a pathspec; no pull, rebase, stash, reset, checkout or clean; wait 10 s and retry when .git/index.lock exists; no push, no artifact, no edits to docs/experiments/INDEX.md, docs/overviews/*, docs/index.html, docs/handoff/* or another study's files (the run reads other studies' rows and scripts and writes only under docs/experiments/20261018-fe_contact_calibration/, scripts/fe_contact_calibration*.py and logs/20261018-fe_contact_calibration/)",
+   "the writing rules of ~/.claude/CLAUDE.md and the repository's CLAUDE.md for the page, its commit messages and notes; model values labelled model, bench values pending"
+  ]
+ },
+ "criteria": {
+  "verdict": "a printed tip can be modelled well when one calibration (M1, or M3 with M2 in its place on trajectories after the spring check) passes approach and twist_arm in both Drake and the pads and passes consistency on the iCEM replays; otherwise it cannot, and the page names the criterion and the value that failed. numerics is reported and decides whether the RL trainer can take the calibration",
+  "approach": {
+   "pass": "RMS of (model approach / finite-element approach - 1) at most 25 % and the largest at most 40 %, over the task cylinders (radius 5, 8, 12.5 mm across the finger at z 0 and +-4 mm; 8 and 12.5 mm along it) at 0.5, 1 and 3 N, from the phase-B curves; the simulators' static approach on the bed within 5 % of the curves at the same parameters",
+   "reason": "a 25 % error in the tip's normal compliance is at most 0.3-1.3 % of the servo chain's (3.4-4.7 mm/N against 0.05-0.15 mm/N), so the grip force moves by at most 1.3 % and the tool by about 40 um; on the D1-D8 replays a 32 % modulus change moved the block's tool by 0.64 deg median RMS against a 3.6 deg start-placement spread. The bound keeps the bench indentation and the magnet readings in the range the 2026-10-16 fit reached (worst 24 %)"
+  },
+  "twist_arm": {
+   "pass": "model r_bar / finite-element r_bar between 0.70 and 1.15 under the 8 and 12.5 mm cylinders across the finger at z 0, at 1 and 3 N (phase-B curves), and the simulator's bed onset arm at 1 and 3 N in the same band against the finite-element r_bar under the 12.5 mm rod",
+   "reason": "the full-slip twist torque is mu N r_bar, so the arm is the torsional friction a plan can use. A model arm above the print's lets plans use friction the print lacks (the simulator keeps a tool the print lets slip); 1.15 allows the finite elements' patch resolution (0.3 mm node spacing under a 0.4-0.5 mm patch). An arm below the print's leaves the print a margin; 0.70 admits the block as it is modelled now (bed onset arm 2.54-2.58 mm against the 85A finite elements' 3.37 mm, 0.76)"
+  },
+  "consistency": {
+   "pass": "on the iCEM command replays (D1 a) at the calibration, per tip: pads and Drake agree in held outcome on at least 5 of 6 runs; the median rms_angle_deg over same-branch pairs is at most 3 deg or the pads' own seed spread on those plans, whichever is larger; the median per-finger normal-force difference at most 0.25 N RMS and friction-force difference at most 0.35 N RMS. On the curved tips' own M2 plans (D1 b): held agreement 3 of 3 and the same angle bound",
+   "yardstick": "the block at U on its D1-D8 plans: 1.38 deg median RMS, 8 of 8 kept by both, 0.11 N normal and 0.15 N friction force per finger (2026-10-16 rows); the pads' start-placement spread on the block 3.6 deg (quartiles 2.5-4.8)",
+   "reported": "D1-D8 at the calibration against U: held counts, held agreement, same-branch RMS angle and force differences per tip, and the check arms (impratio 1000, 0.5 mm pads)"
+  },
+  "numerics": {
+   "pass": "pads at the RL numerics (2 ms, impratio 10) at the calibration: bed static approach and onset arm within 10 % of the planner numerics; D1-D8 RL-against-planner same-branch median RMS angle at most 3 deg; no run ending unstable (non-finite state or the tool ejected)",
+   "reason": "in the 95A rows the local modulus that fits the patch was 10-26 times the rod-fitted one (Drake: 228-501 against 19-27 MPa), which may make 2 ms contact steps chatter; the trainer must keep the planner's contact response for the pipeline to use one contact model"
+  }
+ },
+ "predictions": [
+  {
+   "id": "P1",
+   "claim": "The 85A 30 % finite elements respond like the 95A ones: on the three curved tips the force exponent is 0.72-0.90 under the sphere and the task cylinders, rod_over_sphere 0.60-0.85 and r_bar under the 12.5 mm rod at 1 N 0.35-0.70 mm; on the block the rod exponent is 0.85-0.95 and r_bar 3.2-3.6 mm",
+   "falsified_by": "a curved-tip exponent below 0.65 or rod_over_sphere below 0.55 (the 85A prints would then respond locally, and rule R6 applies)"
+  },
+  {
+   "id": "P2",
+   "claim": "M1 passes approach on at least 3 of the 4 tips in both simulators (15-25 % RMS at the task cylinders) and fails twist_arm on all three curved tips (model r_bar 1.5-2.2 times the finite elements'); the block passes twist_arm at 0.70-0.90",
+   "falsified_by": "M1 passing twist_arm on a curved tip, or failing approach on two or more tips"
+  },
+  {
+   "id": "P3",
+   "claim": "M3 passes approach and twist_arm on the three curved tips in Drake; the 1 mm pads need 0.5 mm spacing (rule R4) to pass twist_arm on at least one curved tip",
+   "falsified_by": "M3 failing either criterion in Drake on a curved tip"
+  },
+  {
+   "id": "P4",
+   "claim": "The series spring does not move trajectories: the capsule's D1-D8 pads replays at M3 and at M2 differ by at most 1 deg same-branch median RMS and 0.05 N per finger",
+   "falsified_by": "a larger difference, in which case M3 with the spring runs in place of M2 in D1 and D2 (the spring then has to enter the Drake plants too)"
+  },
+  {
+   "id": "P5",
+   "claim": "With the same commands (D1 a), pads and Drake agree in held outcome on at least 5 of 6 runs per tip at U, M1 and M2, and the calibration changes each tip's same-branch median RMS angle by at most 1 deg: the normal stiffness does not decide the agreement",
+   "falsified_by": "a calibration changing a tip's same-branch median by more than 2 deg or its held agreement by 2 runs or more"
+  },
+  {
+   "id": "P6",
+   "claim": "On the block's D1-D8 plans M1 leaves the held-count gap between the pads and Drake open on the capsule and the 11/22 (U: pads 4 and 2 of 8 at seed 0, Drake 7 and 6 of 8); pads at impratio 1000 close it to at most 1 hand on both tips, pads at 0.5 mm spacing do not",
+   "falsified_by": "M1 closing the gap (the normal stiffness would decide it), or impratio 1000 leaving it open (creep would not)"
+  },
+  {
+   "id": "P7",
+   "claim": "The capsule's finite elements on the refined contact grid change approach by at most 5 % and r_bar by at most 10 %",
+   "falsified_by": "larger changes: twist_arm is then judged against the refined values with the grid change reported as the finite elements' uncertainty"
+  }
+ ],
+ "compute_budget": {
+  "total_wall_min": 171,
+  "limit_wall_min": 180,
+  "phases": [
+   {
+    "id": "A",
+    "wall_min": 25,
+    "cores": "4-11 (8 threads)",
+    "mem": "at most 6 GB; first run measured under /usr/bin/time -v, later runs at peak x 1.3",
+    "basis": "2026-10-15: 54-103 s and 2.2-3.6 GB per tip at 114-193k dof; four tips, the grid check if memory allows"
+   },
+   {
+    "id": "B",
+    "wall_min": 25,
+    "cores": "4-11",
+    "mem": "2 GB",
+    "basis": "2026-10-15 model curves 116-283 s per tip for 10 probes; 18 probes here, with patch readings; this stage's patch run: 0.5 GB, 6 min for three tips"
+   },
+   {
+    "id": "C",
+    "wall_min": 24,
+    "cores": "4",
+    "mem": "3 GB",
+    "basis": "2026-10-16 bed: pads 0.5-11 s and Drake 4-48 s per case; four tips x two calibrations x (pads, Drake) plus the RL arm for M2"
+   },
+   {
+    "id": "D1",
+    "wall_min": 37,
+    "cores": "4",
+    "mem": "3 GB",
+    "basis": "72 Drake runs at about 15 s and 72 pad runs at about 1 s (a); three iCEM plans at about 5 min and 18 replays (b)"
+   },
+   {
+    "id": "D2",
+    "wall_min": 45,
+    "cores": "4",
+    "mem": "3 GB",
+    "basis": "pads 1-2.5 s per run, about 15 min with the check arms; Drake 61-100 s per run, 24 runs"
+   },
+   {
+    "id": "E",
+    "wall_min": 15,
+    "cores": "4",
+    "mem": "1-2 GB (EGL renders)",
+    "basis": "three two-panel films of 5.5 s and the page build"
+   }
+  ],
+  "serial": "one heavy process at a time; the phases run in order A, B, C, D1, D2, E, each from fsynced, resumable rows",
+  "cuts_in_order_if_behind": [
+   "the capsule grid check (A)",
+   "D1 (a) Drake at M1 (6 min)",
+   "D2 Drake on the 16/32 half-ellipsoid (10 min)",
+   "films reduced to the capsule (E)"
+  ],
+  "checkpoints": "at the end of phase C (planned 74 min) and of D1 (111 min): more than 15 min behind takes the next cut"
+ },
+ "limitations": [
+  "The finite elements are linear and small-strain with frictionless normal contact (Goodman: no coupling of normal and tangential load); the gyroid is homogenized; the solid modulus is NinjaFlex 85A's 12 MPa, Siraya 85A's is unmeasured; magnets are bonded in their pockets and the slot voids above them are left out; the back face is fixed (the DIP plate rigid). Every calibrated modulus and k_s scales with the bench's solid-modulus factor lambda",
+  "The calibration covers the normal response and the contact patch. The skin's tangential compliance (75-154 um/N on the 85A block's face) stays out of both simulators: Drake has no tangential state, and the pads' tangential behaviour is MuJoCo's regularized friction, which creeps; the sprung skin of 2026-10-12 changed nothing beyond the seed spread at the trainer's settings",
+  "Friction is 1.0 in every model; Siraya 85A's friction coefficient is unmeasured",
+  "The servo plant is the ad-hoc identification of 2026-10-13 (kp 0.72 N m/rad, 0.18 N m); its compliance is what makes normal-stiffness errors small on trajectories",
+  "The iCEM plans of D1 (a) were designed on the U pads, so at M1 and M2 they run off their design modulus; D1 (b) gives each curved tip one plan designed on its M2 pads",
+  "The D1-D8 plans were designed for the block; on the curved tips they test agreement in a regime where the tool is near its slip limit"
+ ],
+ "future_work": [
+  "Bench indentation of each printed tip under the 25 mm rod at 0.5, 1 and 3 N (procedure step 'indentation', three repeats): fixes lambda; a residual above 10 % RMS after lambda, or a force exponent more than 0.10 from the finite elements', means the shell-over-gyroid model is wrong for these prints",
+  "Bench indentation with a 4 mm steel ball at the apex of each curved tip at 0.5, 1 and 3 N: a ball/rod approach ratio of 2 or more at 1 N (local law) instead of 1.2-1.6 (finite elements) falsifies the finite elements and favours M1",
+  "Bench twist onset with the rod pressed at 1 and 3 N and a pull test for mu: an onset arm within 0.70-1.15 of the finite elements' r_bar confirms the arm calibration (M2/M3); an arm near the rod-fitted models' (about twice) falsifies it",
+  "If P6 is confirmed (creep decides the off-design disagreement): a creep criterion for the pads at the RL numerics (bed T2 at impratio 10 gives 6.4-11 deg/s on the curved tips), measured against a bench creep test under a held sub-onset twist",
+  "Pinned iCEM re-planned on the calibrated pads for every cell of each tip (D1 b covers one cell), then the bench chain on the tip that passes all three criteria"
+ ],
+ "script": "scripts/fe_contact_calibration_prior.py (prior rows); plan text by the planning stage"
+}

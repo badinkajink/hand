@@ -59,8 +59,8 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   **resumable** (per-item checkpoint), and watch for completion with a `run_in_background` waiter
   that matches the worker via `pgrep -f "[p]ython3 …"` (bracket-trick avoids self-match; don't rely
   on a captured PID — the launcher forks transient PIDs).
-- **Git LFS (2026-10-09).** Media, data rows (json, jsonl, csv, npz) and detailed result pages under `docs/` are
-  LFS files by the patterns in `.gitattributes`; commit them as usual and git-lfs stores them. Overview pages listed
+- **Git LFS (2026-10-09).** Media and detailed result pages under `docs/` are LFS files by the patterns in
+  `.gitattributes` (data files were too until 2026-11-09; see the next bullet); commit them as usual and git-lfs stores them. Overview pages listed
   with `!filter` in `.gitattributes` stay ordinary files. `.lfsconfig` makes fresh clones skip LFS content; this
   workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
@@ -72,8 +72,14 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   and each page's `texsvg_cache.json`, the meshes (stl, obj) under `assets/`, and the print file of the v3 tips'
   four-magnet pad 05R4. GitHub refuses a push whose commits name LFS objects it does not have (GH008), so the hook stops a
   push whose commits contain other LFS files and lists them: take them out of the commit, or ask the owner. Never run
-  `git lfs push --all` (GitHub's hint for GH008): it uploads every recording and data row here. STEP, 3mf and zipped CAD files (owner:
-  "remove the cad files, particularly the 3mf files"), data rows (json, jsonl, csv, npz) and raw recordings stay on the
+  `git lfs push --all` (GitHub's hint for GH008): it uploads every recording and data row here. **Data files (json, jsonl, csv, tsv, npz, npy) are
+  ordinary git files since 2026-11-09** (owner: "use LFS for only truly enduring, necessary large artifacts that cannot be
+  normal git objects"; raw data "can live offline for now"). The pre-commit hook stops a data file over 2 MB
+  (`git config lfslean.maxplain`): it stays out of git, listed in `.gitignore`, and moves by rsync; commit a smaller
+  summary instead. The 561 plan and trajectory files were converted then, so corvus gets plans by `git pull`. Data files
+  committed before stay LFS pointers until rewritten; one restored by `git checkout` comes back as pointer text, and
+  `git lfs smudge < FILE > OUT` gives its content from the local store. STEP, 3mf and zipped CAD files (owner:
+  "remove the cad files, particularly the 3mf files"), the earlier data files and raw recordings stay on the
   workstation; on GitHub they are pointers without content, and they move between machines by rsync over Tailscale (the
   workstation is `humanoid-desktop`). `docs/**/*.bin` is in `.gitignore`. Fresh clones skip LFS content by `.lfsconfig`;
   `git config lfs.fetchexclude ''` and `git config lfs.fetchinclude 'docs/**/*.html'` make a clone's checkouts fetch the

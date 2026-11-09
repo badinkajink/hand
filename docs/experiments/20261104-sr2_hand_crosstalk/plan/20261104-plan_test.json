@@ -1,3 +1,177 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:fc4a593ef62f49531e0f2f09a2875d8b92301f60541927ec9c30c9c3953a12c7
-size 2437
+{
+ "layout": "home",
+ "steps": [
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 60
+  },
+  {
+   "op": "joints",
+   "family": "test",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 45.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 2.0,
+   "speed": 60
+  },
+  {
+   "op": "joints",
+   "family": "test",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55.0,
+     "pip": 20.0
+    }
+   },
+   "dwell_s": 2.0,
+   "speed": 60
+  },
+  {
+   "op": "joints",
+   "family": "test_closest",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80.0,
+     "pip": 20.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 65.0,
+     "pip": 40.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 60
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 60
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "off",
+   "dwell_s": 3.0
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "on",
+   "dwell_s": 3.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -75.0,
+     "y": -55.0
+    }
+   },
+   "dwell_s": 3.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -80.0,
+     "y": -55.0
+    }
+   },
+   "dwell_s": 3.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 2.0,
+   "speed": 60
+  }
+ ]
+}

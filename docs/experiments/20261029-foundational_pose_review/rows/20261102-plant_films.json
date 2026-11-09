@@ -1,3 +1,207 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0de5218eb52f0710b4f02c3c7db9afb1590f07d7631b75d8fa6779ac622cfbf7
-size 4426
+{
+ "plants": [
+  {
+   "grid": "work10",
+   "task": "twist",
+   "call": 362,
+   "xy": [
+    110,
+    110
+   ],
+   "grasp": 10,
+   "top": "Twist, work plant, 10 MPa",
+   "gpu": 0.951,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_twist_work10.mp4",
+   "held": true,
+   "ramp_three_pads_max_deg": 84.72,
+   "w_rmse_ratio": 1.448,
+   "gap_mm": 3.015,
+   "score": 0.941,
+   "cpu": 0.941,
+   "frames": 195,
+   "plant": null
+  },
+  {
+   "grid": "scs25",
+   "task": "twist",
+   "call": 362,
+   "xy": [
+    110,
+    110
+   ],
+   "grasp": 10,
+   "top": "Twist, SCS0009, 2.5 MPa",
+   "gpu": 1.0,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_twist_scs25.mp4",
+   "held": true,
+   "ramp_three_pads_max_deg": 93.45,
+   "w_rmse_ratio": 1.516,
+   "gap_mm": 3.015,
+   "score": 1.0,
+   "cpu": 1.0,
+   "frames": 195,
+   "plant": null
+  },
+  {
+   "grid": "sts25",
+   "task": "twist",
+   "call": 362,
+   "xy": [
+    110,
+    110
+   ],
+   "grasp": 10,
+   "top": "Twist, STS3032, 2.5 MPa",
+   "gpu": 0.987,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_twist_sts25.mp4",
+   "held": true,
+   "ramp_three_pads_max_deg": 89.12,
+   "w_rmse_ratio": 1.98,
+   "gap_mm": 3.015,
+   "score": 0.99,
+   "cpu": 0.99,
+   "frames": 195,
+   "plant": null
+  },
+  {
+   "grid": "work10",
+   "task": "press",
+   "call": 170,
+   "xy": [
+    70,
+    150
+   ],
+   "grasp": 5,
+   "top": "Press, work plant, 10 MPa",
+   "gpu": 0.802,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_press_work10.mp4",
+   "held": true,
+   "theta_rmse_deg": 3.73,
+   "F_mean": {
+    "thumb": 3.217,
+    "index": 3.092,
+    "middle": 0.15
+   },
+   "gap_mm": 23.194,
+   "score": 0.814,
+   "cpu": 0.814,
+   "frames": 138,
+   "plant": null
+  },
+  {
+   "grid": "scs25",
+   "task": "press",
+   "call": 170,
+   "xy": [
+    70,
+    150
+   ],
+   "grasp": 5,
+   "top": "Press, SCS0009, 2.5 MPa",
+   "gpu": 0.816,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_press_scs25.mp4",
+   "held": true,
+   "theta_rmse_deg": 2.18,
+   "F_mean": {
+    "thumb": 2.97,
+    "index": 2.932,
+    "middle": 0.056
+   },
+   "gap_mm": 23.194,
+   "score": 0.891,
+   "cpu": 0.891,
+   "frames": 138,
+   "plant": null
+  },
+  {
+   "grid": "sts25",
+   "task": "press",
+   "call": 170,
+   "xy": [
+    70,
+    150
+   ],
+   "grasp": 5,
+   "top": "Press, STS3032, 2.5 MPa",
+   "gpu": 0.746,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_plants_press_sts25.mp4",
+   "held": true,
+   "theta_rmse_deg": 4.99,
+   "F_mean": {
+    "thumb": 3.23,
+    "index": 3.124,
+    "middle": 0.115
+   },
+   "gap_mm": 23.194,
+   "score": 0.75,
+   "cpu": 0.75,
+   "frames": 138,
+   "plant": null
+  }
+ ],
+ "friction": [
+  {
+   "grid": "mu04",
+   "task": "twist",
+   "call": 345,
+   "xy": [
+    105,
+    150
+   ],
+   "grasp": 0,
+   "top": "STS3032, friction 0.4",
+   "gpu": 0.0,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_friction_twist_mu04.mp4",
+   "held": false,
+   "ramp_three_pads_max_deg": 0.0,
+   "w_rmse_ratio": 4.282,
+   "gap_mm": 5.887,
+   "score": 0.0,
+   "cpu": 0.0,
+   "frames": 195,
+   "plant": null
+  },
+  {
+   "grid": "sts25",
+   "task": "twist",
+   "call": 345,
+   "xy": [
+    105,
+    150
+   ],
+   "grasp": 0,
+   "top": "STS3032, friction 1.0",
+   "gpu": 1.0,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_friction_twist_sts25.mp4",
+   "held": true,
+   "ramp_three_pads_max_deg": 92.24,
+   "w_rmse_ratio": 0.668,
+   "gap_mm": 5.887,
+   "score": 1.0,
+   "cpu": 1.0,
+   "frames": 195,
+   "plant": null
+  },
+  {
+   "grid": "mu24",
+   "task": "twist",
+   "call": 345,
+   "xy": [
+    105,
+    150
+   ],
+   "grasp": 0,
+   "top": "STS3032, friction 2.4",
+   "gpu": 0.234,
+   "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261102-clip_friction_twist_mu24.mp4",
+   "held": true,
+   "ramp_three_pads_max_deg": 20.82,
+   "w_rmse_ratio": 0.882,
+   "gap_mm": 5.887,
+   "score": 0.231,
+   "cpu": 0.231,
+   "frames": 195,
+   "plant": null
+  }
+ ]
+}

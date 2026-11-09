@@ -1,3 +1,75 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:8a301b6cfd57c1197938ffcce75cf8c25110b54a27794c97ca4de1623d84e827
-size 1333
+{
+ "plant": {
+  "kp": 0.72,
+  "kv": 0.0,
+  "forcerange": 0.18,
+  "damping": 0.0144,
+  "frictionloss": 0.0
+ },
+ "spec": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+ "checks": [
+  {
+   "run": "results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip",
+   "step60": {
+    "tool_z_mm_median": 112.22950744628906,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 112.53199768066406,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "run": "results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7mesh",
+   "step60": {
+    "tool_z_mm_median": 109.40241241455078,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 109.60369110107422,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     1.0,
+     1.0,
+     1.0
+    ]
+   }
+  },
+  {
+   "run": "results/phase1/real_v1/20261011-sv1_u0308_b050_servo_tip_tpu2.7pads1",
+   "step60": {
+    "tool_z_mm_median": 109.85675811767578,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     23.0,
+     14.8,
+     8.0
+    ]
+   },
+   "step150": {
+    "tool_z_mm_median": 109.95577239990234,
+    "held_worlds": 64,
+    "tip_contacts_mean": [
+     23.0,
+     15.0,
+     8.0
+    ]
+   }
+  }
+ ]
+}

@@ -1,3 +1,2231 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:769447bdd613ecde34a859edef0d950ad5bb1c3c8709018e55c854c003fdf581
-size 34225
+{
+ "version": 1,
+ "kind": "ati_mass_calibration",
+ "made": "2026-10-23 12:06",
+ "note": "stations for scripts/ati_calibration_session.py; built by scripts/ati_calibration_plan.py",
+ "geometry": {
+  "T_EM": [
+   [
+    -0.037515773181984846,
+    0.9992960355983396,
+    0.0,
+    0.0
+   ],
+   [
+    -0.9992960355983396,
+    -0.037515773181984846,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0,
+    35.0
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "T_MA": [
+   [
+    -0.406737,
+    -0.913545,
+    0.0,
+    0.0
+   ],
+   [
+    0.913545,
+    -0.406737,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0,
+    50.7
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "T_EA": [
+   [
+    0.9281609498774062,
+    -0.3721783246196255,
+    0.0,
+    0.0
+   ],
+   [
+    0.37217832461962547,
+    0.928160949877406,
+    0.0,
+    0.0
+   ],
+   [
+    0.0,
+    0.0,
+    1.0,
+    85.7
+   ],
+   [
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ]
+  ],
+  "eyes": [
+   {
+    "name": "+x",
+    "p_M": [
+     80.0,
+     0.0,
+     69.7
+    ],
+    "u_M": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "p_A": [
+     -32.539,
+     -73.084,
+     19.0
+    ],
+    "u_A": [
+     -0.406737,
+     -0.913545,
+     0.0
+    ]
+   },
+   {
+    "name": "-x",
+    "p_M": [
+     -80.0,
+     0.0,
+     69.7
+    ],
+    "u_M": [
+     -1.0,
+     0.0,
+     0.0
+    ],
+    "p_A": [
+     32.539,
+     73.084,
+     19.0
+    ],
+    "u_A": [
+     0.406737,
+     0.913545,
+     0.0
+    ]
+   },
+   {
+    "name": "+y",
+    "p_M": [
+     0.0,
+     80.0,
+     69.7
+    ],
+    "u_M": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "p_A": [
+     73.084,
+     -32.539,
+     19.0
+    ],
+    "u_A": [
+     0.913545,
+     -0.406737,
+     0.0
+    ]
+   },
+   {
+    "name": "-y",
+    "p_M": [
+     0.0,
+     -80.0,
+     69.7
+    ],
+    "u_M": [
+     0.0,
+     -1.0,
+     0.0
+    ],
+    "p_A": [
+     -73.084,
+     32.539,
+     19.0
+    ],
+    "u_A": [
+     -0.913545,
+     0.406737,
+     0.0
+    ]
+   },
+   {
+    "name": "+z",
+    "p_M": [
+     0.0,
+     0.0,
+     179.7
+    ],
+    "u_M": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "p_A": [
+     0.0,
+     0.0,
+     129.0
+    ],
+    "u_A": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   }
+  ],
+  "eye": {
+   "hole_d": 1.2,
+   "wall": 1.6
+  },
+  "z_M": {
+   "adapter_top": 15.0,
+   "base_top": 33.0,
+   "ati_mount_face": 35.0,
+   "ati_origin": 50.7,
+   "top_face": 61.7,
+   "cross_post_eye": 179.7
+  },
+  "mount_turn_deg": -92.15,
+  "parts": "docs/experiments/20261023-ati_ft_calibration/20261023-ati_stack_parts.json",
+  "clock_deg": 114.0
+ },
+ "mass": {
+  "nominal_kg": 0.5,
+  "line_mm": 45.0,
+  "r_mm": 25.0,
+  "h_mm": 80.0
+ },
+ "g_local": 9.796,
+ "p0_mm": [
+  -180.0,
+  -420.0,
+  430.0
+ ],
+ "home_q_deg": [
+  48.294,
+  -86.25,
+  109.546,
+  -24.819,
+  47.342,
+  6.43
+ ],
+ "speed": {
+  "v": 0.3,
+  "a": 0.3
+ },
+ "time": {
+  "settle_s": 4.0,
+  "rest_s": 3.0,
+  "settle_max_s": 15.0,
+  "operator_s": 60.0
+ },
+ "payload": {
+  "kg": 0.555,
+  "cog_mm": [
+   0.0,
+   0.0,
+   50.0
+  ],
+  "with_mass": {
+   "kg": 1.055,
+   "cog_mm": [
+    0.0,
+    0.0,
+    95.8
+   ]
+  },
+  "items": {
+   "hex_e": 260.0,
+   "adapter": 24.9,
+   "m6_screws_inserts": 29.2,
+   "ati_mini45": 92.0,
+   "m3_screws": 20.0,
+   "ati_base": 45.6,
+   "ati_top": 22.9,
+   "hook_cross": 60.4
+  }
+ },
+ "end_home": true,
+ "stations": [
+  {
+   "id": "st-00",
+   "q_deg": [
+    54.79,
+    -68.581,
+    50.895,
+    103.432,
+    94.799,
+    5.269
+   ],
+   "g_A": [
+    0.04045,
+    -0.10404,
+    0.99375
+   ],
+   "eyes": [
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 216.6,
+    "links_cell": 409.4,
+    "mass_line_+z": 6.1,
+    "mass_tool_+z": 47.8,
+    "mass_links_+z": 221.2,
+    "mass_cell_+z": 113.7
+   }
+  },
+  {
+   "id": "st-01",
+   "q_deg": [
+    52.267,
+    -74.981,
+    57.391,
+    90.681,
+    88.115,
+    3.251
+   ],
+   "g_A": [
+    -0.15189,
+    -0.25003,
+    0.95625
+   ],
+   "eyes": [
+    "+x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 208.1,
+    "links_cell": 412.7,
+    "mass_line_+x": 1.9,
+    "mass_tool_+x": 41.9,
+    "mass_links_+x": 121.6,
+    "mass_cell_+x": 208.6,
+    "mass_line_+z": 6.0,
+    "mass_tool_+z": 46.2,
+    "mass_links_+z": 220.9,
+    "mass_cell_+z": 92.5
+   }
+  },
+  {
+   "id": "st-02",
+   "q_deg": [
+    48.582,
+    -63.701,
+    49.987,
+    119.274,
+    78.423,
+    2.715
+   ],
+   "g_A": [
+    -0.06431,
+    0.32435,
+    0.94375
+   ],
+   "eyes": [
+    "-x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 225.3,
+    "links_cell": 392.7,
+    "mass_line_-x": 2.0,
+    "mass_tool_-x": 41.0,
+    "mass_links_-x": 121.8,
+    "mass_cell_-x": 150.3,
+    "mass_line_+z": 5.7,
+    "mass_tool_+z": 45.9,
+    "mass_links_+z": 206.6,
+    "mass_cell_+z": 123.4
+   }
+  },
+  {
+   "id": "st-03",
+   "q_deg": [
+    60.705,
+    -67.311,
+    50.975,
+    103.218,
+    111.151,
+    5.858
+   ],
+   "g_A": [
+    0.29369,
+    -0.21568,
+    0.93125
+   ],
+   "eyes": [
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 38.8,
+    "port": 41.0,
+    "tool_cell": 226.4,
+    "links_cell": 392.9,
+    "mass_line_+y": 2.4,
+    "mass_tool_+y": 42.2,
+    "mass_links_+y": 121.6,
+    "mass_cell_+y": 149.9,
+    "mass_line_+z": 5.7,
+    "mass_tool_+z": 46.1,
+    "mass_links_+z": 216.6,
+    "mass_cell_+z": 124.7
+   }
+  },
+  {
+   "id": "st-04",
+   "q_deg": [
+    46.322,
+    -76.499,
+    60.64,
+    90.38,
+    72.427,
+    14.48
+   ],
+   "g_A": [
+    -0.39253,
+    -0.04264,
+    0.91875
+   ],
+   "eyes": [
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 211.2,
+    "links_cell": 416.1,
+    "mass_line_-y": 2.1,
+    "mass_tool_-y": 41.8,
+    "mass_links_-y": 121.7,
+    "mass_cell_-y": 198.3,
+    "mass_line_+z": 5.6,
+    "mass_tool_+z": 45.6,
+    "mass_links_+z": 220.6,
+    "mass_cell_+z": 94.9
+   }
+  },
+  {
+   "id": "st-05",
+   "q_deg": [
+    54.45,
+    -58.71,
+    45.396,
+    128.035,
+    93.893,
+    11.07
+   ],
+   "g_A": [
+    0.27906,
+    0.31755,
+    0.90625
+   ],
+   "eyes": [
+    "-x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 24.0,
+    "port": 37.1,
+    "tool_cell": 253.7,
+    "links_cell": 370.7,
+    "mass_line_-x": 2.6,
+    "mass_tool_-x": 41.9,
+    "mass_links_-x": 120.1,
+    "mass_cell_-x": 143.5,
+    "mass_line_+z": 5.6,
+    "mass_tool_+z": 45.8,
+    "mass_links_+z": 157.2,
+    "mass_cell_+z": 155.8
+   }
+  },
+  {
+   "id": "st-06",
+   "q_deg": [
+    57.218,
+    -77.184,
+    60.06,
+    82.849,
+    101.354,
+    0.55
+   ],
+   "g_A": [
+    0.00927,
+    -0.44847,
+    0.89375
+   ],
+   "eyes": [
+    "+x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 210.5,
+    "links_cell": 399.8,
+    "mass_line_+x": 2.7,
+    "mass_tool_+x": 41.8,
+    "mass_links_+x": 121.6,
+    "mass_cell_+x": 207.4,
+    "mass_line_+z": 5.5,
+    "mass_tool_+z": 45.8,
+    "mass_links_+z": 220.4,
+    "mass_cell_+z": 91.8
+   }
+  },
+  {
+   "id": "st-07",
+   "q_deg": [
+    42.844,
+    -69.584,
+    58.28,
+    109.628,
+    62.953,
+    6.636
+   ],
+   "g_A": [
+    -0.3264,
+    0.34185,
+    0.88125
+   ],
+   "eyes": [
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 213.2,
+    "links_cell": 396.4,
+    "mass_line_-y": 3.5,
+    "mass_tool_-y": 42.4,
+    "mass_links_-y": 121.9,
+    "mass_cell_-y": 198.0,
+    "mass_line_+z": 5.4,
+    "mass_tool_+z": 45.1,
+    "mass_links_+z": 220.4,
+    "mass_cell_+z": 96.4
+   }
+  },
+  {
+   "id": "st-08",
+   "q_deg": [
+    63.209,
+    -73.608,
+    58.364,
+    86.529,
+    118.639,
+    -0.748
+   ],
+   "g_A": [
+    0.30799,
+    -0.46278,
+    0.83125
+   ],
+   "eyes": [
+    "+x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 56.8,
+    "port": 45.1,
+    "tool_cell": 224.8,
+    "links_cell": 385.3,
+    "mass_line_+x": 1.9,
+    "mass_tool_+x": 40.7,
+    "mass_links_+x": 121.0,
+    "mass_cell_+x": 223.6,
+    "mass_line_+y": 2.9,
+    "mass_tool_+y": 42.2,
+    "mass_links_+y": 121.3,
+    "mass_cell_+y": 143.8,
+    "mass_line_+z": 5.0,
+    "mass_tool_+z": 45.3,
+    "mass_links_+z": 220.1,
+    "mass_cell_+z": 113.2
+   }
+  },
+  {
+   "id": "st-09",
+   "q_deg": [
+    48.561,
+    -59.252,
+    50.854,
+    132.996,
+    78.366,
+    55.817
+   ],
+   "g_A": [
+    0.51925,
+    0.28345,
+    0.80625
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 46.8,
+    "port": 20.3,
+    "tool_cell": 251.9,
+    "links_cell": 341.4,
+    "mass_line_-x": 2.8,
+    "mass_tool_-x": 41.7,
+    "mass_links_-x": 97.8,
+    "mass_cell_-x": 173.0,
+    "mass_line_+y": 2.3,
+    "mass_tool_+y": 41.6,
+    "mass_links_+y": 121.1,
+    "mass_cell_+y": 151.1,
+    "mass_line_+z": 4.9,
+    "mass_tool_+z": 44.8,
+    "mass_links_+z": 138.5,
+    "mass_cell_+z": 154.8
+   }
+  },
+  {
+   "id": "st-10",
+   "q_deg": [
+    41.401,
+    -83.623,
+    70.379,
+    75.307,
+    58.871,
+    5.281
+   ],
+   "g_A": [
+    -0.62011,
+    -0.20867,
+    0.75625
+   ],
+   "eyes": [
+    "+x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 219.9,
+    "links_cell": 408.3,
+    "mass_line_+x": 2.9,
+    "mass_tool_+x": 42.1,
+    "mass_links_+x": 121.0,
+    "mass_cell_+x": 186.2,
+    "mass_line_-y": 3.4,
+    "mass_tool_-y": 42.0,
+    "mass_links_-y": 121.1,
+    "mass_cell_-y": 176.2,
+    "mass_line_+z": 5.0,
+    "mass_tool_+z": 44.2,
+    "mass_links_+z": 219.6,
+    "mass_cell_+z": 98.8
+   }
+  },
+  {
+   "id": "st-11",
+   "q_deg": [
+    64.224,
+    -78.489,
+    64.409,
+    73.474,
+    121.83,
+    6.285
+   ],
+   "g_A": [
+    0.1602,
+    -0.66303,
+    0.73125
+   ],
+   "eyes": [
+    "+x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 39.5,
+    "tool_cell": 229.8,
+    "links_cell": 376.0,
+    "mass_line_+x": 3.3,
+    "mass_tool_+x": 42.1,
+    "mass_links_+x": 121.1,
+    "mass_cell_+x": 201.8,
+    "mass_line_+y": 2.7,
+    "mass_tool_+y": 41.8,
+    "mass_links_+y": 120.7,
+    "mass_cell_+y": 145.3,
+    "mass_line_+z": 4.8,
+    "mass_tool_+z": 44.8,
+    "mass_links_+z": 219.4,
+    "mass_cell_+z": 112.4
+   }
+  },
+  {
+   "id": "st-12",
+   "q_deg": [
+    46.824,
+    -59.257,
+    54.857,
+    137.045,
+    73.767,
+    76.467
+   ],
+   "g_A": [
+    0.70006,
+    0.10547,
+    0.70625
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 59.1,
+    "port": 19.6,
+    "tool_cell": 258.0,
+    "links_cell": 315.9,
+    "mass_line_-x": 2.5,
+    "mass_tool_-x": 41.3,
+    "mass_links_-x": 77.3,
+    "mass_cell_-x": 202.2,
+    "mass_line_+y": 3.6,
+    "mass_tool_+y": 42.2,
+    "mass_links_+y": 121.1,
+    "mass_cell_+y": 136.0,
+    "mass_line_+z": 4.3,
+    "mass_tool_+z": 44.0,
+    "mass_links_+z": 118.9,
+    "mass_cell_+z": 162.2
+   }
+  },
+  {
+   "id": "st-13",
+   "q_deg": [
+    40.084,
+    -66.224,
+    64.213,
+    125.772,
+    55.029,
+    15.208
+   ],
+   "g_A": [
+    -0.04535,
+    0.73064,
+    0.68125
+   ],
+   "eyes": [
+    "-x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 48.6,
+    "tool_cell": 239.3,
+    "links_cell": 340.7,
+    "mass_line_-x": 3.9,
+    "mass_tool_-x": 42.2,
+    "mass_links_-x": 121.3,
+    "mass_cell_-x": 135.6,
+    "mass_line_-y": 2.3,
+    "mass_tool_-y": 41.6,
+    "mass_links_-y": 120.6,
+    "mass_cell_-y": 225.2,
+    "mass_line_+z": 4.2,
+    "mass_tool_+z": 43.9,
+    "mass_links_+z": 191.6,
+    "mass_cell_+z": 124.7
+   }
+  },
+  {
+   "id": "st-14",
+   "q_deg": [
+    37.276,
+    -83.756,
+    73.718,
+    75.2,
+    46.315,
+    13.442
+   ],
+   "g_A": [
+    -0.7543,
+    0.01927,
+    0.65625
+   ],
+   "eyes": [
+    "+x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.7,
+    "tool_cell": 226.3,
+    "links_cell": 397.3,
+    "mass_line_+x": 2.5,
+    "mass_tool_+x": 40.9,
+    "mass_links_+x": 120.1,
+    "mass_cell_+x": 190.6,
+    "mass_line_-y": 4.4,
+    "mass_tool_-y": 42.6,
+    "mass_links_-y": 121.2,
+    "mass_cell_-y": 165.1,
+    "mass_line_+z": 4.0,
+    "mass_tool_+z": 43.8,
+    "mass_links_+z": 218.9,
+    "mass_cell_+z": 103.8
+   }
+  },
+  {
+   "id": "st-15",
+   "q_deg": [
+    46.962,
+    -58.618,
+    56.305,
+    140.304,
+    74.133,
+    40.955
+   ],
+   "g_A": [
+    0.57728,
+    0.50233,
+    0.64375
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 43.1,
+    "port": 32.5,
+    "tool_cell": 269.8,
+    "links_cell": 298.1,
+    "mass_line_-x": 4.3,
+    "mass_tool_-x": 42.6,
+    "mass_links_-x": 104.8,
+    "mass_cell_-x": 158.1,
+    "mass_line_+y": 2.1,
+    "mass_tool_+y": 41.2,
+    "mass_links_+y": 120.1,
+    "mass_cell_+y": 152.7,
+    "mass_line_+z": 3.9,
+    "mass_tool_+z": 44.1,
+    "mass_links_+z": 103.0,
+    "mass_cell_+z": 172.7
+   }
+  },
+  {
+   "id": "st-16",
+   "q_deg": [
+    35.645,
+    -73.099,
+    71.936,
+    109.76,
+    40.756,
+    8.187
+   ],
+   "g_A": [
+    -0.4619,
+    0.63545,
+    0.61875
+   ],
+   "eyes": [
+    "-x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 231.7,
+    "links_cell": 372.6,
+    "mass_line_-x": 2.5,
+    "mass_tool_-x": 41.4,
+    "mass_links_-x": 120.2,
+    "mass_cell_-x": 148.3,
+    "mass_line_-y": 4.1,
+    "mass_tool_-y": 42.9,
+    "mass_links_-y": 121.1,
+    "mass_cell_-y": 192.6,
+    "mass_line_+z": 3.8,
+    "mass_tool_+z": 43.7,
+    "mass_links_+z": 218.8,
+    "mass_cell_+z": 110.1
+   }
+  },
+  {
+   "id": "st-17",
+   "q_deg": [
+    38.545,
+    -88.886,
+    77.722,
+    61.611,
+    50.359,
+    -0.533
+   ],
+   "g_A": [
+    -0.68974,
+    -0.4144,
+    0.59375
+   ],
+   "eyes": [
+    "+x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 236.8,
+    "links_cell": 396.4,
+    "mass_line_+x": 4.0,
+    "mass_tool_+x": 42.8,
+    "mass_links_+x": 120.6,
+    "mass_cell_+x": 171.5,
+    "mass_line_-y": 3.2,
+    "mass_tool_-y": 42.1,
+    "mass_links_-y": 120.2,
+    "mass_cell_-y": 168.5,
+    "mass_line_+z": 4.0,
+    "mass_tool_+z": 43.6,
+    "mass_links_+z": 218.6,
+    "mass_cell_+z": 116.5
+   }
+  },
+  {
+   "id": "st-18",
+   "q_deg": [
+    66.377,
+    -86.745,
+    76.352,
+    47.501,
+    129.019,
+    -2.302
+   ],
+   "g_A": [
+    0.09111,
+    -0.87862,
+    0.46875
+   ],
+   "eyes": [
+    "+x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 34.6,
+    "tool_cell": 255.0,
+    "links_cell": 354.2,
+    "mass_line_+x": 4.7,
+    "mass_tool_+x": 43.1,
+    "mass_links_+x": 120.2,
+    "mass_cell_+x": 184.8,
+    "mass_line_+y": 2.7,
+    "mass_tool_+y": 42.5,
+    "mass_links_+y": 119.3,
+    "mass_cell_+y": 147.7,
+    "mass_line_+z": 3.1,
+    "mass_tool_+z": 43.5,
+    "mass_links_+z": 214.9,
+    "mass_cell_+z": 134.5
+   }
+  },
+  {
+   "id": "st-19",
+   "q_deg": [
+    33.128,
+    -74.551,
+    79.733,
+    112.027,
+    30.865,
+    -11.182
+   ],
+   "g_A": [
+    -0.66556,
+    0.59065,
+    0.45625
+   ],
+   "eyes": [
+    "-x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 248.9,
+    "links_cell": 342.2,
+    "mass_line_-x": 1.9,
+    "mass_tool_-x": 41.0,
+    "mass_links_-x": 119.0,
+    "mass_cell_-x": 158.4,
+    "mass_line_-y": 5.1,
+    "mass_tool_-y": 44.0,
+    "mass_links_-y": 120.7,
+    "mass_cell_-y": 172.4,
+    "mass_line_+z": 3.0,
+    "mass_tool_+z": 43.5,
+    "mass_links_+z": 214.4,
+    "mass_cell_+z": 127.8
+   }
+  },
+  {
+   "id": "st-20",
+   "q_deg": [
+    43.693,
+    -60.51,
+    65.943,
+    145.33,
+    65.305,
+    80.407
+   ],
+   "g_A": [
+    0.89604,
+    0.01415,
+    0.44375
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 38.5,
+    "tool_cell": 255.2,
+    "links_cell": 258.2,
+    "mass_line_-x": 2.3,
+    "mass_tool_-x": 41.8,
+    "mass_links_-x": 77.0,
+    "mass_cell_-x": 220.2,
+    "mass_line_+y": 5.0,
+    "mass_tool_+y": 43.3,
+    "mass_links_+y": 120.2,
+    "mass_cell_+y": 133.8,
+    "mass_line_+z": 2.8,
+    "mass_tool_+z": 43.4,
+    "mass_links_+z": 95.6,
+    "mass_cell_+z": 182.6
+   }
+  },
+  {
+   "id": "st-21",
+   "q_deg": [
+    42.713,
+    -97.079,
+    86.166,
+    39.978,
+    62.587,
+    10.4
+   ],
+   "g_A": [
+    -0.65557,
+    -0.61988,
+    0.43125
+   ],
+   "eyes": [
+    "+x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 250.5,
+    "links_cell": 383.4,
+    "mass_line_+x": 5.1,
+    "mass_tool_+x": 44.2,
+    "mass_links_+x": 120.2,
+    "mass_cell_+x": 152.1,
+    "mass_line_-y": 2.7,
+    "mass_tool_-y": 42.0,
+    "mass_links_-y": 119.0,
+    "mass_cell_-y": 182.3,
+    "mass_line_+z": 2.9,
+    "mass_tool_+z": 43.4,
+    "mass_links_+z": 212.6,
+    "mass_cell_+z": 130.4
+   }
+  },
+  {
+   "id": "st-22",
+   "q_deg": [
+    38.968,
+    -65.291,
+    73.341,
+    139.685,
+    51.666,
+    3.645
+   ],
+   "g_A": [
+    0.0651,
+    0.90576,
+    0.41875
+   ],
+   "eyes": [
+    "-x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 253.8,
+    "links_cell": 271.9,
+    "mass_line_-x": 5.3,
+    "mass_tool_-x": 43.4,
+    "mass_links_-x": 120.4,
+    "mass_cell_-x": 132.7,
+    "mass_line_-y": 2.1,
+    "mass_tool_-y": 41.9,
+    "mass_links_-y": 118.1,
+    "mass_cell_-y": 233.8,
+    "mass_line_+z": 2.5,
+    "mass_tool_+z": 43.4,
+    "mass_links_+z": 155.0,
+    "mass_cell_+z": 160.8
+   }
+  },
+  {
+   "id": "st-23",
+   "q_deg": [
+    66.198,
+    -89.115,
+    79.564,
+    40.771,
+    128.392,
+    -39.605
+   ],
+   "g_A": [
+    0.56735,
+    -0.7163,
+    0.40625
+   ],
+   "eyes": [
+    "+x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.8,
+    "tool_cell": 254.8,
+    "links_cell": 350.1,
+    "mass_line_+x": 2.6,
+    "mass_tool_+x": 42.0,
+    "mass_links_+x": 119.0,
+    "mass_cell_+x": 211.5,
+    "mass_line_+y": 5.0,
+    "mass_tool_+y": 44.4,
+    "mass_links_+y": 119.9,
+    "mass_cell_+y": 135.3,
+    "mass_line_+z": 3.0,
+    "mass_tool_+z": 43.4,
+    "mass_links_+z": 211.5,
+    "mass_cell_+z": 140.4
+   }
+  },
+  {
+   "id": "st-24",
+   "q_deg": [
+    44.076,
+    -60.123,
+    67.401,
+    148.128,
+    66.356,
+    45.186
+   ],
+   "g_A": [
+    0.7721,
+    0.50844,
+    0.38125
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 40.8,
+    "tool_cell": 267.9,
+    "links_cell": 243.3,
+    "mass_line_-x": 4.7,
+    "mass_tool_-x": 43.3,
+    "mass_links_-x": 103.3,
+    "mass_cell_-x": 176.0,
+    "mass_line_+y": 3.6,
+    "mass_tool_+y": 42.4,
+    "mass_links_+y": 119.2,
+    "mass_cell_+y": 145.9,
+    "mass_line_+z": 2.5,
+    "mass_tool_+z": 43.2,
+    "mass_links_+z": 83.7,
+    "mass_cell_+z": 192.7
+   }
+  },
+  {
+   "id": "st-25",
+   "q_deg": [
+    33.409,
+    -72.72,
+    83.793,
+    126.809,
+    32.086,
+    -12.747
+   ],
+   "g_A": [
+    -0.4437,
+    0.82232,
+    0.35625
+   ],
+   "eyes": [
+    "-x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 262.6,
+    "links_cell": 297.3,
+    "mass_line_-x": 3.9,
+    "mass_tool_-x": 42.3,
+    "mass_links_-x": 119.3,
+    "mass_cell_-x": 139.9,
+    "mass_line_-y": 4.6,
+    "mass_tool_-y": 43.6,
+    "mass_links_-y": 119.9,
+    "mass_cell_-y": 187.9,
+    "mass_line_+z": 2.2,
+    "mass_tool_+z": 43.0,
+    "mass_links_+z": 208.9,
+    "mass_cell_+z": 143.9
+   }
+  },
+  {
+   "id": "st-26",
+   "q_deg": [
+    51.397,
+    -99.533,
+    89.504,
+    30.191,
+    85.826,
+    -94.223
+   ],
+   "g_A": [
+    0.88706,
+    -0.30817,
+    0.34375
+   ],
+   "eyes": [
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.7,
+    "tool_cell": 259.5,
+    "links_cell": 365.9,
+    "mass_line_+y": 5.7,
+    "mass_tool_+y": 45.0,
+    "mass_links_+y": 120.0,
+    "mass_cell_+y": 155.9,
+    "mass_line_+z": 2.2,
+    "mass_tool_+z": 42.9,
+    "mass_links_+z": 207.9,
+    "mass_cell_+z": 141.3
+   }
+  },
+  {
+   "id": "st-27",
+   "q_deg": [
+    33.183,
+    -92.041,
+    85.542,
+    46.376,
+    31.109,
+    9.24
+   ],
+   "g_A": [
+    -0.86637,
+    -0.37374,
+    0.33125
+   ],
+   "eyes": [
+    "+x",
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 264.5,
+    "links_cell": 374.3,
+    "mass_line_+x": 4.2,
+    "mass_tool_+x": 43.5,
+    "mass_links_+x": 119.4,
+    "mass_cell_+x": 162.0,
+    "mass_line_-y": 4.0,
+    "mass_tool_-y": 42.6,
+    "mass_links_-y": 119.2,
+    "mass_cell_-y": 150.7,
+    "mass_line_+z": 2.3,
+    "mass_tool_+z": 42.7,
+    "mass_links_+z": 207.0,
+    "mass_cell_+z": 144.4
+   }
+  },
+  {
+   "id": "st-28",
+   "q_deg": [
+    37.347,
+    -67.088,
+    79.172,
+    141.87,
+    46.546,
+    20.902
+   ],
+   "g_A": [
+    0.38814,
+    0.86472,
+    0.31875
+   ],
+   "eyes": [
+    "-x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 48.6,
+    "tool_cell": 259.6,
+    "links_cell": 259.0,
+    "mass_line_-x": 5.8,
+    "mass_tool_-x": 45.5,
+    "mass_links_-x": 120.2,
+    "mass_cell_-x": 146.6,
+    "mass_line_+z": 2.4,
+    "mass_tool_+z": 42.7,
+    "mass_links_+z": 165.7,
+    "mass_cell_+z": 166.8
+   }
+  },
+  {
+   "id": "st-29",
+   "q_deg": [
+    47.147,
+    -100.863,
+    91.376,
+    28.007,
+    74.624,
+    -45.244
+   ],
+   "g_A": [
+    0.29921,
+    -0.90371,
+    0.30625
+   ],
+   "eyes": [
+    "+x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.7,
+    "tool_cell": 263.9,
+    "links_cell": 366.5,
+    "mass_line_+x": 4.3,
+    "mass_tool_+x": 43.4,
+    "mass_links_+x": 119.2,
+    "mass_cell_+x": 167.2,
+    "mass_line_+y": 3.9,
+    "mass_tool_+y": 43.8,
+    "mass_links_+y": 119.0,
+    "mass_cell_+y": 145.2,
+    "mass_line_+z": 1.9,
+    "mass_tool_+z": 42.5,
+    "mass_links_+z": 205.8,
+    "mass_cell_+z": 146.1
+   }
+  },
+  {
+   "id": "st-30",
+   "q_deg": [
+    34.772,
+    -96.169,
+    88.76,
+    36.225,
+    37.549,
+    73.774
+   ],
+   "g_A": [
+    -0.8345,
+    0.46617,
+    0.29375
+   ],
+   "eyes": [
+    "-y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.5,
+    "tool_cell": 261.1,
+    "links_cell": 374.8,
+    "mass_line_-y": 5.8,
+    "mass_tool_-y": 45.5,
+    "mass_links_-y": 120.0,
+    "mass_cell_-y": 153.7,
+    "mass_line_+z": 1.8,
+    "mass_tool_+z": 42.6,
+    "mass_links_+z": 205.0,
+    "mass_cell_+z": 152.5
+   }
+  },
+  {
+   "id": "st-31",
+   "q_deg": [
+    42.526,
+    -61.556,
+    72.628,
+    150.365,
+    62.063,
+    63.788
+   ],
+   "g_A": [
+    0.93388,
+    0.22082,
+    0.28125
+   ],
+   "eyes": [
+    "-x",
+    "+y",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 44.8,
+    "tool_cell": 257.1,
+    "links_cell": 228.4,
+    "mass_line_-x": 3.6,
+    "mass_tool_-x": 42.7,
+    "mass_links_-x": 92.6,
+    "mass_cell_-x": 207.9,
+    "mass_line_+y": 4.8,
+    "mass_tool_+y": 43.5,
+    "mass_links_+y": 119.3,
+    "mass_cell_+y": 136.3,
+    "mass_line_+z": 2.0,
+    "mass_tool_+z": 42.4,
+    "mass_links_+z": 92.9,
+    "mass_cell_+z": 197.2
+   }
+  },
+  {
+   "id": "st-32",
+   "q_deg": [
+    42.958,
+    -101.447,
+    92.691,
+    26.268,
+    63.27,
+    4.277
+   ],
+   "g_A": [
+    -0.54146,
+    -0.79661,
+    0.26875
+   ],
+   "eyes": [
+    "+x",
+    "+z"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.6,
+    "tool_cell": 258.0,
+    "links_cell": 367.6,
+    "mass_line_+x": 5.7,
+    "mass_tool_+x": 45.7,
+    "mass_links_+x": 119.7,
+    "mass_cell_+x": 147.5,
+    "mass_line_+z": 2.3,
+    "mass_tool_+z": 42.2,
+    "mass_links_+z": 204.1,
+    "mass_cell_+z": 151.0
+   }
+  },
+  {
+   "id": "st-33",
+   "q_deg": [
+    49.859,
+    -102.826,
+    94.962,
+    19.892,
+    81.784,
+    -21.851
+   ],
+   "g_A": [
+    -0.02976,
+    -0.97805,
+    0.20625
+   ],
+   "eyes": [
+    "+x",
+    "+y"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 48.5,
+    "tool_cell": 262.6,
+    "links_cell": 354.8,
+    "mass_line_+x": 5.9,
+    "mass_tool_+x": 44.9,
+    "mass_links_+x": 119.2,
+    "mass_cell_+x": 152.5,
+    "mass_line_+y": 2.4,
+    "mass_tool_+y": 43.2,
+    "mass_links_+y": 116.2,
+    "mass_cell_+y": 158.5
+   }
+  },
+  {
+   "id": "st-34",
+   "q_deg": [
+    38.57,
+    -106.036,
+    101.931,
+    4.569,
+    50.438,
+    19.721
+   ],
+   "g_A": [
+    -0.66739,
+    -0.74468,
+    0.00625
+   ],
+   "eyes": [
+    "+x",
+    "-y"
+   ],
+   "clear": {
+    "self_tool": 64.9,
+    "port": 48.6,
+    "tool_cell": 254.8,
+    "links_cell": 349.0,
+    "mass_line_+x": 5.7,
+    "mass_tool_+x": 46.3,
+    "mass_links_+x": 118.3,
+    "mass_cell_+x": 136.7,
+    "mass_line_-y": 2.6,
+    "mass_tool_-y": 43.1,
+    "mass_links_-y": 105.6,
+    "mass_cell_-y": 181.3
+   }
+  },
+  {
+   "id": "st-35",
+   "q_deg": [
+    41.093,
+    -106.99,
+    103.209,
+    2.514,
+    57.982,
+    -64.295
+   ],
+   "g_A": [
+    0.68337,
+    -0.72983,
+    -0.01875
+   ],
+   "eyes": [
+    "+x",
+    "+y"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.5,
+    "tool_cell": 255.3,
+    "links_cell": 343.9,
+    "mass_line_+x": 2.4,
+    "mass_tool_+x": 43.4,
+    "mass_links_+x": 106.0,
+    "mass_cell_+x": 178.6,
+    "mass_line_+y": 5.5,
+    "mass_tool_+y": 46.2,
+    "mass_links_+y": 118.0,
+    "mass_cell_+y": 135.1
+   }
+  },
+  {
+   "id": "st-36",
+   "q_deg": [
+    42.454,
+    -107.328,
+    103.751,
+    1.546,
+    61.859,
+    73.499
+   ],
+   "g_A": [
+    -0.99658,
+    0.07652,
+    -0.03125
+   ],
+   "eyes": [
+    "+x",
+    "-y"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.5,
+    "tool_cell": 254.4,
+    "links_cell": 342.7,
+    "mass_line_+x": 2.2,
+    "mass_tool_+x": 43.1,
+    "mass_links_+x": 104.4,
+    "mass_cell_+x": 167.0,
+    "mass_line_-y": 5.7,
+    "mass_tool_-y": 46.1,
+    "mass_links_-y": 118.2,
+    "mass_cell_-y": 137.7
+   }
+  },
+  {
+   "id": "st-37",
+   "q_deg": [
+    48.583,
+    -109.293,
+    110.34,
+    -14.7,
+    78.425,
+    115.455
+   ],
+   "g_A": [
+    -0.69374,
+    0.68209,
+    -0.23125
+   ],
+   "eyes": [
+    "-x",
+    "-y"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.5,
+    "tool_cell": 258.9,
+    "links_cell": 315.5,
+    "mass_line_-x": 2.2,
+    "mass_tool_-x": 42.5,
+    "mass_links_-x": 95.7,
+    "mass_cell_-x": 191.5,
+    "mass_line_-y": 5.7,
+    "mass_tool_-y": 44.8,
+    "mass_links_-y": 110.5,
+    "mass_cell_-y": 136.5
+   }
+  },
+  {
+   "id": "st-38",
+   "q_deg": [
+    34.0,
+    -107.764,
+    120.94,
+    -68.948,
+    34.537,
+    -104.239
+   ],
+   "g_A": [
+    0.64773,
+    0.6006,
+    -0.46875
+   ],
+   "eyes": [
+    "-x",
+    "+y"
+   ],
+   "clear": {
+    "self_tool": 64.8,
+    "port": 48.5,
+    "tool_cell": 263.5,
+    "links_cell": 296.0,
+    "mass_line_-x": 5.0,
+    "mass_tool_-x": 43.4,
+    "mass_links_-x": 98.1,
+    "mass_cell_-x": 140.7,
+    "mass_line_+y": 2.4,
+    "mass_tool_+y": 41.5,
+    "mass_links_+y": 86.6,
+    "mass_cell_+y": 171.5
+   }
+  }
+ ],
+ "blocks": [
+  {
+   "eye": "+z",
+   "stations": [
+    "st-25",
+    "st-26",
+    "st-29",
+    "st-32",
+    "st-27",
+    "st-30",
+    "st-31",
+    "st-28"
+   ],
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    },
+    {
+     "station": "st-25",
+     "mass": "off"
+    },
+    {
+     "station": "st-26",
+     "mass": "off"
+    },
+    {
+     "station": "st-29",
+     "mass": "off"
+    },
+    {
+     "station": "st-32",
+     "mass": "off"
+    },
+    {
+     "station": "st-27",
+     "mass": "off"
+    },
+    {
+     "station": "st-30",
+     "mass": "off"
+    },
+    {
+     "station": "st-31",
+     "mass": "off"
+    },
+    {
+     "station": "st-28",
+     "mass": "off"
+    },
+    {
+     "station": "st-25",
+     "mass": "on",
+     "role": "load",
+     "prompt": "hang the mass on the +z eye"
+    },
+    {
+     "station": "st-26",
+     "mass": "on"
+    },
+    {
+     "station": "st-29",
+     "mass": "on"
+    },
+    {
+     "station": "st-32",
+     "mass": "on"
+    },
+    {
+     "station": "st-27",
+     "mass": "on"
+    },
+    {
+     "station": "st-30",
+     "mass": "on"
+    },
+    {
+     "station": "st-31",
+     "mass": "on"
+    },
+    {
+     "station": "st-28",
+     "mass": "on"
+    },
+    {
+     "station": "st-25",
+     "mass": "on",
+     "role": "unload",
+     "prompt": "take the mass off the +z eye"
+    }
+   ]
+  },
+  {
+   "eye": "+x",
+   "stations": [
+    "st-10",
+    "st-14",
+    "st-36",
+    "st-08",
+    "st-06",
+    "st-01",
+    "st-23",
+    "st-35"
+   ],
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    },
+    {
+     "station": "st-10",
+     "mass": "off"
+    },
+    {
+     "station": "st-14",
+     "mass": "off"
+    },
+    {
+     "station": "st-36",
+     "mass": "off"
+    },
+    {
+     "station": "st-08",
+     "mass": "off"
+    },
+    {
+     "station": "st-06",
+     "mass": "off"
+    },
+    {
+     "station": "st-01",
+     "mass": "off"
+    },
+    {
+     "station": "st-23",
+     "mass": "off"
+    },
+    {
+     "station": "st-35",
+     "mass": "off"
+    },
+    {
+     "station": "st-10",
+     "mass": "on",
+     "role": "load",
+     "prompt": "hang the mass on the +x eye"
+    },
+    {
+     "station": "st-14",
+     "mass": "on"
+    },
+    {
+     "station": "st-36",
+     "mass": "on"
+    },
+    {
+     "station": "st-08",
+     "mass": "on"
+    },
+    {
+     "station": "st-06",
+     "mass": "on"
+    },
+    {
+     "station": "st-01",
+     "mass": "on"
+    },
+    {
+     "station": "st-23",
+     "mass": "on"
+    },
+    {
+     "station": "st-35",
+     "mass": "on"
+    },
+    {
+     "station": "st-10",
+     "mass": "on",
+     "role": "unload",
+     "prompt": "take the mass off the +x eye"
+    }
+   ]
+  },
+  {
+   "eye": "-y",
+   "stations": [
+    "st-10",
+    "st-13",
+    "st-22",
+    "st-07",
+    "st-04",
+    "st-17",
+    "st-34",
+    "st-21"
+   ],
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    },
+    {
+     "station": "st-10",
+     "mass": "off"
+    },
+    {
+     "station": "st-13",
+     "mass": "off"
+    },
+    {
+     "station": "st-22",
+     "mass": "off"
+    },
+    {
+     "station": "st-07",
+     "mass": "off"
+    },
+    {
+     "station": "st-04",
+     "mass": "off"
+    },
+    {
+     "station": "st-17",
+     "mass": "off"
+    },
+    {
+     "station": "st-34",
+     "mass": "off"
+    },
+    {
+     "station": "st-21",
+     "mass": "off"
+    },
+    {
+     "station": "st-10",
+     "mass": "on",
+     "role": "load",
+     "prompt": "hang the mass on the -y eye"
+    },
+    {
+     "station": "st-13",
+     "mass": "on"
+    },
+    {
+     "station": "st-22",
+     "mass": "on"
+    },
+    {
+     "station": "st-07",
+     "mass": "on"
+    },
+    {
+     "station": "st-04",
+     "mass": "on"
+    },
+    {
+     "station": "st-17",
+     "mass": "on"
+    },
+    {
+     "station": "st-34",
+     "mass": "on"
+    },
+    {
+     "station": "st-21",
+     "mass": "on"
+    },
+    {
+     "station": "st-10",
+     "mass": "on",
+     "role": "unload",
+     "prompt": "take the mass off the -y eye"
+    }
+   ]
+  },
+  {
+   "eye": "-x",
+   "stations": [
+    "st-09",
+    "st-37",
+    "st-12",
+    "st-20",
+    "st-05",
+    "st-02",
+    "st-19",
+    "st-16"
+   ],
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    },
+    {
+     "station": "st-09",
+     "mass": "off"
+    },
+    {
+     "station": "st-37",
+     "mass": "off"
+    },
+    {
+     "station": "st-12",
+     "mass": "off"
+    },
+    {
+     "station": "st-20",
+     "mass": "off"
+    },
+    {
+     "station": "st-05",
+     "mass": "off"
+    },
+    {
+     "station": "st-02",
+     "mass": "off"
+    },
+    {
+     "station": "st-19",
+     "mass": "off"
+    },
+    {
+     "station": "st-16",
+     "mass": "off"
+    },
+    {
+     "station": "st-09",
+     "mass": "on",
+     "role": "load",
+     "prompt": "hang the mass on the -x eye"
+    },
+    {
+     "station": "st-37",
+     "mass": "on"
+    },
+    {
+     "station": "st-12",
+     "mass": "on"
+    },
+    {
+     "station": "st-20",
+     "mass": "on"
+    },
+    {
+     "station": "st-05",
+     "mass": "on"
+    },
+    {
+     "station": "st-02",
+     "mass": "on"
+    },
+    {
+     "station": "st-19",
+     "mass": "on"
+    },
+    {
+     "station": "st-16",
+     "mass": "on"
+    },
+    {
+     "station": "st-09",
+     "mass": "on",
+     "role": "unload",
+     "prompt": "take the mass off the -x eye"
+    }
+   ]
+  },
+  {
+   "eye": "+y",
+   "stations": [
+    "st-24",
+    "st-09",
+    "st-11",
+    "st-18",
+    "st-38",
+    "st-33",
+    "st-03",
+    "st-15"
+   ],
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    },
+    {
+     "station": "st-24",
+     "mass": "off"
+    },
+    {
+     "station": "st-09",
+     "mass": "off"
+    },
+    {
+     "station": "st-11",
+     "mass": "off"
+    },
+    {
+     "station": "st-18",
+     "mass": "off"
+    },
+    {
+     "station": "st-38",
+     "mass": "off"
+    },
+    {
+     "station": "st-33",
+     "mass": "off"
+    },
+    {
+     "station": "st-03",
+     "mass": "off"
+    },
+    {
+     "station": "st-15",
+     "mass": "off"
+    },
+    {
+     "station": "st-24",
+     "mass": "on",
+     "role": "load",
+     "prompt": "hang the mass on the +y eye"
+    },
+    {
+     "station": "st-09",
+     "mass": "on"
+    },
+    {
+     "station": "st-11",
+     "mass": "on"
+    },
+    {
+     "station": "st-18",
+     "mass": "on"
+    },
+    {
+     "station": "st-38",
+     "mass": "on"
+    },
+    {
+     "station": "st-33",
+     "mass": "on"
+    },
+    {
+     "station": "st-03",
+     "mass": "on"
+    },
+    {
+     "station": "st-15",
+     "mass": "on"
+    },
+    {
+     "station": "st-24",
+     "mass": "on",
+     "role": "unload",
+     "prompt": "take the mass off the +y eye"
+    }
+   ]
+  },
+  {
+   "eye": null,
+   "steps": [
+    {
+     "station": "st-00",
+     "mass": "off",
+     "role": "reference"
+    }
+   ]
+  }
+ ],
+ "checks": {
+  "need_mm": {
+   "self_tool": 15.0,
+   "port": 15.0,
+   "tool_cell": 30.0,
+   "links_cell": 30.0,
+   "mass_line": 1.5,
+   "mass_tool": 8.0,
+   "mass_links": 20.0,
+   "mass_cell": 50.0
+  },
+  "wrist5_deg": [
+   30.0,
+   130.0
+  ],
+  "q6_span_deg": 150.0,
+  "bend_min": 0.26,
+  "cell": "docs/experiments/20261022-ur5_tip_calibration/plan/20261023-plan_rod_lab_reg.json",
+  "rejections": {
+   "joint 5": 1348,
+   "branch (upper arm or elbow)": 348,
+   "tool or links": 114,
+   "base turned too far": 394,
+   "joint 6": 122,
+   "wrist 1 outside -120..170 deg": 487
+  },
+  "travel_bad": [],
+  "scaled_singular_values": [
+   19.582,
+   18.937,
+   18.444,
+   14.597,
+   13.297,
+   12.827
+  ],
+  "per_eye": {
+   "+x": 8,
+   "-x": 8,
+   "+y": 8,
+   "-y": 8,
+   "+z": 8
+  },
+  "n_candidates": 149,
+  "excluded": [
+   [
+    111,
+    "+y"
+   ],
+   [
+    64,
+    "-x"
+   ]
+  ]
+ },
+ "minutes": 26.8,
+ "seconds_to_build": 142.4
+}

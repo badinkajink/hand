@@ -1,3 +1,9120 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7f1efda656ed62db61fc49b98be20bf2c76f9250716d820c399f16c1562ad5bf
-size 139392
+{
+ "layout": "home",
+ "mounts_palm_mm": {
+  "thumb": [
+   -80.0,
+   -55.0
+  ],
+  "index": [
+   80.0,
+   85.0
+  ],
+  "middle": [
+   80.0,
+   -85.0
+  ]
+ },
+ "min_pose_mm": 10.0,
+ "min_path_mm": 9.0,
+ "scene": "assets/mjcf/experimental/20261030-cad_v2/scene_screwdriver_medium.xml",
+ "steps": [
+  {
+   "op": "joints",
+   "family": "baseline",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 120.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "off",
+   "dwell_s": 30.0
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "on",
+   "dwell_s": 30.0
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "off",
+   "dwell_s": 30.0
+  },
+  {
+   "op": "torque",
+   "family": "torque",
+   "state": "on",
+   "dwell_s": 30.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 10.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -75.0,
+     "y": -55.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -80.0,
+     "y": -55.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -80.0,
+     "y": -50.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "thumb": {
+     "x": -80.0,
+     "y": -55.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "index": {
+     "x": 75.0,
+     "y": 85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "index": {
+     "x": 80.0,
+     "y": 85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "index": {
+     "x": 80.0,
+     "y": 80.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "index": {
+     "x": 80.0,
+     "y": 85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "middle": {
+     "x": 75.0,
+     "y": -85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "middle": {
+     "x": 80.0,
+     "y": -85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "middle": {
+     "x": 80.0,
+     "y": -80.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "mounts",
+   "family": "stepper",
+   "mounts": {
+    "middle": {
+     "x": 80.0,
+     "y": -85.0
+    }
+   },
+   "dwell_s": 20.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 10.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -40,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -20,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -10,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 10,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 20,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 40,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": -10.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.9,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 11.8,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.7,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 33.6,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 108.9,
+   "path_clearance_mm": 108.9
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.4,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 96.1,
+   "path_clearance_mm": 96.1
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 55.3,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 84.5,
+   "path_clearance_mm": 84.5
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.2,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.1,
+   "path_clearance_mm": 76.1
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 77.1,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 70.3,
+   "path_clearance_mm": 70.3
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 68.6,
+   "path_clearance_mm": 68.6
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 68.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": -10.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.6
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 11.1
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 21.7
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 32.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 42.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 53.3
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 112.8,
+   "path_clearance_mm": 112.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 63.9
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 106.8,
+   "path_clearance_mm": 106.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 74.4
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 102.3,
+   "path_clearance_mm": 102.3
+  },
+  {
+   "op": "joints",
+   "family": "thumb_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 99.8,
+   "path_clearance_mm": 99.8
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 99.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 21.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 42.5
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 63.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 106.8,
+   "path_clearance_mm": 106.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 99.8,
+   "path_clearance_mm": 99.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 86.7,
+   "path_clearance_mm": 86.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 63.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 88.1,
+   "path_clearance_mm": 86.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 42.5
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 94.8,
+   "path_clearance_mm": 88.1
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 21.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 108.2,
+   "path_clearance_mm": 94.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 108.2
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 96.5,
+   "path_clearance_mm": 96.5
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.0,
+     "pip": 21.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 83.9,
+   "path_clearance_mm": 83.9
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 83.9
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.0,
+     "pip": 42.5
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 77.6,
+   "path_clearance_mm": 77.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.0,
+     "pip": 63.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 77.2,
+   "path_clearance_mm": 76.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 44.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 83.9,
+   "path_clearance_mm": 77.2
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 87.7,
+   "path_clearance_mm": 83.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.0,
+     "pip": 63.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.4,
+   "path_clearance_mm": 76.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.0,
+     "pip": 42.5
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 71.8,
+   "path_clearance_mm": 71.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.0,
+     "pip": 21.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 70.5,
+   "path_clearance_mm": 70.0
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.2,
+   "path_clearance_mm": 70.5
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 68.6,
+   "path_clearance_mm": 68.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 21.2
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 68.5,
+   "path_clearance_mm": 68.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 42.5
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 74.0,
+   "path_clearance_mm": 68.5
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 63.8
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 87.2,
+   "path_clearance_mm": 74.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 71.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88.0,
+     "pip": 85.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 102.7,
+   "path_clearance_mm": 73.9
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 73.9
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.6,
+   "path_clearance_mm": 119.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 93.1,
+   "path_clearance_mm": 93.1
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 73.8,
+   "path_clearance_mm": 73.8
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -30,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 66.6,
+   "path_clearance_mm": 66.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -15,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 68.0,
+   "path_clearance_mm": 66.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -15,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 74.1,
+   "path_clearance_mm": 67.9
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -15,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 93.7,
+   "path_clearance_mm": 74.1
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -15,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 93.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": -15,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 96.5,
+   "path_clearance_mm": 96.5
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.2,
+   "path_clearance_mm": 76.2
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 68.6,
+   "path_clearance_mm": 68.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 15,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 70.4,
+   "path_clearance_mm": 68.6
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 15,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 79.4,
+   "path_clearance_mm": 70.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 15,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 100.4,
+   "path_clearance_mm": 79.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 15,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 100.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 15,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 22.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 44.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 106.4,
+   "path_clearance_mm": 106.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 66.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 84.4,
+   "path_clearance_mm": 84.4
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 84.4
+  },
+  {
+   "op": "joints",
+   "family": "thumb_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 30,
+     "mcp": 88.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 72.3,
+   "path_clearance_mm": 72.3
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 72.3
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -40,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 80.7,
+   "path_clearance_mm": 80.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 95.1,
+   "path_clearance_mm": 80.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -20,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 107.7,
+   "path_clearance_mm": 95.1
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -10,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 116.8,
+   "path_clearance_mm": 107.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 116.8
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 10,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 20,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 40,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": -10.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": -3.3,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 3.3,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 10.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 16.7,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 23.3,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 30.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 36.7,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 43.3,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 10.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 20.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 30.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 40.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 50.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 60.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 70.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 80.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 90.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 22.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 45.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 67.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 90.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 12.5,
+     "pip": 90.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 12.5,
+     "pip": 67.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 12.5,
+     "pip": 45.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 12.5,
+     "pip": 22.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 25.0,
+     "pip": 22.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 25.0,
+     "pip": 45.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 25.0,
+     "pip": 67.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 25.0,
+     "pip": 90.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 37.5,
+     "pip": 67.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 37.5,
+     "pip": 45.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 37.5,
+     "pip": 22.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 50.0,
+     "pip": 22.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 50.0,
+     "pip": 45.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 50.0,
+     "pip": 67.5
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 95.1,
+   "path_clearance_mm": 95.1
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 96.0,
+   "path_clearance_mm": 95.0
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 100.1,
+   "path_clearance_mm": 96.0
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 103.4,
+   "path_clearance_mm": 100.1
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -30,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 103.7,
+   "path_clearance_mm": 103.4
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -15,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 113.1,
+   "path_clearance_mm": 103.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -15,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 113.0,
+   "path_clearance_mm": 113.0
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -15,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 113.3,
+   "path_clearance_mm": 113.0
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -15,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 113.1,
+   "path_clearance_mm": 113.1
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -15,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 112.8,
+   "path_clearance_mm": 112.8
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 112.8
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 15,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 15,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 15,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 15,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 15,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 12.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 25.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 37.5,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "index_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 30,
+     "mcp": 50.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -40,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -20,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -10,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 10,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 116.2,
+   "path_clearance_mm": 116.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 20,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 105.9,
+   "path_clearance_mm": 105.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 89.7,
+   "path_clearance_mm": 89.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 40,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 75.3,
+   "path_clearance_mm": 75.3
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 75.3
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": -10.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": -2.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 6.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 14.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 22.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 30.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 113.4,
+   "path_clearance_mm": 113.4
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 38.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 103.5,
+   "path_clearance_mm": 103.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 46.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 94.2,
+   "path_clearance_mm": 94.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 54.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 85.7,
+   "path_clearance_mm": 85.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 78.9,
+   "path_clearance_mm": 78.9
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 78.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": -10.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": -0.4
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 9.1
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 18.7
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 28.2
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 37.8
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 47.3
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 116.9,
+   "path_clearance_mm": 116.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 56.9
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 110.6,
+   "path_clearance_mm": 110.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 66.4
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 105.6,
+   "path_clearance_mm": 105.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 76.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 101.8,
+   "path_clearance_mm": 101.8
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 101.8
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 19.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 38.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 57.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 110.6,
+   "path_clearance_mm": 110.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 76.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 101.8,
+   "path_clearance_mm": 101.8
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 15.5,
+     "pip": 76.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 90.5,
+   "path_clearance_mm": 90.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 15.5,
+     "pip": 57.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 94.8,
+   "path_clearance_mm": 90.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 15.5,
+     "pip": 38.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 104.6,
+   "path_clearance_mm": 94.8
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 15.5,
+     "pip": 19.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 117.7,
+   "path_clearance_mm": 104.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 117.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 112.2,
+   "path_clearance_mm": 112.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 31.0,
+     "pip": 19.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 98.7,
+   "path_clearance_mm": 98.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 98.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 31.0,
+     "pip": 38.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 88.2,
+   "path_clearance_mm": 88.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 31.0,
+     "pip": 57.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 83.2,
+   "path_clearance_mm": 83.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 31.0,
+     "pip": 76.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 82.4,
+   "path_clearance_mm": 82.0
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 46.5,
+     "pip": 57.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 75.7,
+   "path_clearance_mm": 75.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 46.5,
+     "pip": 38.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 77.0,
+   "path_clearance_mm": 75.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 46.5,
+     "pip": 19.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 82.7,
+   "path_clearance_mm": 77.0
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 93.6,
+   "path_clearance_mm": 82.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 78.9,
+   "path_clearance_mm": 78.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62.0,
+     "pip": 19.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 72.4,
+   "path_clearance_mm": 72.4
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62.0,
+     "pip": 38.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 71.0,
+   "path_clearance_mm": 70.8
+  },
+  {
+   "op": "joints",
+   "family": "middle_mcp_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62.0,
+     "pip": 57.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 75.0,
+   "path_clearance_mm": 71.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 73.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 103.6,
+   "path_clearance_mm": 103.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -30,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 87.6,
+   "path_clearance_mm": 87.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -15,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 82.2,
+   "path_clearance_mm": 82.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -15,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 97.5,
+   "path_clearance_mm": 82.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -15,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 116.1,
+   "path_clearance_mm": 97.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -15,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 116.1
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -15,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 119.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 112.2,
+   "path_clearance_mm": 112.2
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 93.6,
+   "path_clearance_mm": 93.6
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 78.9,
+   "path_clearance_mm": 78.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 15,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.7,
+   "path_clearance_mm": 76.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 15,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 90.9,
+   "path_clearance_mm": 76.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 15,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 109.3,
+   "path_clearance_mm": 90.9
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 15,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 111.5,
+   "path_clearance_mm": 109.3
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 15,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 111.4,
+   "path_clearance_mm": 111.4
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 89.7,
+   "path_clearance_mm": 89.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 15.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 90.7,
+   "path_clearance_mm": 89.5
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 31.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 97.4,
+   "path_clearance_mm": 90.7
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 46.5,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 90.3,
+   "path_clearance_mm": 90.3
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 90.3
+  },
+  {
+   "op": "joints",
+   "family": "middle_yaw_mcp",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 30,
+     "mcp": 62.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 76.3,
+   "path_clearance_mm": 76.3
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 76.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 67.7,
+   "path_clearance_mm": 67.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 51.1,
+   "path_clearance_mm": 51.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.7,
+   "path_clearance_mm": 41.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 40.4,
+   "path_clearance_mm": 40.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 44.5,
+   "path_clearance_mm": 40.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 48.8,
+   "path_clearance_mm": 44.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 44.5,
+   "path_clearance_mm": 44.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.7,
+   "path_clearance_mm": 40.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle45",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 67.7,
+   "path_clearance_mm": 41.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 67.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.4,
+   "path_clearance_mm": 61.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 43.6,
+   "path_clearance_mm": 43.6
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 31.0,
+   "path_clearance_mm": 31.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 28.9,
+   "path_clearance_mm": 28.9
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 32.1,
+   "path_clearance_mm": 28.9
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 39.0,
+   "path_clearance_mm": 32.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 32.1,
+   "path_clearance_mm": 32.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 31.0,
+   "path_clearance_mm": 28.9
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle55",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 55,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.4,
+   "path_clearance_mm": 31.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 61.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 59.5,
+   "path_clearance_mm": 59.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.1,
+   "path_clearance_mm": 41.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.0,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 22.0,
+   "path_clearance_mm": 22.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 24.0,
+   "path_clearance_mm": 21.8
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 30.3,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 24.0,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.0,
+   "path_clearance_mm": 21.8
+  },
+  {
+   "op": "joints",
+   "family": "tm_thumb_to_middle62",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 30,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 59.5,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 59.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 70.3,
+   "path_clearance_mm": 70.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 35,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 53.5,
+   "path_clearance_mm": 53.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 50,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 36.0,
+   "path_clearance_mm": 36.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 28.5,
+   "path_clearance_mm": 28.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.0,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 28.5,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.7,
+   "path_clearance_mm": 28.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb60",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 70.3,
+   "path_clearance_mm": 41.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 70.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.7,
+   "path_clearance_mm": 61.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 35,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 54.3,
+   "path_clearance_mm": 54.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 50,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.5,
+   "path_clearance_mm": 35.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.4,
+   "path_clearance_mm": 26.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 22.1,
+   "path_clearance_mm": 22.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.4,
+   "path_clearance_mm": 22.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.7,
+   "path_clearance_mm": 26.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb75",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 75,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.7,
+   "path_clearance_mm": 41.7
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 61.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.0,
+   "path_clearance_mm": 61.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 35,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 53.1,
+   "path_clearance_mm": 53.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 50,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 45.0,
+   "path_clearance_mm": 45.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.3,
+   "path_clearance_mm": 35.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 30.3,
+   "path_clearance_mm": 30.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.3,
+   "path_clearance_mm": 30.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 48.8,
+   "path_clearance_mm": 35.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_middle_to_thumb88",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 20,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 61.0,
+   "path_clearance_mm": 48.8
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 61.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 41.7,
+   "path_clearance_mm": 41.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 52,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 33.9,
+   "path_clearance_mm": 33.9
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 28.5,
+   "path_clearance_mm": 28.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 60,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 26.0,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 40.4,
+   "path_clearance_mm": 26.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 52,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 32.3,
+   "path_clearance_mm": 32.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 25.8,
+   "path_clearance_mm": 25.8
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 70,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 22.0,
+   "path_clearance_mm": 22.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 44.5,
+   "path_clearance_mm": 22.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 52,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.7,
+   "path_clearance_mm": 35.7
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 28.5,
+   "path_clearance_mm": 28.5
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 24.0,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 45,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 48.8,
+   "path_clearance_mm": 48.8
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 52,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 42.8,
+   "path_clearance_mm": 42.8
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 58,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.3,
+   "path_clearance_mm": 35.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_grid",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 88,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 30.3,
+   "path_clearance_mm": 30.3
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 30.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 24.0,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 20
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 13.9,
+   "path_clearance_mm": 13.9
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 40
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 13.0,
+   "path_clearance_mm": 12.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 20
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.0,
+   "path_clearance_mm": 12.2
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 20
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 20
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 21.2,
+   "path_clearance_mm": 21.2
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 20
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 40
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 12.4,
+   "path_clearance_mm": 12.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 40
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 50.0,
+   "path_clearance_mm": 12.4
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 40
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 20
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 35.6,
+   "path_clearance_mm": 35.6
+  },
+  {
+   "op": "joints",
+   "family": "tm_pip",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 80,
+     "pip": 40
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 62,
+     "pip": 40
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 22.9,
+   "path_clearance_mm": 22.9
+  },
+  {
+   "op": "joints",
+   "family": "zero",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 8.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 20.2
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 30.3,
+   "path_clearance_mm": 30.3
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 23.6,
+   "path_clearance_mm": 23.6
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": -20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 17.1,
+   "path_clearance_mm": 17.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 37.3,
+   "path_clearance_mm": 17.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 24.0,
+   "path_clearance_mm": 24.0
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 0,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 17.2,
+   "path_clearance_mm": 17.2
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": -20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 49.6,
+   "path_clearance_mm": 17.2
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 33.1,
+   "path_clearance_mm": 33.1
+  },
+  {
+   "op": "joints",
+   "family": "tm_yaw",
+   "joints": {
+    "thumb": {
+     "yaw": 20,
+     "mcp": 80,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 20,
+     "mcp": 62,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 3.0,
+   "speed": 80,
+   "clearance_mm": 18.1,
+   "path_clearance_mm": 18.1
+  },
+  {
+   "op": "joints",
+   "family": "baseline_end",
+   "joints": {
+    "thumb": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 0.0,
+     "mcp": 0.0,
+     "pip": 0.0
+    }
+   },
+   "dwell_s": 60.0,
+   "speed": 80,
+   "clearance_mm": 119.7,
+   "path_clearance_mm": 18.1
+  }
+ ],
+ "dropped": [
+  [
+   "index_mcp_pip",
+   {
+    "index": {
+     "mcp": 37.5,
+     "pip": 90.0
+    }
+   },
+   "range"
+  ],
+  [
+   "index_mcp_pip",
+   {
+    "index": {
+     "mcp": 50.0,
+     "pip": 90.0
+    }
+   },
+   "range"
+  ],
+  [
+   "middle_mcp_pip",
+   {
+    "middle": {
+     "mcp": 46.5,
+     "pip": 76.0
+    }
+   },
+   "range"
+  ],
+  [
+   "middle_mcp_pip",
+   {
+    "middle": {
+     "mcp": 62.0,
+     "pip": 76.0
+    }
+   },
+   "range"
+  ]
+ ]
+}

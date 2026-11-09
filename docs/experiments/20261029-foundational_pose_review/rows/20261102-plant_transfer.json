@@ -1,3 +1,788 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3ac5cb1b4b49a10a4529f4485077409761db823821261e078b0ee3a1235bfda6
-size 13628
+{
+ "set": "plants",
+ "grids": {
+  "work plant, 10 MPa": "grid2dff_v4b",
+  "SCS0009, 2.5 MPa": "grid2dff_v4b_sv25",
+  "STS3032 tuned, 2.5 MPa": "grid2dff_v4b_k21"
+ },
+ "pairs": {
+  "twist_d40|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.588,
+   "top_tenth_kept": 0.404,
+   "best_a": {
+    "call": 357,
+    "xy": [
+     110,
+     85
+    ],
+    "on_a": 1.0,
+    "on_b": 0.911
+   },
+   "best_b": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_b": 1.0,
+    "on_a": 0.856
+   },
+   "same_best_grasp": 0.237,
+   "median_loss_keeping_a_grasp_on_b": 0.104,
+   "median_a": 0.469,
+   "median_b": 0.361,
+   "above_half_a": 0.463,
+   "above_half_b": 0.324
+  },
+  "twist_d40|work plant, 10 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.919,
+   "top_tenth_kept": 0.538,
+   "best_a": {
+    "call": 357,
+    "xy": [
+     110,
+     85
+    ],
+    "on_a": 1.0,
+    "on_b": 0.79
+   },
+   "best_b": {
+    "call": 345,
+    "xy": [
+     105,
+     150
+    ],
+    "on_b": 1.0,
+    "on_a": 0.552
+   },
+   "same_best_grasp": 0.624,
+   "median_loss_keeping_a_grasp_on_b": 0.0,
+   "median_a": 0.469,
+   "median_b": 0.501,
+   "above_half_a": 0.463,
+   "above_half_b": 0.501
+  },
+  "twist_d40|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.55,
+   "top_tenth_kept": 0.231,
+   "best_a": {
+    "call": 304,
+    "xy": [
+     100,
+     70
+    ],
+    "on_a": 1.0,
+    "on_b": 0.882
+   },
+   "best_b": {
+    "call": 345,
+    "xy": [
+     105,
+     150
+    ],
+    "on_b": 1.0,
+    "on_a": 0.379
+   },
+   "same_best_grasp": 0.271,
+   "median_loss_keeping_a_grasp_on_b": 0.091,
+   "median_a": 0.361,
+   "median_b": 0.501,
+   "above_half_a": 0.324,
+   "above_half_b": 0.501
+  },
+  "roll_d40|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.619,
+   "top_tenth_kept": 0.096,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.675,
+    "on_b": 0.466
+   },
+   "best_b": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_b": 0.654,
+    "on_a": 0.481
+   },
+   "same_best_grasp": 0.154,
+   "median_loss_keeping_a_grasp_on_b": 0.072,
+   "median_a": 0.493,
+   "median_b": 0.471,
+   "above_half_a": 0.463,
+   "above_half_b": 0.304
+  },
+  "roll_d40|work plant, 10 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.884,
+   "top_tenth_kept": 0.712,
+   "best_a": {
+    "call": 312,
+    "xy": [
+     100,
+     110
+    ],
+    "on_a": 0.675,
+    "on_b": 0.61
+   },
+   "best_b": {
+    "call": 223,
+    "xy": [
+     80,
+     165
+    ],
+    "on_b": 0.641,
+    "on_a": 0.629
+   },
+   "same_best_grasp": 0.452,
+   "median_loss_keeping_a_grasp_on_b": 0.002,
+   "median_a": 0.493,
+   "median_b": 0.483,
+   "above_half_a": 0.463,
+   "above_half_b": 0.378
+  },
+  "roll_d40|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 527,
+   "spearman": 0.73,
+   "top_tenth_kept": 0.212,
+   "best_a": {
+    "call": 249,
+    "xy": [
+     85,
+     170
+    ],
+    "on_a": 0.654,
+    "on_b": 0.478
+   },
+   "best_b": {
+    "call": 223,
+    "xy": [
+     80,
+     165
+    ],
+    "on_b": 0.641,
+    "on_a": 0.517
+   },
+   "same_best_grasp": 0.167,
+   "median_loss_keeping_a_grasp_on_b": 0.048,
+   "median_a": 0.471,
+   "median_b": 0.483,
+   "above_half_a": 0.304,
+   "above_half_b": 0.378
+  },
+  "pinpush_d25|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.408,
+   "top_tenth_kept": 0.186,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.91,
+    "on_b": 0.744
+   },
+   "best_b": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_b": 0.744,
+    "on_a": 0.91
+   },
+   "same_best_grasp": 0.117,
+   "median_loss_keeping_a_grasp_on_b": 0.155,
+   "median_a": 0.733,
+   "median_b": 0.502,
+   "above_half_a": 0.876,
+   "above_half_b": 0.503
+  },
+  "pinpush_d25|work plant, 10 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.793,
+   "top_tenth_kept": 0.465,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.91,
+    "on_b": 0.861
+   },
+   "best_b": {
+    "call": 302,
+    "xy": [
+     100,
+     60
+    ],
+    "on_b": 0.868,
+    "on_a": 0.902
+   },
+   "same_best_grasp": 0.332,
+   "median_loss_keeping_a_grasp_on_b": 0.044,
+   "median_a": 0.733,
+   "median_b": 0.694,
+   "above_half_a": 0.876,
+   "above_half_b": 0.918
+  },
+  "pinpush_d25|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 437,
+   "spearman": 0.458,
+   "top_tenth_kept": 0.209,
+   "best_a": {
+    "call": 176,
+    "xy": [
+     75,
+     55
+    ],
+    "on_a": 0.744,
+    "on_b": 0.861
+   },
+   "best_b": {
+    "call": 302,
+    "xy": [
+     100,
+     60
+    ],
+    "on_b": 0.868,
+    "on_a": 0.698
+   },
+   "same_best_grasp": 0.103,
+   "median_loss_keeping_a_grasp_on_b": 0.109,
+   "median_a": 0.502,
+   "median_b": 0.694,
+   "above_half_a": 0.503,
+   "above_half_b": 0.918
+  },
+  "press_d25|work plant, 10 MPa|SCS0009, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": -0.099,
+   "top_tenth_kept": 0.056,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.917,
+    "on_b": 0.292
+   },
+   "best_b": {
+    "call": 170,
+    "xy": [
+     70,
+     150
+    ],
+    "on_b": 0.816,
+    "on_a": 0.808
+   },
+   "same_best_grasp": 0.141,
+   "median_loss_keeping_a_grasp_on_b": 0.131,
+   "median_a": 0.751,
+   "median_b": 0.419,
+   "above_half_a": 0.835,
+   "above_half_b": 0.287
+  },
+  "press_d25|work plant, 10 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": 0.666,
+   "top_tenth_kept": 0.083,
+   "best_a": {
+    "call": 296,
+    "xy": [
+     95,
+     155
+    ],
+    "on_a": 0.917,
+    "on_b": 0.759
+   },
+   "best_b": {
+    "call": 198,
+    "xy": [
+     75,
+     165
+    ],
+    "on_b": 0.871,
+    "on_a": 0.846
+   },
+   "same_best_grasp": 0.409,
+   "median_loss_keeping_a_grasp_on_b": 0.01,
+   "median_a": 0.751,
+   "median_b": 0.712,
+   "above_half_a": 0.835,
+   "above_half_b": 0.889
+  },
+  "press_d25|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "layouts": 369,
+   "spearman": 0.088,
+   "top_tenth_kept": 0.167,
+   "best_a": {
+    "call": 170,
+    "xy": [
+     70,
+     150
+    ],
+    "on_a": 0.816,
+    "on_b": 0.83
+   },
+   "best_b": {
+    "call": 198,
+    "xy": [
+     75,
+     165
+    ],
+    "on_b": 0.871,
+    "on_a": 0.29
+   },
+   "same_best_grasp": 0.157,
+   "median_loss_keeping_a_grasp_on_b": 0.07,
+   "median_a": 0.419,
+   "median_b": 0.712,
+   "above_half_a": 0.287,
+   "above_half_b": 0.889
+  }
+ },
+ "robust": {
+  "twist_d40|work plant, 10 MPa|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "work plant, 10 MPa",
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "work plant, 10 MPa": {
+     "xy": [
+      110,
+      85
+     ],
+     "score": 1.0
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      100,
+      70
+     ],
+     "score": 1.0
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      105,
+      150
+     ],
+     "score": 1.0
+    }
+   },
+   "one_layout": {
+    "xy": [
+     110,
+     110
+    ],
+    "grasp": {
+     "work plant, 10 MPa": 10,
+     "SCS0009, 2.5 MPa": 10,
+     "STS3032 tuned, 2.5 MPa": 10
+    },
+    "score": {
+     "work plant, 10 MPa": 0.951,
+     "SCS0009, 2.5 MPa": 1.0,
+     "STS3032 tuned, 2.5 MPa": 0.987
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     110,
+     110
+    ],
+    "grasp": 10,
+    "score": {
+     "work plant, 10 MPa": 0.951,
+     "SCS0009, 2.5 MPa": 1.0,
+     "STS3032 tuned, 2.5 MPa": 0.987
+    }
+   }
+  },
+  "twist_d40|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      100,
+      70
+     ],
+     "score": 1.0
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      105,
+      150
+     ],
+     "score": 1.0
+    }
+   },
+   "one_layout": {
+    "xy": [
+     105,
+     105
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 11,
+     "STS3032 tuned, 2.5 MPa": 8
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 1.0,
+     "STS3032 tuned, 2.5 MPa": 0.989
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     110,
+     110
+    ],
+    "grasp": 10,
+    "score": {
+     "SCS0009, 2.5 MPa": 1.0,
+     "STS3032 tuned, 2.5 MPa": 0.987
+    }
+   }
+  },
+  "roll_d40|work plant, 10 MPa|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "work plant, 10 MPa",
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "work plant, 10 MPa": {
+     "xy": [
+      100,
+      110
+     ],
+     "score": 0.675
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      85,
+      170
+     ],
+     "score": 0.654
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      80,
+      165
+     ],
+     "score": 0.641
+    }
+   },
+   "one_layout": {
+    "xy": [
+     80,
+     80
+    ],
+    "grasp": {
+     "work plant, 10 MPa": 3,
+     "SCS0009, 2.5 MPa": 6,
+     "STS3032 tuned, 2.5 MPa": 6
+    },
+    "score": {
+     "work plant, 10 MPa": 0.589,
+     "SCS0009, 2.5 MPa": 0.585,
+     "STS3032 tuned, 2.5 MPa": 0.577
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     80,
+     60
+    ],
+    "grasp": 12,
+    "score": {
+     "work plant, 10 MPa": 0.585,
+     "SCS0009, 2.5 MPa": 0.559,
+     "STS3032 tuned, 2.5 MPa": 0.573
+    }
+   }
+  },
+  "roll_d40|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 527,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      85,
+      170
+     ],
+     "score": 0.654
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      80,
+      165
+     ],
+     "score": 0.641
+    }
+   },
+   "one_layout": {
+    "xy": [
+     80,
+     80
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 6,
+     "STS3032 tuned, 2.5 MPa": 6
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.585,
+     "STS3032 tuned, 2.5 MPa": 0.577
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     80,
+     80
+    ],
+    "grasp": 6,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.585,
+     "STS3032 tuned, 2.5 MPa": 0.577
+    }
+   }
+  },
+  "pinpush_d25|work plant, 10 MPa|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "work plant, 10 MPa",
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 437,
+   "own": {
+    "work plant, 10 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.91
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.744
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      100,
+      60
+     ],
+     "score": 0.868
+    }
+   },
+   "one_layout": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": {
+     "work plant, 10 MPa": 12,
+     "SCS0009, 2.5 MPa": 12,
+     "STS3032 tuned, 2.5 MPa": 11
+    },
+    "score": {
+     "work plant, 10 MPa": 0.91,
+     "SCS0009, 2.5 MPa": 0.744,
+     "STS3032 tuned, 2.5 MPa": 0.861
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     70,
+     55
+    ],
+    "grasp": 1,
+    "score": {
+     "work plant, 10 MPa": 0.75,
+     "SCS0009, 2.5 MPa": 0.73,
+     "STS3032 tuned, 2.5 MPa": 0.779
+    }
+   }
+  },
+  "pinpush_d25|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 437,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      75,
+      55
+     ],
+     "score": 0.744
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      100,
+      60
+     ],
+     "score": 0.868
+    }
+   },
+   "one_layout": {
+    "xy": [
+     75,
+     55
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 12,
+     "STS3032 tuned, 2.5 MPa": 11
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.744,
+     "STS3032 tuned, 2.5 MPa": 0.861
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     70,
+     55
+    ],
+    "grasp": 1,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.73,
+     "STS3032 tuned, 2.5 MPa": 0.779
+    }
+   }
+  },
+  "press_d25|work plant, 10 MPa|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "work plant, 10 MPa",
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 369,
+   "own": {
+    "work plant, 10 MPa": {
+     "xy": [
+      95,
+      155
+     ],
+     "score": 0.917
+    },
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      70,
+      150
+     ],
+     "score": 0.816
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      75,
+      165
+     ],
+     "score": 0.871
+    }
+   },
+   "one_layout": {
+    "xy": [
+     70,
+     150
+    ],
+    "grasp": {
+     "work plant, 10 MPa": 14,
+     "SCS0009, 2.5 MPa": 5,
+     "STS3032 tuned, 2.5 MPa": 14
+    },
+    "score": {
+     "work plant, 10 MPa": 0.808,
+     "SCS0009, 2.5 MPa": 0.816,
+     "STS3032 tuned, 2.5 MPa": 0.83
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     70,
+     150
+    ],
+    "grasp": 5,
+    "score": {
+     "work plant, 10 MPa": 0.802,
+     "SCS0009, 2.5 MPa": 0.816,
+     "STS3032 tuned, 2.5 MPa": 0.746
+    }
+   }
+  },
+  "press_d25|SCS0009, 2.5 MPa|STS3032 tuned, 2.5 MPa": {
+   "grids": [
+    "SCS0009, 2.5 MPa",
+    "STS3032 tuned, 2.5 MPa"
+   ],
+   "layouts": 369,
+   "own": {
+    "SCS0009, 2.5 MPa": {
+     "xy": [
+      70,
+      150
+     ],
+     "score": 0.816
+    },
+    "STS3032 tuned, 2.5 MPa": {
+     "xy": [
+      75,
+      165
+     ],
+     "score": 0.871
+    }
+   },
+   "one_layout": {
+    "xy": [
+     70,
+     150
+    ],
+    "grasp": {
+     "SCS0009, 2.5 MPa": 5,
+     "STS3032 tuned, 2.5 MPa": 14
+    },
+    "score": {
+     "SCS0009, 2.5 MPa": 0.816,
+     "STS3032 tuned, 2.5 MPa": 0.83
+    }
+   },
+   "one_layout_and_grasp": {
+    "xy": [
+     85,
+     65
+    ],
+    "grasp": 14,
+    "score": {
+     "SCS0009, 2.5 MPa": 0.766,
+     "STS3032 tuned, 2.5 MPa": 0.759
+    }
+   }
+  }
+ }
+}
