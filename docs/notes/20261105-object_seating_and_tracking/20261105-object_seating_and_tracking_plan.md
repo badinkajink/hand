@@ -167,7 +167,8 @@ A new package `src/sr2hand/tracking/`, with rotations from `sr2hand.geometry.rot
 - detection: `pupil_apriltags` at full resolution in a window around the block's last pose, and on the whole frame at
   `quad_decimate=2` when the block is lost;
 - pose: all corners of one body in one solve (`cv2.solvePnP` with SQPNP, then Levenberg-Marquardt), dropping a tag
-  whose corners reproject worse than 1 px, and both cameras in one solve of $T_{PO}$;
+  seen more than 65° from its normal (bench, 2026-11-09) or whose corners reproject worse than 1 px, and both cameras
+  in one solve of $T_{PO}$;
 - calibration: the hand tags against the arm, and a bundle adjustment of each tag map;
 - output: $T_{PO}$ with its time stamp, the number of tags used and the reprojection RMS, sent to the trial runner at
   30 Hz; H.264 video of both cameras and every detection written to disk.
@@ -256,6 +257,15 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    the adjustment brings an assumed print error of 0.11 mm RMS down to 0.02 mm; with the refined map the block is
    tracked in every frame to 0.06 to 0.08° against the encoder and 0.14 to 0.20 mm from its fitted path, and at 40°/s
    with a rolling shutter to 0.20° and 0.55 mm against the truth. One camera's error is mostly in depth (0.5 mm).
+   Bench, 2026-11-09 (the lab session: the printed block of `assets/tracking/20261107-tag_prints/`, two D435s at 0.28
+   to 0.29 m, cv2.aruco, 45 frames each). Per camera and frame the block's pose varies by 0.14 to 0.16 mm, mostly
+   along the view axis, and by 0.11° RMS. A tag seen at 80° decoded in half the frames and raised the depth's spread
+   to 1.05 mm; the tracker now drops tags beyond 65°, which in simulation of this setup lowers the spread from 0.52 to
+   0.14 mm. With the CAD map the corners reproject at 0.75 px RMS, and a fit of the across-flats and the square size
+   brings that to 0.33 to 0.38 px, with the squares 2.5 % large relative to the face spacing. Only that ratio is seen
+   by a camera whose pose is free. The across-flats measured with calipers sets the scale, and the adjustment must
+   free each tag's size, which `pose.bundle_adjust` holds at the map's. Solved with the CAD map, the depth in
+   simulation is 1.5 mm short.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.

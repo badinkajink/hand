@@ -4,8 +4,8 @@ Units are mm and pixels. A transform T_AB is the pose of frame B in frame A (4 x
 right, y down, z along the optical axis.
 
 solve_body   one body's pose in one camera from every corner of its visible tags at once: SQPnP over all corners (IPPE
-             for a single tag), Levenberg-Marquardt, then each tag whose corners reproject worse than max_rpe px is
-             dropped and the pose solved again from the rest.
+             for a single tag), Levenberg-Marquardt, then each tag seen more than max_view_deg from its normal, and
+             each tag whose corners reproject worse than max_rpe px, is dropped and the pose solved again from the rest.
 solve_multi  one body's pose in a common frame P from the corners seen by several cameras whose poses in P are known.
 bundle_adjust  a tag map refined from many views of the body: the views' poses and each tag's rigid pose on the body
              (the first tag held as the gauge), least squares over the reprojection error, then the map turned and
@@ -20,8 +20,15 @@ import numpy as np
 from scipy.optimize import least_squares
 
 from sr2hand.geometry.rotations import exp_so3, kabsch, log_so3, tf, tf_inv
+from sr2hand.geometry.vectors import angle
 
 from .tags import TagMap
+
+# Tags seen more steeply than this from their normal are left out of a pose. On the bench (2026-11-09, two D435s at
+# 0.28-0.29 m, the printed block) tag 15 at 80 deg decoded in half the frames and moved the solved depth by about 1 mm
+# each time it entered: 1.05 mm sd with it, 0.14 mm without. Its corners reprojected under 1 px, so max_rpe kept it. In
+# simulation the 13 mm tags decode in 99 % of frames up to 65 deg (scripts/hardware/object_tracking_sim.py tagsize).
+MAX_VIEW_DEG = 65.0
 
 
 @dataclass
@@ -82,9 +89,17 @@ def project(cam: Camera, T_CB, P_B):
     return uv.reshape(-1, 2)
 
 
-def solve_body(obs: dict, tag_map: TagMap, cam: Camera, T0=None, max_rpe=1.0):
-    """(T_CB, info) of one body from {id: (4, 2) corners}; None when no tag of the map is seen. info: the tags used,
-    the tags dropped and the reprojection RMS (px) of the corners used."""
+def view_angles(tag_map: TagMap, ids, T_CB):
+    """Angles (deg) between each tag's outward normal and its line of sight to the camera, the body at pose T_CB."""
+    R, t = T_CB[:3, :3], T_CB[:3, 3]
+    return np.array([np.degrees(angle(R @ tag_map.frames[i][3], -(R @ tag_map.frames[i][0] + t))) for i in ids])
+
+
+def solve_body(obs: dict, tag_map: TagMap, cam: Camera, T0=None, max_rpe=1.0, max_view_deg=MAX_VIEW_DEG):
+    """(T_CB, info) of one body from {id: (4, 2) corners}; None when no tag of the map is seen. The steepest tag beyond
+    max_view_deg (None: no limit), then the worst tag beyond max_rpe, is dropped and the pose solved again, while more
+    than one tag is left. info: the tags used, their view angles (deg), the tags dropped and the reprojection RMS (px)
+    of the corners used."""
     use = [i for i in sorted(obs) if i in tag_map.corners]
     if not use:
         return None, {"tags": [], "dropped": [], "rms_px": None}
@@ -105,20 +120,27 @@ def solve_body(obs: dict, tag_map: TagMap, cam: Camera, T0=None, max_rpe=1.0):
         T = _rt_to_T(r, t)
         e = np.linalg.norm(project(cam, T, P) - uv, axis=1).reshape(len(use), 4)
         per = np.sqrt((e ** 2).mean(1))
+        view = view_angles(tag_map, use, T)
+        steep = int(view.argmax())
+        if max_view_deg is not None and view[steep] > max_view_deg and len(use) > 1:
+            dropped.append(use.pop(steep))
+            continue
         worst = int(per.argmax())
         if per[worst] > max_rpe and len(use) > 1:
             dropped.append(use.pop(worst))
             continue
-        return T, {"tags": use, "dropped": dropped, "rms_px": float(np.sqrt((e ** 2).mean()))}
+        return T, {"tags": use, "view_deg": np.round(view, 1).tolist(), "dropped": dropped,
+                   "rms_px": float(np.sqrt((e ** 2).mean()))}
 
 
-def solve_multi(obs_by_cam: list, tag_map: TagMap, cams: list, T_PC: list, T0_PB, max_rpe=1.0):
+def solve_multi(obs_by_cam: list, tag_map: TagMap, cams: list, T_PC: list, T0_PB, max_rpe=1.0,
+                max_view_deg=MAX_VIEW_DEG):
     """(T_PB, info): the body's pose in P from every camera's corners at once. obs_by_cam[k] are camera k's
     {id: corners}, T_PC[k] its pose in P; T0_PB the start (one camera's solve). Tags dropped by each camera's own
     solve_body are left out."""
     rows = []
     for obs, cam, Tpc in zip(obs_by_cam, cams, T_PC):
-        T_CB, inf = solve_body(obs, tag_map, cam, T0=tf_inv(Tpc) @ T0_PB, max_rpe=max_rpe)
+        T_CB, inf = solve_body(obs, tag_map, cam, T0=tf_inv(Tpc) @ T0_PB, max_rpe=max_rpe, max_view_deg=max_view_deg)
         if T_CB is None:
             continue
         rows.append((cam, tf_inv(Tpc), tag_map.stacked(inf["tags"]), np.concatenate([obs[i] for i in inf["tags"]])))
