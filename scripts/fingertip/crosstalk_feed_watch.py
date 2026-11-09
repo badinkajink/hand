@@ -7,8 +7,9 @@ The coordinator appends one JSON line per update to docs/experiments/20261027-v3
 it; its result commits start with "Crosstalk:". It also commits analyses with no feed line (owner, 2026-10-29 15:2x, when
 the job widened to the calibration of every v3 tip). This script only reads. Every --interval seconds it reads the feed
 and HEAD's last 300 commits with the files each changes. The feed is read at HEAD, or from the working copy when that has
-more lines: since 11-07 GitHub refuses a push of LFS pointers without content (GH008), and the feed is an LFS file outside
-scripts/docs/lfs_lean.py's upload set, so a new line may stay uncommitted. News is a feed line past the count in --state, or a
+more lines: from 11-07 GitHub refused a push of LFS pointers without content (GH008), and the feed was an LFS file outside
+scripts/docs/lfs_lean.py's upload set, so a new line could stay uncommitted. Since 11-09 (6c1a5a46c) data files are
+ordinary git files; the feed stays an LFS pointer at HEAD until its next commit, and show() reads either form. News is a feed line past the count in --state, or a
 commit not in --state that starts with "Crosstalk:", "SR2 hand" or "SR2 crosstalk" (a run's start or stop on the hand, which
 the crosstalk page's plan items state; 11-05) or changes the v3 folder's data/ or README.md or an analysis of the
 inverted rig (ANALYSES; step 43 of the note, 11-04) and is not this job's own (subjects in MINE). Beside git it lists the coordinator's analysed holds of the v3 tips from ID 3 on
@@ -69,7 +70,7 @@ def git(*args):
 
 
 def show(path):
-    """A file at HEAD; an LFS pointer is resolved from the local LFS store (the feed is an LFS file)."""
+    """A file at HEAD; an LFS pointer is resolved from the local LFS store (the feed was an LFS file until 11-09)."""
     blob = git("show", f"HEAD:{path}")
     if blob.startswith("version https://git-lfs.github.com/spec/v1"):
         try:
