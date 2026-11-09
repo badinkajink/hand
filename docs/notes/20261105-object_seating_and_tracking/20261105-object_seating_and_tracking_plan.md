@@ -265,7 +265,8 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    brings that to 0.33 to 0.38 px, with the squares 2.5 % large relative to the face spacing. Only that ratio is seen
    by a camera whose pose is free. The across-flats measured with calipers sets the scale, and the adjustment must
    free each tag's size, which `pose.bundle_adjust` holds at the map's. Solved with the CAD map, the depth in
-   simulation is 1.5 mm short.
+   simulation is 1.5 mm short. The frames and corner bursts (19 MB) are on corvus in the lab session's scratchpad,
+   `cams/`, until corvus has a host key for the workstation.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.
