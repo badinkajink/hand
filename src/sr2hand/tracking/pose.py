@@ -7,9 +7,9 @@ solve_body   one body's pose in one camera from every corner of its visible tags
              for a single tag), Levenberg-Marquardt, then each tag seen more than max_view_deg from its normal, and
              each tag whose corners reproject worse than max_rpe px, is dropped and the pose solved again from the rest.
 solve_multi  one body's pose in a common frame P from the corners seen by several cameras whose poses in P are known.
-bundle_adjust  a tag map refined from many views of the body: the views' poses and each tag's rigid pose on the body
-             (the first tag held as the gauge), least squares over the reprojection error, then the map turned and
-             moved as a whole onto the starting map.
+bundle_adjust  a tag map refined from many views of the body: the views' poses and each tag's pose and size on the body
+             (the first tag's pose held as the gauge, measured lengths for the scale), least squares over the
+             reprojection error, then the map turned and moved as a whole onto the starting map.
 """
 from __future__ import annotations
 
@@ -156,44 +156,61 @@ def solve_multi(obs_by_cam: list, tag_map: TagMap, cams: list, T_PC: list, T0_PB
     return T, {"n_cams": len(rows), "n_corners": len(e), "rms_px": float(np.sqrt((e ** 2).sum(1).mean()))}
 
 
-def bundle_adjust(views: list, tag_map: TagMap, cam: Camera, T0_views: list, fixed=None):
-    """(refined TagMap, info) from views [{id: (4, 2) corners}] of one body with starting poses T0_views (T_CB). Every
-    tag of the map moves as a rigid square (6 parameters) except `fixed` (default: the lowest id), which holds the
-    gauge; afterwards the refined corners are fitted rigidly onto the starting map's, so the result stays in its frame."""
+def bundle_adjust(views: list, tag_map: TagMap, cam: Camera, T0_views: list, fixed=None, sizes=True, lengths=(),
+                  px_sd=0.1):
+    """(refined TagMap, info) from views [{id: (4, 2) corners}] of one body with starting poses T0_views (T_CB).
+
+    Every tag moves as a square on the body (rotation and translation) except `fixed` (default: the lowest id), whose
+    pose holds the gauge. With `sizes` each tag's edge is free as well: a printed tag's black square need not have the
+    map's size (the block printed on 2026-11-07 measured 2.5 % large against its across-flats). A camera whose pose is
+    free does not see a uniform scale of the body, so the scale comes from `lengths`, measured distances (i, j, mm, sd)
+    between the centres of tags i and j; on the hexagonal block the tags of opposite faces lie the across-flats apart.
+    Without lengths the fixed tag keeps its size and the others' sizes are relative to it. The residuals are the corners'
+    reprojection errors over px_sd and each length's error over its sd. Afterwards the refined corners are fitted
+    rigidly onto the starting map's, so the result stays in its frame."""
     ids = tag_map.ids()
     fixed = ids[0] if fixed is None else fixed
     free = [i for i in ids if i != fixed]
-    nv = len(views)
+    sized = (ids if lengths else free) if sizes else []
+    nv, nf = len(views), len(free)
     cen = {i: tag_map.corners[i].mean(0) for i in ids}
 
     def unpack(x):
         Tv = [T0 @ tf(exp_so3(x[6 * k:6 * k + 3]), x[6 * k + 3:6 * k + 6]) for k, T0 in enumerate(T0_views)]
-        corners = {fixed: tag_map.corners[fixed]}
-        for j, i in enumerate(free):
-            p = x[6 * nv + 6 * j:6 * nv + 6 * j + 6]
-            R = exp_so3(p[:3])
-            corners[i] = (tag_map.corners[i] - cen[i]) @ R.T + cen[i] + p[3:]
-        return Tv, corners
+        s = dict(zip(sized, np.exp(x[6 * (nv + nf):])))
+        corners, centres = {}, {}
+        for i in ids:
+            if i == fixed:
+                R, t = np.eye(3), np.zeros(3)
+            else:
+                p = x[6 * nv + 6 * free.index(i):6 * nv + 6 * free.index(i) + 6]
+                R, t = exp_so3(p[:3]), p[3:]
+            corners[i] = s.get(i, 1.0) * (tag_map.corners[i] - cen[i]) @ R.T + cen[i] + t
+            centres[i] = cen[i] + t
+        return Tv, corners, centres
 
     def res(x):
-        Tv, corners = unpack(x)
+        Tv, corners, centres = unpack(x)
         out = []
         for T, obs in zip(Tv, views):
             for i, uv in obs.items():
                 if i in corners:
-                    out.append((project(cam, T, corners[i]) - uv).ravel())
+                    out.append((project(cam, T, corners[i]) - uv).ravel() / px_sd)
+        out.append(np.array([(np.linalg.norm(centres[i] - centres[j]) - L) / sd for i, j, L, sd in lengths]))
         return np.concatenate(out)
-    x0 = np.zeros(6 * nv + 6 * len(free))
-    scale = np.tile(np.r_[1e-3, 1e-3, 1e-3, 0.1, 0.1, 0.1], nv + len(free))
+    x0 = np.zeros(6 * (nv + nf) + len(sized))
+    scale = np.r_[np.tile(np.r_[1e-3, 1e-3, 1e-3, 0.1, 0.1, 0.1], nv + nf), np.full(len(sized), 1e-3)]
     sol = least_squares(res, x0, x_scale=scale, method="trf")
-    Tv, corners = unpack(sol.x)
+    Tv, corners, centres = unpack(sol.x)
     A = np.concatenate([corners[i] for i in ids])
     B = tag_map.stacked(ids)
     R, t = kabsch(A, B)
     fitted = {i: corners[i] @ R.T + t for i in ids}
-    e = sol.fun.reshape(-1, 2)
+    e = sol.fun[:sol.fun.size - len(lengths)].reshape(-1, 2) * px_sd
     return TagMap.from_corners(tag_map.family, tag_map.size, fitted), {
         "views": nv, "corners": len(e), "rms_px": float(np.sqrt((e ** 2).sum(1).mean())), "cost": float(sol.cost),
+        "sizes_mm": {i: float(np.linalg.norm(fitted[i][0] - fitted[i][1])) for i in ids},
+        "lengths_mm": [(i, j, L, float(np.linalg.norm(centres[i] - centres[j]))) for i, j, L, _sd in lengths],
         "T_views": Tv}
 
 

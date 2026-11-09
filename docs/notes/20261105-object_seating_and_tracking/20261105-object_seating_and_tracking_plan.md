@@ -264,9 +264,18 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    0.14 mm. With the CAD map the corners reproject at 0.75 px RMS, and a fit of the across-flats and the square size
    brings that to 0.33 to 0.38 px, with the squares 2.5 % large relative to the face spacing. Only that ratio is seen
    by a camera whose pose is free. The across-flats measured with calipers sets the scale, and the adjustment must
-   free each tag's size, which `pose.bundle_adjust` holds at the map's. Solved with the CAD map, the depth in
-   simulation is 1.5 mm short. The frames and corner bursts (19 MB) are on corvus in the lab session's scratchpad,
-   `cams/`, until corvus has a host key for the workstation.
+   free each tag's size, which `pose.bundle_adjust` held at the map's. The owner's calipers give 29.95 to 30.02 mm
+   across the three pairs of flats, so the faces lie where the CAD puts them and the black squares measure about
+   13.33 mm, 0.16 mm of black spread per edge. With that map (`HexBlock(across_flats=29.985, tag_size=13.33)`) the
+   bench corners reproject at 0.33 and 0.38 px, and the block lies 4.1 to 4.4 mm farther than with the CAD map. The
+   D435 depth maps put the faces 3.6 to 6.9 mm nearer than that solution, and 0.5 to 2.6 mm nearer than the CAD one:
+   either the depth is biased at 0.29 m, near its minimum range (25 and 54 % of pixels valid), or the colour cameras'
+   factory model, which has no distortion, misses lens distortion where the block lay, 420 to 500 px from the image
+   centre. A checkerboard calibration of each colour camera with distortion, and arm steps of the block seen across
+   the image, decide it; both belong before step 5. `bundle_adjust` now frees each tag's size and takes the scale from
+   measured lengths, on the block the three across-flats. In simulation of this print (40 views) it brings the map to
+   0.028 mm RMS of the print and a single camera's depth bias from 5.3 mm (CAD map) and 7.6 mm (rigid adjustment) to
+   0.44 mm. The frames and corner bursts (19 MB) are on the workstation in `logs/20261109-tag_block_bench/cams/`.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.

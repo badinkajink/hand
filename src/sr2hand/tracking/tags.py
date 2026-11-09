@@ -83,11 +83,13 @@ class TagMap:
         return np.concatenate([self.corners[i] for i in ids])
 
     def transformed(self, T) -> "TagMap":
-        """The same tags in another frame: T maps this map's frame into it (4 x 4, mm)."""
+        """The same tags in another frame: T maps this map's frame into it (4 x 4, mm). The corners are moved as they are,
+        so a refined map keeps each tag's own size and shape."""
         R, t = T[:3, :3], T[:3, 3]
         out = TagMap(self.family, self.size)
-        for i, (c, r, d, _n) in self.frames.items():
-            out.add(i, R @ c + t, R @ r, R @ d)
+        for i, (c, r, d, n) in self.frames.items():
+            out.frames[i] = (R @ c + t, R @ r, R @ d, R @ n)
+            out.corners[i] = self.corners[i] @ R.T + t
         return out
 
     def to_json(self):
