@@ -1,5 +1,6 @@
-Status: staged, not armed (owner 2026-11-09: "you can stage the execution plan for post weekly reset. i agree with your
-order of runs"). Arm it after the weekly reset: ~/.claude/autopilot/ap arm docs/handoff/20261109-post_reset_todo.md
+Status: armed 2026-11-09 15:4x for Tuesday 2026-11-10 03:05 MST, after the weekly reset (owner: "can you arm it yourself.
+reset is at 3am mt tuesday"; "you can stage the execution plan for post weekly reset. i agree with your order of runs").
+Owner's go for the GPU grids of items 1 and 2, each launch through resguard after its status check.
 Task: owner 2026-11-09: "we should have a good list of to-do tasks that we can run with full comprehensiveness to get
 everything up-to-date post-weekly update"; "part of me also wants to just send it on new mujoco ... save the latter task
 for post-weekly reset"; "we previously re-did sysid from 0.72 nmrad to 0.55nmrad, but i dont want to rerun everything, so
@@ -34,5 +35,5 @@ Claimed: none.
 Decided 11-09: raw data stays offline (no data rows to GitHub's LFS); data files under 2 MB are ordinary git files, the
 pre-commit hook stops larger ones; plans and trajectories converted to plain git; the bare copy hand-lean.git deleted.
 Waiting on owner: nothing.
-Do not: multi-hour GPU grids without the owner's go and a resguard check; git lfs push --all; contact repo pushes without
+Do not: GPU grids beyond items 1 and 2 without the owner's go, or any launch without a resguard check; git lfs push --all; contact repo pushes without
 the owner's word.
