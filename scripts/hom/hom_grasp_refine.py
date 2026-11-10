@@ -130,6 +130,11 @@ FORCES = {"twist": {"f_tripod": (1.0, 5.0)}, "roll": {"f_tripod": (1.0, 5.0)},
 ROLES = {"twist": ("tripod",), "roll": ("tripod",), "pinpush": ("pinch", "push"), "press": ("pinch", "push")}
 COMPS = ("spin", "roll", "slide")
 WORKERS = 4                                         # processes drawing feasible candidates
+# particle swarm in place of CEM (--method pso; post-reset step 3, 2026-11-10): the same variables, ranges, starts and
+# rollouts; rows under <level>_pso/
+PSO_W, PSO_C1, PSO_C2 = 0.7298, 1.49618, 1.49618   # Clerc and Kennedy's constriction coefficients
+PSO_VMAX = 2.0                                      # velocity cap, x CEM's starting spread of each variable
+PSO_SHRINK = 6                                      # halvings of a step the pose toy rejects before the particle waits
 
 
 def setenv(plant):
@@ -281,6 +286,128 @@ def draw_layout(job):
                 break
         out.append(x)
     return call, out, tried
+
+
+def pso_move(job):
+    """One layout's swarm at iteration it (a worker's job): the velocity update of particle swarm optimization (global
+    best) and the move, each step halved until the pose toy accepts the grasp, PSO_SHRINK times at most; a particle
+    with no accepted step keeps its place, stops, and is not run. numpy's generator is seeded by (task, level, call,
+    it), so a replayed iteration moves the same. Returns (call, X, V, moved)."""
+    import fp_sr2_toy as FP
+    task, level, call, it, d6, X, V, P, G, lo, hi, nv, vmax = job
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    rng = np.random.default_rng([sum(map(ord, task + level + "pso")), int(call), int(it)])
+    X, V, P = np.array(X, float), np.array(V, float), np.array(P, float)
+    r1, r2 = rng.random(X.shape), rng.random(X.shape)
+    V = np.clip(PSO_W * V + PSO_C1 * r1 * (P - X) + PSO_C2 * r2 * (np.asarray(G, float) - X), -vmax, vmax)
+    moved = np.zeros(len(X), bool)
+    for i in range(len(X)):
+        v = V[i].copy()
+        for _ in range(PSO_SHRINK + 1):
+            y = np.clip(X[i] + v, lo, hi)
+            if feasible(task, d6, y[:nv]):
+                V[i], X[i], moved[i] = y - X[i], y, True
+                break
+            v *= 0.5
+        if not moved[i]:
+            V[i] = 0.0
+    return call, X, V, moved
+
+
+def cmd_run_pso(a):
+    """Particle swarm optimization of each layout's grasp (level grasp) or grasp, forces and modes (level full) on the
+    task score at the search seeds, in place of CEM: POP particles for ITERS iterations, the same rollouts as CEM. The
+    first swarm is CEM's first draw (the start as candidate 0, then feasible draws around it); its velocities are drawn
+    within CEM's starting spread. Each later iteration moves every particle toward its own best and the swarm's best
+    (pso_move). Rows: rows/<plant>/<level>_pso/, the key's cand is the particle."""
+    setenv(a.plant)
+    import multiprocessing as mp
+    import fp_sr2_toy as FP
+    import hom_ea as E
+    import hom_gpu as HG
+    task, level = a.task, a.level
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    lays = layouts(task, a.plant, a.top, a.rand, a.layouts_from)
+    lays = lays[:a.n] if a.n else lays
+    d6 = {L_["call"]: L_["d"] for L_ in lays}
+    out_level = f"{level}_pso"
+    path = rows_dir(a.plant) / out_level / f"{task}_d{TASKS[task]:g}.jsonl"
+    gpath = path.with_name(path.stem + "_gens.jsonl")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    space = {c: Space(task, level, L_["widths"]) for c, L_ in ((L_["call"], L_) for L_ in lays)}
+    if level == "grasp":
+        start = {L_["call"]: L_["v1"] for L_ in lays}
+    else:                                   # from S2's pick, as CEM's level full
+        prev = picks(task, a.plant, "grasp")
+        start = {L_["call"]: (prev[L_["call"]]["v"] if L_["call"] in prev else L_["v1"]) for L_ in lays}
+    st0 = {c: space[c].start(start[c]) for c in d6}
+    vmax = {c: PSO_VMAX * st0[c][1] for c in d6}
+    n = a.pop or POP[level]
+    gens_done = {(int(g["call"]), int(g["it"])) for g in read_rows(gpath)}
+    scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
+    ctx = mp.get_context("spawn")
+    X, V, Pb, Pf = {}, {}, {}, {}
+    with ctx.Pool(WORKERS) as pool:
+        for it in range(a.iters or ITERS):
+            t0 = time.time()
+            if it == 0:
+                jobs = [(task, level, c, 0, d6[c], st0[c][0], st0[c][1], space[c].lo, space[c].hi, space[c].nv, n)
+                        for c in d6]
+                moved = {}
+                for c, xs, _tried in pool.map(draw_layout, jobs):
+                    rng = np.random.default_rng([sum(map(ord, task + level + "pso")), int(c), -1])
+                    X[c] = np.array([x if x is not None else st0[c][0] for x in xs])
+                    V[c] = rng.uniform(-1.0, 1.0, X[c].shape) * st0[c][1]
+                    moved[c] = np.array([x is not None for x in xs])
+            else:
+                jobs = [(task, level, c, it, d6[c], X[c], V[c], Pb[c], Pb[c][int(np.argmax(Pf[c]))], space[c].lo,
+                         space[c].hi, space[c].nv, vmax[c]) for c in d6]
+                moved = {}
+                for c, Xc, Vc, mv in pool.map(pso_move, jobs):
+                    X[c], V[c], moved[c] = Xc, Vc, mv
+            t_draw = time.time() - t0
+            stored = {ident(r): r["x"] for r in read_rows(path) if int(r["it"]) == it}
+            items = []
+            for c in d6:
+                sp = space[c]
+                for k in np.flatnonzero(moved[c]):
+                    x = X[c][k]
+                    if (c, it, int(k)) in stored and np.abs(np.asarray(stored[(c, it, int(k))]) - x).max() > 1e-5:
+                        raise SystemExit(f"replay of {task} {out_level} it {it} call {c} particle {k} moved elsewhere")
+                    key = {"d": d6[c], "call": c, "it": it, "cand": int(k), "level": out_level,
+                           "v": [round(float(y), 7) for y in x[:sp.nv]], "prm": sp.prm(x),
+                           "x": [round(float(y), 7) for y in x]}
+                    items.append((key, d6[c], x[:sp.nv], key["prm"]))
+            tm = {}
+            n_run = evaluate(task, a.plant, path, items, SEARCH_SEEDS, scene, HG, E, tm)
+            sc = scores(task, [r for r in read_rows(path) if int(r["it"]) == it])
+            for c in d6:
+                f = np.array([sc[(c, it, k)][0] if moved[c][k] and (c, it, k) in sc else -1.0 for k in range(n)])
+                if it == 0:
+                    Pb[c], Pf[c] = X[c].copy(), f
+                else:
+                    up = f > Pf[c]
+                    Pb[c][up], Pf[c][up] = X[c][up], f[up]
+                if (c, it) not in gens_done:
+                    with open(gpath, "a") as fh:
+                        fh.write(json.dumps({"call": c, "it": it, "n": int(moved[c].sum()),
+                                             "scores": [round(float(v), 4) for v in f if v >= 0],
+                                             "best": round(float(Pf[c].max()), 4),
+                                             "gbest": Pb[c][int(np.argmax(Pf[c]))].round(7).tolist()}) + "\n")
+                        fh.flush()
+                        os.fsync(fh.fileno())
+            n_feas = int(sum(m.sum() for m in moved.values()))
+            t_all = time.time() - t0
+            print(f"{time.strftime('%H:%M:%S')} {task} {out_level} it {it}: {n_feas} particles moved of {len(d6)} "
+                  f"layouts, {n_run} rollouts run, moves {t_draw:.0f} s, all {t_all:.0f} s, median best "
+                  f"{np.median([Pf[c].max() for c in d6]):.3f}", flush=True)
+            with open(path.with_name(path.stem + "_iters.jsonl"), "a") as fh:
+                fh.write(json.dumps({"when": time.strftime("%Y-%m-%d %H:%M:%S"), "task": task, "level": out_level,
+                                     "plant": a.plant, "it": it, "layouts": len(d6), "candidates": n_feas,
+                                     "rollouts": n_run, "replay": n_run == 0, "draw_s": round(t_draw, 2), **tm,
+                                     "total_s": round(t_all, 2)}) + "\n")
+                fh.flush()
+                os.fsync(fh.fileno())
 
 
 # ------------------------------------------------------------------------------------------------ the layouts
@@ -712,6 +839,8 @@ def cmd_prm(a):
 def cmd_run(a):
     if a.level == "shared":
         return cmd_run_shared(a)
+    if a.method == "pso":
+        return cmd_run_pso(a)
     name = band_name(a.band) if a.band else a.plant         # --band: the worst-case score over the band's plants
     band = BANDS.get(name)
     setenv(band[-1] if band else a.plant)
@@ -921,6 +1050,76 @@ def cmd_validate(a):
     scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
     n = evaluate(task, a.plant, path, items, VAL_SEEDS, scene, HG, E)
     print(f"{task}: {len(items)} picks, {n} rollouts run", flush=True)
+
+
+def cmd_validate_pso(a):
+    """Post-reset step 3: S1, CEM's elitist pick S3e (or S2e at level grasp) and the particle swarm's pick of the same
+    level, for the first n layouts of the sample (the best by S1), at the validation seeds. Rows under
+    rows/<plant>/val_pso/, with the tracking fields of 2026-11-09; CEM stays if the swarm's median validated gain over S1
+    is within 0.02 of CEM's on every task."""
+    setenv(a.plant)
+    import fp_sr2_toy as FP
+    import hom_ea as E
+    import hom_gpu as HG
+    task, level = a.task, a.level
+    FP.set_sizes(**({"sph_d_mm": TASKS[task]} if POSE[task] == "tripod" else {"cyl_d_mm": TASKS[task]}))
+    lays = json.loads((rows_dir(a.plant) / f"{task}_layouts.json").read_text())["layouts"][:a.n or N_TOP]
+    cem = {"S1": None, "S2": picks(task, a.plant, "grasp"), "S3": picks(task, a.plant, "full")}
+    el = elitist(task, a.plant)
+    swarm = picks(task, a.plant, f"{level}_pso")
+    items = []
+    for L_ in lays:
+        c = L_["call"]
+        e = el[c]["S3e" if level == "full" else "S2e"]
+        sets = [("S1", L_["v1"], {})]
+        sets.append(("CEM", L_["v1"] if e == "S1" else cem[e][c]["v"], {} if e == "S1" else cem[e][c]["prm"]))
+        if c in swarm:
+            sets.append(("PSO", swarm[c]["v"], swarm[c]["prm"]))
+        for name, v, prm in sets:
+            key = {"d": L_["d"], "call": c, "pick": f"{name}_{level}" if name != "S1" else "S1", "v": [round(float(y), 7) for y in v],
+                   "prm": prm}
+            items.append((key, L_["d"], np.asarray(v, float), prm))
+    path = rows_dir(a.plant) / "val_pso" / f"{task}_d{TASKS[task]:g}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    scene = HG.Scene("sphere" if POSE[task] == "tripod" else "cylinder", TASKS[task])
+    n = evaluate(task, a.plant, path, items, VAL_SEEDS, scene, HG, E)
+    print(f"{task}: {len(items)} picks, {n} rollouts run", flush=True)
+
+
+def report_pso(plant="sv25", level="full", tasks=("twist", "roll", "press")):
+    """Per task: the median validated gain over S1 of CEM's elitist pick and of the swarm's, by the earlier score and by
+    the tracking score, with the search-seed scores and the rollouts each search ran."""
+    import hom_landscape as L
+    out = {}
+    for task in tasks:
+        rows = read_rows(rows_dir(plant) / "val_pso" / f"{task}_d{TASKS[task]:g}.jsonl")
+        if not rows:
+            continue
+        acc = {}
+        for r in rows:
+            k = (int(r["call"]), r["pick"].split("_")[0])
+            a_ = acc.setdefault(k, {"old": [], "track": []})
+            a_["old"].append(L.rollout_score(task, r))
+            a_["track"].append(L.track_score(task, r))
+        calls = sorted({c for c, _n in acc})
+        res = {}
+        for name in ("CEM", "PSO"):
+            g_old = [np.mean(acc[(c, name)]["old"]) - np.mean(acc[(c, "S1")]["old"]) for c in calls
+                     if (c, name) in acc and (c, "S1") in acc]
+            g_tr = [np.mean(acc[(c, name)]["track"]) - np.mean(acc[(c, "S1")]["track"]) for c in calls
+                    if (c, name) in acc and (c, "S1") in acc]
+            res[name] = {"layouts": len(g_old), "gain_old_median": float(np.median(g_old)) if g_old else None,
+                         "gain_track_median": float(np.median(g_tr)) if g_tr else None,
+                         "val_old_median": float(np.median([np.mean(acc[(c, name)]["old"]) for c in calls
+                                                            if (c, name) in acc])),
+                         "val_track_median": float(np.median([np.mean(acc[(c, name)]["track"]) for c in calls
+                                                              if (c, name) in acc]))}
+        res["S1"] = {"val_old_median": float(np.median([np.mean(acc[(c, "S1")]["old"]) for c in calls])),
+                     "val_track_median": float(np.median([np.mean(acc[(c, "S1")]["track"]) for c in calls]))}
+        it_rows = read_rows(rows_dir(plant) / f"{level}_pso" / f"{task}_d{TASKS[task]:g}_iters.jsonl")
+        res["pso_rollouts"] = int(sum(r["rollouts"] for r in it_rows))
+        out[task] = res
+    return out
 
 
 def shared_grid(task, plant):
@@ -1352,6 +1551,8 @@ def main():
     pr.add_argument("--layouts-from", default=None, choices=list(PLANTS), help="another plant's layout sample")
     hb = "a band of plants (BANDS: its name, or its plants comma-separated): the worst-case score over them"
     pr.add_argument("--band", default=None, help=hb)
+    pr.add_argument("--method", default="cem", choices=("cem", "pso"), help="pso: particle swarm in place of CEM, "
+                    "rows under <level>_pso/ (levels grasp and full)")
     pv = sub.add_parser("validate")
     pv.add_argument("--task", required=True, choices=list(TASKS))
     pv.add_argument("--plant", default="sv25", choices=list(PLANTS))
@@ -1360,6 +1561,12 @@ def main():
     pv.add_argument("--shared", action="store_true", help="level shared's pick on the sample (picks S1sh and Sh)")
     pv.add_argument("--n", type=int, default=0, help="--band, --shared: only the first n layouts (a smoke test)")
     pv.add_argument("--smoke", action="store_true")
+    pw = sub.add_parser("validate_pso", help="S1, CEM's elitist pick and the swarm's pick at the validation seeds")
+    pw.add_argument("--task", required=True, choices=list(TASKS))
+    pw.add_argument("--level", default="full", choices=("grasp", "full"))
+    pw.add_argument("--plant", default="sv25", choices=list(PLANTS))
+    pw.add_argument("--n", type=int, default=N_TOP, help="the first n layouts of the sample (the best by S1)")
+    pw.add_argument("--smoke", action="store_true")
     pp = sub.add_parser("report")
     pp.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pp.add_argument("--band", default=None, help=hb)
@@ -1378,7 +1585,8 @@ def main():
     if getattr(a, "smoke", False):
         global ROWS_ROOT
         ROWS_ROOT = OUT / "rows_smoke"
-    {"run": cmd_run, "validate": cmd_validate, "report": cmd_report, "probe": cmd_probe, "prm": cmd_prm}[a.cmd](a)
+    {"run": cmd_run, "validate": cmd_validate, "validate_pso": cmd_validate_pso, "report": cmd_report,
+     "probe": cmd_probe, "prm": cmd_prm}[a.cmd](a)
 
 
 if __name__ == "__main__":
