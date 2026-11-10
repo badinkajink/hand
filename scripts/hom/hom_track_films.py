@@ -40,7 +40,8 @@ TAG = HG.ROWS_TAG
 SIZES = {"twist": (25.0, 30.0, 63.0, 80.0), "roll": (25.0, 30.0, 63.0, 80.0), "press": (10.0, 13.0, 40.0, 50.0)}
 NAMES = {"twist": "Twist", "roll": "Roll", "press": "Press"}
 GENERALIST = (70.0, 110.0)
-K = int(os.environ.get("TRACK_K", "6"))                 # candidates per size from the proxy
+K = int(os.environ.get("TRACK_K", "6"))
+TIE = 0.02                                               # tracking scores this close count as tied when picking                 # candidates per size from the proxy
 SEEDS = (0, 1, 2)
 OUT = HF.ROWS / f"20261109-track_rerun{TAG}.jsonl"
 PICKS = HF.ROWS / f"20261109-track_picks{TAG}.json"
@@ -138,6 +139,11 @@ def shortlist(task, size):
             if r.get("status", "ok") == "ok":
                 groups.setdefault((int(r["call"]), int(r.get("grasp", 0))), []).append(r)
     ok = {k: v for k, v in groups.items() if len(v) >= 3 and all(r.get("held") for r in v)}
+    if os.environ.get("TRACK_THREE"):                    # second short list (owner, 11-09, the roll: "the third finger
+        ran = {(r["call"], r["grasp"]) for r in (json.loads(x) for x in OUT.read_text().splitlines() if x.strip())
+               if r.get("set") == "rerun" and r["task"] == task and r["size"] == size}
+        ok = {k: v for k, v in ok.items() if k not in ran and all(r.get("fingers_end") == 3 for r in v)}
+        return [(c, g, "three-pad proxy") for c, g in sorted(ok, key=lambda k: proxy(task, ok[k]))[:K]]
     best = sorted(ok, key=lambda k: proxy(task, ok[k]))[:K]
     old = max((k for k, v in groups.items() if len(v) >= 3),
               key=lambda k: float(np.mean([L.rollout_score(task, r) for r in groups[k]])))
@@ -160,7 +166,8 @@ def rerun(task):
                 r = json.loads(x)
                 if r.get("set") == "rerun":
                     done.add((r["task"], r["size"], r["call"], r["grasp"], r["seed"]))
-    for size in SIZES[task]:
+    sizes = [float(s) for s in os.environ["TRACK_SIZES"].split(",")] if os.environ.get("TRACK_SIZES") else SIZES[task]
+    for size in sizes:
         for call, g, why in shortlist(task, size):
             for seed in SEEDS:
                 if (task, size, call, g, seed) in done:
@@ -181,7 +188,8 @@ def means(task):
     out = {}
     for (size, call, g), rs in acc.items():
         out.setdefault(size, []).append((float(np.mean([r["track"] for r in rs])), float(np.mean([r["old"] for r in rs])),
-                                         call, g, rs[0]["why"], rs[0]["layout"], len(rs)))
+                                         call, g, rs[0]["why"], rs[0]["layout"], len(rs),
+                                         float(np.mean([r.get("contact_all_frac") or 0.0 for r in rs]))))
     return {s: sorted(v, key=lambda t: -t[0]) for s, v in out.items()}
 
 
@@ -193,7 +201,8 @@ def film(task):
     clips, info = [], {}
     rerun_rows = [json.loads(x) for x in OUT.read_text().splitlines() if x.strip()]
     for size, cands in sorted(means(task).items()):
-        m, mo, call, g, why, (x, y), n = cands[0]
+        # scores within 0.02 of the best are tied (the seed spread); the tie goes to the most time on three pads
+        m, mo, call, g, why, (x, y), n, c3 = max((c for c in cands if c[0] >= cands[0][0] - TIE), key=lambda c: c[7])
         seeds = {r["seed"]: r["track"] for r in rerun_rows if r.get("set") == "rerun" and r["task"] == task
                  and r["size"] == size and (r["call"], r["grasp"]) == (call, g)}
         seed = min(seeds, key=lambda s_: (abs(seeds[s_] - m), s_))      # the seed closest to the mean is filmed

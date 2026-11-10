@@ -963,6 +963,8 @@ class Film:
             self.cam.azimuth, self.cam.elevation = 340.0, 10.0
         else:
             self.cam.azimuth, self.cam.elevation = 90.0, 5.0
+        if os.environ.get("HOM_FILM_VIEW"):              # "azimuth,elevation,distance" (deg, deg, m), e.g. from below
+            self.cam.azimuth, self.cam.elevation, self.cam.distance = map(float, os.environ["HOM_FILM_VIEW"].split(","))
 
     def frame(self, plant, title, line):
         import hom_contact_rig as HR

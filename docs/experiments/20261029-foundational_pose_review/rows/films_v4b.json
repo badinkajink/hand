@@ -969,13 +969,13 @@
    "w_rmse_ratio": 1.039,
    "gap_mm": 4.0,
    "score": 0.49,
-   "reached": true,
    "layout": [
     70.0,
     110.0
    ],
    "call": 162,
    "grasp": 0,
+   "diverged": [],
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d25_sv25.mp4"
   },
   "30": {
@@ -983,13 +983,13 @@
    "w_rmse_ratio": 1.102,
    "gap_mm": 4.752,
    "score": 0.476,
-   "reached": true,
    "layout": [
     70.0,
     110.0
    ],
    "call": 162,
    "grasp": 0,
+   "diverged": [],
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d30_sv25.mp4"
   },
   "63": {
@@ -997,13 +997,13 @@
    "w_rmse_ratio": 1.016,
    "gap_mm": 39.293,
    "score": 0.496,
-   "reached": true,
    "layout": [
     70.0,
     110.0
    ],
    "call": 162,
    "grasp": 0,
+   "diverged": [],
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d63_sv25.mp4"
   },
   "80": {
@@ -1011,16 +1011,16 @@
    "w_rmse_ratio": 1.085,
    "gap_mm": 48.635,
    "score": 0.48,
-   "reached": true,
    "layout": [
     70.0,
     110.0
    ],
    "call": 162,
    "grasp": 0,
+   "diverged": [],
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d80_sv25.mp4"
   },
-  "when": "2026-11-09 16:57"
+  "when": "2026-11-09 18:54"
  },
  "one_pinpush": {
   "10": {

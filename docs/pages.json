@@ -5,11 +5,11 @@
   "title": "Tracking score of the HOM tasks and films of the SR2 hand across object sizes",
   "page_title": "Tracking score of the HOM tasks and films of the SR2 hand across object sizes",
   "topic": "design",
-  "summary": "A tracking score (share of the commanded rotation followed, times the share of the task on three pads) replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling twist; re-picked layouts score 0.24 to 0.35 (twist), 0.03 to 0.19 (roll) and 0.61 to 0.71 (press) at four sizes each.",
+  "summary": "A tracking score (share of the commanded rotation followed, times the share of the task on three pads) replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling twist; re-picked layouts score 0.23 to 0.35 (twist), 0.04 to 0.32 (roll) and 0.61 to 0.71 (press) at four sizes each.",
   "builder": "scripts/hom/hom_track_score_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 6.1
+  "mb": 5.6
  },
  {
   "date": "2026-11-09",

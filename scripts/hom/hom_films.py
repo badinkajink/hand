@@ -71,6 +71,8 @@ class Film:
         cyl = setup["shape"] == "cylinder"
         self.cam.distance = 0.16 if cyl else 0.15
         self.cam.azimuth, self.cam.elevation = (340.0, 14.0) if cyl else (60.0, 22.0)
+        if os.environ.get("HOM_FILM_VIEW"):          # "azimuth,elevation,distance" (deg, deg, m); elevation > 0 is from
+            self.cam.azimuth, self.cam.elevation, self.cam.distance = map(float, os.environ["HOM_FILM_VIEW"].split(","))  # below
         m = plant.m
         for g in range(m.ngeom):
             bn = m.body(m.geom_bodyid[g]).name

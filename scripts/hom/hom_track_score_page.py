@@ -144,7 +144,14 @@ def sec_picks(picks):
     out = ["<p>Each size's layout was picked again by the tracking score. The stored GPU rows of the live EA at that "
            "size hold no orientations, so a short list was taken from them first. It held the eight candidates "
            "closest to the command by the stored metrics, the first films' pick and layout (70, 110) mm. Each "
-           "candidate ran at seeds 0 to 2 on the CPU, and the best mean was filmed at the seed closest to that mean (Table 3).</p>"]
+           "candidate ran at seeds 0 to 2 on the CPU, and the best mean was filmed at the seed closest to that mean (Table 3). Scores within 0.02 of the best "
+           "counted as tied, and the tie went to the candidate with the larger three-pad share.</p>"
+           "<p>On the first short list no roll candidate both rolled and kept three pads. The owner judged its roll "
+           "films on 2026-11-09: \"the third finger loses contact and oscillates. i do believe that the sphere rolls, "
+           "but this view is also occluded\". A second short list for the roll took up to 12 more candidates per size. "
+           "Each had all three fingers loaded at the end of every GPU seed and was ranked by the stored per-step roll "
+           "angles. The roll films view the sphere from 55 deg below its centre, where the three pads ring the sphere "
+           "and none of them hides it.</p>"]
     body = []
     first = json.loads((ROWS / "films_v4b.json").read_text())
     for task in TASKS:
@@ -159,20 +166,22 @@ def sec_picks(picks):
                      "pick and layout (70, 110) mm on the same rollouts.", num_from=1))
     for task in TASKS:
         out.append(P.film(MEDIA / f"20261109-film_track_{task}{TAG}.mp4",
-                          f"{TNAME[task]}: the layout picked by the tracking score at each of four {OBJ[task]} sizes, at the "
+                          f"{TNAME[task]}: the layout picked by the tracking score at each of four {OBJ[task]} sizes"
+                          f"{', viewed from below' if task == 'roll' else ''}, at the "
                           "seed closest to its mean."))
         out.append(P.film(MEDIA / f"20261109-film_one_{task}{TAG}.mp4",
                           f"{TNAME[task]}: layout (70, 110) mm at the same sizes, seed 0. At 13 mm the press shows the "
                           "layout's second grasp, since the first one's rollout diverged; at 50 mm the toy found no "
                           "press pose." if task == "press" else
-                          f"{TNAME[task]}: layout (70, 110) mm at the same sizes, seed 0."))
+                          f"{TNAME[task]}: layout (70, 110) mm at the same sizes"
+                          f"{', viewed from below' if task == 'roll' else ''}, seed 0."))
     return "".join(out)
 
 
 def sec_limits():
     return ("<p>The short lists came from GPU rows without the GPU's orientations, ranked by the stored end yaw "
-            "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the eight "
-            "may score higher. Three seeds per candidate were run, on the CPU only. The landscapes, searches and "
+            "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the short "
+            "lists may score higher. Three seeds per candidate were run, on the CPU only. The landscapes, searches and "
             "layout choices of the earlier pages, the task-conflict page's 0.84 among them, still use the earlier "
             "score.</p>")
 
