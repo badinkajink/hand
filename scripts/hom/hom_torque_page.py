@@ -334,10 +334,13 @@ def sec_films():
     caps = {("twist", 30.0, "pick"): "Twist of the 30 mm sphere on layout (95, 90) mm, picked by the tracking score.",
             ("roll", 63.0, "pick"): "Roll of the 63 mm sphere on layout (155, 85) mm, picked by the tracking score, "
                                     "viewed from below.",
-            ("press", 13.0, "generalist"): "Press of the 13 mm cylinder on layout (70, 110) mm, its first grasp."}
+            ("press", 13.0, "generalist"): "Press of the 13 mm cylinder on layout (70, 110) mm, its first grasp, at "
+                                           "each plant's best seed."}
     t = ("<p>Each film shows one configuration on the three plants: from left to right the position servos and the "
-         "torque plant at 25.6 and 63 rad/s. Each clip runs at the seed whose tracking score is closest to that plant's "
-         "mean over seeds 0-2. The rods through the object show its axes.</p>")
+         "torque plant at 25.6 and 63 rad/s. In the twist and the roll each clip runs at the seed whose tracking score "
+         "is closest to that plant's mean over seeds 0-2. The press runs at each plant's best seed: the one rollout of "
+         "the 10 and 13 mm cylinders that any plant held on layout (70, 110) mm was at 63 rad/s. The rods through the "
+         "object show its axes.</p>")
     for k in FILMS:
         p = MEDIA / f"20261110-film_torque_{k[0]}_d{k[1]:g}_{k[2]}.mp4"
         t += P.film(p, caps[k] + " Left to right: position servos, torque at 25.6 rad/s, torque at 63 rad/s. "

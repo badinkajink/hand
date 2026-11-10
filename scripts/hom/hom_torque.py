@@ -391,7 +391,7 @@ def cmd_report(_a):
 
 
 FILM_MEDIA = OUT / "media"
-ARM_NAME = {"position": "position servos, kp 0.72 N m/rad", "servo": "torque, wn 25.6 rad/s", "fast": "torque, wn 63 rad/s"}
+ARM_NAME = {"position": "Position servos", "servo": "Torque, 25.6 rad/s", "fast": "Torque, 63 rad/s"}
 
 
 def cmd_film(a):
@@ -405,13 +405,15 @@ def cmd_film(a):
     call, grasp = rows[0]["call"], rows[0]["grasp"]
     clips = []
     for arm, plant, wn in (("position", "position", None), ("servo", "torque", WN["servo"]), ("fast", "torque", WN["fast"])):
-        rs = [r for r in rows if r["plant"] == plant and (wn is None or r["wn"] == wn)]
+        rs = [r for r in rows if r["plant"] == plant and (wn is None or r["wn"] == wn) and "tau_max" not in r]
         mean = float(np.mean([r["track"] for r in rs]))
-        seed = min(rs, key=lambda r: (abs(r["track"] - mean), r["seed"]))["seed"]
-        row, frames = run(a.task, a.size, call, grasp, seed, plant, wn or WN["servo"], render=True)
-        label = (f"{ARM_NAME[arm]}: tracking {row['track']:.2f} (mean {mean:.2f}), off-axis "
-                 f"{row.get('off_axis_rms_dps') or 0:.0f} deg/s, seed {seed}")
-        clips.append([HR.annotate(f, label, size=12) for f in frames])
+        ok = [r for r in rs if not r.get("diverged")]
+        pick = (max(ok, key=lambda r: (r["track"], -r["seed"])) if a.seed_rule == "best" else
+                min(ok, key=lambda r: (abs(r["track"] - mean), r["seed"])))
+        row, frames = run(a.task, a.size, call, grasp, pick["seed"], plant, wn or WN["servo"], render=True)
+        label = (f"{ARM_NAME[arm]}: tracking {row['track']:.2f}, seed {pick['seed']}"
+                 + ("" if row.get("held") else ", dropped"))
+        clips.append([HR.annotate(f, label, size=13) for f in frames])
     out = FILM_MEDIA / f"20261110-film_torque_{a.task}_d{a.size:g}_{a.which}.mp4"
     HF.compose(clips, out)
     return 0
@@ -443,6 +445,8 @@ def main():
     f.add_argument("--task", required=True)
     f.add_argument("--size", type=float, required=True)
     f.add_argument("--which", default="pick", choices=("pick", "generalist"))
+    f.add_argument("--seed-rule", default="mean", choices=("mean", "best"), help="film each plant at the seed closest to "
+                   "its mean tracking score, or at its best seed")
     a = ap.parse_args()
     return {"smoke": cmd_smoke, "compare": cmd_compare, "report": cmd_report, "film": cmd_film}[a.cmd](a)
 
