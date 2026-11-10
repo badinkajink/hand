@@ -198,7 +198,7 @@ def main():
             "problem is built up over slides 21 to 32, one term per slide, and kept on screen afterwards. Each later "
             "section zooms into one level: the evolutionary algorithm of Yang et al. for the hand, grasp synthesis and "
             "HOM for the controller, and a calibrated GPU simulator for the score.")
-    summary = ("The talk's co-design problem built up one term per slide (hand, controller, object size, spaces, tasks, "
+    summary = ("The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, "
                "metric, simulation, HOM), then zoomed level by level: Yang et al.'s EA (outer), grasp synthesis, HOM and "
                "CEM tuning (inner), and a fast, calibrated, observable simulator (evaluator); 32 atomic LaTeX images and "
                "diagrams for the slides.")

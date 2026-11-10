@@ -89,18 +89,20 @@ def C(body, label):
     return r"{" + N + r"\underbrace{" + body + r"}_{\clab{" + label + r"}}}"
 
 
-CD = [  # (slide, what, LaTeX)
+CD = [  # (slide, what, LaTeX); owner, 2026-11-10 evening: after the bi-level step the 6 mount coordinates, then the 9
+    # joint commands, and only then the object sizes and the tasks
     ("21", "The best hand for a task maximizes the task's score.",
      r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{score of hand $m$ on task $T$}}"),
     ("23", "A hand is scored through its best controller: a bi-level problem.",
      r"m^\star_T=\arg\max_{m}\ " + C(r"\max_{\pi}", "best controller") + r"\ J_T(m,{" + N + r"\pi})"),
-    ("24-27", "One hand for a range of object sizes.",
-     r"m^\star_T=\arg\max_{m}\ " + C(r"\mathbb{E}_{d}", "object sizes") + r"\Big[\max_{\pi}\ J_T(m,\pi;{" + N + r"d})\Big]"),
     ("28", "The hand: six mount coordinates.",
-     r"m^\star_T=" + C(r"\arg\max_{m\in\mathbb{R}^{6}}", "6 mount coordinates") + r"\ \mathbb{E}_{d}\Big[\max_{\pi}\ J_T(m,\pi;d)\Big]"),
+     r"m^\star_T=" + C(r"\arg\max_{m\in\mathbb{R}^{6}}", "6 mount coordinates") + r"\ \max_{\pi}\ J_T(m,\pi)"),
     ("28", "The controller: nine joint commands every 10 ms.",
-     r"m^\star_T=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{d}\Big[" + C(r"\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}", "9 joint commands")
-     + r"\ J_T(m,\pi;d)\Big]"),
+     r"m^\star_T=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}", "9 joint commands")
+     + r"\ J_T(m,\pi)"),
+    ("24-27", "One hand for a range of object sizes.",
+     r"m^\star_T=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\mathbb{E}_{d}", "object sizes")
+     + r"\Big[\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}\ J_T(m,\pi;{" + N + r"d})\Big]"),
     ("29", "Tasks vary too: the three toy tasks sample a distribution.",
      r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\mathbb{E}_{T,d}", "tasks and sizes") + r"\Big[\max_{\pi}\ J_{" + N + r"T}(m,\pi;d)\Big]"),
     ("30", "The score itself is a choice.",

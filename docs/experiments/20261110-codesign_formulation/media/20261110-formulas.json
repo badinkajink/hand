@@ -14,20 +14,20 @@
  {
   "name": "20261110-eq_cd03",
   "series": "codesign",
-  "slide": "24-27",
-  "what": "One hand for a range of object sizes."
+  "slide": "28",
+  "what": "The hand: six mount coordinates."
  },
  {
   "name": "20261110-eq_cd04",
   "series": "codesign",
   "slide": "28",
-  "what": "The hand: six mount coordinates."
+  "what": "The controller: nine joint commands every 10 ms."
  },
  {
   "name": "20261110-eq_cd05",
   "series": "codesign",
-  "slide": "28",
-  "what": "The controller: nine joint commands every 10 ms."
+  "slide": "24-27",
+  "what": "One hand for a range of object sizes."
  },
  {
   "name": "20261110-eq_cd06",
