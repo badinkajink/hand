@@ -13,6 +13,18 @@
  },
  {
   "date": "2026-11-10",
+  "file": "docs/experiments/20261110-hom_pusher_estimate/20261110-hom_unsensed_pusher.html",
+  "title": "Contact estimation for the unsensed pusher of the SR2 hand's pin-push under HOM",
+  "page_title": "Contact estimation for the unsensed pusher of the SR2 hand's pin-push under HOM",
+  "topic": "mechanisms",
+  "summary": "The SR2 pin-push with the pusher unsensed: its contact point estimated within 0.22 mm and its force within 0.25 N of 0.45 N; tracking score 0.34 with exact sensing, 0.23 with the boards' noise and 0.27 with the estimate.",
+  "builder": "scripts/hom/hom_pusher_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.7
+ },
+ {
+  "date": "2026-11-10",
   "file": "docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html",
   "title": "The co-design problem of the SR2 hand talk as one nested formula",
   "page_title": "The co-design problem of the SR2 hand talk as one nested formula",

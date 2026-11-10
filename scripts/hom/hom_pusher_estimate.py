@@ -8,10 +8,12 @@ Variants of hom_tasks.VARIANTS, each on the CPU plant with every contact and the
   hold      exact sensing at 100 Hz (the pin-push of the grids);
   tip       boards on all three fingers, 50 Hz, 40 ms late, the tag tracker's noise;
   tip_pe    as tip, the pusher's board replaced by the estimate;
-  tipfl, tip_pefl   the same two with the pusher's force loop (10 mm/s per N) closed on its board or on the estimate.
+  tipfl, tip_pefl   the same two with the pusher's force loop (10 mm/s per N) closed on its board or on the estimate;
+  tip0, tip0_pe     the boards' noise alone, at 100 Hz with no delay and the exact object pose (this study's variants,
+                    LOCAL), with the pusher's board or the estimate: the estimate's own cost.
 Layouts: the pin-push grid's five best layouts on the SCS0009 at 2.5 MPa (rows grid2dff_v4b_sv25, earlier score) with
 their best grasps, and layout (70, 110) mm with its best grasp; seeds 0-4.
-Rows: docs/experiments/20261110-hom_torque_control/rows/20261110-pusher_estimate.jsonl (fsynced, resumable).
+Rows: docs/experiments/20261110-hom_pusher_estimate/rows/20261110-pusher_estimate.jsonl (fsynced, resumable).
 
     HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25 \\
         .venv/bin/python scripts/hom/hom_pusher_estimate.py run [--part k --parts n]
@@ -37,8 +39,10 @@ import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import hom_torque as Q  # noqa: E402
 
 T, HG, L = Q.T, Q.HG, Q.L
-ROWS = Q.OUT / "rows" / "20261110-pusher_estimate.jsonl"
-VARS = ("hold", "tip", "tip_pe", "tipfl", "tip_pefl")
+ROWS = Q.ROOT / "docs/experiments/20261110-hom_pusher_estimate/rows/20261110-pusher_estimate.jsonl"
+VARS = ("hold", "tip0", "tip0_pe", "tip", "tip_pe", "tipfl", "tip_pefl")
+LOCAL = {"tip0": ({"contact_force_min": T.TIP_F_MIN}, {"tip_model": 1.0}),
+         "tip0_pe": ({"contact_force_min": T.TIP_F_MIN}, {"tip_model": 1.0, "pusher_est": True})}
 SEEDS = (0, 1, 2, 3, 4)
 N_BEST = 5
 KEEP = ("held", "theta_rmse_deg", "track_err_rms_deg", "track_ref_rms_deg", "contact_all_frac", "pusher_loc_err_mm",
@@ -57,7 +61,8 @@ def layouts():
     return out
 
 
-def run(call, grasp, seed, var):
+def run(call, grasp, seed, var, render=False):
+    """One CPU rollout of the pin-push; render=True: (result, frames of hom_films.Film every fourth period)."""
     import mujoco
     _k, mxy, setup = Q.find("pinpush", 25.0, call, grasp)
     scene = HG.Scene("cylinder", 25.0)
@@ -70,11 +75,19 @@ def run(call, grasp, seed, var):
     T.S.set_palm(m_pt, setup["palm"])
     fs, os_ = T.sr2_specs(setup)
     mirror = T.H.Mirror(m_pt, fs, os_)
-    over, noise = T.VARIANTS[var]
-    res, _rows, _ = T.rollout("pinpush", setup, pl, mirror, q_open, seed, T.PRM,
-                              replace(T.H.HomParams(dt=T.DT_C), **over), None, noise,
-                              T.PLANT_VARIANTS["hold"]["hold_s"])
-    return res
+    over, noise = {**T.VARIANTS, **LOCAL}[var]
+    film = None
+    if render:
+        import hom_films as HF
+        film = HF.Film(pl, setup)
+    try:
+        res, _rows, frames = T.rollout("pinpush", setup, pl, mirror, q_open, seed, T.PRM,
+                                       replace(T.H.HomParams(dt=T.DT_C), **over), film, noise,
+                                       T.PLANT_VARIANTS["hold"]["hold_s"])
+    finally:
+        if film is not None:
+            film.close()
+    return (res, frames) if render else res
 
 
 def load():
@@ -132,6 +145,27 @@ def cmd_report(_a):
     return 0
 
 
+FILM = {"layout": (75.0, 55.0), "seed": 0, "vars": ("hold", "tip0", "tip0_pe")}
+FNAME = {"hold": "Exact sensing", "tip0": "Boards' noise", "tip0_pe": "Boards' noise, pusher estimated"}
+
+
+def cmd_film(_a):
+    """The pin-push on one layout under exact sensing, the boards' noise and the estimate, side by side (MUJOCO_GL=egl)."""
+    import hom_contact_rig as HR
+    import hom_films as HF
+    call, grasp, _w = next((c, g, w) for c, g, w in layouts()
+                           if tuple(L.grid_poses("pinpush", 25.0, "grid2dff")[c][:2]) == FILM["layout"])
+    clips = []
+    for v in FILM["vars"]:
+        res, frames = run(call, grasp, FILM["seed"], v, render=True)
+        label = (f"{FNAME[v]}: tracking {L.track_score('pinpush', res):.2f}"
+                 + ("" if res.get("held") else ", dropped"))
+        clips.append([HR.annotate(f, label, size=13) for f in frames])
+    out = ROWS.parent.parent / "media" / "20261110-film_pusher_estimate.mp4"
+    HF.compose(clips, out)
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -139,8 +173,9 @@ def main():
     r.add_argument("--part", type=int, default=0)
     r.add_argument("--parts", type=int, default=1)
     sub.add_parser("report")
+    sub.add_parser("film")
     a = ap.parse_args()
-    return {"run": cmd_run, "report": cmd_report}[a.cmd](a)
+    return {"run": cmd_run, "report": cmd_report, "film": cmd_film}[a.cmd](a)
 
 
 if __name__ == "__main__":
