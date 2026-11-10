@@ -2265,6 +2265,45 @@ def ea_alg(caption, body):
             f"\\begin{{algorithmic}}[1]\n{body}\n\\end{{algorithmic}}</figure>")
 
 
+def pso_report():
+    """Post-reset step 3 (2026-11-10): the swarm against CEM's elitist pick, validated (hom_grasp_refine.report_pso)."""
+    return {t: v for t, v in R.report_pso("sv25").items() if v.get("PSO", {}).get("layouts")}
+
+
+def sec_pso(Q):
+    """Particle swarm optimization in place of CEM for the per-layout refinement at level full on the SCS0009."""
+    tk = [t for t in ("twist", "roll", "press") if t in Q]
+    if not tk:
+        return ""
+    n0 = P.TAB[0]
+    body = [[NAME[t], f"{Q[t]['PSO']['layouts']}", f2(Q[t]["S1"]["val_old_median"]), sg(Q[t]["CEM"]["gain_old_median"]),
+             sg(Q[t]["PSO"]["gain_old_median"]), f2(Q[t]["S1"]["val_track_median"]),
+             sg(Q[t]["CEM"]["gain_track_median"]), sg(Q[t]["PSO"]["gain_track_median"]), f"{Q[t]['pso_rollouts']:,}"]
+            for t in tk]
+    d = {t: Q[t]["PSO"]["gain_old_median"] - Q[t]["CEM"]["gain_old_median"] for t in tk}
+    dt = {t: Q[t]["PSO"]["gain_track_median"] - Q[t]["CEM"]["gain_track_median"] for t in tk}
+    over = [t for t in tk if d[t] > 0.02]
+    t_ = ("<p>The particle swarm of the <a href=\"../20261029-foundational_pose_review/20261109-hom_search_methods.html\">"
+          "search methods page</a> replaced CEM in the refinement at level full (grasp, commanded forces and contact "
+          "modes together) on the 30 best SCS0009 layouts per task. It ran with CEM's rollouts: 32 particles for 8 "
+          "iterations at seeds 0 to 2. Its first swarm was CEM's first draw, and its velocities started within CEM's "
+          "starting spread. Each update used Clerc and Kennedy's constriction coefficients (inertia 0.7298, both "
+          "attractions 1.49618) with the swarm's best as the attractor, and the velocity was capped at twice CEM's "
+          "starting spread. A step that the pose toy rejected was halved, up to six times. Each layout's S1, CEM's "
+          f"elitist pick S3e and the swarm's best then ran at seeds 20 to 24 (Table {n0 + 1}). The rule was set beforehand: "
+          "CEM stays if the swarm's median gain over S1 is within 0.02 of CEM's on every task.</p>")
+    t_ += ("<p>By the earlier score, the swarm's median gain minus CEM's is "
+           + ", ".join(f"{d[t]:+.2f} on the {t}" for t in tk[:-1]) + f" and {d[tk[-1]]:+.2f} on the {tk[-1]}. "
+           "By the tracking score it is " + ", ".join(f"{dt[t]:+.2f}" for t in tk[:-1]) + f" and {dt[tk[-1]]:+.2f}. "
+           + ("CEM stays as the refinement's search." if not over else
+              "The swarm's gain exceeds CEM's by more than 0.02 on the " + " and the ".join(over) + ".") + "</p>")
+    t_ += table(["Task", "Layouts", "S1, earlier score", "Gain of S3e (CEM)", "Gain of the swarm", "S1, tracking score",
+                 "Gain of S3e (CEM), tracking", "Gain of the swarm, tracking", "Swarm's rollouts"], body,
+                "The swarm against CEM at level full on the SCS0009 plant (0.72 N m/rad, 2.5 MPa, MuJoCo 3.6): medians "
+                "over the layouts at seeds 20-24 of S1 and of each search's gain over S1.", num_from=1)
+    return t_
+
+
 def sec_films():
     if not FILMS.exists():
         return "<p>The films are made after the GPU queue (<code>hom_score_refine_page.py films</code>).</p>"
@@ -2669,6 +2708,7 @@ def cmd_page():
         ("shared", "Forces and contact modes shared by all layouts on the SCS0009", sec_shared(shared_report(),
                                                                                              Js.get("sv25"))),
         ("ea", "Evolutionary search over layout and grasp on the SCS0009", sec_ea(ea_report(), Js.get("sv25"))),
+        ("pso", "Particle swarm against CEM for the refinement on the SCS0009", sec_pso(pso_report())),
         ("films", "Films of the picks", sec_films()),
         ("compute", "Compute and throughput", sec_compute()),
         ("limits", "Limitations", sec_limits()),

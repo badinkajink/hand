@@ -1,0 +1,14 @@
+{
+ "twist": {
+  "linesearch": 1916985,
+  "solver": 230
+ },
+ "roll": {
+  "linesearch": 1473121,
+  "solver": 214
+ },
+ "press": {
+  "linesearch": 822130,
+  "solver": 1185
+ }
+}

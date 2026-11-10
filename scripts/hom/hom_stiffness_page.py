@@ -83,6 +83,28 @@ def cmd_maps():
     print("wrote", LAND.relative_to(ROOT))
     keys = [k for k in GRIDS if k not in ("sv72", "sv72r2", "mj4") and all("track" in out[k][t] for t in TASKS)]
     fig_maps(out, keys, "20261110-stiffness_maps.png")
+    if all("track" in out["mj4"].get(t, {}) for t in TASKS):
+        fig_maps(out, ["sv55db", "mj4"], "20261110-mj4_maps.png")
+    return 0
+
+
+WARN = ROWS / "20261110-mj4_warnings.json"
+
+
+def cmd_warnings():
+    """MuJoCo Warp 4.0's iteration-limit warnings per grid, counted in the queue's compressed logs."""
+    import gzip
+    out = {}
+    for task in TASKS:
+        p = ROOT / f"logs/20261110-hom_post_reset/grid_mj4_sv55db_mj4_{task}.log.gz"
+        n_ls = n_it = 0
+        with gzip.open(p, "rt", errors="ignore") as fh:
+            for line in fh:
+                n_ls += line.startswith("linesearch iterations limit reached")
+                n_it += line.startswith("solver iterations limit reached")
+        out[task] = {"linesearch": n_ls, "solver": n_it}
+    WARN.write_text(json.dumps(out, indent=1) + "\n")
+    print(out)
     return 0
 
 
@@ -267,8 +289,8 @@ def sec_terms():
          f"(<a href=\"{TRENDS}\">trends page</a>). The pin-push is left out (owner, 2026-11-09: \"effective pin-push "
          "trajectories are effectively press trajectories\")."),
         ("Grid", "every layout of the lattice with every grasp of its grasp set, at seeds 0 to 2. A grasp set has up to "
-         "16 grasps, solved by the pose toy with the plant's finger clearance. The grids ran on the GPU evaluator, "
-         "MuJoCo Warp with the v4b fingertip's sphere pads at 2.5 MPa, in which only the pads and the small rigid "
+         "16 grasps, solved by the pose toy with the plant's finger clearance. The grids ran on the GPU evaluator: "
+         "MuJoCo Warp with the v4b fingertip's sphere pads at 2.5 MPa. In it only the pads and the small rigid "
          "spheres meet the object."),
         ("Best of 16", "a layout's highest mean score over seeds 0 to 2 among its grasps, by the score named; 0 where "
          "its pose is not reached."),
@@ -432,11 +454,30 @@ def sec_mj4(Lc):
          "page</a>), with the same scenes, plant, seeds and batches. Ranked by the tracking score, Spearman's rho "
          f"against MuJoCo 3.6 is {R_['twist']['rho']:.2f} on the twist, {R_['roll']['rho']:.2f} on the roll and "
          f"{R_['press']['rho']:.2f} on the press (Table 8). By the earlier score it is {Q_['twist']['rho']:.2f}, "
-         f"{Q_['roll']['rho']:.2f} and {Q_['press']['rho']:.2f}. The rerun spread on MuJoCo 3.6 is 0.99 to 1.00 "
-         "(Section SEC[deadband]).</p>")
+         f"{Q_['roll']['rho']:.2f} and {Q_['press']['rho']:.2f}.")
+    keep = [x for x in TASKS if R_[x]["best_a"][0] == R_[x]["best_b"][0]]
+    if keep:
+        t += (" " + ("Every task keeps" if len(keep) == len(TASKS) else "The " + " and the ".join(keep) + " keep")
+              + " its best layout by the tracking score, at " + ", ".join(lay(R_[x]["best_a"][0]) for x in keep[:-1])
+              + (" and " if len(keep) > 1 else "") + f"{lay(R_[keep[-1]]['best_a'][0])} mm.")
+    M_ = [pair(Lc, "sv72r", "sv55db", x, "track")["rho"] for x in TASKS]
+    Z_ = [pair(Lc, "sv72r", "sv72r2", x, "track")["rho"] for x in TASKS]
+    t += (f" The version moves the rankings by more than the rerun spread on MuJoCo 3.6, {min(Z_):.2f} to "
+          f"{max(Z_):.2f}. It moves them by less than the measured servo did, {min(M_):.2f} to {max(M_):.2f} "
+          "(Section SEC[deadband]).</p>")
     if sp:
         t += (f"<p>A rollout took {min(sp):.2f} to {max(sp):.2f} times as long on MuJoCo 3.6 as on 4.0, on the same "
-              "GPU and batches.</p>")
+              "GPU and batches.")
+        W = load(WARN.name)
+        if W:
+            ls, it = [W[t_]["linesearch"] for t_ in TASKS], [W[t_]["solver"] for t_ in TASKS]
+            t += (f" MuJoCo Warp 4.0 printed {min(ls) / 1e6:.1f} to {max(ls) / 1e6:.1f} million warnings per grid that "
+                  f"the line search reached its limit of 10 iterations. It printed {min(it):,} to {max(it):,} that the "
+                  "solver reached its 20 iterations. Both limits are the evaluator's settings on both versions; MuJoCo Warp "
+                  "3.6 prints no such warning.")
+        t += "</p>"
+    t += img(MEDIA / "20261110-mj4_maps.png", "Best-of-16 tracking score over the lattice with the measured servo on "
+             "MuJoCo 3.6 (top) and 4.0 (bottom). Grey: the pose is not reached. Star: the best layout.")
     t += table(["Task", "Layouts", "Spearman, tracking", "Best tenth kept, tracking", "Spearman, earlier",
                 "Best tenth kept, earlier", "Best on 3.6: tracking score", "Its score on 4.0", "Best on 4.0: tracking score",
                 "Its score on 3.6", "GPU time per rollout, 3.6 / 4.0 (ms)"], body,
@@ -490,8 +531,9 @@ def sec_ea4():
                          f"{lay(c['xy'])}: {c['best']:.2f}" if c else "&#8211;",
                          f"{np.hypot(*np.subtract(a['xy'], b['xy'])):.0f}" if a else "&#8211;"])
     sl = {t: (slope("model", t, "rollout"), slope("mj4", t, "rollout")) for t in TASKS}
-    t = ("<p>The size study's live EA (population 64, about 6,000 rollouts, seed 0, the earlier score as its fitness) "
-         "ran at the same object sizes on the measured servo and MuJoCo 4.0 (Table 9). The stored runs of the size "
+    t = ("<p>The size study's live EA ran at the same object sizes on the measured servo and MuJoCo 4.0 (Table 9). As "
+         "in the size study, each run had a population of 64, about 6,000 rollouts, seed 0 and the earlier score as its "
+         "fitness. The stored runs of the size "
          "study used the model servo on MuJoCo 3.6, so the two columns differ in the servo and in the simulator. "
          "Section SEC[mj4] separates the simulator's part on the default objects.</p>")
     ok = [x for x in TASKS if all(v is not None for v in sl[x])]
@@ -521,9 +563,8 @@ def sec_films():
             + table(["Task", "Model servo (0.72 N m/rad)", "Measured servo (0.55 N m/rad, dead band)"], body,
                     "The filmed layouts: tracking score of the CPU rollout at seed 0, and in brackets the best-of-16 "
                     "mean over seeds 0-2 on the GPU.", num_from=1)
-            + film(MEDIA / "20261110-film_stiffness.mp4", "Each servo's best layout by the tracking score: twist, roll and "
-                   "press with the model servo (top row) and with the measured servo and its dead band (bottom row), "
-                   "seed 0, CPU plant."))
+            + film(MEDIA / "20261110-film_stiffness.mp4", "Each servo's best layout by the tracking score, seed 0, CPU "
+                   "plant: the model servo in the top row, the measured servo with its dead band below."))
 
 
 def sec_limits():
@@ -579,6 +620,12 @@ def lede(Lc):
         "own best layouts reach the model's best scores, "
         f"{M_['twist']['best_b'][1]:.2f}, {M_['roll']['best_b'][1]:.2f} and {M_['press']['best_b'][1]:.2f}. The "
         "next grids run on the measured servo with its dead band.")
+    if all(Lc.get("mj4", {}).get(t, {}).get("track") for t in TASKS):
+        R4 = [pair(Lc, "sv55db", "mj4", t, "track") for t in TASKS]
+        same = all(r["best_a"][0] == r["best_b"][0] for r in R4)
+        text = text.replace(" The next grids run on the measured servo with its dead band.", "")
+        text += (f" On MuJoCo 4.0 the measured servo's landscapes keep rho {min(r['rho'] for r in R4):.2f} to "
+                 f"{max(r['rho'] for r in R4):.2f} against 3.6" + (", with the same best layouts." if same else "."))
     summary = (f"The SCS0009's measured 0.55 N m/rad and 0.59 deg dead band reorder the HOM landscapes (tracking-score "
                f"rho {min(m['rho'] for m in M_.values()):.2f} to {max(m['rho'] for m in M_.values()):.2f} against the "
                f"0.72 N m/rad model, rerun spread {min(Z_):.2f} to {max(Z_):.2f}); the model's best layouts lose "
@@ -632,6 +679,8 @@ if __name__ == "__main__":
         sys.exit(cmd_maps())
     if sys.argv[1:2] == ["numbers"]:
         sys.exit(cmd_numbers())
+    if sys.argv[1:2] == ["warnings"]:
+        sys.exit(cmd_warnings())
     if sys.argv[1:2] == ["films"]:
         sys.exit(cmd_films())
     if sys.argv[1:2] == ["clip"]:
