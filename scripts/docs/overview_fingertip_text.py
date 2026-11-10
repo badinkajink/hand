@@ -562,7 +562,12 @@ points, against 0.54&#8211;0.56&#8202;mm for the GP on at most 1,500 holds a set
 1.00&#8211;1.03&#8202;mm, against 1.24&#8202;mm. The GP&#8217;s uncertainty ranks the errors in those gaps better, with a rank
 correlation of 0.44 against 0.20&#8211;0.31
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#shared),
-Section 16). The owner ended the UR5 calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
+Section 16). The contact viewer was replayed on a rod roll of v3 ID 5 that turned the pad by &#177;6&#176; at about
+4&#8202;N. With a board GP fitted to v3 ID 5&#8217;s 6,186 holds, none of them from a roll, its contacts were a median
+0.49&#8202;mm from the robot&#8217;s contact point. With the physical model alone they were 3.06&#8202;mm away
+([viewer on a UR5 roll](exp:20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html)). The
+chips&#8217; change was also computed with a finite-element and field model of the same roll. It correlates with the
+measured change at 0.90, at 1.71 times its size. The owner ended the UR5 calibration on 2026-11-04, and the tips went to the SR2 hand.</p>
 <p>Over two days and 11 layouts of the SR2 hand, the contact viewer with no compensation would show a contact with nothing
 touching in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames, at a median of 3.6&#8202;N. The middle finger&#8217;s board shows
 4.2&#8202;% and the index&#8217;s 1.3&#8202;%. Most of the change comes from the finger&#8217;s own pose, a median of 66 to
@@ -874,6 +879,8 @@ PAGES = [
      "A neighbouring fingertip&#8217;s field at the board, measured between v3 tips on the UR5 and on the SR2 hand, and its subtraction from the joint angles and from both boards"),
     ("Calibration", "20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html",
      "False contacts of the contact viewer and the GP on the finger&#8217;s own angles on the SR2 hand: two days, 11 layouts, UR5 presses added to its frames"),
+    ("Calibration", "20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html",
+     "The contact viewer replayed on a UR5 rod roll of v3 ID 5, and a finite-element and field model of the roll"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
