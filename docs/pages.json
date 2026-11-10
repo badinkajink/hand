@@ -25,6 +25,18 @@
  },
  {
   "date": "2026-11-10",
+  "file": "docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html",
+  "title": "Fingertip viewer replayed on a UR5 rod roll, with the finite-element and field model of the roll",
+  "page_title": "Fingertip viewer replayed on a UR5 rod roll, with the finite-element and field model of the roll",
+  "topic": "fingertip",
+  "summary": "Replayed on a 4 N rod roll of v3 ID 5, the fingertip viewer placed contacts a median 0.49 mm from the robot's contact with the UR5-trained GP and 3.06 mm with the physical model alone; an FE and field model of the roll gives the chips' change at correlation 0.90 and 1.71 times its size.",
+  "builder": "scripts/fingertip/viewer_roll_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 8.0
+ },
+ {
+  "date": "2026-11-10",
   "file": "docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html",
   "title": "The co-design problem of the SR2 hand talk as one nested formula",
   "page_title": "The co-design problem of the SR2 hand talk as one nested formula",

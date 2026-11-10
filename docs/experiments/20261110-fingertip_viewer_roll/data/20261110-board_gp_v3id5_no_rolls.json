@@ -1,0 +1,18 @@
+{
+ "sessions": [
+  "20261102-182710-s2v5",
+  "20261103-144808-s2sph2",
+  "20261103-172647-rod21_dense"
+ ],
+ "kinds": [
+  "press",
+  "sweep",
+  "offset",
+  "slide"
+ ],
+ "n_holds": 6186,
+ "roll_action_holds_left_out": 8,
+ "length": 1.9364916731037085,
+ "noise": 0.3,
+ "fit_s": 22.8
+}
