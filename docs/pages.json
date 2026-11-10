@@ -1,5 +1,17 @@
 [
  {
+  "date": "2026-11-10",
+  "file": "docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html",
+  "title": "The co-design problem of the SR2 hand talk as one nested formula",
+  "page_title": "The co-design problem of the SR2 hand talk as one nested formula",
+  "topic": "design",
+  "summary": "The talk's co-design problem as one nested formula built up over slides 21-31 (hand, controller, object size, spaces, tasks, metric, simulation), then zoomed: Yang et al.'s EA (outer), grasp synthesis and HOM with CEM tuning (inner), and a fast, calibrated, observable simulator (evaluator); with diagrams.",
+  "builder": "scripts/docs/codesign_formulation_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 1.1
+ },
+ {
   "date": "2026-11-09",
   "file": "docs/experiments/20261029-foundational_pose_review/20261109-hom_tracking_score.html",
   "title": "Tracking score of the HOM tasks and films of the SR2 hand across object sizes",
