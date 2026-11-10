@@ -102,3 +102,9 @@ docs/experiments/20261029-foundational_pose_review/rows/20261110-rail_roll_*.jso
 docs/experiments/20261029-foundational_pose_review/rows/ea_live_*_track/*_s[0-9].jsonl
 docs/experiments/20261029-foundational_pose_review/rows/ea_live_*_mj4/*_s[0-9].jsonl
 docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_*
+docs/experiments/20261029-foundational_pose_review/rows/search6d_sv25/*_d[0-9][0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/*_d28_s[0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/*_d67_s[0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/press_d18_s[0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/press_d45_s[0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/pso16_live_sv25/*_s[0-9].jsonl

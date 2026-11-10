@@ -90,6 +90,12 @@ State 11-10 09:31: step 2 marked done. Step 4 twist at round 7 (09:30): random/S
 ~50, PSO 16 ~35, so ~1-2 h per task; then step 3 (~1 h), then step 5 (36 runs, ~3 h). hom_search_methods_page.py has
 sec_search6d (summary rows/20261110-search6d_sv25_summary.json, figure 20261110-search6d_curves.png, table), inert until
 the _gens files land; its prose waits for the data. Claimed line extended (09:28) to the two page builders of steps 3-5.
+State 11-10 11:16: step 4's searches ended 11:03 (all three tasks validated). The EA and PSO 16 stalled at the 400-round
+cap after 324-630 rollouts (children snap back to visited Sobol layouts, median spacing 0.19); RRT within 0.05 from 8 of
+9 starts, random 7, EA 4; roll incumbents track 0.00-0.04 (rho earlier vs tracking 0.40 on the roll). Page section
+written (search methods page Section 10), not yet committed. Step 18 added: hom_search6d.py validate --track-top 5
+(gpu_queue_step4b.sh, launched detached at 11:12, waits for "gpu master done"). Step 3 (PSO vs CEM) on the GPU since
+11:04 (smoke passed). .gitignore covers search6d *_d[0-9][0-9].jsonl and step 5's per-run rows.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. The measured servo first: HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 (damping 0.02 s x kp, as the servo plant's)… Done 11-10 06:53: Measured servo moves the rankings: tracking-score rho vs 0.72 N m/rad 0.91/0.73/0.81 (0.55) and 0.91/0.72/0.79 (0.55 + 0.59 deg band), band vs 0.55 alone 0.94/0.79/0.90, rerun 0.99-1.00 (twist/roll/press); model's best layouts lose 0.14-0.29 on the measured servo; step 2 runs on 0.55 + band; page 20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html (2eb2bfe31)
@@ -108,6 +114,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 13. Owner, 11-09: the roll is the weakest demonstration because it departs from the HOM paper's video, where the … Done 11-10 06:28: Rail roll (thumb held as a rail, CPU, 2,688 + 2,820 rollouts): index+middle 0.28/0.32/0.15/0.29 at 25/30/63/80 mm vs tripod picks 0.23/0.28/0.32/0.04; index alone 0.04 (25) and 0.12 (30); films from below; section 6 of 20261109-hom_tracking_score.html (dba1c25f5)
 - [x] 14. Owner, 11-09 (an exception to the pin-push rule, exploratory): push with the unsensorized back of the pusher'… Done 11-10 05:07: Unsensed pusher on 6 pin-push layouts x 5 seeds: point within 0.22 mm, force within 0.25 N of 0.45 N (boards' noise); tracking 0.34 exact, 0.23 three boards, 0.27 pusher estimated; at 50 Hz/40 ms late held 9 vs 7 of 30; pad contact with reading withheld, back-contact grasp is future work; page docs/experiments/20261110-hom_pusher_estimate/20261110-hom_unsensed_pusher.html (e0c123fe0)
 - [-] 15. Owner, 11-10 ('this is pretty important'): finish and double-check the talk's co-design formulas and visuals,… Dropped: taken back by the window at 01:40 on 11-10 (owner: more effort on the visuals, reorder the deck); the window re-adds a step if it does not finish
+- [ ] 18. After step 4: rerun at seeds 20-24 the five layouts of best tracking score at seeds 0-2 among every layout step 4's searches ran (hom_search6d.py validate --track-top 5, logs/20261110-hom_post_reset/gpu_queue_step4b.sh, starts when gpu_master.sh ends) and add them to the search methods page's six-coordinate section; the searches' fitness was the earlier score, and the roll's incumbents track at 0.00-0.04
 Standing directions (for every step):
 - Pin-push dropped for now (owner, 11-09: "effective pin-push trajectories are effectively press trajectories"): grids, searches and films run the twist, roll and press.
 - Rank layouts by hom_landscape.track_score (owner's go, 11-09; page 20261109-hom_tracking_score.html) and quote the earlier rollout_score beside it. Rows from before 11-09 lack the tracking fields, so a stored landscape is rescored only by rerunning it.

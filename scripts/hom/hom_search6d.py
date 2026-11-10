@@ -23,14 +23,15 @@ Methods, each with a budget of 6,000 rollouts and three random starts (seeds 0-2
            (the Sobol layouts lie about 0.2 apart, more than the step), which joins the tree when its pose is reached;
            from the layout nearest fp_sr2_toy.SEED6, 32 a round.
 Each search's best layout then runs at seeds 20-24, which no search used; a method is scored against the best layout any
-method found, by those validated scores.
+method found, by those validated scores. validate --track-top N also reruns the N layouts of best tracking score at seeds
+0-2 among every layout the searches ran (the searches' fitness is the earlier score).
 Rows: docs/experiments/20261029-foundational_pose_review/rows/search6d<tag>/<task>_d<d>.jsonl (the shared rollouts,
 hom_gpu.py's format), <task>_<method>_s<seed>_gens.jsonl (one line a round: rollouts, layouts, incumbent) and
 <task>_d<d>_val.jsonl (the validation).
 
     HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25 \\
         .venv/bin/python scripts/hom/hom_search6d.py run --task twist [--methods ea64 pso16 ...] [--seeds 0 1 2]
-    .venv/bin/python scripts/hom/hom_search6d.py validate --task twist
+    .venv/bin/python scripts/hom/hom_search6d.py validate --task twist [--track-top 5]
     .venv/bin/python scripts/hom/hom_search6d.py report
 """
 from __future__ import annotations
@@ -184,15 +185,16 @@ class Search:
             self.X, self.V = np.clip(self.X, -0.5, 0.5), np.where(wall, 0.0, self.V)
 
 
-def fitness(task, path, seeds=SEEDS):
+def fitness(task, path, seeds=SEEDS, score="rollout"):
     """{layout: mean score over the seeds} from the shared rows (the earlier score, as the searches of the search methods
-    page; the tracking score is reported beside it)."""
+    page; the tracking score, score="track", is reported beside it)."""
+    f = L.track_score if score == "track" else L.rollout_score
     acc = {}
     for x in (path.read_text().splitlines() if path.exists() else []):
         if x.strip():
             r = json.loads(x)
             if int(r["seed"]) in seeds:
-                acc.setdefault(int(r["call"]), []).append(L.rollout_score(task, r))
+                acc.setdefault(int(r["call"]), []).append(f(task, r))
     return {c: float(np.mean(v)) for c, v in acc.items() if len(v) >= len(seeds)}
 
 
@@ -275,9 +277,12 @@ def cmd_validate(a):
     task = a.task
     sp = Space(task)
     best = {v[0] for v in incumbents(task).values()}
+    if a.track_top:   # also the layouts of best tracking score at seeds 0-2 among every layout the searches ran
+        ft = fitness(task, OUT / f"{task}_d{sp.d:g}.jsonl", score="track")
+        best |= set(sorted(ft, key=lambda c: -ft[c])[:a.track_top])
     path = OUT / f"{task}_d{sp.d:g}_val.jsonl"
     n = evaluate(sp, sorted(best), path, VAL_SEEDS)
-    print(f"{task}: {len(best)} incumbents, {n} rollouts run", flush=True)
+    print(f"{task}: {len(best)} layouts, {n} rollouts run", flush=True)
     return 0
 
 
@@ -322,6 +327,7 @@ def main():
     r.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     v = sub.add_parser("validate")
     v.add_argument("--task", required=True, choices=list(TASKS))
+    v.add_argument("--track-top", type=int, default=0, help="also the N layouts of best tracking score at seeds 0-2")
     sub.add_parser("report")
     a = ap.parse_args()
     return {"run": cmd_run, "validate": cmd_validate, "report": cmd_report}[a.cmd](a)
