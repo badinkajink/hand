@@ -25,15 +25,15 @@
  "seconds": 55,
  "peak_rss_gb": 2.04,
  "film": {
-  "frames": 444,
-  "correlation_median": 0.9039510538827278,
+  "frames": 436,
+  "correlation_median": 0.9032862999232016,
   "correlation_range": [
    0.6232194279391128,
    0.980022138192115
   ],
-  "size_ratio_median": 1.7104999434767594,
+  "size_ratio_median": 1.7077437827436575,
   "measured_norm_uT_median": 53.25992856712422,
-  "modelled_norm_uT_median": 92.60178264642236
+  "modelled_norm_uT_median": 92.4286896537321
  },
  "holds_U_order": {
   "press, 0 deg": {

@@ -195,7 +195,7 @@ def sec_roll(S):
 def sec_viewer(S, fig1):
     p, q, g = S["physical_stored_frames"], S["physical"], S["gp"]
     body = [[ENAME[k], f"{S[k]['shown']}", f"{S[k]['med']:.2f}", f"{S[k]['p90']:.2f}", f"{S[k]['mx']:.2f}",
-             f"{100 * S[k]['within1']:.0f}", f"{S[k]['fn']:.2f}"] for k in EST]
+             f"{100 * S[k]['within1']:.{1 if 0 < S[k]['within1'] < 1 else 0}f}", f"{S[k]['fn']:.2f}"] for k in EST]
     body.append(["HEX-E", "", "", "", "", "", f"{S['hexe']:.2f}"])
     tab = table(["Estimate", f"Frames shown, of {S['n']}", "Median distance (mm)", "90th percentile (mm)",
                  "Largest (mm)", "Within 1 mm (%)", "Median press (N)"], body,

@@ -366,7 +366,7 @@ def main():
     so.add_argument("--gap", type=float, default=1.2, help="face nodes within this gap (mm) of the rod are candidates")
     fi = sub.add_parser("film")
     fi.add_argument("--frames", default="frames_step0.16_az_calib.json", help="the viewer film's frames (logs/)")
-    fi.add_argument("--t-start", type=float, default=12.7)
+    fi.add_argument("--t-start", type=float, default=14.0)
     fi.add_argument("--jobs", type=int, default=4)
     fi.add_argument("--only", type=int, nargs="*", default=None)
     a = ap.parse_args()

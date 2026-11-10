@@ -1,15 +1,15 @@
 {
- "t_start": 12.7,
- "n_frames": 444,
+ "t_start": 14.0,
+ "n_frames": 436,
  "step_s": 0.16,
  "physical": {
-  "median_mm": 3.0610609349013362,
-  "p90_mm": 11.34604262472175,
-  "frames_with_contact": 386
+  "median_mm": 3.0635007752569616,
+  "p90_mm": 10.261010278858336,
+  "frames_with_contact": 379
  },
  "gp": {
-  "median_mm": 0.48532395851786914,
-  "p90_mm": 0.7256927724542973,
-  "frames_with_contact": 386
+  "median_mm": 0.49026727404549447,
+  "p90_mm": 0.7257122011431835,
+  "frames_with_contact": 379
  }
 }

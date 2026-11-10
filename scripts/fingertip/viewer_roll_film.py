@@ -621,16 +621,16 @@ def main():
     cp.add_argument("--height", type=int, default=1080)
     cp.add_argument("--cam", default="[[33.3, 21.0, -21.5], [10.4, 3.0, -1.0]]", help="camera position and target "
                     "(three's axes: tip z, x, y); the viewer's default is [[44, 26, 30], [10.5, 1, 0]]")
-    cp.add_argument("--t-start", type=float, default=12.7, help="s of the window: earlier frames are fed, not captured")
+    cp.add_argument("--t-start", type=float, default=14.0, help="s of the window: earlier frames are fed, not captured")
     cp.add_argument("--arrow", type=float, default=2.0, help="the page's arrow scale, mm/N")
     co = sub.add_parser("compose")
     co.add_argument("--frames", default="frames_step0.16_az_calib.json")
-    co.add_argument("--t-start", type=float, default=12.7)
+    co.add_argument("--t-start", type=float, default=14.0)
     co.add_argument("--poster-t", type=float, default=31.3, help="s of the window: the poster is the frame nearest it "
                     "with a contact in both rows")
     co.add_argument("--only", type=int, nargs="*", default=None, help="compose only these frames (a look), no film")
     tb = sub.add_parser("table")
-    tb.add_argument("--t-start", type=float, default=12.7)
+    tb.add_argument("--t-start", type=float, default=14.0)
     a = ap.parse_args()
     dict(prepare=prepare, frames=frames, capture=capture, compose=compose, table=table)[a.cmd](a)
 
