@@ -178,6 +178,28 @@ def sec_picks(picks):
     return "".join(out)
 
 
+def sec_bigroll(picks):
+    br = picks.get("bigroll")
+    if not br:
+        return ""
+    ref = next(iter(br["sizes"].values()))["ref_rms_deg"]
+    body = [[s, f"({v['layout'][0]:.0f}, {v['layout'][1]:.0f})", f2(picks["roll"][s]["track_mean"]), f2(v["track_mean"]),
+             ", ".join(f"{t:.2f}" for t in v["seeds"]), f2(v["rot_mean"]), f2(v["c3_mean"])]
+            for s, v in sorted(br["sizes"].items(), key=lambda kv: float(kv[0]))]
+    return (f"<p>The roll's command turns the sphere about palm y in four steps of 0.5 s at 40 deg/s, so it reaches "
+            f"20 deg either way. With steps of {br['step_s']:g} s it reaches {40 * br['step_s']:.0f} deg either way, and "
+            f"the RMS commanded rotation rises from 9.6 to {ref:.1f} deg (owner, 2026-11-09: \"can we see what it looks "
+            f"like for a larger roll command\"). The four roll layouts of the films ran under it at seeds 0 to 2 "
+            f"(Table 4). They had been picked under the 20 deg command. Only the 30 mm layout followed the larger roll, "
+            f"in two of its three seeds. At 63 mm the third finger lifted for most of the task.</p>"
+            + table(["Size (mm)", "Layout (mm)", "Tracking score, 20 deg", f"Tracking score, {40 * br['step_s']:.0f} deg",
+                     "Seeds 0, 1, 2", "Rotation followed", "Three-pad share"], body,
+                    f"The roll layouts of the films under the {40 * br['step_s']:.0f} deg command; means over seeds 0-2.",
+                    num_from=2)
+            + P.film(MEDIA / f"20261109-film_bigroll{TAG}.mp4", f"Roll: the same four layouts under the "
+                     f"{40 * br['step_s']:.0f} deg command, viewed from below, at the seed closest to each mean."))
+
+
 def sec_limits():
     return ("<p>The short lists came from GPU rows without the GPU's orientations, ranked by the stored end yaw "
             "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the short "
@@ -240,6 +262,7 @@ def main():
                 ("floors", "The earlier scores on a still or whirling object", sec_floors(rows)),
                 ("check", "The tracking score against the owner's verdicts on the films", sec_check(rows)),
                 ("picks", "Layouts re-picked by the tracking score at four object sizes", sec_picks(picks)),
+                ("bigroll", "The roll layouts under a larger roll command", sec_bigroll(picks)),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("files", "Files", sec_files())]

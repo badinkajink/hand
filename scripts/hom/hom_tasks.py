@@ -524,7 +524,8 @@ class Schedule:
         elif task == "press":                            # up by the normal force, hold, down by the weight
             A, w = prm["press_deg"], prm["press_dps"]
             self.prof = [(A / w, w, "press"), (1.0, 0.0, "hold up"), (A / w, -w, "release"), (0.5, 0.0, "hold")]
-        t_task = sum(p_[0] for p_ in self.prof) if self.prof else {"roll": 2 * 1.3, "twist": 1.3 + 4.0}.get(task, 0.0)
+        t_task = sum(p_[0] for p_ in self.prof) if self.prof else {"roll": 2 * (2 * prm.get("roll_step_s", 0.5) + 0.3),
+                                                                         "twist": 1.3 + 4.0}.get(task, 0.0)
         self.t_end = (EXPA_T0 + 6 * (2 * EXPA_STEP + EXPA_REST) + 0.2 if task == "expa"
                       else T_LIFT + 0.4 + t_task + (0.3 if task == "roll" else 0.5 if task == "twist" else 0.0))
 
@@ -615,7 +616,8 @@ class Schedule:
             if ph == "task":
                 if task == "roll":                       # about palm y through the thumb's contact: down, up, up, down
                     seq = [(1, +1), (1, -1), (None, 0), (1, -1), (1, +1), (None, 0)]
-                    durs = [0.5, 0.5, 0.3, 0.5, 0.5, 0.3]
+                    st = self.prm.get("roll_step_s", 0.5)            # 0.5 s at 40 deg/s: +-20 deg (2026-11-09: longer)
+                    durs = [st, st, 0.3, st, st, 0.3]
                 else:
                     seq = [(2, +1), (2, -1), (None, 0)]
                     durs = [0.5, 0.5, 0.3]

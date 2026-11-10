@@ -224,9 +224,46 @@ def film(task):
     PICKS.write_text(json.dumps(picks, indent=1, default=float))
 
 
+def bigroll(step_s):
+    """The roll picks of the films under a larger command (owner, 2026-11-09: "can we see what it looks like for a
+    larger roll command"): steps of step_s at 40 deg/s, seeds 0-2, filmed at the seed closest to the mean."""
+    import hom_contact_rig as HR
+    from PIL import Image
+    T.PRM["roll_step_s"] = step_s
+    allp = json.loads(PICKS.read_text())
+    clips, info = [], {}
+    for s in sorted(allp["roll"], key=float):
+        v, size = allp["roll"][s], float(s)
+        (x, y), call, g = v["layout"], v["call"], v["grasp"]
+        rs = []
+        for seed in SEEDS:
+            _fr, r = run("roll", size, call, g, seed)
+            r = dict(r, set="bigroll", roll_step_s=step_s)
+            write(r)
+            rs.append(r)
+        m = float(np.mean([r["track"] for r in rs]))
+        seed = min(rs, key=lambda r_: (abs(r_["track"] - m), r_["seed"]))["seed"]
+        fr, r = run("roll", size, call, g, seed, render=True,
+                    label=f"Roll +-{40 * step_s:.0f} deg, {obj('roll', size)}: layout ({x:.0f}, {y:.0f}) mm")
+        out = HF.MEDIA / f"20261109-clip_bigroll_d{size:g}{TAG}.mp4"
+        HR.write_mp4(fr, out, fps=25)
+        Image.fromarray(fr[int(0.55 * len(fr))]).convert("RGB").save(out.with_suffix(".jpg"), quality=85)
+        clips.append(fr)
+        info[s] = dict(layout=[x, y], call=call, grasp=g, track_mean=round(m, 3), seeds=[r_["track"] for r_ in rs],
+                       rot_mean=round(float(np.mean([r_["track_nc"] for r_ in rs])), 3),
+                       c3_mean=round(float(np.mean([r_.get("contact_all_frac") or 0.0 for r_ in rs])), 3),
+                       ref_rms_deg=rs[0].get("track_ref_rms_deg"), film_seed=seed, clip=str(out.relative_to(HF.ROOT)))
+        print("bigroll", size, (x, y), info[s], flush=True)
+    HF.compose(clips, HF.MEDIA / f"20261109-film_bigroll{TAG}.mp4", grid=(2, 2))
+    allp = json.loads(PICKS.read_text())
+    allp["bigroll"] = dict(step_s=step_s, sizes=info)
+    PICKS.write_text(json.dumps(allp, indent=1, default=float))
+
+
 def main():
     mode, task = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else None)
-    {"labels": lambda: labels(), "rerun": lambda: rerun(task), "film": lambda: film(task)}[mode]()
+    {"labels": lambda: labels(), "rerun": lambda: rerun(task), "film": lambda: film(task),
+     "bigroll": lambda: bigroll(float(os.environ.get("TRACK_ROLL_STEP_S", "1.0")))}[mode]()
     return 0
 
 

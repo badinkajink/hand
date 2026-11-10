@@ -2289,5 +2289,86 @@
     }
    ]
   }
+ },
+ "bigroll": {
+  "step_s": 1.0,
+  "sizes": {
+   "25": {
+    "layout": [
+     80.0,
+     55.0
+    ],
+    "call": 201,
+    "grasp": 3,
+    "track_mean": 0.108,
+    "seeds": [
+     0.09,
+     0.085,
+     0.148
+    ],
+    "rot_mean": 0.137,
+    "c3_mean": 0.778,
+    "ref_rms_deg": 20.87,
+    "film_seed": 0,
+    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_bigroll_d25_sv25.mp4"
+   },
+   "30": {
+    "layout": [
+     125.0,
+     55.0
+    ],
+    "call": 426,
+    "grasp": 9,
+    "track_mean": 0.282,
+    "seeds": [
+     0.436,
+     0.409,
+     0.0
+    ],
+    "rot_mean": 0.282,
+    "c3_mean": 0.844,
+    "ref_rms_deg": 20.87,
+    "film_seed": 1,
+    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_bigroll_d30_sv25.mp4"
+   },
+   "63": {
+    "layout": [
+     155.0,
+     85.0
+    ],
+    "call": 582,
+    "grasp": 1,
+    "track_mean": 0.065,
+    "seeds": [
+     0.0,
+     0.0,
+     0.194
+    ],
+    "rot_mean": 0.128,
+    "c3_mean": 0.395,
+    "ref_rms_deg": 20.87,
+    "film_seed": 0,
+    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_bigroll_d63_sv25.mp4"
+   },
+   "80": {
+    "layout": [
+     110.0,
+     150.0
+    ],
+    "call": 370,
+    "grasp": 8,
+    "track_mean": 0.0,
+    "seeds": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "rot_mean": 0.0,
+    "c3_mean": 0.712,
+    "ref_rms_deg": 20.87,
+    "film_seed": 0,
+    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_bigroll_d80_sv25.mp4"
+   }
+  }
  }
 }
