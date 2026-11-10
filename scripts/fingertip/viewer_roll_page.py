@@ -257,11 +257,76 @@ def sec_fe(FE, fig2):
                       "for the robot's contact point and the HEX-E's force (orange)."))
 
 
+PART_TEXT = {   # the synced films, in the order of the table
+    "ur5_views": "The UR5 replay: the cell, the probe over seat 2 and the rod along its axis, side by side",
+    "ur5_cell": "The UR5 replay: the cell",
+    "ur5_rig": "The UR5 replay: the probe and the rod over seat 2",
+    "ur5_rod_axis": "The UR5 replay: the rod on v3 ID 5, seen along the rod's axis",
+    "viewer_both": "The fingertip viewer, both estimates (Film 1's right side)",
+    "viewer_physical": "The fingertip viewer, the physical model's row",
+    "viewer_gp": "The fingertip viewer, the GP's row",
+    "roll_section": "The roll drawn from the robot's record, a section across the rod",
+    "palm_points": "The three contact points seen from the palm, with the distances",
+    "distance": "Each estimate's distance from the robot's contact, and the turn",
+    "fe_section": "FE section through the contact, magnets' motion and chips' change",
+    "fe_palm": "Magnets' motion and chips' change seen from the palm",
+    "fe_bars": "The 15 components of the board change, measured and modelled",
+}
+PARTS = MEDIA / "20261110-synced_parts"
+
+
+def video_size(path):
+    import subprocess
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries",
+                          "stream=width,height,nb_read_frames", "-of", "csv=p=0", str(path)],
+                         capture_output=True, text=True).stdout.strip().split(",")
+    return int(out[0]), int(out[1]), int(out[2])
+
+
+def sec_parts():
+    rows, frames = [], set()
+    for k, txt in PART_TEXT.items():
+        f = PARTS / f"{STEM}_{k}.mp4"
+        if not f.exists():
+            continue
+        w, h, n = video_size(f)
+        frames.add(n)
+        rows.append([f"<code>{f.name}</code>", txt, f"{w} by {h}", f"{f.stat().st_size / 1e6:.1f}"])
+    if not rows:
+        return ""
+    n = frames.pop() if len(frames) == 1 else None
+    tab = table(["File", "Shows", "Pixels", "MB"], rows, "The synced films in <code>media/20261110-synced_parts/</code>, "
+                f"each with {n} frames at 25 frames per second." if n else "The synced films.", num_from=3)
+    return (
+        "<p>No camera filmed the roll. Film 3 therefore replays the UR5's own record in a model of the cell: the "
+        "robot's recorded joint angles drive the URDF's link meshes, and the HEX-E, mount v7's adapter, the probe "
+        "base and the rod tool are mounted on the flange. The seat block, its 2x4 and the three held tips stand at the "
+        "session's registered poses. v3 ID 5's tip is placed by the joint rod registration, as in the analysis. "
+        "The three views are rendered at 1280 by 720 pixels.</p>"
+        + P.film(PARTS / f"{STEM}_ur5_views.mp4",
+                 "The UR5's record of the roll replayed in the cell at 4x speed: the cell (left), the probe and the rod "
+                 "over seat 2 (top right), and the rod on v3 ID 5 seen along the rod's axis (bottom right).")
+        + "<p>Real footage of this rig exists only as the overhead D435's time-lapse: one frame every 1.94 s at 640 by "
+        "360 pixels. The camera was off during the night's rolls. Film 4 shows the same rod on the same tip the evening "
+        "before, from 18:52 to 19:24 on 3 November, during its presses and slides; it is not in step with the other "
+        "films.</p>"
+        + P.film(MEDIA / f"20261110-v3id5_rod_real_timelapse.mp4",
+                 "The real UR5 pressing and sliding the rod on v3 ID 5 at seat 2, 3 November 18:52 to 19:24, from the "
+                 "lab's overhead time-lapse (<code>lab/20261103-tipcal-timelapse_60fps.mp4</code>), at 47x speed.")
+        + "<p>Every panel of Films 1 to 3 is also a film of its own, for slides (Table 2). All of them start at the "
+        "press's level hold and run at 4x speed. Frame k of each shows the recording 0.16 k s after the level hold, "
+        "and the last frame is held for 1.5 s. Films placed side by side with a common start therefore stay in step. "
+        "Each frame shows the time from the level hold and the rod's turn in a corner, as does the viewer's status "
+        "line. All are H.264 with 4:2:0 colour, the format QuickTime and PowerPoint open.</p>"
+        + tab)
+
+
 def sec_limits():
     return ("<p>The page shows one roll of one tip at 4 N. The GP was fitted to the same tip's rig sessions, the rod's "
             "session of that night among them, so it had seen presses with this rod near this point. A model of one "
             f"tip, used on another tip, misplaced contacts by 1.0 to 1.3 mm on the <a href=\"{CAL}\">calibration "
-            "page</a>. The FE contact is frictionless, and the HEX-E's force is spread over it by pressure. The FE "
+            "page</a>. The UR5 film is a replay of the robot's recorded joints in a model of the cell; no camera "
+            "filmed the roll. The FE contact is frictionless, and the HEX-E's force is spread over it by pressure. The FE "
             "face sank 0.53 mm, while the robot's record puts the rod 0.89 to 1.04 mm into the undeformed pad.</p>")
 
 
@@ -294,7 +359,9 @@ def sec_files():
             "<code>20261110-board_gp_v3id5_no_rolls.npz</code> (the GP in the viewer's <code>--board-gp</code> format) "
             "and <code>20261110-v3id5_full_rest_calib.json</code> (the viewer's <code>--calib</code> format)</li>"
             "<li>Films in <code>media/</code>: <code>20261110-v3id5_rod_roll_viewer_film.mp4</code> and "
-            "<code>20261110-v3id5_rod_roll_fe_field_film.mp4</code> (H.264, yuv420p)</li>"
+            "<code>20261110-v3id5_rod_roll_fe_field_film.mp4</code>; the synced parts and the UR5 replay in "
+            "<code>media/20261110-synced_parts/</code> (<code>viewer_roll_film.py parts</code> and <code>ur5</code>, "
+            "<code>fingertip_roll_fe_film.py film --parts</code>); all H.264, yuv420p</li>"
             f"<li>Builder: <code>scripts/fingertip/viewer_roll_page.py</code>. Related: <a href=\"{TIPS}\">the printed "
             f"fingertips overview</a>, <a href=\"{CAL}\">the calibration page</a>, <a href=\"{PHYS}\">the physical-model "
             "page</a>.</li></ul>")
@@ -334,6 +401,7 @@ def main():
                 ("roll", "Rod roll on the UR5 calibration rig", sec_roll(S)),
                 ("viewer", "Contact estimates of the viewer during the roll", sec_viewer(S, fig1)),
                 ("fe", "Finite elements and magnetic field of the same roll", sec_fe(FE, fig2)),
+                ("parts", "UR5 replay of the roll and synced films for slides", sec_parts()),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("files", "Files", sec_files())]

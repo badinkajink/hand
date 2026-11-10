@@ -322,6 +322,7 @@ def capture(a):
     D = json.load(open(WORK / a.frames))
     T = np.load(DATA / f"{STEM}_truth.npz")
     t_lo = float(T["t_lo"])
+    t_hold = float(T["plateaus"][0][0] - T["t_lo"])
     site = WORK / "site"
     site.mkdir(parents=True, exist_ok=True)
     (site / "harness.html").write_text(harness_html())
@@ -347,7 +348,8 @@ def capture(a):
             clock = dt.datetime.fromtimestamp(t_lo + m.get("t", 0.0)).strftime("%H:%M:%S")
             turn = f", the rod turned {tr['theta']:+.1f} deg" if tr else ""
             m["status"] = (f"Replay of the UR5 roll of 4 November ({clock}), v3 ID 5 pad up on seat 2: "
-                           f"{m.get('t', 0.0):.1f} s{turn}. Green: the robot's contact and the HEX-E's force.")
+                           f"{m.get('t', 0.0) - t_hold:.1f} s from the press's level hold{turn}. Green: the robot's "
+                           "contact and the HEX-E's force.")
             lines.append(json.dumps(m))
             trs.append(tr)
         if D["rows"][i]["t"] < a.t_start:              # fed, so that the page's traces start at the rest, not captured
@@ -393,16 +395,10 @@ def section(pts, tris, y0):
     return q[np.sort(keep)]
 
 
-def compose(a):
-    """The film: on the left the roll drawn from the robot's record (the rod on the pad across its axis, the contact
-    magnified) and the distance of each estimate from the robot's contact over the roll; on the right the viewer."""
-    import subprocess
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Circle, Polygon
-    from PIL import Image
+def viewer_state(a):
+    """What the viewer film's panels draw, for compose() and parts()."""
     import fingertip_wrench_model as W
+    from scipy.spatial import ConvexHull
     D = json.load(open(WORK / a.frames))
     T = np.load(DATA / f"{STEM}_truth.npz")
     tR = T["t"] - float(T["t_lo"])
@@ -417,12 +413,8 @@ def compose(a):
     def dist(key):
         return np.array([np.linalg.norm(np.subtract(rows[i][key]["p"], rows[i]["truth"]["p"]))
                          if rows[i][key]["contact"] and rows[i]["truth"] else np.nan for i in keep])
-    d_ph, d_gp = dist("physical"), dist("gp")
-    th = np.interp(tt, tR, T["theta"])
     y0 = float(np.median(T["p"][:, 1]))
     prof = section(basis["pts"], basis["tris"], y0)
-    poly = np.vstack([prof, [[basis["x_cut"], prof[-1, 1]], [basis["x_cut"], prof[0, 1]]]])
-    R = float(T["rod_R_mm"])
     k0 = 0
     spokes0 = []                                       # three spokes in the rod's own frame, one toward the contact
     c0, p0 = T["c_P"][k0], T["p"][k0]
@@ -432,121 +424,180 @@ def compose(a):
         r = np.radians(ang)
         v = u * np.cos(r) + np.cross(ax0, u) * np.sin(r)
         spokes0.append(T["R_rod"][k0].T @ v)
+    yz = basis["pts"][:, [1, 2]]
+    t_hold = float(T["plateaus"][0][0] - T["t_lo"])          # the press's level hold: time zero of the traces
+    return dict(D=D, T=T, tR=tR, rows=rows, keep=keep, tt=tt, d_ph=dist("physical"), d_gp=dist("gp"),
+                th=np.interp(tt, tR, T["theta"]), R=float(T["rod_R_mm"]), spokes0=spokes0,
+                poly=np.vstack([prof, [[basis["x_cut"], prof[-1, 1]], [basis["x_cut"], prof[0, 1]]]]),
+                hull=yz[ConvexHull(yz).vertices], mc=W.magnets(W.fe_row("four_05R4"))[0], t_hold=t_hold,
+                xs=tt - t_hold)
+
+
+G_, B_, K_ = "#00a33c", "#1f4fd8", "#c0392b"
+
+
+def _now(S, j):
+    i = S["keep"][j]
+    t = S["rows"][i]["t"]
+    k = int(np.clip(np.searchsorted(S["tR"], t), 0, len(S["tR"]) - 1))
+    T = S["T"]
+    return i, t, T["c_P"][k], T["p"][k], T["f_P"][k], k
+
+
+def _est(S, i, key):
+    rw = S["rows"][i][key]
+    return np.asarray(rw["p"], float) if rw["contact"] else None
+
+
+def draw_roll(ax, S, j, fs=1.0):
+    """(a) The roll across the rod, the pad's face up: z along the finger to the right, x the face's normal up."""
+    from matplotlib.patches import Circle, Polygon
+    i, t, c, p, f, k = _now(S, j)
+    T, R = S["T"], S["R"]
+    ax.add_patch(Polygon(S["poly"][:, [1, 0]], closed=True, fc="#f3dfc1", ec="#8a6a3c", lw=1.6))
+    ax.add_patch(Circle((c[2], c[0]), R, fc="#dfe3e8", ec="#555555", lw=1.6))
+    for s0 in S["spokes0"]:
+        v = T["R_rod"][k] @ s0
+        ax.plot([c[2], c[2] + R * v[2]], [c[0], c[0] + R * v[0]], color="#6b7280", lw=1.4)
+    sc = 0.8                                        # mm per N for the force arrow
+    ax.annotate("", xy=(p[2], p[0]), xytext=(p[2] - sc * f[2], p[0] - sc * f[0]),
+                arrowprops=dict(arrowstyle="-|>", color=G_, lw=2.4, mutation_scale=18), zorder=6)
+    sel = (S["tR"] > t - 4.0) & (S["tR"] <= t)
+    ax.plot(T["p"][sel, 2], T["p"][sel, 0], color=G_, lw=4, alpha=0.45, solid_capstyle="round", zorder=5)
+    ax.plot(p[2], p[0], "o", color=G_, ms=9 * fs, mec="white", mew=1.3, zorder=7)
+    ax.set_xlim(3.0, 18.0)
+    ax.set_ylim(0.5, 15.5)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.text(0.02, 0.97, f"turn {S['th'][j]:+.1f}°", transform=ax.transAxes, fontsize=15 * fs, va="top")
+    ax.text(16.6, 10.2, "rod", ha="center", fontsize=14 * fs, color="#374151")
+    ax.text(4.2, 3.2, "pad", ha="left", fontsize=14 * fs, color="#6b4f2a")
+    ax.plot([14.5, 16.5], [1.6, 1.6], color="k", lw=2.2)
+    ax.text(15.5, 2.0, "2 mm", ha="center", fontsize=12 * fs)
+    ax.text(0.98, 0.97, f"{np.linalg.norm(f):.1f} N", transform=ax.transAxes, fontsize=14 * fs, va="top", ha="right",
+            color=G_)
+
+
+def draw_palm(axf, S, j, fs=1.0):
+    """(b) The three contact points seen from the palm."""
+    from matplotlib.patches import Circle, Polygon
+    i, t, c, p, f, k = _now(S, j)
+    T = S["T"]
+    axf.add_patch(Polygon(S["hull"], closed=True, fc="#f7ecdb", ec="#8a6a3c", lw=1.4))
+    for m0 in S["mc"]:
+        axf.add_patch(Circle((m0[1], m0[2]), 1.5, fc="none", ec="#9ca3af", lw=1.0, ls="--"))
+    lo = max(0, j - 12)                             # the last 2 s of each estimate
+    for key, col, mk in (("physical", K_, "x"), ("gp", B_, "+")):
+        pts = [_est(S, S["keep"][q], key) for q in range(lo, j + 1)]
+        pts = np.array([q for q in pts if q is not None])
+        if len(pts):
+            axf.plot(pts[:, 1], pts[:, 2], color=col, lw=1.2, alpha=0.35)
+        e = _est(S, i, key)
+        if e is not None:
+            axf.plot(e[1], e[2], mk, color=col, ms=13 * fs, mew=3.0, zorder=6)
+    sel = (S["tR"] > t - 4.0) & (S["tR"] <= t)
+    axf.plot(T["p"][sel, 1], T["p"][sel, 2], color=G_, lw=3, alpha=0.45)
+    axf.plot(p[1], p[2], "o", color=G_, ms=9 * fs, mec="white", mew=1.2, zorder=7)
+    axf.set_xlim(-8.6, 8.6)
+    axf.set_ylim(-0.3, 22.2)
+    axf.set_aspect("equal")
+    axf.axis("off")
+
+
+def dist_lines(S, j):
+    """The distances now, as (text, colour) lines."""
+    i, t, c, p, f, k = _now(S, j)
+    out = []
+    for key, col, lab in (("physical", K_, "× physical model"), ("gp", B_, "+ GP of the UR5 calibration")):
+        e = _est(S, i, key)
+        val = f"{np.linalg.norm(e - p):.2f} mm from the robot's contact" if e is not None else "no contact shown"
+        out.append((f"{lab}: {val}", col))
+    out.append(("● the robot's contact and the HEX-E's force", G_))
+    return out
+
+
+def draw_dist(ax2, ax3, S, j, fs=1.0, title=True):
+    """(c) The distance of each estimate from the robot's contact over the roll, and the turn."""
+    i, t, c, p, f, k = _now(S, j)
+    xs, cut = S["xs"], 8.0
+    for d, col in ((S["d_ph"], K_), (S["d_gp"], B_)):
+        ax2.plot(xs, np.minimum(d, cut), ".", color=col, ms=3.5 * fs, alpha=0.25)
+        ax2.plot(xs[:j + 1], np.minimum(d[:j + 1], cut), ".", color=col, ms=5 * fs)
+    ax2.axvline(t - S["t_hold"], color="k", lw=1.0)
+    ax2.set_ylim(0, cut + 0.3)
+    ax2.set_xlim(xs[0] - 0.5, xs[-1] + 0.5)
+    ax2.set_ylabel("Distance (mm)", fontsize=14 * fs)
+    ax2.tick_params(labelbottom=False, labelsize=12 * fs)
+    med_ph, med_gp = np.nanmedian(S["d_ph"][:j + 1]), np.nanmedian(S["d_gp"][:j + 1])
+    if title:
+        ax2.text(0.0, 1.07, "(c) Distance from the robot's contact over the roll", transform=ax2.transAxes,
+                 fontsize=14.5 * fs)
+    if np.isfinite(med_ph):
+        ax2.text(0.99, 0.80, f"median so far {med_ph:.1f} and {med_gp:.2f} mm", transform=ax2.transAxes,
+                 fontsize=12.5 * fs, ha="right", va="top", bbox=dict(fc="white", ec="none", alpha=0.85, pad=1.5))
+    ax2.set_yticks([0, 2, 4, 6, 8])
+    ax2.set_yticklabels(["0", "2", "4", "6", "≥8"])
+    ax3.plot(xs, S["th"], color="#6b7280", lw=1.6)
+    ax3.axvline(t - S["t_hold"], color="k", lw=1.0)
+    ax3.set_ylim(-8, 8)
+    ax3.set_yticks([-6, 0, 6])
+    ax3.set_ylabel("Turn (°)", fontsize=13 * fs)
+    ax3.set_xlabel("Time from the press's level hold (s)", fontsize=13 * fs)
+    ax3.tick_params(labelsize=12 * fs)
+    for axx in (ax2, ax3):
+        axx.spines[["top", "right"]].set_visible(False)
+
+
+def _plt():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.serif": ["DejaVu Serif"], "font.size": 15,
+                         "mathtext.fontset": "dejavuserif"})
+    return plt
+
+
+def _rgb(fig):
+    fig.canvas.draw()
+    return np.asarray(fig.canvas.buffer_rgba())[:, :, :3].copy()
+
+
+def compose(a):
+    """The film: on the left the roll drawn from the robot's record (the rod on the pad across its axis) and the
+    distance of each estimate from the robot's contact over the roll; on the right the viewer."""
+    import subprocess
+    from PIL import Image
+    S = viewer_state(a)
+    plt = _plt()
+    keep, D = S["keep"], S["D"]
     frames_dir = WORK / "film"
     frames_dir.mkdir(parents=True, exist_ok=True)
     for f in frames_dir.glob("f*.png"):
         f.unlink()
-    plt.rcParams.update({"font.family": "serif", "font.serif": ["DejaVu Serif"], "font.size": 15,
-                         "mathtext.fontset": "dejavuserif"})
-    G, B, K = "#00a33c", "#1f4fd8", "#c0392b"
-    from scipy.spatial import ConvexHull
-    yz = basis["pts"][:, [1, 2]]
-    hull = yz[ConvexHull(yz).vertices]
-    mc, _ = W.magnets(W.fe_row("four_05R4"))
-    t_hold = float(T["plateaus"][0][0] - T["t_lo"])          # the press's level hold: time zero of the traces
-    xs = tt - t_hold
-
-    def est(i, key):
-        rw = rows[i][key]
-        return np.asarray(rw["p"], float) if rw["contact"] else None
-    for j, i in enumerate(keep):
+    for j in range(len(keep)):
         if a.only and j not in a.only:
             continue
-        t = rows[i]["t"]
-        k = int(np.clip(np.searchsorted(tR, t), 0, len(tR) - 1))
-        c, p, f = T["c_P"][k], T["p"][k], T["f_P"][k]
         fig = plt.figure(figsize=(7.2, 10.8), dpi=100)
         fig.text(0.04, 0.972, "A rod rolled on a sensing fingertip", fontsize=23, weight="bold", va="top")
         fig.text(0.04, 0.932, "UR5 calibration rig, 4 November: v3 ID 5 pad up, a rod of radius\n12.5 mm pressed to 4 N "
                  "and turned to +6, -6 and back to 0 deg.\nReplayed at 4x speed beside the fingertip viewer (right).",
                  fontsize=14.5, va="top", color="#333333", linespacing=1.35)
-        # (a) the roll across the rod, the pad's face up: z along the finger to the right, x the face's normal up
         ax = fig.add_axes([0.035, 0.455, 0.585, 0.355])
-        ax.add_patch(Polygon(poly[:, [1, 0]], closed=True, fc="#f3dfc1", ec="#8a6a3c", lw=1.6))
-        ax.add_patch(Circle((c[2], c[0]), R, fc="#dfe3e8", ec="#555555", lw=1.6))
-        for s0 in spokes0:
-            v = T["R_rod"][k] @ s0
-            ax.plot([c[2], c[2] + R * v[2]], [c[0], c[0] + R * v[0]], color="#6b7280", lw=1.4)
-        sc = 0.8                                        # mm per N for the force arrow
-        ax.annotate("", xy=(p[2], p[0]), xytext=(p[2] - sc * f[2], p[0] - sc * f[0]),
-                    arrowprops=dict(arrowstyle="-|>", color=G, lw=2.4, mutation_scale=18), zorder=6)
-        sel = (tR > t - 4.0) & (tR <= t)
-        ax.plot(T["p"][sel, 2], T["p"][sel, 0], color=G, lw=4, alpha=0.45, solid_capstyle="round", zorder=5)
-        ax.plot(p[2], p[0], "o", color=G, ms=9, mec="white", mew=1.3, zorder=7)
-        ax.set_xlim(3.0, 18.0)
-        ax.set_ylim(0.5, 15.5)
-        ax.set_aspect("equal")
-        ax.axis("off")
+        draw_roll(ax, S, j)
         ax.text(0.0, 1.035, "(a) The roll, from the robot's record", transform=ax.transAxes, fontsize=15)
-        ax.text(0.02, 0.97, f"turn {th[j]:+.1f}°", transform=ax.transAxes, fontsize=15, va="top")
-        ax.text(16.6, 10.2, "rod", ha="center", fontsize=14, color="#374151")
-        ax.text(4.2, 3.2, "pad", ha="left", fontsize=14, color="#6b4f2a")
-        ax.plot([14.5, 16.5], [1.6, 1.6], color="k", lw=2.2)
-        ax.text(15.5, 2.0, "2 mm", ha="center", fontsize=12)
-        ax.text(0.98, 0.97, f"{np.linalg.norm(f):.1f} N", transform=ax.transAxes, fontsize=14, va="top", ha="right",
-                color=G)
-        # (b) the three contact points seen from the palm
         axf = fig.add_axes([0.655, 0.455, 0.325, 0.355])
-        axf.add_patch(Polygon(hull, closed=True, fc="#f7ecdb", ec="#8a6a3c", lw=1.4))
-        for m0 in mc:
-            axf.add_patch(Circle((m0[1], m0[2]), 1.5, fc="none", ec="#9ca3af", lw=1.0, ls="--"))
-        lo = max(0, j - 12)                             # the last 2 s of each estimate
-        for key, col, mk in (("physical", K, "x"), ("gp", B, "+")):
-            pts = [est(keep[q], key) for q in range(lo, j + 1)]
-            pts = np.array([q for q in pts if q is not None])
-            if len(pts):
-                axf.plot(pts[:, 1], pts[:, 2], color=col, lw=1.2, alpha=0.35)
-            e = est(i, key)
-            if e is not None:
-                axf.plot(e[1], e[2], mk, color=col, ms=13, mew=3.0, zorder=6)
-        axf.plot(T["p"][sel, 1], T["p"][sel, 2], color=G, lw=3, alpha=0.45)
-        axf.plot(p[1], p[2], "o", color=G, ms=9, mec="white", mew=1.2, zorder=7)
-        axf.set_xlim(-8.6, 8.6)
-        axf.set_ylim(-0.3, 22.2)
-        axf.set_aspect("equal")
-        axf.axis("off")
+        draw_palm(axf, S, j)
         axf.text(0.0, 1.035, "(b) From the palm", transform=axf.transAxes, fontsize=15)
         axf.text(0.5, -0.02, "tip end up; dashed: magnets", transform=axf.transAxes, fontsize=11.5, ha="center",
                  va="top", color="#4b5563")
-        # the distances now
         y_txt = 0.415
-        for key, col, lab in (("physical", K, "× physical model"), ("gp", B, "+ GP of the UR5 calibration")):
-            e = est(i, key)
-            val = f"{np.linalg.norm(e - p):.2f} mm from the robot's contact" if e is not None else "no contact shown"
-            fig.text(0.06, y_txt, f"{lab}: {val}", fontsize=14, color=col)
+        for txt, col in dist_lines(S, j):
+            fig.text(0.06, y_txt, txt, fontsize=14, color=col)
             y_txt -= 0.03
-        fig.text(0.06, y_txt, "● the robot's contact and the HEX-E's force", fontsize=14, color=G)
-        # (c) the distance of each estimate from the robot's contact over the roll
         ax2 = fig.add_axes([0.13, 0.15, 0.83, 0.16])
-        cut = 8.0
-        for d, col in ((d_ph, K), (d_gp, B)):
-            ax2.plot(xs, np.minimum(d, cut), ".", color=col, ms=3.5, alpha=0.25)
-            ax2.plot(xs[:j + 1], np.minimum(d[:j + 1], cut), ".", color=col, ms=5)
-        ax2.axvline(t - t_hold, color="k", lw=1.0)
-        ax2.set_ylim(0, cut + 0.3)
-        ax2.set_xlim(xs[0] - 0.5, xs[-1] + 0.5)
-        ax2.set_ylabel("Distance (mm)", fontsize=14)
-        ax2.tick_params(labelbottom=False, labelsize=12)
-        med_ph, med_gp = np.nanmedian(d_ph[:j + 1]), np.nanmedian(d_gp[:j + 1])
-        ax2.text(0.0, 1.07, "(c) Distance from the robot's contact over the roll", transform=ax2.transAxes,
-                 fontsize=14.5)
-        if np.isfinite(med_ph):
-            ax2.text(0.99, 0.80, f"median so far {med_ph:.1f} and {med_gp:.2f} mm", transform=ax2.transAxes,
-                     fontsize=12.5, ha="right", va="top", bbox=dict(fc="white", ec="none", alpha=0.85, pad=1.5))
-        ax2.set_yticks([0, 2, 4, 6, 8])
-        ax2.set_yticklabels(["0", "2", "4", "6", "≥8"])
         ax3 = fig.add_axes([0.13, 0.055, 0.83, 0.075], sharex=ax2)
-        ax3.plot(xs, th, color="#6b7280", lw=1.6)
-        ax3.axvline(t - t_hold, color="k", lw=1.0)
-        ax3.set_ylim(-8, 8)
-        ax3.set_yticks([-6, 0, 6])
-        ax3.set_ylabel("Turn (°)", fontsize=13)
-        ax3.set_xlabel("Time from the press's level hold (s)", fontsize=13)
-        ax3.tick_params(labelsize=12)
-        for axx in (ax2, ax3):
-            axx.spines[["top", "right"]].set_visible(False)
-        fig.canvas.draw()
-        left = np.asarray(fig.canvas.buffer_rgba())[:, :, :3]
+        draw_dist(ax2, ax3, S, j)
+        left = _rgb(fig)
         plt.close(fig)
         right = np.asarray(Image.open(WORK / "viewer" / f"v{j:05d}.png").convert("RGB"))
         out = np.full((1080, 1920, 3), 255, np.uint8)
@@ -558,6 +609,7 @@ def compose(a):
             print(f"  composed {j + 1}/{len(keep)}", flush=True)
     if a.only:
         return
+    d_ph, d_gp, tt = S["d_ph"], S["d_gp"], S["tt"]
     MEDIA.mkdir(parents=True, exist_ok=True)
     dst = MEDIA / f"{STEM}_viewer_film.mp4"
     last = len(keep) - 1
@@ -577,6 +629,79 @@ def compose(a):
                      frames_with_contact=int(np.isfinite(d_gp).sum())))
     json.dump(s, open(DATA / f"{STEM}_film_summary.json", "w"), indent=1)
     print(json.dumps(s), flush=True)
+
+
+def viewer_rows(img):
+    """Row bounds (y0, y1) of the viewer page's two boards in a screenshot: between its black rules."""
+    dark = (img.astype(float).mean(axis=2) < 80).mean(axis=1) > 0.97   # rules across the whole page width
+    ys = np.flatnonzero(dark)
+    rules = [int(y) for k, y in enumerate(ys) if k == 0 or y > ys[k - 1] + 1]
+    if len(rules) < 3:
+        raise SystemExit(f"viewer rows: {len(rules)} rules found")
+    return [(rules[0] + 1, rules[1]), (rules[1] + 1, rules[2])]
+
+
+def parts(a):
+    """Each panel of the viewer film as a film of its own, frame for frame with the composite films and the UR5
+    replay: the viewer page (both boards, and each board), the roll's section, the points from the palm and the
+    distance traces; every frame stamped with the time from the press's level hold and the turn."""
+    from PIL import Image
+    S = viewer_state(a)
+    plt = _plt()
+    keep = S["keep"]
+    first = np.asarray(Image.open(WORK / "viewer" / "v00000.png").convert("RGB"))
+    (r0, r1), (r2, r3) = viewer_rows(first)
+    r1, r3 = r0 + 2 * ((r1 - r0) // 2), r2 + 2 * ((r3 - r2) // 2)
+    names = ("viewer_both", "viewer_physical", "viewer_gp", "roll_section", "palm_points", "distance")
+    dirs = {n: WORK / "parts" / n for n in names}
+    for dd in dirs.values():
+        dd.mkdir(parents=True, exist_ok=True)
+        for f in dd.glob("f*.png"):
+            f.unlink()
+    for j in range(len(keep)):
+        if a.only and j not in a.only:
+            continue
+        st = f"{S['xs'][j]:5.1f} s   turn {S['th'][j]:+.1f}°"
+        v = np.asarray(Image.open(WORK / "viewer" / f"v{j:05d}.png").convert("RGB"))
+        Image.fromarray(v[:1080, :1200]).save(dirs["viewer_both"] / f"f{j:05d}.png")
+        Image.fromarray(stamp(v[r0:r1, :1200].copy(), st, size=22, x_right=812)).save(
+            dirs["viewer_physical"] / f"f{j:05d}.png")
+        Image.fromarray(stamp(v[r2:r3, :1200].copy(), st, size=22, x_right=812)).save(dirs["viewer_gp"] / f"f{j:05d}.png")
+        fig = plt.figure(figsize=(10.8, 10.8), dpi=100)
+        ax = fig.add_axes([0.03, 0.03, 0.94, 0.86])
+        draw_roll(ax, S, j, fs=1.5)
+        fig.text(0.03, 0.965, "The roll from the robot's record", fontsize=24, va="top")
+        Image.fromarray(stamp(_rgb(fig), st)).save(dirs["roll_section"] / f"f{j:05d}.png")
+        plt.close(fig)
+        fig = plt.figure(figsize=(9.0, 10.8), dpi=100)
+        axf = fig.add_axes([0.08, 0.20, 0.84, 0.70])
+        draw_palm(axf, S, j, fs=1.4)
+        fig.text(0.04, 0.965, "Contact points, palm side", fontsize=24, va="top")
+        y_txt = 0.135
+        for txt, col in dist_lines(S, j):
+            fig.text(0.05, y_txt, txt, fontsize=17, color=col)
+            y_txt -= 0.04
+        fig.text(0.95, 0.205, "tip end up\ndashed: magnets", fontsize=14, color="#4b5563", ha="right", va="bottom")
+        Image.fromarray(stamp(_rgb(fig), st)).save(dirs["palm_points"] / f"f{j:05d}.png")
+        plt.close(fig)
+        fig = plt.figure(figsize=(16.0, 7.0), dpi=100)
+        ax2 = fig.add_axes([0.08, 0.36, 0.90, 0.50])
+        ax3 = fig.add_axes([0.08, 0.12, 0.90, 0.17], sharex=ax2)
+        draw_dist(ax2, ax3, S, j, fs=1.35, title=False)
+        fig.text(0.08, 0.95, "Distance of each estimate from the robot's contact over the roll", fontsize=22, va="top")
+        fig.text(0.08, 0.885, "red: physical model    blue: GP of the UR5 calibration", fontsize=17, va="top",
+                 color="#374151")
+        Image.fromarray(stamp(_rgb(fig), st)).save(dirs["distance"] / f"f{j:05d}.png")
+        plt.close(fig)
+        if j % 50 == 0:
+            print(f"  parts {j + 1}/{len(keep)}", flush=True)
+    if a.only:
+        return
+    PARTS.mkdir(parents=True, exist_ok=True)
+    for n, dd in dirs.items():
+        dst = PARTS / f"{STEM}_{n}.mp4"
+        encode(dd, dst)
+        print(f"wrote {dst.relative_to(ROOT)} ({dst.stat().st_size / 1e6:.1f} MB)", flush=True)
 
 
 def table(a):
@@ -605,6 +730,216 @@ def table(a):
     print(f"wrote {path.relative_to(ROOT)} ({path.stat().st_size / 1e3:.0f} kB, {len(out)} rows)", flush=True)
 
 
+SOFT_GL = dict(MUJOCO_GL="egl", __EGL_VENDOR_LIBRARY_FILENAMES="/usr/share/glvnd/egl_vendor.d/50_mesa.json",
+               EGL_PLATFORM="surfaceless", LP_NUM_THREADS="4")   # Mesa's llvmpipe: the GPU stays with the HOM queue
+SEAT_BLOCK = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/cad"
+RIG_COL = {"robot": "0.80 0.82 0.84 1", "joint": "0.30 0.52 0.78 1", "hex_e": "0.62 0.63 0.66 1",
+           "adapter": "0.80 0.62 0.36 1", "probe_base": "0.36 0.56 0.85 1", "tool_rod": "0.85 0.85 0.82 1",
+           "seat_block": "0.55 0.40 0.65 1", "board": "0.80 0.66 0.46 1", "dip_link": "0.22 0.22 0.24 1",
+           "cover": "0.16 0.16 0.18 1", "cap": "0.20 0.20 0.22 1", "pad": "0.92 0.70 0.45 1", "table": "0.93 0.93 0.93 1"}
+TIP_COL = {"cover": "0.16 0.16 0.18 1", "cap": "0.20 0.20 0.22 1", "pad": "0.95 0.55 0.20 1", "heads": "0.70 0.70 0.72 1",
+           "fr4": "0.15 0.45 0.25 1", "connector": "0.85 0.85 0.80 1", "cable": "0.20 0.20 0.20 1"}
+
+
+def robot_record(a):
+    """The UR5's joint record over the roll's window and the frames of the cell (registration of the session, the
+    joint rod registration's pad pose), into DATA; the session is loaded once."""
+    out = DATA / f"{STEM}_robot.npz"
+    if out.exists():
+        return dict(np.load(out))
+    import hom_filter_real_check as FC
+    T = np.load(DATA / f"{STEM}_truth.npz")
+    ses = FC.load_session(SEAT)
+    rb = ses.d["rb"]
+    m = (rb[:, 0] >= float(T["t_lo"])) & (rb[:, 0] <= float(T["t_hi"]))
+    parts = json.loads((SEAT_BLOCK / "20261030-seat_block_parts.json").read_text())
+    rec = dict(t=rb[m, 0], q=rb[m, 2:8], T_BP=ses.T_BP, T_EM=np.asarray(ses.reg.T_EM, float),
+               T_BA=np.asarray(ses.d["reg"]["T_BI"], float),
+               T_AF=np.array([s["T_AF"] for s in parts["seats"]], float), seat=int(ses.d["plan"]["geometry"]["seat"]["index"]))
+    np.savez_compressed(out, **rec)
+    print(f"wrote {out.relative_to(ROOT)}: {m.sum()} robot samples", flush=True)
+    return rec
+
+
+def ur5_scene(work, R, w, h):
+    """MJCF of the inverted rig on the table as it stood on 4 November: the UR5's links and the tool (HEX-E, mount v7's
+    adapter, the probe base, the rod tool) as mocap bodies, the seat block on its 2x4, the three held tips, the table."""
+    import trimesh
+    import ur5_cb3_cell as CELL
+    import ur5_tip_calibration_film as TF
+    from sr2hand.geometry import rotations as ROT  # noqa: F401  (frames are 4x4 matrices here)
+    _, meshes = CELL.urdf_model()
+    assets, bodies, geoms = [], [], []
+
+    def add(name, mesh, rgba, into, group=0):
+        p = TF.mesh_obj(mesh, work / f"{name}.obj")
+        assets.append(f'<mesh name="{name}" file="{p}" scale="0.001 0.001 0.001"/>')
+        into.append(f'<geom type="mesh" mesh="{name}" rgba="{rgba}" group="{group}" contype="0" conaffinity="0"/>')
+    for ln, stem in TF.ROBOT_MESH.items():
+        T_, f = meshes[ln]
+        mm = CELL._load(f)
+        mm.apply_transform(T_)
+        g = []
+        add(stem, mm, RIG_COL["joint"] if ln in ("shoulder_link", "wrist_1_link", "wrist_2_link") else RIG_COL["robot"], g)
+        bodies.append(f'<body name="{ln}" mocap="true">{"".join(g)}</body>')
+    tool = []
+    for name, mm in (("hex_e", CELL.hex_e_mesh(None)), ("adapter", CELL.finger_mesh("adapter")),
+                     ("probe_base", trimesh.load(SEAT_BLOCK / "20261030-seat_block_probe_base.stl", force="mesh")),
+                     ("tool_rod", trimesh.load(SEAT_BLOCK / "20261030-seat_block_tool_rod.stl", force="mesh"))):
+        mm = mm.copy()
+        mm.apply_transform(R["T_EM"])
+        add(f"t_{name}", mm, RIG_COL[name], tool)
+    bodies.append(f'<body name="tool" mocap="true">{"".join(tool)}</body>')
+    T_BA = R["T_BA"]
+    blk = trimesh.load(SEAT_BLOCK / "20261030-seat_block_seat_block.stl", force="mesh")
+    blk.apply_transform(T_BA)
+    add("c_seat_block", blk, RIG_COL["seat_block"], geoms)
+    board = trimesh.creation.box(extents=[89.0, 560.0, 38.0])
+    board.apply_translation([94.5, 0.0, -19.0])
+    board.apply_transform(T_BA)
+    add("c_board", board, RIG_COL["board"], geoms)
+    import ur5_cell_render as RN
+    T_FP = np.linalg.inv(CELL.T_M_FROM_F) @ CELL.T_M_FROM_P          # the pad frame P in the finger's F
+    s2 = int(R["seat"])
+    dP = np.linalg.inv(T_BA @ R["T_AF"][s2] @ T_FP) @ R["T_BP"]
+    print(f"seat {s2 + 1}: the registered pad against the seat's nominal one: {np.linalg.norm(dP[:3, 3]):.2f} mm, "
+          f"{np.degrees(np.arccos(np.clip((np.trace(dP[:3, :3]) - 1) / 2, -1, 1))):.2f} deg", flush=True)
+    for i, T_AF in enumerate(R["T_AF"]):                # a held tip is its cassette, cap, screw heads, pad and board
+        T_BF = R["T_BP"] @ np.linalg.inv(T_FP) if i == s2 else T_BA @ T_AF       # (the cell renderer's tip_parts_F)
+        for name, mm, mat in RN.tip_parts_F():
+            mm = mm.copy()
+            mm.apply_transform(T_BF)
+            add(f"c_{name}_{i}", mm, TIP_COL.get(name, TIP_COL.get(mat, "0.3 0.3 0.3 1")), geoms,
+                group=0 if i == s2 else 2)
+    geoms.append(f'<geom type="plane" size="1.5 1.5 0.01" rgba="{RIG_COL["table"]}" contype="0" conaffinity="0"/>')
+    return f"""<mujoco><compiler inertiafromgeom="false"/>
+<visual><global offwidth="{w}" offheight="{h}" fovy="30"/><quality shadowsize="4096" offsamples="8"/>
+<headlight ambient="0.42 0.42 0.42" diffuse="0.50 0.50 0.50" specular="0.05 0.05 0.05"/></visual>
+<asset><texture name="sky" type="skybox" builtin="flat" rgb1="1 1 1" rgb2="1 1 1" width="16" height="16"/>{''.join(assets)}</asset>
+<worldbody><light pos="0.4 -0.6 1.5" dir="-0.2 0.3 -1" diffuse="0.35 0.35 0.35" castshadow="false"/>
+{''.join(geoms)}{''.join(bodies)}</worldbody></mujoco>"""
+
+
+def film_times():
+    """The films' frame times on the robot's clock, and their times from the press's level hold and the turn."""
+    F = json.loads((DATA / f"{STEM}_frames.json").read_text())
+    T = np.load(DATA / f"{STEM}_truth.npz")
+    t_rel = np.array([r["t"] for r in F["rows"]])
+    return float(T["t_lo"]) + F["t_hold_window_s"] + t_rel, t_rel, np.array([r["theta"] for r in F["rows"]])
+
+
+def stamp(img, text, size=26, where="tr", x_right=None):
+    """The film time in a corner of a frame (an RGB array), as on every synced part; x_right ends it at that column."""
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.fromarray(img)
+    dr = ImageDraw.Draw(im)
+    font = ImageFont.truetype("DejaVuSerif.ttf", size)
+    x0, y0, x1, y1 = dr.textbbox((0, 0), text, font=font)
+    W_, H_ = im.size
+    x = (x_right if x_right is not None else W_) - (x1 - x0) - 18 if where == "tr" else 18
+    dr.rectangle([x - 8, 10, x + (x1 - x0) + 8, 10 + (y1 - y0) + 14], fill=(255, 255, 255))
+    dr.text((x, 14 - y0 + 2), text, fill=(0, 0, 0), font=font)
+    return np.asarray(im)
+
+
+def encode(frames_dir, dst, hold=37):
+    """frames_dir/f%05d.png at 25 frames a second, the last frame held hold frames (1.5 s), as H.264 yuv420p."""
+    import subprocess
+    files = sorted(frames_dir.glob("f*.png"))
+    last = len(files) - 1
+    for h_ in range(1, hold + 1):
+        (frames_dir / f"f{last + h_:05d}.png").write_bytes(files[-1].read_bytes())
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "25", "-i", str(frames_dir / "f%05d.png"),
+                    "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2:color=white", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                    "-profile:v", "high", "-crf", "21", "-preset", "slow", "-movflags", "+faststart", str(dst)], check=True)
+
+
+PARTS = MEDIA / "20261110-synced_parts"
+
+
+def ur5(a):
+    """The UR5's own record of the roll replayed in the cell: a view of the cell, one beside the rod and the tip, and one
+    along the rod's axis, each a film of the frames of the other films (individual, synced)."""
+    import os
+    import shutil
+    import tempfile
+    for k, v in SOFT_GL.items():
+        os.environ.setdefault(k, v)
+    import mujoco
+    from PIL import Image
+    import ur5_cb3_cell as CELL
+    from sr2hand.geometry.rotations import mat_to_quat
+    R = robot_record(a)
+    t_abs, t_rel, th = film_times()
+    w, h = 1280, 720
+    work = Path(tempfile.mkdtemp(prefix="ur5_roll_"))
+    m = mujoco.MjModel.from_xml_string(ur5_scene(work, R, w, h))
+    d = mujoco.MjData(m)
+    Tt = np.load(DATA / f"{STEM}_truth.npz")
+    p0_B = (R["T_BP"] @ np.r_[Tt["p"][0], 1.0])[:3] * 1e-3            # the contact at the press, in B (m)
+    ax_B = R["T_BP"][:3, :3] @ Tt["a_P"][0]
+    apex_B = (R["T_BA"] @ np.r_[70.0, 0.0, 40.0, 1.0])[:3] * 1e-3
+    az_ax = float(np.degrees(np.arctan2(ax_B[1], ax_B[0])))
+    base_mid = np.array([0.0, 0.0, 0.30])
+    views = {"cell": ((base_mid + apex_B) / 2 + [0, 0, 0.05], 1.55, az_ax - 60.0, -18.0),
+             "rig": (p0_B + [0, 0, 0.04], 0.42, az_ax - 35.0, -16.0),
+             "rod_axis": (p0_B + [0, 0, 0.007], 0.10, az_ax + 22.0, -9.0)}
+    if a.views:
+        views = {k: v for k, v in views.items() if k in a.views}
+    names = {"cell": "The UR5 cell", "rig": "The probe and the rod over seat 2",
+             "rod_axis": "The rod on v3 ID 5, along the rod's axis"}
+    opts = {k: mujoco.MjvOption() for k in views}
+    if "rod_axis" in opts:
+        opts["rod_axis"].geomgroup[2] = 0             # the neighbours' tips stand on the rod's axis line
+    cams = {}
+    for k, (lookat, dist, az, el) in views.items():
+        c = mujoco.MjvCamera()
+        c.lookat[:] = lookat
+        c.distance, c.azimuth, c.elevation = dist, az, el
+        cams[k] = c
+    dirs = {k: work / k for k in views}
+    for dd in dirs.values():
+        dd.mkdir()
+    q_t = R["t"]
+    idx = range(len(t_abs)) if a.n is None else range(min(a.n, len(t_abs)))
+    t0 = time.time()
+    with mujoco.Renderer(m, h, w) as ren:
+        for j in idx:
+            i = int(np.clip(np.searchsorted(q_t, t_abs[j]), 0, len(q_t) - 1))
+            LF = CELL.link_frames(R["q"][i])
+            for ln in list(TF_ROBOT()) + ["tool"]:
+                bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, ln)
+                T_ = LF["tool0" if ln == "tool" else ln]
+                d.mocap_pos[m.body_mocapid[bid]] = T_[:3, 3] * 1e-3
+                d.mocap_quat[m.body_mocapid[bid]] = mat_to_quat(T_[:3, :3])
+            mujoco.mj_forward(m, d)
+            for k, c in cams.items():
+                ren.update_scene(d, camera=c, scene_option=opts[k])
+                img = stamp(ren.render().copy(), f"{t_rel[j]:5.1f} s   turn {th[j]:+.1f}°")
+                img = stamp(img, names[k], size=24, where="tl")
+                Image.fromarray(img).save(dirs[k] / f"f{j:05d}.png")
+            if j % 50 == 0:
+                print(f"  frame {j + 1}/{len(t_abs)}, {time.time() - t0:.0f} s", flush=True)
+    if a.n is not None:
+        for k, dd in dirs.items():
+            dst = WORK / f"ur5_{k}_test"
+            shutil.rmtree(dst, ignore_errors=True)
+            shutil.copytree(dd, dst)
+        print(f"test frames in {WORK.relative_to(ROOT)}/ur5_*_test", flush=True)
+        return
+    PARTS.mkdir(parents=True, exist_ok=True)
+    for k, dd in dirs.items():
+        dst = PARTS / f"{STEM}_ur5_{k}.mp4"
+        encode(dd, dst)
+        print(f"wrote {dst.relative_to(ROOT)} ({dst.stat().st_size / 1e6:.1f} MB)", flush=True)
+    shutil.rmtree(work, ignore_errors=True)
+
+
+def TF_ROBOT():
+    import ur5_tip_calibration_film as TF
+    return TF.ROBOT_MESH.keys()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -631,8 +966,15 @@ def main():
     co.add_argument("--only", type=int, nargs="*", default=None, help="compose only these frames (a look), no film")
     tb = sub.add_parser("table")
     tb.add_argument("--t-start", type=float, default=14.0)
+    pa = sub.add_parser("parts")
+    pa.add_argument("--frames", default="frames_step0.16_az_calib.json")
+    pa.add_argument("--t-start", type=float, default=14.0)
+    pa.add_argument("--only", type=int, nargs="*", default=None, help="draw only these frames (a look), no films")
+    u5 = sub.add_parser("ur5")
+    u5.add_argument("--n", type=int, default=None, help="only the first n frames, kept in logs/ for a look")
+    u5.add_argument("--views", nargs="*", default=None, help="cell, rig, rod_axis (default all)")
     a = ap.parse_args()
-    dict(prepare=prepare, frames=frames, capture=capture, compose=compose, table=table)[a.cmd](a)
+    dict(prepare=prepare, frames=frames, capture=capture, compose=compose, table=table, ur5=ur5, parts=parts)[a.cmd](a)
 
 
 if __name__ == "__main__":

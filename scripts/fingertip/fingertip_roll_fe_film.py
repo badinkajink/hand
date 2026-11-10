@@ -159,28 +159,20 @@ def film_data(a):
                 model=model, cal=cal, theta=th, t_hold=float(T["plateaus"][0][0] - T["t_lo"]))
 
 
-def draw_frame(j, S, path):
+def _plt():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.patches import Circle, Polygon, Rectangle
-    import fingertip_wrench_model as W
-    Z, model, cal = S["Z"], S["model"], S["cal"]
     plt.rcParams.update({"font.family": "serif", "font.serif": ["DejaVu Serif"], "font.size": 15,
                          "mathtext.fontset": "dejavuserif"})
-    fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
-    t = S["tt"][j]
-    F = S["F"][j]
-    fig.text(0.02, 0.965, "Inside the fingertip during the roll: finite elements and magnetic field", fontsize=26,
-             weight="bold", va="top")
-    fig.text(0.02, 0.918, "The rod's measured force on the FE model of pad 05R4 at the robot's contact, solved every 0.5 s. "
-             "The field model turns the magnets' motion into\nthe change at the five chips (orange), against the change "
-             "the board measured (black). v3 ID 5 on the UR5 rig, 4 November; 4x speed.",
-             fontsize=15, va="top", color="#374151", linespacing=1.4)
-    fig.text(0.98, 0.965, f"{t - S['t_hold']:5.1f} s   turn {S['theta'][j]:+.1f}°   {np.linalg.norm(F):.1f} N",
-             fontsize=18, va="top", ha="right")
-    # (a) the section along the finger through the contact
-    ax = fig.add_axes([0.035, 0.115, 0.50, 0.69])
+    return plt
+
+
+def fe_section(ax, cax, S, j, fs=1.0, title=True):
+    """(a) The section along the finger through the contact, the rod, the magnets' motion and the chips' change."""
+    from matplotlib.patches import Circle, Rectangle
+    import fingertip_wrench_model as W
+    Z, model, cal = S["Z"], S["model"], S["cal"]
     xs, zs, cls = Z["xs"], Z["zs"], Z["cls"]
     X = Z["sec_X"]
     u = S["sec_u"][j]
@@ -190,8 +182,7 @@ def draw_frame(j, S, path):
     Un[ix, iz] = np.linalg.norm(u, axis=1)
     Uc = 0.25 * (Un[:-1, :-1] + Un[1:, :-1] + Un[:-1, 1:] + Un[1:, 1:])
     Uc[cls < 0] = np.nan
-    vmax = 600.0
-    pc = ax.pcolormesh(zs, xs, np.ma.masked_invalid(Uc), cmap="magma_r", vmin=0, vmax=vmax, shading="flat",
+    pc = ax.pcolormesh(zs, xs, np.ma.masked_invalid(Uc), cmap="magma_r", vmin=0, vmax=600.0, shading="flat",
                        rasterized=True)
     top = {}
     for (x, _, z), du in zip(X, u):
@@ -205,22 +196,19 @@ def draw_frame(j, S, path):
     c = S["c_draw"][j]
     R = float(Z["rod_R"])
     ax.add_patch(Circle((c[2], c[0]), R, fc="#dfe3e8", ec="#4b5563", lw=1.6, alpha=0.95, zorder=3))
-    ax.text(c[2], 13.2, "rod, R 12.5 mm", ha="center", fontsize=14, color="#374151", zorder=4)
-    mc = Z["mc"]
-    for jm, (cc, mm) in enumerate(zip(mc, S["mot"][j])):
+    ax.text(c[2], 13.2, "rod, R 12.5 mm", ha="center", fontsize=14 * fs, color="#374151", zorder=4)
+    for jm, (cc, mm) in enumerate(zip(Z["mc"], S["mot"][j])):
         off = -0.45 if cc[1] < 0 else 0.45
         ax.add_patch(Rectangle((cc[2] - 1.5, cc[0] - 1.0), 3.0, 2.0, fc="none", ec=POLE[cal.poles[jm]], lw=1.3,
                                ls="-" if cc[1] < 0 else "--", zorder=4))
         ax.annotate("", xy=(cc[2] + off + 0.1 * mm[2], cc[0] + 0.1 * mm[0]), xytext=(cc[2] + off, cc[0]),
                     arrowprops=dict(arrowstyle="-|>", lw=2.0, color=POLE[cal.poles[jm]], shrinkA=0, shrinkB=0), zorder=5)
-    P = model.P                                       # chips, stream order, tip frame
-    Rc = model.R
-    uix = list(cal.perm)
+    P, Rc, uix = model.P, model.R, list(cal.perm)     # chips, stream order, tip frame
     for i in range(5):
         if abs(P[i, 1]) > 1.0:
             continue                                  # chips off this section: U3 and U5
         ax.add_patch(Rectangle((P[i, 2] - 1.5, P[i, 0] - 0.45), 3.0, 0.9, fc="#374151", ec="none", zorder=4))
-        ax.text(P[i, 2], P[i, 0] - 1.25, W.U_ORDER[uix[i]], ha="center", va="top", fontsize=13)
+        ax.text(P[i, 2], P[i, 0] - 1.25, W.U_ORDER[uix[i]], ha="center", va="top", fontsize=13 * fs)
         for vec, col in ((S["mod"][j], MOD), (S["meas"][j], MEAS)):
             B = Rc[i].T @ vec[3 * i:3 * i + 3]           # uT in the tip frame
             ax.annotate("", xy=(P[i, 2] + 0.08 * B[2], P[i, 0] + 0.08 * B[0]), xytext=(P[i, 2], P[i, 0]),
@@ -228,53 +216,64 @@ def draw_frame(j, S, path):
     ax.set_xlim(-0.5, 22.0)
     ax.set_ylim(-8.6, 14.0)
     ax.set_aspect("equal")
-    ax.set_xlabel("z, from the mount end toward the tip end (mm)")
-    ax.set_ylabel("x, toward the palm (mm)")
-    ax.set_title(f"(a) Section along the finger through the contact; the face sinks {1e3 * S['appr'][j]:.0f} µm",
-                 fontsize=15, loc="left")
-    fig.text(0.035, 0.018, "In (a), the magnets' motion is drawn 100x (red north toward the palm, blue south; solid y < 0, "
-             "dashed y > 0) and the chips' field change at 0.08 mm per µT.", fontsize=13, color="#374151")
-    cax = fig.add_axes([0.545, 0.2, 0.008, 0.45])
-    cb = fig.colorbar(pc, cax=cax)
-    cb.set_label("Displacement (µm)")
-    # (b) from the palm: pressure, magnets' motion, chips' change
-    a2 = fig.add_axes([0.585, 0.40, 0.27, 0.42])
-    B0 = W.load_basis(W.basis_path("four_05R4"))
+    ax.set_xlabel("z, from the mount end toward the tip end (mm)", fontsize=15 * fs)
+    ax.set_ylabel("x, toward the palm (mm)", fontsize=15 * fs)
+    ax.tick_params(labelsize=13 * fs)
+    if title:
+        ax.set_title(f"(a) Section along the finger through the contact; the face sinks {1e3 * S['appr'][j]:.0f} µm",
+                     fontsize=15, loc="left")
+    cb = ax.figure.colorbar(pc, cax=cax)
+    cb.set_label("Displacement (µm)", fontsize=15 * fs)
+    cb.ax.tick_params(labelsize=13 * fs)
+
+
+def fe_palm(a2, S, j, fs=1.0, title=True):
+    """(b) From the palm: the contact's nodal forces, the magnets' motion and the chips' change."""
+    from matplotlib.patches import Circle, Polygon, Rectangle
     from scipy.spatial import ConvexHull
+    import fingertip_wrench_model as W
+    Z, model, cal = S["Z"], S["model"], S["cal"]
+    B0 = W.load_basis(W.basis_path("four_05R4"))
     yz = B0["pts"][:, 1:]
-    hull = yz[ConvexHull(yz).vertices]
-    a2.add_patch(Polygon(hull, closed=True, fc="#f7ecdb", ec="#8a6a3c", lw=1.2))
-    cx = Z["cand_X"]
-    pr = S["pres"][j]
+    a2.add_patch(Polygon(yz[ConvexHull(yz).vertices], closed=True, fc="#f7ecdb", ec="#8a6a3c", lw=1.2))
+    cx, pr = Z["cand_X"], S["pres"][j]
     on = pr > 1e-4
     a2.scatter(cx[on, 1], cx[on, 2], c=pr[on], cmap="Greens", vmin=0, vmax=max(0.05, float(S["pres"].max()) * 0.6),
-               s=10, marker="s", lw=0, zorder=2)
-    for jm, (cc, mm) in enumerate(zip(mc, S["mot"][j])):
+               s=10 * fs ** 2, marker="s", lw=0, zorder=2)
+    for jm, (cc, mm) in enumerate(zip(Z["mc"], S["mot"][j])):
         a2.add_patch(Circle((cc[1], cc[2]), 1.5, fc=POLE[cal.poles[jm]], ec="black", lw=0.6, alpha=0.3, zorder=3))
         a2.annotate("", xy=(cc[1] + 0.1 * mm[1], cc[2] + 0.1 * mm[2]), xytext=(cc[1], cc[2]),
                     arrowprops=dict(arrowstyle="-|>", lw=2.0, color="black", shrinkA=0, shrinkB=0), zorder=5)
-        a2.text(cc[1] + (1.8 if cc[1] > 0 else -1.8), cc[2], f"{mm[0]:+.0f}", fontsize=12, ha="left" if cc[1] > 0 else "right",
-                va="center", color=POLE[cal.poles[jm]])
+        a2.text(cc[1] + (1.8 if cc[1] > 0 else -1.8), cc[2], f"{mm[0]:+.0f}", fontsize=12 * fs,
+                ha="left" if cc[1] > 0 else "right", va="center", color=POLE[cal.poles[jm]])
+    P, Rc, uix = model.P, model.R, list(cal.perm)
     for i in range(5):
         a2.add_patch(Rectangle((P[i, 1] - 1.5, P[i, 2] - 1.5), 3.0, 3.0, fc="none", ec="#374151", lw=1.2, zorder=3))
-        a2.text(P[i, 1], P[i, 2] + 2.0, W.U_ORDER[uix[i]], ha="center", va="bottom", fontsize=11, color="#374151")
+        a2.text(P[i, 1], P[i, 2] + 2.0, W.U_ORDER[uix[i]], ha="center", va="bottom", fontsize=11 * fs, color="#374151")
         for vec, col in ((S["mod"][j], MOD), (S["meas"][j], MEAS)):
             B = Rc[i].T @ vec[3 * i:3 * i + 3]
             a2.annotate("", xy=(P[i, 1] + 0.06 * B[1], P[i, 2] + 0.06 * B[2]), xytext=(P[i, 1], P[i, 2]),
                         arrowprops=dict(arrowstyle="-|>", lw=2.0, color=col, shrinkA=0, shrinkB=0), zorder=6)
     tp = S["truth_p"][j]
-    a2.plot(tp[1], tp[2], "o", color="#00a33c", ms=9, mec="white", mew=1.2, zorder=7)
+    a2.plot(tp[1], tp[2], "o", color="#00a33c", ms=9 * fs, mec="white", mew=1.2, zorder=7)
     a2.set_xlim(-11, 11)
     a2.set_ylim(-1.5, 23)
     a2.set_aspect("equal")
-    a2.set_xlabel("y (mm)")
-    a2.set_ylabel("z (mm)")
-    a2.set_title("(b) Seen from the palm", fontsize=15, loc="left")
-    a2.text(1.04, 0.98, "green: the contact's\nnodal forces, and the\nrobot's contact point\n\nmagnets: motion in\nthe "
-            "face's plane 100x;\nnumbers: motion\nalong x (µm)\n\nchips: field change\nin the face's plane,\n"
-            "0.06 mm per µT", transform=a2.transAxes, fontsize=12.5, va="top", color="#374151", linespacing=1.3)
-    # (c) the 15 components
-    a3 = fig.add_axes([0.615, 0.075, 0.37, 0.22])
+    a2.set_xlabel("y (mm)", fontsize=15 * fs)
+    a2.set_ylabel("z (mm)", fontsize=15 * fs)
+    a2.tick_params(labelsize=13 * fs)
+    if title:
+        a2.set_title("(b) Seen from the palm", fontsize=15, loc="left")
+
+
+PALM_KEY = ("green: the contact's\nnodal forces, and the\nrobot's contact point\n\nmagnets: motion in\nthe face's plane 100x;\n"
+            "numbers: motion\nalong x (µm)\n\nchips: field change\nin the face's plane,\n0.06 mm per µT")
+
+
+def fe_bars(a3, S, j, fs=1.0, title=True):
+    """(c) The 15 components of the board change, measured and modelled."""
+    import fingertip_wrench_model as W
+    uix = list(S["cal"].perm)
     order = [uix.index(u_) for u_ in range(5)]          # stream index of U1..U5
     lab, mo, me = [], [], []
     for u_, i in enumerate(order):
@@ -287,18 +286,78 @@ def draw_frame(j, S, path):
     a3.bar(xb + 0.2, mo, 0.4, color=MOD, label="FE and field model")
     a3.axhline(0, color="k", lw=0.8)
     a3.set_xticks(xb)
-    a3.set_xticklabels(lab, fontsize=10.5, rotation=90)
-    a3.set_ylabel("Change (µT)")
+    a3.set_xticklabels(lab, fontsize=10.5 * fs, rotation=90)
+    a3.set_ylabel("Change (µT)", fontsize=15 * fs)
+    a3.tick_params(axis="y", labelsize=13 * fs)
     lim = max(40.0, 1.1 * float(np.nanmax(np.abs(np.r_[S["mod"], S["meas"]]))))
     a3.set_ylim(-lim, lim)
     a3.spines[["top", "right"]].set_visible(False)
-    a3.legend(loc="upper right", fontsize=12, frameon=False, ncol=1)
+    a3.legend(loc="upper right", fontsize=12 * fs, frameon=False, ncol=1)
     me_, mo_ = np.array(me), np.array(mo)
     r = float(np.corrcoef(me_, mo_)[0, 1]) if np.all(np.isfinite(me_)) else np.nan
-    a3.set_title(f"(c) Change at each chip axis: correlation {r:.2f}, model/measured "
-                 f"{np.linalg.norm(mo_) / max(np.linalg.norm(me_), 1e-9):.2f}", fontsize=14.5, loc="left")
+    txt = (f"correlation {r:.2f}, model/measured {np.linalg.norm(mo_) / max(np.linalg.norm(me_), 1e-9):.2f}")
+    if title:
+        a3.set_title(f"(c) Change at each chip axis: {txt}", fontsize=14.5, loc="left")
+    return txt
+
+
+def draw_frame(j, S, path):
+    plt = _plt()
+    fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
+    t = S["tt"][j]
+    F = S["F"][j]
+    fig.text(0.02, 0.965, "Inside the fingertip during the roll: finite elements and magnetic field", fontsize=26,
+             weight="bold", va="top")
+    fig.text(0.02, 0.918, "The rod's measured force on the FE model of pad 05R4 at the robot's contact, solved every 0.5 s. "
+             "The field model turns the magnets' motion into\nthe change at the five chips (orange), against the change "
+             "the board measured (black). v3 ID 5 on the UR5 rig, 4 November; 4x speed.",
+             fontsize=15, va="top", color="#374151", linespacing=1.4)
+    fig.text(0.98, 0.965, f"{t - S['t_hold']:5.1f} s   turn {S['theta'][j]:+.1f}°   {np.linalg.norm(F):.1f} N",
+             fontsize=18, va="top", ha="right")
+    fe_section(fig.add_axes([0.035, 0.115, 0.50, 0.69]), fig.add_axes([0.545, 0.2, 0.008, 0.45]), S, j)
+    fig.text(0.035, 0.018, "In (a), the magnets' motion is drawn 100x (red north toward the palm, blue south; solid y < 0, "
+             "dashed y > 0) and the chips' field change at 0.08 mm per µT.", fontsize=13, color="#374151")
+    a2 = fig.add_axes([0.585, 0.40, 0.27, 0.42])
+    fe_palm(a2, S, j)
+    a2.text(1.04, 0.98, PALM_KEY, transform=a2.transAxes, fontsize=12.5, va="top", color="#374151", linespacing=1.3)
+    fe_bars(fig.add_axes([0.615, 0.075, 0.37, 0.22]), S, j)
     fig.savefig(path, dpi=100, facecolor="white")
     plt.close(fig)
+
+
+def draw_parts(j, S, paths):
+    """The three panels of draw_frame as figures of their own, each stamped with the film time."""
+    from PIL import Image
+    import viewer_roll_film as V
+    plt = _plt()
+    st = f"{S['tt'][j] - S['t_hold']:5.1f} s   turn {S['theta'][j]:+.1f}°"
+
+    def save(fig, path):
+        fig.canvas.draw()
+        img = np.asarray(fig.canvas.buffer_rgba())[:, :, :3].copy()
+        plt.close(fig)
+        Image.fromarray(V.stamp(img, st)).save(path)
+    fig = plt.figure(figsize=(15.0, 10.8), dpi=100)
+    fe_section(fig.add_axes([0.07, 0.13, 0.80, 0.74]), fig.add_axes([0.885, 0.22, 0.013, 0.55]), S, j, fs=1.25,
+               title=False)
+    fig.text(0.07, 0.955, f"Finite elements: the section through the contact, the face {1e3 * S['appr'][j]:.0f} µm down",
+             fontsize=23, va="top")
+    fig.text(0.07, 0.045, "Magnets' motion drawn 100x (red north toward the palm, blue south; solid y < 0, dashed y > 0).\n"
+             "Chips' field change at 0.08 mm per µT: model orange, board black.", fontsize=14, color="#374151",
+             va="center", linespacing=1.4)
+    save(fig, paths["fe_section"])
+    fig = plt.figure(figsize=(12.0, 10.8), dpi=100)
+    a2 = fig.add_axes([0.08, 0.08, 0.62, 0.80])
+    fe_palm(a2, S, j, fs=1.3, title=False)
+    fig.text(0.04, 0.955, "Magnets and chips, palm side", fontsize=23, va="top")
+    fig.text(0.73, 0.85, PALM_KEY + "\n\norange: model\nblack: board", fontsize=16, va="top", color="#374151",
+             linespacing=1.3)
+    save(fig, paths["fe_palm"])
+    fig = plt.figure(figsize=(16.0, 8.0), dpi=100)
+    a3 = fig.add_axes([0.07, 0.17, 0.91, 0.66])
+    txt = fe_bars(a3, S, j, fs=1.35, title=False)
+    fig.text(0.07, 0.955, f"Change at each chip axis: {txt}", fontsize=23, va="top")
+    save(fig, paths["fe_bars"])
 
 
 def film(a):
@@ -313,6 +372,24 @@ def film(a):
     idx = a.only if a.only else list(range(len(S["tt"])))
     global _S
     _S = S
+    if a.parts:
+        import viewer_roll_film as V
+        names = ("fe_section", "fe_palm", "fe_bars")
+        dirs = {n: WORK / "parts" / n for n in names}
+        for dd in dirs.values():
+            dd.mkdir(parents=True, exist_ok=True)
+            for f in dd.glob("f*.png"):
+                f.unlink()
+        with mp.get_context("fork").Pool(a.jobs) as pool:
+            pool.map(_draw_parts, [(j, {n: str(dirs[n] / f"f{j:05d}.png") for n in names}) for j in idx], chunksize=4)
+        if a.only:
+            return
+        V.PARTS.mkdir(parents=True, exist_ok=True)
+        for n, dd in dirs.items():
+            dst = V.PARTS / f"{STEM}_{n}.mp4"
+            V.encode(dd, dst)
+            print(f"wrote {dst.relative_to(ROOT)} ({dst.stat().st_size / 1e6:.1f} MB)", flush=True)
+        return
     with mp.get_context("fork").Pool(a.jobs) as pool:
         pool.map(_draw, [(j, str(frames / f"f{j:05d}.png")) for j in idx], chunksize=4)
     if a.only:
@@ -358,6 +435,11 @@ def _draw(args):
     draw_frame(j, _S, path)
 
 
+def _draw_parts(args):
+    j, paths = args
+    draw_parts(j, _S, paths)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -369,6 +451,7 @@ def main():
     fi.add_argument("--t-start", type=float, default=14.0)
     fi.add_argument("--jobs", type=int, default=4)
     fi.add_argument("--only", type=int, nargs="*", default=None)
+    fi.add_argument("--parts", action="store_true", help="each panel as a film of its own, into media/20261110-synced_parts")
     a = ap.parse_args()
     dict(solve=solve, film=film)[a.cmd](a)
 
