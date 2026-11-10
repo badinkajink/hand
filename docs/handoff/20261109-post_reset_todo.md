@@ -115,6 +115,9 @@ the 28 mm runs with stand-in scores. Outcome paragraph, lede, limits and future 
 State 11-10 15:54: step 5's 36 runs done 15:48 (no failures); step 18's reruns done 15:50, committed 0a7e932bc and marked
 done (roll's five tracking-best 0.10-0.25 at seeds 20-24, layout 191 best). gpu_queue_step5b.sh started 15:51: twist and
 roll at 28 mm and twist at 67 mm validated by 15:54, about a minute each. Next: step 5's prose once "step 5b queue done".
+State 11-10 15:59: step 5b done 15:56:14, no failures; all GPU queues ended. Within 0.05 of the best validated layout:
+EA 14 of 18 starts, PSO 16 12 of 18 (twist 4 vs 2 of 6, roll 5 and 5, press 5 and 5); 10 of PSO's 18 stopped at 40
+iterations. Writing sec_newsizes's outcome, tracking and stop paragraphs, lede, summary, limits and future bullets.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. The measured servo first: HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 (damping 0.02 s x kp, as the servo plant's)… Done 11-10 06:53: Measured servo moves the rankings: tracking-score rho vs 0.72 N m/rad 0.91/0.73/0.81 (0.55) and 0.91/0.72/0.79 (0.55 + 0.59 deg band), band vs 0.55 alone 0.94/0.79/0.90, rerun 0.99-1.00 (twist/roll/press); model's best layouts lose 0.14-0.29 on the measured servo; step 2 runs on 0.55 + band; page 20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html (2eb2bfe31)
