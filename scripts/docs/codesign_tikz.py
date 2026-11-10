@@ -10,6 +10,7 @@ by pdftoppm at 400 dpi into docs/experiments/20261110-codesign_formulation/media
   20261110-nested_{all,outer,inner,sim}.png the nested problem as nested boxes, whole and with one level highlighted
   20261110-contact_modes.png        what HOM commands at each fingertip: stick, roll, slide, press
   20261110-hom_period.png           one HOM control period
+  20261110-hand_{mounts,joints}.png the hand with its 6 mount coordinates or its 9 joints coloured (steps 3 and 4)
 
     .venv/bin/python scripts/docs/codesign_tikz.py
 """
@@ -340,6 +341,84 @@ def evaluator():
     return compile_tex("20261110-evaluator", body)
 
 
+# ------------------------------------------------------------------------------------------------ morphology and control
+# Owner, 2026-11-10 afternoon: "really stripped down, bare figures that communicate the essence of the split between
+# morphology and control", beside steps 3 and 4. One line drawing of the hand of the films that follow, layout (70, 110)
+# mm, with the joints of the real_v1 model coloured by class: the six slides of class morph (x and y of each finger's
+# carriage, inside its gantry's travel) or the nine hinges of class ctrl (yaw, MCP and PIP of each finger). No text.
+HAND_VIEW = (30.0, 30.0)        # degrees: azimuth about the palm normal, elevation of the view above the palm plane
+HAND_COLOURS = {                # boxes' fill and edge, mounts, slide arrows, hinges
+    "mounts": ("new!10", "new", "new", "new", None),
+    "joints": ("pale", "grey", "grey", None, "new"),
+}
+
+
+def hand_geometry(layout=(70.0, 110.0), q_deg=None):
+    """Travel boxes and joint chains (mm, palm frame: mount, MCP, PIP, pad centre) of the symmetric tripod `layout` with
+    the fingers at the joint angles q_deg (yaw, MCP, PIP in degrees; default a gentle curl toward the palm's centre line).
+    Kinematics, gantry travel and the cad_v2 finger (20.75, 30.80 and 36.36 mm) from fp_sr2_toy."""
+    import numpy as np
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import _paths  # noqa: F401
+    import fp_sr2_toy as FT
+    q_deg = q_deg or {"thumb": (0.0, 12.0, 32.0), "index": (-20.0, 12.0, 32.0), "middle": (20.0, 12.0, 32.0)}
+    M = FT.mounts6(FT.layout2(*layout))
+    chains, boxes = {}, {}
+    for i, f in enumerate(FT.K.FINGERS):
+        fr = FT.finger_frames(f, np.radians(q_deg[f]), M[f])
+        chains[f] = 1000.0 * np.array([fr[k][1] for k in ("yaw_frame", "mcp_frame", "pip_frame", "tip")])
+        (x0, y0), (x1, y1) = FT.LO6[2 * i:2 * i + 2], FT.HI6[2 * i:2 * i + 2]
+        boxes[f] = np.array([[x0, y0, 0.0], [x1, y0, 0.0], [x1, y1, 0.0], [x0, y1, 0.0]])
+    return boxes, chains
+
+
+def hand(variant):
+    """The hand drawing with one class of joints in the highlight colour: 'mounts' (step 3) or 'joints' (step 4).
+    Both share one canvas, so on successive slides only the colour moves."""
+    import numpy as np
+    from sr2hand.geometry.rotations import rot_x, rot_z
+    boxes, chains = hand_geometry()
+    az, el = np.radians(HAND_VIEW)
+    V = rot_x(el) @ rot_z(az)
+
+    def uv(P):
+        Q = np.asarray(P, float) @ V.T
+        return Q[..., 0], Q[..., 2], Q[..., 1]            # right, up, depth (larger is farther)
+
+    def pt(P):
+        u, v, _ = uv(P)
+        return f"({u:.2f},{v:.2f})"
+
+    fill, edge, mount, slide, hinge = HAND_COLOURS[variant]
+    arrow = 14.0                                          # mm each way along x and y of the palm frame
+    tips = r"{Stealth[length=8pt,width=8pt]}"
+    ends = list(boxes.values()) + list(chains.values())
+    ends.append(np.array([c[0] + s * arrow * e for c in chains.values() for s in (-1, 1) for e in np.eye(3)[:2]]))
+    u, v, _ = uv(np.concatenate(ends))
+    pad = 9.0
+    out = [r"\begin{tikzpicture}[x=0.5mm, y=0.5mm, line join=round, line cap=round]",
+           r"\useasboundingbox (%.1f,%.1f) rectangle (%.1f,%.1f);" % (u.min() - pad, v.min() - pad, u.max() + pad,
+                                                                      v.max() + pad)]
+    for b in boxes.values():                      # drawn as a transparent plane: the fingers stay visible to their mounts
+        out.append(r"\filldraw[fill=%s, draw=%s, line width=1.2pt] %s -- cycle;" % (fill, edge, " -- ".join(map(pt, b))))
+    for f in sorted(chains, key=lambda f: -uv(chains[f])[2].mean()):         # farthest finger first
+        ch = chains[f]
+        out.append(r"\draw[grey!80, line width=6.5pt] " + " -- ".join(map(pt, ch)) + ";")
+        out.append(r"\fill[grey!80] %s circle[radius=6pt];" % pt(ch[-1]))
+    for ch in chains.values():
+        out.append(r"\fill[%s] %s circle[radius=4.5pt];" % (mount, pt(ch[0])))
+        if slide:
+            for e in np.eye(3)[:2]:
+                out.append(r"\draw[%s, line width=2.4pt, %s-%s] %s -- %s;"
+                           % (slide, tips, tips, pt(ch[0] - arrow * e), pt(ch[0] + arrow * e)))
+    if hinge:
+        for ch in chains.values():
+            for p in ch[:3]:
+                out.append(r"\filldraw[fill=white, draw=%s, line width=2.6pt] %s circle[radius=5.5pt];" % (hinge, pt(p)))
+    out.append(r"\end{tikzpicture}")
+    return compile_tex(f"20261110-hand_{variant}", "\n".join(out), border="6pt")
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     formulas()
@@ -348,6 +427,8 @@ def main():
     contact_modes()
     hom_period()
     evaluator()
+    for v in HAND_COLOURS:
+        hand(v)
     print("ok", len(list(OUT.glob("20261110-eq_*.png"))), "formula images", flush=True)
     return 0
 

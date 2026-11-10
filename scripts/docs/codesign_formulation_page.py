@@ -45,15 +45,34 @@ def figinfo():
     return json.loads(f.read_text()) if f.exists() else {}
 
 
-def series(name):
-    """A series of formula images, each with its step number and one-line description."""
+def series(name, extra=None):
+    """A series of formula images, each with its step number and one-line description; extra maps a step's description
+    to what is shown after its image."""
     out = []
     for k, r in enumerate([r for r in manifest() if r["series"] == name], 1):
         uri = P.data_uri(MEDIA / f"{r['name']}.png", "image/png")
         out.append(f'<p><b>Step {k}.</b> {esc(r["what"])} <span class="small">(<code>media/{r["name"]}.png</code>)'
                    f'</span></p><p style="text-align:center"><img src="{uri}" alt="{esc(r["what"])}" '
-                   f'style="max-width:88%"></p>')
+                   f'style="max-width:88%"></p>' + (extra or {}).get(r["what"], ""))
     return "".join(out)
+
+
+def drawing(name, text):
+    """A drawing shown beside a step of the build, unnumbered like the formula images."""
+    uri = P.data_uri(MEDIA / f"{name}.png", "image/png")
+    return (f'<p>{text} <span class="small">(<code>media/{name}.png</code>)</span></p><p style="text-align:center">'
+            f'<img src="{uri}" alt="{esc(text)}" style="max-width:55%"></p>')
+
+
+def hand_drawings():
+    """The drawings beside steps 3 and 4 (owner, 2026-11-10: the split between morphology and control)."""
+    return {"The hand: six mount coordinates.": drawing(
+        "20261110-hand_mounts", "<b>Beside step 3.</b> The hand of the films that follow, layout (70, 110) mm, seen from "
+        "above with the palm drawn transparent. In colour are the six mount coordinates: the x and y of each finger's "
+        "carriage, inside its gantry's travel (shaded)."),
+    "The controller: nine joint commands every 10 ms.": drawing(
+        "20261110-hand_joints", "<b>Beside step 4.</b> The same drawing with the nine joints in colour: the yaw, MCP and "
+        "PIP of each finger. The mounts are fixed at the layout of step 3.")}
 
 
 def fig(name, caption):
@@ -79,7 +98,7 @@ def sec_terms():
 def sec_build():
     return ("<p>The problem is stated once and grows one term per slide; the new term is in colour. After step 7 two "
             "images define the metric. The last step names the three levels, and each later section zooms into "
-            "one of them.</p>" + series("codesign")
+            "one of them.</p>" + series("codesign", hand_drawings())
             + "<p><b>The metric, after step 7.</b></p>" + series("metric")
             + "<p><b>The section openers.</b> The final form with one level in colour.</p>" + series("zoom")
             + fig("20261110-nested_all.png", "The nested problem drawn as nested boxes: the search over hands holds "
@@ -162,6 +181,7 @@ def sec_sim():
 
 def sec_slides():
     rows = [["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd10"],
+            ["28", "the hand beside steps 3 and 4: its mounts, then its joints", "hand_mounts, hand_joints"],
             ["30", "the metric", "eq_metric1, eq_metric2"],
             ["32", "the levels named; section opener", "eq_cd10, nested_all; eq_final_outer and nested_outer"],
             ["32-33", "morphology optimization", "layout_space; eq_outer1 to eq_outer6; ea_anatomy; ea_snapshots"],
