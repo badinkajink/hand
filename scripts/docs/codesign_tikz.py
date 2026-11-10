@@ -70,36 +70,46 @@ def same_canvas(paths):
 
 
 # ------------------------------------------------------------------------------------------------ the formula build
-# A strut of fixed height and depth makes every step's baseline sit at the same height of the same canvas.
-STRUT = r"\rule[-1.55cm]{0pt}{2.45cm}"
+# Owner, 2026-11-10: "make sure that we are incrementally, atomically building up our mathematical/conceptual
+# formalisms. less is more". Every image adds one idea and carries no text but the formula and its brace. A series
+# shares one canvas and one baseline (a strut of fixed height and depth), so its formula grows in place.
+STRUT = r"\rule[-1.45cm]{0pt}{2.3cm}"
+N = r"\color{new}"
+MANIFEST = []
 
 
-def eq_img(name, tex, note=""):
-    body = (r"\fontsize{21}{26}\selectfont\begin{tabular}{c}$\displaystyle " + STRUT + tex + r"$\\[2pt]"
-            + (r"{\fontsize{15}{19}\selectfont " + note + "}" if note else r"\rule{0pt}{19pt}") + r"\end{tabular}")
+def eq_img(name, tex, series, what, slide="", strut=True, size=21):
+    body = (r"\fontsize{%d}{%d}\selectfont$\displaystyle " % (size, size + 5) + (STRUT if strut else "") + tex + "$")
+    MANIFEST.append(dict(name=name, series=series, slide=slide, what=what))
     return compile_tex(name, body, border="{90pt 16pt}")
 
 
-N = r"\color{new}"
-STEPS = [
-    (r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{how well hand $m$ does task $T$}}", ""),
-    (r"m^\star_T=\arg\max_{m}\ {" + N + r"\underbrace{\max_{\pi}}_{\clab{its best controller}}}\ J_T(m,{" + N + r"\pi})",
-     r"the hand can only be scored through a controller: a \textcolor{new}{bi-level} problem"),
-    (r"m^\star_T=\arg\max_{m}\ {" + N + r"\underbrace{\mathbb{E}_{d\sim\mathcal{D}}}_{\clab{over object sizes}}}"
-     r"\Big[\max_{\pi}\ J_T(m,\pi;{" + N + r"d})\Big]", r"one hand for a range of sizes, or one hand per size"),
-    (r"m^\star_T=\arg\max_{{" + N + r"m\in\mathbb{R}^{6}}}\ \mathbb{E}_{d\sim\mathcal{D}}\Big[\max_{{" + N
-     + r"\pi:\,x_t\mapsto u_t\in\mathbb{R}^{9}}}\ J_T(m,\pi;d)\Big]",
-     r"\textcolor{new}{6} mount coordinates for the hand, \textcolor{new}{9} joint commands every 10\,ms"),
-    (r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ {" + N + r"\underbrace{\mathbb{E}_{(T,d)\sim\mathcal{D}}}_{\clab{over tasks "
-     r"and sizes}}}\Big[\max_{\pi}\ J_{{" + N + r"T}}(m,\pi;d)\Big]",
-     r"three toy tasks are three samples of a distribution over tasks"),
-    (r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{(T,d)\sim\mathcal{D}}\Big[\max_{\pi}\ {" + N
-     + r"\underbrace{J_T(m,\pi;d)}_{\clab{a choice of metric}}}\Big]",
-     r"$J=\sum_k\lambda_k J^{(k)}$ or a Pareto front; ours: $J=\mathbf{1}[\mathrm{held}]\,\max\!\big(0,\,1-"
-     r"\frac{e_{\mathrm{rms}}}{\theta_{\mathrm{rms}}}\big)\,c_3$"),
-    (r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{(T,d)\sim\mathcal{D}}\Big[\max_{\pi}\ {" + N
-     + r"\underbrace{J^{\,\mathrm{sim}}_T(m,\pi;d\mid c,p,s)}_{\clab{computed in simulation}}}\Big]",
-     r"contact model $c$, servo model $p$, sensing model $s$: each calibrated on hardware"),
+def C(body, label):
+    """A new term in the highlight colour with its brace label."""
+    return r"{" + N + r"\underbrace{" + body + r"}_{\clab{" + label + r"}}}"
+
+
+CD = [  # (slide, what, LaTeX)
+    ("21", "The best hand for a task maximizes the task's score.",
+     r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{score of hand $m$ on task $T$}}"),
+    ("23", "A hand is scored through its best controller: a bi-level problem.",
+     r"m^\star_T=\arg\max_{m}\ " + C(r"\max_{\pi}", "best controller") + r"\ J_T(m,{" + N + r"\pi})"),
+    ("24-27", "One hand for a range of object sizes.",
+     r"m^\star_T=\arg\max_{m}\ " + C(r"\mathbb{E}_{d}", "object sizes") + r"\Big[\max_{\pi}\ J_T(m,\pi;{" + N + r"d})\Big]"),
+    ("28", "The hand: six mount coordinates.",
+     r"m^\star_T=" + C(r"\arg\max_{m\in\mathbb{R}^{6}}", "6 mount coordinates") + r"\ \mathbb{E}_{d}\Big[\max_{\pi}\ J_T(m,\pi;d)\Big]"),
+    ("28", "The controller: nine joint commands every 10 ms.",
+     r"m^\star_T=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{d}\Big[" + C(r"\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}", "9 joint commands")
+     + r"\ J_T(m,\pi;d)\Big]"),
+    ("29", "Tasks vary too: the three toy tasks sample a distribution.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\mathbb{E}_{T,d}", "tasks and sizes") + r"\Big[\max_{\pi}\ J_{" + N + r"T}(m,\pi;d)\Big]"),
+    ("30", "The score itself is a choice.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J_T(m,\pi;d)", "a choice of metric") + r"\Big]"),
+    ("31", "The score is computed in a simulator, calibrated on hardware.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J^{\,\mathrm{sim}}_T(m,\pi;d\mid c,p,s)", "computed in simulation") + r"\Big]"),
+    ("32", "The controller is HOM, held fixed: only a grasp and a few parameters remain.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[" + C(r"\max_{g,\,\phi}", "grasp, HOM parameters") + r"\ J^{\,\mathrm{sim}}_T(m,{" + N
+     + r"g,\phi};d\mid c,p,s)\Big]"),
 ]
 
 
@@ -107,54 +117,86 @@ def final(active=None):
     """The final form; active in (None, 'outer', 'inner', 'sim'): None colours all three braces."""
     col = {k: (k if active in (None, k) else "grey") for k in ("outer", "inner", "sim")}
     return (r"m^\star={\color{" + col["outer"] + r"}\underbrace{\arg\max_{m\in\mathbb{R}^{6}}}_{\clab{morphology "
-            r"optimization}}}\qquad \mathbb{E}_{(T,d)\sim\mathcal{D}}\Big[\;{\color{" + col["inner"]
-            + r"}\underbrace{\max_{g,\ \phi}}_{\clab{multi-hand control}}}\ {\color{" + col["sim"]
+            r"optimization}}}\qquad\mathbb{E}_{T,d}\Big[\;{\color{" + col["inner"]
+            + r"}\underbrace{\max_{g,\,\phi}}_{\clab{multi-hand control}}}\ \ {\color{" + col["sim"]
             + r"}\underbrace{J^{\,\mathrm{sim}}_T(m,g,\phi;d\mid c,p,s)}_{\clab{sim-to-real}}}\Big]")
 
 
+OUTER = [  # (column label, line); the series shows lines 1..k, line k in colour, the rest held as phantoms
+    ("fitness", r"F(m)=\frac{1}{3}\sum_{s=1}^{3}\ \max_{g}\ J(m,g;\,s)", "A hand's fitness: its best grasp's score, averaged over three seeds."),
+    ("population", r"P_t=\{m_1,\dots,m_N\}", "A generation is a population of N hands."),
+    ("keep", r"E_t=\operatorname{top}_{N/2}(P_t)", "Keep the best half."),
+    ("parents", r"A_t=\operatorname{top}_{N/8}(P_t)", "The best eighth are the parents."),
+    ("mutate", r"m'=\operatorname{round}_{5\,\mathrm{mm}}\big(a+\delta\,\epsilon\big),\ \ a\in A_t,\ \ \epsilon\sim\mathcal{U}\big[-\tfrac12,\tfrac12\big]^2,\ \ \delta=30\,\mathrm{mm}",
+     "A child is a parent moved by up to 15 mm per coordinate, on the 5 mm lattice."),
+    ("next", r"P_{t+1}=E_t\cup\{m'_1,\dots,m'_{N/2}\}", "The kept half and the children form the next generation."),
+]
+
+INNER = [  # (what, LaTeX)
+    ("For one hand, the inner loop maximizes over the controller's free choices.",
+     r"J^\star(m)=\max_{g,\,\phi}\ J(m,g,\phi)"),
+    ("Two choices: a grasp, then HOM's parameters.",
+     r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\ \ {\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
+    ("The foundational pose: the grasp farthest from every constraint.",
+     r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\text{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
+    ("Sixteen candidate grasps per hand.",
+     r"\mathcal{G}(m)=\{g_0,\,g_1,\,\dots,\,g_{15}\}"),
+    ("HOM: the joint speeds that best produce each fingertip's contact motion.",
+     r"u=\arg\min_{u}\ \sum_k w_k\Big(v_{\mathrm{ref},k}-\big[{\color{inner}\underbrace{A(m,g)}_{\clab{the hand}}}\,u+b\big]_k\Big)^2+w_{\mathrm{d}}\lVert u\rVert^2"),
+    ("Press with force F through the servo's spring.",
+     r"q_{\mathrm{cmd}}=q_{\mathrm{ref}}+\frac{1}{k_p}\,J^{\top}F\,n"),
+    ("What tuning changes: the forces and the contact-mode weights.",
+     r"\phi=(F,\,w)"),
+    ("The cross-entropy method: sample, keep the elite, refit.",
+     r"\phi^{(k)}\sim\mathcal{N}(\mu,\Sigma),\qquad(\mu,\Sigma)\leftarrow\operatorname{fit}\big(\text{elite}\big)"),
+]
+
+SIM = [
+    ("Simulation stands in for the hardware.", r"J^{\,\mathrm{real}}\ \approx\ J^{\,\mathrm{sim}}(\,\cdot\mid c,\,p,\,s)"),
+    ("Rollouts per EA generation: one GPU batch.",
+     r"\underbrace{32}_{\lab{new hands}}\times\underbrace{16}_{\lab{grasps}}\times\underbrace{3}_{\lab{seeds}}=1536"),
+    ("Sensing depends on the hand.", r"J^{\,\mathrm{sim}}(\,\cdot\mid c,\,p,\,{\color{sim}s(m)})"),
+]
+
+METRIC = [
+    ("Several metrics, weighted into one.", r"J=\sum_k\lambda_k\,J^{(k)}"),
+    ("Ours: the share of the commanded rotation followed, on three pads; 0 if dropped.",
+     r"J=\underbrace{\mathbf{1}[\mathrm{held}]}_{\lab{0 if dropped}}\ \underbrace{\max\!\Big(0,\ 1-\frac{e_{\mathrm{rms}}}{\theta_{\mathrm{rms}}}\Big)}"
+     r"_{\lab{rotation followed}}\ \underbrace{c_3}_{\lab{three pads}}"),
+]
+
+
+def outer_line(k):
+    rows = []
+    for i, (lab, tex, _w) in enumerate(OUTER, 1):
+        line = r"\text{\sffamily " + lab + r"} &\quad " + tex
+        if i > k:
+            rows.append(r"\phantom{\text{\sffamily " + lab + r"}} &\quad \phantom{" + tex + "}")
+        elif i == k:
+            rows.append(r"\textcolor{outer}{\text{\sffamily " + lab + r"}} &\quad {\color{outer}" + tex + "}")
+        else:
+            rows.append(line)
+    return r"\begin{aligned}" + r"\\[3pt]".join(rows) + r"\end{aligned}"
+
+
 def formulas():
-    paths = [eq_img(f"20261110-eq_step{k}", t, n) for k, (t, n) in enumerate(STEPS, 1)]
-    paths.append(eq_img("20261110-eq_step8", final(),
-                        r"the controller is HOM with a grasp $g$ and parameters $\phi$; each brace is one section"))
-    for a in ("outer", "inner", "sim"):
-        paths.append(eq_img(f"20261110-eq_final_{a}", final(a), {
-            "outer": r"zoom 1: choose the hand", "inner": r"zoom 2: run the hand",
-            "sim": r"zoom 3: score the hand"}[a]))
-    same_canvas(paths)
-
-
-def level_eqs():
-    big = r"\fontsize{19}{24}\selectfont"
-    eqs = {
-        "20261110-eq_outer": (r"$\displaystyle\begin{aligned}"
-                              r"&\textcolor{outer}{\lab{fitness}} && F(m)=\frac{1}{3}\sum_{s=1}^{3}\ \max_{g}\ J^{\,\mathrm{sim}}(m,g,\phi_0;\,s)\\[4pt]"
-                              r"&\textcolor{outer}{\lab{population}} && P_t=\{m_1,\dots,m_N\}\\[2pt]"
-                              r"&\textcolor{outer}{\lab{keep}} && E_t=\operatorname{top}_{N/2}(P_t;\,F)\\[2pt]"
-                              r"&\textcolor{outer}{\lab{parents}} && A_t=\operatorname{top}_{N/8}(P_t;\,F)\\[2pt]"
-                              r"&\textcolor{outer}{\lab{mutate}} && m'=\Pi_{\Lambda}\big(a+\delta\,\epsilon\big),\quad a\in A_t,\ \ "
-                              r"\epsilon\sim\mathcal{U}\big[-\tfrac12,\tfrac12\big]^2,\ \ \delta=30\,\mathrm{mm}\\[2pt]"
-                              r"&\textcolor{outer}{\lab{next}} && P_{t+1}=E_t\cup\{m'_1,\dots,m'_{N/2}\}"
-                              r"\end{aligned}$"),
-        "20261110-eq_inner_split": (r"$\displaystyle J^\star(m)=\textcolor{inner}{\underbrace{\max_{g\in\mathcal{G}(m)}}"
-                                    r"_{\lab{grasp synthesis}}}\ \ \textcolor{inner}{\underbrace{\max_{\phi}}_{\lab{HOM tuning}}}"
-                                    r"\ \ J^{\,\mathrm{sim}}\big(m,\ g,\ \phi\big)$"),
-        "20261110-eq_inner_grasp": (r"$\displaystyle g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\text{s.t.}\quad "
-                                    r"\underbrace{c_j(v;\,m)\ge\sigma}_{\lab{every constraint has slack $\ge\sigma$}}\ \ \forall j"
-                                    r"\qquad\qquad \mathcal{G}(m)=\{g_0,\dots,g_{15}\}$"),
-        "20261110-eq_inner_hom": (r"$\displaystyle u_i=\arg\min_{u}\ \underbrace{\sum_k w_k\big(v_{\mathrm{ref},k}-"
-                                  r"[\,\textcolor{inner}{A_i(m,g)}\,u+b_i]_k\big)^2}_{\lab{make the contact motion happen}}"
-                                  r"\ +\ \underbrace{w_{\mathrm{d}}\lVert u\rVert^2}_{\lab{small joint speeds}}$"),
-        "20261110-eq_inner_servo": (r"$\displaystyle q_{\mathrm{cmd}}=\underbrace{q_{\mathrm{ref}}}_{\lab{integrated $u$}}"
-                                    r"+\underbrace{\frac{1}{k_p}\,J_i^{\top}F_i\,n_i}_{\lab{press with force $F_i$}}$"),
-        "20261110-eq_inner_tune": (r"$\displaystyle \phi=(\textcolor{inner}{F},\textcolor{inner}{w}),\qquad "
-                                   r"\phi^{(k)}\sim\mathcal{N}(\mu,\Sigma),\qquad (\mu,\Sigma)\leftarrow"
-                                   r"\operatorname{fit}\big(\operatorname{elite}\{\phi^{(k)}\}\big)$"),
-        "20261110-eq_sim_budget": (r"$\displaystyle \underbrace{32}_{\lab{new hands}}\times\underbrace{16}_{\lab{grasps}}"
-                                   r"\times\underbrace{3}_{\lab{seeds}}=1536\ \ \lab{rollouts per generation}$"),
-        "20261110-eq_sim_sensing": (r"$\displaystyle J^{\,\mathrm{sim}}\big(m,g,\phi\mid c,\ p,\ \textcolor{sim}{s(m)}\big)$"),
-    }
-    for name, tex in eqs.items():
-        compile_tex(name, big + tex, border="16pt")
+    MANIFEST.clear()
+    for old in OUT.glob("20261110-eq_*.png"):
+        old.unlink()
+    cd = [eq_img(f"20261110-eq_cd{k:02d}", tex, "codesign", what, sl) for k, (sl, what, tex) in enumerate(CD, 1)]
+    cd.append(eq_img(f"20261110-eq_cd{len(CD) + 1:02d}", final(), "codesign", "Each brace is one section of the talk.", "32"))
+    for a, what in (("outer", "Zoom 1: choose the hand."), ("inner", "Zoom 2: run the hand."), ("sim", "Zoom 3: score the hand.")):
+        cd.append(eq_img(f"20261110-eq_final_{a}", final(a), "zoom", what))
+    same_canvas(cd)
+    same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "30", strut=False)
+                 for k, (what, tex) in enumerate(METRIC, 1)])
+    same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
+                 for k in range(1, len(OUTER) + 1)])
+    same_canvas([eq_img(f"20261110-eq_inner{k}", tex, "inner", what, "34-35", strut=False)
+                 for k, (what, tex) in enumerate(INNER, 1)])
+    same_canvas([eq_img(f"20261110-eq_sim{k}", tex, "sim", what, "36-38", strut=False)
+                 for k, (what, tex) in enumerate(SIM, 1)])
+    (OUT / "20261110-formulas.json").write_text(__import__("json").dumps(MANIFEST, indent=1))
 
 
 # ------------------------------------------------------------------------------------------------ the nested problem
@@ -299,7 +341,6 @@ def evaluator():
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     formulas()
-    level_eqs()
     for a in ("all", "outer", "inner", "sim"):
         nested(a)
     contact_modes()

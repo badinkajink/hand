@@ -1,0 +1,194 @@
+[
+ {
+  "name": "20261110-eq_cd01",
+  "series": "codesign",
+  "slide": "21",
+  "what": "The best hand for a task maximizes the task's score."
+ },
+ {
+  "name": "20261110-eq_cd02",
+  "series": "codesign",
+  "slide": "23",
+  "what": "A hand is scored through its best controller: a bi-level problem."
+ },
+ {
+  "name": "20261110-eq_cd03",
+  "series": "codesign",
+  "slide": "24-27",
+  "what": "One hand for a range of object sizes."
+ },
+ {
+  "name": "20261110-eq_cd04",
+  "series": "codesign",
+  "slide": "28",
+  "what": "The hand: six mount coordinates."
+ },
+ {
+  "name": "20261110-eq_cd05",
+  "series": "codesign",
+  "slide": "28",
+  "what": "The controller: nine joint commands every 10 ms."
+ },
+ {
+  "name": "20261110-eq_cd06",
+  "series": "codesign",
+  "slide": "29",
+  "what": "Tasks vary too: the three toy tasks sample a distribution."
+ },
+ {
+  "name": "20261110-eq_cd07",
+  "series": "codesign",
+  "slide": "30",
+  "what": "The score itself is a choice."
+ },
+ {
+  "name": "20261110-eq_cd08",
+  "series": "codesign",
+  "slide": "31",
+  "what": "The score is computed in a simulator, calibrated on hardware."
+ },
+ {
+  "name": "20261110-eq_cd09",
+  "series": "codesign",
+  "slide": "32",
+  "what": "The controller is HOM, held fixed: only a grasp and a few parameters remain."
+ },
+ {
+  "name": "20261110-eq_cd10",
+  "series": "codesign",
+  "slide": "32",
+  "what": "Each brace is one section of the talk."
+ },
+ {
+  "name": "20261110-eq_final_outer",
+  "series": "zoom",
+  "slide": "",
+  "what": "Zoom 1: choose the hand."
+ },
+ {
+  "name": "20261110-eq_final_inner",
+  "series": "zoom",
+  "slide": "",
+  "what": "Zoom 2: run the hand."
+ },
+ {
+  "name": "20261110-eq_final_sim",
+  "series": "zoom",
+  "slide": "",
+  "what": "Zoom 3: score the hand."
+ },
+ {
+  "name": "20261110-eq_metric1",
+  "series": "metric",
+  "slide": "30",
+  "what": "Several metrics, weighted into one."
+ },
+ {
+  "name": "20261110-eq_metric2",
+  "series": "metric",
+  "slide": "30",
+  "what": "Ours: the share of the commanded rotation followed, on three pads; 0 if dropped."
+ },
+ {
+  "name": "20261110-eq_outer1",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "A hand's fitness: its best grasp's score, averaged over three seeds."
+ },
+ {
+  "name": "20261110-eq_outer2",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "A generation is a population of N hands."
+ },
+ {
+  "name": "20261110-eq_outer3",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "Keep the best half."
+ },
+ {
+  "name": "20261110-eq_outer4",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "The best eighth are the parents."
+ },
+ {
+  "name": "20261110-eq_outer5",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "A child is a parent moved by up to 15 mm per coordinate, on the 5 mm lattice."
+ },
+ {
+  "name": "20261110-eq_outer6",
+  "series": "outer",
+  "slide": "32-33",
+  "what": "The kept half and the children form the next generation."
+ },
+ {
+  "name": "20261110-eq_inner1",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "For one hand, the inner loop maximizes over the controller's free choices."
+ },
+ {
+  "name": "20261110-eq_inner2",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "Two choices: a grasp, then HOM's parameters."
+ },
+ {
+  "name": "20261110-eq_inner3",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "The foundational pose: the grasp farthest from every constraint."
+ },
+ {
+  "name": "20261110-eq_inner4",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "Sixteen candidate grasps per hand."
+ },
+ {
+  "name": "20261110-eq_inner5",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "HOM: the joint speeds that best produce each fingertip's contact motion."
+ },
+ {
+  "name": "20261110-eq_inner6",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "Press with force F through the servo's spring."
+ },
+ {
+  "name": "20261110-eq_inner7",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "What tuning changes: the forces and the contact-mode weights."
+ },
+ {
+  "name": "20261110-eq_inner8",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "The cross-entropy method: sample, keep the elite, refit."
+ },
+ {
+  "name": "20261110-eq_sim1",
+  "series": "sim",
+  "slide": "36-38",
+  "what": "Simulation stands in for the hardware."
+ },
+ {
+  "name": "20261110-eq_sim2",
+  "series": "sim",
+  "slide": "36-38",
+  "what": "Rollouts per EA generation: one GPU batch."
+ },
+ {
+  "name": "20261110-eq_sim3",
+  "series": "sim",
+  "slide": "36-38",
+  "what": "Sensing depends on the hand."
+ }
+]
