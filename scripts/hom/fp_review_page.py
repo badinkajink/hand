@@ -2461,11 +2461,18 @@ the grasp, and for the twist that decides the outcome.</p>""",
     TV, CF = N["valrep"]["twist_d40"], N["cross_fresh"]
     pe = N["grad"]["pk"]["peak"]["radii"]["4"]
     GS = N["grid_sizes"]
-    sl = []
+    sl, slc = [], []
     for task in ("twist", "pinpush", "press"):
         szs = sorted(sz for t_, sz in GS if t_ == task)
         if len(szs) >= 2:
             sl.append((GS[(task, szs[-1])]["peak"][0] - GS[(task, szs[0])]["peak"][0]) / (szs[-1] - szs[0]))
+    oj = ROWS / "grid2d_v4b" / "overlap" / "summary.json"     # the same peaks with clear grasps only (Section 9)
+    OV = json.loads(oj.read_text()) if oj.exists() else {}
+    for task in ("twist", "pinpush", "press"):
+        pk = {float(k.split("_d")[1]): v["peak_clear"][0] for k, v in OV.items()
+              if k.startswith(task + "_d") and isinstance(v, dict) and v.get("peak_clear")}
+        if len(pk) >= 2:
+            slc.append((pk[max(pk)] - pk[min(pk)]) / (max(pk) - min(pk)))
     rj = ROWS / "grid2dff_v4b" / "rerun.json"
     RN = json.loads(rj.read_text())["new"] if rj.exists() else {}
     RO = json.loads(rj.read_text())["old"] if rj.exists() else {}
@@ -2473,7 +2480,7 @@ the grasp, and for the twist that decides the outcome.</p>""",
 from. On the SR2 hand with the calibrated v4b fingertip, a GPU version of the HOM controller scored 8,192 layouts on four
 tasks and four object sizes. With the best of 16 grasps per layout and task, the median twist score of a 625-layout grid
 rose from <<a0>> to <<a1>> on fresh seeds. On <<sb>> % of the grid's layouts all four tasks then scored above 0.5,
-against <<sf>> % with the foundational pose.<<ov>> The best layouts move with the object.<<sh>> They sit on peaks a few millimetres wide: moving the
+against <<sf>> % with the foundational pose.<<ov>> The best layouts move with the object.<<sh>> The best layouts sit on peaks a few millimetres wide: moving the
 mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 a0=f"{TV['fp_fresh_median']:.2f}", a1=f"{TV['best_fresh_median']:.2f}",
                 sb=f"{100 * CF['share_all_above_0.5_best']:.0f}", sf=f"{100 * CF['share_all_above_0.5_fp']:.0f}",
@@ -2488,8 +2495,10 @@ mounts 4 mm cost the best twist layouts a median <<c4>>.<<lr>>""",
                 lr=(" Searching 64 layouts within 2 mm of each of the 20 best found a better one on fresh seeds for "
                     f"{round(N['grad']['local']['best_beats_start_check'] * N['grad']['local']['starts'])}."
                     if N["grad"].get("local") else ""),
-                sh=(f" In three tasks the best distance from the thumb's mount to the other two grows by {min(sl):.1f} to "
-                    f"{max(sl):.1f} mm per millimetre of diameter." if len(sl) == 3 else ""))
+                sh=(f" In three tasks the best distance from the thumb's mount to the other two grows by {min(sl):.2f} to "
+                    f"{max(sl):.2f} mm per millimetre of diameter." if len(sl) == 3 else "")
+                + (f" With grasps whose fingers stay 2 mm apart it grows by {min(slc):.2f} to {max(slc):.2f}."
+                   if len(sl) == 3 and len(slc) == 3 else ""))
     summary = fill("""HOM-controller scores of 8,192 SR2 layouts on four tasks and object sizes, v4b fingertip: synthesizing
 the grasp per layout and task raised the grid's median twist score from <<a0>> to <<a1>> on fresh seeds and made <<sb>> %
 of layouts score above 0.5 on all four tasks (<<sf>> % with the foundational pose); the best layouts move with object
