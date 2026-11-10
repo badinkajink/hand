@@ -812,6 +812,28 @@ def film_line(task, s, info):
     return f"w {np.degrees(s['w']).round(0)} deg/s  {F} N"
 
 
+def track_errors(task, rows, h):
+    """Per task row (deg): the angle between the object's orientation and the commanded one, and the commanded rotation's
+    angle from the task's start. Spheres: both orientations integrated from the world-frame angular velocities, measured
+    and commanded. Cylinders: the axis against the start axis turned by the commanded pinch angle about palm x (the
+    sense of pinch_angle)."""
+    from scipy.spatial.transform import Rotation
+    if task in ("pinpush", "press"):
+        A = np.array([r["axis"] for r in rows], float)
+        A /= np.linalg.norm(A, axis=1, keepdims=True)
+        th = np.radians([r.get("theta_ref_deg", 0.0) for r in rows])
+        a_ref = Rotation.from_rotvec(np.outer(-th, [1.0, 0.0, 0.0])).apply(A[0])
+        return np.degrees(np.arccos(np.clip(np.einsum("ij,ij->i", A, a_ref), -1.0, 1.0))), np.degrees(np.abs(th))
+    W = np.radians(np.array([r["w_dps"] for r in rows], float)) * h
+    Wr = np.radians(np.array([r.get("w_ref_dps", [0.0, 0.0, 0.0]) for r in rows], float)) * h
+    R, Rr = Rotation.identity(), Rotation.identity()
+    e, ref = np.zeros(len(rows)), np.zeros(len(rows))
+    for k in range(len(rows)):
+        e[k], ref[k] = (Rr.inv() * R).magnitude(), Rr.magnitude()
+        R, Rr = Rotation.from_rotvec(W[k]) * R, Rotation.from_rotvec(Wr[k]) * Rr
+    return np.degrees(e), np.degrees(ref)
+
+
 def metrics(task, setup, rows, s0, se):
     """Scores of one rollout (see the module docstring)."""
     out = {}
@@ -850,6 +872,12 @@ def metrics(task, setup, rows, s0, se):
     # fixed 0.01 s, which halved them at 50 Hz; rescale_metrics corrects rows scored then)
     h = round(task_rows[1]["t"] - task_rows[0]["t"], 6) if len(task_rows) > 1 else DT_C
     out["metrics_dt"] = h
+    # tracking (2026-11-09, hom_landscape.track_score): the angle between the object's orientation and the commanded one,
+    # RMS over the task, against the RMS of the commanded rotation; and the share of the task with all three pads loaded
+    e, ref = track_errors(task, task_rows, h)
+    out["track_err_rms_deg"] = round(float(np.sqrt(np.mean(e ** 2))), 2)
+    out["track_ref_rms_deg"] = round(float(np.sqrt(np.mean(ref ** 2))), 2)
+    out["contact_all_frac"] = round(float(np.mean([all(r["F"][f] > 0.05 for f in FINGERS) for r in task_rows])), 3)
     p0 = np.array(task_rows[0]["pos_mm"])
     a0 = np.array(task_rows[0]["axis"])
     if task in ("pinpush", "press"):

@@ -58,6 +58,17 @@ def rollout_score(task, r):
     return 0.0 if m is None else float(np.clip(1.0 - m / STROKE[task], 0.0, 1.0))
 
 
+def track_score(task, r, contact=True):
+    """A rollout's tracking score in [0, 1] (owner, 2026-11-09: simple, monotone over the range, the essence of the
+    motion): 1 - the RMS angle between the object's orientation and the commanded one over the RMS commanded rotation,
+    at least 0, so 1 is the commanded rotation followed and 0 is no better than holding the object still; with contact,
+    times the share of the task with all three pads loaded. 0 when the object dropped (hom_tasks.track_errors)."""
+    if not r.get("held") or r.get("track_err_rms_deg") is None:
+        return 0.0
+    s = max(0.0, 1.0 - r["track_err_rms_deg"] / r["track_ref_rms_deg"])
+    return float(s * r.get("contact_all_frac", 1.0)) if contact else float(s)
+
+
 def layouts():
     """The 8,192 Sobol layouts: six coordinates (mm, n x 6) and standardized coordinates (n x 6), by draw index."""
     rows = FR.load("sobol8k")

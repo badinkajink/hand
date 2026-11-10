@@ -104,10 +104,10 @@ def find(task, kind, d_mm, call, grasp):
     raise KeyError(f"{task} {kind} {d_mm:g} mm: call {call} grasp {grasp} not found")
 
 
-def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=False):
+def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=False, render=True):
     """One CPU rollout filmed: (frames with the label on top, the rollout's result with the fingers' smallest gap at the
     touch pose, gap_mm). In the label, {cpu} becomes the filmed run's score. gpu_filter: the GPU evaluator's collision
-    filter (pads and rigid spheres under 2 mm meet the object only)."""
+    filter (pads and rigid spheres under 2 mm meet the object only). render=False: the rollout alone, no frames."""
     import re
     import mujoco
     import hom_contact_rig as HR
@@ -132,14 +132,15 @@ def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=Fa
     S.set_palm(m_pt, setup["palm"])
     fs, os_ = T.sr2_specs(setup)
     mirror = H.Mirror(m_pt, fs, os_)
-    film = Film(plant, setup)
+    film = Film(plant, setup) if render else None
     over, noise = T.VARIANTS[var]
     try:
         res, _trace, frames = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM,
                                         replace(H.HomParams(dt=T.DT_C), **over), film, noise,
                                         T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
     finally:
-        film.close()
+        if film is not None:
+            film.close()
     label = label.replace("{cpu}", f"{score(task, res):.2f}")
     res = dict(res, gap_mm=min(gaps.values()), gaps_mm=gaps)
     return [HR.annotate(f, label, size=14) for f in frames], res

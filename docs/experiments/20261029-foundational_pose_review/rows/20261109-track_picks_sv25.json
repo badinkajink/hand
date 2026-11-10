@@ -1,0 +1,1765 @@
+{
+ "twist": {
+  "25": {
+   "layout": [
+    80.0,
+    65.0
+   ],
+   "call": 203,
+   "grasp": 5,
+   "why": "proxy",
+   "track_mean": 0.351,
+   "old_mean": 0.2,
+   "seeds": 3,
+   "film_seed": 1,
+   "film": {
+    "task": "twist",
+    "size": 25.0,
+    "call": 203,
+    "grasp": 5,
+    "seed": 1,
+    "layout": [
+     80.0,
+     65.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 11.35,
+    "track_ref_rms_deg": 59.43,
+    "contact_all_frac": 0.438,
+    "ramp_three_pads_max_deg": 18.58,
+    "ramp_end_deg": 85.72,
+    "w_rmse_ratio": 0.785,
+    "theta_rmse_deg": null,
+    "old": 0.206,
+    "track": 0.354,
+    "track_nc": 0.809
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_twist_d25_sv25.mp4",
+   "generalist_track_mean": 0.258,
+   "candidates": [
+    {
+     "layout": [
+      80.0,
+      65.0
+     ],
+     "call": 203,
+     "grasp": 5,
+     "why": "proxy",
+     "track": 0.351,
+     "old": 0.2
+    },
+    {
+     "layout": [
+      95.0,
+      65.0
+     ],
+     "call": 278,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.298,
+     "old": 0.329
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.258,
+     "old": 0.373
+    },
+    {
+     "layout": [
+      65.0,
+      65.0
+     ],
+     "call": 128,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.25,
+     "old": 0.086
+    },
+    {
+     "layout": [
+      80.0,
+      80.0
+     ],
+     "call": 206,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.213,
+     "old": 0.307
+    },
+    {
+     "layout": [
+      70.0,
+      70.0
+     ],
+     "call": 154,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.199,
+     "old": 0.115
+    },
+    {
+     "layout": [
+      70.0,
+      70.0
+     ],
+     "call": 154,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.109,
+     "old": 0.056
+    },
+    {
+     "layout": [
+      65.0,
+      70.0
+     ],
+     "call": 129,
+     "grasp": 10,
+     "why": "proxy",
+     "track": 0.053,
+     "old": 0.019
+    },
+    {
+     "layout": [
+      75.0,
+      130.0
+     ],
+     "call": 191,
+     "grasp": 13,
+     "why": "old pick",
+     "track": 0.043,
+     "old": 0.92
+    },
+    {
+     "layout": [
+      105.0,
+      60.0
+     ],
+     "call": 327,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.001,
+     "old": 0.0
+    }
+   ]
+  },
+  "30": {
+   "layout": [
+    95.0,
+    90.0
+   ],
+   "call": 283,
+   "grasp": 2,
+   "why": "proxy",
+   "track_mean": 0.324,
+   "old_mean": 0.843,
+   "seeds": 3,
+   "film_seed": 1,
+   "film": {
+    "task": "twist",
+    "size": 30.0,
+    "call": 283,
+    "grasp": 2,
+    "seed": 1,
+    "layout": [
+     95.0,
+     90.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 21.88,
+    "track_ref_rms_deg": 59.43,
+    "contact_all_frac": 0.588,
+    "ramp_three_pads_max_deg": 74.57,
+    "ramp_end_deg": 90.07,
+    "w_rmse_ratio": 2.638,
+    "theta_rmse_deg": null,
+    "old": 0.829,
+    "track": 0.372,
+    "track_nc": 0.632
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_twist_d30_sv25.mp4",
+   "generalist_track_mean": 0.213,
+   "candidates": [
+    {
+     "layout": [
+      95.0,
+      90.0
+     ],
+     "call": 283,
+     "grasp": 2,
+     "why": "proxy",
+     "track": 0.324,
+     "old": 0.843
+    },
+    {
+     "layout": [
+      85.0,
+      85.0
+     ],
+     "call": 232,
+     "grasp": 3,
+     "why": "proxy",
+     "track": 0.322,
+     "old": 0.147
+    },
+    {
+     "layout": [
+      65.0,
+      65.0
+     ],
+     "call": 128,
+     "grasp": 14,
+     "why": "proxy",
+     "track": 0.297,
+     "old": 0.482
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.213,
+     "old": 0.469
+    },
+    {
+     "layout": [
+      95.0,
+      85.0
+     ],
+     "call": 282,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.072,
+     "old": 0.029
+    },
+    {
+     "layout": [
+      95.0,
+      110.0
+     ],
+     "call": 287,
+     "grasp": 6,
+     "why": "old pick",
+     "track": 0.046,
+     "old": 1.0
+    },
+    {
+     "layout": [
+      85.0,
+      135.0
+     ],
+     "call": 242,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.01,
+     "old": 0.862
+    },
+    {
+     "layout": [
+      45.0,
+      80.0
+     ],
+     "call": 31,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.003,
+     "old": 0.0
+    },
+    {
+     "layout": [
+      60.0,
+      65.0
+     ],
+     "call": 103,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.0
+    },
+    {
+     "layout": [
+      80.0,
+      120.0
+     ],
+     "call": 214,
+     "grasp": 10,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 1.0
+    }
+   ]
+  },
+  "63": {
+   "layout": [
+    125.0,
+    95.0
+   ],
+   "call": 434,
+   "grasp": 2,
+   "why": "proxy",
+   "track_mean": 0.243,
+   "old_mean": 0.564,
+   "seeds": 3,
+   "film_seed": 2,
+   "film": {
+    "task": "twist",
+    "size": 63.0,
+    "call": 434,
+    "grasp": 2,
+    "seed": 2,
+    "layout": [
+     125.0,
+     95.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 19.24,
+    "track_ref_rms_deg": 59.43,
+    "contact_all_frac": 0.297,
+    "ramp_three_pads_max_deg": 51.5,
+    "ramp_end_deg": 85.47,
+    "w_rmse_ratio": 1.354,
+    "theta_rmse_deg": null,
+    "old": 0.572,
+    "track": 0.201,
+    "track_nc": 0.676
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_twist_d63_sv25.mp4",
+   "generalist_track_mean": 0.144,
+   "candidates": [
+    {
+     "layout": [
+      125.0,
+      95.0
+     ],
+     "call": 434,
+     "grasp": 2,
+     "why": "proxy",
+     "track": 0.243,
+     "old": 0.564
+    },
+    {
+     "layout": [
+      120.0,
+      145.0
+     ],
+     "call": 419,
+     "grasp": 5,
+     "why": "proxy",
+     "track": 0.233,
+     "old": 0.262
+    },
+    {
+     "layout": [
+      145.0,
+      105.0
+     ],
+     "call": 536,
+     "grasp": 6,
+     "why": "old pick",
+     "track": 0.194,
+     "old": 0.92
+    },
+    {
+     "layout": [
+      115.0,
+      95.0
+     ],
+     "call": 384,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.193,
+     "old": 0.604
+    },
+    {
+     "layout": [
+      120.0,
+      115.0
+     ],
+     "call": 413,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.177,
+     "old": 0.31
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.144,
+     "old": 0.08
+    },
+    {
+     "layout": [
+      100.0,
+      140.0
+     ],
+     "call": 318,
+     "grasp": 3,
+     "why": "proxy",
+     "track": 0.134,
+     "old": 0.003
+    },
+    {
+     "layout": [
+      100.0,
+      125.0
+     ],
+     "call": 315,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.072,
+     "old": 0.009
+    },
+    {
+     "layout": [
+      110.0,
+      95.0
+     ],
+     "call": 359,
+     "grasp": 9,
+     "why": "proxy",
+     "track": 0.032,
+     "old": 0.378
+    },
+    {
+     "layout": [
+      150.0,
+      95.0
+     ],
+     "call": 559,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.0
+    }
+   ]
+  },
+  "80": {
+   "layout": [
+    140.0,
+    95.0
+   ],
+   "call": 509,
+   "grasp": 4,
+   "why": "proxy",
+   "track_mean": 0.328,
+   "old_mean": 0.455,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "twist",
+    "size": 80.0,
+    "call": 509,
+    "grasp": 4,
+    "seed": 0,
+    "layout": [
+     140.0,
+     95.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 19.08,
+    "track_ref_rms_deg": 59.43,
+    "contact_all_frac": 0.467,
+    "ramp_three_pads_max_deg": 38.42,
+    "ramp_end_deg": 86.04,
+    "w_rmse_ratio": 1.343,
+    "theta_rmse_deg": null,
+    "old": 0.427,
+    "track": 0.317,
+    "track_nc": 0.679
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_twist_d80_sv25.mp4",
+   "generalist_track_mean": 0.077,
+   "candidates": [
+    {
+     "layout": [
+      140.0,
+      95.0
+     ],
+     "call": 509,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.328,
+     "old": 0.455
+    },
+    {
+     "layout": [
+      140.0,
+      75.0
+     ],
+     "call": 505,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.313,
+     "old": 0.57
+    },
+    {
+     "layout": [
+      140.0,
+      115.0
+     ],
+     "call": 513,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.2,
+     "old": 0.178
+    },
+    {
+     "layout": [
+      140.0,
+      95.0
+     ],
+     "call": 509,
+     "grasp": 2,
+     "why": "old pick",
+     "track": 0.161,
+     "old": 0.873
+    },
+    {
+     "layout": [
+      135.0,
+      95.0
+     ],
+     "call": 484,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.119,
+     "old": 0.641
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.077,
+     "old": 0.016
+    },
+    {
+     "layout": [
+      135.0,
+      95.0
+     ],
+     "call": 484,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.042,
+     "old": 0.063
+    },
+    {
+     "layout": [
+      140.0,
+      95.0
+     ],
+     "call": 509,
+     "grasp": 3,
+     "why": "proxy",
+     "track": 0.02,
+     "old": 0.582
+    },
+    {
+     "layout": [
+      145.0,
+      90.0
+     ],
+     "call": 533,
+     "grasp": 6,
+     "why": "proxy",
+     "track": 0.008,
+     "old": 0.42
+    },
+    {
+     "layout": [
+      155.0,
+      95.0
+     ],
+     "call": 584,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.0
+    }
+   ]
+  }
+ },
+ "roll": {
+  "25": {
+   "layout": [
+    70.0,
+    150.0
+   ],
+   "call": 170,
+   "grasp": 14,
+   "why": "proxy",
+   "track_mean": 0.028,
+   "old_mean": 0.448,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "roll",
+    "size": 25.0,
+    "call": 170,
+    "grasp": 14,
+    "seed": 0,
+    "layout": [
+     70.0,
+     150.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 2,
+    "track_err_rms_deg": 29.14,
+    "track_ref_rms_deg": 9.6,
+    "contact_all_frac": 0.462,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": 1.197,
+    "theta_rmse_deg": null,
+    "old": 0.455,
+    "track": 0.0,
+    "track_nc": 0.0
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d25_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      70.0,
+      150.0
+     ],
+     "call": 170,
+     "grasp": 14,
+     "why": "proxy",
+     "track": 0.028,
+     "old": 0.448
+    },
+    {
+     "layout": [
+      75.0,
+      165.0
+     ],
+     "call": 198,
+     "grasp": 5,
+     "why": "old pick",
+     "track": 0.019,
+     "old": 0.544
+    },
+    {
+     "layout": [
+      80.0,
+      55.0
+     ],
+     "call": 201,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.004,
+     "old": 0.436
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.294
+    },
+    {
+     "layout": [
+      85.0,
+      155.0
+     ],
+     "call": 246,
+     "grasp": 14,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.357
+    },
+    {
+     "layout": [
+      115.0,
+      100.0
+     ],
+     "call": 385,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.036
+    },
+    {
+     "layout": [
+      110.0,
+      115.0
+     ],
+     "call": 363,
+     "grasp": 9,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.161
+    },
+    {
+     "layout": [
+      120.0,
+      105.0
+     ],
+     "call": 411,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.222
+    },
+    {
+     "layout": [
+      75.0,
+      150.0
+     ],
+     "call": 195,
+     "grasp": 6,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.249
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.488
+    }
+   ]
+  },
+  "30": {
+   "layout": [
+    75.0,
+    150.0
+   ],
+   "call": 195,
+   "grasp": 2,
+   "why": "proxy",
+   "track_mean": 0.096,
+   "old_mean": 0.54,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "roll",
+    "size": 30.0,
+    "call": 195,
+    "grasp": 2,
+    "seed": 0,
+    "layout": [
+     75.0,
+     150.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 2,
+    "track_err_rms_deg": 3.4,
+    "track_ref_rms_deg": 9.6,
+    "contact_all_frac": 0.083,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": 0.577,
+    "theta_rmse_deg": null,
+    "old": 0.634,
+    "track": 0.054,
+    "track_nc": 0.646
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d30_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      75.0,
+      150.0
+     ],
+     "call": 195,
+     "grasp": 2,
+     "why": "proxy",
+     "track": 0.096,
+     "old": 0.54
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.054,
+     "old": 0.527
+    },
+    {
+     "layout": [
+      75.0,
+      165.0
+     ],
+     "call": 198,
+     "grasp": 2,
+     "why": "old pick",
+     "track": 0.008,
+     "old": 0.542
+    },
+    {
+     "layout": [
+      95.0,
+      75.0
+     ],
+     "call": 280,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.413
+    },
+    {
+     "layout": [
+      130.0,
+      105.0
+     ],
+     "call": 461,
+     "grasp": 7,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.243
+    },
+    {
+     "layout": [
+      105.0,
+      65.0
+     ],
+     "call": 328,
+     "grasp": 2,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.347
+    },
+    {
+     "layout": [
+      70.0,
+      140.0
+     ],
+     "call": 168,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.396
+    },
+    {
+     "layout": [
+      70.0,
+      125.0
+     ],
+     "call": 165,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.495
+    },
+    {
+     "layout": [
+      75.0,
+      160.0
+     ],
+     "call": 197,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.408
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.386
+    }
+   ]
+  },
+  "63": {
+   "layout": [
+    110.0,
+    60.0
+   ],
+   "call": 352,
+   "grasp": 2,
+   "why": "old pick",
+   "track_mean": 0.194,
+   "old_mean": 0.575,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "roll",
+    "size": 63.0,
+    "call": 352,
+    "grasp": 2,
+    "seed": 0,
+    "layout": [
+     110.0,
+     60.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 7.03,
+    "track_ref_rms_deg": 9.6,
+    "contact_all_frac": 0.717,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": 0.734,
+    "theta_rmse_deg": null,
+    "old": 0.577,
+    "track": 0.192,
+    "track_nc": 0.268
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d63_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      110.0,
+      60.0
+     ],
+     "call": 352,
+     "grasp": 2,
+     "why": "old pick",
+     "track": 0.194,
+     "old": 0.575
+    },
+    {
+     "layout": [
+      145.0,
+      80.0
+     ],
+     "call": 531,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.007,
+     "old": 0.324
+    },
+    {
+     "layout": [
+      160.0,
+      100.0
+     ],
+     "call": 610,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.449
+    },
+    {
+     "layout": [
+      155.0,
+      100.0
+     ],
+     "call": 585,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.332
+    },
+    {
+     "layout": [
+      140.0,
+      100.0
+     ],
+     "call": 510,
+     "grasp": 3,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.357
+    },
+    {
+     "layout": [
+      150.0,
+      125.0
+     ],
+     "call": 565,
+     "grasp": 7,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.356
+    },
+    {
+     "layout": [
+      150.0,
+      125.0
+     ],
+     "call": 565,
+     "grasp": 6,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.368
+    },
+    {
+     "layout": [
+      155.0,
+      85.0
+     ],
+     "call": 582,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.386
+    },
+    {
+     "layout": [
+      160.0,
+      110.0
+     ],
+     "call": 612,
+     "grasp": 9,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.346
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.496
+    }
+   ]
+  },
+  "80": {
+   "layout": [
+    125.0,
+    165.0
+   ],
+   "call": 448,
+   "grasp": 15,
+   "why": "old pick",
+   "track_mean": 0.041,
+   "old_mean": 0.559,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "roll",
+    "size": 80.0,
+    "call": 448,
+    "grasp": 15,
+    "seed": 0,
+    "layout": [
+     125.0,
+     165.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 2,
+    "track_err_rms_deg": 9.3,
+    "track_ref_rms_deg": 9.6,
+    "contact_all_frac": 0.134,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": 0.765,
+    "theta_rmse_deg": null,
+    "old": 0.567,
+    "track": 0.004,
+    "track_nc": 0.031
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d80_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      125.0,
+      165.0
+     ],
+     "call": 448,
+     "grasp": 15,
+     "why": "old pick",
+     "track": 0.041,
+     "old": 0.559
+    },
+    {
+     "layout": [
+      145.0,
+      80.0
+     ],
+     "call": 531,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.03,
+     "old": 0.398
+    },
+    {
+     "layout": [
+      135.0,
+      155.0
+     ],
+     "call": 496,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.002,
+     "old": 0.516
+    },
+    {
+     "layout": [
+      155.0,
+      135.0
+     ],
+     "call": 592,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.326
+    },
+    {
+     "layout": [
+      160.0,
+      95.0
+     ],
+     "call": 609,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.418
+    },
+    {
+     "layout": [
+      145.0,
+      80.0
+     ],
+     "call": 531,
+     "grasp": 10,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.418
+    },
+    {
+     "layout": [
+      160.0,
+      115.0
+     ],
+     "call": 613,
+     "grasp": 5,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.369
+    },
+    {
+     "layout": [
+      150.0,
+      135.0
+     ],
+     "call": 567,
+     "grasp": 6,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.464
+    },
+    {
+     "layout": [
+      155.0,
+      145.0
+     ],
+     "call": 594,
+     "grasp": 3,
+     "why": "proxy",
+     "track": 0.0,
+     "old": 0.316
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.481
+    }
+   ]
+  }
+ },
+ "press": {
+  "10": {
+   "layout": [
+    60.0,
+    65.0
+   ],
+   "call": 103,
+   "grasp": 0,
+   "why": "proxy",
+   "track_mean": 0.614,
+   "old_mean": 0.743,
+   "seeds": 3,
+   "film_seed": 2,
+   "film": {
+    "task": "press",
+    "size": 10.0,
+    "call": 103,
+    "grasp": 0,
+    "seed": 2,
+    "layout": [
+     60.0,
+     65.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 2,
+    "track_err_rms_deg": 5.25,
+    "track_ref_rms_deg": 13.8,
+    "contact_all_frac": 0.989,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": null,
+    "theta_rmse_deg": 5.0,
+    "old": 0.75,
+    "track": 0.613,
+    "track_nc": 0.62
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_press_d10_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      60.0,
+      65.0
+     ],
+     "call": 103,
+     "grasp": 0,
+     "why": "proxy",
+     "track": 0.614,
+     "old": 0.743
+    },
+    {
+     "layout": [
+      65.0,
+      70.0
+     ],
+     "call": 129,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.612,
+     "old": 0.746
+    },
+    {
+     "layout": [
+      65.0,
+      55.0
+     ],
+     "call": 126,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.609,
+     "old": 0.746
+    },
+    {
+     "layout": [
+      60.0,
+      135.0
+     ],
+     "call": 117,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.517,
+     "old": 0.748
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.497,
+     "old": 0.77
+    },
+    {
+     "layout": [
+      65.0,
+      125.0
+     ],
+     "call": 140,
+     "grasp": 14,
+     "why": "proxy",
+     "track": 0.444,
+     "old": 0.764
+    },
+    {
+     "layout": [
+      65.0,
+      105.0
+     ],
+     "call": 136,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.401,
+     "old": 0.806
+    },
+    {
+     "layout": [
+      55.0,
+      155.0
+     ],
+     "call": 96,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.378,
+     "old": 0.759
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.0
+    }
+   ]
+  },
+  "13": {
+   "layout": [
+    65.0,
+    60.0
+   ],
+   "call": 127,
+   "grasp": 13,
+   "why": "proxy",
+   "track_mean": 0.634,
+   "old_mean": 0.756,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "press",
+    "size": 13.0,
+    "call": 127,
+    "grasp": 13,
+    "seed": 0,
+    "layout": [
+     65.0,
+     60.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 4.86,
+    "track_ref_rms_deg": 13.8,
+    "contact_all_frac": 0.994,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": null,
+    "theta_rmse_deg": 4.76,
+    "old": 0.762,
+    "track": 0.644,
+    "track_nc": 0.648
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_press_d13_sv25.mp4",
+   "generalist_track_mean": 0.0,
+   "candidates": [
+    {
+     "layout": [
+      65.0,
+      60.0
+     ],
+     "call": 127,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.634,
+     "old": 0.756
+    },
+    {
+     "layout": [
+      65.0,
+      75.0
+     ],
+     "call": 130,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.625,
+     "old": 0.75
+    },
+    {
+     "layout": [
+      65.0,
+      60.0
+     ],
+     "call": 127,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.62,
+     "old": 0.736
+    },
+    {
+     "layout": [
+      65.0,
+      85.0
+     ],
+     "call": 132,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.618,
+     "old": 0.742
+    },
+    {
+     "layout": [
+      65.0,
+      75.0
+     ],
+     "call": 130,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.607,
+     "old": 0.739
+    },
+    {
+     "layout": [
+      65.0,
+      60.0
+     ],
+     "call": 127,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.605,
+     "old": 0.735
+    },
+    {
+     "layout": [
+      60.0,
+      65.0
+     ],
+     "call": 103,
+     "grasp": 12,
+     "why": "proxy",
+     "track": 0.585,
+     "old": 0.736
+    },
+    {
+     "layout": [
+      75.0,
+      85.0
+     ],
+     "call": 182,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.441,
+     "old": 0.745
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.0,
+     "old": 0.0
+    }
+   ]
+  },
+  "40": {
+   "layout": [
+    95.0,
+    105.0
+   ],
+   "call": 286,
+   "grasp": 5,
+   "why": "proxy",
+   "track_mean": 0.707,
+   "old_mean": 0.81,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "press",
+    "size": 40.0,
+    "call": 286,
+    "grasp": 5,
+    "seed": 0,
+    "layout": [
+     95.0,
+     105.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 3,
+    "track_err_rms_deg": 3.43,
+    "track_ref_rms_deg": 13.8,
+    "contact_all_frac": 1.0,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": null,
+    "theta_rmse_deg": 3.46,
+    "old": 0.827,
+    "track": 0.751,
+    "track_nc": 0.751
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_press_d40_sv25.mp4",
+   "generalist_track_mean": 0.04,
+   "candidates": [
+    {
+     "layout": [
+      95.0,
+      105.0
+     ],
+     "call": 286,
+     "grasp": 5,
+     "why": "proxy",
+     "track": 0.707,
+     "old": 0.81
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.648,
+     "old": 0.748
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 14,
+     "why": "proxy",
+     "track": 0.554,
+     "old": 0.756
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 2,
+     "why": "proxy",
+     "track": 0.455,
+     "old": 0.759
+    },
+    {
+     "layout": [
+      100.0,
+      100.0
+     ],
+     "call": 310,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.398,
+     "old": 0.736
+    },
+    {
+     "layout": [
+      130.0,
+      110.0
+     ],
+     "call": 462,
+     "grasp": 1,
+     "why": "proxy",
+     "track": 0.319,
+     "old": 0.743
+    },
+    {
+     "layout": [
+      135.0,
+      115.0
+     ],
+     "call": 488,
+     "grasp": 9,
+     "why": "proxy",
+     "track": 0.296,
+     "old": 0.706
+    },
+    {
+     "layout": [
+      140.0,
+      120.0
+     ],
+     "call": 514,
+     "grasp": 13,
+     "why": "proxy",
+     "track": 0.133,
+     "old": 0.658
+    },
+    {
+     "layout": [
+      70.0,
+      110.0
+     ],
+     "call": 162,
+     "grasp": 0,
+     "why": "generalist",
+     "track": 0.04,
+     "old": 0.322
+    }
+   ]
+  },
+  "50": {
+   "layout": [
+    100.0,
+    95.0
+   ],
+   "call": 309,
+   "grasp": 7,
+   "why": "proxy",
+   "track_mean": 0.685,
+   "old_mean": 0.777,
+   "seeds": 3,
+   "film_seed": 0,
+   "film": {
+    "task": "press",
+    "size": 50.0,
+    "call": 309,
+    "grasp": 7,
+    "seed": 0,
+    "layout": [
+     100.0,
+     95.0
+    ],
+    "held": true,
+    "dropped": false,
+    "fingers_end": 2,
+    "track_err_rms_deg": 4.76,
+    "track_ref_rms_deg": 13.8,
+    "contact_all_frac": 1.0,
+    "ramp_three_pads_max_deg": null,
+    "ramp_end_deg": null,
+    "w_rmse_ratio": null,
+    "theta_rmse_deg": 4.96,
+    "old": 0.752,
+    "track": 0.655,
+    "track_nc": 0.655
+   },
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_press_d50_sv25.mp4",
+   "generalist_track_mean": null,
+   "candidates": [
+    {
+     "layout": [
+      100.0,
+      95.0
+     ],
+     "call": 309,
+     "grasp": 7,
+     "why": "proxy",
+     "track": 0.685,
+     "old": 0.777
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 11,
+     "why": "proxy",
+     "track": 0.632,
+     "old": 0.762
+    },
+    {
+     "layout": [
+      105.0,
+      70.0
+     ],
+     "call": 329,
+     "grasp": 9,
+     "why": "proxy",
+     "track": 0.627,
+     "old": 0.756
+    },
+    {
+     "layout": [
+      105.0,
+      70.0
+     ],
+     "call": 329,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.599,
+     "old": 0.742
+    },
+    {
+     "layout": [
+      90.0,
+      100.0
+     ],
+     "call": 260,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.593,
+     "old": 0.755
+    },
+    {
+     "layout": [
+      100.0,
+      115.0
+     ],
+     "call": 313,
+     "grasp": 8,
+     "why": "proxy",
+     "track": 0.588,
+     "old": 0.721
+    },
+    {
+     "layout": [
+      100.0,
+      120.0
+     ],
+     "call": 314,
+     "grasp": 4,
+     "why": "proxy",
+     "track": 0.515,
+     "old": 0.667
+    },
+    {
+     "layout": [
+      105.0,
+      90.0
+     ],
+     "call": 333,
+     "grasp": 15,
+     "why": "proxy",
+     "track": 0.446,
+     "old": 0.606
+    }
+   ]
+  }
+ }
+}
