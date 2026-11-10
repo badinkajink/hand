@@ -200,6 +200,44 @@ def sec_bigroll(picks):
                      f"{40 * br['step_s']:.0f} deg command, viewed from below, at the seed closest to each mean."))
 
 
+def sec_rail():
+    """The roll with the thumb held still as a rail (post-reset step 13; scripts/hom/hom_rail_roll.py)."""
+    import hom_rail_roll as RR
+    rows = RR.load()
+    if not rows:
+        return ""
+    P_ = RR.picks(rows)
+    first = {s: v["track_mean"] for s, v in json.loads((ROWS / f"20261109-track_picks{TAG}.json").read_text())["roll"].items()}
+    body = []
+    for (size, rail), v in sorted(P_.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+        sm = [r for r in rows if r["stage"] == "sample" and r["size"] == size and r["rail"] == rail]
+        body.append([f"{size:g}", {1: "index and middle", 2: "index"}[rail], f"{len(sm)}",
+                     f"({v['layout'][0]:.0f}, {v['layout'][1]:.0f}), grasp {v['grasp']}", f2(v["track_mean"]),
+                     ", ".join(f"{x:.2f}" for x in v["seeds"]), f2(v["old_mean"]), f2(v["followed_mean"]),
+                     f2(v["contact_mean"]), f2(first.get(f"{size:g}"))])
+    n1 = sum(1 for r in rows if r["stage"] == "sample")
+    n2 = sum(1 for r in rows if r["stage"] == "refine")
+    t = ("<p>In the HOM paper's video the thumb stays extended and rigid, and the two other fingers roll the ball up "
+         "along it (owner, 2026-11-09). In this variant of the roll the thumb keeps the servo targets it had when the "
+         "task began, so the sphere rides on it as on a rail and may touch its links. The index and the middle roll the "
+         "sphere under HOM with the roll's command of Section SEC[floors]. On the 25 and 30 mm spheres a second variant "
+         "rolls with the index alone, after the middle backs off 8 mm. The contact share of the tracking score is "
+         "taken over the rolling fingers' pads.</p>"
+         f"<p>The search ran on the CPU plant in two stages ({n1} and {n2} rollouts). Every layout of the lattice that "
+         "reaches the tripod ran with its foundational pose at seed 0. The ten best of each size then ran with every "
+         "grasp of their sets at seeds 0 to 2 (Table 5).</p>")
+    t += table(["Size (mm)", "Rolling fingers", "Layouts sampled", "Picked layout (mm)", "Tracking score",
+                "Seeds 0, 1, 2", "Earlier score", "Rotation followed", "Rollers' contact share",
+                "Tripod roll's pick (Table 3)"], body,
+               "The roll with the thumb as a rail: each case's layout and grasp picked by the mean tracking score over "
+               "seeds 0-2 (ties within 0.02 to the larger contact share of the rolling fingers), CPU plant.", num_from=2)
+    t += P.film(MEDIA / f"20261110-film_rail1_roll{TAG}.mp4", "Roll with the thumb as a rail, index and middle rolling: "
+                "the picked layout at each of four sphere sizes, viewed from below, at the seed closest to its mean.")
+    t += P.film(MEDIA / f"20261110-film_rail2_roll{TAG}.mp4", "Roll with the thumb as a rail and the index alone rolling: "
+                "the picked layout on the 25 and 30 mm spheres, viewed from below, at the seed closest to its mean.")
+    return t
+
+
 def sec_limits():
     return ("<p>The short lists came from GPU rows without the GPU's orientations, ranked by the stored end yaw "
             "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the short "
