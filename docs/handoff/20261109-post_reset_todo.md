@@ -108,6 +108,10 @@ scored it differently (twist 28: 216 of 726 shared pairs differ by >0.02; hom_gp
 batch). New scripts/hom/hom_ea_validate.py reruns each run's incumbent and the top 5 pooled layouts by each score at
 seeds 20-24 (whole grasp sets, 800 rollouts per task and size); gpu_queue_step5b.sh runs it after "step 4b queue
 done". The section waits for those rows; s5_summary needs them added.
+State 11-10 13:22: hom_ea_validate.py committed 37a0c6119; gpu_queue_step5b.sh launched 13:18 (waits). In
+hom_search_methods_page.py (uncommitted): s5_summary reads the _val rows, fig_newsizes, sec_newsizes (section
+"newsizes" after search6d, shown once s5_ok: 6 searches per task and size, all validated), the files bullet; tested on
+the 28 mm runs with stand-in scores. Outcome paragraph, lede, limits and future bullets wait for the numbers.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. The measured servo first: HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 (damping 0.02 s x kp, as the servo plant's)… Done 11-10 06:53: Measured servo moves the rankings: tracking-score rho vs 0.72 N m/rad 0.91/0.73/0.81 (0.55) and 0.91/0.72/0.79 (0.55 + 0.59 deg band), band vs 0.55 alone 0.94/0.79/0.90, rerun 0.99-1.00 (twist/roll/press); model's best layouts lose 0.14-0.29 on the measured servo; step 2 runs on 0.55 + band; page 20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html (2eb2bfe31)

@@ -729,6 +729,198 @@ of the <<twe>> twist layouts by the tracking score at seeds 0-2. On the press th
     return t
 
 
+# ------------------------------------------------------------------------------------------------ live searches, new sizes
+S5_SIZES = {"twist": (28.0, 67.0), "roll": (28.0, 67.0), "press": (18.0, 45.0)}
+S5_DIRS = {"ea": ROWS / "ea_live_sv25", "pso": ROWS / "pso16_live_sv25"}
+S5_HEAD = {"ea": "EA 64", "pso": "PSO 16"}
+S5SUM = ROWS / "20261110-live_sizes_sv25_summary.json"
+S5FIG = "20261110-live_sizes_curves.png"
+
+
+def lattice_call(xy):
+    """The 2-D lattice's index of (x_sep, y_sep) in mm (hom_plant_transfer.xy inverted)."""
+    return int(round((xy[0] - 40) / 5)) * 25 + int(round((xy[1] - 50) / 5))
+
+
+def s5_summary():
+    """Post-reset step 5 (hom_ea.py run --method ea|pso, three starts each, at sizes the size study did not run): per
+    task and size, each search's curve, last incumbent and the rollouts it had spent when that layout first ran; the
+    union of the layouts the six searches ran; the spread of a shared layout's score between searches (hom_gpu seeds the
+    per-period noise per batch); and the validation at seeds 20-24 (hom_ea_validate.py): each layout's best grasp's
+    mean earlier and tracking score. Written to S5SUM where the rows are, read from it elsewhere."""
+    import itertools
+
+    import hom_plant_transfer as TR
+    if not any((S5_DIRS["ea"] / f"{t}_d{d:g}_s0.jsonl").exists() for t, ds in S5_SIZES.items() for d in ds):
+        return json.loads(S5SUM.read_text()) if S5SUM.exists() else {}
+    out = {}
+    for task, ds in S5_SIZES.items():
+        for d in ds:
+            runs, own = {}, {}
+            for m, dr in S5_DIRS.items():
+                for seed in (0, 1, 2):
+                    gp = dr / f"{task}_d{d:g}_s{seed}_gens.jsonl"
+                    if not gp.exists() or not gp.stat().st_size:
+                        continue
+                    log = [json.loads(x) for x in gp.read_text().splitlines() if x.strip()]
+                    own[(m, seed)] = {c: max(v.values()) for c, v in
+                                      TR.grasp_means(task, dr / f"{task}_d{d:g}_s{seed}.jsonl", "rollout").items()}
+                    inc = log[-1]["incumbent"]
+                    runs.setdefault(m, []).append({
+                        "seed": seed, "xy": [float(v) for v in inc], "fit": float(log[-1]["incumbent_fit"]),
+                        "rollouts": int(log[-1]["rollouts"]), "layouts": int(log[-1]["layouts"]), "gens": len(log) - 1,
+                        "first": next(int(g["rollouts"]) for g in log if g["incumbent"] == inc), "curve": curve(log)})
+            if not runs:
+                continue
+            diffs = [abs(own[a][c] - own[b][c]) for a, b in itertools.combinations(own, 2)
+                     for c in set(own[a]) & set(own[b])]
+            union = set().union(*own.values())
+            vp = S5_DIRS["ea"] / f"{task}_d{d:g}_val.jsonl"
+            ve = {c: max(v.values()) for c, v in TR.grasp_means(task, vp, "rollout").items()}
+            vt = {c: max(v.values()) for c, v in TR.grasp_means(task, vp, "track").items()}
+            best = max(ve.values()) if ve else None
+            for rs in runs.values():
+                for r in rs:
+                    c = lattice_call(r["xy"])
+                    r["val"], r["val_track"] = ve.get(c), vt.get(c)
+                    r["within"] = None if best is None or c not in ve else bool(ve[c] >= best - 0.05)
+            bc = max(ve, key=ve.get) if ve else None
+            bt = max(vt, key=vt.get) if vt else None
+            out[f"{task}_{d:g}"] = {
+                "task": task, "d": d, "runs": runs, "layouts": len(union),
+                "shared": {"pairs": len(diffs), "over_0.02": int(sum(x > 0.02 for x in diffs)),
+                           "median": float(np.median(diffs)) if diffs else None,
+                           "max": float(max(diffs)) if diffs else None},
+                "validated": len(ve), "best": best, "best_xy": list(TR.xy(bc)) if bc is not None else None,
+                "best_track_of_best": vt.get(bc) if bc is not None else None,
+                "best_track": vt[bt] if bt is not None else None,
+                "best_track_xy": list(TR.xy(bt)) if bt is not None else None,
+                "best_track_fit": ve.get(bt) if bt is not None else None}
+    if out:
+        S5SUM.write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
+def s5_keys():
+    return [f"{t}_{d:g}" for t, ds in S5_SIZES.items() for d in ds]
+
+
+def s5_ok(S5):
+    """Every task and size has its six searches and the validation of their incumbents."""
+    return all(k in S5 and S5[k].get("best") is not None and all(len(S5[k]["runs"].get(m, [])) == 3 for m in S5_DIRS)
+               and all(r["val"] is not None for rs in S5[k]["runs"].values() for r in rs) for k in s5_keys())
+
+
+def s5_obj(v):
+    return f"{v['d']:g} mm {'cylinder' if v['task'] == 'press' else 'sphere'}"
+
+
+def fig_newsizes(S5):
+    """Incumbent fitness against rollouts for the EA and the 16-particle swarm, a panel per task and size, with each
+    incumbent's validated score at the search's end."""
+    import fp_review_figures as FR
+    plt = FR.plt_setup()
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14, "legend.fontsize": 14})
+    fig, axs = plt.subplots(2, 3, figsize=(11.4, 7.6), constrained_layout=True, squeeze=False)
+    col = {"ea": "#1f77b4", "pso": "#d62728"}
+    for j, task in enumerate(S5_SIZES):
+        for i, d in enumerate(S5_SIZES[task]):
+            ax, v = axs[i][j], S5.get(f"{task}_{d:g}")
+            ax.set_title(f"{TNAME[task]}, {d:g} mm {'cylinder' if task == 'press' else 'sphere'}")
+            ax.set_xlim(0, 6800)
+            ax.set_xticks([0, 2000, 4000, 6000])
+            ax.set_xticklabels(["0", "2,000", "4,000", "6,000"])
+            ax.grid(alpha=0.3)
+            if not v:
+                continue
+            for m in S5_DIRS:
+                for r in v["runs"].get(m, []):
+                    x, y = np.array(r["curve"] + [[r["rollouts"], r["curve"][-1][1]]], float).T
+                    ax.step(x, y, where="post", color=col[m], lw=1.6, alpha=0.85)
+                    if r.get("val") is not None:
+                        ax.plot(r["rollouts"], r["val"], "o", mfc="white", mec=col[m], mew=1.6, ms=7)
+            if v.get("best") is not None:
+                ax.axhline(v["best"] - 0.05, color="k", lw=1, ls=":")
+    for ax in axs[-1]:
+        ax.set_xlabel("Rollouts spent")
+    for row in axs:
+        row[0].set_ylabel("Incumbent's fitness")
+    from matplotlib.lines import Line2D
+    hs = [Line2D([], [], color=col[m], lw=1.6) for m in S5_DIRS] + [
+        Line2D([], [], ls="none", marker="o", mfc="white", mec="k", mew=1.6, ms=7),
+        Line2D([], [], color="k", lw=1, ls=":")]
+    fig.legend(hs, [S5_HEAD[m] for m in S5_DIRS] + ["Last incumbent at seeds 20-24", "0.05 below the best validated"],
+               loc="outside lower center", frameon=False, ncol=4)
+    FR.save(fig, S5FIG)
+
+
+def sec_newsizes(S, S5):
+    """Post-reset step 5: the EA and the 16-particle swarm live at object sizes without a stored grid."""
+    if not s5_ok(S5):
+        return ""
+    keys = s5_keys()
+    tb1, tb2, f1 = P.TAB[0] + 1, P.TAB[0] + 2, P.FIG[0] + 1
+    allr = {m: [(k, r) for k in keys for r in S5[k]["runs"][m]] for m in S5_DIRS}
+    nw = {m: sum(bool(r["within"]) for _k, r in allr[m]) for m in S5_DIRS}
+    n02 = sum(S5[k]["shared"]["over_0.02"] for k in keys)
+    npairs = sum(S5[k]["shared"]["pairs"] for k in keys)
+    dmax = max(S5[k]["shared"]["max"] or 0.0 for k in keys)
+    t = fill(r"""<p>At four object sizes that no grid covers, the EA came within 0.05 of the best validated layout
+from <<ea>> of its 18 starts and the 16-particle swarm from <<pso>> of 18 (Figure <<f>>, Table <<tb>>).</p>
+<p>The replays of Section SEC[results] ran on stored grids at the default objects. At a new object size no grid exists,
+so a search runs its layouts as it visits them. The EA with 64 individuals and the 16-particle swarm with the global best
+ran live on the GPU evaluator at sizes that the size study of the trends page did not run: spheres of 28 and 67 mm for
+the twist and the roll, and cylinders of 18 and 45 mm for the press. Each ran from three random starts on the 2-D
+lattice, with each layout's grasp set solved by the pose toy at that size. A layout's fitness was its best grasp's mean
+earlier score at seeds 0-2, as in the replays. A search stopped after the generation, or the swarm's iteration, in which
+its rollouts reached 6,000, or after 40 of them. The plant was the SCS0009 plant at 0.72 N&#8201;m/rad with pads at
+2.5 MPa, on MuJoCo 3.6 (<code>hom_ea.py run --method ea|pso</code>).</p>
+<p>The evaluator draws each control period's measurement noise from a generator seeded per GPU batch, so a layout's
+score depends on its place in the batch. Two searches that ran the same layout scored it differently: over the six
+pairs of task and size, <<n02>> of <<np>> such pairs of scores differed by more than 0.02, and the largest difference
+was <<dmax>>. Each search's last incumbent therefore ran again at seeds 20-24, which no search used, with its whole
+grasp set (<code>hom_ea_validate.py</code>). So did the five layouts of best earlier score and the five of best tracking
+score at seeds 0-2 among all layouts the six searches ran. A start counts as within 0.05 when its incumbent's validated
+earlier score is within 0.05 of the best validated score at its task and size.</p>""",
+             ea=nw["ea"], pso=nw["pso"], f=f1, tb=tb1, n02=f"{n02:,}", np=f"{npairs:,}", dmax=f"{dmax:.2f}")
+    t += img(MEDIA / S5FIG, "Incumbent's fitness against the rollouts each live search spent at the four new object "
+             "sizes: the best-of-16 mean earlier score at seeds 0-2 of the best layout found so far, one line per random "
+             "start. An open circle marks each search's last incumbent at its earlier score at seeds 20-24; the dotted "
+             "line lies 0.05 below the best validated score. SCS0009 plant at 0.72 N&#8201;m/rad, 2.5 MPa, MuJoCo 3.6. "
+             "<code>scripts/hom/hom_ea.py</code>.")
+    rows = []
+    for k in keys:
+        v = S5[k]
+        for m in S5_DIRS:
+            rs = sorted(v["runs"][m], key=lambda r: r["seed"])
+            rows.append([TNAME[v["task"]] + ", " + s5_obj(v) if m == "ea" else "", S5_HEAD[m],
+                         ", ".join(f"{r['fit']:.2f}" for r in rs), ", ".join(f"{r['val']:.2f}" for r in rs),
+                         f"{sum(bool(r['within']) for r in rs)} of 3",
+                         ", ".join(f"{r['val_track']:.2f}" for r in rs),
+                         f"{int(np.median([r['rollouts'] for r in rs])):,}",
+                         f"{int(np.median([r['first'] for r in rs])):,}"])
+    t += table(["Task and object", "Method", "Incumbent's fitness, seeds 0-2, starts 0, 1, 2",
+                "Earlier score at seeds 20-24", "Starts within 0.05 of the best validated",
+                "Tracking score at seeds 20-24", "Rollouts spent (median)",
+                "Rollouts when the last incumbent ran (median)"], rows,
+               "The live searches at the new object sizes: each start's last incumbent, its scores at the validation "
+               "seeds 20-24, and the starts whose validated earlier score is within 0.05 of the best at that task and "
+               "size. A search counts the rollouts of each layout it ran once.", num_from=2)
+    rows = []
+    for k in keys:
+        v = S5[k]
+        rows.append([TNAME[v["task"]] + ", " + s5_obj(v), f"{v['layouts']:,}",
+                     "({:.0f}, {:.0f})".format(*v["best_xy"]), f"{v['best']:.2f}", f"{v['best_track_of_best']:.2f}",
+                     "({:.0f}, {:.0f})".format(*v["best_track_xy"]), f"{v['best_track']:.2f}",
+                     f"{v['best_track_fit']:.2f}"])
+    t += table(["Task and object", "Layouts run", "Best validated layout (mm)", "Its earlier score",
+                "Its tracking score", "Best validated tracking layout (mm)", "Its tracking score", "Its earlier score"],
+               rows, "Per task and size: the layouts the six searches ran, and the validated layouts of best earlier and "
+               "of best tracking score at seeds 20-24. A layout is ($x_{sep}$, $y_{sep}$).", num_from=1)
+    return t
+
+
 def sec_limits():
     return r"""<ul>
 <li>The comparison runs on one 2-D lattice of 625 layouts, at the default objects, on stored scores at seeds 0-2. A
@@ -762,7 +954,7 @@ points more runs on any task.</li>
 </ul>"""
 
 
-def sec_files():
+def sec_files(S5):
     return r"""<ul>
 <li>Comparison and figures: <code>scripts/hom/hom_search_compare.py</code>; rows
 <code>rows/20261109-search_compare.tsv</code>, <code>rows/20261109-search_compare_curves.tsv</code>,
@@ -776,7 +968,13 @@ the EA: <code>hom_landscape.ea_search</code>; the live searches: <code>scripts/h
 <code>roll_d40.jsonl</code>, <code>press_d25.jsonl</code>, 17-22 MB) on the workstation; summary
 <code>rows/20261110-search6d_sv25_summary.json</code>; queue
 <code>logs/20261110-hom_post_reset/gpu_queue_step4.sh</code>.</li>
-<li>This page: <code>scripts/hom/hom_search_methods_page.py</code>.</li>
+""" + (r"""<li>Live searches at new object sizes: <code>scripts/hom/hom_ea.py</code> and the validation
+<code>scripts/hom/hom_ea_validate.py</code>; rows <code>rows/ea_live_sv25/</code> and
+<code>rows/pso16_live_sv25/</code>, each search's generations (<code>*_gens.jsonl</code>), the validation
+(<code>ea_live_sv25/*_val.jsonl</code>) and the timings in git, each search's rollouts (5-6 MB a search) on the
+workstation; summary <code>rows/20261110-live_sizes_sv25_summary.json</code>; queues
+<code>logs/20261110-hom_post_reset/gpu_queue_step5.sh</code> and <code>gpu_queue_step5b.sh</code>.</li>
+""" if s5_ok(S5) else "") + r"""<li>This page: <code>scripts/hom/hom_search_methods_page.py</code>.</li>
 </ul>"""
 
 
@@ -817,6 +1015,9 @@ def main():
     S6 = s6_summary()
     if s6_stats(S6):
         fig_search6d(S6)
+    S5 = s5_summary()
+    if s5_ok(S5):
+        fig_newsizes(S5)
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("problem", "Searching the layout lattice", sec_problem()),
                 ("ea", "The evolutionary algorithm of Yang et al.", sec_ea()),
@@ -827,10 +1028,11 @@ def main():
                 ("pareto", "Pareto fronts", sec_pareto(F)),
                 ("tsne", "t-SNE maps", sec_tsne()),
                 ("search6d", "Live searches over the six-coordinate layouts", sec_search6d(S6)),
+                ("newsizes", "Live searches at object sizes without a stored grid", sec_newsizes(S, S5)),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("refs", "References and files", '<ol class="refs">' + "".join(f"<li>{r[r.index(']') + 2:]}</li>"
-                                                                            for r in REFS) + "</ol>" + sec_files())]
+                                                                            for r in REFS) + "</ol>" + sec_files(S5))]
     sections = [x for x in sections if x[2]]
     lede_t, summary = lede(S, S6)
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
@@ -839,7 +1041,8 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in enumerate(sections, 1))
     byline = ("Replay of the stored grids, 2026-11-09, and live searches on the six-coordinate layouts, 2026-11-10 "
-              "(Section SEC[search6d]). The grids: the CAD-model SR2 hand with the v4b "
+              "(Section SEC[search6d])" + (" and at four new object sizes (Section SEC[newsizes])" if "newsizes" in num
+                                           else "") + ". The grids: the CAD-model SR2 hand with the v4b "
               "fingertip (<code>SCALE_HAND=cad_v2</code>), HOM on MuJoCo-Warp, the work plant at 10 MPa (2026-10-30) and "
               "the SCS0009 plant at 2.5 MPa (2026-11-02). Follows <a href=\"" + TRENDS + "\">the trends page</a>, Section "
               "3, and <a href=\"" + DESIGN + "\">the design page</a>. Builder: "
