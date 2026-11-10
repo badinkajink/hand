@@ -15,9 +15,12 @@ Data: rows/20261109-search_compare.tsv and rows/20261109-search_compare_curves.t
 from __future__ import annotations
 
 import csv
+import json
 import re
 import sys
 from pathlib import Path
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -366,6 +369,157 @@ therefore come from the tree's growth along filaments, before any score is compu
 separate regions of good layouts at each size (design page, Section 12).</p>""")
 
 
+# ------------------------------------------------------------------------------------------------ live searches
+S6DIR = ROWS / "search6d_sv25"
+S6SUM = ROWS / "20261110-search6d_sv25_summary.json"
+S6FIG = "20261110-search6d_curves.png"
+S6_TASKS = {"twist": 40.0, "roll": 40.0, "press": 25.0}
+S6_METHODS = ("ea64", "pso16", "pso64r", "random", "sobol", "rrt")
+S6_HEAD = {"ea64": "EA 64", "pso16": "PSO 16", "pso64r": "PSO ring 64", "random": "Random", "sobol": "Sobol",
+           "rrt": "RRT"}
+OBJ = {"twist": "40 mm sphere", "roll": "40 mm sphere", "press": "25 mm cylinder"}
+
+
+def s6_summary():
+    """Post-reset step 4 (scripts/hom/hom_search6d.py): per task, each search's incumbent curve and last incumbent, and
+    each incumbent's earlier and tracking scores at seeds 20-24. Written to S6SUM from rows/search6d_sv25/ where those
+    rows are, read from S6SUM elsewhere (the shared rollouts stay on the workstation)."""
+    if not S6DIR.exists():
+        return json.loads(S6SUM.read_text()) if S6SUM.exists() else {}
+    import hom_landscape as L
+    dmm, _z = L.layouts()
+    out = {}
+    for task, d in S6_TASKS.items():
+        runs = {}
+        for p in sorted(S6DIR.glob(f"{task}_*_s[0-9]_gens.jsonl")):
+            m, s = p.stem[len(task) + 1:-len("_gens")].rsplit("_s", 1)
+            log = [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+            runs.setdefault(m, []).append({"seed": int(s), "layout": int(log[-1]["incumbent"]),
+                                           "fit": float(log[-1]["incumbent_fit"]),
+                                           "rollouts": int(log[-1]["rollouts"]), "layouts": int(log[-1]["layouts"]),
+                                           "curve": [[int(g["rollouts"]), round(float(g["incumbent_fit"]), 4)]
+                                                     for g in log]})
+        if not runs:
+            continue
+        val, trk = {}, {}
+        vp = S6DIR / f"{task}_d{d:g}_val.jsonl"
+        for x in (vp.read_text().splitlines() if vp.exists() else []):
+            if x.strip():
+                r = json.loads(x)
+                val.setdefault(int(r["call"]), []).append(L.rollout_score(task, r))
+                trk.setdefault(int(r["call"]), []).append(L.track_score(task, r))
+        for rs in runs.values():
+            rs.sort(key=lambda r: r["seed"])
+            for r in rs:
+                c = r["layout"]
+                r["val"] = float(np.mean(val[c])) if len(val.get(c, ())) >= 5 else None
+                r["val_track"] = float(np.mean(trk[c])) if len(trk.get(c, ())) >= 5 else None
+                r["mm"] = [round(float(v), 1) for v in dmm[c]]
+        seen = {}
+        sp = S6DIR / f"{task}_d{d:g}.jsonl"
+        for x in (sp.read_text().splitlines() if sp.exists() else []):
+            if x.strip():
+                r = json.loads(x)
+                seen.setdefault(int(r["call"]), set()).add(int(r["seed"]))
+        out[task] = {"d": d, "runs": runs, "evaluated": sum(1 for v in seen.values() if len(v) >= 3)}
+    if out:
+        S6SUM.write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
+def fig_search6d(S6):
+    """Incumbent fitness against the rollouts a search spent: a panel per task, a colour per method, a line per start."""
+    import fp_review_figures as FR
+    plt = FR.plt_setup()
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14, "legend.fontsize": 13})
+    tasks = [t for t in S6_TASKS if t in S6]
+    fig, axs = plt.subplots(1, len(tasks), figsize=(3.6 * len(tasks) + 0.6, 3.9), constrained_layout=True,
+                            squeeze=False)
+    col = dict(zip(S6_METHODS, ("#1f77b4", "#d62728", "#ff7f0e", "#7f7f7f", "#2ca02c", "#9467bd")))
+    for ax, task in zip(axs[0], tasks):
+        for m in S6_METHODS:
+            for k, r in enumerate(S6[task]["runs"].get(m, [])):
+                x, y = np.array(r["curve"], float).T
+                ax.step(x, y, where="post", color=col[m], lw=1.5, alpha=0.85, label=S6_HEAD[m] if k == 0 else None)
+        ax.set_title(f"{TNAME[task]}, {OBJ[task]}")
+        ax.set_xlabel("Rollouts spent")
+        ax.set_xlim(0, 6200)
+        ax.set_xticks([0, 2000, 4000, 6000])
+        ax.grid(alpha=0.3)
+    axs[0][0].set_ylabel("Incumbent's fitness, seeds 0-2")
+    axs[0][-1].legend(loc="lower right", frameon=False, ncol=2, handlelength=1.2, columnspacing=0.8)
+    FR.save(fig, S6FIG)
+
+
+def s6_stats(S6):
+    """Per task: the best validated score of any search and, per method, its starts within 0.05 of it."""
+    out = {}
+    for task, v in S6.items():
+        vals = [r["val"] for rs in v["runs"].values() for r in rs if r["val"] is not None]
+        if not vals:
+            continue
+        top = max(vals)
+        win = next(r for rs in v["runs"].values() for r in rs if r["val"] == top)
+        per = {m: {"within": sum(1 for r in rs if r["val"] is not None and r["val"] >= top - 0.05), "n": len(rs),
+                   "med_val": float(np.median([r["val"] for r in rs if r["val"] is not None])),
+                   "med_track": float(np.median([r["val_track"] for r in rs if r["val_track"] is not None]))}
+               for m, rs in v["runs"].items() if any(r["val"] is not None for r in rs)}
+        out[task] = {"top": top, "win": win, "per": per}
+    return out
+
+
+def mounts(mm):
+    """The six coordinates as the three gantries' (x, y) in mm."""
+    return ", ".join(f"{n} ({mm[2 * k]:.0f}, {mm[2 * k + 1]:.0f})" for k, n in enumerate(("thumb", "index", "middle")))
+
+
+def sec_search6d(S6):
+    """Post-reset step 4: the six methods live on the six-coordinate Sobol layouts."""
+    St = s6_stats(S6)
+    if not St:
+        return ""
+    t = fill(r"""<p>On the 2-D lattice a full grid was cheap enough to replay every search on stored scores. The
+design page's six-coordinate layouts are too many for that, so the six methods ran live on the GPU evaluator (Figure
+<<f>>, Table <<tb>>). The space is the design page's 8,192 Sobol layouts: each gantry's $x$ and $y$ for the thumb, the
+index and the middle. Each layout has one grasp, the task's foundational pose solved by the pose toy at the default
+object. A layout's fitness is that grasp's mean earlier score at seeds 0-2. A layout whose pose is not reached scores 0
+at no rollouts. A search moves in coordinates scaled to $[-0.5, 0.5]$ and runs the Sobol layout nearest its point.</p>
+<p>Each method ran from three random starts with 6,000 rollouts each, on the SCS0009 plant at 0.72 N&#8201;m/rad and
+2.5 MPa with MuJoCo 3.6. The EA kept its lattice settings, with a mutation of a quarter of each coordinate's range. The
+swarms' velocities were capped at a fifth of the range, and RRT grew from the CAD-nominal hand with steps of 0.10. The
+Sobol order is the same for every start, so its three starts are one search. The searches of a task shared one
+evaluation of each layout, and each counted the rollouts of the layouts it visited. Each search's last incumbent ran
+again at seeds 20-24, which no search used. A method is scored against the best of these validated scores.</p>""",
+             f=P.FIG[0] + 1, tb=P.TAB[0] + 1)
+    t += img(MEDIA / S6FIG, "Incumbent's fitness against the rollouts each live search spent on the six-coordinate "
+             "Sobol layouts: the mean earlier score at seeds 0-2 of the best layout found so far. One line per random "
+             "start; Sobol's three starts coincide. SCS0009 plant at 0.72 N&#8201;m/rad, 2.5 MPa, MuJoCo 3.6. "
+             "<code>scripts/hom/hom_search6d.py</code>.")
+    rows = []
+    for task in S6_TASKS:
+        if task not in St:
+            continue
+        for m in S6_METHODS:
+            rs = S6[task]["runs"].get(m)
+            if not rs:
+                continue
+            pm = St[task]["per"].get(m)
+            rows.append([TNAME[task] if m == S6_METHODS[0] else "", S6_HEAD[m],
+                         ", ".join(f"{r['fit']:.2f}" for r in rs),
+                         ", ".join("&#8211;" if r["val"] is None else f"{r['val']:.2f}" for r in rs),
+                         f"{pm['within']} of {pm['n']}" if pm else "&#8211;",
+                         ", ".join("&#8211;" if r["val_track"] is None else f"{r['val_track']:.2f}" for r in rs),
+                         f"{int(np.median([r['layouts'] for r in rs])):,}"])
+    t += table(["Task", "Method", "Incumbent's fitness, seeds 0-2, starts 0, 1, 2",
+                "Earlier score at seeds 20-24", "Starts within 0.05 of the best validated",
+                "Tracking score at seeds 20-24", "Layouts visited (median)"], rows,
+               "The live searches on the six-coordinate Sobol layouts: each start's last incumbent, its scores at the "
+               "validation seeds 20-24, and the starts whose validated earlier score is within 0.05 of the best of any "
+               "search.", num_from=2)
+    return t
+
+
 def sec_limits():
     return r"""<ul>
 <li>The comparison runs on one 2-D lattice of 625 layouts, at the default objects, on stored scores at seeds 0-2. A
@@ -427,6 +581,9 @@ and RRT orders are set without the scores, and RRT reaches first the layouts nea
 
 def main():
     S, F = load()
+    S6 = s6_summary()
+    if s6_stats(S6):
+        fig_search6d(S6)
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("problem", "Searching the layout lattice", sec_problem()),
                 ("ea", "The evolutionary algorithm of Yang et al.", sec_ea()),
@@ -436,10 +593,12 @@ def main():
                 ("refine", "Tuning the grasp and the controller per layout", sec_refine()),
                 ("pareto", "Pareto fronts", sec_pareto(F)),
                 ("tsne", "t-SNE maps", sec_tsne()),
+                ("search6d", "Live searches over the six-coordinate layouts", sec_search6d(S6)),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("refs", "References and files", '<ol class="refs">' + "".join(f"<li>{r[r.index(']') + 2:]}</li>"
                                                                             for r in REFS) + "</ol>" + sec_files())]
+    sections = [x for x in sections if x[2]]
     lede_t, summary = lede(S)
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N\b|s\b)", "\\1&nbsp;\\2", s_))

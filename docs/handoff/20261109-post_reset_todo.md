@@ -86,12 +86,14 @@ runs at 21 of 26 sizes; near-set x_sep slope 0.98/0.49/1.09 mm/mm (twist/roll/pr
 servo; page Section 8 + Figure 3 (20261110-ea_size_slopes.png). Default sizes (40, 25 mm) left to the full grids. Step 3's
 smoke failed 09:22 (negative RNG seed in cmd_run_pso; fixed e7be93d39, CPU path checked on 2 layouts per task); step 3's
 queue now runs at the head of gpu_queue_step5.sh, after step 4 (search6d twist running since 09:22).
+State 11-10 09:31: step 2 marked done. Step 4 twist at round 7 (09:30): random/Sobol spend ~190 rollouts a round, the EA
+~50, PSO 16 ~35, so ~1-2 h per task; then step 3 (~1 h), then step 5 (36 runs, ~3 h). hom_search_methods_page.py has
+sec_search6d (summary rows/20261110-search6d_sv25_summary.json, figure 20261110-search6d_curves.png, table), inert until
+the _gens files land; its prose waits for the data. Claimed line extended (09:28) to the two page builders of steps 3-5.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. The measured servo first: HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 (damping 0.02 s x kp, as the servo plant's)… Done 11-10 06:53: Measured servo moves the rankings: tracking-score rho vs 0.72 N m/rad 0.91/0.73/0.81 (0.55) and 0.91/0.72/0.79 (0.55 + 0.59 deg band), band vs 0.55 alone 0.94/0.79/0.90, rerun 0.99-1.00 (twist/roll/press); model's best layouts lose 0.14-0.29 on the measured servo; step 2 runs on 0.55 + band; page 20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html (2eb2bfe31)
-- [ ] 2. MuJoCo 4.0 on the plant that survives item 1: the four default grids (rows tag e.g. _sv25_mj4), Spearman against the
-    MuJoCo 3 grids and the best layouts; then the size study's EA at the same sizes. Quote every landscape with its
-    MuJoCo version, plant and modulus.
+- [x] 2. MuJoCo 4.0 on the plant that survives item 1: the four default grids (rows tag e.g. _sv25_mj4), Spearman agai… Done 11-10 09:27: MuJoCo 4.0 on the measured servo (0.55 N m/rad + 0.59 deg band, 2.5 MPa): grids keep tracking rho 0.97/0.94/0.95 vs 3.6 with the same best layouts; size-study EA at 26 sizes reaches the stored best within 0.03 at 21, near-set slopes 0.98/0.49/1.09 vs 1.42/0.56/1.09 mm/mm; page 20261110-hom_servo_stiffness_mujoco4.html Sections 7-8 (f933beb09)
 - [ ] 3. PSO against CEM for the per-layout refinement (hom_grasp_refine.py): 30 best SCS0009 layouts per task, same rollouts,
     validated at seeds 20-24; CEM stays if PSO's median gain is within 0.02 on every task.
 - [ ] 4. The six search methods on the six-coordinate layouts (no full grid): score against the best layout any method found,
@@ -114,7 +116,8 @@ Claimed (autopilot, 11-10): logs/20261110-hom_post_reset/, scripts/hom/hom_gpu.p
 scripts/hom/hom_plant_transfer.py, rows grid2dff_v4b_sv55 and grid2dff_v4b_sv25r; also (06:25) scripts/hom/hom_tasks.py,
 hom_torque*.py, hom_pusher*.py, hom_rail_roll.py, hom_ea.py, hom_grasp_refine.py, hom_search6d.py, hom_track_films.py,
 hom_track_score_page.py, hom_stiffness_page.py, src/sr2hand/geometry/rotations.py (quat_integrate), the pages these
-builders write, and the post-reset block of .gitignore.
+builders write, and the post-reset block of .gitignore; also (09:28, the sections of steps 3-5)
+scripts/hom/hom_score_refine_page.py, hom_search_methods_page.py and hom_search_compare.py.
 Decided 11-09: raw data stays offline (no data rows to GitHub's LFS); data files under 2 MB are ordinary git files, the
 pre-commit hook stops larger ones; plans and trajectories converted to plain git; the bare copy hand-lean.git deleted.
 Waiting on owner: nothing.
