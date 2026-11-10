@@ -33,8 +33,10 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [ ] 8. Corvus: after its next pull, run python3 scripts/docs/lfs_lean.py install-hook there (relay through the lab session),
     so its data files over 2 MB stay out of git as on the workstation.
 - [ ] 9. Owner, 11-09: implement, test and analyse inverse-dynamics torque control of the fingers in place of MuJoCo's position actuators ("that might help things?"). Keep Eq. 2's joint velocities u. Drive motor actuators with tau = M(q) qdd_ref + c(q, qd) + g(q) - J^T f_cmd, with qdd_ref from u (or a PD on theta_ref) and f_cmd the commanded pad forces, clipped at the SCS0009's 0.18 N m. Compare it with the position plant (kp 0.72 N m/rad) on the twist, roll and press at the films' sizes (twist and roll 25, 30, 63, 80 mm; press 10, 13, 40, 50 mm), on layout (70, 110) and the per-size best layouts, seeds 0-2: score, contact time per finger, off-axis angular-velocity RMSE. Before any hardware claim, state how a torque reaches the position-only servo (an offset tau/kp through its 0.55-0.72 N m/rad spring and 0.59 deg dead band).
+- [ ] 11. The roll at 25, 30 and 80 mm: no candidate of the short lists rolls (tracking score 0.03-0.10, page 20261109-hom_tracking_score.html). Run the live EA for the roll at these sizes on the GPU with hom_landscape.track_score as its fitness (new rows record track_err_rms_deg, track_ref_rms_deg and contact_all_frac). Refilm with scripts/hom/hom_track_films.py if a layout passes 0.2 at a size.
 Standing directions (for every step):
 - Pin-push dropped for now (owner, 11-09: "effective pin-push trajectories are effectively press trajectories"): grids, searches and films run the twist, roll and press.
+- Rank layouts by hom_landscape.track_score (owner's go, 11-09; page 20261109-hom_tracking_score.html) and quote the earlier rollout_score beside it. Rows from before 11-09 lack the tracking fields, so a stored landscape is rescored only by rerunning it.
 <!-- /ap:steps -->
 Claimed: none.
 Decided 11-09: raw data stays offline (no data rows to GitHub's LFS); data files under 2 MB are ordinary git files, the
