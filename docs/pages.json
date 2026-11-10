@@ -36,16 +36,28 @@
   "mb": 8.4
  },
  {
+  "date": "2026-11-10",
+  "file": "docs/experiments/20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html",
+  "title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo",
+  "page_title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo",
+  "topic": "design",
+  "summary": "The SCS0009's measured 0.55 N m/rad and 0.59 deg dead band reorder the HOM landscapes (tracking-score rho 0.72 to 0.91 against the 0.72 N m/rad model, rerun spread 0.99 to 1.00); the model's best layouts lose 0.14 to 0.29 of their score on the measured servo.",
+  "builder": "scripts/hom/hom_stiffness_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 1.7
+ },
+ {
   "date": "2026-11-09",
   "file": "docs/experiments/20261029-foundational_pose_review/20261109-hom_tracking_score.html",
   "title": "Tracking score of the HOM tasks and films of the SR2 hand across object sizes",
   "page_title": "Tracking score of the HOM tasks and films of the SR2 hand across object sizes",
   "topic": "design",
-  "summary": "A tracking score (share of the commanded rotation followed, times the share of the task on three pads) replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling twist; re-picked layouts score 0.23 to 0.35 (twist), 0.04 to 0.32 (roll) and 0.61 to 0.71 (press) at four sizes each.",
+  "summary": "A tracking score (share of the commanded rotation followed, times the share of the task on three pads) replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling twist; re-picked layouts score 0.23 to 0.35 (twist), 0.22 to 0.32 (roll) and 0.61 to 0.71 (press) at four sizes each.",
   "builder": "scripts/hom/hom_track_score_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 6.7
+  "mb": 7.9
  },
  {
   "date": "2026-11-09",

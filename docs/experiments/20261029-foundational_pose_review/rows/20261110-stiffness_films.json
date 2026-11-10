@@ -1,0 +1,116 @@
+[
+ {
+  "which": "model",
+  "grid": "sv72r",
+  "plant": "servo",
+  "deadband": null,
+  "task": "twist",
+  "call": 329,
+  "grasp": 10,
+  "gpu": 0.756,
+  "xy": [
+   105,
+   70
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_model_twist.mp4",
+  "frames": 195,
+  "track": 0.773,
+  "old": 0.803,
+  "held": true
+ },
+ {
+  "which": "model",
+  "grid": "sv72r",
+  "plant": "servo",
+  "deadband": null,
+  "task": "roll",
+  "call": 403,
+  "grasp": 4,
+  "gpu": 0.3722,
+  "xy": [
+   120,
+   65
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_model_roll.mp4",
+  "frames": 123,
+  "track": 0.37,
+  "old": 0.531,
+  "held": true
+ },
+ {
+  "which": "model",
+  "grid": "sv72r",
+  "plant": "servo",
+  "deadband": null,
+  "task": "press",
+  "call": 153,
+  "grasp": 0,
+  "gpu": 0.6174,
+  "xy": [
+   70,
+   65
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_model_press.mp4",
+  "frames": 138,
+  "track": 0.63,
+  "old": 0.747,
+  "held": true
+ },
+ {
+  "which": "measured",
+  "grid": "sv55db",
+  "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+  "deadband": 0.59,
+  "task": "twist",
+  "call": 327,
+  "grasp": 9,
+  "gpu": 0.7603,
+  "xy": [
+   105,
+   60
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_measured_twist.mp4",
+  "frames": 195,
+  "track": 0.807,
+  "old": 0.949,
+  "held": true
+ },
+ {
+  "which": "measured",
+  "grid": "sv55db",
+  "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+  "deadband": 0.59,
+  "task": "roll",
+  "call": 260,
+  "grasp": 1,
+  "gpu": 0.4049,
+  "xy": [
+   90,
+   100
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_measured_roll.mp4",
+  "frames": 123,
+  "track": 0.42,
+  "old": 0.593,
+  "held": true
+ },
+ {
+  "which": "measured",
+  "grid": "sv55db",
+  "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+  "deadband": 0.59,
+  "task": "press",
+  "call": 206,
+  "grasp": 7,
+  "gpu": 0.6196,
+  "xy": [
+   80,
+   80
+  ],
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261029-foundational_pose_review/media/20261110-clip_stiffness_measured_press.mp4",
+  "frames": 138,
+  "track": 0.634,
+  "old": 0.762,
+  "held": true
+ }
+]
