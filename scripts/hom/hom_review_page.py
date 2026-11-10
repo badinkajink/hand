@@ -504,6 +504,22 @@ which disturbs every other component.</p>"""
              "origin; dashes trace the fingertip's centre. The box gives the components achieved, averaged over the "
              "second. Computed by <code>scripts/hom/hom_review_figures.py planar</code> (unit weights, $\\ell$ = 20 mm, "
              "no joint limits).", key="planar")
+    t += ("<p>The films show the same three commands as they unfold, at a quarter of real time. The GCF sits at the pad's "
+          "witness point: $n$ along the normal toward the cylinder, $t$ along the surface, roll about the axis out of the "
+          "page. The dashed arrow is the command, the solid one what Eq. (2) delivers, and the bars on the right compare "
+          "the three components each period. The second film is the 3-D case on one SR2 finger: the thumb runs the paper's "
+          "Exp. A beside the cylinder, each of the six components commanded in turn, with the index and the middle "
+          "hidden.</p>")
+    t += film(MEDIA / "20261110-planar_motions.mp4",
+              "Eq. (2) on the planar finger of Figure 5, one command at a time: separation, slide, roll (each also "
+              "<code>media/20261110-planar_{separation,slide,roll}.mp4</code>). Purple dashed: the commanded relative "
+              "velocity; orange: the achieved one. <code>scripts/hom/hom_planar_films.py</code>.",
+              MEDIA / "20261110-planar_motions.jpg")
+    t += film(MEDIA / "20261110-gcf_expa_thumb.mp4",
+              "The six components of the relative twist on the SR2 thumb (Exp. A, CPU plant, the cylinder see-through, "
+              "half speed): the GCF axes at the pad (x1 red, the normal; y1 green; z1 blue), the commanded twist "
+              "(purple) and the twist Eq. (2) plans (orange), angular parts as thick arrows along their axes. "
+              "<code>scripts/hom/hom_gcf_film.py</code>.", MEDIA / "20261110-gcf_expa_thumb.jpg")
     return t
 
 
