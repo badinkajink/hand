@@ -89,7 +89,7 @@ def C(body, label):
     return r"{" + N + r"\underbrace{" + body + r"}_{\clab{" + label + r"}}}"
 
 
-CD = [  # (slide, what, LaTeX); owner, 2026-11-10 evening: after the bi-level step the 6 mount coordinates, then the 9
+CD = [  # (slide, what, LaTeX); owner, 2026-11-10 afternoon: after the bi-level step the 6 mount coordinates, then the 9
     # joint commands, and only then the object sizes and the tasks
     ("21", "The best hand for a task maximizes the task's score.",
      r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{score of hand $m$ on task $T$}}"),
