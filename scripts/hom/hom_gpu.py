@@ -1247,9 +1247,13 @@ def batch_child(spec):
     """One batch in its own process (spawned by cmd_run): build, run, score, and append its rows and timing line,
     fsynced. The process's exit returns all of its GPU memory; within one process, a finished batch's captured graphs
     kept enough of it that the next 2,048-world cylinder batch could not allocate (2026-10-29)."""
+    import mujoco
+    import mujoco_warp
     import torch
     scene = Scene(spec["shape"], spec["d_mm"])
     chunk, task = spec["worlds"], spec["task"]
+    # every row names the simulator it ran on (2026-11-10: the landscapes of MuJoCo 3.6 and 4.0 are compared)
+    sim = {"mujoco": mujoco.__version__, "mujoco_warp": getattr(mujoco_warp, "__version__", "")}
     t1 = time.time()
     B = Batch(scene, task, chunk, spec["dt"], gen_seed=spec["gen_seed"])
     t_build = time.time() - t1
@@ -1261,7 +1265,7 @@ def batch_child(spec):
         for wd_, r in zip(chunk, res):
             row = dict(wd_["key"], task=task, d_mm=float(spec["d_mm"]), seed=wd_["seed"], variant=wd_["var"]["var"],
                        status="ok", engine="mjwarp", hand=K.HAND, plant=S.PLANT,
-                       scenes=os.path.relpath(S.SCENES, ROOT), **r)
+                       scenes=os.path.relpath(S.SCENES, ROOT), **sim, **r)
             fh.write(json.dumps(row) + "\n")
         fh.flush()
         os.fsync(fh.fileno())
@@ -1271,7 +1275,7 @@ def batch_child(spec):
                              "worlds": len(chunk), "build_s": round(t_build, 2), "run_s": round(wall, 2),
                              "score_s": round(t_score, 2), "layouts": spec["layouts"], "njmax": NJMAX,
                              "filter": os.environ.get("HOM_GPU_FILTER", "object"),
-                             "gpu": torch.cuda.get_device_name(0),
+                             "gpu": torch.cuda.get_device_name(0), **sim,
                              "max_mem_gb": round(torch.cuda.max_memory_allocated() / 1e9, 2),
                              "when": time.strftime("%Y-%m-%d %H:%M")}) + "\n")
         fh.flush()

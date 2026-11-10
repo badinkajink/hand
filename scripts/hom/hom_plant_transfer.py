@@ -23,6 +23,10 @@ Then, for the grids of each subset in ROBUST, one design for all of them, chosen
     python3 scripts/hom/hom_plant_transfer.py                  # plants: rows/20261102-plant_transfer.json
     python3 scripts/hom/hom_plant_transfer.py --set modulus    # rows/20261102-modulus_transfer.json
     python3 scripts/hom/hom_plant_transfer.py --set factorial  # rows/20261102-plant_modulus_factorial.json
+    python3 scripts/hom/hom_plant_transfer.py --set stiffness --score track   # rows/20261110-servo_stiffness_track.json
+
+--score track ranks by hom_landscape.track_score (2026-11-09, the owner's go): only grids whose rows carry the tracking
+fields enter (rows from 11-10 on); --score rollout, the default, is hom_landscape.rollout_score of the earlier pages.
 """
 from __future__ import annotations
 
@@ -52,29 +56,40 @@ STS = {1.25: "grid2dff_v4b_k21E1p25", 2.5: "grid2dff_v4b_k21", 5: "grid2dff_v4b_
 STS = {e: (f"STS3032, {e:g} MPa", src) for e, src in STS.items()}
 STSMU = {0.4: "grid2dff_v4b_k21mu0p4", 0.7: "grid2dff_v4b_k21mu0p7", 1.0: "grid2dff_v4b_k21", 2.4: "grid2dff_v4b_k21mu2p4"}
 STSMU = {mu: (f"STS3032, friction {mu:g}", src) for mu, src in STSMU.items()}   # at 2.5 MPa (owner 11-02 17:4x)
+# post-reset grids (2026-11-10): the SCS0009 at the measured 0.55 N m/rad (kp0.55_kv0_fr0.18_fl0_dp0.011) and the 0.72
+# grids rerun with the tracking fields, both on MuJoCo 3.6.0 and the 2.5 MPa scenes of grid2dff_v4b_sv25
+SV72, SV72R = ("SCS0009 0.72, stored", "grid2dff_v4b_sv25"), ("SCS0009 0.72, rerun", "grid2dff_v4b_sv25r")
+SV55 = ("SCS0009 0.55", "grid2dff_v4b_sv55")
 SETS = {"plants": (WORK10, SCS[2.5], STS25),
         "modulus": (SCS[1.25], SCS[2.5], SCS[5], SCS[10]),
         "factorial": (WORK10, WORK25, SCS[10], SCS[2.5]),
         "sts_modulus": (STS[1.25], STS[2.5], STS[5], STS[10]),
-        "sts_friction": (STSMU[0.4], STSMU[0.7], STSMU[1.0], STSMU[2.4])}
+        "sts_friction": (STSMU[0.4], STSMU[0.7], STSMU[1.0], STSMU[2.4]),
+        "stiffness": (SV72, SV72R, SV55)}
 # subsets that get one design for all their grids; None = every grid of the set that has rows
 ROBUST = {"plants": (None, (SCS[2.5][0], STS25[0])),
           "modulus": ((SCS[1.25][0], SCS[2.5][0], SCS[5][0]), None),          # the calibration's band, then 1.25-10 MPa
           "factorial": ((WORK25[0], SCS[2.5][0]), (SCS[2.5][0], SCS[10][0])),
           "sts_modulus": ((STS[1.25][0], STS[2.5][0], STS[5][0]), None),
-          "sts_friction": ((STSMU[0.4][0], STSMU[0.7][0], STSMU[1.0][0]), None)}   # bare PLA to grip tape, then all
+          "sts_friction": ((STSMU[0.4][0], STSMU[0.7][0], STSMU[1.0][0]), None),   # bare PLA to grip tape, then all
+          "stiffness": ((SV72R[0], SV55[0]),)}
 OUT = {"plants": "20261102-plant_transfer.json", "modulus": "20261102-modulus_transfer.json",
        "factorial": "20261102-plant_modulus_factorial.json", "sts_modulus": "20261102-sts_modulus_transfer.json",
-       "sts_friction": "20261102-sts_friction_transfer.json"}
+       "sts_friction": "20261102-sts_friction_transfer.json", "stiffness": "20261110-servo_stiffness.json"}
+SCORE = {"rollout": L.rollout_score, "track": L.track_score}
 
 
-def grasp_means(task, path):
-    """{call: {grasp: mean score over seeds}} from hom_gpu.py rows."""
-    out = {}
+def grasp_means(task, path, score="rollout"):
+    """{call: {grasp: mean score over seeds}} from hom_gpu.py rows; {} for --score track on rows without the tracking
+    fields."""
+    out, tracked = {}, False
     for x in (path.read_text().splitlines() if path.exists() else []):
         if x.strip():
             r = json.loads(x)
-            out.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.rollout_score(task, r))
+            tracked = tracked or "track_err_rms_deg" in r
+            out.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(SCORE[score](task, r))
+    if score == "track" and not tracked:
+        return {}
     return {c: {g: float(np.mean(v)) for g, v in gs.items()} for c, gs in out.items()}
 
 
@@ -131,10 +146,11 @@ def robust(grids):
 def main():
     ap = argparse.ArgumentParser(description="pairwise transfer and one design across grids of the HOM landscapes")
     ap.add_argument("--set", choices=sorted(SETS), default="plants")
+    ap.add_argument("--score", choices=sorted(SCORE), default="rollout")
     a = ap.parse_args()
-    out = {"set": a.set, "grids": {n: src for n, src in SETS[a.set]}, "pairs": {}, "robust": {}}
+    out = {"set": a.set, "score": a.score, "grids": {n: src for n, src in SETS[a.set]}, "pairs": {}, "robust": {}}
     for task, d in DEFAULT:
-        grids = {name: grasp_means(task, ROWS / src / f"{task}_d{d}.jsonl") for name, src in SETS[a.set]}
+        grids = {name: grasp_means(task, ROWS / src / f"{task}_d{d}.jsonl", a.score) for name, src in SETS[a.set]}
         grids = {n: g for n, g in grids.items() if g}
         for (na, ga), (nb, gb) in itertools.combinations(grids.items(), 2):
             r = compare(task, ga, gb)
@@ -158,6 +174,8 @@ def main():
                       f"one layout and grasp {fs.get(n, float('nan')):.2f} at {r['one_layout_and_grasp']['xy']} "
                       f"(grasp {r['one_layout_and_grasp']['grasp']})", flush=True)
     p = ROWS / OUT[a.set]
+    if a.score != "rollout":
+        p = p.with_name(f"{p.stem}_{a.score}.json")
     p.write_text(json.dumps(out, indent=1))
     print("wrote", p.relative_to(ROOT))
 
