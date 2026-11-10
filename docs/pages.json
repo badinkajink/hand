@@ -77,11 +77,11 @@
   "title": "Layout search methods for the SR2 hand under HOM control",
   "page_title": "Layout search methods for the SR2 hand under HOM control",
   "topic": "design",
-  "summary": "On the SR2 hand's 625-layout lattice the EA of Yang et al. with 64 individuals was the most reliable of six search methods: on the SCS0009 roll it came within 0.05 of the grid's best by 6,000 rollouts in 66 % of 200 replays, against 23 to 27 % for particle swarms, 24 % for random search and 0 % for the FP paper's RRT. On the six-coordinate Sobol layouts, searched live, the EA and the 16-particle swarm stalled on layouts already run, and RRT and random search found the best ones; first-principles notes on the EA, PSO, CEM, Pareto fronts and t-SNE.",
+  "summary": "On the SR2 hand's 625-layout lattice the EA of Yang et al. with 64 individuals was the most reliable of six search methods: on the SCS0009 roll it came within 0.05 of the grid's best by 6,000 rollouts in 66 % of 200 replays, against 23 to 27 % for particle swarms, 24 % for random search and 0 % for the FP paper's RRT. On the six-coordinate Sobol layouts, searched live, the EA and the 16-particle swarm stalled on layouts already run, and RRT and random search found the best ones. Live at four new object sizes the EA came within 0.05 of the best validated layout from 14 of 18 starts and the 16-particle swarm from 12; first-principles notes on the EA, PSO, CEM, Pareto fronts and t-SNE.",
   "builder": "scripts/hom/hom_search_methods_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 1.2
+  "mb": 1.5
  },
  {
   "date": "2026-11-08",

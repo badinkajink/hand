@@ -1,0 +1,1 @@
+{"task": "roll", "d_mm": 28.0, "dt": 0.01, "batch": 0, "worlds": 800, "build_s": 16.22, "run_s": 21.27, "score_s": 3.28, "layouts": "grid2dff_size", "njmax": 2048, "filter": "object", "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "mujoco": "3.6.0", "mujoco_warp": "3.6.0", "max_mem_gb": 0.1, "when": "2026-11-10 15:52"}
