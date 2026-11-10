@@ -378,13 +378,116 @@ def film_sizes_ea(task, sizes):
     return info
 
 
+def film_sizes_four(task, sizes):
+    """The best layout found at four object sizes on the plant of HOM_ROWS_TAG (rows ea_live<tag>, the full grid at the
+    default object), each with its best grasp by the GPU's seeds 0-2, seed 0: one clip per size and a two-by-two film
+    (owner, 2026-11-09, for the talk's opening slides on hand-object scale)."""
+    import hom_contact_rig as HR
+    from PIL import Image
+    tag = HG.ROWS_TAG
+    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / f"grid2dff_v4b{tag}"
+    names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+    clips, info = [], {}
+    for size in sizes:
+        rows_dir, name = (L.GRID_ROWS, None) if (L.GRID_ROWS / f"{task}_d{size:g}.jsonl").exists() else \
+            (ROWS / f"ea_live{tag}", f"{task}_d{size:g}_s0")
+        sc, _ = L.grid_scores(task, size, rows_dir, name)
+        (call, g), m = max(((k, float(np.mean(v))) for k, v in sc.items() if len(v) >= 3), key=lambda kv: kv[1])
+        x, y, _r = L.grid_poses(task, size)[call]
+        obj = f"{size:g} mm {'sphere' if T.SHAPE[task] == 'sphere' else 'cylinder'}"
+        fr, res = clip(task, "grid2dff_size", size, call, g, f"{names[task]}, {obj}: layout ({x:.0f}, {y:.0f}) mm",
+                       var="hold" if T.SHAPE[task] == "cylinder" else "base")
+        out = MEDIA / f"20261109-clip_size_{task}_d{size:g}{tag}.mp4"
+        HR.write_mp4(fr, out, fps=25)
+        Image.fromarray(fr[int(0.55 * len(fr))]).convert("RGB").save(out.with_suffix(".jpg"), quality=85)
+        clips.append(fr)
+        info[f"{size:g}"] = dict(res_brief(task, res), layout=[x, y], call=call, grasp=g, gpu=m,
+                                 clip=str(out.relative_to(ROOT)))
+    compose(clips, MEDIA / f"20261109-film_sizes_four_{task}{tag}.mp4", grid=(2, 2))
+    return info
+
+
+def card(shape, label, text):
+    """A still frame of the films' size for a size with no rollout: the label bar on top and one line of text."""
+    import hom_contact_rig as HR
+    from PIL import Image, ImageDraw, ImageFont
+    im = Image.new("RGB", (shape[1], shape[0]), (46, 72, 104))
+    dr = ImageDraw.Draw(im)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 18)
+    except Exception:
+        font = ImageFont.load_default(size=18)
+    w = dr.textlength(text, font=font)
+    dr.text(((shape[1] - w) / 2, shape[0] / 2 - 9), text, fill=(240, 240, 240), font=font)
+    return HR.annotate(np.asarray(im), label, size=14)
+
+
+def film_sizes_one(task, sizes, xy=(70.0, 110.0)):
+    """One layout at four object sizes (owner, 2026-11-09: "it's ok if it fails. that just shows the suboptimality of one
+    hand for all tasks"): the task-conflict page's best single layout (70, 110) mm with its foundational-pose grasp
+    (grasp 0; the other sizes have no full grid to choose a grasp from), seed 0. A rollout whose state diverges (HOM's
+    least squares fails) is replaced by the layout's next grasp. A size where the toy found no pose for the task has
+    no clip and a card in the two-by-two film."""
+    import hom_contact_rig as HR
+    from PIL import Image
+    tag = HG.ROWS_TAG
+    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / f"grid2dff_v4b{tag}"
+    names = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+    panels, info = [], {}
+    for size in sizes:
+        call = call_at(task, size, *xy)
+        obj = f"{size:g} mm {'sphere' if T.SHAPE[task] == 'sphere' else 'cylinder'}"
+        label = f"{names[task]}, {obj}: layout ({xy[0]:.0f}, {xy[1]:.0f}) mm"
+        grasps = [] if L.grid_poses(task, size)[call][2] is None else \
+            sorted(int(k.get("grasp", 0)) for k, _m, _s in HG.layout_list(task, "grid2dff_size", 0, size)
+                   if int(k["call"]) == call)
+        if not grasps:                                       # the toy's pose solve failed from every start
+            info[f"{size:g}"] = dict(grasps=0, layout=list(xy), call=call)
+            print(f"{task} {obj}: no {HG.POSE[task]} pose on layout ({xy[0]:.0f}, {xy[1]:.0f}) mm", flush=True)
+            panels.append(("card", label, f"No {HG.POSE[task]} grasp found for this layout"))
+            continue
+        diverged, fr = [], None
+        for g in grasps:                                     # the foundational pose (0) first when the set has it
+            try:
+                fr, res = clip(task, "grid2dff_size", size, call, g, label,
+                               var="hold" if T.SHAPE[task] == "cylinder" else "base")
+                break
+            except np.linalg.LinAlgError as e:               # the state diverged and HOM's least squares failed
+                diverged.append(g)
+                print(f"{task} {obj}: grasp {g}'s rollout diverged ({e})", flush=True)
+        if fr is None:
+            info[f"{size:g}"] = dict(diverged=diverged, layout=list(xy), call=call)
+            panels.append(("card", label, "Every grasp's rollout diverged"))
+            continue
+        out = MEDIA / f"20261109-clip_one_{task}_d{size:g}{tag}.mp4"
+        HR.write_mp4(fr, out, fps=25)
+        Image.fromarray(fr[int(0.55 * len(fr))]).convert("RGB").save(out.with_suffix(".jpg"), quality=85)
+        panels.append(fr)
+        info[f"{size:g}"] = dict(res_brief(task, res), layout=list(xy), call=call, grasp=g, diverged=diverged,
+                                 clip=str(out.relative_to(ROOT)))
+    films = [p for p in panels if not isinstance(p, tuple)]
+    if films:
+        shape = films[0][0].shape
+        panels = [[card(shape, *p[1:])] if isinstance(p, tuple) else p for p in panels]
+        compose(panels, MEDIA / f"20261109-film_one_{task}{tag}.mp4", grid=(2, 2) if len(panels) == 4 else None)
+    return info
+
+
 FILMS = {"overlap": film_overlap, "grasp_twist": lambda: film_grasp("twist", 40.0), "grasp_pinpush": lambda: film_grasp("pinpush", 25.0),
          "post": film_post, "local": film_local, "sizes": film_sizes, "four": film_four, "reanchor": film_reanchor,
          "four_ff": film_four_ff, "contact_ff": film_contact_ff,
          "sizes_twist": lambda: film_sizes_ea("twist", (25.0, 45.0, 80.0)),
          "sizes_pinpush": lambda: film_sizes_ea("pinpush", (13.0, 25.0, 50.0)),
          "sizes_roll": lambda: film_sizes_ea("roll", (25.0, 50.0, 80.0)),
-         "sizes_press": lambda: film_sizes_ea("press", (8.0, 25.0, 50.0))}
+         "sizes_press": lambda: film_sizes_ea("press", (8.0, 25.0, 50.0)),
+         "sizes4_twist": lambda: film_sizes_four("twist", (25.0, 30.0, 63.0, 80.0)),
+         "sizes4_roll": lambda: film_sizes_four("roll", (25.0, 30.0, 63.0, 80.0)),
+         "sizes4_pinpush": lambda: film_sizes_four("pinpush", (10.0, 13.0, 40.0, 50.0)),
+         "sizes4_press": lambda: film_sizes_four("press", (10.0, 13.0, 40.0, 50.0)),
+         "one_twist": lambda: film_sizes_one("twist", (25.0, 30.0, 63.0, 80.0)),
+         "one_roll": lambda: film_sizes_one("roll", (25.0, 30.0, 63.0, 80.0)),
+         "one_pinpush": lambda: film_sizes_one("pinpush", (10.0, 13.0, 40.0, 50.0)),
+         "one_press": lambda: film_sizes_one("press", (10.0, 13.0, 40.0, 50.0))}
 
 
 def main():

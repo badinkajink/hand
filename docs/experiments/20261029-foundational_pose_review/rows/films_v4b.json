@@ -1,3 +1,1174 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6550c5de370ccd21b7626a3d5a117da6807f65336a6744b2e9e457def9fa0872
-size 10106
+{
+ "grasp_twist": {
+  "layout": [
+   90.0,
+   100.0
+  ],
+  "call": 260,
+  "foundational pose": {
+   "held": true,
+   "ramp_three_pads_max_deg": 47.02,
+   "w_rmse_ratio": 0.463,
+   "gap_mm": 3.235,
+   "score": 0.522,
+   "grasp": 0
+  },
+  "best grasp": {
+   "held": true,
+   "ramp_three_pads_max_deg": 69.95,
+   "w_rmse_ratio": 0.392,
+   "gap_mm": 5.61,
+   "score": 0.777,
+   "grasp": 14
+  },
+  "when": "2026-10-30 13:40"
+ },
+ "grasp_pinpush": {
+  "layout": [
+   85.0,
+   60.0
+  ],
+  "call": 227,
+  "foundational pose": {
+   "held": true,
+   "theta_rmse_deg": 3.19,
+   "F_mean": {
+    "thumb": 4.25,
+    "index": 3.832,
+    "middle": 0.423
+   },
+   "gap_mm": 10.042,
+   "score": 0.787,
+   "grasp": 0
+  },
+  "best grasp": {
+   "held": true,
+   "theta_rmse_deg": 11.45,
+   "F_mean": {
+    "thumb": 4.314,
+    "index": 4.129,
+    "middle": 0.193
+   },
+   "gap_mm": 8.855,
+   "score": 0.237,
+   "grasp": 3
+  },
+  "when": "2026-10-30 13:40"
+ },
+ "post": {
+  "seed 7": {
+   "held": true,
+   "theta_rmse_deg": 3.13,
+   "F_mean": {
+    "thumb": 4.354,
+    "index": 4.11,
+    "middle": 0.261
+   },
+   "gap_mm": 21.29,
+   "score": 0.791
+  },
+  "seed 8": {
+   "held": false,
+   "theta_rmse_deg": 8.17,
+   "F_mean": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "gap_mm": 21.29,
+   "score": 0.0
+  },
+  "seed 8, object held to 0.8 s": {
+   "held": true,
+   "theta_rmse_deg": 3.27,
+   "F_mean": {
+    "thumb": 4.313,
+    "index": 4.035,
+    "middle": 0.289
+   },
+   "gap_mm": 21.29,
+   "score": 0.782
+  },
+  "when": "2026-10-30 13:41"
+ },
+ "local": {
+  "center": 12,
+  "start": {
+   "held": true,
+   "ramp_three_pads_max_deg": 82.62,
+   "w_rmse_ratio": 2.594,
+   "gap_mm": 4.373,
+   "score": 0.918,
+   "call": 195,
+   "d": [
+    -59.2,
+    36.8,
+    43.4,
+    67.3,
+    79.7,
+    -30.8
+   ]
+  },
+  "best neighbour, 2.0 mm away": {
+   "held": true,
+   "ramp_three_pads_max_deg": 79.79,
+   "w_rmse_ratio": 2.567,
+   "gap_mm": 3.81,
+   "score": 0.887,
+   "call": 209,
+   "d": [
+    -59.678,
+    35.879,
+    44.131,
+    67.219,
+    78.211,
+    -30.763
+   ]
+  },
+  "when": "2026-10-30 13:41"
+ },
+ "sizes": {
+  "30": {
+   "held": true,
+   "ramp_three_pads_max_deg": 51.42,
+   "w_rmse_ratio": 0.34,
+   "gap_mm": 2.358,
+   "score": 0.571,
+   "layout": [
+    85.0,
+    90.0
+   ],
+   "grasp": 14
+  },
+  "63": {
+   "held": true,
+   "ramp_three_pads_max_deg": 51.36,
+   "w_rmse_ratio": 0.756,
+   "gap_mm": 4.52,
+   "score": 0.571,
+   "layout": [
+    120.0,
+    95.0
+   ],
+   "grasp": 6
+  },
+  "when": "2026-10-30 13:41"
+ },
+ "four": {
+  "layout": [
+   90.0,
+   95.0
+  ],
+  "twist": {
+   "held": true,
+   "ramp_three_pads_max_deg": 86.82,
+   "w_rmse_ratio": 1.973,
+   "gap_mm": 2.003,
+   "score": 0.965,
+   "grasp": 11
+  },
+  "roll": {
+   "held": true,
+   "w_rmse_ratio": 0.62,
+   "gap_mm": 11.946,
+   "score": 0.617,
+   "grasp": 1
+  },
+  "pinpush": {
+   "held": true,
+   "theta_rmse_deg": 3.34,
+   "F_mean": {
+    "thumb": 4.216,
+    "index": 3.831,
+    "middle": 0.396
+   },
+   "gap_mm": 22.237,
+   "score": 0.777,
+   "grasp": 3
+  },
+  "press": {
+   "held": true,
+   "theta_rmse_deg": 4.11,
+   "F_mean": {
+    "thumb": 3.279,
+    "index": 2.928,
+    "middle": 0.379
+   },
+   "gap_mm": 16.363,
+   "score": 0.794,
+   "grasp": 1
+  },
+  "when": "2026-10-30 13:42"
+ },
+ "reanchor": {
+  "without the re-anchor": {
+   "held": true,
+   "theta_rmse_deg": 3.12,
+   "F_mean": {
+    "thumb": 4.33,
+    "index": 4.073,
+    "middle": 0.27
+   },
+   "gap_mm": 21.29,
+   "score": 0.792
+  },
+  "with the re-anchor": {
+   "held": true,
+   "theta_rmse_deg": 19.96,
+   "F_mean": {
+    "thumb": 4.532,
+    "index": 3.464,
+    "middle": 0.781
+   },
+   "gap_mm": 21.29,
+   "score": 0.0
+  },
+  "when": "2026-10-30 13:42"
+ },
+ "overlap": {
+  "layout": [
+   105.0,
+   100.0
+  ],
+  "call": 335,
+  "grasp": 9,
+  "gpu": 0.9367037037037038,
+  "all contacts": {
+   "held": false,
+   "ramp_three_pads_max_deg": 0.0,
+   "w_rmse_ratio": 2.4,
+   "gap_mm": -1.315,
+   "score": 0.0
+  },
+  "pads and small rigid spheres meet the object only": {
+   "held": true,
+   "ramp_three_pads_max_deg": 79.96,
+   "w_rmse_ratio": 0.467,
+   "gap_mm": -1.315,
+   "score": 0.888
+  },
+  "when": "2026-10-30 13:39"
+ },
+ "four_ff": {
+  "layout": [
+   100.0,
+   110.0
+  ],
+  "twist": {
+   "held": true,
+   "ramp_three_pads_max_deg": 67.43,
+   "w_rmse_ratio": 0.715,
+   "gap_mm": 5.498,
+   "score": 0.749,
+   "grasp": 5
+  },
+  "roll": {
+   "held": true,
+   "w_rmse_ratio": 0.475,
+   "gap_mm": 3.345,
+   "score": 0.678,
+   "grasp": 3
+  },
+  "pinpush": {
+   "held": true,
+   "theta_rmse_deg": 5.26,
+   "F_mean": {
+    "thumb": 4.258,
+    "index": 3.989,
+    "middle": 0.264
+   },
+   "gap_mm": 22.314,
+   "score": 0.649,
+   "grasp": 2
+  },
+  "press": {
+   "held": true,
+   "theta_rmse_deg": 2.97,
+   "F_mean": {
+    "thumb": 3.417,
+    "index": 3.235,
+    "middle": 0.209
+   },
+   "gap_mm": 21.951,
+   "score": 0.851,
+   "grasp": 12
+  },
+  "when": "2026-10-30 15:53"
+ },
+ "contact_ff": {
+  "layout": [
+   115.0,
+   140.0
+  ],
+  "call": 393,
+  "grasp": 2,
+  "gpu": 0.9763703703703704,
+  "all contacts": {
+   "held": true,
+   "ramp_three_pads_max_deg": 4.64,
+   "w_rmse_ratio": 2.473,
+   "gap_mm": 2.66,
+   "score": 0.052
+  },
+  "pads and small rigid spheres meet the object only": {
+   "held": true,
+   "ramp_three_pads_max_deg": 89.7,
+   "w_rmse_ratio": 1.285,
+   "gap_mm": 2.66,
+   "score": 0.997
+  },
+  "when": "2026-10-30 15:54"
+ },
+ "sizes_twist": {
+  "25": {
+   "held": true,
+   "ramp_three_pads_max_deg": 50.33,
+   "w_rmse_ratio": 1.076,
+   "gap_mm": 1.421,
+   "score": 0.559,
+   "layout": [
+    110.0,
+    95.0
+   ],
+   "call": 359,
+   "grasp": 4,
+   "gpu": 0.9844814814814815
+  },
+  "45": {
+   "held": true,
+   "ramp_three_pads_max_deg": 102.46,
+   "w_rmse_ratio": 1.351,
+   "gap_mm": 2.233,
+   "score": 1.0,
+   "layout": [
+    125.0,
+    120.0
+   ],
+   "call": 439,
+   "grasp": 3,
+   "gpu": 1.0
+  },
+  "80": {
+   "held": true,
+   "ramp_three_pads_max_deg": 81.49,
+   "w_rmse_ratio": 0.442,
+   "gap_mm": 20.991,
+   "score": 0.905,
+   "layout": [
+    140.0,
+    95.0
+   ],
+   "call": 509,
+   "grasp": 2,
+   "gpu": 0.8884814814814814
+  },
+  "when": "2026-10-31 15:28"
+ },
+ "sizes_pinpush": {
+  "13": {
+   "held": true,
+   "theta_rmse_deg": 2.15,
+   "F_mean": {
+    "thumb": 4.195,
+    "index": 3.715,
+    "middle": 0.489
+   },
+   "gap_mm": 6.285,
+   "score": 0.857,
+   "layout": [
+    75.0,
+    65.0
+   ],
+   "call": 178,
+   "grasp": 10,
+   "gpu": 0.8606666666666666
+  },
+  "25": {
+   "held": true,
+   "theta_rmse_deg": 1.08,
+   "F_mean": {
+    "thumb": 4.088,
+    "index": 3.247,
+    "middle": 0.829
+   },
+   "gap_mm": 2.554,
+   "score": 0.928,
+   "layout": [
+    75.0,
+    55.0
+   ],
+   "call": 176,
+   "grasp": 12,
+   "gpu": 0.9097777777777778
+  },
+  "50": {
+   "held": true,
+   "theta_rmse_deg": 1.85,
+   "F_mean": {
+    "thumb": 4.456,
+    "index": 2.994,
+    "middle": 1.453
+   },
+   "gap_mm": 14.173,
+   "score": 0.877,
+   "layout": [
+    115.0,
+    90.0
+   ],
+   "call": 383,
+   "grasp": 8,
+   "gpu": 0.8764444444444445
+  },
+  "when": "2026-10-31 15:29"
+ },
+ "sizes_roll": {
+  "25": {
+   "held": true,
+   "w_rmse_ratio": 0.521,
+   "gap_mm": 1.763,
+   "score": 0.657,
+   "layout": [
+    125.0,
+    90.0
+   ],
+   "call": 433,
+   "grasp": 0,
+   "gpu": 0.6488060657710762
+  },
+  "50": {
+   "held": true,
+   "w_rmse_ratio": 0.586,
+   "gap_mm": 2.425,
+   "score": 0.631,
+   "layout": [
+    115.0,
+    60.0
+   ],
+   "call": 377,
+   "grasp": 1,
+   "gpu": 0.6723640349230133
+  },
+  "80": {
+   "held": true,
+   "w_rmse_ratio": 0.525,
+   "gap_mm": 23.309,
+   "score": 0.656,
+   "layout": [
+    135.0,
+    75.0
+   ],
+   "call": 480,
+   "grasp": 7,
+   "gpu": 0.6560256832687097
+  },
+  "when": "2026-10-31 15:28"
+ },
+ "sizes_press": {
+  "8": {
+   "held": true,
+   "theta_rmse_deg": 3.56,
+   "F_mean": {
+    "thumb": 3.423,
+    "index": 3.298,
+    "middle": 0.165
+   },
+   "gap_mm": 5.335,
+   "score": 0.822,
+   "layout": [
+    80.0,
+    60.0
+   ],
+   "call": 202,
+   "grasp": 3,
+   "gpu": 0.81425
+  },
+  "25": {
+   "held": true,
+   "theta_rmse_deg": 1.44,
+   "F_mean": {
+    "thumb": 3.329,
+    "index": 3.166,
+    "middle": 0.091
+   },
+   "gap_mm": 21.602,
+   "score": 0.928,
+   "layout": [
+    95.0,
+    155.0
+   ],
+   "call": 296,
+   "grasp": 13,
+   "gpu": 0.9168333333333334
+  },
+  "50": {
+   "held": true,
+   "theta_rmse_deg": 1.99,
+   "F_mean": {
+    "thumb": 3.493,
+    "index": 3.038,
+    "middle": 0.171
+   },
+   "gap_mm": 45.07,
+   "score": 0.9,
+   "layout": [
+    130.0,
+    170.0
+   ],
+   "call": 474,
+   "grasp": 3,
+   "gpu": 0.8969999999999999
+  },
+  "when": "2026-10-31 15:29"
+ },
+ "table_twist": {
+  "grid2dff": {
+   "layout": [
+    110.0,
+    85.0
+   ],
+   "call": 357,
+   "grasp": 14,
+   "gpu": 1.0,
+   "score": 0.0,
+   "held": true,
+   "periods": 159,
+   "force_max_N": 902.2275079003475
+  },
+  "grid2dgr": {
+   "layout": [
+    85.0,
+    105.0
+   ],
+   "call": 236,
+   "grasp": 8,
+   "gpu": 1.0,
+   "score": 1.0,
+   "held": true,
+   "periods": 0,
+   "force_max_N": 0.0
+  },
+  "when": "2026-10-31 21:32"
+ },
+ "table_pinpush": {
+  "grid2dff": {
+   "layout": [
+    75.0,
+    55.0
+   ],
+   "call": 176,
+   "grasp": 12,
+   "gpu": 0.9097777777777778,
+   "score": 0.577,
+   "held": true,
+   "periods": 160,
+   "force_max_N": 1824024.3522756726
+  },
+  "grid2dgr": {
+   "layout": [
+    80.0,
+    75.0
+   ],
+   "call": 205,
+   "grasp": 10,
+   "gpu": 0.7171111111111111,
+   "score": 0.0,
+   "held": false,
+   "periods": 160,
+   "force_max_N": 676.5609870040353
+  },
+  "when": "2026-10-31 21:32"
+ },
+ "table_pinpush_squeeze": {
+  "grid2dgr": {
+   "layout": [
+    80.0,
+    75.0
+   ],
+   "call": 205,
+   "grasp": 10,
+   "gpu": 0.7171111111111111,
+   "score": 0.0,
+   "held": false,
+   "periods": 160,
+   "force_max_N": 676.5609870040353
+  },
+  "grid2dgn": {
+   "layout": [
+    80.0,
+    75.0
+   ],
+   "call": 205,
+   "grasp": 15,
+   "gpu": 0.6973333333333334,
+   "score": 0.598,
+   "held": true,
+   "periods": 0,
+   "force_max_N": 0.0
+  },
+  "grid2dgs": {
+   "layout": [
+    80.0,
+    75.0
+   ],
+   "call": 205,
+   "grasp": 11,
+   "gpu": 0.6951111111111112,
+   "score": 0.0,
+   "held": false,
+   "periods": 0,
+   "force_max_N": 0.0
+  },
+  "when": "2026-10-31 21:34"
+ },
+ "sizes4_twist": {
+  "25": {
+   "held": true,
+   "ramp_three_pads_max_deg": 78.67,
+   "w_rmse_ratio": 3.189,
+   "gap_mm": 2.387,
+   "score": 0.874,
+   "layout": [
+    75.0,
+    130.0
+   ],
+   "call": 191,
+   "grasp": 13,
+   "gpu": 0.9694444444444444,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_twist_d25_sv25.mp4"
+  },
+  "30": {
+   "held": true,
+   "ramp_three_pads_max_deg": 107.15,
+   "w_rmse_ratio": 2.392,
+   "gap_mm": 3.136,
+   "score": 1.0,
+   "layout": [
+    95.0,
+    110.0
+   ],
+   "call": 287,
+   "grasp": 6,
+   "gpu": 1.0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_twist_d30_sv25.mp4"
+  },
+  "63": {
+   "held": true,
+   "ramp_three_pads_max_deg": 81.55,
+   "w_rmse_ratio": 1.384,
+   "gap_mm": 10.7,
+   "score": 0.906,
+   "layout": [
+    145.0,
+    105.0
+   ],
+   "call": 536,
+   "grasp": 6,
+   "gpu": 0.9284074074074075,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_twist_d63_sv25.mp4"
+  },
+  "80": {
+   "held": true,
+   "ramp_three_pads_max_deg": 78.58,
+   "w_rmse_ratio": 0.54,
+   "gap_mm": 20.991,
+   "score": 0.873,
+   "layout": [
+    140.0,
+    95.0
+   ],
+   "call": 509,
+   "grasp": 2,
+   "gpu": 0.8735555555555555,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_twist_d80_sv25.mp4"
+  },
+  "when": "2026-11-09 16:55"
+ },
+ "sizes4_roll": {
+  "25": {
+   "held": true,
+   "w_rmse_ratio": 0.775,
+   "gap_mm": 5.492,
+   "score": 0.563,
+   "layout": [
+    75.0,
+    165.0
+   ],
+   "call": 198,
+   "grasp": 5,
+   "gpu": 0.5965854255157358,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_roll_d25_sv25.mp4"
+  },
+  "30": {
+   "held": true,
+   "w_rmse_ratio": 0.813,
+   "gap_mm": 8.752,
+   "score": 0.552,
+   "layout": [
+    75.0,
+    165.0
+   ],
+   "call": 198,
+   "grasp": 2,
+   "gpu": 0.6167801156623051,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_roll_d30_sv25.mp4"
+  },
+  "63": {
+   "held": true,
+   "w_rmse_ratio": 0.734,
+   "gap_mm": 10.042,
+   "score": 0.577,
+   "layout": [
+    110.0,
+    60.0
+   ],
+   "call": 352,
+   "grasp": 2,
+   "gpu": 0.5745019148906149,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_roll_d63_sv25.mp4"
+  },
+  "80": {
+   "held": true,
+   "w_rmse_ratio": 0.765,
+   "gap_mm": 30.549,
+   "score": 0.567,
+   "layout": [
+    125.0,
+    165.0
+   ],
+   "call": 448,
+   "grasp": 15,
+   "gpu": 0.5709679692784444,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_roll_d80_sv25.mp4"
+  },
+  "when": "2026-11-09 16:55"
+ },
+ "sizes4_pinpush": {
+  "10": {
+   "held": true,
+   "theta_rmse_deg": 3.93,
+   "F_mean": {
+    "thumb": 3.028,
+    "index": 2.872,
+    "middle": 0.202
+   },
+   "gap_mm": 2.361,
+   "score": 0.738,
+   "layout": [
+    60.0,
+    55.0
+   ],
+   "call": 101,
+   "grasp": 11,
+   "gpu": 0.7440000000000001,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_pinpush_d10_sv25.mp4"
+  },
+  "13": {
+   "held": true,
+   "theta_rmse_deg": 2.74,
+   "F_mean": {
+    "thumb": 3.291,
+    "index": 3.005,
+    "middle": 0.297
+   },
+   "gap_mm": 7.451,
+   "score": 0.817,
+   "layout": [
+    75.0,
+    65.0
+   ],
+   "call": 178,
+   "grasp": 13,
+   "gpu": 0.8322222222222222,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_pinpush_d13_sv25.mp4"
+  },
+  "40": {
+   "held": true,
+   "theta_rmse_deg": 3.75,
+   "F_mean": {
+    "thumb": 3.393,
+    "index": 2.863,
+    "middle": 0.374
+   },
+   "gap_mm": 38.31,
+   "score": 0.75,
+   "layout": [
+    90.0,
+    165.0
+   ],
+   "call": 273,
+   "grasp": 7,
+   "gpu": 0.7508888888888888,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_pinpush_d40_sv25.mp4"
+  },
+  "50": {
+   "held": true,
+   "theta_rmse_deg": 3.86,
+   "F_mean": {
+    "thumb": 3.558,
+    "index": 2.808,
+    "middle": 0.753
+   },
+   "gap_mm": 33.866,
+   "score": 0.743,
+   "layout": [
+    100.0,
+    120.0
+   ],
+   "call": 314,
+   "grasp": 15,
+   "gpu": 0.7615555555555557,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_pinpush_d50_sv25.mp4"
+  },
+  "when": "2026-11-09 16:52"
+ },
+ "sizes4_press": {
+  "10": {
+   "held": true,
+   "theta_rmse_deg": 3.57,
+   "F_mean": {
+    "thumb": 2.95,
+    "index": 2.884,
+    "middle": 0.133
+   },
+   "gap_mm": 8.327,
+   "score": 0.822,
+   "layout": [
+    65.0,
+    105.0
+   ],
+   "call": 136,
+   "grasp": 4,
+   "gpu": 0.7656666666666667,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_press_d10_sv25.mp4"
+  },
+  "13": {
+   "held": true,
+   "theta_rmse_deg": 5.02,
+   "F_mean": {
+    "thumb": 3.139,
+    "index": 3.013,
+    "middle": 0.183
+   },
+   "gap_mm": 10.022,
+   "score": 0.749,
+   "layout": [
+    75.0,
+    85.0
+   ],
+   "call": 182,
+   "grasp": 4,
+   "gpu": 0.789,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_press_d13_sv25.mp4"
+  },
+  "40": {
+   "held": true,
+   "theta_rmse_deg": 3.46,
+   "F_mean": {
+    "thumb": 3.093,
+    "index": 2.878,
+    "middle": 0.239
+   },
+   "gap_mm": 35.506,
+   "score": 0.827,
+   "layout": [
+    95.0,
+    105.0
+   ],
+   "call": 286,
+   "grasp": 5,
+   "gpu": 0.8153333333333334,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_press_d40_sv25.mp4"
+  },
+  "50": {
+   "held": true,
+   "theta_rmse_deg": 3.57,
+   "F_mean": {
+    "thumb": 3.119,
+    "index": 2.911,
+    "middle": 0.222
+   },
+   "gap_mm": 40.928,
+   "score": 0.822,
+   "layout": [
+    100.0,
+    115.0
+   ],
+   "call": 313,
+   "grasp": 8,
+   "gpu": 0.7866666666666666,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_size_press_d50_sv25.mp4"
+  },
+  "when": "2026-11-09 16:53"
+ },
+ "one_twist": {
+  "25": {
+   "held": true,
+   "ramp_three_pads_max_deg": 35.67,
+   "w_rmse_ratio": 1.682,
+   "gap_mm": 4.0,
+   "score": 0.396,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_twist_d25_sv25.mp4"
+  },
+  "30": {
+   "held": true,
+   "ramp_three_pads_max_deg": 16.42,
+   "w_rmse_ratio": 1.276,
+   "gap_mm": 4.752,
+   "score": 0.182,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_twist_d30_sv25.mp4"
+  },
+  "63": {
+   "held": true,
+   "ramp_three_pads_max_deg": 7.16,
+   "w_rmse_ratio": 0.602,
+   "gap_mm": 39.293,
+   "score": 0.08,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_twist_d63_sv25.mp4"
+  },
+  "80": {
+   "held": true,
+   "ramp_three_pads_max_deg": 1.19,
+   "w_rmse_ratio": 0.5,
+   "gap_mm": 48.635,
+   "score": 0.013,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_twist_d80_sv25.mp4"
+  },
+  "when": "2026-11-09 16:57"
+ },
+ "one_roll": {
+  "25": {
+   "held": true,
+   "w_rmse_ratio": 1.039,
+   "gap_mm": 4.0,
+   "score": 0.49,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d25_sv25.mp4"
+  },
+  "30": {
+   "held": true,
+   "w_rmse_ratio": 1.102,
+   "gap_mm": 4.752,
+   "score": 0.476,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d30_sv25.mp4"
+  },
+  "63": {
+   "held": true,
+   "w_rmse_ratio": 1.016,
+   "gap_mm": 39.293,
+   "score": 0.496,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d63_sv25.mp4"
+  },
+  "80": {
+   "held": true,
+   "w_rmse_ratio": 1.085,
+   "gap_mm": 48.635,
+   "score": 0.48,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_roll_d80_sv25.mp4"
+  },
+  "when": "2026-11-09 16:57"
+ },
+ "one_pinpush": {
+  "10": {
+   "held": false,
+   "theta_rmse_deg": 140.92,
+   "F_mean": {
+    "thumb": 0.923,
+    "index": 0.937,
+    "middle": 0.044
+   },
+   "gap_mm": 7.513,
+   "score": 0.0,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_pinpush_d10_sv25.mp4"
+  },
+  "13": {
+   "held": false,
+   "theta_rmse_deg": 33.63,
+   "F_mean": {
+    "thumb": 0.686,
+    "index": 0.656,
+    "middle": 0.0
+   },
+   "gap_mm": 10.977,
+   "score": 0.0,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_pinpush_d13_sv25.mp4"
+  },
+  "40": {
+   "held": true,
+   "theta_rmse_deg": 6.59,
+   "F_mean": {
+    "thumb": 3.095,
+    "index": 2.685,
+    "middle": 0.922
+   },
+   "gap_mm": 40.03,
+   "score": 0.561,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_pinpush_d40_sv25.mp4"
+  },
+  "50": {
+   "held": true,
+   "theta_rmse_deg": 7.62,
+   "F_mean": {
+    "thumb": 2.942,
+    "index": 2.65,
+    "middle": 0.297
+   },
+   "gap_mm": 28.812,
+   "score": 0.492,
+   "reached": true,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_pinpush_d50_sv25.mp4"
+  },
+  "when": "2026-11-09 16:58"
+ },
+ "one_press": {
+  "10": {
+   "held": false,
+   "theta_rmse_deg": 267.21,
+   "F_mean": {
+    "thumb": 0.0,
+    "index": 0.0,
+    "middle": 0.0
+   },
+   "gap_mm": 7.486,
+   "score": 0.0,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "diverged": [],
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_press_d10_sv25.mp4"
+  },
+  "13": {
+   "held": true,
+   "theta_rmse_deg": 14.14,
+   "F_mean": {
+    "thumb": 3.249,
+    "index": 3.168,
+    "middle": 0.095
+   },
+   "gap_mm": 10.757,
+   "score": 0.293,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 1,
+   "diverged": [
+    0
+   ],
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_press_d13_sv25.mp4"
+  },
+  "40": {
+   "held": true,
+   "theta_rmse_deg": 13.55,
+   "F_mean": {
+    "thumb": 2.714,
+    "index": 3.002,
+    "middle": 0.773
+   },
+   "gap_mm": 36.351,
+   "score": 0.323,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162,
+   "grasp": 0,
+   "diverged": [],
+   "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_one_press_d40_sv25.mp4"
+  },
+  "50": {
+   "grasps": 0,
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "call": 162
+  },
+  "when": "2026-11-09 17:05"
+ }
+}
