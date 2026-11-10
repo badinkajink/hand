@@ -56,8 +56,10 @@ def arm(r):
     return "position" if r["plant"] == "position" else f"torque {r['wn']:g}"
 
 
-def load():
-    return [json.loads(x) for x in ROWS.read_text().splitlines() if x.strip()]
+def load(tau_max=None):
+    """The comparison's rows at the joints' torque limit tau_max (None: the SCS0009's 0.18 N m, rows without the field)."""
+    rows = [json.loads(x) for x in ROWS.read_text().splitlines() if x.strip()]
+    return [r for r in rows if r.get("tau_max") == tau_max]
 
 
 def followed(r):
@@ -293,6 +295,41 @@ def sec_contact(N):
     return t
 
 
+def sec_limit(N, N5):
+    """The comparison again with both plants' joints limited at the STS3032's 0.515 N m."""
+    if not N5:
+        return ""
+    body = []
+    for task in TASKS:
+        for a in ARMS:
+            v, w = N["task"][(task, a)], N5["task"].get((task, a))
+            if w is None:
+                continue
+            body.append([TNAME[task] if a == ARMS[0] else "", ANAME[a], f2(v["track"]), f2(w["track"]),
+                         f2(w["followed"]), f2(w["three"]), f1(w["off"]), f2(w["sat"])])
+    tw = (lambda a: N5["task"][("twist", a)])
+    ro = (lambda a: N5["task"][("roll", a)])
+    pr = (lambda a: N5["task"][("press", a)])
+    t = (f"<p>With the joints limited at 0.515 N m, the STS3032's torque, both plants ran the same 23 configurations "
+         f"(Table 4). A joint then reached its limit on at most "
+         f"{max(N5['task'][(k, a)]['sat'] for k in TASKS for a in ARMS):.2f} of the physics steps. The twist scored "
+         f"{tw('position')['track']:.2f} with the position servos, {tw('torque 25.6')['track']:.2f} at 25.6 rad/s and "
+         f"{tw('torque 63')['track']:.2f} at 63 rad/s. The roll scored {ro('position')['track']:.2f}, "
+         f"{ro('torque 25.6')['track']:.2f} and {ro('torque 63')['track']:.2f}, and the press "
+         f"{pr('position')['track']:.2f}, {pr('torque 25.6')['track']:.2f} and {pr('torque 63')['track']:.2f}.</p>"
+         f"<p>The 63 rad/s loop lost pad contact at this limit as well: its three-pad share in the twist was "
+         + (f"{tw('torque 63')['three']:.2f} at both limits. The "
+            if f"{tw('torque 63')['three']:.2f}" == f"{N['task'][('twist', 'torque 63')]['three']:.2f}" else
+            f"{tw('torque 63')['three']:.2f}, against {N['task'][('twist', 'torque 63')]['three']:.2f} at 0.18 N m. The ")
+         + f"position servos tracked the roll and the press worse with the higher limit, at "
+         f"{ro('position')['track']:.2f} and {pr('position')['track']:.2f} against "
+         f"{N['task'][('roll', 'position')]['track']:.2f} and {N['task'][('press', 'position')]['track']:.2f}.</p>")
+    return t + table(["Task", "Plant", "Tracking score, 0.18 N m", "Tracking score, 0.515 N m", "Rotation followed",
+                      "Three-pad share", "Off-axis angular velocity (deg/s)", "Torque-limit share"], body,
+                     "The three plants with the joints limited at 0.18 N m (Table 1) and at 0.515 N m; the other columns "
+                     "are at 0.515 N m. Means over the 23 configurations, seeds 0-2.", num_from=2)
+
+
 def sec_films():
     caps = {("twist", 30.0, "pick"): "Twist of the 30 mm sphere on layout (95, 90) mm, picked by the tracking score.",
             ("roll", 63.0, "pick"): "Roll of the 63 mm sphere on layout (155, 85) mm, picked by the tracking score, "
@@ -331,9 +368,9 @@ def sec_limits(N):
 def sec_future():
     return (
         "<ul>"
-        "<li>Torque limit. Rerun <code>hom_torque.py compare</code> with <code>TAU_MAX</code> 0.515 N m, the STS3032's, "
-        "on both plants. If the torque plant then scores more than 0.03 above the position servos on the twist or the "
-        "roll, the torque control was held back by the 0.18 N m limit.</li>"
+        "<li>Loop frequency. Run <code>hom_torque.py compare --tau-max 0.515</code> with $\\omega_n$ of 15 and 40 rad/s. "
+        "A loop helps the twist if it keeps the position servos' three-pad share of 0.41 and an off-axis angular "
+        "velocity under 15 deg/s; its tracking score should then exceed theirs by more than 0.03.</li>"
         "<li>Layouts picked under torque control. Re-pick each size's layout by the torque plant at 63 rad/s from the "
         "tracking page's short lists (<code>hom_track_films.py</code> with <code>hom_torque.TorquePlant</code>). If "
         "the picks score within 0.03 of the position servos' picks, the plant does not change which layout is best.</li>"
@@ -360,7 +397,7 @@ def sec_files():
             "Dexterous Tool Manipulation\", arXiv 2609.25619v2, 2026.</p>")
 
 
-def lede(N):
+def lede(N, N5):
     T_ = N["task"]
     g = (lambda task, a, k: T_[(task, a)][k])
     text = (
@@ -372,9 +409,11 @@ def lede(N):
         f"steadily: its angular velocity off the commanded axis fell from {g('twist', 'position', 'off'):.0f} to "
         f"{g('twist', 'torque 63', 'off'):.0f} deg/s in the twist. Pad contact was lost more often. In the twist a "
         f"joint was at the servos' 0.18 N m on {100 * g('twist', 'torque 63', 'sat'):.0f} % of physics steps, and on "
-        f"{100 * g('twist', 'position', 'sat'):.0f} % with the position servos. On the built hand a torque reaches the "
-        f"position-only servo as an offset through its spring, and its 0.59 deg dead band removes torques under 6 to "
-        f"7 mN m.")
+        f"{100 * g('twist', 'position', 'sat'):.0f} % with the position servos. With the limit raised to the STS3032's "
+        f"0.515 N m, the 63 rad/s loop scored {N5['task'][('twist', 'torque 63')]['track']:.2f}, "
+        f"{N5['task'][('roll', 'torque 63')]['track']:.2f} and {N5['task'][('press', 'torque 63')]['track']:.2f} on the "
+        f"three tasks. On the built hand a torque reaches the position-only servo as an offset through its spring, and "
+        f"its 0.59 deg dead band removes torques under 6 to 7 mN m.")
     summary = (f"Inverse-dynamics torque control of the SR2 fingers under HOM, against the SCS0009 position servos on the "
                f"films' layouts: tracking scores went from {g('twist', 'position', 'track'):.2f} to "
                f"{g('twist', 'torque 63', 'track'):.2f} (twist), {g('roll', 'position', 'track'):.2f} to "
@@ -396,16 +435,19 @@ def render(page_text, holder):
 def main():
     rows = load()
     N = numbers(rows)
+    r5 = load(0.515)
+    N5 = numbers(r5) if r5 else None
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("plant", "Position servos and the inverse-dynamics torque plant", sec_plant()),
                 ("compare", "Tracking on the films' layouts and object sizes", sec_compare(N)),
                 ("contact", "Pad contact, pad force and the torque limit", sec_contact(N)),
+                ("limit", "The comparison at the STS3032's torque limit", sec_limit(N, N5)),
                 ("films", "Films of three configurations on the three plants", sec_films()),
                 ("hardware", "A joint torque on the position servos of the built hand", sec_hardware()),
                 ("limits", "Limitations", sec_limits(N)),
                 ("future", "Future work", sec_future()),
                 ("files", "References and files", sec_files())]
-    lede_t, summary = lede(N)
+    lede_t, summary = lede(N, N5)
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N\b|s\b)", "\\1&nbsp;\\2", s_))
     sections = [(sid, hd, unit(re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), b))) for sid, hd, b in sections]

@@ -69,11 +69,14 @@ AXIS = {"twist": 2, "roll": 1, "press": 0}                # the commanded rotati
 
 
 class PositionPlant(T.Plant):
-    """hom_tasks.Plant counting the physics steps on which a finger actuator is at its force limit."""
+    """hom_tasks.Plant counting the physics steps on which a finger actuator is at its force limit; tau_max (N m) sets
+    that limit in place of the scene's."""
 
-    def __init__(self, path, setup):
+    def __init__(self, path, setup, tau_max=None):
         super().__init__(path, setup)
         self.acts = np.concatenate([self.act[f] for f in FINGERS])
+        if tau_max is not None:
+            self.m.actuator_forcerange[self.acts] = (-tau_max, tau_max)
         self.lim = np.abs(self.m.actuator_forcerange[self.acts, 1])
         self.n_steps = self.n_sat = 0
 
@@ -96,7 +99,7 @@ class TorquePlant(PositionPlant):
     """The fingers' actuators as motors under inverse dynamics (module docstring)."""
 
     def __init__(self, path, setup, wn=WN["servo"], zeta=1.0, tau_max=TAU_MAX, dt_c=T.DT_C):
-        super().__init__(path, setup)
+        super().__init__(path, setup, tau_max)
         m, mj = self.m, self.mj
         for a in self.acts:
             m.actuator_gaintype[a] = mj.mjtGain.mjGAIN_FIXED
@@ -155,6 +158,48 @@ class TorquePlant(PositionPlant):
         self._hold()
 
 
+class DeadbandPlant(PositionPlant):
+    """The position servos with the SCS0009's dead band, as hom_gpu.servo_deadband sets it on the GPU (HOS_DEADBAND_DEG):
+    motors whose torque at every physics step is kp (target - q) outside the band and none inside it, within the force
+    range. The torque comes from the step's starting state, as a position actuator's does, so a band of 0 reproduces
+    the position servos."""
+
+    def __init__(self, path, setup, db_deg=0.59):
+        super().__init__(path, setup)
+        m, mj = self.m, self.mj
+        self.kp9 = m.actuator_gainprm[self.acts, 0].copy()
+        for a in self.acts:
+            m.actuator_gaintype[a] = mj.mjtGain.mjGAIN_FIXED
+            m.actuator_gainprm[a, :] = 0.0
+            m.actuator_gainprm[a, 0] = 1.0
+            m.actuator_biastype[a] = mj.mjtBias.mjBIAS_NONE
+            m.actuator_biasprm[a, :] = 0.0
+            m.actuator_ctrllimited[a] = 1
+            m.actuator_ctrlrange[a] = (-self.lim[0], self.lim[0])
+        self.qadr9 = np.concatenate([self.qadr[f] for f in FINGERS])
+        self.db = np.radians(db_deg)
+        self.target = None
+
+    def reset(self, q0, seed):
+        super().reset(q0, seed)
+        self.target = np.concatenate([np.asarray(q0[f], float) for f in FINGERS])
+        self.d.ctrl[self.acts] = 0.0
+
+    def set_targets(self, q_cmd):
+        self.target = np.concatenate([np.asarray(q_cmd[f], float) for f in FINGERS])
+
+    def advance(self, t1):
+        m, d = self.m, self.d
+        while d.time < t1 - 1e-9:
+            e = self.target - d.qpos[self.qadr9]
+            tau = np.clip(np.where(np.abs(e) > self.db, self.kp9 * e, 0.0), -self.lim, self.lim)
+            d.ctrl[self.acts] = tau
+            self.mj.mj_step(m, d)
+            self.n_steps += 1
+            self.n_sat += int(np.any(np.abs(tau) >= 0.999 * self.lim))
+        self._hold()
+
+
 # ------------------------------------------------------------------------------------------------ rollouts
 
 _found = {}
@@ -187,15 +232,19 @@ def task_metrics(task, rows):
             "off_axis_rms_dps": round(float(np.sqrt(np.mean(np.sum(off ** 2, axis=1)))), 2)}
 
 
-def run(task, size, call, grasp, seed, plant="position", wn=WN["servo"], render=False):
-    """One CPU rollout with every contact on the position or the torque plant: the rollout's metrics, both scores,
+def run(task, size, call, grasp, seed, plant="position", wn=WN["servo"], render=False, prm=None, tau_max=None):
+    """One CPU rollout with every contact on the position plant, the torque plant (wn its loop frequency) or the
+    position plant with a dead band (plant 'deadband', wn the band in deg): the rollout's metrics, both scores,
     the per-finger contact shares, the off-axis angular velocity and the share of physics steps at the torque limit.
-    render=True: (row, frames of hom_films.Film every fourth period)."""
+    render=True: (row, frames of hom_films.Film every fourth period). prm: hom_tasks.PRM's values to change (the rail
+    roll of hom_rail_roll.py)."""
     import mujoco
     _key, mxy, setup = find(task, size, call, grasp)
     scene = HG.Scene(T.SHAPE[task], size)
     bm, q_open = scene.prepare(mxy, setup)
-    pl = TorquePlant(scene.pads_path, setup, wn=wn) if plant == "torque" else PositionPlant(scene.pads_path, setup)
+    pl = (TorquePlant(scene.pads_path, setup, wn=wn, tau_max=tau_max or TAU_MAX) if plant == "torque" else
+          DeadbandPlant(scene.pads_path, setup, wn) if plant == "deadband" else
+          PositionPlant(scene.pads_path, setup, tau_max))
     m_pt = mujoco.MjModel.from_xml_path(str(scene.pt_path))
     for m in (pl.m, m_pt):
         for f in FINGERS:
@@ -211,7 +260,7 @@ def run(task, size, call, grasp, seed, plant="position", wn=WN["servo"], render=
         film = HF.Film(pl, setup)
     t0 = time.time()
     try:
-        res, rows, frames = T.rollout(task, setup, pl, mirror, q_open, seed, T.PRM,
+        res, rows, frames = T.rollout(task, setup, pl, mirror, q_open, seed, dict(T.PRM, **(prm or {})),
                                       replace(H.HomParams(dt=T.DT_C), **over), film, noise,
                                       T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
     finally:
@@ -221,7 +270,9 @@ def run(task, size, call, grasp, seed, plant="position", wn=WN["servo"], render=
             "ramp_three_pads_max_deg", "ramp_end_deg", "w_rmse_ratio", "theta_rmse_deg")
     x, y, _r = L.grid_poses(task, size, "grid2dff")[call]
     row = dict(task=task, size=float(size), call=int(call), grasp=int(grasp), layout=[x, y], seed=int(seed),
-               plant=plant, wn=float(wn) if plant == "torque" else None, **{k: res.get(k) for k in keep},
+               plant=plant, wn=float(wn) if plant == "torque" else None,
+               **({"deadband_deg": float(wn)} if plant == "deadband" else {}),
+               **({"tau_max": float(tau_max)} if tau_max else {}), **{k: res.get(k) for k in keep},
                track=round(L.track_score(task, res), 3), old=round(L.rollout_score(task, res), 3),
                **task_metrics(task, rows), sat_share=round(pl.n_sat / max(1, pl.n_steps), 4),
                wall_s=round(time.time() - t0, 1))
@@ -251,7 +302,7 @@ def configs():
 def _done():
     if not ROWS.exists():
         return set()
-    return {(r["task"], r["size"], r["call"], r["grasp"], r["seed"], r["plant"], r.get("wn"))
+    return {(r["task"], r["size"], r["call"], r["grasp"], r["seed"], r["plant"], r.get("wn"), r.get("tau_max", TAU_MAX))
             for r in (json.loads(x) for x in ROWS.read_text().splitlines() if x.strip())}
 
 
@@ -272,15 +323,16 @@ def cmd_compare(a):
                 jobs.append((task, size, call, grasp, seed, "torque", float(wn), which))
     jobs = jobs[a.part::a.parts]
     done = _done()
+    tm = a.tau_max or TAU_MAX
     for task, size, call, grasp, seed, plant, wn, which in jobs:
-        if (task, float(size), call, grasp, seed, plant, wn) in done:
+        if (task, float(size), call, grasp, seed, plant, wn, tm) in done:
             continue
         try:
-            row = run(task, size, call, grasp, seed, plant, wn or WN["servo"])
+            row = run(task, size, call, grasp, seed, plant, wn or WN["servo"], tau_max=a.tau_max)
         except np.linalg.LinAlgError as e:               # the state diverged and HOM's least squares failed
             x, y, _r = L.grid_poses(task, size, "grid2dff")[call]
             row = dict(task=task, size=float(size), call=call, grasp=grasp, layout=[x, y], seed=seed, plant=plant,
-                       wn=wn, diverged=str(e), track=0.0, old=0.0)
+                       wn=wn, diverged=str(e), track=0.0, old=0.0, **({"tau_max": a.tau_max} if a.tau_max else {}))
         row["which"] = which
         _write(row)
         print(f"{task:5s} {size:4.0f} {which:10s} {str(tuple(int(v) for v in row['layout'])):>11s} s{seed} "
@@ -382,6 +434,8 @@ def main():
     s.add_argument("--size", type=float, default=63.0)
     c = sub.add_parser("compare")
     c.add_argument("--wn", type=float, nargs="+", default=[WN["servo"], WN["fast"]])
+    c.add_argument("--tau-max", type=float, default=None, help="N m: the joints' torque limit on both plants (default "
+                   "the SCS0009's 0.18; the STS3032 has 0.515)")
     c.add_argument("--part", type=int, default=0)
     c.add_argument("--parts", type=int, default=1)
     sub.add_parser("report")
