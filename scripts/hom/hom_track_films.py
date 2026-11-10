@@ -139,6 +139,18 @@ def shortlist(task, size):
             if r.get("status", "ok") == "ok":
                 groups.setdefault((int(r["call"]), int(r.get("grasp", 0))), []).append(r)
     ok = {k: v for k, v in groups.items() if len(v) >= 3 and all(r.get("held") for r in v)}
+    if os.environ.get("TRACK_EA"):                       # post-reset step 11: the live EA with the tracking score as its
+        ran = {(r["call"], r["grasp"]) for r in (json.loads(x) for x in OUT.read_text().splitlines() if x.strip())
+               if r.get("set") == "rerun" and r["task"] == task and r["size"] == size}
+        ea = {}                                          # fitness (hom_ea.py --score track), whose GPU rows hold it
+        for x in (HF.ROWS / f"ea_live{TAG}_track" / f"{task}_d{size:g}_s0.jsonl").read_text().splitlines():
+            if x.strip():
+                r = json.loads(x)
+                if r.get("status", "ok") == "ok":
+                    ea.setdefault((int(r["call"]), int(r.get("grasp", 0))), []).append(r)
+        mean = {k: float(np.mean([L.track_score(task, r) for r in v])) for k, v in ea.items() if len(v) >= 3}
+        return [(c, g, "EA, tracking fitness") for c, g in sorted((k for k in mean if k not in ran),
+                                                                  key=lambda k: -mean[k])[:K]]
     if os.environ.get("TRACK_THREE"):                    # second short list (owner, 11-09, the roll: "the third finger
         ran = {(r["call"], r["grasp"]) for r in (json.loads(x) for x in OUT.read_text().splitlines() if x.strip())
                if r.get("set") == "rerun" and r["task"] == task and r["size"] == size}

@@ -608,43 +608,54 @@
  "roll": {
   "25": {
    "layout": [
-    80.0,
-    55.0
+    90.0,
+    60.0
    ],
-   "call": 201,
-   "grasp": 3,
-   "why": "three-pad proxy",
-   "track_mean": 0.226,
-   "old_mean": 0.528,
+   "call": 252,
+   "grasp": 15,
+   "why": "EA, tracking fitness",
+   "track_mean": 0.279,
+   "old_mean": 0.574,
    "seeds": 3,
    "film_seed": 0,
    "film": {
     "task": "roll",
     "size": 25.0,
-    "call": 201,
-    "grasp": 3,
+    "call": 252,
+    "grasp": 15,
     "seed": 0,
     "layout": [
-     80.0,
-     55.0
+     90.0,
+     60.0
     ],
     "held": true,
     "dropped": false,
     "fingers_end": 3,
-    "track_err_rms_deg": 7.56,
+    "track_err_rms_deg": 6.99,
     "track_ref_rms_deg": 9.6,
-    "contact_all_frac": 0.821,
+    "contact_all_frac": 1.0,
     "ramp_three_pads_max_deg": null,
     "ramp_end_deg": null,
-    "w_rmse_ratio": 0.968,
+    "w_rmse_ratio": 0.761,
     "theta_rmse_deg": null,
-    "old": 0.508,
-    "track": 0.174,
-    "track_nc": 0.213
+    "old": 0.568,
+    "track": 0.272,
+    "track_nc": 0.272
    },
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d25_sv25.mp4",
    "generalist_track_mean": 0.0,
    "candidates": [
+    {
+     "layout": [
+      90.0,
+      60.0
+     ],
+     "call": 252,
+     "grasp": 15,
+     "why": "EA, tracking fitness",
+     "track": 0.279,
+     "old": 0.574
+    },
     {
      "layout": [
       80.0,
@@ -655,6 +666,61 @@
      "why": "three-pad proxy",
      "track": 0.226,
      "old": 0.528
+    },
+    {
+     "layout": [
+      105.0,
+      65.0
+     ],
+     "call": 328,
+     "grasp": 4,
+     "why": "EA, tracking fitness",
+     "track": 0.202,
+     "old": 0.547
+    },
+    {
+     "layout": [
+      90.0,
+      60.0
+     ],
+     "call": 252,
+     "grasp": 9,
+     "why": "EA, tracking fitness",
+     "track": 0.196,
+     "old": 0.554
+    },
+    {
+     "layout": [
+      95.0,
+      60.0
+     ],
+     "call": 277,
+     "grasp": 1,
+     "why": "EA, tracking fitness",
+     "track": 0.195,
+     "old": 0.547
+    },
+    {
+     "layout": [
+      100.0,
+      65.0
+     ],
+     "call": 303,
+     "grasp": 3,
+     "why": "EA, tracking fitness",
+     "track": 0.19,
+     "old": 0.548
+    },
+    {
+     "layout": [
+      80.0,
+      55.0
+     ],
+     "call": 201,
+     "grasp": 10,
+     "why": "EA, tracking fitness",
+     "track": 0.14,
+     "old": 0.481
     },
     {
      "layout": [
@@ -938,6 +1004,72 @@
      "why": "three-pad proxy",
      "track": 0.281,
      "old": 0.508
+    },
+    {
+     "layout": [
+      100.0,
+      70.0
+     ],
+     "call": 304,
+     "grasp": 11,
+     "why": "EA, tracking fitness",
+     "track": 0.257,
+     "old": 0.536
+    },
+    {
+     "layout": [
+      100.0,
+      65.0
+     ],
+     "call": 303,
+     "grasp": 3,
+     "why": "EA, tracking fitness",
+     "track": 0.226,
+     "old": 0.51
+    },
+    {
+     "layout": [
+      125.0,
+      55.0
+     ],
+     "call": 426,
+     "grasp": 8,
+     "why": "EA, tracking fitness",
+     "track": 0.225,
+     "old": 0.495
+    },
+    {
+     "layout": [
+      120.0,
+      65.0
+     ],
+     "call": 403,
+     "grasp": 13,
+     "why": "EA, tracking fitness",
+     "track": 0.219,
+     "old": 0.536
+    },
+    {
+     "layout": [
+      105.0,
+      60.0
+     ],
+     "call": 327,
+     "grasp": 0,
+     "why": "EA, tracking fitness",
+     "track": 0.218,
+     "old": 0.545
+    },
+    {
+     "layout": [
+      100.0,
+      70.0
+     ],
+     "call": 304,
+     "grasp": 6,
+     "why": "EA, tracking fitness",
+     "track": 0.207,
+     "old": 0.54
     },
     {
      "layout": [
@@ -1457,43 +1589,109 @@
   },
   "80": {
    "layout": [
-    110.0,
-    150.0
+    120.0,
+    155.0
    ],
-   "call": 370,
-   "grasp": 8,
-   "why": "three-pad proxy",
-   "track_mean": 0.035,
-   "old_mean": 0.532,
+   "call": 421,
+   "grasp": 14,
+   "why": "EA, tracking fitness",
+   "track_mean": 0.222,
+   "old_mean": 0.539,
    "seeds": 3,
-   "film_seed": 1,
+   "film_seed": 2,
    "film": {
     "task": "roll",
     "size": 80.0,
-    "call": 370,
-    "grasp": 8,
-    "seed": 1,
+    "call": 421,
+    "grasp": 14,
+    "seed": 2,
     "layout": [
-     110.0,
-     150.0
+     120.0,
+     155.0
     ],
     "held": true,
     "dropped": false,
     "fingers_end": 3,
-    "track_err_rms_deg": 9.2,
+    "track_err_rms_deg": 5.01,
     "track_ref_rms_deg": 9.6,
-    "contact_all_frac": 0.879,
+    "contact_all_frac": 0.486,
     "ramp_three_pads_max_deg": null,
     "ramp_end_deg": null,
-    "w_rmse_ratio": 0.935,
+    "w_rmse_ratio": 0.882,
     "theta_rmse_deg": null,
-    "old": 0.517,
-    "track": 0.037,
-    "track_nc": 0.042
+    "old": 0.531,
+    "track": 0.232,
+    "track_nc": 0.478
    },
    "clip": "docs/experiments/20261029-foundational_pose_review/media/20261109-clip_track_roll_d80_sv25.mp4",
    "generalist_track_mean": 0.0,
    "candidates": [
+    {
+     "layout": [
+      120.0,
+      155.0
+     ],
+     "call": 421,
+     "grasp": 14,
+     "why": "EA, tracking fitness",
+     "track": 0.222,
+     "old": 0.539
+    },
+    {
+     "layout": [
+      110.0,
+      150.0
+     ],
+     "call": 370,
+     "grasp": 3,
+     "why": "EA, tracking fitness",
+     "track": 0.197,
+     "old": 0.542
+    },
+    {
+     "layout": [
+      145.0,
+      95.0
+     ],
+     "call": 534,
+     "grasp": 10,
+     "why": "EA, tracking fitness",
+     "track": 0.193,
+     "old": 0.492
+    },
+    {
+     "layout": [
+      135.0,
+      80.0
+     ],
+     "call": 481,
+     "grasp": 10,
+     "why": "EA, tracking fitness",
+     "track": 0.19,
+     "old": 0.441
+    },
+    {
+     "layout": [
+      100.0,
+      140.0
+     ],
+     "call": 318,
+     "grasp": 13,
+     "why": "EA, tracking fitness",
+     "track": 0.175,
+     "old": 0.561
+    },
+    {
+     "layout": [
+      145.0,
+      80.0
+     ],
+     "call": 531,
+     "grasp": 14,
+     "why": "EA, tracking fitness",
+     "track": 0.144,
+     "old": 0.482
+    },
     {
      "layout": [
       125.0,

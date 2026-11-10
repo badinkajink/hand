@@ -66,8 +66,8 @@ def sec_terms():
         "<p><b>Layout.</b> The placement of the three finger mounts on the palm. On the 2-D lattice used here it is "
         "two distances in mm: thumb to the index-middle pair, $x_{sep}$, and index to middle, $y_{sep}$, in 5 mm "
         "steps. <b>Object size.</b> The diameter of the twist's and the roll's sphere, or of the press's cylinder. "
-        "<b>Plant.</b> The CAD-model SR2 hand with the v4b fingertip as 1 mm sphere pads at 2.5 MPa, the SCS0009 "
-        "servo model (0.72 N m/rad, at most 0.18 N m) and HOM at a 0.01 s period. Every rollout here ran on the CPU "
+        "<b>Plant.</b> The CAD-model SR2 hand with the v4b fingertip as 1 mm sphere pads at 2.5 MPa. The servos are "
+        "the SCS0009 model (0.72 N m/rad, at most 0.18 N m), and HOM runs at a 0.01 s period. Every rollout here ran on the CPU "
         "with every contact, at seeds 0, 1 and 2.</p>"
         "<p><b>Held.</b> The object ended within 15 mm of its start height with at least two fingers loaded.</p>"
         "<p><b>Earlier score.</b> The score of the landscapes up to this page "
@@ -140,7 +140,7 @@ def sec_check(rows):
                 "factor of the tracking score.", num_from=4))
 
 
-def sec_picks(picks):
+def sec_picks(picks, rows):
     out = ["<p>Each size's layout was picked again by the tracking score. The stored GPU rows of the live EA at that "
            "size hold no orientations, so a short list was taken from them first. It held the eight candidates "
            "closest to the command by the stored metrics, the first films' pick and layout (70, 110) mm. Each "
@@ -152,6 +152,21 @@ def sec_picks(picks):
            "Each had all three fingers loaded at the end of every GPU seed and was ranked by the stored per-step roll "
            "angles. The roll films view the sphere from 55 deg below its centre, where the three pads ring the sphere "
            "and none of them hides it.</p>"]
+    ea = ea_check(rows)
+    if ea:
+        def cmp_(sz):
+            v = ea[sz]
+            if v["ea"][0] > v["other"][0]:
+                return (f"At {sz:g} mm its best layout, {lay(v['ea'][1])}, scores {v['ea'][0]:.2f} against "
+                        f"{v['other'][0]:.2f} for the best earlier candidate.")
+            return (f"At {sz:g} mm its best layout, {lay(v['ea'][1])}, scores {v['ea'][0]:.2f} and the earlier pick "
+                    f"{lay(v['other'][1])} {v['other'][0]:.2f}, so the pick is unchanged.")
+        sz = [f"{s_:g}" for s_ in ea]
+        out.append("<p>The live EA was then run on the GPU for the roll at " + ", ".join(sz[:-1]) + f" and {sz[-1]}"
+                   + " mm, with the tracking score as its fitness. Each run had a population of 64, about 6,000 "
+                   "rollouts and seed 0. Its six "
+                   "best candidates per size ran on the CPU at seeds 0 to 2 as a third short list. "
+                   + " ".join(cmp_(sz) for sz in ea) + "</p>")
     body = []
     first = json.loads((ROWS / "films_v4b.json").read_text())
     for task in TASKS:
@@ -176,6 +191,29 @@ def sec_picks(picks):
                           f"{TNAME[task]}: layout (70, 110) mm at the same sizes"
                           f"{', viewed from below' if task == 'roll' else ''}, seed 0."))
     return "".join(out)
+
+
+def lay(v):
+    return f"({v[0]:.0f}, {v[1]:.0f})"
+
+
+def ea_check(rows):
+    """Per roll size of the EA with the tracking fitness (post-reset step 11): the best CPU mean over seeds 0-2 among its
+    candidates and among the earlier candidates, each as (mean, layout)."""
+    acc = {}
+    for r in rows:
+        if r.get("set") == "rerun" and r["task"] == "roll":
+            acc.setdefault((r["size"], r["call"], r["grasp"]), []).append(r)
+    out = {}
+    for (size, _c, _g), rs in acc.items():
+        if len(rs) < 3:
+            continue
+        k = "ea" if rs[0].get("why") == "EA, tracking fitness" else "other"
+        m = (float(np.mean([r["track"] for r in rs])), rs[0]["layout"])
+        cur = out.setdefault(size, {})
+        if k not in cur or m[0] > cur[k][0]:
+            cur[k] = m
+    return {s_: v for s_, v in sorted(out.items()) if "ea" in v and "other" in v}
 
 
 def sec_bigroll(picks):
@@ -233,8 +271,9 @@ def sec_rail(S):
              ", ".join(f"{x:.2f}" for x in c["seeds"]), f2(c["old_mean"]), f2(c["followed_mean"]),
              f2(c["contact_mean"]), f2(first.get(f"{c['size']:g}")) if c["rail"] == 1 else ""] for c in S["cases"]]
     one = {s: C[(s, 1)] for s in (25.0, 30.0, 63.0, 80.0) if (s, 1) in C}
-    up = [s for s in one if one[s]["track_mean"] > first.get(f"{s:g}", 1.0)]
-    down = [s for s in one if s not in up]
+    up = [s for s in one if one[s]["track_mean"] > first.get(f"{s:g}", 1.0) + 0.02]
+    same = [s for s in one if abs(one[s]["track_mean"] - first.get(f"{s:g}", 1.0)) <= 0.02]
+    down = [s for s in one if s not in up and s not in same]
     lose = [s for s in one if one[s]["contact_mean"] < 0.95]
     sz = (lambda ss: ", ".join(f"{s:g}" for s in ss[:-1]) + f" and {ss[-1]:g}" if len(ss) > 1 else f"{ss[0]:g}")
     sc = (lambda vs: ", ".join(f"{v:.2f}" for v in vs[:-1]) + f" and {vs[-1]:.2f}" if len(vs) > 1 else f"{vs[0]:.2f}")
@@ -251,9 +290,13 @@ def sec_rail(S):
         t += (f"<p>With the index and the middle rolling, the picked layouts score "
               f"{sc([one[s]['track_mean'] for s in up])} on the {sz(up)} mm spheres. The tripod roll's picks of Table 3 "
               f"score {sc([first[f'{s:g}'] for s in up])} at those sizes.")
-        if down:
-            t += (f" On the {sz(down)} mm sphere the rail roll scores {sc([one[s]['track_mean'] for s in down])} and the "
-                  f"tripod roll {sc([first[f'{s:g}'] for s in down])}.")
+        for s in same:
+            a_, b_ = f"{one[s]['track_mean']:.2f}", f"{first[f'{s:g}']:.2f}"
+            t += (f" On the {s:g} mm sphere both rolls score {a_}." if a_ == b_ else
+                  f" On the {s:g} mm sphere the two rolls score {a_} and {b_}, within the seed spread of 0.02.")
+        for s in down:
+            t += (f" On the {s:g} mm sphere the rail roll scores {one[s]['track_mean']:.2f} and the tripod roll "
+                  f"{first[f'{s:g}']:.2f}.")
         if lose:
             pct = ", ".join(f"{100 * one[s]['contact_mean']:.0f}" for s in lose)
             t += (f" The {sz(lose)} mm pick keeps both rolling pads on the sphere for {pct} % of the task, and the "
@@ -272,15 +315,16 @@ def sec_rail(S):
                "column is the tracking score of the tripod roll's pick at that size, on three pads.", num_from=4)
     t += P.film(MEDIA / f"20261110-film_rail1_roll{TAG}.mp4", "Roll with the thumb as a rail, index and middle rolling: "
                 "the picked layout at each of four sphere sizes, viewed from below, at the seed closest to its mean.")
-    t += P.film(MEDIA / f"20261110-film_rail2_roll{TAG}.mp4", "Roll with the thumb as a rail and the index alone rolling: "
-                "the picked layout on the 25 and 30 mm spheres, viewed from below, at the seed closest to its mean.")
+    t += P.film(MEDIA / f"20261110-film_rail2_roll{TAG}.mp4", "Roll on the thumb as a rail, index alone: the picked "
+                "layouts on the 25 and 30 mm spheres from below, each at the seed closest to its mean.")
     return t
 
 
 def sec_limits():
     return ("<p>The short lists came from GPU rows without the GPU's orientations, ranked by the stored end yaw "
             "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the short "
-            "lists may score higher. Three seeds per candidate were run, on the CPU only. The landscapes, searches and "
+            "lists may score higher. The roll's third short list came from one EA run per size. Three seeds per "
+            "candidate were run, on the CPU only. The landscapes, searches and "
             "layout choices of the earlier pages, the task-conflict page's 0.84 among them, still use the earlier "
             "score.</p>")
 
@@ -294,8 +338,6 @@ def sec_future():
             "landscapes stand.</li>"
             "<li>Rescore the task-conflict page with the tracking score and restate its single-layout level, which is "
             "0.84 on the earlier score.</li>"
-            "<li>Run the live EA at these sizes with the tracking score as its fitness. If its best layouts do not "
-            "beat the short-list picks by more than the seed spread, the short lists were enough.</li>"
             "</ul>")
 
 
@@ -333,7 +375,7 @@ def lede(rows, picks):
     rail = rail_summary()
     if rail:
         up = [c for c in rail["cases"] if c["rail"] == 1
-              and c["track_mean"] > float(picks["roll"][f"{c['size']:g}"]["track_mean"])]
+              and c["track_mean"] > float(picks["roll"][f"{c['size']:g}"]["track_mean"]) + 0.02]
         if up:
             sizes = [f"{c['size']:g}" for c in up]
             text += (" With the thumb held still as a rail, the index and the middle roll the "
@@ -352,7 +394,7 @@ def main():
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("floors", "The earlier scores on a still or whirling object", sec_floors(rows)),
                 ("check", "The tracking score against the owner's verdicts on the films", sec_check(rows)),
-                ("picks", "Layouts re-picked by the tracking score at four object sizes", sec_picks(picks)),
+                ("picks", "Layouts re-picked by the tracking score at four object sizes", sec_picks(picks, rows)),
                 ("bigroll", "The roll layouts under a larger roll command", sec_bigroll(picks)),
                 ("rail", "Roll with the thumb held still as a rail", sec_rail(rail_summary())),
                 ("limits", "Limitations", sec_limits()),
