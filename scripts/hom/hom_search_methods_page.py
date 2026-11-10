@@ -307,6 +307,20 @@ is biased upward.</p>
 0.19 of the press's 0.20. On the other three tasks a shared set gained 0.005 or less over HOM's defaults. One grasp per layout was
 also put in the EA's genome. The incumbents' median validated score then changed by 0.00, &#8722;0.07, +0.06 and +0.17 on
 the twist, roll, pin-push and press (refinement page, Section 8).</p>""", refine=REFINE, a=len(ALGS) + 1)
+    import hom_grasp_refine as R
+    Q = R.report_pso("sv25")
+    if "press" in Q:
+        rest = [k for k in ("twist", "roll") if k in Q]
+        dmax = max(abs(Q[k]["PSO"]["gain_old_median"] - Q[k]["CEM"]["gain_old_median"]) for k in rest)
+        t += fill(r"""<p>A swarm of 32 particles with the update of Section SEC[pso] also replaced CEM in S3, with CEM's
+rollouts on the same 30 layouts per task (refinement page, Section 9). It raised the median validated score of the press's layouts
+by <<pg>> over S1, against <<cg>> for CEM. Its pick scored more than 0.02 above CEM's on <<b>> of the 30 press layouts and
+more than 0.02 below it on <<w>>. On <<rest>> the two gains differ by <<dmax>> or less.</p>""",
+                  pg=f"{Q['press']['PSO']['gain_old_median']:.2f}", cg=f"{Q['press']['CEM']['gain_old_median']:.2f}",
+                  b=Q["press"]["paired_old"]["better"],
+                  w={0: "none", 1: "one", 2: "two", 3: "three"}.get(Q["press"]["paired_old"]["worse"],
+                                                                   Q["press"]["paired_old"]["worse"]),
+                  rest=" and ".join(f"the {k}" for k in rest), dmax=f"{dmax:.2f}")
     t += alg("The cross-entropy method of the score refinement (<code>scripts/hom/hom_grasp_refine.py</code>).",
              r"""\Require start \(\mu_0\) (the grasp, forces and modes to tune), spread \(\sigma_0\), floor \(\sigma_{\min}\), \(n\) candidates per iteration
 \For{\(k = 0, 1, \ldots\)}
@@ -734,9 +748,6 @@ compared on them.</li>
 
 def sec_future():
     return r"""<ul>
-<li>PSO in place of CEM for the per-layout tuning of grasp, forces and modes (<code>hom_grasp_refine.py</code>). Run it on
-the 30 best SCS0009 layouts per task at the same rollouts, validated at seeds 20-24. CEM keeps its place if PSO's median
-validated gain is within 0.02 of CEM's on every task.</li>
 <li>The EA and the swarms on the six-coordinate layouts with RRT's rule, a move to the nearest layout not yet visited, so
 that each spends its 6,000 rollouts (<code>hom_search6d.Search</code>). The replays' ranking of the EA fails on these
 layouts if it then comes within 0.05 from fewer starts than random search.</li>

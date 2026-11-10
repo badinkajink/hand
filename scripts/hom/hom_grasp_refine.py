@@ -1088,7 +1088,8 @@ def cmd_validate_pso(a):
 
 def report_pso(plant="sv25", level="full", tasks=("twist", "roll", "press")):
     """Per task: the median validated gain over S1 of CEM's elitist pick and of the swarm's, by the earlier score and by
-    the tracking score, with the search-seed scores and the rollouts each search ran."""
+    the tracking score; the swarm's pick minus CEM's per layout (median, layouts more than 0.02 better and worse); each
+    search's median best at the search seeds; the swarm's rollouts."""
     import hom_landscape as L
     out = {}
     for task in tasks:
@@ -1116,8 +1117,19 @@ def report_pso(plant="sv25", level="full", tasks=("twist", "roll", "press")):
                                                               if (c, name) in acc]))}
         res["S1"] = {"val_old_median": float(np.median([np.mean(acc[(c, "S1")]["old"]) for c in calls])),
                      "val_track_median": float(np.median([np.mean(acc[(c, "S1")]["track"]) for c in calls]))}
+        for sc in ("old", "track"):   # the swarm's pick minus CEM's on each layout
+            dd = np.array([np.mean(acc[(c, "PSO")][sc]) - np.mean(acc[(c, "CEM")][sc]) for c in calls
+                           if (c, "PSO") in acc and (c, "CEM") in acc])
+            res[f"paired_{sc}"] = {"median": float(np.median(dd)), "better": int((dd > 0.02).sum()),
+                                   "worse": int((dd < -0.02).sum()), "n": int(dd.size)}
+        for name, lev in (("CEM", level), ("PSO", f"{level}_pso")):   # each search's best at the search seeds
+            last = {int(g["call"]): g["best"] for g in read_rows(rows_dir(plant) / lev / f"{task}_d{TASKS[task]:g}_gens.jsonl")}
+            res[name]["search_best_median"] = float(np.median([last[c] for c in calls if c in last]))
         it_rows = read_rows(rows_dir(plant) / f"{level}_pso" / f"{task}_d{TASKS[task]:g}_iters.jsonl")
         res["pso_rollouts"] = int(sum(r["rollouts"] for r in it_rows))
+        cs = set(calls)
+        res["cem_rollouts"] = sum(1 for r in read_rows(rows_dir(plant) / level / f"{task}_d{TASKS[task]:g}.jsonl")
+                                  if int(r["call"]) in cs)
         out[task] = res
     return out
 

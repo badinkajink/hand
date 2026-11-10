@@ -2270,6 +2270,10 @@ def pso_report():
     return {t: v for t, v in R.report_pso("sv25").items() if v.get("PSO", {}).get("layouts")}
 
 
+def rng_(lo, hi):
+    return f"{lo:,}" if lo == hi else f"{lo:,} to {hi:,}"
+
+
 def sec_pso(Q):
     """Particle swarm optimization in place of CEM for the per-layout refinement at level full on the SCS0009."""
     tk = [t for t in ("twist", "roll", "press") if t in Q]
@@ -2277,12 +2281,15 @@ def sec_pso(Q):
         return ""
     n0 = P.TAB[0]
     body = [[NAME[t], f"{Q[t]['PSO']['layouts']}", f2(Q[t]["S1"]["val_old_median"]), sg(Q[t]["CEM"]["gain_old_median"]),
-             sg(Q[t]["PSO"]["gain_old_median"]), f2(Q[t]["S1"]["val_track_median"]),
-             sg(Q[t]["CEM"]["gain_track_median"]), sg(Q[t]["PSO"]["gain_track_median"]), f"{Q[t]['pso_rollouts']:,}"]
+             sg(Q[t]["PSO"]["gain_old_median"]),
+             f"{Q[t]['paired_old']['better']} / {Q[t]['paired_old']['worse']}", f2(Q[t]["S1"]["val_track_median"]),
+             sg(Q[t]["CEM"]["gain_track_median"]), sg(Q[t]["PSO"]["gain_track_median"]),
+             f"{Q[t]['paired_track']['better']} / {Q[t]['paired_track']['worse']}", f"{Q[t]['pso_rollouts']:,}"]
             for t in tk]
     d = {t: Q[t]["PSO"]["gain_old_median"] - Q[t]["CEM"]["gain_old_median"] for t in tk}
     dt = {t: Q[t]["PSO"]["gain_track_median"] - Q[t]["CEM"]["gain_track_median"] for t in tk}
-    over = [t for t in tk if d[t] > 0.02]
+    over = [t for t in tk if abs(d[t]) > 0.02]
+    near = [t for t in tk if t not in over]
     t_ = ("<p>The particle swarm of the <a href=\"../20261029-foundational_pose_review/20261109-hom_search_methods.html\">"
           "search methods page</a> replaced CEM in the refinement at level full (grasp, commanded forces and contact "
           "modes together) on the 30 best SCS0009 layouts per task. It ran with CEM's rollouts: 32 particles for 8 "
@@ -2292,15 +2299,34 @@ def sec_pso(Q):
           "starting spread. A step that the pose toy rejected was halved, up to six times. Each layout's S1, CEM's "
           f"elitist pick S3e and the swarm's best then ran at seeds 20 to 24 (Table {n0 + 1}). The rule was set beforehand: "
           "CEM stays if the swarm's median gain over S1 is within 0.02 of CEM's on every task.</p>")
-    t_ += ("<p>By the earlier score, the swarm's median gain minus CEM's is "
-           + ", ".join(f"{d[t]:+.2f} on the {t}" for t in tk[:-1]) + f" and {d[tk[-1]]:+.2f} on the {tk[-1]}. "
-           "By the tracking score it is " + ", ".join(f"{dt[t]:+.2f}" for t in tk[:-1]) + f" and {dt[tk[-1]]:+.2f}. "
-           + ("CEM stays as the refinement's search." if not over else
-              "The swarm's gain exceeds CEM's by more than 0.02 on the " + " and the ".join(over) + ".") + "</p>")
-    t_ += table(["Task", "Layouts", "S1, earlier score", "Gain of S3e (CEM)", "Gain of the swarm", "S1, tracking score",
-                 "Gain of S3e (CEM), tracking", "Gain of the swarm, tracking", "Swarm's rollouts"], body,
+    if over:
+        o = over[0]
+        t_ += (f"<p>The {o} fails the rule. There the swarm's median gain over S1 was "
+               f"{Q[o]['PSO']['gain_old_median']:.2f}, and CEM's {Q[o]['CEM']['gain_old_median']:.2f}. "
+               f"The swarm's pick scored more than 0.02 above CEM's on {Q[o]['paired_old']['better']} of the "
+               f"{Q[o]['paired_old']['n']} {o} layouts and more than 0.02 below it on "
+               f"{WORDS.get(Q[o]['paired_old']['worse'], Q[o]['paired_old']['worse'])}. At the search seeds its best "
+               f"reached a median {Q[o]['PSO']['search_best_median']:.2f}, against "
+               f"{Q[o]['CEM']['search_best_median']:.2f} for CEM. ")
+        t_ += "".join(f"On the {t} the swarm's median gain was {Q[t]['PSO']['gain_old_median']:.2f} against CEM's "
+                      f"{Q[t]['CEM']['gain_old_median']:.2f}, with {Q[t]['paired_old']['better']} layouts above and "
+                      f"{Q[t]['paired_old']['worse']} below. " for t in near)
+        t_ += ("By the tracking score the swarm's median gain minus CEM's is "
+               + ", ".join(f"{dt[t]:+.2f} on the {t}" for t in tk[:-1]) + f" and {dt[tk[-1]]:+.2f} on the {tk[-1]}.</p>")
+    else:
+        t_ += ("<p>By the earlier score, the swarm's median gain minus CEM's is "
+               + ", ".join(f"{d[t]:+.2f} on the {t}" for t in tk[:-1]) + f" and {d[tk[-1]]:+.2f} on the {tk[-1]}. "
+               "By the tracking score it is " + ", ".join(f"{dt[t]:+.2f}" for t in tk[:-1])
+               + f" and {dt[tk[-1]]:+.2f}. CEM stays as the refinement's search.</p>")
+    t_ += table(["Task", "Layouts", "S1, earlier score", "Gain of S3e (CEM)", "Gain of the swarm",
+                 "Layouts with the swarm 0.02 above / below CEM", "S1, tracking score", "Gain of S3e (CEM), tracking",
+                 "Gain of the swarm, tracking", "Layouts with the swarm 0.02 above / below CEM, tracking",
+                 "Swarm's rollouts"], body,
                 "The swarm against CEM at level full on the SCS0009 plant (0.72 N m/rad, 2.5 MPa, MuJoCo 3.6): medians "
-                "over the layouts at seeds 20-24 of S1 and of each search's gain over S1.", num_from=1)
+                "over the layouts at seeds 20-24 of S1 and of each search's gain over S1, and the layouts where the "
+                "swarm's pick scored more than 0.02 above or below CEM's. CEM ran "
+                f"{rng_(min(Q[t]['cem_rollouts'] for t in tk), max(Q[t]['cem_rollouts'] for t in tk))} rollouts per "
+                "task on these layouts.", num_from=1)
     return t_
 
 
@@ -2538,6 +2564,20 @@ on the grid, in place of its foundational pose. It costs up to 48 rollouts per l
 on {nm} if all three searches per task then come within 0.05 of the grid's best by 6,000 rollouts.</li>"""
 
 
+def pso_future():
+    """The refinement on the tracking score with both searches, after step 3's comparison on the earlier score."""
+    Q = pso_report()
+    if "twist" not in Q:
+        return ""
+    q = Q["twist"]
+    return (f"<li>Both searches on the tracking score, the ranking score since 2026-11-09: a <code>--score track</code> "
+            f"option for <code>hom_grasp_refine.py run</code>, as in <code>hom_ea.py run</code>. Refining the earlier "
+            f"score changed the twist's median tracking score over S1 by {q['CEM']['gain_track_median']:+.2f} under "
+            f"CEM and {q['PSO']['gain_track_median']:+.2f} under the swarm. The twist's tracking can be raised by "
+            f"refinement if the new picks' median tracking gain over S1 exceeds +0.05 at seeds 20-24. The swarm keeps "
+            f"its lead on the press if its median gain there again exceeds CEM's by more than 0.02.</li>")
+
+
 def sec_future(Js):
     drops = ""
     if FRICTION_CHECK.exists():
@@ -2550,6 +2590,7 @@ with the tripod force at 1.5, 2.5 and 4 N (a world's <code>prm</code>).{drops}</
 {band_future()}
 {shared_future()}
 {ea_future()}
+{pso_future()}
 <li>The S3e picks on the CPU plant with every contact (<code>scripts/hom/hom_top_cpu_check.py</code>), then on the hand. A
 pick transfers to the CPU plant if its CPU score at seeds 20-24 lies within 0.1 of its GPU score.</li>
 </ul>"""
@@ -2674,6 +2715,17 @@ def lede_and_summary(Js):
                         f"{andj(NAME[t_].lower() for t_ in lost)} these lie away from the grid's best layout.")
         summary += (f" One grasp per layout in an evolutionary search's genome changed its incumbents' median by {dd} "
                     f"({names}) against the layout search at 6,000 rollouts.")
+    Q = pso_report()
+    if Q and "press" in Q:
+        q, rest = Q["press"], [t_ for t_ in ("twist", "roll") if t_ in Q]
+        dmax = max(abs(Q[t_]["PSO"]["gain_old_median"] - Q[t_]["CEM"]["gain_old_median"]) for t_ in rest)
+        lede.append(f"A particle swarm in place of CEM, at the same rollouts, raised the median validated score of the "
+                    f"press's 30 best layouts by {q['PSO']['gain_old_median']:.2f} over S1, against "
+                    f"{q['CEM']['gain_old_median']:.2f} for CEM. On {andj('the ' + t_ for t_ in rest)} the two gains "
+                    f"differ by {dmax:.2f} or less.")
+        summary += (f" A particle swarm at CEM's rollouts gained {q['PSO']['gain_old_median']:.2f} on the press against "
+                    f"CEM's {q['CEM']['gain_old_median']:.2f}, and within {dmax + 0.005:.2f} of CEM on "
+                    f"{andj('the ' + t_ for t_ in rest)}.")
     return " ".join(lede), summary
 
 

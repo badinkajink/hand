@@ -1,3 +1,54 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1be3bce66579f7e7292cb7f2a19819e68a5c0c99cc443fc5e482d2e1f2ba1230
-size 822
+{
+ "grid_pinpush": {
+  "wall_s": 995.48,
+  "peak_rss_gb": 2.44
+ },
+ "grid_press": {
+  "wall_s": 696.59,
+  "peak_rss_gb": 2.44
+ },
+ "grid_roll": {
+  "wall_s": 742.25,
+  "peak_rss_gb": 2.44
+ },
+ "grid_twist": {
+  "wall_s": 1092.15,
+  "peak_rss_gb": 2.45
+ },
+ "report": {
+  "wall_s": 12.46,
+  "peak_rss_gb": 0.56
+ },
+ "shared_pinpush": {
+  "wall_s": 1284.07,
+  "peak_rss_gb": 2.44
+ },
+ "shared_press": {
+  "wall_s": 921.78,
+  "peak_rss_gb": 2.44
+ },
+ "shared_roll": {
+  "wall_s": 752.51,
+  "peak_rss_gb": 2.44
+ },
+ "shared_twist": {
+  "wall_s": 1128.43,
+  "peak_rss_gb": 2.44
+ },
+ "val_pinpush": {
+  "wall_s": 55.21,
+  "peak_rss_gb": 2.43
+ },
+ "val_press": {
+  "wall_s": 46.94,
+  "peak_rss_gb": 2.43
+ },
+ "val_roll": {
+  "wall_s": 38.96,
+  "peak_rss_gb": 2.43
+ },
+ "val_twist": {
+  "wall_s": 50.89,
+  "peak_rss_gb": 2.43
+ }
+}
