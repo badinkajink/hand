@@ -509,12 +509,13 @@ def ea_landscape(task, size, ok=None):
     return look, basin, top, float(np.nanmax(M["best"])), sum(n for _f, n in look["best"].values()), xs, ys
 
 
-def ea_search(look, rng, xs, ys, pop=EA_POP, delta=EA_DELTA, budget=None, random=False):
+def ea_search(look, rng, xs, ys, pop=EA_POP, delta=EA_DELTA, budget=None, random=False, gens=None):
     """One run of the elitist mutation-only search of Yang et al. (TEVC 2026) on the grid's lattice: the best half of
     each generation is kept, the best eighth are parents, and each child is a parent moved by U(-delta/2, delta/2) mm
     per coordinate, rounded to the 5 mm lattice and clipped to the grid. A layout is evaluated once (later visits reuse
     its score). random=True draws layouts uniformly without replacement instead. Returns [(rollouts so far, layout)]
-    for every new evaluation."""
+    for every new evaluation. gens (a list) receives each generation's population, kept half, parents, children and
+    (parent, unrounded child, child) moves, for figures."""
     keys = list(look)
     seen, cost, hist = {}, 0, []
 
@@ -541,11 +542,14 @@ def ea_search(look, rng, xs, ys, pop=EA_POP, delta=EA_DELTA, budget=None, random
             break
         P = sorted(P, key=lambda k: -seen[k])
         keep, parents = P[:pop // 2], P[:max(1, pop // 8)]
-        kids = []
+        kids, moves = [], []
         for i in range(pop - len(keep)):
-            m = np.asarray(parents[i % len(parents)]) + rng.uniform(-delta / 2, delta / 2, 2)
-            m = np.clip(5.0 * np.round(m / 5.0), lo, hi)
+            raw = np.asarray(parents[i % len(parents)]) + rng.uniform(-delta / 2, delta / 2, 2)
+            m = np.clip(5.0 * np.round(raw / 5.0), lo, hi)
             kids.append((float(m[0]), float(m[1])))
+            moves.append((parents[i % len(parents)], (float(raw[0]), float(raw[1])), kids[-1]))
+        if gens is not None:
+            gens.append(dict(P=list(P), keep=list(keep), parents=list(parents), kids=list(kids), moves=moves))
         for k in kids:
             ev(k)
         P = keep + kids

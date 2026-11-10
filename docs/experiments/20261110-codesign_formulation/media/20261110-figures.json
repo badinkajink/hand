@@ -1,0 +1,98 @@
+{
+ "ea_anatomy": {
+  "seed": 7,
+  "generation": 1,
+  "parents": [
+   [
+    80.0,
+    85.0
+   ],
+   [
+    75.0,
+    55.0
+   ]
+  ],
+  "best": 0.707
+ },
+ "ea_snapshots": {
+  "best_on_grid": 0.816,
+  "hands_to_within_002": {
+   "EA, population 16": 69,
+   "random search": 201
+  }
+ },
+ "gpu": {
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER",
+  "worlds_per_batch": 1536,
+  "s_per_rollout_median": 0.0365,
+  "batch_s_median": 55.8
+ },
+ "layout_space": {
+  "A": {
+   "layout": [
+    70.0,
+    150.0
+   ],
+   "grid_score": 0.816,
+   "grasp": 5
+  },
+  "B": {
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "grid_score": 0.802,
+   "grasp": 11
+  },
+  "C": {
+   "layout": [
+    125.0,
+    55.0
+   ],
+   "grid_score": 0.293,
+   "grasp": 13
+  }
+ },
+ "grasp_candidates": {
+  "layout": [
+   70.0,
+   150.0
+  ],
+  "best_grasp": 5,
+  "scores": {
+   "0": 0.0,
+   "1": 0.499,
+   "2": 0.478,
+   "3": 0.0,
+   "4": 0.061,
+   "5": 0.816,
+   "6": 0.078,
+   "7": 0.223,
+   "8": 0.0,
+   "9": 0.196,
+   "10": 0.21,
+   "11": 0.404,
+   "12": 0.584,
+   "13": 0.0,
+   "14": 0.122,
+   "15": 0.263
+  }
+ },
+ "tuning": {
+  "twist": {
+   "s1": 0.834,
+   "grasp": 0.949,
+   "full": 1.0
+  },
+  "roll": {
+   "s1": 0.547,
+   "grasp": 0.575,
+   "full": 0.601
+  },
+  "press": {
+   "s1": 0.649,
+   "grasp": 0.724,
+   "full": 0.895
+  }
+ }
+}

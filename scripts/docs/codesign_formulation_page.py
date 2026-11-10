@@ -52,7 +52,7 @@ FORMULAS = [
      + r"T}(m,\pi;\,d)\Big]"),
     ("30", "The score is a choice. Several metrics are weighted into one, or kept apart on a Pareto front. Ours "
            "rewards following the commanded rotation on three pads.",
-     r"J_T = {" + NEW + r"\textstyle\sum_k \lambda_k J_T^{(k)}},\qquad J = \mathbb{1}[\mathrm{held}]\,"
+     r"J_T = {" + NEW + r"\textstyle\sum_k \lambda_k J_T^{(k)}},\qquad J = \mathbf{1}[\mathrm{held}]\,"
      r"\max\!\Big(0,\,1-\frac{e_{\mathrm{rms}}}{\theta_{\mathrm{rms}}}\Big)\,c_3"),
     ("31", "The score comes from a simulator, with a contact model, a servo model and a sensing model, each "
            "calibrated on hardware.",
@@ -137,63 +137,135 @@ def sec_terms():
         "the magnetic fingertips.</p>")
 
 
+def figinfo():
+    import json
+    f = MEDIA / "20261110-figures.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
 def sec_build():
-    body = ["<p>The problem is stated once and then grows a term per slide (Table 1). The new term of each step is "
-            "in colour. The last line stays on screen for the rest of the talk, and each of its braces is one section: "
-            "the outer max is morphology optimization, the inner max is multi-hand control, and the score is the "
-            "simulation that sim-to-real makes trustworthy.</p>"]
+    body = ["<p>The problem is stated once and grows a term per slide. The new term of each step is in colour, with a "
+            "brace that names it. The slide images <code>media/20261110-eq_step1.png</code> to <code>eq_step8.png</code> "
+            "share one canvas and one baseline, so the formula grows in place when the slides advance. The last form "
+            "stays for the rest of the talk. Each of its braces is one SR2 section: the outer max is morphology "
+            "optimization, the inner max is multi-hand control, and the score is the simulation that sim-to-real makes "
+            "trustworthy.</p>"]
     for k, (sl, what, tex) in enumerate(FORMULAS, 1):
         body.append(f"<p><b>Step {k}, slide {sl}.</b> {esc(what)}</p>{eq(tex)}")
-    body.append(fig("20261110-bilevel_all.png", "The nested problem as three boxes. The talk's SR2 sections are its "
-                    "levels: morphology optimization chooses the hand, multi-hand control runs it, and the simulation "
-                    "scores it. Versions with one box highlighted are in media/ (outer, inner, sim, codesign)."))
+    body.append(fig("20261110-nested_all.png", "The nested problem drawn as nested boxes: the search over hands holds "
+                    "the choice of grasp and parameters, which holds the simulation. Versions with one level highlighted "
+                    "(nested_outer, nested_inner, nested_sim) open each section."))
     return "".join(body)
 
 
 def sec_outer():
-    return ("<p>The outer loop searches hands. The evolutionary algorithm of Yang et al. keeps the best half of each "
-            "generation and mutates its best eighth (<a href=\"" + SEARCH + "\">search-methods page</a>).</p>"
+    fi = figinfo()
+    sn = fi.get("ea_snapshots", {})
+    hit = sn.get("hands_to_within_002", {})
+    ls = fi.get("layout_space", {})
+    lay = "; ".join(f"{k} at ({v['layout'][0]:.0f}, {v['layout'][1]:.0f}) mm scores {v['grid_score']:.2f}"
+                    for k, v in ls.items())
+    return ("<p>The outer loop searches hands. A hand here is a layout of the three finger mounts, a point on a plane of "
+            "two distances (Figure 2). Every point of the plane was simulated for the press on the 25 mm cylinder, so "
+            "the search can be replayed and watched. " + (f"On that landscape, {lay}. " if lay else "")
+            + "The evolutionary algorithm of Yang et al. keeps the best half of each generation and mutates its best "
+            "eighth (Figure 3; <a href=\"" + SEARCH + "\">search-methods page</a>).</p>"
             + rows(OUTER)
-            + fig("20261110-ea_snapshots.png", "The EA with a population of 16 on the stored landscape of the press on "
-                  "the 25 mm cylinder (SCS0009 plant, 2.5 MPa, the earlier press score). Orange: the layouts evaluated "
-                  "so far, the last 16 darker; star: the best so far. Right: the best score found against the layouts "
-                  "evaluated, for the EA and for random search, median of 200 runs with quartiles.")
-            + fig("20261110-bilevel_outer.png", "The outer loop in the nested problem."))
+            + fig("20261110-layout_space.png", "What a layout is. Left: the palm with the three finger mounts and the two "
+                  "distances that define a symmetric layout; grey, the travel of the gantries. Middle: the press score of "
+                  "every layout on the 25 mm cylinder (SCS0009 plant, best of 16 grasps, mean of three seeds). Right: "
+                  "three of those hands, rendered on the CPU plant at seed 0 after the lift.")
+            + fig("20261110-ea_anatomy.png", "One generation of the EA with a population of 16, replayed on the stored "
+                  "landscape. The 16 hands are ranked by fitness; the best two are parents, the best eight are kept. Each "
+                  "parent makes four children within 15 mm in each coordinate, rounded to the 5 mm lattice.")
+            + fig("20261110-ea_snapshots.png", "Where the EA has evaluated after 16, 48, 96 and 192 hands (orange; the last "
+                  "16 darker; star: the best so far), and the best score found against the number of hands evaluated, "
+                  "for the EA and for random search, median of 200 searches with quartiles."
+                  + (f" The median EA search comes within 0.02 of the grid's best ({sn.get('best_on_grid', 0):.2f}) after "
+                     f"{hit.get('EA, population 16')} hands; random search after {hit.get('random search')}." if hit else "")))
 
 
 def sec_inner():
-    return ("<p>The inner loop runs one hand. HOM stays the same law on every hand, so only the grasp and HOM's few "
-            "parameters are chosen per hand (<a href=\"" + REFINE + "\">score-levels page</a>). With the defaults and "
-            "the best of 16 grasps (level S1), no controller is trained per hand. Tuning the grasp, the forces and the "
-            "contact modes per layout (level S3) raised each task's 30 best layouts by a median of 0.05 to 0.20. It "
-            "also moved the best layout on three of the four tasks.</p>"
+    fi = figinfo()
+    gc = fi.get("grasp_candidates", {})
+    sc = gc.get("scores", {})
+    span = (f" Its 16 grasps score {min(sc.values()):.2f} to {max(sc.values()):.2f}; the best is grasp "
+            f"{gc.get('best_grasp')}." if sc else "")
+    return ("<p>The inner loop runs one hand. HOM is the same law on every hand, so only the grasp and a few of HOM's "
+            "parameters are chosen per hand (<a href=\"" + REFINE + "\">score-levels page</a>). The grasp matters: the "
+            "foundational-pose toy proposes 16 grasps per hand, and they score differently (Figure 5)." + span
+            + " With HOM's defaults and the best of 16 grasps (level S1), no controller is trained per hand. Tuning the "
+            "grasp, the forces and the contact modes per layout (level S3) raised each task's 30 best layouts by a "
+            "median of 0.05 to 0.20, and it moved the best layout on three of the four tasks.</p>"
             + rows(INNER)
-            + fig("20261110-hom_loop.png", "One HOM control period for one finger. The least-squares step is the only "
-                  "place where the hand's geometry appears, through the Jacobian.")
-            + fig("20261110-bilevel_inner.png", "The inner loop in the nested problem."))
+            + fig("20261110-grasp_candidates.png", "The 16 candidate grasps of hand A, each rendered after the lift (CPU "
+                  "plant, seed 0), with the GPU's press score (mean of three seeds); green: the best.")
+            + fig("20261110-contact_modes.png", "What HOM commands at each fingertip: a motion relative to the object at "
+                  "the contact (stick, roll or slide), and a press along the normal with force F. The contact-mode weights "
+                  "w choose among them.")
+            + fig("20261110-tuning.png", "Tuning inside the inner loop: the median over the 30 best SCS0009 layouts per "
+                  "task of the best score so far by CEM iteration, tuning the grasp alone (S2) or the grasp, forces and "
+                  "contact modes (S3), against the defaults with the best of 16 grasps (S1). Earlier task scores: the twist's "
+                  "counts its peak yaw on three pads (tracking-score page).")
+            + fig("20261110-hom_period.png", "One HOM control period. The least squares is the only step where the hand's "
+                  "geometry appears, through the Jacobian A(m, g); the forces F and the weights w are what tuning "
+                  "changes."))
 
 
 def sec_sim():
+    fi = figinfo()
+    g = fi.get("gpu", {})
+    rate = (f"A batch of {g.get('worlds_per_batch')} press rollouts took a median {g.get('batch_s_median')} s on the "
+            f"{g.get('gpu', 'GPU')}, {1000 * g.get('s_per_rollout_median', 0):.1f} ms per rollout, against 5.0 s for one "
+            "rollout on the CPU. " if g else "")
     return ("<p>The outer loop asks the simulator for thousands of rollouts, so each sim-to-real component was chosen "
-            "to keep the score fast, calibrated and observable. Fast: the fingertip is 1 mm sphere pads, which run in "
-            "batches on the GPU and agree across MuJoCo, MuJoCo-Warp, Newton and Drake. Calibrated: the pad modulus, "
-            "2.5 MPa, was fitted to presses of the printed tips on the UR5, and the servo stiffness was identified on "
-            "the hand. Observable: the magnetic fingertips measure the contact location and the normal force, the "
-            "same quantities the model and HOM use.</p>"
+            "to keep the score fast, calibrated and observable (Figure 8). " + rate + "Fast: the fingertip is 1 mm "
+            "sphere pads, which run in batches on the GPU and agree across MuJoCo, MuJoCo-Warp, Newton and Drake. "
+            "Calibrated: the pad modulus, 2.47 MPa, was fitted to presses of three printed tips on the UR5, and the "
+            "servo stiffness was identified on the hand. Observable: the magnetic fingertips measure the contact "
+            "location and the normal force, the quantities the model and HOM use.</p>"
             + rows(SIM)
             + "<p>The crosstalk study on 11 layouts found that the layout changes how much one fingertip's magnets "
               "disturb another's reading. A co-design that includes sensing would put the sensors' placement into "
               "$m$.</p>"
-            + fig("20261110-bilevel_sim.png", "The evaluator in the nested problem."))
+            + fig("20261110-evaluator.png", "The simulator as an evaluator built for co-design: fast enough for a "
+                  "search, calibrated on hardware, and observable through the fingertips."))
+
+
+SLIDES = [
+    ("21", "20261110-eq_step1.png", "a hand for a task"),
+    ("23", "20261110-eq_step2.png", "the controller: bi-level"),
+    ("24-27", "20261110-eq_step3.png", "object sizes"),
+    ("28", "20261110-eq_step4.png", "the spaces, R^6 and R^9"),
+    ("29", "20261110-eq_step5.png", "tasks"),
+    ("30", "20261110-eq_step6.png", "the metric"),
+    ("31", "20261110-eq_step7.png", "simulation"),
+    ("31-32", "20261110-eq_step8.png, 20261110-nested_all.png", "the whole problem; its braces are the sections"),
+    ("32", "20261110-eq_final_outer.png, 20261110-nested_outer.png", "section opener: choose the hand"),
+    ("32-33", "20261110-layout_space.png, 20261110-eq_outer.png, 20261110-ea_anatomy.png, 20261110-ea_snapshots.png",
+     "morphology optimization"),
+    ("34", "20261110-eq_final_inner.png, 20261110-nested_inner.png", "section opener: run the hand"),
+    ("34-35", "20261110-eq_inner_split.png, 20261110-grasp_candidates.png, 20261110-eq_inner_grasp.png, "
+              "20261110-contact_modes.png, 20261110-hom_period.png, 20261110-eq_inner_hom.png, "
+              "20261110-eq_inner_servo.png, 20261110-eq_inner_tune.png", "multi-hand control"),
+    ("36", "20261110-eq_final_sim.png, 20261110-nested_sim.png", "section opener: score the hand"),
+    ("36-38", "20261110-evaluator.png, 20261110-eq_sim_budget.png, 20261110-eq_sim_sensing.png", "sim-to-real"),
+]
+
+
+def sec_slides():
+    body = [[sl, esc(what), "<br>".join(f"<code>{x.strip()}</code>" for x in files.split(","))] for sl, files, what in SLIDES]
+    return ("<p>Every figure and formula image is a PNG in <code>media/</code>, at 400 dpi for the LaTeX images and 160 "
+            "dpi for the plots, sized for a 16:9 slide (Table 1). The owner's slide numbers are those of the deck of "
+            "2026-11-10.</p>" + table(["Slide", "Content", "Images"], body, "Images for the owner's slides.", num_from=9))
 
 
 def sec_files():
-    return ("<ul><li>Figures: <code>media/20261110-bilevel_{all,codesign,outer,inner,sim}.png</code>, "
-            "<code>media/20261110-ea_snapshots.png</code>, <code>media/20261110-hom_loop.png</code> "
-            "(<code>scripts/docs/codesign_formulation_figures.py</code>)</li>"
+    return ("<ul><li>LaTeX and TikZ images: <code>scripts/docs/codesign_tikz.py</code>; plots and renders: "
+            "<code>scripts/docs/codesign_formulation_figures.py</code> (numbers in "
+            "<code>media/20261110-figures.json</code>)</li>"
             "<li>Formulas: <code>FORMULAS</code>, <code>OUTER</code>, <code>INNER</code> and <code>SIM</code> in "
-            "<code>scripts/docs/codesign_formulation_page.py</code>, copied into the talk's "
-            "<code>build_talk.py</code></li>"
+            "<code>scripts/docs/codesign_formulation_page.py</code>, used by the talk's <code>build_talk.py</code></li>"
             f"<li>Related: <a href=\"{DESIGN}\">the design page</a>, <a href=\"{SEARCH}\">the search-methods page</a>, "
             f"<a href=\"{REFINE}\">the score-levels page</a>, <a href=\"{TRACK}\">the tracking-score page</a></li></ul>")
 
@@ -204,6 +276,7 @@ def main():
                 ("outer", "Morphology optimization: the outer loop", sec_outer()),
                 ("inner", "Multi-hand control: the inner loop", sec_inner()),
                 ("sim", "Sim-to-real: an evaluator built for co-design", sec_sim()),
+                ("slides", "Images for the slides", sec_slides()),
                 ("files", "Files", sec_files())]
     lede = ("The SR2 part of the hand-design talk follows one nested problem. The hand is chosen in an outer loop, "
             "the grasp and HOM's parameters in an inner loop, and every candidate is scored in simulation. The "
@@ -219,7 +292,7 @@ def main():
     page = P.TEMPLATE.read_text()
     for k, v in {"TITLE": "SR2 co-design formulation", "H1": "The co-design problem of the SR2 hand talk as one nested "
                  "formula", "EYEBROW": "Hand-design talk, 2026-11-10", "LEDE": lede,
-                 "BYLINE": "Formulas and diagrams for the talk of 2026-11-17; data from the pages linked in Section 6. "
+                 "BYLINE": "Formulas and diagrams for the talk of 2026-11-17; data from the pages linked in Section 7. "
                            "Builder: <code>scripts/docs/codesign_formulation_page.py</code>.",
                  "TOC": toc, "SECTIONS": secs, "FOOTER": str(OUT.relative_to(ROOT)),
                  "TEXCSS": texsvg.CSS + texsvg.BLOCK_CSS}.items():
