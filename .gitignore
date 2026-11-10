@@ -92,3 +92,12 @@ docs/**/*.bin
 
 # Bambu Studio projects of the tag prints: rebuilt by scripts/hardware/object_tracking_print.py bambu; 3MF files stay off GitHub (owner, 2026-11-06)
 assets/tracking/**/*.3mf
+
+# HOM rows over 2 MB from the post-reset steps of 2026-11-10 stay on the workstation (rsync); their summaries are committed
+docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25r*/
+docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv55*/
+docs/experiments/20261029-foundational_pose_review/rows/grid2dff_pinch*_v4b.jsonl
+docs/experiments/20261029-foundational_pose_review/rows/grid2dff_tripod*_v4b.jsonl
+docs/experiments/20261029-foundational_pose_review/rows/20261110-rail_roll_*.jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_*_track/*_s[0-9].jsonl
+docs/experiments/20261029-foundational_pose_review/rows/ea_live_*_mj4/*_s[0-9].jsonl

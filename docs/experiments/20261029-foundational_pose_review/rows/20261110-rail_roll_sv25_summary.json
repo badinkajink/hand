@@ -1,0 +1,157 @@
+{
+ "rows": "docs/experiments/20261029-foundational_pose_review/rows/20261110-rail_roll_sv25.jsonl",
+ "n_sample": 2688,
+ "n_refine": 2820,
+ "cases": [
+  {
+   "call": 252,
+   "grasp": 9,
+   "layout": [
+    90.0,
+    60.0
+   ],
+   "track_mean": 0.2763333333333333,
+   "old_mean": 0.5716666666666667,
+   "contact_mean": 1.0,
+   "followed_mean": 0.27604166666666663,
+   "seeds": [
+    0.364,
+    0.114,
+    0.351
+   ],
+   "film_seed": 2,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 25.0,
+   "rail": 1,
+   "sampled": 365,
+   "held": 323,
+   "best_sample": 0.146
+  },
+  {
+   "call": 478,
+   "grasp": 13,
+   "layout": [
+    135.0,
+    65.0
+   ],
+   "track_mean": 0.3156666666666667,
+   "old_mean": 0.5630000000000001,
+   "contact_mean": 1.0,
+   "followed_mean": 0.315625,
+   "seeds": [
+    0.323,
+    0.321,
+    0.303
+   ],
+   "film_seed": 1,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 30.0,
+   "rail": 1,
+   "sampled": 442,
+   "held": 390,
+   "best_sample": 0.307
+  },
+  {
+   "call": 203,
+   "grasp": 5,
+   "layout": [
+    80.0,
+    65.0
+   ],
+   "track_mean": 0.14700000000000002,
+   "old_mean": 0.5356666666666666,
+   "contact_mean": 0.9953333333333333,
+   "followed_mean": 0.1479166666666666,
+   "seeds": [
+    0.131,
+    0.144,
+    0.166
+   ],
+   "film_seed": 1,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 63.0,
+   "rail": 1,
+   "sampled": 563,
+   "held": 552,
+   "best_sample": 0.184
+  },
+  {
+   "call": 453,
+   "grasp": 15,
+   "layout": [
+    130.0,
+    65.0
+   ],
+   "track_mean": 0.294,
+   "old_mean": 0.501,
+   "contact_mean": 0.7196666666666666,
+   "followed_mean": 0.4083333333333334,
+   "seeds": [
+    0.295,
+    0.314,
+    0.273
+   ],
+   "film_seed": 0,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 80.0,
+   "rail": 1,
+   "sampled": 511,
+   "held": 499,
+   "best_sample": 0.165
+  },
+  {
+   "call": 13,
+   "grasp": 9,
+   "layout": [
+    40.0,
+    115.0
+   ],
+   "track_mean": 0.035333333333333335,
+   "old_mean": 0.5103333333333334,
+   "contact_mean": 1.0,
+   "followed_mean": 0.03522432332220989,
+   "seeds": [
+    0.046,
+    0.0,
+    0.06
+   ],
+   "film_seed": 0,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 25.0,
+   "rail": 2,
+   "sampled": 365,
+   "held": 117,
+   "best_sample": 0.0
+  },
+  {
+   "call": 45,
+   "grasp": 7,
+   "layout": [
+    45.0,
+    150.0
+   ],
+   "track_mean": 0.12466666666666666,
+   "old_mean": 0.5296666666666667,
+   "contact_mean": 1.0,
+   "followed_mean": 0.12458286985539486,
+   "seeds": [
+    0.119,
+    0.13,
+    0.125
+   ],
+   "film_seed": 2,
+   "candidates": 150,
+   "layouts": 10,
+   "size": 30.0,
+   "rail": 2,
+   "sampled": 442,
+   "held": 199,
+   "best_sample": 0.119
+  }
+ ]
+}

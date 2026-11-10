@@ -200,37 +200,76 @@ def sec_bigroll(picks):
                      f"{40 * br['step_s']:.0f} deg command, viewed from below, at the seed closest to each mean."))
 
 
-def sec_rail():
-    """The roll with the thumb held still as a rail (post-reset step 13; scripts/hom/hom_rail_roll.py)."""
+RAIL_ROWS = ROWS / f"20261110-rail_roll{TAG}.jsonl"
+RAIL_SUM = ROWS / f"20261110-rail_roll{TAG}_summary.json"
+
+
+def rail_summary():
+    """The rail roll's picks and sample counts (post-reset step 13; scripts/hom/hom_rail_roll.py), written from its rows
+    when they are here; the rows (3 MB) stay out of git and the summary is committed."""
+    if not RAIL_ROWS.exists():
+        return json.loads(RAIL_SUM.read_text()) if RAIL_SUM.exists() else {}
     import hom_rail_roll as RR
-    rows = RR.load()
-    if not rows:
-        return ""
-    P_ = RR.picks(rows)
-    first = {s: v["track_mean"] for s, v in json.loads((ROWS / f"20261109-track_picks{TAG}.json").read_text())["roll"].items()}
-    body = []
-    for (size, rail), v in sorted(P_.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+    rows = [json.loads(x) for x in RAIL_ROWS.read_text().splitlines() if x.strip()]
+    cases = []
+    for (size, rail), v in sorted(RR.picks(rows).items(), key=lambda kv: (kv[0][1], kv[0][0])):
         sm = [r for r in rows if r["stage"] == "sample" and r["size"] == size and r["rail"] == rail]
-        body.append([f"{size:g}", {1: "index and middle", 2: "index"}[rail], f"{len(sm)}",
-                     f"({v['layout'][0]:.0f}, {v['layout'][1]:.0f}), grasp {v['grasp']}", f2(v["track_mean"]),
-                     ", ".join(f"{x:.2f}" for x in v["seeds"]), f2(v["old_mean"]), f2(v["followed_mean"]),
-                     f2(v["contact_mean"]), f2(first.get(f"{size:g}"))])
-    n1 = sum(1 for r in rows if r["stage"] == "sample")
-    n2 = sum(1 for r in rows if r["stage"] == "refine")
+        cases.append(dict(v, size=size, rail=rail, sampled=len(sm), held=sum(bool(r.get("held")) for r in sm),
+                          best_sample=max(r["track"] for r in sm)))
+    out = {"rows": str(RAIL_ROWS.relative_to(ROOT)), "n_sample": sum(r["stage"] == "sample" for r in rows),
+           "n_refine": sum(r["stage"] == "refine" for r in rows), "cases": cases}
+    RAIL_SUM.write_text(json.dumps(out, indent=1, default=float) + "\n")
+    return out
+
+
+def sec_rail(S):
+    """The roll with the thumb held still as a rail."""
+    if not S:
+        return ""
+    C = {(c["size"], c["rail"]): c for c in S["cases"]}
+    first = {s: v["track_mean"] for s, v in json.loads((ROWS / f"20261109-track_picks{TAG}.json").read_text())["roll"].items()}
+    body = [[f"{c['size']:g}", {1: "Index and middle", 2: "Index"}[c["rail"]], f"{c['held']} of {c['sampled']}",
+             f"({c['layout'][0]:.0f}, {c['layout'][1]:.0f}), grasp {c['grasp']}", f2(c["track_mean"]),
+             ", ".join(f"{x:.2f}" for x in c["seeds"]), f2(c["old_mean"]), f2(c["followed_mean"]),
+             f2(c["contact_mean"]), f2(first.get(f"{c['size']:g}")) if c["rail"] == 1 else ""] for c in S["cases"]]
+    one = {s: C[(s, 1)] for s in (25.0, 30.0, 63.0, 80.0) if (s, 1) in C}
+    up = [s for s in one if one[s]["track_mean"] > first.get(f"{s:g}", 1.0)]
+    down = [s for s in one if s not in up]
+    lose = [s for s in one if one[s]["contact_mean"] < 0.95]
+    sz = (lambda ss: ", ".join(f"{s:g}" for s in ss[:-1]) + f" and {ss[-1]:g}" if len(ss) > 1 else f"{ss[0]:g}")
+    sc = (lambda vs: ", ".join(f"{v:.2f}" for v in vs[:-1]) + f" and {vs[-1]:.2f}" if len(vs) > 1 else f"{vs[0]:.2f}")
     t = ("<p>In the HOM paper's video the thumb stays extended and rigid, and the two other fingers roll the ball up "
-         "along it (owner, 2026-11-09). In this variant of the roll the thumb keeps the servo targets it had when the "
-         "task began, so the sphere rides on it as on a rail and may touch its links. The index and the middle roll the "
-         "sphere under HOM with the roll's command of Section SEC[floors]. On the 25 and 30 mm spheres a second variant "
+         "along it (owner, 2026-11-09). In this variant of the roll the thumb's servo targets stay at their values "
+         "from the start of the task. The sphere rides on it as on a rail and may touch its links. The index and the middle roll the "
+         "sphere under HOM with the roll's 20 deg command of Section 5. On the 25 and 30 mm spheres a second variant "
          "rolls with the index alone, after the middle backs off 8 mm. The contact share of the tracking score is "
-         "taken over the rolling fingers' pads.</p>"
-         f"<p>The search ran on the CPU plant in two stages ({n1} and {n2} rollouts). Every layout of the lattice that "
-         "reaches the tripod ran with its foundational pose at seed 0. The ten best of each size then ran with every "
-         "grasp of their sets at seeds 0 to 2 (Table 5).</p>")
-    t += table(["Size (mm)", "Rolling fingers", "Layouts sampled", "Picked layout (mm)", "Tracking score",
+         "taken over the rolling fingers' pads: two pads in the first variant and one in the second.</p>"
+         f"<p>The search ran on the CPU plant in two stages ({S['n_sample']} and {S['n_refine']} rollouts). Every "
+         "layout of the lattice that reaches the tripod ran with its foundational pose at seed 0. The ten best of each "
+         "size then ran with every grasp of their sets at seeds 0 to 2 (Table 5).</p>")
+    if up:
+        t += (f"<p>With the index and the middle rolling, the picked layouts score "
+              f"{sc([one[s]['track_mean'] for s in up])} on the {sz(up)} mm spheres. The tripod roll's picks of Table 3 "
+              f"score {sc([first[f'{s:g}'] for s in up])} at those sizes.")
+        if down:
+            t += (f" On the {sz(down)} mm sphere the rail roll scores {sc([one[s]['track_mean'] for s in down])} and the "
+                  f"tripod roll {sc([first[f'{s:g}'] for s in down])}.")
+        if lose:
+            pct = ", ".join(f"{100 * one[s]['contact_mean']:.0f}" for s in lose)
+            t += (f" The {sz(lose)} mm pick keeps both rolling pads on the sphere for {pct} % of the task, and the "
+                  "other picks keep them for the whole task.")
+        t += "</p>"
+    if (25.0, 2) in C and (30.0, 2) in C:
+        a2, b2 = C[(25.0, 2)], C[(30.0, 2)]
+        t += (f"<p>With the index alone rolling, the picks score {a2['track_mean']:.2f} at 25 mm and "
+              f"{b2['track_mean']:.2f} at 30 mm. In the sample stage the sphere was held by {a2['held']} of "
+              f"{a2['sampled']} layouts at 25 mm and {b2['held']} of {b2['sampled']} at 30 mm.</p>")
+    t += table(["Size (mm)", "Rolling fingers", "Layouts held in the sample", "Picked layout (mm)", "Tracking score",
                 "Seeds 0, 1, 2", "Earlier score", "Rotation followed", "Rollers' contact share",
                 "Tripod roll's pick (Table 3)"], body,
                "The roll with the thumb as a rail: each case's layout and grasp picked by the mean tracking score over "
-               "seeds 0-2 (ties within 0.02 to the larger contact share of the rolling fingers), CPU plant.", num_from=2)
+               "seeds 0-2 (ties within 0.02 to the larger contact share of the rolling fingers), CPU plant. The last "
+               "column is the tracking score of the tripod roll's pick at that size, on three pads.", num_from=4)
     t += P.film(MEDIA / f"20261110-film_rail1_roll{TAG}.mp4", "Roll with the thumb as a rail, index and middle rolling: "
                 "the picked layout at each of four sphere sizes, viewed from below, at the seed closest to its mean.")
     t += P.film(MEDIA / f"20261110-film_rail2_roll{TAG}.mp4", "Roll with the thumb as a rail and the index alone rolling: "
@@ -269,6 +308,10 @@ def sec_files():
             "<li>Films: <code>media/20261109-film_track_*_sv25.mp4</code>, clips "
             "<code>media/20261109-clip_track_*_sv25.mp4</code>; layout (70, 110) mm: "
             "<code>media/20261109-film_one_*_sv25.mp4</code></li>"
+            "<li><code>scripts/hom/hom_rail_roll.py</code>: <code>sample</code>, <code>refine</code>, <code>film</code>, "
+            "<code>report</code>; rows <code>rows/20261110-rail_roll_sv25.jsonl</code>, films "
+            "<code>media/20261110-film_rail1_roll_sv25.mp4</code> and <code>media/20261110-film_rail2_roll_sv25.mp4</code>"
+            "</li>"
             f"<li>Builder: <code>scripts/hom/hom_track_score_page.py</code>. Related: <a href=\"{SEARCH}\">the search "
             f"methods page</a>, <a href=\"{CONFLICT}\">the task-conflict page</a>.</li></ul>")
 
@@ -287,6 +330,16 @@ def lede(rows, picks):
         f"four object sizes per task score {span(rng['twist'])} on the twist, {span(rng['roll'])} on the roll and "
         f"{span(rng['press'])} on the press. Layout (70, 110) mm scores {span(gen['twist'])}, {span(gen['roll'])} and "
         f"{span(gen['press'])} at the same sizes.")
+    rail = rail_summary()
+    if rail:
+        up = [c for c in rail["cases"] if c["rail"] == 1
+              and c["track_mean"] > float(picks["roll"][f"{c['size']:g}"]["track_mean"])]
+        if up:
+            sizes = [f"{c['size']:g}" for c in up]
+            text += (" With the thumb held still as a rail, the index and the middle roll the "
+                     f"{', '.join(sizes[:-1])} and {sizes[-1]} mm spheres at {span([c['track_mean'] for c in up])} "
+                     f"(Section 6). The tripod roll's picks score "
+                     f"{span([float(picks['roll'][s_]['track_mean']) for s_ in sizes])} there.")
     summary = (f"A tracking score (share of the commanded rotation followed, times the share of the task on three pads) "
                f"replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling "
                f"twist; re-picked layouts score {span(rng['twist'])} (twist), {span(rng['roll'])} (roll) and "
@@ -301,6 +354,7 @@ def main():
                 ("check", "The tracking score against the owner's verdicts on the films", sec_check(rows)),
                 ("picks", "Layouts re-picked by the tracking score at four object sizes", sec_picks(picks)),
                 ("bigroll", "The roll layouts under a larger roll command", sec_bigroll(picks)),
+                ("rail", "Roll with the thumb held still as a rail", sec_rail(rail_summary())),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("files", "Files", sec_files())]
@@ -309,7 +363,7 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{unit(b)}</section>'
                      for k, (sid, hd, b) in enumerate(sections, 1))
-    byline = ("CPU rollouts on the SCS0009 plant at 2.5 MPa, 2026-11-09. Follows <a href=\"" + SEARCH + "\">the search "
+    byline = ("CPU rollouts on the SCS0009 plant at 2.5 MPa, 2026-11-09; the rail roll 2026-11-10. Follows <a href=\"" + SEARCH + "\">the search "
               "methods page</a>. Builder: <code>scripts/hom/hom_track_score_page.py</code>.")
     page = P.TEMPLATE.read_text()
     for k, v in {"TITLE": "HOM tracking score", "H1": "Tracking score of the HOM tasks and films of the SR2 hand across "
