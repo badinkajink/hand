@@ -355,7 +355,7 @@ def cmd_run_pso(a):
                         for c in d6]
                 moved = {}
                 for c, xs, _tried in pool.map(draw_layout, jobs):
-                    rng = np.random.default_rng([sum(map(ord, task + level + "pso")), int(c), -1])
+                    rng = np.random.default_rng([sum(map(ord, task + level + "pso")), int(c), 10 ** 6])  # not an it
                     X[c] = np.array([x if x is not None else st0[c][0] for x in xs])
                     V[c] = rng.uniform(-1.0, 1.0, X[c].shape) * st0[c][1]
                     moved[c] = np.array([x is not None for x in xs])
