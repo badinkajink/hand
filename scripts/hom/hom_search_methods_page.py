@@ -439,13 +439,25 @@ def s6_summary():
                                            "curve": curve(log)})
         if not runs:
             continue
-        val, trk = {}, {}
+        val, trk, rms = {}, {}, {}
         vp = S6DIR / f"{task}_d{d:g}_val.jsonl"
         for x in (vp.read_text().splitlines() if vp.exists() else []):
             if x.strip():
                 r = json.loads(x)
                 val.setdefault(int(r["call"]), []).append(L.rollout_score(task, r))
                 trk.setdefault(int(r["call"]), []).append(L.track_score(task, r))
+                rms.setdefault(int(r["call"]), []).append((r.get("track_err_rms_deg") if r.get("held") else None,
+                                                           r.get("track_ref_rms_deg"), r.get("contact_all_frac", 1.0)))
+
+        def detail(c):
+            """A layout's RMS angle error (min, max over the seeds held), commanded RMS rotation and mean share of the
+            task with all three pads loaded, at seeds 20-24."""
+            a = rms.get(c, [])
+            e = [x[0] for x in a if x[0] is not None]
+            if len(a) < 5 or not e:
+                return None
+            return {"err_deg": [round(min(e), 1), round(max(e), 1)], "ref_deg": round(float(np.mean([x[1] for x in a])), 1),
+                    "contact_all": round(float(np.mean([x[2] for x in a])), 3), "held": len(e)}
         for rs in runs.values():
             rs.sort(key=lambda r: r["seed"])
             for r in rs:
@@ -453,6 +465,7 @@ def s6_summary():
                 r["val"] = float(np.mean(val[c])) if len(val.get(c, ())) >= 5 else None
                 r["val_track"] = float(np.mean(trk[c])) if len(trk.get(c, ())) >= 5 else None
                 r["mm"] = [round(float(v), 2) for v in dmm[c]]
+                r["rms"] = detail(c)
         acc, acc_t = {}, {}
         sp = S6DIR / f"{task}_d{d:g}.jsonl"
         for x in (sp.read_text().splitlines() if sp.exists() else []):
@@ -467,7 +480,7 @@ def s6_summary():
         top = [{"layout": c, "fit": round(fe[c], 4), "fit_track": round(ft[c], 4),
                 "mm": [round(float(v), 2) for v in dmm[c]],
                 "val": float(np.mean(val[c])) if len(val.get(c, ())) >= 5 else None,
-                "val_track": float(np.mean(trk[c])) if len(trk.get(c, ())) >= 5 else None}
+                "val_track": float(np.mean(trk[c])) if len(trk.get(c, ())) >= 5 else None, "rms": detail(c)}
                for c in sorted(ev, key=lambda c: -ft[c])[:5]]
         out[task] = {"d": d, "runs": runs, "evaluated": len(ev), "reached": reach, "spacing": round(spacing, 3),
                      "snap": round(snap, 3),
@@ -702,12 +715,13 @@ seeds 0-2.</p>""", twn=tw_n, tw=top["twist"], twl=tw_list,
     tw_w = St["twist"]["win"]
     t += fill(r"""<p>By the tracking score no roll incumbent rolls the sphere: each tracked at <<rt0>> to <<rt1>> at
 seeds 20-24. Over the <<roe>> roll layouts that ran, Spearman's rank correlation between the two scores at seeds 0-2 is
-<<rrho>>. On the twist it is <<trho>>, and on the press <<prho>>. The best roll layout by the tracking score at seeds 0-2
-tracked at <<rtt>> there, with an earlier score of <<rtte>>, and it was <<rinc>>. On the twist the best validated
+<<rrho>>. On the twist it is <<trho>>, and on the press <<prho>>. The best roll layout by the tracking score at seeds 0-2,
+layout <<rtl>>, tracked at <<rtt>> there with an earlier score of <<rtte>>. It was <<rinc>>. On the twist the best validated
 layout tracked at <<twt>>. Layout <<c2>>, <<gap>> below it by the earlier score, tracked at <<c2t>>. It is also the best
 of the <<twe>> twist layouts by the tracking score at seeds 0-2. On the press the incumbents tracked at <<pt0>> to
 <<pt1>>.</p>""", rt0=f"{min(ro_t):.2f}", rt1=f"{max(ro_t):.2f}", roe=f"{ev['roll']:,}", rrho=f"{S6['roll']['rho']:.2f}",
-              trho=f"{S6['twist']['rho']:.2f}", prho=f"{S6['press']['rho']:.2f}", rtt=f"{tt['roll']['fit_track']:.2f}",
+              trho=f"{S6['twist']['rho']:.2f}", prho=f"{S6['press']['rho']:.2f}", rtl=tt["roll"]["layout"],
+              rtt=f"{tt['roll']['fit_track']:.2f}",
               rtte=f"{tt['roll']['fit']:.2f}",
               rinc="no search's incumbent" if tt["roll"]["layout"] not in ro_inc else "a search's incumbent",
               twt=f"{tw_w['val_track']:.2f}", c2=bt["twist"]["layout"],
@@ -726,6 +740,55 @@ of the <<twe>> twist layouts by the tracking score at seeds 0-2. On the press th
                "tracking score. Layout: its index in the Sobol draw order. Mount: the gantry's (<i>x</i>, <i>y</i>) "
                "on the palm; the CAD-nominal hand has the thumb at (&#8722;50, 0), the index at (50, 55) and the middle "
                "at (50, &#8722;55).", num_from=4)
+    return t + sec_track_top(S6, St)
+
+
+def sec_track_top(S6, St):
+    """Post-reset step 18: the five layouts of best tracking score at seeds 0-2 per task, rerun at seeds 20-24."""
+    tops = {k: S6[k]["track_top"] for k in St}
+    if not all(e["val_track"] is not None and e.get("rms") for k in tops for e in tops[k]):
+        return ""
+    tb = P.TAB[0] + 1
+    ro = tops["roll"]
+    b = max(ro, key=lambda e: e["val_track"])
+    w = St["roll"]["win"]
+    vt = {k: [e["val_track"] for e in tops[k]] for k in tops}
+    whole = b["rms"]["held"] == 5 and b["rms"]["contact_all"] == 1.0
+    inc = [(k, e["layout"]) for k in tops for e in tops[k] if s6_who(S6, k, e["layout"])]
+    t = fill(r"""<p>The five layouts of best tracking score at seeds 0-2 of each task ran again at seeds 20-24 (Table
+<<tb>>). On the roll they tracked at <<r0>> to <<r1>> there. Layout <<c>> tracked best<<again>>. <<held>> Its RMS angle error was
+<<e0>> to <<e1>>&#176; against a commanded RMS rotation of <<ref>>&#176;. Its earlier score was <<cv>>, <<gap>> below that
+of the best validated roll layout, <<w>>. Layout <<w>> followed the rotation more closely, with an RMS error of <<we0>> to
+<<we1>>&#176;. <<wc>> On the twist the five tracked at <<t0>> to <<t1>>, and on the press at <<p0>> to <<p1>>.
+<<inc>></p>""", tb=tb, r0=f"{min(vt['roll']):.2f}", r1=f"{max(vt['roll']):.2f}", c=b["layout"],
+             again=", as at seeds 0-2" if b["layout"] == ro[0]["layout"] else "",
+             held=("It held the sphere at all five seeds with all three pads loaded throughout." if whole else
+                   f"It held the sphere at {b['rms']['held']} of five seeds, with all three pads loaded for "
+                   f"{100 * b['rms']['contact_all']:.0f} % of the task."),
+             e0=f"{b['rms']['err_deg'][0]:.1f}", e1=f"{b['rms']['err_deg'][1]:.1f}", ref=f"{b['rms']['ref_deg']:.1f}",
+             cv=f"{b['val']:.2f}", gap=f"{St['roll']['top'] - b['val']:.2f}", w=w["layout"],
+             we0=f"{w['rms']['err_deg'][0]:.1f}", we1=f"{w['rms']['err_deg'][1]:.1f}",
+             wc=("At no time were all three of its pads loaded, so it tracked at 0." if w["rms"]["contact_all"] == 0
+                 else f"All three of its pads were loaded for {100 * w['rms']['contact_all']:.0f} % of the task, and it "
+                 f"tracked at {w['val_track']:.2f}."),
+             t0=f"{min(vt['twist']):.2f}", t1=f"{max(vt['twist']):.2f}", p0=f"{min(vt['press']):.2f}",
+             p1=f"{max(vt['press']):.2f}",
+             inc=(f"{WORD.get(len(inc), len(inc)).capitalize()} of the {3 * 5} had been a search's incumbent: "
+                  + " and ".join(f"layout {c} on the {k}" for k, c in inc) + "." if inc else
+                  "None of them had been a search's incumbent."))
+    rows = []
+    for k in tops:
+        for j, e in enumerate(tops[k]):
+            rows.append([TNAME[k] if j == 0 else "", str(e["layout"]), s6_who(S6, k, e["layout"]) or "&#8211;",
+                         mount(e["mm"], 0), mount(e["mm"], 1), mount(e["mm"], 2), f"{e['fit_track']:.2f}",
+                         f"{e['val_track']:.2f}", f"{e['fit']:.2f}", f"{e['val']:.2f}"])
+    t += table(["Task", "Layout", "Incumbent of", "Thumb mount (mm)", "Index mount (mm)", "Middle mount (mm)",
+                "Tracking score at seeds 0-2", "Tracking score at seeds 20-24", "Earlier score at seeds 0-2",
+                "Earlier score at seeds 20-24"], rows,
+               "Per task, the five layouts of best tracking score at seeds 0-2 among all layouts the live searches ran on "
+               "the six-coordinate Sobol layouts, rerun at seeds 20-24 (<code>hom_search6d.py validate --track-top "
+               "5</code>). Incumbent of: the starts whose last incumbent the layout was. Mount: the gantry's "
+               "(<i>x</i>, <i>y</i>) on the palm.", num_from=6)
     return t
 
 
@@ -943,9 +1006,6 @@ def sec_future():
 <li>The EA and the swarms on the six-coordinate layouts with RRT's rule, a move to the nearest layout not yet visited, so
 that each spends its 6,000 rollouts (<code>hom_search6d.Search</code>). The replays' ranking of the EA fails on these
 layouts if it then comes within 0.05 from fewer starts than random search.</li>
-<li>The five layouts of best tracking score at seeds 0-2 of each task, rerun at seeds 20-24
-(<code>hom_search6d.py validate --track-top 5</code>). If the roll's best of them tracks below 0.10 there, no Sobol
-layout rolls the 40 mm sphere with its foundational pose.</li>
 <li>Live EA and PSO searches at new object sizes, three random starts each, to test whether the replay's ranking holds
 with fresh rollout noise.</li>
 <li>The replays on the grids of the measured servo (<code>rows/grid2dff_v4b_sv55db</code>, stiffness page) with
@@ -966,8 +1026,8 @@ the EA: <code>hom_landscape.ea_search</code>; the live searches: <code>scripts/h
 <code>rows/search6d_sv25/</code>, each search's rounds (<code>*_gens.jsonl</code>), the validation
 (<code>*_val.jsonl</code>) and the timings in git, the shared rollouts (<code>twist_d40.jsonl</code>,
 <code>roll_d40.jsonl</code>, <code>press_d25.jsonl</code>, 17-22 MB) on the workstation; summary
-<code>rows/20261110-search6d_sv25_summary.json</code>; queue
-<code>logs/20261110-hom_post_reset/gpu_queue_step4.sh</code>.</li>
+<code>rows/20261110-search6d_sv25_summary.json</code>; queues
+<code>logs/20261110-hom_post_reset/gpu_queue_step4.sh</code> and <code>gpu_queue_step4b.sh</code>.</li>
 """ + (r"""<li>Live searches at new object sizes: <code>scripts/hom/hom_ea.py</code> and the validation
 <code>scripts/hom/hom_ea_validate.py</code>; rows <code>rows/ea_live_sv25/</code> and
 <code>rows/pso16_live_sv25/</code>, each search's generations (<code>*_gens.jsonl</code>), the validation
