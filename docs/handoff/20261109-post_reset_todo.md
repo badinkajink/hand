@@ -12,6 +12,20 @@ the MuJoCo 4.0 port page 20261108-mujoco4_contact_and_stack.html (INDEX.md), doc
 20261106-sr2_servo_identification.html, CLAUDE.md (LFS bullet: GH008), memory project_hand_design_talk_2026_11_17.md.
 State: 2026-11-09: search methods page and scripts/hom/hom_search_compare.py (replays, no new rollouts); talk deck and guide
 updated in ~/wxie_workspace/contact/talks/20261117-hand_design/ (practice 11-11, talk 11-17).
+State 11-10 03:10: step 1 queue logs/20261110-hom_post_reset/gpu_queue_step1.sh running (log gpu_queue_step1.log): twist,
+roll, press grids on kp0.55 (rows grid2dff_v4b_sv55), then the 0.72 grids rerun with the tracking fields (grid2dff_v4b_sv25r);
+about 2.2 h (tracking metrics add ~45 s of CPU scoring per 2,048-world batch); .done markers per grid, relaunch the
+script to resume. Smoke: 2.43 GB RSS, rows carry mujoco 3.6.0. Analysis: hom_plant_transfer.py --set stiffness [--score
+track]. Step 6 done 03:3x (74bac6e77).
+State 11-10 03:25: step 9 started beside the queue: scripts/hom/hom_torque.py (TorquePlant, inverse dynamics at 1 ms,
+wn 25.6 and 63 rad/s), comparison rows docs/experiments/20261110-hom_torque_control/rows/20261110-torque_compare.jsonl
+(3 CPU parts, logs torque_compare_*.log) run through a scratch hook; hom_tasks.rollout's set_hom hook and a faster
+track_errors wait in logs/20261110-hom_post_reset/apply_hom_tasks_patch.py, to apply when the GPU queue is idle (imports).
+State 11-10 03:35: step 9 comparison done (207 rows, 3 diverged press rollouts of (70, 110) at 10-13 mm): tracking score
+twist 0.239/0.252/0.234, roll 0.108/0.078/0.047, press 0.381/0.372/0.438 (position / torque wn 25.6 / 63); off-axis
+twist 33.8/19.4/11.8 deg/s; torque-limit share twist 0.86/0.83/0.59. Next: page builder scripts/hom/hom_torque_page.py,
+films (hom_torque.py film) once the GPU queue is idle. Step 8 waits on the lab session (corvus at eb14ac06d, 11-05).
+Step 1 early: 384 twist layouts at 0.55 against 0.72: Spearman 0.72, best tenth kept 0.50 (noise floor from sv25r).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [ ] 1. The measured servo first: HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 (damping 0.02 s x kp, as the servo plant's),
@@ -26,12 +40,10 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [ ] 4. The six search methods on the six-coordinate layouts (no full grid): score against the best layout any method found,
     rerun at seeds 20-24.
 - [ ] 5. Live EA and PSO searches at new object sizes, three random starts each.
-- [ ] 6. Design page lede: still quotes 1.0-1.2 mm per mm from the grids with every grasp; with clear grasps 0.83-1.06 (trends
-    page, Table 2). Add the clear-grasp values and rebuild fp_review_page.py.
+- [x] 6. Design page lede: still quotes 1.0-1.2 mm per mm from the grids with every grasp; with clear grasps 0.83-1.06… Done 11-10 03:15: Design page lede quotes 1.00-1.21 mm/mm with every grasp and 0.83-1.06 with clear grasps; rebuilt, 74bac6e77
 - [ ] 7. Talk: after any hand page that inserts figures or tables, rerun the FIGS audit before rebuilding the deck; push the
     contact repo only on the owner's word.
-- [ ] 8. Corvus: after its next pull, run python3 scripts/docs/lfs_lean.py install-hook there (relay through the lab session),
-    so its data files over 2 MB stay out of git as on the workstation.
+- [?] 8. Corvus: after its next pull, run python3 scripts/docs/lfs_lean.py install-hook there (relay through the lab s… Waiting on owner: corvus's clone is still at eb14ac06d (11-05 21:03), with no pull since and uncommitted sysid files in the lab's working copy; scripts/docs/lfs_lean.py is not there yet. The install needs the lab session's next pull (no lab session is reachable from here): when a lab session runs, relay 'git pull, then python3 scripts/docs/lfs_lean.py install-hook'.
 - [ ] 9. Owner, 11-09: implement, test and analyse inverse-dynamics torque control of the fingers in place of MuJoCo's position actuators ("that might help things?"). Keep Eq. 2's joint velocities u. Drive motor actuators with tau = M(q) qdd_ref + c(q, qd) + g(q) - J^T f_cmd, with qdd_ref from u (or a PD on theta_ref) and f_cmd the commanded pad forces, clipped at the SCS0009's 0.18 N m. Compare it with the position plant (kp 0.72 N m/rad) on the twist, roll and press at the films' sizes (twist and roll 25, 30, 63, 80 mm; press 10, 13, 40, 50 mm), on layout (70, 110) and the per-size best layouts, seeds 0-2: score, contact time per finger, off-axis angular-velocity RMSE. Before any hardware claim, state how a torque reaches the position-only servo (an offset tau/kp through its 0.55-0.72 N m/rad spring and 0.59 deg dead band).
 - [ ] 11. The roll at 25, 30 and 80 mm: no candidate of the short lists rolls (tracking score 0.03-0.10, page 20261109-hom_tracking_score.html). Run the live EA for the roll at these sizes on the GPU with hom_landscape.track_score as its fitness (new rows record track_err_rms_deg, track_ref_rms_deg and contact_all_frac). Refilm with scripts/hom/hom_track_films.py if a layout passes 0.2 at a size.
 - [ ] 13. Owner, 11-09: the roll is the weakest demonstration because it departs from the HOM paper's video, where the thumb stays extended and rigid and the two other fingers roll the ball up along it. Add that roll to hom_tasks.Schedule as a variant: the thumb holds its extended pose and may lose fingertip contact; the sphere rides on the thumb as a rail (its links may touch the sphere: the CPU plant has every contact, and the GPU filter must admit the thumb's links); index and middle roll it. On the 25 and 30 mm spheres also try one rolling finger. Score with hom_landscape.track_score, its contact share taken over the rolling fingers' pads only. Search 25, 30, 63 and 80 mm on the 2-D lattice (a CPU sample or the live EA on the GPU), film the best from below (HOM_FILM_VIEW=60,55,0.16) and add a section to 20261109-hom_tracking_score.html.
@@ -41,7 +53,8 @@ Standing directions (for every step):
 - Pin-push dropped for now (owner, 11-09: "effective pin-push trajectories are effectively press trajectories"): grids, searches and films run the twist, roll and press.
 - Rank layouts by hom_landscape.track_score (owner's go, 11-09; page 20261109-hom_tracking_score.html) and quote the earlier rollout_score beside it. Rows from before 11-09 lack the tracking fields, so a stored landscape is rescored only by rerunning it.
 <!-- /ap:steps -->
-Claimed: none.
+Claimed (autopilot, 11-10): logs/20261110-hom_post_reset/, scripts/hom/hom_gpu.py (rows name their MuJoCo version),
+scripts/hom/hom_plant_transfer.py, rows grid2dff_v4b_sv55 and grid2dff_v4b_sv25r.
 Decided 11-09: raw data stays offline (no data rows to GitHub's LFS); data files under 2 MB are ordinary git files, the
 pre-commit hook stops larger ones; plans and trajectories converted to plain git; the bare copy hand-lean.git deleted.
 Waiting on owner: nothing.

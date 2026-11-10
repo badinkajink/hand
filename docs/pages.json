@@ -1,6 +1,18 @@
 [
  {
   "date": "2026-11-10",
+  "file": "docs/experiments/20261110-hom_torque_control/20261110-hom_inverse_dynamics_control.html",
+  "title": "Inverse-dynamics torque control of the SR2 hand's fingers under HOM",
+  "page_title": "Inverse-dynamics torque control of the SR2 hand's fingers under HOM",
+  "topic": "mechanisms",
+  "summary": "Inverse-dynamics torque control of the SR2 fingers under HOM, against the SCS0009 position servos on the films' layouts: tracking scores went from 0.24 to 0.23 (twist), 0.11 to 0.05 (roll) and 0.38 to 0.44 (press) with a 63 rad/s loop; off-axis angular velocity 34 to 12 deg/s in the twist; joints at the 0.18 N m limit on most physics steps.",
+  "builder": "scripts/hom/hom_torque_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.3
+ },
+ {
+  "date": "2026-11-10",
   "file": "docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html",
   "title": "The co-design problem of the SR2 hand talk as one nested formula",
   "page_title": "The co-design problem of the SR2 hand talk as one nested formula",
