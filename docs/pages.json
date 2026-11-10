@@ -38,14 +38,14 @@
  {
   "date": "2026-11-10",
   "file": "docs/experiments/20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html",
-  "title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo",
-  "page_title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo",
+  "title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo and on MuJoCo 4.0",
+  "page_title": "HOM landscapes of the SR2 hand on the measured SCS0009 servo and on MuJoCo 4.0",
   "topic": "design",
-  "summary": "The SCS0009's measured 0.55 N m/rad and 0.59 deg dead band reorder the HOM landscapes (tracking-score rho 0.72 to 0.91 against the 0.72 N m/rad model, rerun spread 0.99 to 1.00); the model's best layouts lose 0.14 to 0.29 of their score on the measured servo.",
+  "summary": "The SCS0009's measured 0.55 N m/rad and 0.59 deg dead band reorder the HOM landscapes (tracking-score rho 0.72 to 0.91 against the 0.72 N m/rad model, rerun spread 0.99 to 1.00); the model's best layouts lose 0.14 to 0.29 of their score on the measured servo. On MuJoCo 4.0 the measured servo's landscapes keep rho 0.94 to 0.97 against 3.6.",
   "builder": "scripts/hom/hom_stiffness_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 1.7
+  "mb": 2.0
  },
  {
   "date": "2026-11-09",

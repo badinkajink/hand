@@ -312,6 +312,12 @@ def sec_terms():
         ("Spearman's rho", "the rank correlation of two grids' best-of-16 scores over the layouts that both reach; 1 "
          "is the same order of layouts."),
         ("Best tenth kept", "the share of one grid's best tenth of layouts that is in the other grid's best tenth."),
+        ("Live EA", f"the evolutionary search of the <a href=\"{TRENDS}\">trends page</a>'s size study "
+         "(<code>hom_ea.py run</code>): a population of 64 layouts on the lattice, about 6,000 rollouts, each new layout "
+         "run with every grasp of its set at seeds 0 to 2 on the GPU evaluator."),
+        ("Near set, size slope", "the layouts of one EA run that score within 0.05 of its best, and their centroid, the "
+         "mean ($x_{sep}$, $y_{sep}$). The size slope is the least-squares slope of the centroid's $x_{sep}$ against "
+         "the object's diameter, in mm per mm. A slope of 1 keeps each mount a fixed distance outside the object."),
     ]
     return "<dl>" + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
@@ -515,35 +521,103 @@ def slope(which, task, score):
     return float(np.polyfit(d, x, 1)[0])
 
 
-def sec_ea4():
-    """The size study's live EA on the measured servo and MuJoCo 4.0 against the stored runs (post-reset step 2)."""
-    if not (ROWS / EA_SRC["mj4"][0]).exists():
-        return ""
-    body = []
+def ea_compare():
+    """Per task and size: the stored run's outcome, the measured servo's by both scores, and the slopes."""
+    out = {"rows": [], "slope": {t: (slope("model", t, "rollout"), slope("mj4", t, "rollout")) for t in TASKS}}
     for task in TASKS:
         for d in EA_SIZES[task]:
             a, b = ea_outcome("model", task, d, "rollout"), ea_outcome("mj4", task, d, "rollout")
-            c = ea_outcome("mj4", task, d, "track")
-            if not b:
-                continue
-            body.append([NAME[task] if d == EA_SIZES[task][0] else "", f"{d}",
-                         f"{lay(a['xy'])}: {a['best']:.2f}" if a else "&#8211;", f"{lay(b['xy'])}: {b['best']:.2f}",
-                         f"{lay(c['xy'])}: {c['best']:.2f}" if c else "&#8211;",
-                         f"{np.hypot(*np.subtract(a['xy'], b['xy'])):.0f}" if a else "&#8211;"])
-    sl = {t: (slope("model", t, "rollout"), slope("mj4", t, "rollout")) for t in TASKS}
-    t = ("<p>The size study's live EA ran at the same object sizes on the measured servo and MuJoCo 4.0 (Table 9). As "
-         "in the size study, each run had a population of 64, about 6,000 rollouts, seed 0 and the earlier score as its "
-         "fitness. The stored runs of the size "
-         "study used the model servo on MuJoCo 3.6, so the two columns differ in the servo and in the simulator. "
-         "Section SEC[mj4] separates the simulator's part on the default objects.</p>")
-    ok = [x for x in TASKS if all(v is not None for v in sl[x])]
-    if ok:
-        t += ("<p>The centroid of the layouts within 0.05 of the best moves with the object's diameter by "
-              + "; ".join(f"{sl[x][0]:.2f} mm/mm on the model servo and {sl[x][1]:.2f} mm/mm on the measured servo "
-                          f"for the {x}" for x in ok) + ".</p>")
+            if a and b:
+                out["rows"].append({"task": task, "d": d, "a": a, "b": b, "c": ea_outcome("mj4", task, d, "track")})
+    return out
+
+
+SLOPES_FIG = "20261110-ea_size_slopes.png"
+
+
+def fig_slopes(E):
+    """x_sep of each run's near-set centroid against the object's diameter, a panel per task, with the least-squares
+    lines of both plants."""
+    plt = FR.plt_setup()
+    plt.rcParams.update({"font.size": 15, "axes.titlesize": 15, "axes.labelsize": 15, "xtick.labelsize": 14,
+                         "ytick.labelsize": 14, "legend.fontsize": 14})
+    fig, axs = plt.subplots(1, 3, figsize=(10.5, 3.8), constrained_layout=True, sharey=True)
+    style = {"a": ("0.72 N m/rad, MuJoCo 3.6", "o", "#1f77b4", "none"),
+             "b": ("Measured servo, MuJoCo 4.0", "s", "#d62728", "#d62728")}
+    for ax, task in zip(axs, TASKS):
+        rs = [r for r in E["rows"] if r["task"] == task]
+        d = np.array([r["d"] for r in rs], float)
+        for k, (lab, mk, col, face) in style.items():
+            x = np.array([r[k]["centroid"][0] for r in rs])
+            ax.plot(d, x, mk, ms=8, mec=col, mfc=face, mew=1.6, ls="none", label=lab)
+            b = np.polyfit(d, x, 1)
+            dd = np.array([d.min(), d.max()])
+            ax.plot(dd, np.polyval(b, dd), "-", color=col, lw=1.6)
+        ax.set_title(f"{NAME[task]}, {'cylinders' if task == 'press' else 'spheres'}")
+        ax.set_xlabel("Object diameter (mm)")
+        ax.set_ylim(40, 170)
+        ax.grid(alpha=0.3)
+    axs[0].set_ylabel("Near-set centroid $x_{sep}$ (mm)")
+    axs[2].legend(loc="upper left", frameon=False, fontsize=13, handletextpad=0.3, borderaxespad=0.2)
+    FR.save(fig, SLOPES_FIG)
+
+
+def and_list(xs):
+    xs = list(xs)
+    return xs[0] if len(xs) == 1 else ", ".join(xs[:-1]) + " and " + xs[-1]
+
+
+def sec_ea4(E):
+    """The size study's live EA on the measured servo and MuJoCo 4.0 against the stored runs (post-reset step 2)."""
+    if not E["rows"]:
+        return ""
+    R, sl = E["rows"], E["slope"]
+    body = [[NAME[r["task"]] if r["d"] == EA_SIZES[r["task"]][0] else "", f"{r['d']}",
+             f"{lay(r['a']['xy'])}: {r['a']['best']:.2f}", f"{lay(r['b']['xy'])}: {r['b']['best']:.2f}",
+             f"{lay(r['c']['xy'])}: {r['c']['best']:.2f}" if r["c"] else "&#8211;",
+             f"{np.hypot(*np.subtract(r['a']['xy'], r['b']['xy'])):.0f}",
+             f"{np.hypot(*np.subtract(r['a']['centroid'], r['b']['centroid'])):.0f}"] for r in R]
+    diff = {t: [r["b"]["best"] - r["a"]["best"] for r in R if r["task"] == t] for t in TASKS}
+    gap2 = {id(r): round(r["a"]["best"], 2) - round(r["b"]["best"], 2) for r in R}   # as the table prints them
+    low = [r for r in R if gap2[id(r)] > 0.03 + 1e-9]
+    near = len(R) - len(low)
+    lows = and_list(f"the {t} at " + and_list([f"{r['d']}" for r in low if r["task"] == t]) + " mm"
+                    for t in TASKS if any(r["task"] == t for r in low))
+    gap = [gap2[id(r)] for r in low]
+    dist = [float(np.hypot(*np.subtract(r["a"]["xy"], r["b"]["xy"]))) for r in R]
+    cdist = {t: float(np.median([np.hypot(*np.subtract(r["a"]["centroid"], r["b"]["centroid"]))
+                                 for r in R if r["task"] == t])) for t in TASKS}
+    other = sum(1 for r in R if r["c"] and r["c"]["xy"] != r["b"]["xy"])
+    t = ("<p>The size study's live EA ran again on the measured servo and MuJoCo 4.0, at the size study's other sizes "
+         f"(Table {P.TAB[0] + 1}). These are spheres of 25 to 80 mm for the twist and the roll and cylinders of 8 to "
+         "50 mm for the press; the default objects of Section SEC[mj4] were left out. As in the size study, each run "
+         "had a population of 64, about 6,000 rollouts, seed 0 and the earlier score as its fitness. The stored runs "
+         "used the model servo on MuJoCo 3.6, so the two columns differ in the servo and in the simulator.</p>")
+    t += (f"<p>The measured servo's runs reached the stored runs' best earlier score to within 0.03 at {near} of "
+          f"{len(R)} sizes.")
+    if low:
+        t += (f" They stayed {min(gap):.2f} to {max(gap):.2f} lower at {lows}.")
+    t += (f" The median difference is {np.median(diff['twist']):+.2f} on the twist, {np.median(diff['roll']):+.2f} on "
+          f"the roll and {np.median(diff['press']):+.2f} on the press. The best layout itself moved by a median of "
+          f"{np.median(dist):.0f} mm between the two runs, against the lattice's 5 mm steps. The near sets' centroids "
+          f"moved by a median of {cdist['twist']:.0f}, {cdist['roll']:.0f} and {cdist['press']:.0f} mm on the three "
+          "tasks.</p>")
+    if all(v is not None for x in TASKS for v in sl[x]):
+        t += (f"<p>The size slope is {sl['twist'][1]:.2f} mm per mm on the measured servo against {sl['twist'][0]:.2f} "
+              f"on the model servo for the twist. It is {sl['roll'][1]:.2f} against {sl['roll'][0]:.2f} for the roll "
+              f"and {sl['press'][1]:.2f} against {sl['press'][0]:.2f} for the press. The model servo's slopes over "
+              f"these sizes are within 0.01 of the trends page's, which include the default objects (Figure "
+              f"{P.FIG[0] + 1}).</p>")
+        t += img(MEDIA / SLOPES_FIG, "The $x_{sep}$ of each live EA run's near-set centroid against the object's "
+                 "diameter, with least-squares lines. Open circles: the stored runs on the model servo and MuJoCo 3.6. "
+                 "Filled squares: the measured servo with its dead band on MuJoCo 4.0. One run per size at seed 0, "
+                 "2.5 MPa.")
+    t += (f"<p>By the tracking score, the best layout differs from the earlier score's best at {other} of {len(R)} "
+          "sizes (fifth column). The tracking score was read only on the layouts that the runs evaluated.</p>")
     t += table(["Task", "Diameter (mm)", "Best, 0.72 N m/rad, MuJoCo 3.6: earlier score",
                 "Best, measured servo, MuJoCo 4.0: earlier score", "Best, measured servo, MuJoCo 4.0: tracking score",
-                "Distance between the first two (mm)"], body,
+                "Distance between the two best layouts by the earlier score (mm)",
+                "Distance between their near sets' centroids (mm)"], body,
                "The live EA at each object size: best layout and score by the earlier score on the stored runs and on the "
                "measured servo with MuJoCo 4.0, and by the tracking score on the latter. Every run at 2.5 MPa.",
                num_from=1)
@@ -571,19 +645,24 @@ def sec_limits():
     return ("<p>Each task ran at one object size, the twist and the roll of a 40 mm sphere and the press of a 25 mm "
             "cylinder, at seeds 0 to 2. The dead band and the stiffness measured on the hand on 2026-11-06 were "
             "applied to all nine joints alike. The servos' friction, 23 to 27 mN m at the yaw, was left out. "
-            "The rerun spread of the tracking score was measured on 200 of the 625 layouts, at 0.72 N m/rad only.</p>")
+            "The rerun spread of the tracking score was measured on 200 of the 625 layouts, at 0.72 N m/rad only. "
+            "The live EA ran once per object size on each plant, at search seed 0.</p>")
 
 
-def sec_future():
+def sec_future(E):
+    tw = E["slope"].get("twist") or (None, None)
     return ("<ul>"
             "<li>Add the yaw servos' measured friction to the plant (the <code>fl</code> field of "
             "<code>HOS_PLANT</code>) and run the three grids again. If Spearman's rho of the tracking score against the "
             "measured-servo grid stays above 0.95 on every task, the friction can stay out of the plant.</li>"
-            "<li>Run the size study's live EA on the measured servo with the tracking score as its fitness "
-            "(<code>hom_ea.py run --score track</code> with <code>HOS_DEADBAND_DEG=0.59</code>). If its best layouts "
-            "lie within the lattice's 5 mm of those found with the model servo, the design page's size slopes "
-            "stand.</li>"
-            "</ul>")
+            "<li>Run the live EA of Section SEC[ea4] again with the tracking score as its fitness "
+            "(<code>hom_ea.py run --score track</code> with <code>HOS_DEADBAND_DEG=0.59</code>). If its size slopes "
+            "stay within 0.1 mm per mm of those in Section SEC[ea4], the slopes do not depend on the score.</li>"
+            + (f"<li>Run the twist's live EA on the measured servo at search seeds 1 and 2 "
+               f"(<code>hom_ea.py run --seed</code>). Its size slope fell from {tw[0]:.2f} to {tw[1]:.2f} mm per mm. "
+               f"If both seeds give slopes within 0.1 of {tw[1]:.2f}, the fall comes from the plant and the "
+               "simulator.</li>" if None not in tw else "")
+            + "</ul>")
 
 
 def sec_files():
@@ -597,13 +676,18 @@ def sec_files():
             "<code>rows/20261110-stiffness_films.json</code>), and the page</li>"
             "<li>Rows, on the workstation only (over 2 MB each): <code>rows/grid2dff_v4b_sv25r/</code>, "
             "<code>rows/grid2dff_v4b_sv25r2/</code>, <code>rows/grid2dff_v4b_sv55/</code>, "
-            "<code>rows/grid2dff_v4b_sv55db/</code></li>"
+            "<code>rows/grid2dff_v4b_sv55db/</code>, <code>rows/grid2dff_v4b_sv55db_mj4/</code>, and the live EA's "
+            "rollouts <code>rows/ea_live_sv55db_mj4/*_s0.jsonl</code>. The EA's generations and timings "
+            "(<code>*_gens.jsonl</code>, <code>*_timing.jsonl</code>) are in git.</li>"
+            "<li>MuJoCo 4.0's warnings: builder subcommand <code>warnings</code>, "
+            "<code>rows/20261110-mj4_warnings.json</code>; maps <code>media/20261110-mj4_maps.png</code></li>"
             "<li>Queues: <code>logs/20261110-hom_post_reset/gpu_queue_step1.sh</code>, "
-            "<code>gpu_queue_step1b2.sh</code></li>"
+            "<code>gpu_queue_step1b2.sh</code>, and <code>gpu_queue_step2.sh</code> (MuJoCo 4.0.0 from "
+            "<code>logs/20261108-mujoco4_port/venv</code>)</li>"
             "</ul>")
 
 
-def lede(Lc):
+def lede(Lc, E):
     Z_ = [pair(Lc, "sv72r", "sv72r2", t, "track")["rho"] for t in TASKS]
     S_ = {t: pair(Lc, "sv72r", "sv55", t, "track") for t in TASKS}
     D_ = {t: pair(Lc, "sv55", "sv55db", t, "track") for t in TASKS}
@@ -626,16 +710,28 @@ def lede(Lc):
         text = text.replace(" The next grids run on the measured servo with its dead band.", "")
         text += (f" On MuJoCo 4.0 the measured servo's landscapes keep rho {min(r['rho'] for r in R4):.2f} to "
                  f"{max(r['rho'] for r in R4):.2f} against 3.6" + (", with the same best layouts." if same else "."))
+    sl = E["slope"]
+    if E["rows"] and all(v is not None for x in TASKS for v in sl[x]):
+        text += (" Across object sizes on the measured servo and MuJoCo 4.0, the thumb's mount in the live EA's near "
+                 f"sets moved {sl['twist'][1]:.2f}, {sl['roll'][1]:.2f} and {sl['press'][1]:.2f} mm further from the "
+                 f"index-middle pair per mm of the object's diameter. The model servo's runs gave "
+                 f"{sl['twist'][0]:.2f}, {sl['roll'][0]:.2f} and {sl['press'][0]:.2f}.")
     summary = (f"The SCS0009's measured 0.55 N m/rad and 0.59 deg dead band reorder the HOM landscapes (tracking-score "
                f"rho {min(m['rho'] for m in M_.values()):.2f} to {max(m['rho'] for m in M_.values()):.2f} against the "
                f"0.72 N m/rad model, rerun spread {min(Z_):.2f} to {max(Z_):.2f}); the model's best layouts lose "
                f"{min(loss):.2f} to {max(loss):.2f} of their score on the measured servo.")
+    if all(Lc.get("mj4", {}).get(t, {}).get("track") for t in TASKS):
+        summary += (f" On MuJoCo 4.0 the measured servo's landscapes keep rho {min(r['rho'] for r in R4):.2f} to "
+                    f"{max(r['rho'] for r in R4):.2f} against 3.6.")
     return text, summary
 
 
 def main():
     Lc = load(LAND.name)
     mj4 = all(Lc.get("mj4", {}).get(t, {}).get("track") for t in TASKS)
+    E = ea_compare() if (ROWS / EA_SRC["mj4"][0]).exists() else {"rows": [], "slope": {}}
+    if E["rows"]:
+        fig_slopes(E)
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("grids", "Grids at the default objects", sec_grids(Lc)),
                 ("stiffness", "Landscapes at the measured stiffness against the model's", sec_stiffness(Lc)),
@@ -643,14 +739,14 @@ def main():
                 ("deadband", "Landscapes with the servo's dead band", sec_deadband(Lc)),
                 ("films", "Films of each servo's best layouts", sec_films()),
                 ("mj4", "Landscapes of the measured servo on MuJoCo 4.0", sec_mj4(Lc)),
-                ("ea4", "Live EA across object sizes on the measured servo and MuJoCo 4.0", sec_ea4()),
+                ("ea4", "Live EA across object sizes on the measured servo and MuJoCo 4.0", sec_ea4(E)),
                 ("limits", "Limitations", sec_limits()),
-                ("future", "Future work", sec_future()),
+                ("future", "Future work", sec_future(E)),
                 ("files", "Files", sec_files())]
     sections = [x for x in sections if x[2]]
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
     sections = [(sid, hd, re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), b)) for sid, hd, b in sections]
-    lede_t, summary = lede(Lc)
+    lede_t, summary = lede(Lc, E)
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N m|N\b|s\b)", "\\1&nbsp;\\2", s_))
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{unit(b)}</section>'
