@@ -20,6 +20,14 @@ until the grasp closes, hom_tasks.PLANT_VARIANTS).
 Rows: docs/experiments/20261029-foundational_pose_review/rows/ea_live/<task>_d<d>_s<seed>.jsonl (the rollouts, in
 hom_gpu.py's format), <task>_d<d>_s<seed>_timing.jsonl (one line per batch) and <task>_d<d>_s<seed>_gens.jsonl (one line
 per generation: the population with its fitness, the incumbent, the rollouts so far).
+
+--score track (2026-11-10, post-reset step 11): a layout's fitness is its best grasp's mean hom_landscape.track_score
+instead of rollout_score; rows go to ea_live<tag>_track. --method pso (post-reset step 5): particle swarm optimization
+with live evaluation, the swarm of hom_search_compare.pso_search (Clerc and Kennedy's coefficients, velocities capped at
+a fifth of the box, a particle stopped at a wall) with each iteration's new layouts run as one GPU evaluation; rows go
+to pso<swarm>_live<tag>[_track], and the _gens.jsonl lines are its iterations.
+    .venv/bin/python scripts/hom/hom_ea.py run --task roll --d 25 --score track --seed 1
+    .venv/bin/python scripts/hom/hom_ea.py run --task twist --d 45 --method pso --swarm 16 --seed 2
 """
 from __future__ import annotations
 
@@ -52,6 +60,7 @@ BATCH = {"twist": 2048, "roll": 2048, "pinpush": 1536, "press": 1536}
 SIZES = {"sphere": (25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 56.0, 63.0, 71.0, 80.0),
          "cylinder": (8.0, 10.0, 13.0, 16.0, 20.0, 25.0, 32.0, 40.0, 50.0)}
 NEAR = 0.05                                      # a layout counts as near the best within this score
+SCORE = "rollout"                                # the fitness: hom_landscape.rollout_score, or track_score (--score)
 
 
 def lattice():
@@ -61,13 +70,15 @@ def lattice():
     return {(float(x), float(y)): k for k, (x, y) in enumerate((x, y) for x in xs for y in ys)}
 
 
-def fitness(task, path):
-    """{grid index: (best-of-set score, rollouts)} from rows in hom_gpu.py's format."""
+def fitness(task, path, score=None):
+    """{grid index: (best-of-set score, rollouts)} from rows in hom_gpu.py's format; score 'track' takes
+    hom_landscape.track_score (default: the module's SCORE)."""
+    fn = L.track_score if (score or SCORE) == "track" else L.rollout_score
     sc = {}
     for x in (path.read_text().splitlines() if path.exists() else []):
         if x.strip():
             r = json.loads(x)
-            sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.rollout_score(task, r))
+            sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(fn(task, r))
     return {c: (max(float(np.mean(v)) for v in g.values()), sum(len(v) for v in g.values())) for c, g in sc.items()}
 
 
@@ -178,13 +189,73 @@ def search(live, rng, pop, delta, budget, gens):
     return log
 
 
+def pso(live, rng, swarm, topology, budget, iters):
+    """Particle swarm optimization (hom_search_compare.pso_search) with live evaluation: positions in mm over the
+    gantries' box, each scored at its nearest lattice layout, a layout run once; each iteration's new layouts run as one
+    GPU evaluation. Returns the iterations' log lines."""
+    import hom_search_compare as SC
+    vmax = SC.VMAX * (HI - LO)
+
+    def cell(x):
+        m = np.clip(STEP * np.round(x / STEP), LO, HI)
+        return float(m[0]), float(m[1])
+    seen = []
+
+    def spent():
+        return sum(live.cost[live.cells[k]] for k in dict.fromkeys(seen))
+    X = LO + rng.random((swarm, 2)) * (HI - LO)
+    V = rng.uniform(-1.0, 1.0, (swarm, 2)) * vmax
+    P = Pf = None
+    log = []
+    for it in range(iters + 1):
+        C = [cell(x) for x in X]
+        live.evaluate(C)
+        seen += C
+        f = np.array([live.fit[live.cells[k]] for k in C])
+        if P is None:
+            P, Pf = X.copy(), f.copy()
+        else:
+            up = f > Pf
+            P[up], Pf[up] = X[up], f[up]
+        inc = max(dict.fromkeys(seen), key=lambda k: live.fit[live.cells[k]])
+        line = {"gen": it, "rollouts": spent(), "layouts": len(set(seen)), "incumbent": list(inc),
+                "incumbent_fit": live.fit[live.cells[inc]],
+                "pop": [[k[0], k[1], round(live.fit[live.cells[k]], 4)] for k in C]}
+        log.append(line)
+        print(f"{live.task} {live.d:g} mm pso iter {it}: {line['rollouts']} rollouts, {line['layouts']} layouts, "
+              f"incumbent {inc} {line['incumbent_fit']:.3f}", flush=True)
+        if line["rollouts"] >= budget or it == iters:
+            break
+        if topology == "gbest":
+            G = np.repeat(P[[int(np.argmax(Pf))]], swarm, axis=0)
+        else:                                            # ring: the best of each particle and its two neighbours
+            nb = np.stack([np.roll(np.arange(swarm), s) for s in (-1, 0, 1)], 1)
+            G = P[nb[np.arange(swarm), np.argmax(Pf[nb], axis=1)]]
+        r1, r2 = rng.random((swarm, 2)), rng.random((swarm, 2))
+        V = np.clip(SC.W * V + SC.C1 * r1 * (P - X) + SC.C2 * r2 * (G - X), -vmax, vmax)
+        X = X + V
+        wall = (X < LO) | (X > HI)
+        X, V = np.clip(X, LO, HI), np.where(wall, 0.0, V)
+    return log
+
+
 OUT_SRC = {"grid2dff": OUT, "grid2dgr": HG.ROWS / f"ea_live_gr{HG.ROWS_TAG}"}
 
 
-def cmd_run(task, d, seed, pop, delta, budget, gens, src=SRC):
-    live = Live(task, d, seed, OUT_SRC[src], src)
+def out_dir(src, method="ea", swarm=16, topology="gbest"):
+    """The rows directory of a live search: the EA's of the source grids, or pso<swarm>[ring]_live<tag>; _track with
+    the tracking score as the fitness."""
+    base = OUT_SRC[src] if method == "ea" else HG.ROWS / (f"pso{swarm}{'' if topology == 'gbest' else topology}_live"
+                                                          f"{HG.ROWS_TAG}")
+    return base.with_name(base.name + "_track") if SCORE == "track" else base
+
+
+def cmd_run(task, d, seed, pop, delta, budget, gens, src=SRC, method="ea", swarm=16, topology="gbest"):
+    live = Live(task, d, seed, out_dir(src, method, swarm, topology), src)
     t0 = time.time()
-    log = search(live, np.random.default_rng(1000 * seed + 7), pop, delta, budget, gens)
+    rng = np.random.default_rng(1000 * seed + 7)
+    log = (search(live, rng, pop, delta, budget, gens) if method == "ea" else
+           pso(live, rng, swarm, topology, budget, gens))
     live.gpath.write_text("".join(json.dumps(x) + "\n" for x in log))
     print(f"{task} {d:g} mm seed {seed}: incumbent {log[-1]['incumbent']} {log[-1]['incumbent_fit']:.3f} after "
           f"{log[-1]['rollouts']} rollouts in {time.time() - t0:.0f} s -> {live.gpath.relative_to(ROOT)}", flush=True)
@@ -359,15 +430,22 @@ def main():
         p.add_argument("--gens", type=int, default=40)
         p.add_argument("--src", choices=tuple(OUT_SRC), default=SRC, help="the toy's grids: grid2dgr, the grasps clear "
                        "of the ground (hom_ground.py)")
+        p.add_argument("--score", choices=("rollout", "track"), default="rollout", help="the fitness: "
+                       "hom_landscape.rollout_score or track_score")
+        p.add_argument("--method", choices=("ea", "pso"), default="ea")
+        p.add_argument("--swarm", type=int, default=16, help="--method pso: particles")
+        p.add_argument("--topology", choices=("gbest", "ring"), default="gbest", help="--method pso")
     a = ap.parse_args()
     if a.cmd == "report":
         return cmd_report(src=a.src)
+    global SCORE
+    SCORE = a.score
     if a.cmd == "run":
-        cmd_run(a.task, a.d, a.seed, a.pop, a.delta, a.budget, a.gens, a.src)
+        cmd_run(a.task, a.d, a.seed, a.pop, a.delta, a.budget, a.gens, a.src, a.method, a.swarm, a.topology)
         return 0
     for d in a.d:
         for task in a.tasks:
-            cmd_run(task, d, a.seed, a.pop, a.delta, a.budget, a.gens, a.src)
+            cmd_run(task, d, a.seed, a.pop, a.delta, a.budget, a.gens, a.src, a.method, a.swarm, a.topology)
     return 0
 
 
