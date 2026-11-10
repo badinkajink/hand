@@ -67,7 +67,7 @@ import hand_object_scale_sim as S  # noqa: E402
 from sr2hand.control import hom as H  # noqa: E402
 from sr2hand.control.surfaces import Cylinder, HalfEllipsoid, Posed, RoundedBox, Sphere, unit  # noqa: E402
 from hom_rows import rescale_metrics  # noqa: E402,F401  (stored rows scored with the fixed 0.01 s step)
-from sr2hand.geometry.rotations import quat_from_axis_angle, quat_mul, quat_yaw
+from sr2hand.geometry.rotations import quat_from_axis_angle, quat_integrate, quat_mul, quat_yaw, to_scipy
 
 OUT = ROOT / "docs/experiments/20261021-hom_framework"
 ROWS = OUT / "rows"
@@ -524,7 +524,8 @@ class Schedule:
         elif task == "press":                            # up by the normal force, hold, down by the weight
             A, w = prm["press_deg"], prm["press_dps"]
             self.prof = [(A / w, w, "press"), (1.0, 0.0, "hold up"), (A / w, -w, "release"), (0.5, 0.0, "hold")]
-        t_task = sum(p_[0] for p_ in self.prof) if self.prof else {"roll": 2 * (2 * prm.get("roll_step_s", 0.5) + 0.3),
+        t_task = sum(p_[0] for p_ in self.prof) if self.prof else {"roll": 2 * (2 * prm.get("roll_step_s", 0.5) + 0.3)
+                                                                         + (RAIL_OFF_S if prm.get("rail", 0) >= 2 else 0.0),
                                                                          "twist": 1.3 + 4.0}.get(task, 0.0)
         self.t_end = (EXPA_T0 + 6 * (2 * EXPA_STEP + EXPA_REST) + 0.2 if task == "expa"
                       else T_LIFT + 0.4 + t_task + (0.3 if task == "roll" else 0.5 if task == "twist" else 0.0))
@@ -607,17 +608,30 @@ class Schedule:
             info["R"] = H.quat_to_mat(s["quat"])
         else:
             w_ref = np.zeros(3)
+            rail = int(self.prm.get("rail", 0)) if task == "roll" else 0
             for f in FINGERS:
                 c = fc[f]
                 c.mode = "pinch"
                 c.weights = mode_weights(self.prm, "tripod")                   # free rolling (paper Exp. B)
                 c.force = 0.0 if t < T_CLOSE else self.prm["f_tripod"]
                 _approach(c, t)
+            if ph == "task" and rail:
+                # the rail roll (owner, 2026-11-09, after the paper's video): the thumb keeps the target it had when the
+                # task began (rollout holds it), the sphere rides on it and may touch its links; the rollers roll it.
+                # With one roller the middle backs off 8 mm first and stays there without force.
+                info["hold"], info["rollers"] = (PINCH[0],), RAIL_ROLLERS[rail]
+                if rail == 2:
+                    mc = fc[PUSHER]
+                    mc.force, mc.follow_object = 0.0, False
+                    if tt < RAIL_OFF_S:
+                        mc.v_ref[H.SEP] = -V_APPROACH
             if ph == "task":
                 if task == "roll":                       # about palm y through the thumb's contact: down, up, up, down
                     seq = [(1, +1), (1, -1), (None, 0), (1, -1), (1, +1), (None, 0)]
                     st = self.prm.get("roll_step_s", 0.5)            # 0.5 s at 40 deg/s: +-20 deg (2026-11-09: longer)
                     durs = [st, st, 0.3, st, st, 0.3]
+                    if rail == 2:                        # the middle's back-off first
+                        seq, durs = [(None, 0)] + seq, [RAIL_OFF_S] + durs
                 else:
                     seq = [(2, +1), (2, -1), (None, 0)]
                     durs = [0.5, 0.5, 0.3]
@@ -654,9 +668,14 @@ class Schedule:
 PRM = {"f_pinch": 3.0, "f_drive": 1.5, "f_press": 0.5, "rot_deg": 15.0, "rot_dps": 15.0, "press_deg": 20.0,
        "press_dps": 20.0, "w_roll_pinch": 0.0, "w_roll_push": 1.0, "f_tripod": 2.5, "ramp_dps": 30.0,
        "w_step_dps": 40.0,
+       "rail": 0.0,     # the roll with the thumb held still as a rail: 1 index and middle roll, 2 the index alone
        # Eq. (2)'s row weights by finger role (mode_weights; 2026-11-03): the values the tasks have used since 10-22
        "w_spin_pinch": 0.0, "w_slide_pinch": 1.0, "w_spin_push": 1.0, "w_slide_push": 1.0,
        "w_spin_tripod": 1.0, "w_roll_tripod": 0.0, "w_slide_tripod": 1.0}
+
+
+RAIL_ROLLERS = {1: ("index", "middle"), 2: ("index",)}   # prm rail: the fingers that roll the sphere on the thumb
+RAIL_OFF_S = 0.4                                           # s the middle backs off at 20 mm/s with one roller (8 mm)
 
 
 def mode_weights(prm, role):
@@ -686,11 +705,13 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
     rows = []
     frames = []
     lifted = False
+    held = {}
     hist = []
     tip = cal = None
     w0 = time.perf_counter()
     n_sat = 0
     while t < sch.t_end - 1e-9:
+        pe = None
         s = plant.state()
         hist.append(s)
         if noise and noise.get("delay_s", 0) > 0:
@@ -722,6 +743,15 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
             else:
                 meas.cop = {f: (p + rng.normal(size=3) * noise.get("cop_mm", 0.0) * 1e-3,
                                 max(0.0, F + rng.normal() * noise.get("f_N", 0.0))) for f, (p, F) in sm["cop"].items()}
+            if noise.get("pusher_est") and task in ("pinpush", "press"):
+                # the pusher's contact unsensed (post-reset step 14): its place and force estimated instead
+                meas.cop.pop(PUSHER, None)
+                est = pusher_estimate(mirror, meas)
+                if est is not None and est[1] >= hom_prm.contact_force_min:
+                    meas.cop[PUSHER] = est
+                tr = sm["cop"].get(PUSHER)
+                pe = {"F_est": None if est is None else round(est[1], 3), "F_true": round(tr[1], 3) if tr else 0.0,
+                      "p_err_mm": round(1e3 * float(np.linalg.norm(est[0] - tr[0])), 3) if est and tr else None}
         if t >= T_LIFT and not lifted and task != "expa":
             plant.post_off()
             lifted = True
@@ -731,6 +761,8 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
         for f in info.get("reanchor", ()):
             ctl.reanchor(f, sm["q"][f])
         q_cmd, ci = ctl.step(meas, cmd)
+        for f in info.get("hold", ()):                   # a finger held still (the rail roll's thumb): the target of
+            q_cmd[f] = held.setdefault(f, q_cmd[f])        # the task's first period, kept
         n_sat += sum(int(np.any(np.abs(ci[f]["u"]) >= hom_prm.u_max - 1e-6)) for f in FINGERS)
         R = H.quat_to_mat(s["quat"])
         row = {"t": round(t, 3), "phase": info["phase"], "pos_mm": (1e3 * s["pos"]).round(3).tolist(),
@@ -752,7 +784,13 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
             row["v_ref_mms"] = (1e3 * info["v_ref"]).round(3).tolist()
         if "theta_ref" in info:
             row["theta_ref_deg"] = round(info["theta_ref"], 3)
+        if "rollers" in info:
+            row["rollers"] = list(info["rollers"])
+        if pe is not None:
+            row["pusher_est"] = pe
         rows.append(row)
+        if hasattr(plant, "set_hom"):                    # a torque plant reads the period's terms (hom_torque.py)
+            plant.set_hom(ci)
         plant.set_targets(q_cmd if cal is None else {f: q_cmd[f] - cal["q"][f] for f in q_cmd})
         t += dt
         plant.advance(t)
@@ -799,6 +837,24 @@ def tip_reading(cop, noise, rng, tip):
     return out
 
 
+def pusher_estimate(mirror, meas):
+    """Where and how hard the unsensed pusher touches the cylinder (post-reset step 14; owner, 2026-11-09: push with the
+    unsensorized back of the pusher's fingertip, estimated from its joint kinematics and the sensed thumb and index).
+    The point is the pusher's witness point against the object at its measured joint angles and the tracked object pose
+    (hom.Mirror.gcf_witness). The normal force is the cylinder's static balance along the pusher's normal x1_p with the
+    sensed pinch forces and the weight: F_p = -(F_t x1_t + F_i x1_i + m g) . x1_p. (point, force), or None while a
+    pinching finger is not sensed."""
+    if any(f not in meas.cop for f in PINCH):
+        return None
+    mirror.set_state(meas.q, meas.obj_pos, meas.obj_quat)
+    F = np.array([0.0, 0.0, -9.81 * S.MASS])
+    for f in PINCH:
+        p, Fn = meas.cop[f]
+        F = F + Fn * mirror.gcf_from_cop(f, np.asarray(p, float)).x1
+    g = mirror.gcf_witness(PUSHER)
+    return g.p1, max(0.0, -float(F @ g.x1))
+
+
 def pinch_angle(axis) -> float:
     """Angle (deg) of the cylinder's axis about palm x (the pinch axis), + when the middle's side (the axis' +z end,
     which points to palm -y) is up."""
@@ -828,12 +884,8 @@ def track_errors(task, rows, h):
         return np.degrees(np.arccos(np.clip(np.einsum("ij,ij->i", A, a_ref), -1.0, 1.0))), np.degrees(np.abs(th))
     W = np.radians(np.array([r["w_dps"] for r in rows], float)) * h
     Wr = np.radians(np.array([r.get("w_ref_dps", [0.0, 0.0, 0.0]) for r in rows], float)) * h
-    R, Rr = Rotation.identity(), Rotation.identity()
-    e, ref = np.zeros(len(rows)), np.zeros(len(rows))
-    for k in range(len(rows)):
-        e[k], ref[k] = (Rr.inv() * R).magnitude(), Rr.magnitude()
-        R, Rr = Rotation.from_rotvec(W[k]) * R, Rotation.from_rotvec(Wr[k]) * Rr
-    return np.degrees(e), np.degrees(ref)
+    R, Rr = to_scipy(quat_integrate(W)), to_scipy(quat_integrate(Wr))      # before each row, as the loop of 11-09
+    return np.degrees((Rr.inv() * R).magnitude()), np.degrees(Rr.magnitude())
 
 
 def metrics(task, setup, rows, s0, se):
@@ -879,7 +931,16 @@ def metrics(task, setup, rows, s0, se):
     e, ref = track_errors(task, task_rows, h)
     out["track_err_rms_deg"] = round(float(np.sqrt(np.mean(e ** 2))), 2)
     out["track_ref_rms_deg"] = round(float(np.sqrt(np.mean(ref ** 2))), 2)
-    out["contact_all_frac"] = round(float(np.mean([all(r["F"][f] > 0.05 for f in FINGERS) for r in task_rows])), 3)
+    pe = [r["pusher_est"] for r in task_rows if r.get("pusher_est") and r["pusher_est"]["F_true"] > 0.05]
+    if pe:                                                 # the unsensed pusher's estimate against the simulator
+        loc = [x["p_err_mm"] for x in pe if x["p_err_mm"] is not None]
+        fe = [abs(x["F_est"] - x["F_true"]) for x in pe if x["F_est"] is not None]
+        out["pusher_loc_err_mm"] = round(float(np.median(loc)), 3) if loc else None
+        out["pusher_force_err_N"] = round(float(np.median(fe)), 3) if fe else None
+        out["pusher_force_true_N"] = round(float(np.median([x["F_true"] for x in pe])), 3)
+        out["pusher_est_frac"] = round(len(fe) / len(pe), 3)
+    fs = task_rows[0].get("rollers") or FINGERS            # the rail roll: the rolling fingers' pads only
+    out["contact_all_frac"] = round(float(np.mean([all(r["F"][f] > 0.05 for f in fs) for r in task_rows])), 3)
     p0 = np.array(task_rows[0]["pos_mm"])
     a0 = np.array(task_rows[0]["axis"])
     if task in ("pinpush", "press"):
@@ -1029,6 +1090,13 @@ VARIANTS = {
                    "pos_bias_mm": 1.0}),
     "ell5": ({"ell": 0.005}, None),
     "ell100": ({"ell": 0.1}, None),
+    # post-reset step 14 (owner, 2026-11-09): the pusher unsensed, its place and force estimated (pusher_estimate)
+    # from its joint angles, the tracked object and the thumb's and the index's boards, as in tip; tip_pefl also closes
+    # the pusher's force loop on the estimate, as tipfl does on its board
+    "tip_pe": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},
+               {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "pusher_est": True}),
+    "tip_pefl": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "force_loop_gain": 0.01},
+                 {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "pusher_est": True}),
     "l30": ({}, None),                                # pin-push on the grasps of design --lever 30 / 60
     "l60": ({}, None),
 }

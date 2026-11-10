@@ -92,8 +92,26 @@ ROWS = C.ROWS
 N_AP = 24                              # alternating projections for the block-cylinder witness points
 N_AP_WARM = 4                          # ... per control period for the v4b pad, from the previous period's point
 DMAX = 4                               # longest measurement delay, control periods
+# HOS_DEADBAND_DEG (2026-11-10, post-reset step 1): the SCS0009's dead band of 0.59 deg (docs/experiments/
+# 20261106-sr2_servo_sysid). The finger actuators become motors, and servo_deadband sets their torque at every physics
+# step: kp (target - q) outside the band, none inside, within the force range. A band of 0 reproduces the position
+# actuators (their force is computed from the step's starting state as well).
+DEADBAND = math.radians(float(os.environ.get("HOS_DEADBAND_DEG", "0") or 0.0))
 OVER_OK = {"dt", "contact_force_min", "force_loop_gain", "reanchor"}    # the HomParams a variant may change here
 FP_ROWS = {"2dfp": "rrt2d", "rrt6d": "rrt6d", "sobol8k": "sobol8k", "sobol6d": "sobol6d"}
+
+
+@wp.kernel
+def servo_deadband(qpos: wp.array2d(dtype=float), target: wp.array2d(dtype=float), qadr: wp.array(dtype=int),
+                   act: wp.array(dtype=int), kp: wp.array(dtype=float), tau_max: wp.array(dtype=float), db: float,
+                   ctrl: wp.array2d(dtype=float)):
+    """Per world and finger joint: the servo's torque with a dead band (DEADBAND) on the motor's control."""
+    w, j = wp.tid()
+    e = target[w, j] - qpos[w, qadr[j]]
+    tau = float(0.0)
+    if wp.abs(e) > db:
+        tau = kp[j] * e
+    ctrl[w, act[j]] = wp.clamp(tau, -tau_max[j], tau_max[j])
 
 
 @wp.kernel
@@ -469,6 +487,21 @@ class Batch:
         m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0         # pads meet the object only
         m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
         m.opt.tolerance, m.opt.iterations, m.opt.ls_iterations = 1e-6, 20, 10
+        act9 = np.array([m.actuator(f"a_{f}_{j}").id for f in FINGERS for j in JOINTS])
+        kp9 = m.actuator_gainprm[act9, 0].copy()                     # read before the motors replace the servos
+        if DEADBAND > 0:
+            tmax9 = np.abs(m.actuator_forcerange[act9, 1]).copy()
+            m.actuator_gaintype[act9] = mujoco.mjtGain.mjGAIN_FIXED
+            m.actuator_gainprm[act9] = 0.0
+            m.actuator_gainprm[act9, 0] = 1.0
+            m.actuator_biastype[act9] = mujoco.mjtBias.mjBIAS_NONE
+            m.actuator_biasprm[act9] = 0.0
+            m.actuator_ctrllimited[act9] = 1
+            m.actuator_ctrlrange[act9] = np.stack([-tmax9, tmax9], 1)
+            self.db_args = [wp.array(np.array([m.jnt_qposadr[m.joint(f"{f}_{j}").id] for f in FINGERS for j in JOINTS],
+                                              np.int32), dtype=int), wp.array(act9.astype(np.int32), dtype=int),
+                            wp.array(kp9.astype(np.float32), dtype=float), wp.array(tmax9.astype(np.float32), dtype=float)]
+            self.target = wp.zeros((W, 9), dtype=float)
         self.wm = mjw.put_model(m)
         self.wm.opt.contact_sensor_maxmatch = max(int(self.wm.opt.contact_sensor_maxmatch), 256)
         bp = np.repeat(m.body_pos[None].astype(np.float32), W, 0)
@@ -490,7 +523,7 @@ class Batch:
         self.tip = np.array([m.body(f"{f}_tip").id for f in FINGERS])
         self.lo = m.jnt_range[jid, 0]
         self.hi = m.jnt_range[jid, 1]
-        self.kp = np.array([[m.actuator_gainprm[m.actuator(f"a_{f}_{j}").id][0] for j in JOINTS] for f in FINGERS])
+        self.kp = kp9.reshape(3, 3)
         # gravity on each finger joint from the bodies below it (hom.Mirror.gravity: mj_rne at zero velocity)
         sub = np.zeros((3, 3, m.nbody))
         for k in range(3):
@@ -563,6 +596,9 @@ class Batch:
             dd.qpos.assign(qpos.astype(np.float32))
             dd.qvel.zero_()
         self.wd.ctrl.assign(ctrl.astype(np.float32))
+        if DEADBAND > 0:
+            self.target.assign(ctrl[:, self.act.reshape(-1)].astype(np.float32))
+            self.wd.ctrl.zero_()
         self.obj0 = qpos[:, self.qa:self.qa + 7].astype(np.float32)            # the start poses, for the variant hold
         self.mjw.forward(self.wm, self.wd)
         self.mjw.kinematics(self.wm, self.wdm)
@@ -583,6 +619,9 @@ class Batch:
 
         def block():
             for _ in range(self.nsub):
+                if DEADBAND > 0:
+                    wp.launch(servo_deadband, dim=(self.W, 9),
+                              inputs=[self.wd.qpos, self.target, *self.db_args, float(DEADBAND), self.wd.ctrl])
                 mjw.step(self.wm, self.wd)
             mjw.kinematics(self.wm, self.wd)
             self._launch_forces()
@@ -1185,7 +1224,10 @@ class Batch:
             times.append(t)
             thref.append(th_cmd)
             q_cmd = self.control_period(t, meas, mv, V, s_push)
-            vw["ctrl"][:, self.act_t] = (q_cmd - self.cal_q).reshape(W, 9).float()
+            if DEADBAND > 0:
+                wp.to_torch(self.target).copy_((q_cmd - self.cal_q).reshape(W, 9).float())
+            else:
+                vw["ctrl"][:, self.act_t] = (q_cmd - self.cal_q).reshape(W, 9).float()
             wp.capture_launch(self.graph)
             if t + dtc <= self.hold_max + 1e-9:          # variant hold: the object back at its start pose, at rest
                 hm = (self.hold_t >= t + dtc - 1e-9)[:, None]
@@ -1265,7 +1307,8 @@ def batch_child(spec):
         for wd_, r in zip(chunk, res):
             row = dict(wd_["key"], task=task, d_mm=float(spec["d_mm"]), seed=wd_["seed"], variant=wd_["var"]["var"],
                        status="ok", engine="mjwarp", hand=K.HAND, plant=S.PLANT,
-                       scenes=os.path.relpath(S.SCENES, ROOT), **sim, **r)
+                       scenes=os.path.relpath(S.SCENES, ROOT), **sim,
+                       **({"deadband_deg": round(math.degrees(DEADBAND), 3)} if DEADBAND > 0 else {}), **r)
             fh.write(json.dumps(row) + "\n")
         fh.flush()
         os.fsync(fh.fileno())

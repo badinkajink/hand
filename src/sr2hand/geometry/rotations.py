@@ -18,6 +18,7 @@ __all__ = [
     "wxyz_to_xyzw", "xyzw_to_wxyz", "to_scipy", "from_scipy", "quat_normalize", "quat_canonical", "quat_to_mat",
     "mat_to_quat", "quat_mul", "quat_conj", "quat_apply", "quat_apply_inv", "quat_from_axis_angle", "quat_from_rotvec",
     "quat_to_rotvec", "quat_yaw", "quat_axis", "tilt_cos", "quat_angle", "quat_twist", "quat_slerp", "quat_random",
+    "quat_integrate",
     "rot_x", "rot_y", "rot_z", "exp_so3", "log_so3", "rot_axis_angle", "rot_angle", "rot_slerp", "heading", "rot_between",
     "frame_from_axis", "tangent_basis", "skew", "vee", "project_to_so3", "euler_to_mat", "mat_to_euler",
     "tf", "tf_inv", "tf_apply", "tf_compose", "tf_from_pose", "tf_to_pose", "tf_from_ur", "tf_to_ur", "tf_interp",
@@ -165,6 +166,20 @@ def quat_random(n, seed=None):
 
 
 # ----------------------------------------------------------------------------------------------- rotation matrices
+def quat_integrate(w):
+    """wxyz orientations before each of n steps that turn by the rotation vectors w (n x 3, rad, world frame, each
+    applied on the left): out[0] is the identity and out[k] = exp(w[k-1]) ... exp(w[0]). A prefix product in
+    log2(n) passes of scipy compositions, so a long run of small steps costs a few array operations."""
+    w = _arr(w).reshape(-1, 3)
+    if not len(w):
+        return np.zeros((0, 4))
+    P, s = Rotation.from_rotvec(w), 1
+    while s < len(w):
+        P = Rotation.concatenate([P[:s], P[s:] * P[:-s]])
+        s *= 2
+    return from_scipy(Rotation.concatenate([Rotation.identity(), P[:-1]]))
+
+
 def rot_x(a):
     """Rotation matrices about x by a (rad)."""
     return _batched(lambda x: Rotation.from_euler("x", x).as_matrix(), _arr(a)[..., None], (1,))
