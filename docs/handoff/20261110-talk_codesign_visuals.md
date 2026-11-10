@@ -29,6 +29,18 @@ Deliverables (owner's slide numbers):
 5. One bi-level diagram reused per section with the active part highlighted (4 PNGs for the owner's slides).
 6. A page docs/experiments/20261110-codesign_formulation/ with 1-5 and its figures in media/; then the HTML deck restructured
    to the owner's outline with these slides. Build both, look at every figure and slide, check KaTeX renders.
-State: 2026-11-10 ~00:50: spec written; owner's PDF copied (untracked). Nothing built yet.
+State: 2026-11-10 01:30 (window): items 1-5 built. Page docs/experiments/20261110-codesign_formulation/
+20261110-sr2_codesign_formulation.html (hand f81cd63c3 and the next commit): 8-step formula (FORMULAS), outer (OUTER), inner
+(INNER), evaluator (SIM), 7 PNGs in media/ (scripts/docs/codesign_formulation_figures.py). Deck (contact 74d58c3, local, NOT
+pushed): build_talk.py imports the formulas through cf(); new slides cd1-cd8 before "loop"; "loop" is now the hierarchy
+(cd_bilevel_all); cd-outer and cd-outer-fig before "search"; cd-inner, cd-hom, cd-tune before "hom"; cd-sim before "servo";
+the deck's media clean-up keeps subfolders (the talk clips in media/20261109-anthropomorphic_hands). KaTeX checked on cd8 by
+`google-chrome --headless=new --window-size=1600,900 --virtual-time-budget=8000 --screenshot=X file://.../20261117-hand_design_talk.html#cd8`.
+Left for step 15: (a) reorder the deck's SR2 parts to the owner's outline: co-design (cd1-cd8, loop), morphology
+optimization (part-select with cd-outer), multi-hand control (part-control with cd-inner), sim-to-real (part-model and
+part-sense with cd-sim); today the deck runs model, sense, control, select. (b) Screenshot and look at every new slide
+(cd1-cd7, cd-outer, cd-outer-fig, cd-inner, cd-hom, cd-tune, cd-sim) and fix overflow or tiny text. (c) On slides that show
+the formula, a bilevel figure without its own formula may read better (an option in bilevel()). (d) Update the talk guide's
+section list to the owner's outline. (e) Rebuild, commit the contact repo locally, tell the owner; no push.
 Claimed: docs/experiments/20261110-codesign_formulation/, scripts/docs/codesign_formulation_*.py, the talk's build_talk.py.
 Do not: push the contact repo without the owner's word; commit the owner's PDF.

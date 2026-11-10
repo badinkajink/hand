@@ -47,13 +47,13 @@ def arrow(ax, a, b, text="", color=INK, rad=0.0, dy=0.12):
 
 def bilevel(active):
     """The nested problem as three boxes: morphology optimization around multi-hand control around the simulator."""
-    fig, ax = plt.subplots(figsize=(16, 7), dpi=110)
+    fig, ax = plt.subplots(figsize=(16, 5.9), dpi=110)
     ax.set_xlim(0, 16)
-    ax.set_ylim(0, 7)
+    ax.set_ylim(0.4, 6.3)
     ax.axis("off")
     on_all = active == "all"
     hue = COL["codesign"] if active in ("codesign", "all") else INK
-    ax.text(8, 6.55, r"$m^\star=\arg\max_{m}\ \mathbb{E}_{T,d}\left[\ \max_{g,\,\phi}\ J(m,g,\phi;\,T,d)\ \right]$",
+    ax.text(8, 5.45, r"$m^\star=\arg\max_{m}\ \mathbb{E}_{T,d}\left[\ \max_{g,\,\phi}\ J(m,g,\phi;\,T,d)\ \right]$",
             ha="center", va="center", fontsize=27, color=hue)
     box(ax, 0.2, 1.5, 4.5, 2.9, "Morphology optimization", ["outer loop: choose the hand $m$",
                                                             "6 mount coordinates", "Yang et al.'s EA"],
