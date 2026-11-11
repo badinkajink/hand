@@ -601,7 +601,11 @@ contact ([measured on the holder](exp:20261027-fingertip_crosstalk/20261027-magn
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
-below the tip&#8217;s volume centroid. A stiff local modulus behind a series spring of 9.7&#8202;N/mm fits the FE model of
+below the tip&#8217;s volume centroid. The v4b tip is covered by 1,018 spheres, with stiffnesses of 122 to 449&#8202;N/m at
+2.5&#8202;MPa. A flat plate was pressed on them in MuJoCo from 0.25 to 4&#8202;N. At the same approach the spheres pushed
+1.02 to 1.09 times the force of a continuous layer with the same modulus and depths
+([sphere-pad implementation](exp:20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html)).
+A stiff local modulus behind a series spring of 9.7&#8202;N/mm fits the FE model of
 the 11/22 tip within 5.6&#8202;% RMS in approach. With a spring in series, pads fitted to the FE pad follow the indentation
 measured on the UR5 within 135&#8202;&#181;m RMS, against 133&#8202;&#181;m for the FE pad. From the board&#8217;s force, the
 printed pad&#8217;s bulk is within about 22&#8202;% of the FE model. The estimator reports its forces at the same pads the
@@ -853,6 +857,8 @@ PAGES = [
      "Rest calibration, FE surface basis, whole-surface estimator, the first presses by hand, the browser viewer"),
     ("Method", "20261023-foreign_field_rejection/20261023-foreign_field_rejection.html",
      "Steel near the pad: the magnets&#8217; images, a test against fields from outside the pad, the viewer&#8217;s toggle"),
+    ("Method", "20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html",
+     "Sphere pads built from a convex tip&#8217;s surface: voxel pieces, each sphere&#8217;s stiffness, a flat press in MuJoCo"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
