@@ -13,6 +13,12 @@ scripts/docs/codesign_formulation_figures.py, scripts/hom/hom_grasp_refine.py (l
 State 01:40: GPU queue 1 logs/20261111-hom_tuning_track/queue.sh (press, twist, roll x grasp, hom, both; 30 best layouts
 by J; 32 x 8 x 3 rollouts per layout) running since 01:30, ~2.5 h; GPU queue 2 logs/20261111-talk_v2/gpu_queue_ea.sh
 (size study under J, 31 EA runs) waits for queue 1, ~3.5 h.
+State 02:40: done under J (files *_track in the formulation media; figures.json keys *_track): press and four-task
+landscapes, covers (one hand (70, 110) at 0.62; K*(0.85) 3, K*(0.9) 4), EA panels, three-hands film, grasp candidates of
+A (70, 65) (best = the foundational pose, 0.62), FP views of (105, 70). build_talk.py --v2 builds the v2 deck with
+media_v2/ (contact f62daab + later edits); 5 texts read [pending] until the size study's slopes exist. Formulation
+page Section 'v2'. Left: tuning chart (codesign_formulation_figures.py --track tuning, after queue 1), size trend
+(codesign_section_figures.py --track, after queue 2), final v2 build with no [pending], commits, the owner's report.
 Items (v2): film_three_hands under J (A = (70, 65), B = (70, 110), C = (125, 55)); press landscape and four-task
 landscapes under J; EA anatomy on the J press landscape; covers K*(alpha) from the J grids; size trend and thesis slopes
 from queue 2; grasp candidates of the new hand A with J scores; tuning chart from queue 1; slide text: how the 16 grasps

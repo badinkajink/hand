@@ -265,6 +265,47 @@ def sec_sim():
                   "search, calibrated on hardware, and observable through the fingertips."))
 
 
+def sec_v2():
+    """The v2 deck's figures (owner, 2026-11-11 night: refresh the slides' results on the latest settings): each figure
+    of the morphology and control sections drawn again with every hand ranked by the tracking score, on the grids rerun
+    with its fields (grid2dff_v4b_sv25r), the same plant (SCS0009 at 0.72 N m/rad, 2.5 MPa pads) and MuJoCo 3.6."""
+    fi = figinfo()
+    tr = fi.get("section_figures_track", {})
+    cv = tr.get("covers", {})
+    items = [
+        ("20261110-slide_landscape_track.png", "The press landscape under the tracking score: the best hand is (70, 65) mm "
+         "at 0.62. A, B and C are the three hands of the film below."),
+        ("20261110-slide_tasks_track.png", "The four tasks' landscapes, each as a share of its own best: the best hands are "
+         "(105, 70), (120, 65), (75, 80) and (70, 65) mm."),
+        ("20261110-slide_one_hand_track.png", f"The one hand that does all four tasks best, (70, 110) mm, at "
+         f"{cv.get('alpha_star', float('nan')):.2f} of each task's best (seeds 0-2)."),
+        ("20261110-slide_three_hands_track.png", f"Three hands reach {cv.get('three_alpha') or float('nan'):.2f} of every "
+         "task's best; four reach 0.90."),
+        ("20261110-ea_anatomy_track.png", "One generation of the evolutionary search on the press landscape under the "
+         "tracking score."),
+        ("20261110-ea_snapshots_track.png", "The search against random search on that landscape, median of 200 searches."),
+        ("20261110-grasp_candidates_wide_track.png", "The 16 candidate grasps of hand A, (70, 65) mm, best to worst; its "
+         "best grasp is the foundational pose."),
+        ("20261111-twist_grasps_track.png", "The foundational pose, the best and the worst grasp of the best twist hand, "
+         "(105, 70) mm, from three sides."),
+        ("20261110-tuning_track.png", "Tuning inside the inner loop under the tracking score: the grasp alone, HOM's forces "
+         "and contact modes alone, and both, from the same start and budget, on the 30 best layouts per task."),
+        ("20261110-slide_size_trend_track.png", "The best thumb distance against object diameter from the live search under "
+         "the tracking score, with Borras and Dollar's slope of 1."),
+    ]
+    out = ["<p>The v2 deck (contact repository, <code>talks/20261117-hand_design/20261117-hand_design_talk_v2.html</code>) "
+           "shows these figures in place of the originals; its slide texts take their numbers from "
+           "<code>media/20261110-figures.json</code>.</p>"]
+    for name, cap in items:
+        if (MEDIA / name).exists():
+            out.append(fig(name, cap))
+    film = MEDIA / "20261110-film_three_hands_track.mp4"
+    if film.exists():
+        out.append(P.film(film, "The three hands of the press landscape under the tracking score: A (70, 65) mm, B "
+                                "(70, 110) mm and C (125, 55) mm, each from its best grasp, CPU plant at seed 0."))
+    return "".join(out)
+
+
 def sec_slides():
     rows = [["24-25", "the thesis: Borras and Dollar's rule, and whether it holds for executed manipulation",
              "bd_rule with eq_thesis1; eq_thesis2"],
@@ -308,6 +349,7 @@ def main():
                 ("inner", "Multi-hand control: the inner loop", sec_inner()),
                 ("sim", "Dynamics: a simulator built for co-design", sec_sim()),
                 ("slides", "Images for the slides", sec_slides()),
+                ("v2", "The figures of the v2 deck under the tracking score", sec_v2()),
                 ("files", "Files", sec_files())]
     lede = ("The SR2 part of the hand-design talk follows one nested problem. The hand is chosen in an outer loop and "
             "its controller in an inner loop, subject to the dynamics of hand, object and world, real or simulated. The "

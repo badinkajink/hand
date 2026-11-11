@@ -135,7 +135,7 @@ def landscape(filmed=True, name="20261110-slide_landscape.png"):
     ax.set_title("Press, 25 mm cylinder: 625 hands", loc="left")
     return save(fig, name), dict(best=[float(xs[i]), float(ys[j])], score=float(B[j, i]),
                                  reached=int(np.isfinite(B).sum()),
-                                 filmed={lab: [*xy, round(float(B[list(ys).index(xy[1]), list(xs).index(xy[0])]), 3)]
+                                 filmed={lab: [*xy, round(float(B[list(ys).index(xy[1]), list(xs).index(xy[0])]), 4)]
                                          for lab, xy in (FILMED_TRACK if VARIANT == "track" else FILMED)})
 
 

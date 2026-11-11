@@ -183,7 +183,7 @@ def film_three_hands(picks=((70.0, 150.0), (70.0, 110.0), (125.0, 55.0))):
         fr, res = HF.clip(TASK, "grid2dff_size", SIZE, call, g, f"{lab}: ({xy[0]:.0f}, {xy[1]:.0f}) mm, score {sc:.2f}",
                           seed=0, var="hold" if VARIANT == "track" else "base", render=True)
         clips.append(fr)
-        info[lab] = dict(layout=list(xy), grasp=int(g), grid_score=round(sc, 3), cpu_score=round(float(HF.score(TASK, res)), 3))
+        info[lab] = dict(layout=list(xy), grasp=int(g), grid_score=round(sc, 4), cpu_score=round(float(HF.score(TASK, res)), 3))
     HF.compose(clips, OUT / ("20261110-film_three_hands_track.mp4" if VARIANT == "track" else
                              "20261110-film_three_hands.mp4"))
     return info
