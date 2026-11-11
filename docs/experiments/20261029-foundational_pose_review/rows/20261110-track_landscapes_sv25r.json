@@ -1,0 +1,136 @@
+{
+ "tasks": {
+  "twist": {
+   "size_mm": 40.0,
+   "layouts": 527,
+   "rho_earlier_vs_track": 0.791,
+   "rho_rerun_earlier": 0.961,
+   "rho_stored_vs_track": 0.76,
+   "tenth_shared": 0.42,
+   "best_earlier": {
+    "layout": [
+     100.0,
+     70.0
+    ],
+    "earlier": 1.0,
+    "track": 0.68,
+    "followed": 0.794,
+    "three_pads": 0.856,
+    "slip_mm": null
+   },
+   "best_track": {
+    "layout": [
+     105.0,
+     70.0
+    ],
+    "track": 0.756,
+    "earlier": 0.862,
+    "followed": 0.76,
+    "three_pads": 0.994,
+    "slip_mm": null
+   },
+   "track_median": 0.167
+  },
+  "roll": {
+   "size_mm": 40.0,
+   "layouts": 527,
+   "rho_earlier_vs_track": 0.669,
+   "rho_rerun_earlier": 0.983,
+   "rho_stored_vs_track": 0.676,
+   "tenth_shared": 0.5,
+   "best_earlier": {
+    "layout": [
+     85.0,
+     170.0
+    ],
+    "earlier": 0.654,
+    "track": 0.001,
+    "followed": 0.635,
+    "three_pads": 0.0,
+    "slip_mm": null
+   },
+   "best_track": {
+    "layout": [
+     120.0,
+     65.0
+    ],
+    "track": 0.372,
+    "earlier": 0.53,
+    "followed": 0.372,
+    "three_pads": 1.0,
+    "slip_mm": null
+   },
+   "track_median": 0.0
+  },
+  "pinpush": {
+   "size_mm": 25.0,
+   "layouts": 437,
+   "rho_earlier_vs_track": 0.864,
+   "rho_rerun_earlier": 0.991,
+   "rho_stored_vs_track": 0.868,
+   "tenth_shared": 0.58,
+   "best_earlier": {
+    "layout": [
+     75.0,
+     55.0
+    ],
+    "earlier": 0.744,
+    "track": 0.317,
+    "followed": 0.317,
+    "three_pads": 1.0,
+    "slip_mm": 2.03
+   },
+   "best_track": {
+    "layout": [
+     75.0,
+     80.0
+    ],
+    "track": 0.416,
+    "earlier": 0.707,
+    "followed": 0.416,
+    "three_pads": 1.0,
+    "slip_mm": 2.17
+   },
+   "track_median": 0.101
+  },
+  "press": {
+   "size_mm": 25.0,
+   "layouts": 369,
+   "rho_earlier_vs_track": 0.795,
+   "rho_rerun_earlier": 0.982,
+   "rho_stored_vs_track": 0.795,
+   "tenth_shared": 0.75,
+   "best_earlier": {
+    "layout": [
+     70.0,
+     150.0
+    ],
+    "earlier": 0.816,
+    "track": 0.18,
+    "followed": 0.694,
+    "three_pads": 0.235,
+    "slip_mm": 4.09
+   },
+   "best_track": {
+    "layout": [
+     70.0,
+     65.0
+    ],
+    "track": 0.617,
+    "earlier": 0.74,
+    "followed": 0.62,
+    "three_pads": 0.996,
+    "slip_mm": 4.69
+   },
+   "track_median": 0.131
+  }
+ },
+ "pinpush_vs_press": {
+  "layouts": 369,
+  "rho_track": 0.666,
+  "rho_earlier": 0.591,
+  "tenth_shared_track": 0.25,
+  "press_best_on_pinpush": 0.286,
+  "pinpush_best_on_press": 0.234
+ }
+}

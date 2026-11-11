@@ -67,14 +67,14 @@ def sec_terms():
         "two distances in mm: thumb to the index-middle pair, $x_{sep}$, and index to middle, $y_{sep}$, in 5 mm "
         "steps. <b>Object size.</b> The diameter of the twist's and the roll's sphere, or of the press's cylinder. "
         "<b>Plant.</b> The CAD-model SR2 hand with the v4b fingertip as 1 mm sphere pads at 2.5 MPa. The servos are "
-        "the SCS0009 model (0.72 N m/rad, at most 0.18 N m), and HOM runs at a 0.01 s period. Every rollout here ran on the CPU "
-        "with every contact, at seeds 0, 1 and 2.</p>"
+        "the SCS0009 model (0.72 N m/rad, at most 0.18 N m), and HOM runs at a 0.01 s period. Every rollout of Sections 2 to 6 "
+        "ran on the CPU with every contact, and the grids of Section 7 on the GPU, at seeds 0, 1 and 2.</p>"
         "<p><b>Held.</b> The object ended within 15 mm of its start height with at least two fingers loaded.</p>"
         "<p><b>Earlier score.</b> The score of the landscapes up to this page "
         "(<code>hom_landscape.rollout_score</code>), 0 when not held. Twist: the largest yaw of the sphere at any "
         "instant with all three pads loaded, divided by 90 deg and capped at 1. Roll: $1/(1+r)$ with $r$ the RMS "
         "error of the angular velocity divided by the 40 deg/s step. Press: 1 minus the RMS pinch-angle error over "
-        "the 20 deg stroke, at least 0.</p>"
+        "the 20 deg stroke, at least 0. Pin-push (Section 7): the same over its 15 deg stroke.</p>"
         "<p><b>Tracking error</b> $e(t)$, in deg: the angle between the object's orientation and the commanded one. "
         "For a sphere, both orientations are integrated from the measured and the commanded angular velocities in the "
         "world frame. For a cylinder, the angle is taken between its axis and the start axis turned by the commanded "
@@ -320,22 +320,87 @@ def sec_rail(S):
     return t
 
 
+def sec_landscapes():
+    """The four default landscapes of the hand-design talk under the tracking score (hom_track_landscapes.py)."""
+    path = ROWS / "20261110-track_landscapes_sv25r.json"
+    if not path.exists():
+        return ""
+    S = json.loads(path.read_text())
+    T, X = S["tasks"], S["pinpush_vs_press"]
+    order = ("twist", "roll", "pinpush", "press")
+    lay = (lambda xy: f"({xy[0]:.0f}, {xy[1]:.0f})")
+    rh = [T[k]["rho_earlier_vs_track"] for k in order]
+    rr = [T[k]["rho_rerun_earlier"] for k in order]
+    nt, nf = P.TAB[0] + 1, P.FIG[0] + 1
+    ro, pr, pp, tw = T["roll"], T["press"], T["pinpush"], T["twist"]
+    t = (f"<p>No task passed the test set on 2026-11-09 (Table {nt}, Figure {nf}). The test was a Spearman correlation "
+         "above 0.9 between the earlier score and the tracking score of the same rollouts. The correlation was "
+         f"{rh[0]:.2f} on the twist, {rh[1]:.2f} on the roll, {rh[2]:.2f} on the pin-push and {rh[3]:.2f} on the press. "
+         "On every task a different layout scores best on the tracking score.</p>"
+         "<p>These are the four landscapes of the hand-design talk: every layout of the lattice, the best of 16 grasps "
+         "per layout and the mean over seeds 0 to 2, run on the GPU with MuJoCo-Warp on the plant of Section 1. Their "
+         "rows, <code>grid2dff_v4b_sv25</code> of 2026-11-02, predate the tracking score. The four grids were rerun "
+         "with its fields on 2026-11-10 (rows <code>grid2dff_v4b_sv25r</code>): the twist, roll and press in the "
+         "post-reset queue that morning, the pin-push that night. The pin-push's earlier score is the press's over "
+         "its 15 deg stroke. The Spearman correlation is taken over the layouts that reach the task, and it is 1 when "
+         "the layouts fall in the same order under both scores. On the earlier score the reruns correlate with the "
+         f"stored grids at {min(rr):.2f} to {max(rr):.2f}, so few layouts change places between the two runs. A "
+         "landscape's best tenth is the tenth of its layouts with the highest scores.</p>")
+    short = {"twist": "Twist, 40 mm", "roll": "Roll, 40 mm", "pinpush": "Pin-push, 25 mm", "press": "Press, 25 mm"}
+    body = [[f"{short[k]} ({T[k]['layouts']})", f2(T[k]["rho_earlier_vs_track"]), f2(T[k]["tenth_shared"]),
+             lay(T[k]["best_earlier"]["layout"]), f"{T[k]['best_earlier']['earlier']:.2f}, {T[k]['best_earlier']['track']:.2f}",
+             lay(T[k]["best_track"]["layout"]), f"{T[k]['best_track']['earlier']:.2f}, {T[k]['best_track']['track']:.2f}"]
+            for k in order]
+    t += table(["Task (layouts)", "Spearman", "Best tenth shared", "Earlier best (mm)", "Its scores",
+                "Tracking best (mm)", "Its scores"], body,
+               "The four default landscapes under the two scores, on the rerun's rollouts. In brackets, the layouts "
+               "that reach the task. Spearman: the correlation between the two scores. Best layouts by each score, "
+               "with their earlier and tracking scores in that order.", num_from=1)
+    t += P.img(MEDIA / "20261110-track_landscapes_sv25r.png",
+               "The tracking score of every layout on the four default landscapes, best of 16 grasps, mean of seeds 0 "
+               "to 2. Circle: the best layout by the earlier score. Star: the best by the tracking score. Grey: no "
+               "grasp reaches the object. <code>hom_track_landscapes.py</code>.")
+    bo, bj = ro["best_earlier"], ro["best_track"]
+    t += (f"<p>The roll changed most. In the best grasp of its earlier best layout, {lay(bo['layout'])} mm, the sphere "
+          f"followed {100 * bo['followed']:.0f} % of the commanded rotation, but the three pads were never loaded at "
+          f"once. That layout scores {bo['track']:.2f} on the tracking score, and layout {lay(bj['layout'])} mm scores "
+          f"best at {bj['track']:.2f}. ")
+    bo, bj = pr["best_earlier"], pr["best_track"]
+    t += (f"On the press, the earlier best layout {lay(bo['layout'])} mm falls from {bo['earlier']:.2f} to "
+          f"{bo['track']:.2f}. In the grasp that scored {bo['earlier']:.2f}, the cylinder followed "
+          f"{100 * bo['followed']:.0f} % of the command, with all three pads loaded for {100 * bo['three_pads']:.0f} % "
+          f"of the task. Layout {lay(bj['layout'])} mm scores best on the tracking score, {bj['track']:.2f}, with all "
+          f"three pads loaded for {100 * bj['three_pads']:.0f} % of the task. ")
+    t += (f"The twist changed least: its best layouts by the two scores, {lay(tw['best_earlier']['layout'])} and "
+          f"{lay(tw['best_track']['layout'])} mm, are neighbours on the lattice.</p>")
+    bj = pp["best_track"]
+    t += (f"<p>The layouts rank differently on the pin-push and on the press. Across the {X['layouts']} layouts that "
+          f"reach both tasks, the two tracking-score landscapes correlate at {X['rho_track']:.2f}, against "
+          f"{X['rho_earlier']:.2f} on the earlier score. Of their best tenths, {100 * X['tenth_shared_track']:.0f} % "
+          f"are shared. The press's best layout scores {X['press_best_on_pinpush']:.2f} on the pin-push, and the "
+          f"pin-push's best scores {X['pinpush_best_on_press']:.2f} on the press. The pin-push scores lower: its best "
+          f"layout, {lay(bj['layout'])} mm, reaches {bj['track']:.2f}, against {pr['best_track']['track']:.2f} on the "
+          f"press. All three pads stayed loaded there, and the cylinder followed {100 * bj['followed']:.0f} % of the "
+          f"command. The pusher's pad slid up to {bj['slip_mm']:.1f} mm on the cylinder at the pin-push's best layout "
+          f"and up to {pr['best_track']['slip_mm']:.1f} mm at the press's.</p>")
+    return t
+
+
 def sec_limits():
     return ("<p>The short lists came from GPU rows without the GPU's orientations, ranked by the stored end yaw "
             "(twist), the stored per-step angles (roll) and the stored angle RMSE (press). A layout outside the short "
             "lists may score higher. The roll's third short list came from one EA run per size. Three seeds per "
-            "candidate were run, on the CPU only. The landscapes, searches and "
-            "layout choices of the earlier pages, the task-conflict page's 0.84 among them, still use the earlier "
-            "score.</p>")
+            "candidate were run, on the CPU only. The four default landscapes are rescored in Section 7. The size "
+            "study's searches, the other layout choices of the earlier pages and the task-conflict page's 0.84 still "
+            "use the earlier score.</p>")
 
 
 def sec_future():
     return ("<ul>"
-            "<li>New rollouts on the CPU and the GPU record <code>track_err_rms_deg</code>, "
-            "<code>track_ref_rms_deg</code> and <code>contact_all_frac</code> (<code>hom_tasks.metrics</code>, about "
-            "20 ms per rollout). Rank the post-reset grids by the tracking score and quote the earlier score beside "
-            "it. If the grids' Spearman correlation between the two scores is above 0.9 on a task, that task's earlier "
-            "landscapes stand.</li>"
+            "<li>Rerun the size study's searches (rows <code>ea_live_sv25</code>) with the tracking score as their "
+            "fitness (<code>hom_ea.py --score track</code>) at its 9 to 10 sizes per task, and restate the slopes of "
+            "the best thumb distance, 1.42, 0.56, 1.20 and 1.09 mm per mm on the twist, roll, pin-push and press. A "
+            "task's earlier slope stands if the new one lies within 0.2 mm per mm of it.</li>"
             "<li>Rescore the task-conflict page with the tracking score and restate its single-layout level, which is "
             "0.84 on the earlier score.</li>"
             "</ul>")
@@ -354,6 +419,9 @@ def sec_files():
             "<code>report</code>; rows <code>rows/20261110-rail_roll_sv25.jsonl</code>, films "
             "<code>media/20261110-film_rail1_roll_sv25.mp4</code> and <code>media/20261110-film_rail2_roll_sv25.mp4</code>"
             "</li>"
+            "<li><code>scripts/hom/hom_track_landscapes.py</code>: rows <code>rows/20261110-track_landscapes_sv25r.json</code>, "
+            "figure <code>media/20261110-track_landscapes_sv25r.png</code>, from the grids in "
+            "<code>rows/grid2dff_v4b_sv25r/</code> (18-27 MB each, on the workstation, not in git)</li>"
             f"<li>Builder: <code>scripts/hom/hom_track_score_page.py</code>. Related: <a href=\"{SEARCH}\">the search "
             f"methods page</a>, <a href=\"{CONFLICT}\">the task-conflict page</a>.</li></ul>")
 
@@ -382,10 +450,18 @@ def lede(rows, picks):
                      f"{', '.join(sizes[:-1])} and {sizes[-1]} mm spheres at {span([c['track_mean'] for c in up])} "
                      f"(Section 6). The tripod roll's picks score "
                      f"{span([float(picks['roll'][s_]['track_mean']) for s_ in sizes])} there.")
+    L4 = ROWS / "20261110-track_landscapes_sv25r.json"
+    r4 = []
+    if L4.exists():
+        r4 = [v["rho_earlier_vs_track"] for v in json.loads(L4.read_text())["tasks"].values()]
+        text += (" On the four default landscapes of the hand-design talk, the two scores of the same rollouts "
+                 f"correlate at {min(r4):.2f} to {max(r4):.2f}, and a different layout scores best on every task "
+                 "(Section 7).")
     summary = (f"A tracking score (share of the commanded rotation followed, times the share of the task on three pads) "
                f"replaces the HOM task scores, which gave 0.50 to a still sphere on the roll and 1.00 to a whirling "
                f"twist; re-picked layouts score {span(rng['twist'])} (twist), {span(rng['roll'])} (roll) and "
-               f"{span(rng['press'])} (press) at four sizes each.")
+               f"{span(rng['press'])} (press) at four sizes each" + (f"; on the talk's four default landscapes the two "
+               f"scores correlate at {min(r4):.2f}-{max(r4):.2f}" if r4 else "") + ".")
     return text, summary
 
 
@@ -397,6 +473,7 @@ def main():
                 ("picks", "Layouts re-picked by the tracking score at four object sizes", sec_picks(picks, rows)),
                 ("bigroll", "The roll layouts under a larger roll command", sec_bigroll(picks)),
                 ("rail", "Roll with the thumb held still as a rail", sec_rail(rail_summary())),
+                ("landscapes", "The four default landscapes under the tracking score", sec_landscapes()),
                 ("limits", "Limitations", sec_limits()),
                 ("future", "Future work", sec_future()),
                 ("files", "Files", sec_files())]
@@ -405,7 +482,8 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{unit(b)}</section>'
                      for k, (sid, hd, b) in enumerate(sections, 1))
-    byline = ("CPU rollouts on the SCS0009 plant at 2.5 MPa, 2026-11-09; the rail roll 2026-11-10. Follows <a href=\"" + SEARCH + "\">the search "
+    byline = ("CPU rollouts on the SCS0009 plant at 2.5 MPa, 2026-11-09; the rail roll and the default landscapes "
+              "2026-11-10. Follows <a href=\"" + SEARCH + "\">the search "
               "methods page</a>. Builder: <code>scripts/hom/hom_track_score_page.py</code>.")
     page = P.TEMPLATE.read_text()
     for k, v in {"TITLE": "HOM tracking score", "H1": "Tracking score of the HOM tasks and films of the SR2 hand across "
