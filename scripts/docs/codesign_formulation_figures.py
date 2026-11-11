@@ -424,6 +424,15 @@ def tuning_track():
     axs[0].set_ylabel("best score so far (median of 30 hands)")
     axs[0].legend(loc="lower right", fontsize=12, frameon=False)
     save(fig, "20261110-tuning.png")
+    reps = sorted(R.glob("*-tuning_levels.json"))
+    if reps:            # the arms' picks at the validation seeds 20-24, elitist (hom_grasp_refine.py report_levels)
+        rep = json.loads(reps[-1].read_text())["tasks"]
+        out["val"] = {t: {"layouts": r["n"], "s1": r["median_s1_val"], "best_s1": r["best_s1_val"]["xy"],
+                          **{lv: {"median": r[k]["median"], "gain": r[k]["gain"]["median"], "rho": r[k]["rho_s1_val"],
+                                  "best": r[k]["best"]["xy"]}
+                             for lv in ("grasp", "hom", "both") for k in [f"{lv}_elitist_val"] if k in r}}
+                      for t, r in rep.items()}
+        out["val_report"] = str(reps[-1].relative_to(ROOT))
     return out
 
 

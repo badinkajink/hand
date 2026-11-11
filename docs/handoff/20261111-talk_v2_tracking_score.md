@@ -19,6 +19,15 @@ A (70, 65) (best = the foundational pose, 0.62), FP views of (105, 70). build_ta
 media_v2/ (contact f62daab + later edits); 5 texts read [pending] until the size study's slopes exist. Formulation
 page Section 'v2'. Left: tuning chart (codesign_formulation_figures.py --track tuning, after queue 1), size trend
 (codesign_section_figures.py --track, after queue 2), final v2 build with no [pending], commits, the owner's report.
+State 10:08: tuning queue done (03:55); twist_hom stopped at iteration 6 on a diverged rollout (NaN angular velocity in
+hom_tasks.track_errors, guarded since 09:57) and was resumed 09:57-10:00. Chart 20261110-tuning_track.png, FI tuning_track
+to four decimals; hand b5a8d0025, contact f479280 (v2 deck with the chart). The size study was held 04:02-10:00 (my
+waiter never woke the session) and restarted 10:00:54; ~6 min per run, 30 runs, ends ~13:00. after_size_study.sh (same
+folder) then draws the size trend and rebuilds v2 by itself; read its log, check [pending] = 0, look at the figure,
+commit both repositories. Asked the owner (10:04): validation at seeds 20-24 only (~10 min) or also the pin-push, 30
+random layouts per task and the shared set under J (~2.5 h), for the notes of slide 'question' (still the earlier
+score: gains 0.05-0.20, Spearman 0.56-0.75, shared set 0.19 of 0.20). Search-seed numbers under J: gain 0.17/0.16/0.33,
+Spearman 0.54/0.18/-0.21 over the 30 best, best layout moves on twist, roll and press.
 Items (v2): film_three_hands under J (A = (70, 65), B = (70, 110), C = (125, 55)); press landscape and four-task
 landscapes under J; EA anatomy on the J press landscape; covers K*(alpha) from the J grids; size trend and thesis slopes
 from queue 2; grasp candidates of the new hand A with J scores; tuning chart from queue 1; slide text: how the 16 grasps

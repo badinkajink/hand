@@ -303,6 +303,26 @@ def sec_v2():
     if film.exists():
         out.append(P.film(film, "The three hands of the press landscape under the tracking score: A (70, 65) mm, B "
                                 "(70, 110) mm and C (125, 55) mm, each from its best grasp, CPU plant at seed 0."))
+    tv = fi.get("tuning_track", {}).get("val")
+    if tv:
+        xy = lambda v: f"({v[0]:.0f}, {v[1]:.0f})"
+        rows = [[t.capitalize(), str(v["layouts"]), f"{v['s1']:.2f}",
+                 *(f"{v[lv]['median']:.2f}" for lv in ("grasp", "hom", "both")), f"{v['both']['gain']:+.2f}",
+                 f"{v['both']['rho']:.2f}".replace("-", "&minus;") if v["both"]["rho"] is not None else "&ndash;",
+                 f"{xy(v['best_s1'])} to {xy(v['both']['best'])}"]
+                for t, v in tv.items()]
+        out.append(
+            "<p>The tuning chart ranks each arm by its best candidate on the search seeds 0-2, which favours "
+            "candidates that were lucky on those seeds. Each layout's S1 and the three arms' picks were therefore run "
+            "again at five other seeds, 20-24, the validation seeds (<code>hom_grasp_refine.py validate --score track"
+            "</code>, then <code>report_levels</code>). S1 is the layout's score with HOM's default forces and contact "
+            "modes and the best of its 16 grasps. A pick whose search score was below S1's counts as S1. The gain is "
+            "the median over the layouts of the tuned score minus S1, and the Spearman correlation compares the "
+            "layouts' S1 with their tuned scores.</p>"
+            + table(["Task", "Layouts", "S1", "Grasp tuned", "Forces and modes tuned", "Both tuned", "Gain of both",
+                     "Spearman, S1 and both", "Best layout, S1 to both (mm)"], rows,
+                    "Median tracking score at the validation seeds 20-24 of the 30 best SCS0009 layouts per task, by "
+                    "tuning arm (rows <code>rows/sv25_track/val/</code> of the score-levels study).", num_from=1))
     return "".join(out)
 
 

@@ -1043,8 +1043,9 @@ def elitist(task, plant):
 # ------------------------------------------------------------------------------------------------ validation
 
 def cmd_validate(a):
-    """Each layout's S1, S2 and S3 picks at the validation seeds on a.plant; with --picks-from, another plant's picks
-    (the same layouts), rows under val_from_<plant>/: the score a design tuned on that plant keeps on this one."""
+    """Each layout's S1, S2 and S3 picks at the validation seeds on a.plant, and the picks of levels hom and both where
+    they ran (2026-11-11, picks named hom and both); with --picks-from, another plant's picks (the same layouts), rows
+    under val_from_<plant>/: the score a design tuned on that plant keeps on this one."""
     if a.band:
         return cmd_validate_band(a)
     if a.shared:
@@ -1058,6 +1059,7 @@ def cmd_validate(a):
     src = a.picks_from or a.plant
     lays = json.loads((rows_dir(src) / f"{task}_layouts.json").read_text())["layouts"]
     p2, p3 = picks(task, src, "grasp"), picks(task, src, "full")
+    ph, pb = picks(task, src, "hom"), picks(task, src, "both")
     items = []
     for L_ in lays:
         c = L_["call"]
@@ -1066,6 +1068,10 @@ def cmd_validate(a):
             sets.append(("S2", p2[c]["v"], {}))
         if c in p3:
             sets.append(("S3", p3[c]["v"], p3[c]["prm"]))
+        if c in ph:
+            sets.append(("hom", ph[c]["v"], ph[c]["prm"]))
+        if c in pb:
+            sets.append(("both", pb[c]["v"], pb[c]["prm"]))
         for name, v, prm in sets:
             key = {"d": L_["d"], "call": c, "pick": name, "v": [round(float(y), 7) for y in v], "prm": prm}
             items.append((key, L_["d"], np.asarray(v, float), prm))
@@ -1450,6 +1456,60 @@ def cmd_report(a):
     print("wrote", p.relative_to(ROOT))
 
 
+def cmd_report_levels(a):
+    """The validated outcome of the tuning arms of 2026-11-11 (levels grasp, hom and both from S1; owner: "hom tuning
+    alone is missing here"): per task, each layout's S1 and picks at the validation seeds, the medians, the median gain
+    over S1, the Spearman correlation with S1 and the best layout. A pick whose search score fell below S1's is replaced by
+    S1 (the elitist pick, as S2e and S3e). Writes rows/<plant>[_track]/<date>-tuning_levels.json."""
+    setenv(a.plant)
+    out = {"plant": a.plant, "score": SCORE, "search_seeds": SEARCH_SEEDS, "val_seeds": VAL_SEEDS, "tasks": {}}
+    names = (("S2", "grasp"), ("hom", "hom"), ("both", "both"))
+    for task in TASKS:
+        lp = rows_dir(a.plant) / f"{task}_layouts.json"
+        vp = rows_dir(a.plant) / "val" / f"{task}_d{TASKS[task]:g}.jsonl"
+        if not lp.exists() or not vp.exists():
+            continue
+        lays = json.loads(lp.read_text())["layouts"]
+        val = scores(task, read_rows(vp))
+        pk = {level: picks(task, a.plant, level) for _, level in names}
+        per = []
+        for L_ in lays:
+            c = L_["call"]
+            v1 = val.get((c, "S1"))
+            if not v1 or v1[2] < len(VAL_SEEDS):
+                continue
+            e = {"call": c, "xy": L_["xy"], "s1": L_["s1"], "s1_val": round(v1[0], 4)}
+            for pick, level in names:
+                v = val.get((c, pick))
+                p = pk[level].get(c)
+                if not v or v[2] < len(VAL_SEEDS) or p is None:
+                    continue
+                e[f"{level}_search"] = round(p["score"], 4)
+                e[f"{level}_val"] = round(v[0], 4)
+                e[f"{level}_elitist_val"] = round(v[0] if p["score"] >= L_["s1"] else v1[0], 4)
+            per.append(e)
+        t = {"n": len(per), "layouts": per, "median_s1_val": round(float(np.median([e["s1_val"] for e in per])), 4)}
+        b1 = max(per, key=lambda e: e["s1_val"])
+        t["best_s1_val"] = {"xy": b1["xy"], "score": b1["s1_val"]}
+        for _, level in names:
+            for k in (f"{level}_val", f"{level}_elitist_val"):
+                rows = [e for e in per if k in e]
+                if not rows:
+                    continue
+                gain = [e[k] - e["s1_val"] for e in rows]
+                b = max(rows, key=lambda e: e[k])
+                t[k] = {"n": len(rows), "median": round(float(np.median([e[k] for e in rows])), 4),
+                        "gain": stats(gain), "rho_s1_val": spearman([e["s1_val"] for e in rows], [e[k] for e in rows]),
+                        "best": {"xy": b["xy"], "score": b[k]}}
+        out["tasks"][task] = t
+        print(f"{task}: {t['n']} layouts, S1 median {t['median_s1_val']} (seeds 20-24); " + "; ".join(
+            f"{level} median {t[k]['median']}, gain {t[k]['gain']['median']}, rho {t[k]['rho_s1_val']}, best {t[k]['best']}"
+            for _, level in names for k in [f"{level}_elitist_val"] if k in t), flush=True)
+    p = rows_dir(a.plant) / f"{time.strftime('%Y%m%d')}-tuning_levels.json"
+    p.write_text(json.dumps(out, indent=1))
+    print("wrote", p.relative_to(ROOT))
+
+
 def stats(d):
     """Median, mean, n and the counts above +0.05 and below -0.05 of paired differences."""
     d = np.asarray(d, float)
@@ -1599,6 +1659,12 @@ def main():
     pv.add_argument("--shared", action="store_true", help="level shared's pick on the sample (picks S1sh and Sh)")
     pv.add_argument("--n", type=int, default=0, help="--band, --shared: only the first n layouts (a smoke test)")
     pv.add_argument("--smoke", action="store_true")
+    pv.add_argument("--score", default="rollout", choices=("rollout", "track"), help="track: the picks and rows of "
+                    "rows/<plant>_track/")
+    pl = sub.add_parser("report_levels", help="the validated tuning arms of 11-11: grasp, hom and both from S1")
+    pl.add_argument("--plant", default="sv25", choices=list(PLANTS))
+    pl.add_argument("--score", default="rollout", choices=("rollout", "track"))
+    pl.add_argument("--smoke", action="store_true")
     pw = sub.add_parser("validate_pso", help="S1, CEM's elitist pick and the swarm's pick at the validation seeds")
     pw.add_argument("--task", required=True, choices=list(TASKS))
     pw.add_argument("--level", default="full", choices=("grasp", "full"))
@@ -1626,7 +1692,7 @@ def main():
         global ROWS_ROOT
         ROWS_ROOT = OUT / "rows_smoke"
     {"run": cmd_run, "validate": cmd_validate, "validate_pso": cmd_validate_pso, "report": cmd_report,
-     "probe": cmd_probe, "prm": cmd_prm}[a.cmd](a)
+     "report_levels": cmd_report_levels, "probe": cmd_probe, "prm": cmd_prm}[a.cmd](a)
 
 
 if __name__ == "__main__":
