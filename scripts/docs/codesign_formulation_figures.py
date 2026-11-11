@@ -450,8 +450,6 @@ def tuning_track():
 FPR = ROOT / "docs/experiments/20261029-foundational_pose_review/rows"
 SRR = ROOT / "docs/experiments/20261103-hom_score_refine/rows"
 D_MM = {"twist": 40, "roll": 40, "pinpush": 25, "press": 25}
-COMP = (("physics", "GPU physics (MuJoCo-Warp)", OUTER), ("build", "scene build", "#93c5fd"),
-        ("scoring", "scoring", SIM), ("other", "candidate sampling, start-up", GREY))
 
 
 def _timing(path, lo=None, hi=None):
@@ -473,70 +471,66 @@ def _log_lines(path):
     return out
 
 
+TASKS3 = ("twist", "roll", "press")
+
+
 def _compute_record():
-    """The GPU time of each stage, split into the batches' scene build, physics and scoring and the rest of the queue
-    steps' wall time. Deck: the score-levels study of 11-03 (S2 and S3 on 60 layouts per task, rows sv25/, queue log
-    logs/20261103-hom_score_refine/queue.log, which marks each step's start). v2: the tracking-score refinements of 11-11
-    (rows sv25_track/, logs/20261111-hom_tuning_track/queue.log, which gives each run's wall time) and their validation
-    (logs/20261111-talk_v2/val_levels.log). S1: the grids' timing lines (batch time only). The estimate runs every layout
-    of the four landscapes at 768 rollouts, at each task's measured wall time per rollout of the refinement (S3 for the
-    deck); a task without a refinement run takes its grid's time per rollout times the other tasks' mean ratio."""
+    """The GPU time of one rollout, of the S1 landscapes and of CEM-refining grasp and HOM on every layout, for the
+    twist, the roll and the press (owner, 2026-11-11: "1 layout x 1 rollout", "s1 landscapes (scale down to three
+    tasks)", "CEM-refinement (remove one level)"). A layout counts when the pose toy finds the task's grasp on it: of the
+    lattice's 625, 527 for the 40 mm sphere and 369 for the press's 25 mm cylinder. S1: the grids' batch time (16 grasps
+    x 3 seeds per layout). CEM: 768 rollouts per layout (32 candidates x 8 iterations x 3 seeds) at each task's measured
+    wall time per rollout of its grasp-and-HOM runs. Deck: S3 of the score-levels study of 11-03 (rows sv25/full,
+    queue log logs/20261103-hom_score_refine/queue.log, which marks each step's start). v2: level both of 11-11 on the 30
+    best layouts (logs/20261111-hom_tuning_track/queue.log) and on 30 others (logs/20261111-talk_v2/full_set.log), rows
+    sv25_track/both. One rollout: the twist's batch time per rollout in its S1 grid."""
     track = VARIANT == "track"
     gdir = FPR / ("grid2dff_v4b_sv25r" if track else "grid2dff_v4b_sv25")
-    s1 = {t: _timing(gdir / f"{t}_d{d}_timing.jsonl") for t, d in D_MM.items()}
+    s1 = {t: _timing(gdir / f"{t}_d{D_MM[t]}_timing.jsonl") for t in TASKS3}
     if not all(v["rollouts"] for v in s1.values()):
         raise FileNotFoundError(f"no timing lines in {gdir.relative_to(ROOT)}")
+    comps = ("build", "physics", "scoring")
     if track:
-        tasks, levels, rate_levels = ("twist", "roll", "press"), ("grasp", "hom", "both"), ("grasp", "hom", "both")
-        wall = {}
+        tune = {}
         for _, x in _log_lines(ROOT / "logs/20261111-hom_tuning_track/queue.log"):
             m = re.match(r"(\w+?)_(grasp|hom|both)(?: resume)? rc \d+, peak \d+ kB, ([\d.]+) s", x)
             if m:
-                wall[(m[1], m[2])] = wall.get((m[1], m[2]), 0.0) + float(m[3])
-        cem = {(t, lv): _timing(SRR / "sv25_track" / lv / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-11 01:00",
-                                "2026-11-11 10:10") for t in tasks for lv in levels}
-        L = _log_lines(ROOT / "logs/20261111-talk_v2/val_levels.log")
-        vwall = {re.match(r"val (\w+) rc", x)[1]: s - s0 for (s0, _), (s, x) in zip(L, L[1:]) if x.startswith("val ")
-                 and " rc " in x}
-        val = {t: _timing(SRR / "sv25_track/val" / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-11 12:50",
-                          "2026-11-11 12:58") for t in tasks}
+                tune[(m[1], m[2])] = tune.get((m[1], m[2]), 0.0) + float(m[3])
+        full = {}
+        fs = ROOT / "logs/20261111-talk_v2/full_set.log"
+        for _, x in (_log_lines(fs) if fs.exists() else []):
+            m = re.match(r"both_(\w+) rc 0, peak \d+ kB, ([\d.]+) s", x)
+            if m:
+                full[m[1]] = float(m[2])
+        wall = {t: tune[(t, "both")] + full.get(t, 0.0) for t in TASKS3}
+        hi = {t: "2026-11-11 23:59" if t in full else "2026-11-11 10:10" for t in TASKS3}
+        cem = {t: _timing(SRR / "sv25_track/both" / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-11 01:00", hi[t])
+               for t in TASKS3}
+        runs = {f"{t}_{lv}": round(w, 1) for (t, lv), w in tune.items()}
     else:
-        tasks, levels, rate_levels = tuple(D_MM), ("grasp", "full"), ("full",)
         L = _log_lines(ROOT / "logs/20261103-hom_score_refine/queue.log")
         step = {x.split()[0]: (s1_ - s0) % 86400 for (s0, x), (s1_, _) in zip(L, L[1:])}
-        wall = {(t, lv): float(step[f"sv25_{lv}_{t}"]) for t in tasks for lv in levels}
-        cem = {(t, lv): _timing(SRR / "sv25" / lv / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-03 18:00",
-                                "2026-11-03 22:10") for t in tasks for lv in levels}
-        vwall = {t: float(step[f"sv25_val_{t}"]) for t in tasks}
-        val = {t: _timing(SRR / "sv25/val" / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-03 22:09", "2026-11-03 22:15")
-               for t in tasks}
-    if not all(v["rollouts"] for v in cem.values()) or set(vwall) != set(tasks) or not all(v["rollouts"] for v in val.values()):
-        raise FileNotFoundError("a refinement or validation run has no timing lines or no queue-log step")
-    comps = ("build", "physics", "scoring")
-
-    def stage(parts, walls=None):
-        out = {k: sum(p[k] for p in parts) for k in comps + ("rollouts",)}
-        out["other"] = max(0.0, sum(walls) - sum(out[k] for k in comps)) if walls is not None else 0.0
-        return out
-
-    st = {"s1": stage(s1.values()), "cem": stage(cem.values(), wall.values()), "val": stage(val.values(), vwall.values())}
-    grid_rate = {t: sum(s1[t][k] for k in comps) / s1[t]["rollouts"] for t in D_MM}
-    rate = {t: sum(wall[(t, lv)] for lv in rate_levels) / sum(cem[(t, lv)]["rollouts"] for lv in rate_levels) for t in tasks}
-    ratio = float(np.mean([rate[t] / grid_rate[t] for t in tasks]))
-    for t in D_MM:
-        rate.setdefault(t, grid_rate[t] * ratio)
-    layouts = {t: round(s1[t]["rollouts"] / 48) for t in D_MM}
-    total = sum(layouts[t] * 768 * rate[t] for t in D_MM)
-    cem_s = sum(st["cem"][k] for k in comps + ("other",))
-    st["all"] = {k: total * st["cem"][k] / cem_s for k in comps + ("other",)}
-    st["all"]["rollouts"] = sum(layouts.values()) * 768
-    return {"made": time.strftime("%Y-%m-%d %H:%M"), "variant": VARIANT or "deck", "stages": st,
-            "layouts": layouts, "tasks": list(tasks), "levels": list(levels),
-            "runs_s": {f"{t}_{lv}": round(w, 1) for (t, lv), w in wall.items()},
-            "val_s": {t: round(w, 1) for t, w in vwall.items()},
-            "ms_per_rollout": {t: round(1000 * r, 1) for t, r in rate.items()},
-            "s1_ms_per_rollout": {t: round(1000 * r, 1) for t, r in grid_rate.items()},
-            "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"}
+        wall = {t: float(step[f"sv25_full_{t}"]) for t in TASKS3}
+        cem = {t: _timing(SRR / "sv25/full" / f"{t}_d{D_MM[t]}_timing.jsonl", "2026-11-03 18:00", "2026-11-03 22:10")
+               for t in TASKS3}
+        runs = {f"{t}_{lv}": float(step[f"sv25_{lv}_{t}"]) for t in D_MM for lv in ("grasp", "full")}
+    if not all(v["rollouts"] for v in cem.values()):
+        raise FileNotFoundError("a grasp-and-HOM run has no timing lines")
+    layouts = {t: round(s1[t]["rollouts"] / 48) for t in TASKS3}
+    rate = {t: wall[t] / cem[t]["rollouts"] for t in TASKS3}
+    s1_s = sum(s1[t][k] for t in TASKS3 for k in comps)
+    cem_s = sum(layouts[t] * 768 * rate[t] for t in TASKS3)
+    phys = sum(cem[t]["physics"] for t in TASKS3) / sum(wall.values())
+    return {"made": time.strftime("%Y-%m-%d %H:%M"), "variant": VARIANT or "deck", "tasks": list(TASKS3),
+            "lattice": 625, "layouts": layouts,
+            "one": {"task": "twist", "s": round(sum(s1["twist"][k] for k in comps) / s1["twist"]["rollouts"], 4)},
+            "s1": {"s": round(s1_s, 1), "rollouts": sum(s1[t]["rollouts"] for t in TASKS3),
+                   "physics_share": round(sum(s1[t]["physics"] for t in TASKS3) / s1_s, 3)},
+            "cem": {"s": round(cem_s, 1), "rollouts": sum(layouts.values()) * 768, "physics_share": round(phys, 3),
+                    "ms_per_rollout": {t: round(1000 * rate[t], 1) for t in TASKS3},
+                    "measured_rollouts": {t: cem[t]["rollouts"] for t in TASKS3},
+                    "measured_s": {t: round(wall[t], 1) for t in TASKS3}},
+            "runs_s": runs, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"}
 
 
 def _hm(s):
@@ -544,12 +538,11 @@ def _hm(s):
 
 
 def compute_cost():
-    """The GPU time behind the CEM-refinement slide (owner, 2026-11-11: "a full, simple timing chart that shows this
-    breakdown of computation cost contribution"): the four S1 landscapes, the refinements of the chart before it, their
-    validation at seeds 20-24, and an estimate for CEM-refining every layout of the four landscapes at one level. Each
-    bar is split into the GPU batches' scene build, physics and scoring and the rest of its queue steps' wall time
-    (_compute_record). The numbers are kept in figures.json (compute, compute_track), so the chart redraws without the
-    logs or the gitignored grids."""
+    """The GPU time behind the CEM-refinement slide (owner, 2026-11-11: "a full, simple timing chart"; then "should
+    only have 3 bars. might need logarithmic time scale"): one rollout, the S1 landscapes of the twist, the roll and the
+    press, and an estimate for CEM-refining grasp and HOM on every layout of them, on a log time axis (_compute_record).
+    The numbers are kept in figures.json (compute, compute_track), so the chart redraws without the logs or the
+    gitignored grids."""
     key = "compute_track" if VARIANT == "track" else "compute"
     path = OUT / "20261110-figures.json"
     old = (json.loads(path.read_text()) if path.exists() else {}).get(key)
@@ -560,38 +553,44 @@ def compute_cost():
             raise
         print(f"compute: {e}; drawing the record of {old['made']}", flush=True)
         rec = old
-    st, track = rec["stages"], rec["variant"] == "track"
-    n_t = len(rec["tasks"])
-    rows = [("s1", f"S1 landscapes, four tasks\n{sum(rec['layouts'].values()):,} layouts \u00d7 48 rollouts"),
-            ("cem", (f"CEM refinement, {len(rec['levels'])} levels \u00d7 {n_t} tasks\n30 layouts \u00d7 768 rollouts"
-                     if track else f"CEM refinement S2 and S3, {n_t} tasks\n60 layouts \u00d7 (576 + 768) rollouts")),
-            ("val", f"Validation at seeds 20\u201324\n{n_t} tasks, {st['val']['rollouts'] // n_t:,} rollouts each"),
-            ("all", ("Every layout CEM-refined, one level\n" if track else "Every layout at S3\u2019s budget\n")
-             + f"{sum(rec['layouts'].values()):,} layouts \u00d7 768 rollouts (estimate)")]
-    fig, ax = plt.subplots(figsize=(14, 6.0))       # text >= 13 px when the slide shows it 1,150 px wide
-    tot_max = max(sum(st[k][c] for c, _, _ in COMP) for k, _ in rows) / 3600
-    for i, (k, _) in enumerate(rows):
-        y, x0, est = len(rows) - 1 - i, 0.0, k == "all"
-        for c, lab, col in COMP:
-            w = st[k][c] / 3600
-            ax.barh(y, w, left=x0, height=0.6, color=col, alpha=0.5 if est else 1.0, hatch="///" if est else None,
-                    edgecolor="white", linewidth=0.8, label=lab if i == 0 else None)
-            x0 += w
-        total = x0 * 3600
-        n = st[k]["rollouts"]
-        txt = (f"about {_hm(total)}, {n / 1e6:.2f} M rollouts" if est else f"{_hm(total)}, {n:,} rollouts")
-        ax.text(x0 + 0.012 * tot_max, y, txt, va="center", ha="left", fontsize=17, color=INK)
+    n = sum(rec["layouts"].values())
+
+    def dur(x):
+        return f"{1000 * x:.0f} ms" if x < 1 else (f"{x:.0f} s" if x < 60 else (f"{x / 60:.0f} min" if x < 3600 else
+                                                                                f"{x / 3600:.1f} h"))
+    rows = [("one", f"One rollout\n1 layout \u00d7 1 grasp \u00d7 1 seed ({rec['one']['task']})", rec["one"]["s"],
+             None, GREY),
+            ("s1", f"S1 landscapes, three tasks\n{n:,} layouts \u00d7 48 rollouts", rec["s1"]["s"], rec["s1"]["rollouts"],
+             OUTER),
+            ("cem", f"CEM-refined grasp and HOM, three tasks\n{n:,} layouts \u00d7 768 rollouts", rec["cem"]["s"],
+             rec["cem"]["rollouts"], INNER)]
+    fig, ax = plt.subplots(figsize=(11.5, 4.9))        # text >= 13 px when the slide shows it 1,150 px wide
+    x0 = 0.01
+    for i, (k, _lab, x, nr, col) in enumerate(rows):
+        y, est = len(rows) - 1 - i, k == "cem"
+        ax.barh(y, x - x0, left=x0, height=0.56, color=col, alpha=0.55 if est else 1.0, hatch="///" if est else None,
+                edgecolor="white", linewidth=0.8)
+        txt = (f"about {dur(x)}, {nr / 1e6:.2f} M rollouts (estimate)" if est else
+               dur(x) + (f", {nr:,} rollouts" if nr else ""))
+        if nr:                                          # inside the long bars, at their end
+            ax.text(x / 1.4, y, txt, va="center", ha="right", fontsize=16, color=INK, zorder=5,
+                    bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.9))
+        else:
+            ax.text(x * 1.35, y, txt, va="center", ha="left", fontsize=17, color=INK)
+    ax.set_xscale("log")
+    ticks = (0.01, 0.1, 1.0, 10.0, 60.0, 600.0, 3600.0, 36000.0)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(["10 ms", "0.1 s", "1 s", "10 s", "1 min", "10 min", "1 h", "10 h"])
+    ax.set_ylim(-0.6, len(rows) - 0.4)
+    ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    ax.set_xlim(x0, 1.2e5)
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([lab for _, lab in rows][::-1], fontsize=16)
-    ax.set_xlim(0, max(24.0, tot_max * 1.4))                  # the same axis in both decks
-    ax.xaxis.set_major_locator(matplotlib.ticker.MultipleLocator(5))
-    ax.set_xlabel(f"GPU time on one {rec['gpu'].replace('NVIDIA GeForce ', '')} (h)")
+    ax.set_yticklabels([lab for _, lab, _, _, _ in rows][::-1], fontsize=16)
+    ax.set_xlabel(f"GPU time on one {rec['gpu'].replace('NVIDIA GeForce ', '')}, log scale", fontsize=16)
+    ax.tick_params(axis="x", labelsize=15)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
     ax.grid(axis="x", alpha=0.25)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.45, 1.0), ncol=2, fontsize=16, frameon=False)
-    ax.xaxis.label.set_size(16)
-    ax.tick_params(axis="x", labelsize=15)
     save(fig, "20261111-compute.png")
     return rec
 

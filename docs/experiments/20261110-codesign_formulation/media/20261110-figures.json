@@ -672,54 +672,48 @@
   "val_report": "docs/experiments/20261103-hom_score_refine/rows/sv25_track/20261111-tuning_levels.json"
  },
  "compute": {
-  "made": "2026-11-11 13:39",
+  "made": "2026-11-11 14:04",
   "variant": "deck",
-  "stages": {
-   "s1": {
-    "build": 315.3,
-    "physics": 2666.66,
-    "scoring": 299.22,
-    "rollouts": 89280,
-    "other": 0.0
-   },
-   "cem": {
-    "build": 1137.04,
-    "physics": 10342.69,
-    "scoring": 1107.3,
-    "rollouts": 322527,
-    "other": 762.9699999999993
-   },
-   "val": {
-    "build": 66.25,
-    "physics": 130.23,
-    "scoring": 12.219999999999999,
-    "rollouts": 3600,
-    "other": 17.30000000000001
-   },
-   "all": {
-    "build": 4880.026990077775,
-    "physics": 44389.47297369267,
-    "scoring": 4752.386799156688,
-    "other": 3274.567466948952,
-    "rollouts": 1428480
-   }
-  },
-  "layouts": {
-   "twist": 527,
-   "roll": 527,
-   "pinpush": 437,
-   "press": 369
-  },
   "tasks": [
    "twist",
    "roll",
-   "pinpush",
    "press"
   ],
-  "levels": [
-   "grasp",
-   "full"
-  ],
+  "lattice": 625,
+  "layouts": {
+   "twist": 527,
+   "roll": 527,
+   "press": 369
+  },
+  "one": {
+   "task": "twist",
+   "s": 0.0405
+  },
+  "s1": {
+   "s": 2358.6,
+   "rollouts": 68304,
+   "physics_share": 0.812
+  },
+  "cem": {
+   "s": 40930.8,
+   "rollouts": 1092864,
+   "physics_share": 0.774,
+   "ms_per_rollout": {
+    "twist": 45.3,
+    "roll": 28.9,
+    "press": 38.5
+   },
+   "measured_rollouts": {
+    "twist": 46077,
+    "roll": 46080,
+    "press": 46077
+   },
+   "measured_s": {
+    "twist": 2087.0,
+    "roll": 1330.0,
+    "press": 1775.0
+   }
+  },
   "runs_s": {
    "twist_grasp": 1720.0,
    "twist_full": 2087.0,
@@ -730,75 +724,51 @@
    "press_grasp": 1371.0,
    "press_full": 1775.0
   },
-  "val_s": {
-   "twist": 62.0,
-   "roll": 45.0,
-   "pinpush": 65.0,
-   "press": 54.0
-  },
-  "ms_per_rollout": {
-   "twist": 45.3,
-   "roll": 28.9,
-   "pinpush": 48.8,
-   "press": 38.5
-  },
-  "s1_ms_per_rollout": {
-   "twist": 40.5,
-   "roll": 26.8,
-   "pinpush": 44.0,
-   "press": 37.1
-  },
   "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
  },
  "compute_track": {
-  "made": "2026-11-11 13:39",
+  "made": "2026-11-11 14:04",
   "variant": "track",
-  "stages": {
-   "s1": {
-    "build": 293.98,
-    "physics": 2669.79,
-    "scoring": 989.5100000000001,
-    "rollouts": 89280,
-    "other": 0.0
-   },
-   "cem": {
-    "build": 866.87,
-    "physics": 6398.42,
-    "scoring": 1024.97,
-    "rollouts": 207354,
-    "other": 622.25
-   },
-   "val": {
-    "build": 45.17,
-    "physics": 69.37,
-    "scoring": 9.06,
-    "rollouts": 1800,
-    "other": 14.399999999999991
-   },
-   "all": {
-    "build": 6028.96342951442,
-    "physics": 44500.14441228056,
-    "scoring": 7128.527514332477,
-    "other": 4327.664464124203,
-    "rollouts": 1428480
-   }
-  },
-  "layouts": {
-   "twist": 527,
-   "roll": 527,
-   "pinpush": 437,
-   "press": 369
-  },
   "tasks": [
    "twist",
    "roll",
    "press"
   ],
-  "levels": [
-   "grasp",
-   "hom",
-   "both"
-  ],
+  "lattice": 625,
+  "layouts": {
+   "twist": 527,
+   "roll": 527,
+   "press": 369
+  },
+  "one": {
+   "task": "twist",
+   "s": 0.0585
+  },
+  "s1": {
+   "s": 3033.0,
+   "rollouts": 68304,
+   "physics_share": 0.633
+  },
+  "cem": {
+   "s": 46201.0,
+   "rollouts": 1092864,
+   "physics_share": 0.722,
+   "ms_per_rollout": {
+    "twist": 51.6,
+    "roll": 34.6,
+    "press": 39.9
+   },
+   "measured_rollouts": {
+    "twist": 46080,
+    "roll": 46080,
+    "press": 46080
+   },
+   "measured_s": {
+    "twist": 2379.2,
+    "roll": 1593.5,
+    "press": 1838.7
+   }
+  },
   "runs_s": {
    "press_grasp": 947.4,
    "press_hom": 927.2,
@@ -809,23 +779,6 @@
    "roll_grasp": 820.4,
    "roll_hom": 814.7,
    "roll_both": 811.6
-  },
-  "val_s": {
-   "twist": 52,
-   "roll": 39,
-   "press": 47
-  },
-  "ms_per_rollout": {
-   "twist": 53.2,
-   "roll": 35.4,
-   "press": 40.3,
-   "pinpush": 43.8
-  },
-  "s1_ms_per_rollout": {
-   "twist": 58.5,
-   "roll": 35.2,
-   "pinpush": 43.9,
-   "press": 37.4
   },
   "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
  },
