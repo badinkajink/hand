@@ -89,7 +89,8 @@ def section_drawings():
             "the drawing of the hand of the films, (70, 110) mm."),
         "Every hand on the lattice is simulated: a landscape of scores.": drawing(
             "20261110-slide_landscape", "Press on the 25 mm cylinder, SCS0009 plant with 2.5 MPa pads, best of 16 grasps, "
-            "mean of seeds 0-2. Grey: no grasp reaches the cylinder. Star: the best hand.", 45),
+            "mean of seeds 0-2. Grey: no grasp reaches the cylinder. Star: the best hand. The letters mark the three hands "
+            "of the grasp film, A (the best), B and C; their press scores are 0.82, 0.80 and 0.29.", 45),
         "Each task and size has its best hand.": drawing(
             "20261110-slide_tasks", "The four tasks' landscapes on the same plant, each as a share of its own best; stars "
             "at the best hands.", 95),

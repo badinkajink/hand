@@ -4,7 +4,8 @@ control and dynamics sections should have the co-design section's "clarity, visu
 figure makes one point at slide size, in the typeface (Nimbus Sans, the drawings' Helvetica) and colours of the TikZ
 drawings. Writes docs/experiments/20261110-codesign_formulation/media/:
 
-  20261110-slide_landscape.png     every hand on the lattice, press on the 25 mm cylinder, the best one starred
+  20261110-slide_landscape.png     every hand on the lattice, press on the 25 mm cylinder, the best one starred and
+                                   the three hands of the grasp film lettered A, B and C (_best.png: the star only)
   20261110-slide_tasks.png         the four tasks' landscapes, each as a share of its own best, best hands starred
   20261110-slide_one_hand.png      the same four landscapes with the one hand that reaches 0.84 of every task's best
   20261110-slide_three_hands.png   and with the three hands that reach 0.95
@@ -79,25 +80,33 @@ def star(ax, x, y, size=520):
     ax.scatter([x], [y], marker="*", s=size, c=STAR, edgecolors=INK, linewidths=1.6, zorder=5)
 
 
-def landscape():
-    """Every hand on the lattice for one task and size; the best starred."""
+FILMED = (("A", (70.0, 150.0)), ("B", (70.0, 110.0)), ("C", (125.0, 55.0)))   # film_three_hands, left to right
+
+
+def landscape(filmed=True, name="20261110-slide_landscape.png"):
+    """Every hand on the lattice for one task and size; the best starred. filmed: letter the hands of the grasp film (owner,
+    11-10 night, asked what A, B and C denote: the A stood off its star, over another hand's cell)."""
+    from matplotlib import patheffects
     xs, ys, B = grid("press", 25.0)
     j, i = np.unravel_index(np.nanargmax(B), B.shape)
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
     im = plane(ax, xs, ys, B, 0.85)
     star(ax, xs[i], ys[j])
-    for lab, (x, y) in (("A", (xs[i], ys[j])), ("B", (70.0, 110.0)), ("C", (125.0, 55.0))):   # the hands of the film
-        if lab != "A":
+    for lab, (x, y) in FILMED if filmed else ():
+        if (x, y) == (xs[i], ys[j]):                           # the best hand: its letter sits on the star's top point
+            ax.text(x, y + 4.6, lab, ha="center", va="bottom", fontsize=15, weight="bold", color=INK, zorder=6,
+                    path_effects=[patheffects.withStroke(linewidth=4, foreground="white")])
+        else:
             ax.scatter([x], [y], s=330, facecolors="white", edgecolors=INK, linewidths=1.8, zorder=5)
             ax.text(x, y, lab, ha="center", va="center", fontsize=13, weight="bold", color=INK, zorder=6)
-        else:
-            ax.text(x + 7, y + 6, lab, ha="left", va="bottom", fontsize=15, weight="bold", color=INK, zorder=6)
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cb.set_label("press score")
     cb.outline.set_edgecolor(LINE)
     ax.set_title("Press, 25 mm cylinder: 625 hands", loc="left")
-    return save(fig, "20261110-slide_landscape.png"), dict(best=[float(xs[i]), float(ys[j])], score=float(B[j, i]),
-                                                            reached=int(np.isfinite(B).sum()))
+    return save(fig, name), dict(best=[float(xs[i]), float(ys[j])], score=float(B[j, i]),
+                                 reached=int(np.isfinite(B).sum()),
+                                 filmed={lab: [*xy, round(float(B[list(ys).index(xy[1]), list(xs).index(xy[0])]), 3)]
+                                         for lab, xy in FILMED})
 
 
 def tasks(marks=None, name="20261110-slide_tasks.png"):
@@ -228,6 +237,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     info = {}
     _, info["landscape"] = landscape()
+    landscape(filmed=False, name="20261110-slide_landscape_best.png")   # the EA slides: the star only
     _, info["tasks"] = tasks()
     info["covers"] = covers()
     _, info["slopes"] = size_trend()
