@@ -41,11 +41,11 @@
   "title": "The co-design problem of the SR2 hand talk as one nested formula",
   "page_title": "The co-design problem of the SR2 hand talk as one nested formula",
   "topic": "design",
-  "summary": "The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, metric, dynamics), drawn as three nested levels with tasks and object sizes as a loop outside them, then zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM tuning (multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX formula images and 11 diagrams for the slides.",
+  "summary": "The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, dynamics, metric), drawn as three nested levels with tasks, object sizes and metrics as a loop outside them, then zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM tuning (multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX formula images and 12 diagrams for the slides.",
   "builder": "scripts/docs/codesign_formulation_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 9.1
+  "mb": 9.4
  },
  {
   "date": "2026-11-10",

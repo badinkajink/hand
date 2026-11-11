@@ -8,7 +8,8 @@ by pdftoppm at 400 dpi into docs/experiments/20261110-codesign_formulation/media
   20261110-eq_final_{outer,inner,dyn}.png   the final form with one level in colour
   20261110-eq_{metric,outer,inner,sim}{k}.png   the metric's and the levels' formulas, one series each
   20261110-nested_{all,outer,inner,dyn}.png the nested problem as nested boxes, whole and with one level highlighted
-  20261110-nested_loop_{finite,infinite}.png   the boxes with the tasks and object sizes above them as the outermost loop
+  20261110-nested_loop_{finite,infinite,metric}.png   the boxes with the tasks, object sizes and metrics above them as the
+                                   outermost loop
   20261110-contact_modes.png        what HOM commands at each fingertip: stick, roll, slide, press
   20261110-hom_period.png           one HOM control period
   20261110-hand_{mounts,joints}.png the hand with its 6 mount coordinates or its 9 joints coloured (steps 3 and 4)
@@ -104,7 +105,8 @@ CD_CANVAS = (3556, 564)  # px, the canvas of the build's images since 11-10 noon
 CD = [  # (slide, what, LaTeX); owner, 2026-11-10 afternoon: after the bi-level step the 6 mount coordinates, then the 9
     # joint commands, and only then the object sizes and the tasks. Evening: the score is subject to the dynamics, real or
     # simulated (the simulator's c, p and s move to the dynamics section), and the grasp g and HOM's parameters phi
-    # first appear with HOM (series "inner")
+    # first appear with HOM (series "inner"). Later that evening: the metric after the dynamics, since its space, large or
+    # infinite, is introduced there
     ("21", "The best hand for a task maximizes the task's score.",
      r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{score of hand $m$ on task $T$}}"),
     ("23", "A hand is scored through its best controller: a bi-level problem.",
@@ -119,11 +121,12 @@ CD = [  # (slide, what, LaTeX); owner, 2026-11-10 afternoon: after the bi-level 
      + r"\Big[\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}\ J_T(m,\pi;{" + N + r"d})\Big]"),
     ("29", "Tasks vary too: the three toy tasks sample a distribution.",
      r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\mathbb{E}_{T,d}", "tasks and sizes") + r"\Big[\max_{\pi}\ J_{" + N + r"T}(m,\pi;d)\Big]"),
-    ("30", "The score itself is a choice.",
-     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J_T(m,\pi;d)", "a choice of metric") + r"\Big]"),
-    ("31", "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world.",
+    ("30", "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world.",
      r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ J_T({" + N + r"x_{0:H}})\ \ "
      + C(r"\mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)", "dynamics, real or simulated") + r"\Big]"),
+    ("31", "The score itself is a choice.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J_T(x_{0:H})", "a choice of metric")
+     + r"\ \ \mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)\Big]"),
 ]
 LEVEL_COLOUR = {"outer": "outer", "inner": "inner", "dyn": "sim"}
 
@@ -210,7 +213,7 @@ def formulas():
                     ("dyn", "Zoom 3: dynamics.")):
         cd.append(eq_img(f"20261110-eq_final_{a}", final(a), "zoom", what))
     same_canvas(cd, CD_CANVAS)
-    same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "30", strut=False)
+    same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "31", strut=False)
                  for k, (what, tex) in enumerate(METRIC, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
                  for k in range(1, len(OUTER) + 1)])
@@ -226,7 +229,7 @@ def formulas():
 # optimization problem is subject to the dynamics and constraints of the world/robot/environment, in reality and in
 # simulation"); the controller as u in R^9 until HOM is explained; the tasks T and object sizes d out of the boxes and
 # shown after them, in black, as "the true outer loop": a small finite set, then T and d drawn from D, of which there
-# are infinitely many.
+# are infinitely many; then the metric J drawn from a space of metrics, script J (owner: not a lowercase j).
 LEVELS = [  # (key, title, line, formula), outermost first
     ("outer", "Morphology optimization", "Evolutionary algorithms for hand selection", r"\arg\max_{m\in\mathbb{R}^{6}}"),
     ("inner", "Multi-hand control", "Grasp synthesis and in-hand manipulation", r"\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}"),
@@ -235,6 +238,7 @@ LEVELS = [  # (key, title, line, formula), outermost first
 TASK_LOOP = {
     "finite": r"\textbf{for}\ \ $T\in\{\text{twist},\,\text{roll},\,\text{press}\},\ \ d\in\{d_1,\dots,d_4\}$:",
     "infinite": r"\textbf{for}\ \ $T,\,d\sim\mathcal{D}$:",
+    "metric": r"\textbf{for}\ \ $T,\,d\sim\mathcal{D},\ \ J\sim\mathcal{J}$:",   # metrics drawn from the space J
 }
 
 

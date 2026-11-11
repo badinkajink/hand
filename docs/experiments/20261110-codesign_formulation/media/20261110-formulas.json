@@ -39,13 +39,13 @@
   "name": "20261110-eq_cd07",
   "series": "codesign",
   "slide": "30",
-  "what": "The score itself is a choice."
+  "what": "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world."
  },
  {
   "name": "20261110-eq_cd08",
   "series": "codesign",
   "slide": "31",
-  "what": "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world."
+  "what": "The score itself is a choice."
  },
  {
   "name": "20261110-eq_cd09",
@@ -74,13 +74,13 @@
  {
   "name": "20261110-eq_metric1",
   "series": "metric",
-  "slide": "30",
+  "slide": "31",
   "what": "Several metrics, weighted into one."
  },
  {
   "name": "20261110-eq_metric2",
   "series": "metric",
-  "slide": "30",
+  "slide": "31",
   "what": "Ours: the share of the commanded rotation followed, on three pads; 0 if dropped."
  },
  {

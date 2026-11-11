@@ -15,6 +15,7 @@ build_talk.py reads the same manifest.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -59,10 +60,12 @@ def series(name, extra=None):
 
 
 def drawing(name, text, width=55):
-    """A drawing shown beside a step of the build, unnumbered like the formula images."""
+    """A drawing shown beside a step of the build, unnumbered like the formula images. Its alt text drops the tags and
+    the $...$ of text, which the page's formula renderer would otherwise replace inside the attribute."""
     uri = P.data_uri(MEDIA / f"{name}.png", "image/png")
+    alt = re.sub(r"\$\\mathcal\{(\w)\}\$", r"\1", re.sub(r"<[^>]+>", "", text)).replace("$", "")
     return (f'<p>{text} <span class="small">(<code>media/{name}.png</code>)</span></p><p style="text-align:center">'
-            f'<img src="{uri}" alt="{esc(text)}" style="max-width:{width}%"></p>')
+            f'<img src="{uri}" alt="{esc(alt)}" style="max-width:{width}%"></p>')
 
 
 def hand_drawings():
@@ -100,23 +103,30 @@ def sec_terms():
 
 
 def sec_build():
-    return ("<p>The problem is stated once and grows one term per slide; the new term is in colour. After step 7 two "
+    mt = next(k for k, r in enumerate([r for r in manifest() if r["series"] == "codesign"], 1)
+              if r["what"].startswith("The score itself"))
+    return (f"<p>The problem is stated once and grows one term per slide; the new term is in colour. After step {mt} two "
             "images define the metric. The last step names the three levels, and each later section zooms into "
             "one of them.</p>" + series("codesign", hand_drawings())
-            + "<p><b>The metric, after step 7.</b></p>" + series("metric")
+            + f"<p><b>The metric, after step {mt}.</b></p>" + series("metric")
             + "<p><b>The section openers.</b> The final form with one level in colour.</p>" + series("zoom")
             + fig("20261110-nested_all.png", "The nested problem as nested boxes: morphology optimization, multi-hand "
                   "control and the dynamics, each with its method and its formula. The controller appears as nine joint "
                   "commands; the grasp and HOM's parameters first appear with HOM in Section 4. Versions with one level "
                   "highlighted (nested_outer, nested_inner, nested_dyn) open each section.")
-            + "<p><b>Tasks and object sizes as the outermost loop.</b> On the canvas of the figure above, a line in black "
-              "adds the tasks and the object sizes as a loop outside the three levels. Over a small, finite set the loop "
-              "ends with a few hands: on the SCS0009, one layout reached at most 0.84 of each of four HOM tasks' best, "
-              f"and three layouts reached 0.9 (<a href=\"{CONFLICT}\">task-conflict page</a>). Tasks and object sizes "
-              "drawn from the distribution $\\mathcal{D}$ are infinitely many.</p>"
+            + "<p><b>Tasks, object sizes and metrics as the outermost loop.</b> On the canvas of the figure above, a line in "
+              "black adds them as a loop outside the three levels. Over a small, finite set the loop ends with a few "
+              "hands: on the SCS0009, one layout reached at most 0.84 of each of four HOM tasks' best, and three layouts "
+              f"reached 0.9 (<a href=\"{CONFLICT}\">task-conflict page</a>). Tasks and object sizes drawn from the "
+              "distribution $\\mathcal{D}$ are infinitely many, and so are metrics $J$ drawn from a space $\\mathcal{J}$ "
+              "of metrics. The best hand depends on the metric. On the twist and the roll, the layouts picked by the earlier "
+              "task scores differed from the tracking score's picks at all eight sizes. They scored 0.01 to 0.19 on the "
+              "tracking score, against 0.22 to 0.35 for its own picks (mean of seeds 0-2; "
+              f"<a href=\"{TRACK}\">tracking-score page</a>, Tables 2 and 3).</p>"
             + drawing("20261110-nested_loop_finite", "<b>First.</b> The three tasks at four object sizes each.", 70)
             + drawing("20261110-nested_loop_infinite", "<b>Then.</b> Tasks and object sizes drawn from "
-                      "$\\mathcal{D}$.", 70))
+                      "$\\mathcal{D}$.", 70)
+            + drawing("20261110-nested_loop_metric", "<b>Last.</b> Metrics drawn from $\\mathcal{J}$ as well.", 70))
 
 
 def sec_outer():
@@ -197,9 +207,10 @@ def sec_sim():
 def sec_slides():
     rows = [["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd09"],
             ["28", "the hand beside steps 3 and 4: its mounts, then its joints", "hand_mounts, hand_joints"],
-            ["30", "the metric", "eq_metric1, eq_metric2"],
-            ["32", "the levels named; tasks and object sizes as the outermost loop; section opener",
-             "eq_cd09, nested_all, nested_loop_finite, nested_loop_infinite; eq_final_outer and nested_outer"],
+            ["31", "the metric", "eq_metric1, eq_metric2"],
+            ["32", "the levels named; tasks, object sizes and metrics as the outermost loop; section opener",
+             "eq_cd09, nested_all, nested_loop_finite, nested_loop_infinite, nested_loop_metric; eq_final_outer and "
+             "nested_outer"],
             ["32-33", "morphology optimization", "layout_space; eq_outer1 to eq_outer6; ea_anatomy; ea_snapshots"],
             ["34", "section opener", "eq_final_inner, nested_inner"],
             ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; contact_modes; eq_inner6 "
@@ -231,15 +242,15 @@ def main():
                 ("files", "Files", sec_files())]
     lede = ("The SR2 part of the hand-design talk follows one nested problem. The hand is chosen in an outer loop and "
             "its controller in an inner loop, subject to the dynamics of hand, object and world, real or simulated. The "
-            "problem is built up over slides 21 to 32, one term per slide, and kept on screen afterwards. Tasks and "
-            "object sizes then form a loop outside the three levels, and there are infinitely many of them. Each later "
+            "problem is built up over slides 21 to 32, one term per slide, and kept on screen afterwards. Tasks, object "
+            "sizes and metrics then form a loop outside the three levels, and there are infinitely many of each. Each later "
             "section zooms into one level: the evolutionary algorithm of Yang et al. for the hand, grasp synthesis and "
             "HOM for the controller, and a calibrated GPU simulator for the dynamics.")
     summary = ("The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, "
-               "metric, dynamics), drawn as three nested levels with tasks and object sizes as a loop outside them, then "
-               "zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM tuning "
-               "(multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX formula "
-               "images and 11 diagrams for the slides.")
+               "dynamics, metric), drawn as three nested levels with tasks, object sizes and metrics as a loop outside "
+               "them, then zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM "
+               "tuning (multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX "
+               "formula images and 12 diagrams for the slides.")
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in
                      enumerate(sections, 1))
