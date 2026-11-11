@@ -1,0 +1,422 @@
+{
+  "searched": "2026-11-10. Citations of Borràs and Dollar 2015 (doi:10.1177/0278364915608250) were listed from Semantic Scholar (38) and OpenAlex (39); citations of Hota and Kumar 2019, Bullock et al. 2015 (EMBC and TBME), Hu et al. 2018, Ma et al. 2016, Chaudhury and Ghosal 2018 and Lin et al. 2023 were listed from OpenAlex. Every entry under papers and also_verified was confirmed against Crossref DOI metadata or the arXiv page. Findings come from the abstract or, where stated in checked_via, from the full text.",
+  "papers": [
+    {
+      "id": "chaudhury_ghosal_2018",
+      "citation": "Chaudhury, A. N., & Ghosal, A. (2018). Workspace of multifingered hands using Monte Carlo method. Journal of Mechanisms and Robotics, 10(4), 041003.",
+      "doi_or_url": "https://doi.org/10.1115/1.4039001",
+      "category": "first_principles",
+      "method": "A three-fingered hand was modelled as a six-degree-of-freedom hybrid parallel manipulator, with either point contact with friction or rolling without slipping. The well-conditioned workspace was sampled by a Monte Carlo method for 60 sphere diameters from 1 to 40 mm. Eight hand data sets were used: six adult male hands, one female hand and the Shadow hand. Palm area was defined from the triangle of the three finger bases (d × h). A few human manipulation trials were compared with the model.",
+      "finding": "The largest workspace occurred when palm area equalled the cross-sectional area of the sphere. At the maximum, palm area over object area was 1.004 ± 0.044 with rolling and 1.016 ± 0.076 with point contact (mean ± SD, eight hands). Rolling enlarged the well-conditioned workspace by about 1.2 to 1.5 times. The workspace was more sensitive to palm area than to finger length.",
+      "relation": "This rule makes palm size proportional to object size; Borràs and Dollar add one finger length to the diameter, so the intercept of the thumb-mount line separates them.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; full text PDF from the second author's IISc page (Table 4 and Sec. 4)"
+    },
+    {
+      "id": "ma_rojas_dollar_2016",
+      "citation": "Ma, R. R., Rojas, N., & Dollar, A. M. (2016). Spherical hands: Toward underactuated, in-hand manipulation invariant to object size and grasp location. Journal of Mechanisms and Robotics, 8(6), 061021.",
+      "doi_or_url": "https://doi.org/10.1115/1.4034787",
+      "category": "first_principles",
+      "method": "Underactuated two- and three-finger layouts were designed so that the instantaneous screw axes of the grasped object intersect at one point fixed to the palm, for any object geometry. Reachable workspaces were measured on an unactuated rig with magnetic point contacts, five finger-base configurations and bar objects of 38, 48 and 58 mm. Each case had three trials of 2000 tracked poses. An actuated prototype based on the OpenHand Model O was then tested with one triangular object.",
+      "finding": "In the spherical configurations C and D, the workspace centre moved by less than 5 mm across the three object sizes. In configuration C the two-finger workspace was 8.50 cm³ for the 58 mm object. It grew to 8.88 and 14.94 cm³ for the 48 and 38 mm objects; the human reference was 5.7 cm³. With the actuated prototype, the spherical layout reached smaller workspaces than the standard layout for every fingertip and thumb-base combination.",
+      "relation": "Invariance to object size was designed into the kinematics and checked over three sizes by hand-driven exploration; the actuated, executed tests used one object size.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; full text PDF from eng.yale.edu/grablab (Tables 1 and 2, Sec. 5)"
+    },
+    {
+      "id": "peticco_agrawal_2026_karma",
+      "citation": "Peticco, M., & Agrawal, P. (2026). KaRMA: A kinematic metric for fine manipulation ability in robotic hands. arXiv:2605.15548 (v1 15 May 2026, v2 4 Sep 2026).",
+      "doi_or_url": "https://arxiv.org/abs/2605.15548",
+      "category": "first_principles",
+      "method": "A kinematic metric was defined for in-hand translation and reorientation of a sphere in a two-finger pinch. Breadth-first search over rolling primitives ran under joint-limit, collision, rolling-contact and antipodal-force constraints. Sixteen robot hands were scored. Lengths were made non-dimensional; the sphere radius was 10 mm at a reference hand length of 200 mm.",
+      "finding": "Uniform scaling of a hand by 0.5 and 2 left the translation and rotation scores unchanged. A change of ±5 % in sphere radius moved the LEAP Hand voxel count by less than 10 %. The rankings agreed in direction with published task results for six hands; no correlation coefficient was given.",
+      "relation": "This is the newest kinematic metric that cites Borràs and Dollar; object size was fixed relative to each hand, so the optimum was not traced against object size.",
+      "verified": true,
+      "checked_via": "arXiv abstract page; arXiv HTML v2 (scaling and sensitivity sections)"
+    },
+    {
+      "id": "an_wei_lu_dai_li_2021",
+      "citation": "An, W., Wei, J., Lu, X., Dai, J. S., & Li, Y. (2021). Geometric design-based dimensional synthesis of a novel metamorphic multi-fingered hand with maximal workspace. Chinese Journal of Mechanical Engineering, 34, 41.",
+      "doi_or_url": "https://doi.org/10.1186/s10033-021-00558-3",
+      "category": "first_principles",
+      "method": "The five-link palm of a metamorphic (reconfigurable) hand was sized by dimensional synthesis. With the total palm member length fixed, four non-dimensional palm parameters were swept by discretisation. Several workspace indexes were computed for fully actuated and underactuated fingers.",
+      "finding": "A symmetric palm gave the largest precision manipulation workspace. The authors reported a large gain in workspace from the metamorphic palm for underactuated fingers; the abstract gives no number.",
+      "relation": "A moving palm was sized kinematically, which extends the symmetry rule of Borràs and Dollar; no executed manipulation or object-size sweep appears in the abstract.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "lin_et_al_2023",
+      "citation": "Lin, Y.-H., Wang, T., Spyrakos-Papastavridis, E., Fu, Z., Xu, S., & Dai, J. S. (2023). Minimum friction coefficient-based precision manipulation workspace analysis of the three-fingered metamorphic hand. Journal of Mechanisms and Robotics, 15(5), 051018.",
+      "doi_or_url": "https://doi.org/10.1115/1.4062238",
+      "category": "first_principles",
+      "method": "A precision manipulation workspace (PMW) was defined by force closure, singularity avoidance and interference avoidance. Force closure was scored by the minimum friction coefficient (MFC) that each configuration needs. The method was applied to a three-fingered metamorphic hand whose finger planes rotate with the palm.",
+      "finding": "A taxonomy of hand workspaces and an offline PMW computation based on the MFC were reported for the reconfigurable hand; the abstract gives no workspace numbers.",
+      "relation": "The fixed friction coefficient of Borràs and Dollar (μ = 0.7) is replaced by the coefficient each pose needs, in a static analysis of a reconfigurable palm.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "wang_dai_lin_2025",
+      "citation": "Wang, T., Dai, J. S., & Lin, Y.-H. (2025). Anthropomorphic precision-grasp evaluation of a four-fingered metamorphic robotic hand. ASME Letters in Translational Robotics, 1(4), 041001.",
+      "doi_or_url": "https://doi.org/10.1115/1.4070767",
+      "category": "first_principles",
+      "method": "Force closure and force balance were analysed for 12 anthropomorphic precision-grasp gestures of a four-fingered hand with a foldable palm. Atlases combined the minimum friction coefficient with the size of the grasped object, without a predefined object.",
+      "finding": "Atlases of grasp performance against object size were produced for each gesture and used to propose actuation reductions; the abstract gives no thresholds.",
+      "relation": "Object size was swept for a reconfigurable palm in a static analysis of grasp quality; no manipulation was executed.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "hota_kumar_2022",
+      "citation": "Hota, R. K., & Kumar, C. S. (2022). Effect of design parameters on strong and immobilizing grasps with an underactuated robotic hand. Robotica, 40(11), 3769–3785.",
+      "doi_or_url": "https://doi.org/10.1017/S0263574722000601",
+      "category": "first_principles",
+      "method": "Grasp range, grasp stiffness and the range of immobilizing grasps were computed for an underactuated hand against torque ratio, finger-base distance and joint limits.",
+      "finding": "Grasp range and grasp strength peaked at an intermediate finger-base distance and torque ratio. The range of immobilizing grasps grew as the finger-base distance shrank and as the torque ratio and joint limits increased.",
+      "relation": "This follow-up to Hota and Kumar (2019) finds an optimum finger-base distance for underactuated grasps, analysed statically with no in-hand motion.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "lu_rojas_2019",
+      "citation": "Lu, Q., & Rojas, N. (2019). On soft fingertips for in-hand manipulation: Modeling and implications for robot hand design. IEEE Robotics and Automation Letters, 4(3), 2471–2478.",
+      "doi_or_url": "https://doi.org/10.1109/LRA.2019.2906544",
+      "category": "first_principles",
+      "method": "The kinematic equivalent of point contact with friction was relaxed into joints with clearance, computed by affine arithmetic. Reachable workspaces of a planar two-fingered hand were predicted for fingertips of different hardness and geometry and compared with physical experiments.",
+      "finding": "Numerical and physical experiments showed a trade-off between fingertip hardness and fingertip depth for manipulation performance.",
+      "relation": "The rigid point contact of Borràs and Dollar was replaced by a clearance model of soft tips, and the workspace predictions were checked on hardware.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "odhner_dollar_2015",
+      "citation": "Odhner, L. U., & Dollar, A. M. (2015). Stable, open-loop precision manipulation with underactuated hands. The International Journal of Robotics Research, 34(11), 1347–1360.",
+      "doi_or_url": "https://doi.org/10.1177/0278364914558494",
+      "category": "first_principles",
+      "method": "An energy-based framework computed the manifold of stable object configurations for underactuated fingers in a pinch grasp. For a 20 mm cylinder held by two iRobot–Harvard–Yale (iHY) fingers, the workspace was computed and then measured on hardware with a magnetic tracker under open-loop tendon commands.",
+      "finding": "The computed workspace spanned about 100 mm parallel to the palm and 30 mm normal to it, with about 1 rad of coupled rotation. The measured workspace covered about 20 mm by 80 mm without feedback control.",
+      "relation": "A predicted workspace was compared with executed open-loop manipulation on hardware, for one object size only.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; full text PDF from eng.yale.edu/grablab (Sec. 4.4, Figs. 12–15)"
+    },
+    {
+      "id": "morrow_et_al_2022",
+      "citation": "Morrow, J., Campbell, J., Nishat, N., Balasubramanian, R., & Grimm, C. (2022). Measuring a robot hand's graspable region using power and precision grasps. arXiv:2204.12658 (revised second version of arXiv:2106.10402, 'Grasping benchmarks: Normalizing for object size & approximating hand workspaces', 2021).",
+      "doi_or_url": "https://arxiv.org/abs/2204.12658",
+      "category": "first_principles",
+      "method": "A measurement protocol was defined in which an operator grasps a hypothetical cylinder in precision and power grasps and records the graspable span. It was demonstrated on three commercial hands with YCB objects; the 2021 version used seven hand configurations.",
+      "finding": "The measured span was proposed as the unit for stating object size relative to a hand; the abstract gives no hand-specific numbers.",
+      "relation": "This defines an object size normalised by the hand, which a scaling rule across hands of different sizes needs.",
+      "verified": true,
+      "checked_via": "arXiv abstract pages for 2204.12658 and 2106.10402; OpenAlex"
+    },
+    {
+      "id": "kuroda_et_al_2025_plexus",
+      "citation": "Kuroda, Y., Takahashi, T., Beltran-Hernandez, C. C., Hamaya, M., & Tanaka, K. (2025). PLEXUS hand: Lightweight four-motor prosthetic hand enabling precision-lateral dexterous manipulation. 2025 International Conference on Rehabilitation Robotics (ICORR), pp. 22–29.",
+      "doi_or_url": "https://doi.org/10.1109/ICORR66766.2025.11063043",
+      "category": "executed_manipulation",
+      "method": "The axis of a single-axis thumb was placed by a two-stage grid search over 19,200,000 candidate axis positions. The objective was the widest range of object widths that admit the transition between precision and lateral grasps, under geometric contact constraints that include fingertip deformation. The 311 g hand was then tested on hardware with cylinders and square prisms 5, 10, 15, 20, 25 and 30 mm wide, 10 trials each, and with six everyday objects. For each width the thumb moved to a position computed for that width.",
+      "finding": "Reorientation succeeded in 100 % of trials for every primitive object except the 10 mm cylinder, which succeeded in 90 %. Everyday objects ranged from 50 % (light pen) to 100 % (card, seal, spoon). A follow-up (Kuroda et al., SII 2026, doi:10.1109/SII64115.2026.11404580) estimated width from motor current and kept at least 80 % success on aluminium prisms up to 289 g.",
+      "relation": "A kinematic size-range target was tested by executed reorientation over six widths on hardware; the thumb axis is fixed, so no scaling of base placement with size was measured.",
+      "verified": true,
+      "checked_via": "Crossref; arXiv:2510.09209 abstract and HTML (Table IV, optimisation section); follow-up arXiv:2601.07559 and Crossref"
+    },
+    {
+      "id": "zhou_spiers_2022_etroll",
+      "citation": "Zhou, X., & Spiers, A. J. (2022). E-TRoll: Tactile sensing and classification via a simple robotic gripper for extended rolling manipulations. 2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), pp. 11826–11833.",
+      "doi_or_url": "https://doi.org/10.1109/IROS47612.2022.9982191",
+      "category": "executed_manipulation",
+      "method": "A gripper had two 132 mm one-degree-of-freedom fingers on a prismatic palm, with finger-base spacing adjustable from 50 to 150 mm. A feedback controller moved the bases during rolling to keep the fingers parallel. A cylinder, a hexagonal prism and a cuboid, all 30 mm across, were rolled on hardware; 90 rolls were used for shape classification.",
+      "finding": "With a fixed 68.5 mm palm, the 30 mm cylinder rotated 36.4°. With the moving palm it rotated 86.6°, an increase of 137.9 %. The cylinder circumference that touched the tactile array grew from 21.0 to 34.2 mm (62.9 %).",
+      "relation": "Finger bases moved during executed manipulation on hardware and more than doubled the rotation range, with one object size, so no scaling with size was measured.",
+      "verified": true,
+      "checked_via": "Crossref; arXiv:2212.04347 abstract; full text PDF (Secs. II-A and II-B, Fig. 2)"
+    },
+    {
+      "id": "su_wang_cui_wang_2025",
+      "citation": "Su, C., Wang, R., Cui, S., & Wang, S. (2025). Dexterity-guided dimensional synthesis and multi-task control for fingertip manipulation. IEEE Transactions on Automation Science and Engineering, 22, 23039–23050.",
+      "doi_or_url": "https://doi.org/10.1109/TASE.2025.3621449",
+      "category": "executed_manipulation",
+      "method": "A screw-based kinetostatic model of the hand-object system was used for multi-objective dimensional synthesis. The objectives were feasible position space, feasible orientation space and manipulation stability. The chosen design was evaluated with a multi-task object-motion controller that wrote the letter 'O'.",
+      "finding": "The Pareto front contained 112 optimal solutions. The optimized hand wrote an 'O' with a maximum radius of 30.0 mm, 27.12 % larger than the non-optimized hand. The abstract does not state whether the writing test ran on hardware.",
+      "relation": "This citer of Borràs and Dollar checked a dimensional synthesis with an executed task under a controller, for one object and one chosen design.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; Semantic Scholar record (no open full text)"
+    },
+    {
+      "id": "gao_dwivedi_liarokapis_2023",
+      "citation": "Gao, G., Dwivedi, A., & Liarokapis, M. (2023). The New Dexterity adaptive humanlike robot hand: Employing a reconfigurable palm for robust grasping and dexterous manipulation. 2023 IEEE International Conference on Robotics and Automation (ICRA), pp. 10310–10316.",
+      "doi_or_url": "https://doi.org/10.1109/ICRA48891.2023.10161369",
+      "category": "executed_manipulation",
+      "method": "Two versions of an adaptive humanlike hand were built: one with a fixed thumb base and one with a translational degree of freedom at the thumb base that changes the aperture. Both were compared on hardware in grasping tests with everyday objects, force tests and in-hand manipulation tests.",
+      "finding": "The authors reported that the translating thumb base improved in-hand manipulation and power grasps of larger objects; the abstract gives no object sizes or rates.",
+      "relation": "A physical hand with a movable thumb base performed executed in-hand manipulation; the abstract reports no sweep of object size and no placement rule.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; DBLP listing"
+    },
+    {
+      "id": "bircher_morgan_dollar_2021",
+      "citation": "Bircher, W. G., Morgan, A. S., & Dollar, A. M. (2021). Complex manipulation with a simple robotic hand through contact breaking and caging. Science Robotics, 6(54), eabd2666.",
+      "doi_or_url": "https://doi.org/10.1126/scirobotics.abd2666",
+      "category": "executed_manipulation",
+      "method": "A potential-energy model of whole-hand manipulation was used to simulate all symmetric planar two-finger topologies built from open chains of up to three revolute or prismatic joints. Each topology was scored by a dexterity metric inspired by caging. The best design, Model W, was built and characterised on hardware.",
+      "finding": "Model W performed continuous object reorientation and alternated repeatedly between power and pinch grasps on hardware.",
+      "relation": "Designs were ranked with a quasi-static energy model that allows contact changes, and the winner was executed on hardware; the abstract states no relation between finger spacing and object size.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract (full text paywalled)"
+    },
+    {
+      "id": "richardson_et_al_2025_isyhand",
+      "citation": "Richardson, B. A., Grüninger, F., Mack, L., Stueckler, J., & Kuchenbecker, K. J. (2025). ISyHand: A dexterous multi-finger robot hand with an articulated palm. 2025 IEEE-RAS 24th International Conference on Humanoid Robots (Humanoids), pp. 720–727.",
+      "doi_or_url": "https://doi.org/10.1109/Humanoids65713.2025.11203015",
+      "category": "executed_manipulation",
+      "method": "Reinforcement-learning policies for cube reorientation were trained in simulation for the hand with an articulated palm, the same hand with a fixed palm, and two comparable hands (Allegro and LEAP). One policy was deployed on the physical hand.",
+      "finding": "The articulated-palm hand learned faster early in training and performed like the two comparison hands after convergence. It outperformed its own fixed-palm version, a difference the authors report as significant.",
+      "relation": "Palm articulation was scored by executed learned manipulation with one cube size, so the effect of object size on the best palm was not tested.",
+      "verified": true,
+      "checked_via": "Crossref; arXiv:2509.26236 abstract"
+    },
+    {
+      "id": "gilday_et_al_2025",
+      "citation": "Gilday, K., Sirithunge, C., Iida, F., & Hughes, J. (2025). Embodied manipulation with past and future morphologies through an open parametric hand design. Science Robotics, 10(102), eads6437.",
+      "doi_or_url": "https://doi.org/10.1126/scirobotics.ads6437",
+      "category": "executed_manipulation",
+      "method": "An open parametric, single-piece 3D-printable tendon hand with rolling joints was designed. Three morphologies were fabricated (human, mirrored human with two thumbs, aye-aye) and tested on hardware in manipulation tasks with diverse objects.",
+      "finding": "Joint stiffness could be varied over two orders of magnitude. Proficiency differed between the three hands, and each design showed behaviours unique to it.",
+      "relation": "Morphology was varied on hardware with executed manipulation for three designs, with no controlled sweep of object size or finger-base placement.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "bullock_feix_dollar_2015_tbme",
+      "citation": "Bullock, I. M., Feix, T., & Dollar, A. M. (2015). Workspace shape and characteristics for human two- and three-fingered precision manipulation. IEEE Transactions on Biomedical Engineering, 62(9), 2196–2207.",
+      "doi_or_url": "https://doi.org/10.1109/TBME.2015.2418197",
+      "category": "biomechanics",
+      "method": "Nineteen participants (hand length 15.5–19.8 cm, median 17.5 cm) moved a tracked object through as much of its fingertip workspace as they could, in two-finger and three-finger grasps. Object diameter was set to 0.2 times hand length, rounded to one of four sizes between 3.3 and 4.1 cm.",
+      "finding": "Workspace volume grew with hand length. The cube-law fit was V = 9.54 × 10⁻⁴ l_h³, with V in cm³ and hand length l_h in cm (p = 0.001). After the hand-length effect was removed, volume had no significant slope against object diameter (p = 0.8). Normalised to a 17.5 cm hand, 95 % of points lay within 2.31 cm of the centroid with two fingers and 2.19 cm with three.",
+      "relation": "Human workspace volume followed a cube law in hand length when object size was scaled with the hand, the geometric similarity that a size rule written in finger lengths assumes.",
+      "verified": true,
+      "checked_via": "Crossref; full text PDF from eng.yale.edu/grablab (Secs. III–IV, Fig. 5)"
+    },
+    {
+      "id": "feix_et_al_2015_embc",
+      "citation": "Feix, T., Bullock, I. M., Gloumakov, Y., & Dollar, A. M. (2015). Rotational ranges of human precision manipulation when grasping objects with two to five digits. 2015 37th Annual International Conference of the IEEE Engineering in Medicine and Biology Society (EMBC), pp. 5785–5790.",
+      "doi_or_url": "https://doi.org/10.1109/EMBC.2015.7319707",
+      "category": "biomechanics",
+      "method": "Seventeen participants rotated objects 50 and 80 mm in diameter with two to five digits about three hand axes for 30 s, keeping the initial contact locations.",
+      "finding": "The mean rotational range over all conditions was 47°, and the largest was 82°, for three digits about the distal-proximal axis. About the palmar-dorsal and ulnar-radial axes, the 50 mm object rotated 1.3 and 1.2 times further than the 80 mm object (p < 0.001). About the distal-proximal axis, object size changed the range by 10 % and digit count by over 50 %.",
+      "relation": "Executed human rotation range fell as the object grew from 50 to 80 mm, a human counterpart to the object-size dependence of the Borràs and Dollar workspace.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; full text PDF from eng.yale.edu/grablab"
+    },
+    {
+      "id": "feix_et_al_2021_toh",
+      "citation": "Feix, T., Bullock, I. M., Gloumakov, Y., & Dollar, A. M. (2021). Effect of number of digits on human precision manipulation workspaces. IEEE Transactions on Haptics, 14(1), 68–82 (online 2020).",
+      "doi_or_url": "https://doi.org/10.1109/TOH.2020.3003556",
+      "category": "biomechanics",
+      "method": "Sixteen participants (translation) and 17 (rotation) manipulated circular objects 50 and 80 mm in diameter with two to five digits. Relative object size, object diameter divided by hand width, entered the analysis of covariance as a covariate.",
+      "finding": "More digits significantly reduced the workspace in four of six translation and rotation directions. Two digits gave the largest workspace on five of six axes. Relative object size had no significant effect on overall translation volume for any digit count.",
+      "relation": "Over this range of object size relative to hand width, digit count changed the human workspace more than size did, a human reference for any scaling rule between hand and object.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; full text PDF from eng.yale.edu/grablab (Secs. III-D and IV-A)"
+    },
+    {
+      "id": "peters_servos_day_1990",
+      "citation": "Peters, M., Servos, P., & Day, R. (1990). Marked sex differences on a fine motor skill task disappear when finger size is used as covariate. Journal of Applied Psychology, 75(1), 87–90.",
+      "doi_or_url": "https://doi.org/10.1037/0021-9010.75.1.87",
+      "category": "biomechanics",
+      "method": "Purdue Pegboard performance of 16 male and 25 female right-handed students was compared and replicated with 25 male and 28 female students. Index-finger and thumb thickness were used as covariates.",
+      "finding": "Women performed better than men. Every significant sex difference disappeared once finger thickness was a covariate. Performance correlated negatively with finger size in both sexes.",
+      "relation": "With fixed peg size, larger digits performed worse, so the size of the digits relative to the object set fine-manipulation performance in humans.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "smeets_brenner_1999",
+      "citation": "Smeets, J. B. J., & Brenner, E. (1999). A new view on grasping. Motor Control, 3(3), 237–271.",
+      "doi_or_url": "https://doi.org/10.1123/mcj.3.3.237",
+      "category": "neuroscience",
+      "method": "Grasping was modelled as independent minimum-jerk movements of thumb and finger to chosen contact positions, approaching the surface roughly orthogonally. Model predictions were compared with an extensive review of published grasping experiments.",
+      "finding": "Across the reviewed studies, peak grip aperture increased with object size with a gain of about 0.8: a 10 mm larger object gave an 8 mm larger peak aperture. The same authors restate this gain as a result of the 1999 review in Smeets, Brenner and Martin (2009), Adv. Exp. Med. Biol. 629:499–522, doi:10.1007/978-0-387-77064-2_27.",
+      "relation": "The human gain of 0.8 mm of aperture per mm of object size compares with the student's thumb-mount slope of 0.6–1.4 mm per mm.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; gain of 0.8 read in the 2009 chapter PDF from the first author's VU Amsterdam page"
+    },
+    {
+      "id": "mon_williams_bingham_2011",
+      "citation": "Mon-Williams, M., & Bingham, G. P. (2011). Discovering affordances that determine the spatial structure of reach-to-grasp movements. Experimental Brain Research, 211(1), 145–160.",
+      "doi_or_url": "https://doi.org/10.1007/s00221-011-2659-2",
+      "category": "neuroscience",
+      "method": "Participants reached to grasp objects that varied in width and contact-surface size, at three speeds, in stop, fly-through and slam tasks. A geometric affordance model with one free parameter was fitted.",
+      "finding": "Maximum grasp aperture followed affordances set by collision avoidance, and terminal aperture followed those set by targeting accuracy. The one-parameter model predicted the spatial structure of the reach. Wang and Bingham (2019) summarise the model as a constant ratio P between safety margin and available aperture, the hand's maximum grip minus object size.",
+      "relation": "Grasp aperture was scaled to object size relative to each person's maximum grip, a body-scaled rule of the kind proposed here for finger-base placement.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 21484397); summary of the model in the PubMed abstract of Wang and Bingham 2019"
+    },
+    {
+      "id": "wang_bingham_2019",
+      "citation": "Wang, X. M., & Bingham, G. P. (2019). Change in effectivity yields recalibration of affordance geometry to preserve functional dynamics. Experimental Brain Research, 237(3), 817–827.",
+      "doi_or_url": "https://doi.org/10.1007/s00221-018-05467-x",
+      "category": "neuroscience",
+      "method": "The maximum grip of large-handed men was restricted step by step, and their reach-to-grasp kinematics were recorded.",
+      "finding": "As the grip was restricted, participants used smaller safety margins and larger values of P, the safety margin divided by the available aperture. Recalibration took five trials or fewer. A dynamical scaling constant stayed invariant.",
+      "relation": "When functional hand size was reduced, grasping rescaled to the new ratio of object size to hand size within five trials.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 30610264)"
+    },
+    {
+      "id": "marteniuk_et_al_1990",
+      "citation": "Marteniuk, R. G., Leavitt, J. L., MacKenzie, C. L., & Athenes, S. (1990). Functional relationships between grasp and transport components in a prehension task. Human Movement Science, 9(2), 149–176.",
+      "doi_or_url": "https://doi.org/10.1016/0167-9457(90)90025-9",
+      "category": "neuroscience",
+      "method": "Three-dimensional kinematics of the reach (transport) and the grasp were recorded as participants grasped disks of ten sizes.",
+      "finding": "Maximum grip aperture was highly related to disk size and was reached sooner for smaller disks. Transport time up to peak deceleration did not change with disk size, and the two components were described as linked functionally.",
+      "relation": "This is one of the classic measurements of grip aperture against object size in human prehension.",
+      "verified": true,
+      "checked_via": "Crossref; abstract text quoted in a library catalogue record found by web search (full text not read)"
+    },
+    {
+      "id": "kuhtz_buschbeck_et_al_1998",
+      "citation": "Kuhtz-Buschbeck, J. P., Stolze, H., Jöhnk, K., Boczek-Funcke, A., & Illert, M. (1998). Development of prehension movements in children: A kinematic study. Experimental Brain Research, 122(4), 424–432.",
+      "doi_or_url": "https://doi.org/10.1007/s002210050530",
+      "category": "neuroscience",
+      "method": "Precision-grip prehension of cylinders was recorded in 54 children aged 4 to 12 years. The set-up was scaled to each child's body proportions.",
+      "finding": "Younger children opened their grip relatively wider, a larger safety margin. Only the oldest children scaled grip aperture to object size without vision of the moving hand. Normalised peak velocity and movement duration did not change with age.",
+      "relation": "The task was scaled to each child's body, the protocol a test of a hand-size rule needs, and aperture scaling to object size matured with age.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 9827861)"
+    },
+    {
+      "id": "almecija_smaers_jungers_2015",
+      "citation": "Almécija, S., Smaers, J. B., & Jungers, W. L. (2015). The evolution of human and ape hand proportions. Nature Communications, 6, 7717.",
+      "doi_or_url": "https://doi.org/10.1038/ncomms8717",
+      "category": "evolution",
+      "method": "Hand-length proportions were analysed with phylogenetically informed morphometrics across 187 extant anthropoids, for example 40 humans and 34 chimpanzees. Fossils included Proconsul heseloni, Ardipithecus ramidus and Australopithecus sediba. Intrinsic proportions were measured as thumb length over fourth-ray length; segment lengths were also divided by the cube root of body mass.",
+      "finding": "The human ratio of thumb to fourth ray lay above that of every modern ape, with no overlap (P < 0.001). Chimpanzees and orangutans evolved longer digits convergently; hominins and gorillas changed little from the last common ancestor. Ar. ramidus had a shorter thumb, in the gorilla and hylobatid range, and Cebus and Theropithecus overlapped humans.",
+      "relation": "Pad-to-pad precision grasping is linked across primates to a high ratio of thumb to finger length, the biological side of the link-ratio and placement rules of Borràs and Dollar.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract; Europe PMC full text (PMC4510966)"
+    },
+    {
+      "id": "key_lycett_2011",
+      "citation": "Key, A. J. M., & Lycett, S. J. (2011). Technology based evolution? A biometric test of the effects of handsize versus tool form on efficiency in an experimental cutting task. Journal of Archaeological Science, 38(7), 1663–1670.",
+      "doi_or_url": "https://doi.org/10.1016/j.jas.2011.02.032",
+      "category": "evolution",
+      "method": "Sixty participants cut a 10 mm hessian rope, 30 with flint flakes and 30 with small steel blades. Hand size and grip strength were measured, and efficiency was scored by the number of strokes and the time taken.",
+      "finding": "Hand size correlated significantly with both efficiency measures over all 60 participants. Mean efficiency did not differ between flakes and blades, and flake form did not predict efficiency.",
+      "relation": "The user's hand size predicted executed tool-use performance and the tool's form did not, a human case of hand size setting task performance.",
+      "verified": true,
+      "checked_via": "Crossref; abstract on the Kent Academic Repository record (kar.kent.ac.uk/50473)"
+    },
+    {
+      "id": "rolian_lieberman_zermeno_2011",
+      "citation": "Rolian, C., Lieberman, D. E., & Zermeno, J. P. (2011). Hand biomechanics during simulated stone tool use. Journal of Human Evolution, 61(1), 26–41.",
+      "doi_or_url": "https://doi.org/10.1016/j.jhevol.2011.01.008",
+      "category": "evolution",
+      "method": "Force plates that simulated early stone tools recorded external forces and kinematics of the radial digits during hard-hammer percussion and flake use in 25 participants. Effects of digit size and shape were tested by partial correlations, controlling for tool reaction forces and impact velocities.",
+      "finding": "Participants with longer digits needed relatively less muscle force to stabilise the digital joints and had relatively lower joint contact stresses.",
+      "relation": "Digit length set the muscle force and joint stress of executed tool use, a dynamic measure of hand proportions.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 21420144)"
+    },
+    {
+      "id": "marzke_1997",
+      "citation": "Marzke, M. W. (1997). Precision grips, hand morphology, and tools. American Journal of Physical Anthropology, 102(1), 91–110.",
+      "doi_or_url": "https://doi.org/10.1002/(SICI)1096-8644(199701)102:1<91::AID-AJPA8>3.0.CO;2-G",
+      "category": "evolution",
+      "method": "Three lines of work were combined: experimental manufacture of early stone tools, studies of manipulation in chimpanzees, hamadryas baboons and humans, and comparative morphology of the hand.",
+      "finding": "Human precision grips were distinguished by forceful pinching between thumb and fingers and by reorienting the object with joints distal to the wrist (precision handling). Eight morphological features of modern humans support these grips, and three of them occur in Australopithecus afarensis.",
+      "relation": "Precision handling, the human in-hand reorientation that the twist and roll tasks resemble, is tied here to thumb moment arms and hand proportions.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 9034041)"
+    }
+  ],
+  "also_verified": [
+    {
+      "id": "rojas_dollar_2016_tro",
+      "citation": "Rojas, N., & Dollar, A. M. (2016). Gross motion analysis of fingertip-based within-hand manipulation. IEEE Transactions on Robotics, 32(4), 1009–1016.",
+      "doi_or_url": "https://doi.org/10.1109/TRO.2016.2588722",
+      "category": "first_principles",
+      "method": "Contacts were modelled as kinematic chains of passive and resistant revolute joints, and the displacement manifold of the grasped object relative to the palm was derived for several hand architectures.",
+      "finding": "The method gives the object displacements that can be controlled, independent of object particulars; unsuitable contact conditions can leave displacements uncontrollable.",
+      "relation": "An object-independent mobility analysis from the same group as Borràs and Dollar; it has no size dimension.",
+      "verified": true,
+      "checked_via": "Crossref; OpenAlex abstract"
+    },
+    {
+      "id": "rolian_lieberman_hallgrimsson_2010",
+      "citation": "Rolian, C., Lieberman, D. E., & Hallgrímsson, B. (2010). The coevolution of human hands and feet. Evolution, 64(6), 1558–1568.",
+      "doi_or_url": "https://doi.org/10.1111/j.1558-5646.2009.00944.x",
+      "category": "evolution",
+      "method": "Covariation between serially homologous fingers and toes was measured in Homo and Pan and used in simulated directional selection.",
+      "finding": "Finger and toe proportions covaried more than expected and evolved along parallel paths; selection on the toes was estimated to be stronger and probably changed the fingers in parallel.",
+      "relation": "Human digit proportions may partly follow from selection on the foot, a caution against reading every hand proportion as a manipulation optimum.",
+      "verified": true,
+      "checked_via": "Crossref (DOI resolves to the Evolution article); OpenAlex abstract"
+    },
+    {
+      "id": "pouydebat_et_al_2009",
+      "citation": "Pouydebat, E., Gorce, P., Coppens, Y., & Bels, V. (2009). Biomechanical study of grasping according to the volume of the object: Human versus non-human primates. Journal of Biomechanics, 42(3), 266–272.",
+      "doi_or_url": "https://doi.org/10.1016/j.jbiomech.2008.10.026",
+      "category": "evolution",
+      "method": "Digit contact strategies were scored frame by frame for six primate species (human, chimpanzee, orangutan, macaque, baboon, capuchin) grasping spheres of two volumes.",
+      "finding": "Grasp category depended on species whatever the object volume, with high variability between species and no individual differences.",
+      "relation": "Across primates the grasp chosen for two object sizes depended on species, that is on hand morphology.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 19100551)"
+    },
+    {
+      "id": "key_dunmore_2015",
+      "citation": "Key, A. J. M., & Dunmore, C. J. (2015). The evolution of the hominin thumb and the influence exerted by the non-dominant hand during stone tool production. Journal of Human Evolution, 78, 60–69.",
+      "doi_or_url": "https://doi.org/10.1016/j.jhevol.2014.08.006",
+      "category": "evolution",
+      "method": "Pressure sensors on the thumb, index and middle finger pads of the core-holding hand recorded manipulative forces of eight experienced knappers in four conditions.",
+      "finding": "The thumb was recruited more often and experienced greater forces than the fingers during core repositioning and flake detachment.",
+      "relation": "This Key and Dunmore study concerns thumb loading; the size study by the same first author is Key and Lycett (2011).",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 25200887)"
+    },
+    {
+      "id": "napier_1956",
+      "citation": "Napier, J. R. (1956). The prehensile movements of the human hand. The Journal of Bone and Joint Surgery, British Volume, 38-B(4), 902–913.",
+      "doi_or_url": "https://doi.org/10.1302/0301-620X.38B4.902",
+      "category": "evolution",
+      "method": "Anatomical and functional analysis of human prehension.",
+      "finding": "Prehension was divided into the precision grip, the object pinched between the flexor aspects of fingers and opposing thumb, and the power grip, the object clamped between flexed fingers and palm.",
+      "relation": "The classic definition of the precision grip used by the human studies above.",
+      "verified": true,
+      "checked_via": "Crossref; abstract on the Bone & Joint Journal page"
+    },
+    {
+      "id": "utz_et_al_2015",
+      "citation": "Utz, K. S., Hesse, C., Aschenneller, N., & Schenk, T. (2015). Biomechanical factors may explain why grasping violates Weber's law. Vision Research, 111, 22–30.",
+      "doi_or_url": "https://doi.org/10.1016/j.visres.2015.03.021",
+      "category": "neuroscience",
+      "method": "Grasping was recorded in several tasks, and the gain (slope) of maximum grip aperture against object size was related to aperture variability.",
+      "finding": "The gain varied significantly across tasks. Aperture variability fell for larger objects in every task, which the authors attribute to reduced freedom near the end of the hand's range of motion.",
+      "relation": "The hand's span limits grip scaling as objects approach it, a human analogue of joint and workspace limits at large object sizes.",
+      "verified": true,
+      "checked_via": "Crossref; PubMed abstract (PMID 25872174)"
+    }
+  ],
+  "unverified": [
+    {
+      "item": "Wan, J., Liu, X., & Dong, Y. (2025). DexReMoE: In-hand reorientation of general object via mixtures of experts. arXiv:2508.01695.",
+      "status": "Paper verified on arXiv. A search summary said that meshes scaled to about 60 % switched the policy from fingertip control to contact with the inner finger surfaces; this was not in the abstract, and the full text was not read."
+    },
+    {
+      "item": "Key, A. J. M., & Lycett, S. J. (2018). Investigating interrelationships between Lower Palaeolithic stone tool effectiveness and tool user biometric variation. Archaeological and Anthropological Sciences, 10(5), 989–1006. doi:10.1007/s12520-016-0433-x.",
+      "status": "Paper verified on Crossref. The finding that hand size was the strongest predictor of handaxe cutting efficiency appeared only in a search summary."
+    },
+    {
+      "item": "Bircher, Morgan and Dollar (2021), design search of Model W.",
+      "status": "A search summary said each candidate hand was simulated with object pose, shape and size varied; the full text is paywalled and this was not confirmed."
+    },
+    {
+      "item": "Jeannerod, M. (1984). The timing of natural prehension movements. Journal of Motor Behavior, 16(3), 235–254. doi:10.1080/00222895.1984.10735319.",
+      "status": "Paper verified on Crossref. Its abstract (7 subjects) reports the timing of grip formation; a scaling of grip size with object size could not be confirmed from accessible text, so it is not listed above."
+    }
+  ],
+  "novelty": "No published study was found that tests a palm-size rule by executed in-hand manipulation across controlled object sizes on one physical hand with movable finger bases. The nearest work is Su et al. (arXiv 2609.22871, 2026), already on the reading list. In their sphere rotation the palm setting was an output of the learned policy, over 22 diameters from 40 to 250 mm in simulation and three objects on hardware. They reported no relation between palm setting and diameter and no hardware success rate. RUTH (Lu et al., IJRR 2021) and the gripper of Elangovan et al. (IEEE Access 2021) move their finger bases and handle several object sizes. Neither group reported the best base spacing as a function of object size, and Elangovan et al. analysed workspaces kinematically. E-TRoll (Zhou and Spiers, IROS 2022) moved its bases during executed rolling on hardware and raised rotation from 36.4° to 86.6°, with one 30 mm cylinder. PLEXUS (Kuroda et al., ICORR 2025) executed reorientation at six widths from 5 to 30 mm on hardware, with a thumb axis fixed by kinematic optimisation. The two first-principles rules differ in form. Borràs and Dollar add one finger length to the object diameter, a slope of 1 with an offset. Chaudhury and Ghosal (JMR 2018) found the optimum where palm area equals object cross-section, a proportional rule with no offset. The slope of 0.6–1.4 mm per mm and its intercept can test both, and human grip aperture grows about 0.8 mm per mm. The claim stands when stated as a fixed controller, executed tasks, controlled object sizes and movable finger bases on one hand. Until the hardware tests run, the student's result is also simulation-only, and Su et al. 2026 is the nearest simulation precedent to cite."
+}
