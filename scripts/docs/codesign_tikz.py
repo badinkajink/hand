@@ -12,7 +12,9 @@ by pdftoppm at 400 dpi into docs/experiments/20261110-codesign_formulation/media
                                    outermost loop
   20261110-contact_modes.png        what HOM commands at each fingertip: stick, roll, slide, press
   20261110-hom_period.png           one HOM control period
-  20261110-hand_{mounts,joints}.png the hand with its 6 mount coordinates or its 9 joints coloured (steps 3 and 4)
+  20261110-hand_{mounts,joints,layout}.png the hand with its 6 mount coordinates, its 9 joints or its 2 layout
+                                   distances coloured (steps 3 and 4, the morphology section)
+  20261110-bd_rule.png             Borras and Dollar's rule as a schematic (slides 24-25), with eq_thesis{1,2}
 
     .venv/bin/python scripts/docs/codesign_tikz.py
 """
@@ -140,6 +142,14 @@ def final(active=None):
             + r"}\underbrace{\mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)}_{\clab{dynamics}}}\Big]")
 
 
+THESIS = [  # (what, LaTeX); the rule under test on slides 24-25, and the question
+    ("Borras and Dollar (2015): the workspace is largest when the palm is one finger length wider than the object.",
+     r"D_{\mathrm{palm}}\ \approx\ d\ +\ " + C(r"L", "one finger length")),
+    ("Does the rule hold when the manipulation is executed?",
+     r"\frac{\mathrm{d}D^\star_{\mathrm{palm}}}{\mathrm{d}d}\ \overset{?}{=}\ 1\quad\text{for}\quad"
+     + C(r"\max_{\pi}\ J_T(x_{0:H})\ \ \mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)", "executed in-hand manipulation")),
+]
+
 MORPH = [  # (what, LaTeX); owner, 2026-11-10 evening: the morphology section with the co-design build's incrementalism.
     # The search's hands are symmetric tripods: two distances on the 5 mm lattice of the stored grids (25 x 25 = 625)
     ("A hand of the search: two distances on a 5 mm lattice, 625 hands.",
@@ -230,6 +240,8 @@ def formulas():
     same_canvas(cd, CD_CANVAS)
     same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "31", strut=False)
                  for k, (what, tex) in enumerate(METRIC, 1)])
+    for k, (what, tex) in enumerate(THESIS, 1):  # on two different slides: each its own canvas
+        eq_img(f"20261110-eq_thesis{k}", tex, "thesis", what, "24-25")
     same_canvas([eq_img(f"20261110-eq_morph{k}", tex, "morph", what, "32") for k, (what, tex) in enumerate(MORPH, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
                  for k in range(1, len(OUTER) + 1)])
@@ -396,6 +408,46 @@ def evaluator():
     return compile_tex("20261110-evaluator", body)
 
 
+# ------------------------------------------------------------------------------------------------ the rule under test
+# Owner, 2026-11-10 evening: slides 24-25 state the thesis, a test of Borras and Dollar's rule (IJRR 2015) under executed
+# in-hand manipulation. A schematic of the rule as stated in their abstract (drawn here, not copied): a symmetric tripod
+# around a round object, each finger base half a finger length outside the object's surface, so the palm's diameter is
+# the object's plus one finger length.
+def bd_rule():
+    r, L = 1.0, 1.7                                   # object radius and finger length, arbitrary units
+    R = r + L / 2
+    import math
+    out = [r"\begin{tikzpicture}[x=1.55cm, y=1.55cm, line cap=round, line join=round]",
+           r"\fill[pale] (0,0) circle (%.3f); \draw[ink!60, line width=1.1pt] (0,0) circle (%.3f);" % (r, r),
+           r"\draw[grey, line width=1.1pt, dash pattern=on 5pt off 4pt] (0,0) circle (%.3f);" % R,
+           r"\node[text=ink!70] at (0,0) {\fontsize{17}{20}\selectfont object};"]
+    for k, ang in enumerate((90, 210, 330)):
+        a = math.radians(ang)
+        bx, by, cx, cy = R * math.cos(a), R * math.sin(a), r * math.cos(a), r * math.sin(a)
+        out.append(r"\draw[grey!80, line width=7pt] (%.3f,%.3f) -- (%.3f,%.3f);" % (bx, by, cx, cy))
+        out.append(r"\fill[grey!80] (%.3f,%.3f) circle (0.075);" % (cx, cy))
+        out.append(r"\fill[new] (%.3f,%.3f) circle (0.085);" % (bx, by))
+    a = math.radians(330)
+    n = (math.cos(a + math.pi / 2), math.sin(a + math.pi / 2))
+    o = 0.32
+    p0 = (r * math.cos(a) + o * n[0], r * math.sin(a) + o * n[1])
+    p1 = (R * math.cos(a) + o * n[0], R * math.sin(a) + o * n[1])
+    out.append(r"\draw[new, line width=1.8pt, {Stealth[length=7pt]}-{Stealth[length=7pt]}] (%.3f,%.3f) -- (%.3f,%.3f);"
+               % (p0 + p1))
+    out.append(r"\node[text=new, anchor=south west] at (%.3f,%.3f) {\fontsize{19}{22}\selectfont $L/2$};"
+               % ((p0[0] + p1[0]) / 2 + 0.05, (p0[1] + p1[1]) / 2 + 0.05))
+    out.append(r"\draw[ink!60, line width=1pt, {Stealth[length=6pt]}-{Stealth[length=6pt]}] (%.3f,%.3f) -- (%.3f,%.3f);"
+               % (-r, -R - 0.45, r, -R - 0.45))
+    out.append(r"\node[text=ink, anchor=north] at (0,%.3f) {\fontsize{17}{20}\selectfont object diameter $d$};" % (-R - 0.55))
+    out.append(r"\draw[grey, line width=1pt, {Stealth[length=6pt]}-{Stealth[length=6pt]}] (%.3f,%.3f) -- (%.3f,%.3f);"
+               % (-R, R + 0.42, R, R + 0.42))
+    out.append(r"\node[text=ink, anchor=south] at (0,%.3f) {\fontsize{17}{20}\selectfont palm diameter $d+L$};" % (R + 0.5))
+    out.append(r"\node[text=new, anchor=west] at (%.3f,%.3f) {\fontsize{15}{18}\selectfont finger base};"
+               % (R * math.cos(math.radians(90)) + 0.15, R + 0.0))
+    out.append(r"\end{tikzpicture}")
+    return compile_tex("20261110-bd_rule", "\n".join(out))
+
+
 # ------------------------------------------------------------------------------------------------ morphology and control
 # Owner, 2026-11-10 afternoon: "really stripped down, bare figures that communicate the essence of the split between
 # morphology and control", beside steps 3 and 4. One line drawing of the hand of the films that follow, layout (70, 110)
@@ -490,6 +542,7 @@ def main():
     for a in ("outer", "inner", "dyn"):
         nested(a)
     same_canvas([nested("all")] + [nested("all", loop) for loop in TASK_LOOP])
+    bd_rule()
     contact_modes()
     hom_period()
     evaluator()

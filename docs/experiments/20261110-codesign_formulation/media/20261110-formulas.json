@@ -84,6 +84,18 @@
   "what": "Ours: the share of the commanded rotation followed, on three pads; 0 if dropped."
  },
  {
+  "name": "20261110-eq_thesis1",
+  "series": "thesis",
+  "slide": "24-25",
+  "what": "Borras and Dollar (2015): the workspace is largest when the palm is one finger length wider than the object."
+ },
+ {
+  "name": "20261110-eq_thesis2",
+  "series": "thesis",
+  "slide": "24-25",
+  "what": "Does the rule hold when the manipulation is executed?"
+ },
+ {
   "name": "20261110-eq_morph1",
   "series": "morph",
   "slide": "32",
