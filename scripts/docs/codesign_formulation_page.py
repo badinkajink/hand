@@ -215,6 +215,11 @@ def sec_inner():
             + fig("20261110-contact_modes.png", "What HOM commands at each fingertip: a motion relative to the object at "
                   "the contact (stick, roll or slide), and a press along the normal with force F. The contact-mode weights "
                   "w choose among them.")
+            + P.film(MEDIA / "20261111-abstract_twist.mp4", "HOM on the abstract hand of the drawings (owner, 2026-11-11). "
+                     "It shows one CPU rollout of the twist on layout (105, 70) mm with the 40 mm sphere. The hand is drawn "
+                     "from the simulation's joint positions every 40 ms, in real time. The sphere turns 72 deg of a "
+                     "commanded 90 deg, with all three pads loaded throughout; tracking score 0.77. "
+                     "<code>scripts/hom/hom_abstract_film.py</code>.")
             + fig("20261110-hom_period.png", "One HOM control period. The least squares is the only step where the hand's "
                   "geometry appears, through the Jacobian A(m, g); the forces F and the weights w are what tuning "
                   "changes.")
@@ -240,14 +245,21 @@ def sec_sim():
             "found that the layout changes how much one fingertip's magnets disturb another's reading, so sensing "
             "depends on the hand.</p>"
             + "<p><b>The sphere-packed fingertip as the segue</b> (owner, 2026-11-10 night). HOM needs the contact patch, which "
-              "the HOM work simulated with Drake's hydroelastic contact; at Drake's 2,082 us per step on the hand, one "
+              "the HOM work simulated with Drake's hydroelastic contact. At Drake's 2,082 us per step on the hand, one "
               "landscape of 30,000 rollouts would take about 34 days on one CPU core (estimated from the step costs). The "
               "pads replace the integral of the pressure field by one spring per 1 mm sphere, and one GPU runs the same "
-              "landscape in 18 minutes. Contact overview, Figures 3, 5, 11 and 12, carry the comparison.</p>"
+              "landscape in 18 minutes. The comparison is in Figures 3, 5, 11 and 12 of the contact overview.</p>"
             + series("pads")
             + drawing("20261110-slide_cost_drake", "Drake alone (estimated from its step cost on the hand).", 70)
             + drawing("20261110-slide_cost_all", "With the pads on one CPU core and on one GPU, and Newton's SDF hydroelastic contact on the same "
                      "GPU, estimated from its throughput on the contact overview's pinch benchmark.", 70)
+            + drawing("20261111-slide_fidelity_drake", "Fidelity to Drake (owner, 2026-11-11: the slide that turns to the "
+                      "hardware): each model's median deviation from Drake's hydroelastic contact over the nine metrics of "
+                      "the contact rig, the numbers of contact overview Figure 11 as bars.", 60)
+            + drawing("20261111-slide_fidelity_tip", "Fidelity to the real fingertip, from Figure 1 (b) of the v3 "
+                      "contact-model page. The dots are 837 UR5 presses of three printed v3 tips under the 12.5 mm rod. The "
+                      "curves are the pads before calibration (10 MPa), the pads fitted to the presses (2.47 MPa) and "
+                      "Drake's field (2.18 MPa).", 55)
             + series("sim")
             + fig("20261110-evaluator.png", "The simulator as an evaluator built for co-design: fast enough for a "
                   "search, calibrated on hardware, and observable through the fingertips."))

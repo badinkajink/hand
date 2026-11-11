@@ -241,6 +241,65 @@ def cost_per_landscape():
     return {k: round(v) for k, v in out.items()}
 
 
+def fidelity_drake():
+    """Median |deviation| from Drake over the contact rig's metrics, per contact model: the numbers of the contact
+    overview's Figure 11 as bars (owner, 11-11: the chart of deviation against step cost was hard to read)."""
+    import statistics
+    import contact_overview_page as CO
+    T = {name: CO.bed(fn) for name, fn in (("pull", "pull_slip"), ("twist", "twist_slip"), ("roll", "roll"),
+                                             ("shake", "shake"), ("brake", "brake"), ("creep", "creep"))}
+    dev = CO.deviations(CO.metrics(T))
+    rows = [("mj_point3", "MuJoCo point contact", "#6b7280"), ("newton_hydro_mc", "Newton hydroelastic (SDF)", "#7a4fa6"),
+            ("newton_pads1", "Newton, 1 mm sphere pads", "#f59e0b"), ("mj_pads1", "MuJoCo, 1 mm sphere pads", "#f59e0b"),
+            ("mjw_pads1", "MuJoCo-Warp, 1 mm sphere pads", "#d97706")]
+    med = {k: statistics.median(dev[k]) for k, _l, _c in rows}
+    fig, ax = plt.subplots(figsize=(7.6, 5.4))
+    for y, (k, lab, col) in enumerate(rows[::-1]):
+        ax.barh(y, med[k], color=col, height=0.6)
+        ax.text(med[k] + 2.0, y, f"{med[k]:.1f} %", va="center", fontsize=17, color=INK, weight="bold")
+    ax.set_yticks(range(len(rows)))
+    ax.set_yticklabels([lab for _k, lab, _c in rows[::-1]], fontsize=15)
+    ax.set_xlim(0, 115)
+    ax.set_xlabel("median deviation from Drake (%)")
+    ax.set_title("Against Drake's hydroelastic contact", loc="left", fontsize=18)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    for sp in ("left", "bottom"):
+        ax.spines[sp].set_color(LINE)
+    save(fig, "20261111-slide_fidelity_drake.png")
+    return {k: round(med[k], 1) for k, _l, _c in rows} | {"n_metrics": len(dev["mjw_pads1"])}
+
+
+def fidelity_tip():
+    """The real fingertip: UR5 presses of three printed v3 tips under the 12.5 mm rod against the pads before the
+    calibration (10 MPa), the pads at the modulus fitted to the presses and Drake's field at its fitted modulus (the v3
+    contact-model page, Figure 1 (b), with its FE curves left out)."""
+    import v3_tip_contact_model_figures as VF
+    d = VF.load()
+    J = d["fits"]["joint"]
+    Ep, Ef = J["E_pads_MPa"], J["E_field_MPa"]
+    F, Dp, _ = VF.face_holds(d, VF.ROD)
+    dep, Gp, Gf, *_ = VF.model_curves(d, VF.ROD)
+    fig, ax = plt.subplots(figsize=(7.6, 5.4))
+    ax.scatter(Dp, F, s=14, color=GREY, alpha=0.45, lw=0, zorder=1, label=f"measured: three printed tips, {len(F):,} holds")
+    ax.plot(dep, VF.E_SCENES * Gp, color="#d97706", lw=2.2, ls=":", zorder=3, label="pads before calibration, 10 MPa")
+    ax.plot(dep, Ep * Gp, color="#d97706", lw=3.4, zorder=4, label=f"pads fitted to the presses, {Ep:.2f} MPa")
+    ax.plot(dep, Ef * Gf, color="#4a7fc4", lw=2.4, ls=(0, (6, 3)), zorder=4, label=f"Drake's field, {Ef:.2f} MPa")
+    ax.set_xlim(0, 1.8)
+    ax.set_ylim(0, 8.6)
+    ax.set_xlabel("indentation (mm)")
+    ax.set_ylabel("normal force (N)")
+    ax.set_title("Against the real fingertip (12.5 mm rod, UR5)", loc="left", fontsize=18)
+    ax.legend(fontsize=13.5, frameon=False, loc="lower right", markerscale=2.0)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    for sp in ("left", "bottom"):
+        ax.spines[sp].set_color(LINE)
+    ax.grid(color="#eef0f3")
+    save(fig, "20261111-slide_fidelity_tip.png")
+    return {"E_pads_MPa": round(Ep, 2), "E_field_MPa": round(Ef, 2), "holds_rod": int(len(F))}
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     info = {}
@@ -250,6 +309,8 @@ def main():
     info["covers"] = covers()
     _, info["slopes"] = size_trend()
     info["cost_per_landscape_s"] = cost_per_landscape()
+    info["fidelity_drake"] = fidelity_drake()
+    info["fidelity_tip"] = fidelity_tip()
     path = OUT / "20261110-figures.json"
     old = json.loads(path.read_text()) if path.exists() else {}
     old["section_figures"] = info

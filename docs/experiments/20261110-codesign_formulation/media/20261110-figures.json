@@ -214,6 +214,19 @@
    "MuJoCo": 150000,
    "Newton hydroelastic (SDF)": 1872,
    "MuJoCo-Warp": 1095
+  },
+  "fidelity_drake": {
+   "mj_point3": 94.7,
+   "newton_hydro_mc": 19.3,
+   "newton_pads1": 6.2,
+   "mj_pads1": 6.2,
+   "mjw_pads1": 6.0,
+   "n_metrics": 9
+  },
+  "fidelity_tip": {
+   "E_pads_MPa": 2.47,
+   "E_field_MPa": 2.18,
+   "holds_rod": 837
   }
  },
  "film_three_hands": {
