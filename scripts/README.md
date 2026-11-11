@@ -80,7 +80,7 @@ Jobs on the DeltaAI cluster.
 | `make_inline_breadth_queue.py` | Emit packed-queue manifests for the inline-hand questions that breadth can answer. |
 | `make_seed_manifest.py` | Write the (design, seed) manifest that deltaai_seed_array.slurm consumes. |
 
-## contact/ (84)
+## contact/ (86)
 
 Fingertip contact models and simulators: the sphere pads, the contact bed, the reorientation on each backend, Drake, Newton, MuJoCo-Warp and DiffMJX.
 
@@ -169,6 +169,8 @@ Fingertip contact models and simulators: the sphere pads, the contact bed, the r
 | `reorient_backends_summary.py` | Tables of the reorientation grid (reorient_backends*.py): per hand and condition, the fraction of seeds holding the tool at the end of the bench hold and after 4 s more, the net turn and its spread over seeds, and the be |
 | `same_state_timing.py` | Physics time per world-step of MuJoCo-Warp and Newton from one held state of the RL training env (2026-10-06). |
 | `simulator_agreement_figure.py` | Agreement of fingertip contact models with Drake hydroelastic on three tasks (2026-10-06). |
+| `sphere_pad_code_data.py` | Numbers, figures and film of the sphere-pad implementation page (scripts/contact/sphere_pad_code_page.py), 2026-11-11. |
+| `sphere_pad_code_page.py` | Implementation page of the sphere-pad fingertip (2026-11-11), a subpage of the contact model overview (docs/overviews/contact_model.html, sections 'mechanics' and 'pads'). |
 | `sprung_skin_page.py` | Result page: presliding compliance from a sprung skin under the 1 mm sphere pads (2026-10-12). |
 
 ## contact_surface/ (9)
@@ -250,7 +252,7 @@ Finger layouts and their search: the morphology generators, IK retargeting of th
 | `retarget_keyframe_ik.py` | Retarget the 'about-to-contact' open keyframe across morphologies via fingertip IK. |
 | `sweep_perp_thumb.py` | Can a perp morphology recruit the THUMB onto the reoriented shaft — without losing the swing? |
 
-## docs/ (32)
+## docs/ (34)
 
 Builders of the home page, the topic overviews and the page indices, and the parts every page builder uses: the page style, LaTeX to SVG, the prose check and the figure check.
 
@@ -260,6 +262,8 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `code_blocks.py` | Collapsible source excerpts for result pages, each linked to its lines on GitHub (owner, 2026-11-06: "collapsible code blocks (linkable to the github file line) that really directly correspond to the step in the algorith |
 | `codesign_formulation_figures.py` | Data figures of the co-design formulation for the hand-design talk (owner, 2026-11-10: "beautiful, didactic diagrams / visual content"). |
 | `codesign_formulation_page.py` | Builds docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html: the co-design problem of the hand-design talk built up one idea per slide (the owner's slides 21-31), then each level in turn: |
+| `codesign_opener_film.py` | Candidate opener films for the SR2 part of the hand-design talk (owner, 2026-11-10 night: "a cool video of the hand doing something at the very beginning of the sr2 hand section ... |
+| `codesign_section_figures.py` | Slide figures for the three level sections of the hand-design talk (owner, 2026-11-10 evening: the morphology, control and dynamics sections should have the co-design section's "clarity, visual elegance, and incrementali |
 | `codesign_tikz.py` | LaTeX and TikZ figures of the co-design formulation for the hand-design talk (owner, 2026-11-10: "beautiful, didactic diagrams"; "an evolving latex formula/equation that captures the co-design problem"; the SR2 part "hie |
 | `contact_overview_page.py` | Build docs/overviews/contact_model.html, the topic overview of the fingertip contact model. |
 | `docs_changelog.py` | Revisions of the documentation pages (owner, 2026-11-02: "we should also have a changelog for these pages ... |
@@ -506,7 +510,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
 
-## hom/ (89)
+## hom/ (91)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -532,6 +536,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hand_object_scale_post_probe.py` | Traces of the HOM turn on chosen cells of the hand-object scale study, with and without the support post: per 10 ms tick the turn angle, the post's normal force on the object, the object's rise from its post-grip height  |
 | `hand_object_scale_protocol.py` | The bench protocol of the hand-object scale study, generated from the simulated landscape: which cells, at which grasp, how many trials, in what order, and how many bench hours. |
 | `hand_object_scale_sim.py` | Grasp robustness and in-hand reorientation over the (layout, object) cells of the hand-object scale study, in CPU MuJoCo on the bench-calibrated servo plant with the printed TPU fingertip as 1 mm sphere pads. |
+| `hom_abstract_film.py` | A HOM rollout drawn on the abstract SR2 hand of the talk's diagrams (owner, 2026-11-11: "can we do one that's just an abstracted form of the sr 2 hand, like the ones we've been using in the slide decks?"). |
 | `hom_adjoint_widget.py` | An explorable version of the adjoint figure of the HOM review page (scripts/hom/hom_eq1_figures.py adjoint): a planar rigid body with frames {B} and {A}; the reader drags {A}, turns it, and sets the twist (w, v_B) of the |
 | `hom_chain.py` | The screwdriver load-and-insert chain under relative contact-velocity control on the real_v1 (SR2) hand, in MuJoCo and Drake. |
 | `hom_chain_figures.py` | Theory figures for docs/experiments/20261002-hom_chain: Drake's hydroelastic pressure field on the real_v1 fingertip against MuJoCo's sphere-packed pad, both pressed onto the screwdriver at the same pinch force, from the |
@@ -594,6 +599,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_torque_page.py` | Builds docs/experiments/20261110-hom_torque_control/20261110-hom_inverse_dynamics_control.html: inverse-dynamics torque control of the SR2 hand's fingers under HOM against the SCS0009 position servos, on the layouts and  |
 | `hom_toy_reach_check.py` | Why the pose toy reaches more layouts since the finger clearance moved into its program (2026-10-30, 21d3d2877). |
 | `hom_track_films.py` | The tracking score of the HOM tasks on the films of hand-object scale (owner, 2026-11-09: "you have my go ahead on the rescoring"; "i value simplicity/interpretability/capturing the essence of the motion/success monotoni |
+| `hom_track_landscapes.py` | The four default landscapes of the hand-design talk under the tracking score (owner, 2026-11-10 night: "sure, let's rerun the landscapes now"). |
 | `hom_track_score_page.py` | Builds docs/experiments/20261029-foundational_pose_review/20261109-hom_tracking_score.html: the tracking score of the HOM tasks, its check against the owner's verdicts on the films of 2026-11-09, and the layouts re-picke |
 | `hom_trends_page.py` | Builds docs/experiments/20261029-foundational_pose_review/20261030-hom_layout_trends.html: the best layouts of the SR2 hand under HOM control across object sizes, with the fingers kept 2 mm apart and with a table under t |
 | `hom_turn3.py` | The three-finger reorientation of the bench, driven by the relative contact-velocity controller of arXiv 2609.25619 (Wang, Oh, Pollard) instead of the deployed open-loop joint trajectories. |
