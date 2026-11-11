@@ -84,6 +84,36 @@
   "what": "Ours: the share of the commanded rotation followed, on three pads; 0 if dropped."
  },
  {
+  "name": "20261110-eq_morph1",
+  "series": "morph",
+  "slide": "32",
+  "what": "A hand of the search: two distances on a 5 mm lattice, 625 hands."
+ },
+ {
+  "name": "20261110-eq_morph2",
+  "series": "morph",
+  "slide": "32",
+  "what": "Every hand on the lattice is simulated: a landscape of scores."
+ },
+ {
+  "name": "20261110-eq_morph3",
+  "series": "morph",
+  "slide": "32",
+  "what": "Each task and size has its best hand."
+ },
+ {
+  "name": "20261110-eq_morph4",
+  "series": "morph",
+  "slide": "32",
+  "what": "Does the best hand follow Borras and Dollar's rule?"
+ },
+ {
+  "name": "20261110-eq_morph5",
+  "series": "morph",
+  "slide": "32",
+  "what": "The fewest hands that reach a share alpha of every task's best."
+ },
+ {
   "name": "20261110-eq_outer1",
   "series": "outer",
   "slide": "32-33",

@@ -79,6 +79,31 @@ def hand_drawings():
         "PIP of each finger. The mounts are fixed at the layout of step 3.")}
 
 
+def section_drawings():
+    """The slide figures beside the morphology section's formula steps (scripts/docs/codesign_section_figures.py)."""
+    sf = figinfo().get("section_figures", {})
+    sl = sf.get("slopes", {})
+    return {
+        "A hand of the search: two distances on a 5 mm lattice, 625 hands.": drawing(
+            "20261110-hand_layout", "The six mount coordinates of step 3 as the two distances of the symmetric family, on "
+            "the drawing of the hand of the films, (70, 110) mm."),
+        "Every hand on the lattice is simulated: a landscape of scores.": drawing(
+            "20261110-slide_landscape", "Press on the 25 mm cylinder, SCS0009 plant with 2.5 MPa pads, best of 16 grasps, "
+            "mean of seeds 0-2. Grey: no grasp reaches the cylinder. Star: the best hand.", 45),
+        "Each task and size has its best hand.": drawing(
+            "20261110-slide_tasks", "The four tasks' landscapes on the same plant, each as a share of its own best; stars "
+            "at the best hands.", 95),
+        "Does the best hand follow Borras and Dollar's rule?": drawing(
+            "20261110-slide_size_trend", "Best thumb-to-pair distance against object diameter, live evolutionary search "
+            "on the SCS0009 plant: " + ", ".join(f"{k} {v:.2f}" for k, v in sl.items()) + " mm per mm. Purple: slope 1. "
+            "Borras and Dollar's rule fixes each finger base half a finger outside the object's surface; along the "
+            "thumb-to-pair axis that gives 1 when the pair sits close together, and 0.75 for their symmetric tripod.", 85),
+        "The fewest hands that reach a share alpha of every task's best.": drawing(
+            "20261110-slide_one_hand", "One hand, (70, 110) mm, reaches 0.84 of every task's best (validated at seeds "
+            "20-24, task-conflict page).", 95)
+        + drawing("20261110-slide_three_hands", "Three hands reach 0.95.", 95)}
+
+
 def fig(name, caption):
     return P.img(MEDIA / name, caption)
 
@@ -145,6 +170,11 @@ def sec_outer():
                   "distances that define a symmetric layout; grey, the travel of the gantries. Middle: the press score of "
                   "every layout on the 25 mm cylinder (SCS0009 plant, best of 16 grasps, mean of three seeds). Right: "
                   "three of those hands, rendered from below on the CPU plant at seed 0 after the lift.")
+            + "<p><b>The section on slides, one question each</b> (owner, 2026-11-10 evening). The six mount coordinates "
+              "become two distances; every hand on the lattice is simulated; each task has its best hand; the best "
+              "hand moves with the object; one hand or several. The figures are unnumbered; the numbers are in "
+              "<code>media/20261110-figures.json</code> under <code>section_figures</code>.</p>"
+            + series("morph", section_drawings())
             + series("outer")
             + fig("20261110-ea_anatomy.png", "One generation of the EA with a population of 16, replayed on the stored "
                   "landscape. The 16 hands are ranked by fitness; the best two are parents, the best eight are kept. Each "
@@ -211,7 +241,9 @@ def sec_slides():
             ["32", "the levels named; tasks, object sizes and metrics as the outermost loop; section opener",
              "eq_cd09, nested_all, nested_loop_finite, nested_loop_infinite, nested_loop_metric; eq_final_outer and "
              "nested_outer"],
-            ["32-33", "morphology optimization", "layout_space; eq_outer1 to eq_outer6; ea_anatomy; ea_snapshots"],
+            ["32-33", "morphology optimization, one question per slide", "eq_morph1 with hand_mounts and hand_layout; "
+             "eq_morph2 with slide_landscape; eq_morph3 with slide_tasks; eq_morph4 with slide_size_trend; eq_outer1 to "
+             "eq_outer6 with the panels of ea_anatomy; ea_snapshots; eq_morph5 with slide_one_hand, slide_three_hands"],
             ["34", "section opener", "eq_final_inner, nested_inner"],
             ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; contact_modes; eq_inner6 "
                                            "with hom_period; eq_inner7; eq_inner8, eq_inner9 with tuning"],

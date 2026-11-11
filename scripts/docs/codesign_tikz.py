@@ -140,6 +140,21 @@ def final(active=None):
             + r"}\underbrace{\mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)}_{\clab{dynamics}}}\Big]")
 
 
+MORPH = [  # (what, LaTeX); owner, 2026-11-10 evening: the morphology section with the co-design build's incrementalism.
+    # The search's hands are symmetric tripods: two distances on the 5 mm lattice of the stored grids (25 x 25 = 625)
+    ("A hand of the search: two distances on a 5 mm lattice, 625 hands.",
+     r"m=" + C(r"(s_1,\,s_2)", "thumb to pair, index to middle") + r"\ \in\ \{40,45,\dots,160\}\times\{50,55,\dots,170\}\ \mathrm{mm}"),
+    ("Every hand on the lattice is simulated: a landscape of scores.",
+     r"m=(s_1,\,s_2)\ \mapsto\ " + C(r"J_T(s_1,s_2;\,d)", "every hand, simulated")),
+    ("Each task and size has its best hand.",
+     r"m^\star_T(d)=" + C(r"\arg\max_{s_1,\,s_2}", "best hand per task and size") + r"\ J_T(s_1,s_2;\,d)"),
+    ("Does the best hand follow Borras and Dollar's rule?",
+     r"\mathrm{d}s_1^\star/\mathrm{d}d\ \ \overset{?}{=}\ \ " + C(r"1", "Borràs and Dollar (2015)")),
+    ("The fewest hands that reach a share alpha of every task's best.",
+     C(r"K^\star(\alpha)", "fewest hands") + r"=\min_{\mathcal{M}}\ |\mathcal{M}|\quad\mathrm{s.t.}\quad\max_{m\in\mathcal{M}}J_T(m)"
+     r"\ \ge\ \alpha\,\max_{m}J_T(m)\quad\forall\,T"),
+]
+
 OUTER = [  # (column label, line); the series shows lines 1..k, line k in colour, the rest held as phantoms
     ("fitness", r"F(m)=\frac{1}{3}\sum_{s=1}^{3}\ \max_{\pi}\ J(m,\pi;\,s)", "A hand's fitness: its best controller's score, averaged over three seeds."),
     ("population", r"P_t=\{m_1,\dots,m_N\}", "A generation is a population of N hands."),
@@ -156,7 +171,7 @@ INNER = [  # (what, LaTeX); owner, 2026-11-10 evening: the grasp g and HOM's par
     ("The controller is HOM, held fixed: only a grasp and a few parameters remain.",
      r"J^\star(m)={\color{inner}\underbrace{\max_{g,\,\phi}}_{\clab{grasp, HOM parameters}}}\ \ J(m,g,\phi)"),
     ("Two choices: a grasp, then HOM's parameters.",
-     r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\ \ {\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
+     r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\qquad\qquad{\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
     ("The foundational pose: the grasp farthest from every constraint.",
      r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\mathrm{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
     ("Sixteen candidate grasps per hand.",
@@ -215,6 +230,7 @@ def formulas():
     same_canvas(cd, CD_CANVAS)
     same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "31", strut=False)
                  for k, (what, tex) in enumerate(METRIC, 1)])
+    same_canvas([eq_img(f"20261110-eq_morph{k}", tex, "morph", what, "32") for k, (what, tex) in enumerate(MORPH, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
                  for k in range(1, len(OUTER) + 1)])
     same_canvas([eq_img(f"20261110-eq_inner{k}", tex, "inner", what, "34-35", strut=False)
@@ -389,6 +405,7 @@ HAND_VIEW = (30.0, 30.0)        # degrees: azimuth about the palm normal, elevat
 HAND_COLOURS = {                # boxes' fill and edge, mounts, slide arrows, hinges
     "mounts": ("new!10", "new", "new", "new", None),
     "joints": ("pale", "grey", "grey", None, "new"),
+    "layout": ("pale", "grey", "new", None, None),   # with the two distances of the symmetric family in colour
 }
 
 
@@ -454,6 +471,13 @@ def hand(variant):
         for ch in chains.values():
             for p in ch[:3]:
                 out.append(r"\filldraw[fill=white, draw=%s, line width=2.6pt] %s circle[radius=5.5pt];" % (hinge, pt(p)))
+    if variant == "layout":                      # thumb to the pair's midpoint (s1, along x), index to middle (s2, along y)
+        th, ix, md = (chains[f][0] for f in ("thumb", "index", "middle"))
+        for a, b, lab, t, anchor in ((th, (ix + md) / 2, "s_1", 0.3, "south east"), (ix, md, "s_2", 0.5, "west")):
+            out.append(r"\draw[new, line width=2.4pt, %s-%s, shorten <=6pt, shorten >=6pt] %s -- %s;"
+                       % (tips, tips, pt(a), pt(b)))
+            out.append(r"\node[text=new, anchor=%s, inner sep=7pt] at %s {\fontsize{24}{28}\selectfont$%s$};"
+                       % (anchor, pt(a + t * (b - a)), lab))
     out.append(r"\end{tikzpicture}")
     return compile_tex(f"20261110-hand_{variant}", "\n".join(out), border="6pt")
 
