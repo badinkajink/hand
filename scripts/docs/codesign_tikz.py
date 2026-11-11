@@ -10,7 +10,7 @@ by pdftoppm at 400 dpi into docs/experiments/20261110-codesign_formulation/media
   20261110-nested_{all,outer,inner,dyn}.png the nested problem as nested boxes, whole and with one level highlighted
   20261110-nested_loop_{finite,infinite,metric}.png   the boxes with the tasks, object sizes and metrics above them as the
                                    outermost loop
-  20261110-contact_modes.png        what HOM commands at each fingertip: stick, roll, slide, press
+  20261110-contact_modes.png        (retired 11-11: the slides show the HOM review page's Eq. (1) figure instead)
   20261110-hom_period.png           one HOM control period
   20261110-hand_{mounts,joints,layout}.png the hand with its 6 mount coordinates, its 9 joints or its 2 layout
                                    distances coloured (steps 3 and 4, the morphology section)
@@ -188,18 +188,22 @@ INNER = [  # (what, LaTeX); owner, 2026-11-10 evening: the grasp g and HOM's par
     ("The controller is HOM, held fixed: only a grasp and a few parameters remain.",
      r"J^\star(m)={\color{inner}\underbrace{\max_{g,\,\phi}}_{\clab{grasp, HOM parameters}}}\ \ J(m,g,\phi)"),
     ("Two choices: a grasp, then HOM's parameters.",
-     r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\qquad\qquad{\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
+     r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\qquad\qquad{\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM weights, forces}}}\ \ J(m,g,\phi)"),
     ("The foundational pose: the grasp farthest from every constraint.",
      r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\mathrm{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
     ("Sixteen candidate grasps per hand, each run under HOM with its default parameters; the hand keeps the best.",
      r"g^\star=\arg\max_{g\in\mathcal{G}(m)}\ \tfrac{1}{3}\textstyle\sum_{s=1}^{3}\,{\color{inner}\underbrace{J(m,g,\phi_0;\,s)}"
      r"_{\clab{one HOM rollout, seed $s$}}},\quad\mathcal{G}(m)=\{g_0,\dots,g_{15}\}"),
-    ("HOM: the joint speeds that best produce each fingertip's contact motion.",
-     r"u=\arg\min_{u}\ \sum_k w_k\Big(v_{\mathrm{ref},k}-\big[{\color{inner}\underbrace{A(m,g)}_{\clab{the hand}}}\,u+b\big]_k\Big)^2+w_{\mathrm{d}}\lVert u\rVert^2"),
-    ("Press with force F through the servo's spring.",
-     r"q_{\mathrm{cmd}}=q_{\mathrm{ref}}+\frac{1}{k_p}\,J^{\top}F\,n"),
-    ("What tuning changes: the forces and the contact-mode weights.",
-     r"\phi=(F,\,w)"),
+    ("HOM, Eq. (2): the joint speeds whose spin, roll, separation and slide relative to the object best match their "
+     "references.",
+     r"u_{\mathrm{ref}}=\arg\min_{u}\ \sum_{i}w_i\big\lVert v_{i,\mathrm{ref}}-{\color{inner}\underbrace{v_i(u;\,m,g)}_{\clab{Eq.\,(1), GCF}}}"
+     r"\big\rVert^2+w_{\mathrm{damp}}\lVert u\rVert^2+w_{\mathrm{healthy}}\big\lVert k_p(\theta_{\mathrm{healthy}}-\theta)-u\big\rVert^2"),
+    ("Impedance control: a finger in contact presses with its contact force F along the normal n, through the servo's "
+     "spring.",
+     r"\theta_{\mathrm{cmd}}=\theta_{\mathrm{ref}}+\frac{1}{k_p}\,J^{\top}F\,n"),
+    ("What CEM refines in HOM: the weights of Eq. (2) and the contact forces, per sub-assembly role.",
+     r"\phi=\big(w_{\mathrm{spin}},\,w_{\mathrm{roll}},\,w_{\mathrm{slide}},\,F\big)\ \lab{per sub-assembly},\qquad "
+     r"w_{\mathrm{sep}}=1"),
     ("The cross-entropy method: sample, keep the elite, refit.",
      r"\phi^{(k)}\sim\mathcal{N}(\mu,\Sigma),\qquad(\mu,\Sigma)\leftarrow\operatorname{fit}\big(\text{elite}\big)"),
 ]
@@ -254,8 +258,9 @@ def formulas():
     same_canvas([eq_img(f"20261110-eq_pads{k}", tex, "pads", what, "36-38") for k, (what, tex) in enumerate(PADS, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
                  for k in range(1, len(OUTER) + 1)])
-    same_canvas([eq_img(f"20261110-eq_inner{k}", tex, "inner", what, "34-35", strut=False)
-                 for k, (what, tex) in enumerate(INNER, 1)])
+    inner = [eq_img(f"20261110-eq_inner{k}", tex, "inner", what, "34-35", strut=False) for k, (what, tex) in enumerate(INNER, 1)]
+    same_canvas([q for q, (what, _) in zip(inner, INNER) if not what.startswith("HOM, Eq. (2)")])   # Eq. (2), the
+    # widest, keeps its own canvas: it has a slide of its own (cd-hom), and on the series' canvas the others would shrink
     same_canvas([eq_img(f"20261110-eq_sim{k}", tex, "sim", what, "36-38", strut=False)
                  for k, (what, tex) in enumerate(SIM, 1)])
     (OUT / "20261110-formulas.json").write_text(__import__("json").dumps(MANIFEST, indent=1))
@@ -310,46 +315,6 @@ def nested(active, loop=None):
 
 
 # ------------------------------------------------------------------------------------------------ HOM pictures
-def contact_modes():
-    """What HOM sets at each fingertip, relative to the object: stick, roll, slide, and the press along the normal."""
-    panel = r"""
-\begin{scope}[shift={(%(x)s,0)}]
-\fill[pale] (0,0) circle (1.7);
-\draw[ink!70, line width=1pt] (0,0) circle (1.7);
-\node[text=ink!60] at (0,-0.55) {object};
-%(tip)s
-\node[anchor=north, text=ink] at (0,-2.05) {\fontsize{16}{19}\selectfont\bfseries %(title)s};
-\node[anchor=north, text=ink, align=center, text width=4.3cm] at (0,-2.75) {%(desc)s};
-\end{scope}"""
-    tip = r"""\begin{scope}[shift={(0,1.7)}, rotate=%(rot)s]
-\draw[inner, line width=1.3pt, fill=innerl] (-0.55,1.25) -- (-0.55,0.45) arc[start angle=180, end angle=360, x radius=0.55, y radius=0.45] -- (0.55,1.25);
-\fill[inner] (0,0) circle (0.07);
-\end{scope}"""
-    ar = "-{Stealth[length=7pt,width=6pt]}"
-    p = {
-        "stick": (r"\draw[%s, ink, line width=1.6pt] (0.95,2.55) -- (1.95,2.55); \draw[%s, ink, line width=1.6pt]"
-                  r" (0.95,0.0) -- (1.95,0.0); \node[text=ink] at (1.45,0.32) {$V$}; \node[text=ink] at (1.45,2.87) {$V$};"
-                  % (ar, ar), "Stick", r"the fingertip moves with the object: no relative motion"),
-        "roll": (r"\draw[%s, inner, line width=1.6pt] (0.9,2.4) arc[start angle=10, end angle=120, radius=0.85];"
-                 r" \node[text=inner] at (1.25,3.05) {$\omega_{\mathrm{roll}}$};"
-                 r" \draw[%s, ink!60, line width=1pt] (0.15,1.55) arc[start angle=80, end angle=50, radius=1.7];" % (ar, ar),
-                 "Roll", r"the fingertip turns on the surface; the contact point moves, no slip"),
-        "slide": (r"\draw[%s, inner, line width=1.8pt] (0.75,2.05) -- (2.0,2.05);"
-                  r" \node[text=inner] at (1.4,2.4) {$v_{\mathrm{slide}}$};" % ar,
-                  "Slide", r"the fingertip slides along the surface"),
-        "press": (r"\draw[%s, inner, line width=1.8pt] (0,3.6) -- (0,2.35); \node[anchor=west, text=inner] at (0.12,3.1) "
-                  r"{$F\,n$};" % ar, "Press", r"push along the normal $n$ with force $F$"),
-    }
-    body = [r"\begin{tikzpicture}[font=\sffamily]", r"\fontsize{13}{16}\selectfont"]
-    for k, (name, x) in enumerate(zip(("stick", "roll", "slide", "press"), (0, 5.2, 10.4, 15.6))):
-        extra, title, desc = p[name]
-        body.append(panel % {"x": x, "tip": tip % {"rot": 0} + extra, "title": title, "desc": desc})
-    body.append(r"\node[anchor=south, text=ink, align=center] at (7.8,4.25) {\fontsize{16}{19}\selectfont HOM commands, "
-                r"for each fingertip, how it moves \emph{relative to the object} at the contact};")
-    body.append(r"\end{tikzpicture}")
-    return compile_tex("20261110-contact_modes", "\n".join(body))
-
-
 def hom_period():
     """One control period: object command, contact references, least squares, servo targets; the plant feeds back."""
     body = r"""\begin{tikzpicture}[font=\sffamily, box/.style={draw=inner, line width=1.4pt, rounded corners=7pt, fill=white,
@@ -357,17 +322,17 @@ def hom_period():
   line width=1.5pt}]
 \fontsize{13}{16}\selectfont
 \node[box] (a) at (0,0) {{\fontsize{17}{20}\selectfont\bfseries Object command}\\[6pt] how the object should move\\[4pt] $V$};
-\node[box] (b) at (6.0,0) {{\fontsize{17}{20}\selectfont\bfseries Fingertip targets}\\[6pt] per fingertip: stick, roll, slide\\[4pt] $v_{\mathrm{ref}},\ w$};
-\node[box, fill=inner, text=white] (c) at (12.0,0) {{\fontsize{17}{20}\selectfont\bfseries Least squares}\\[6pt] joint speeds that best make it happen\\[5pt] $\min_u\lVert v_{\mathrm{ref}}-(Au+b)\rVert_w^2$};
-\node[box] (d) at (18.0,0) {{\fontsize{17}{20}\selectfont\bfseries Servo targets}\\[6pt] integrate $u$, press with $F$\\[5pt] $q_{\mathrm{ref}}+J^{\top}Fn/k_p$};
+\node[box] (b) at (6.0,0) {{\fontsize{17}{20}\selectfont\bfseries References}\\[6pt] each fingertip in its GCF: spin, roll, separation, slide\\[4pt] $v_{i,\mathrm{ref}},\ w_i$};
+\node[box, fill=inner, text=white] (c) at (12.0,0) {{\fontsize{17}{20}\selectfont\bfseries Eq. (2)}\\[6pt] joint speeds that best match them\\[5pt] $\min_u\sum_i w_i\lVert v_{i,\mathrm{ref}}-v_i\rVert^2$};
+\node[box] (d) at (18.0,0) {{\fontsize{17}{20}\selectfont\bfseries Servo targets}\\[6pt] integrate $u_{\mathrm{ref}}$, press with $F$\\[5pt] $\theta_{\mathrm{ref}}+J^{\top}Fn/k_p$};
 \draw[ar, inner] (a) -- (b); \draw[ar, inner] (b) -- (c); \draw[ar, inner] (c) -- (d);
 \node[draw=grey, line width=1.1pt, rounded corners=7pt, fill=pale, minimum width=11.4cm, minimum height=1.25cm] (p) at (15.0,-3.7)
   {hand and object: joint angles, object pose, pad forces};
 \draw[ar, ink] (d.south) -- (d.south |- p.north);
 \draw[ar, ink] (c.south |- p.north) -- (c.south);
 \node[anchor=east, text=ink] at ($(c.south |- p.north)!0.5!(c.south)+(-0.2,0)$) {every 10 ms};
-\node[anchor=south, text=inner, align=center] (h) at (12.0,1.75) {\bfseries the hand enters only here:\\ $A=A(m,g)$};
-\node[anchor=south, text=ink!70, align=center] at (6.0,1.75) {tuned per hand, if at all:\\ $\phi=(F,\,w)$};
+\node[anchor=south, text=inner, align=center] (h) at (12.0,2.15) {\bfseries the hand enters only here:\\ Eq.\,(1), $v_i(u;\,m,g)$};
+\node[anchor=south, text=ink!70, align=center] at (6.0,2.15) {CEM-refined per hand, if at all:\\ $\phi=(w_i,\,F)$};
 \end{tikzpicture}"""
     return compile_tex("20261110-hom_period", body)
 
@@ -552,7 +517,6 @@ def main():
         nested(a)
     same_canvas([nested("all")] + [nested("all", loop) for loop in TASK_LOOP])
     bd_rule()
-    contact_modes()
     hom_period()
     evaluator()
     for v in HAND_COLOURS:

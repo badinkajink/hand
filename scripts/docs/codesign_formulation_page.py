@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html: the co-design problem of the
 hand-design talk built up one idea per slide (the owner's slides 21-31), then each level in turn: the outer loop (Yang et
-al.'s EA, slides 32-33), the inner loop (grasp synthesis, HOM and its tuning, slides 34-35) and the dynamics (a simulator
+al.'s EA, slides 32-33), the inner loop (grasp synthesis, HOM and its CEM refinement, slides 34-35) and the dynamics (a simulator
 built for co-design, slides 36-38). Owner, 2026-11-10: "an evolving latex formula/equation that captures the co-design
 problem (bi-level optimization), that also endures past these slides"; "make sure that we are incrementally, atomically
 building up our mathematical/conceptual formalisms. less is more".
@@ -115,7 +115,8 @@ def sec_terms():
         "searches ran on its two-coordinate symmetric family: thumb to the index-middle pair and index to middle, in "
         "mm, on a 5 mm lattice. <b>Task</b> $T$: twist, roll or press. <b>Object size</b> $d$: the sphere's or the "
         "cylinder's diameter in mm. <b>Controller</b> $\\pi$: a map from the state $x$ to the commands $u$ of the nine "
-        "joints. Here it is HOM (hand-object manipulation control) with a grasp $g$ and parameters $\\phi$.</p>"
+        "joints. Here it is HOM, the hand-object mechanism framework of Wang, Oh and Pollard (relative contact velocity "
+        "control), with a grasp $g$ and parameters $\\phi$.</p>"
         "<p><b>Dynamics</b> $f$: the motion of the hand, the object and the world over one 10 ms control period, "
         "$x_{t+1}=f(x_t,u_t;\\,m,d)$, on the bench or in simulation. A <b>rollout</b> $x_{0:H}$ is the states $x_0$ to "
         "$x_H$ of one run. <b>Score</b> $J$: the tracking score of a rollout, in $[0,1]$. It is the share of the "
@@ -205,27 +206,31 @@ def sec_inner():
     return ("<p>The inner loop runs one hand. HOM is the same law on every hand, so only the grasp and a few of HOM's "
             "parameters are chosen per hand (<a href=\"" + REFINE + "\">score-levels page</a>). The grasp matters: the "
             "foundational-pose toy proposes 16 grasps per hand, and they score differently (Figure 5)." + span
-            + " With HOM's defaults and the best of 16 grasps (level S1), no controller is trained per hand. Tuning the "
-            "grasp, the forces and the contact modes per layout (level S3) raised each task's 30 best layouts by a "
+            + " With HOM's defaults and the best of 16 grasps (level S1), no controller is trained per hand. CEM-refining "
+            "the grasp and HOM per layout (level S3) raised each task's 30 best layouts by a "
             "median of 0.05 to 0.20. It also moved the best layout on three of the four tasks.</p>"
             + series("inner")
             + fig("20261110-grasp_candidates.png", "The 16 candidate grasps of hand A, rendered after the lift on the CPU plant "
                   "at seed 0. Each shows the GPU's press score, a mean of three seeds; green marks the best. The slide version, "
                   "20261110-grasp_candidates_wide.png, orders them from best to worst.")
-            + fig("20261110-contact_modes.png", "What HOM commands at each fingertip: a motion relative to the object at "
-                  "the contact (stick, roll or slide), and a press along the normal with force F. The contact-mode weights "
-                  "w choose among them.")
+            + P.img(ROOT / "docs/experiments/20261029-hom_control_review/media/20261106-eq1_terms.png",
+                    "What HOM commands at each fingertip (HOM control-review page, Figure 1): Eq. (1) on a planar finger. "
+                    "(a) The frames; (b) the finger's twist and (c) the object's at the contact; (d) their difference in "
+                    "the finger's generalized contact frame (GCF) {L1}, x along the normal. Its components are the "
+                    "fingertip's spin about x (out of this plane), roll about y and z, separation along x and slide along "
+                    "y and z. Eq. (2) weights each by w_i; at w_i = 0 that motion is not weighted. A finger in contact "
+                    "also presses with a contact force F along x through its impedance controller.")
             + P.film(MEDIA / "20261111-abstract_twist.mp4", "HOM on the abstract hand of the drawings (owner, 2026-11-11). "
                      "It shows one CPU rollout of the twist on layout (105, 70) mm with the 40 mm sphere. The hand is drawn "
                      "from the simulation's joint positions every 40 ms, in real time. The sphere turns 72 deg of a "
                      "commanded 90 deg, with all three pads loaded throughout; tracking score 0.77. "
                      "<code>scripts/hom/hom_abstract_film.py</code>.")
-            + fig("20261110-hom_period.png", "One HOM control period. The least squares is the only step where the hand's "
-                  "geometry appears, through the Jacobian A(m, g); the forces F and the weights w are what tuning "
-                  "changes.")
-            + fig("20261110-tuning.png", "Tuning inside the inner loop, by CEM iteration. Each curve is the median over the "
-                  "30 best SCS0009 layouts per task of the best score so far. S2 tunes the grasp alone, S3 the grasp, "
-                  "forces and contact modes; S1 keeps the defaults with the best of 16 grasps. Earlier task scores: the "
+            + fig("20261110-hom_period.png", "One HOM control period. Eq. (2) is the only step where the hand's geometry "
+                  "appears, through the relative contact velocities of Eq. (1); the weights w_i and the contact forces F "
+                  "are what CEM refines.")
+            + fig("20261110-tuning.png", "CEM refinement inside the inner loop, by CEM iteration. Each curve is the median "
+                  "over the 30 best SCS0009 layouts per task of the best score so far. S2 refines the grasp alone, S3 the "
+                  "grasp and HOM; S1 keeps the defaults with the best of 16 grasps. Earlier task scores: the "
                   "twist's counts its peak yaw on three pads (tracking-score page)."))
 
 
@@ -288,8 +293,9 @@ def sec_v2():
          "best grasp is the foundational pose."),
         ("20261111-twist_grasps_track.png", "The foundational pose, the best and the worst grasp of the best twist hand, "
          "(105, 70) mm, from three sides."),
-        ("20261110-tuning_track.png", "Tuning inside the inner loop under the tracking score: the grasp alone, HOM's forces "
-         "and contact modes alone, and both, from the same start and budget, on the 30 best layouts per task."),
+        ("20261110-tuning_track.png", "CEM refinement inside the inner loop under the tracking score: the grasp alone, "
+         "HOM alone (its Eq. (2) weights and contact forces), and both, from the same start and budget, on the 30 best "
+         "layouts per task."),
         ("20261110-slide_size_trend_track.png", "The best thumb distance against object diameter from the live search under "
          "the tracking score, with Borras and Dollar's slope of 1."),
     ]
@@ -306,23 +312,36 @@ def sec_v2():
     tv = fi.get("tuning_track", {}).get("val")
     if tv:
         xy = lambda v: f"({v[0]:.0f}, {v[1]:.0f})"
-        rows = [[t.capitalize(), str(v["layouts"]), f"{v['s1']:.2f}",
-                 *(f"{v[lv]['median']:.2f}" for lv in ("grasp", "hom", "both")), f"{v['both']['gain']:+.2f}",
-                 f"{v['both']['rho']:.2f}".replace("-", "&minus;") if v["both"]["rho"] is not None else "&ndash;",
-                 f"{xy(v['best_s1'])} to {xy(v['both']['best'])}"]
+        num = lambda x, f=".2f": f"{x:{f}}".replace("-", "&minus;") if x is not None else "&ndash;"
+        name = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+        arms = ("grasp", "hom", "both", "shared")
+        med = [[name.get(t, t), num(v["s1"]), *(num(v[lv]["median"]) if lv in v else "&ndash;" for lv in arms)]
+               for t, v in tv.items()]
+        cost = [[name.get(t, t), num(v["both"]["gain"], "+.2f"),
+                 num(v["shared"]["gain"], "+.2f") if "shared" in v else "&ndash;",
+                 num(v["both"].get("rho_all")), str(v["both"].get("n_all", v["layouts"])),
+                 f"{xy(v['best_s1_all'])} to {xy(v['both'].get('best_all', v['both']['best']))}"]
                 for t, v in tv.items()]
         out.append(
-            "<p>The tuning chart ranks each arm by its best candidate on the search seeds 0-2, which favours "
-            "candidates that were lucky on those seeds. Each layout's S1 and the three arms' picks were therefore run "
+            "<p>The refinement chart ranks each arm by its best candidate on the search seeds 0-2, which favours "
+            "candidates that were lucky on those seeds. Each layout's S1 and the arms' picks were therefore run "
             "again at five other seeds, 20-24, the validation seeds (<code>hom_grasp_refine.py validate --score track"
-            "</code>, then <code>report_levels</code>). S1 is the layout's score with HOM's default forces and contact "
-            "modes and the best of its 16 grasps. A pick whose search score was below S1's counts as S1. The gain is "
-            "the median over the layouts of the tuned score minus S1, and the Spearman correlation compares the "
-            "layouts' S1 with their tuned scores.</p>"
-            + table(["Task", "Layouts", "S1", "Grasp tuned", "Forces and modes tuned", "Both tuned", "Gain of both",
-                     "Spearman, S1 and both", "Best layout, S1 to both (mm)"], rows,
+            "</code>, then <code>report_levels</code>). S1 is the layout's score with HOM's default weights and contact "
+            "forces and the best of its 16 grasps. A pick whose search score was below S1's counts as S1. The shared HOM "
+            "is one set of Eq. (2) weights and contact forces, CEM-refined on 40 layouts of the sample at once and run on every layout "
+            "with the best of its 16 grasps under that set. The sample of each task is its 30 best layouts by S1 and 30 "
+            "others drawn at random; the pin-push and the random layouts ran level both only. The gain is the median "
+            "over the 30 best of the refined score minus S1. The Spearman correlation compares the layouts' S1 with their "
+            "score after CEM-refining the grasp and HOM, over the whole sample.</p>"
+            + table(["Task", "S1", "CEM-refined grasp", "CEM-refined HOM", "CEM-refined grasp and HOM", "Shared HOM"], med,
                     "Median tracking score at the validation seeds 20-24 of the 30 best SCS0009 layouts per task, by "
-                    "tuning arm (rows <code>rows/sv25_track/val/</code> of the score-levels study).", num_from=1))
+                    "arm (rows <code>rows/sv25_track/val/</code> and <code>val_shared/</code> of the score-levels "
+                    "study).", num_from=1)
+            + table(["Task", "Gain, grasp and HOM", "Gain, shared HOM", "Spearman, S1 and refined", "Layouts",
+                     "Best layout, S1 to refined (mm)"], cost,
+                    "What CEM refinement per layout changes: the median gain over S1 on the 30 best layouts, and over the "
+                    "whole sample the rank correlation with S1 and the best layout before and after refinement.",
+                    num_from=1))
     return "".join(out)
 
 
@@ -339,8 +358,8 @@ def sec_slides():
              "eq_morph2 with slide_landscape; eq_morph3 with slide_tasks; eq_morph4 with slide_size_trend; eq_outer1 to "
              "eq_outer6 with the panels of ea_anatomy; ea_snapshots; eq_morph5 with slide_one_hand, slide_three_hands"],
             ["34", "section opener", "eq_final_inner, nested_inner"],
-            ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; contact_modes; eq_inner6 "
-                                           "with hom_period; eq_inner7; eq_inner8, eq_inner9 with tuning"],
+            ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; eq1_terms (HOM control-review page); eq_inner6 "
+                                           "with hom_period; eq_inner7; eq_inner8 with hom_period; eq_inner9 with tuning"],
             ["36", "section opener", "eq_final_dyn, nested_dyn"],
             ["36-38", "dynamics", "eq_sim1 to eq_sim4; evaluator"],
             ["36-38", "the sphere pads as the segue", "eq_pads1, eq_pads2; slide_cost_drake, slide_cost_all; contact overview "
@@ -379,8 +398,8 @@ def main():
             "HOM for the controller, and a calibrated GPU simulator for the dynamics.")
     summary = ("The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, "
                "dynamics, metric), drawn as three nested levels with tasks, object sizes and metrics as a loop outside "
-               "them, then zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM "
-               "tuning (multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX "
+               "them, then zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and its CEM "
+               "refinement (multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX "
                "formula images and 12 diagrams for the slides.")
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in

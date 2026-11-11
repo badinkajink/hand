@@ -552,8 +552,9 @@ def band_layouts(task, name, base):
 
 def shared_layouts(task, plant):
     """Level shared's layouts: the SHARED_TOP best by S1 of the plant's sample (from the study's rows, also under
-    --smoke) and SHARED_RAND of its random ones drawn with numpy seed 0, in the sample's order."""
-    lays = json.loads((OUT / "rows" / plant / f"{task}_layouts.json").read_text())["layouts"]
+    --smoke) and SHARED_RAND of its random ones drawn with numpy seed 0, in the sample's order; with --score track the
+    sample ranked by the tracking score (rows/<plant>_track/)."""
+    lays = json.loads((OUT / "rows" / rows_dir(plant).name / f"{task}_layouts.json").read_text())["layouts"]
     top = [L_ for L_ in lays if L_["group"] == "top"][:SHARED_TOP]
     rand = [L_ for L_ in lays if L_["group"] == "random"]
     keep = set(np.random.default_rng(0).choice(len(rand), size=min(SHARED_RAND, len(rand)), replace=False).tolist())
@@ -1165,8 +1166,9 @@ def report_pso(plant="sv25", level="full", tasks=("twist", "roll", "press")):
 
 
 def shared_grid(task, plant):
-    """The rows of the plant's grid rescored with level shared's pick (hom_gpu.py run --prm)."""
-    return GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}_shared" / f"{task}_d{TASKS[task]:g}.jsonl"
+    """The rows of the plant's grid rescored with level shared's pick (hom_gpu.py run --prm); with --score track the
+    rescore of the grid rerun that holds the tracking fields (grid2dff_v4b_sv25r_shared)."""
+    return GRID_ROWS / f"{grid_dir(plant).name}_shared" / f"{task}_d{TASKS[task]:g}.jsonl"
 
 
 def cmd_validate_shared(a):
@@ -1458,9 +1460,11 @@ def cmd_report(a):
 
 def cmd_report_levels(a):
     """The validated outcome of the tuning arms of 2026-11-11 (levels grasp, hom and both from S1; owner: "hom tuning
-    alone is missing here"): per task, each layout's S1 and picks at the validation seeds, the medians, the median gain
-    over S1, the Spearman correlation with S1 and the best layout. A pick whose search score fell below S1's is replaced by
-    S1 (the elitist pick, as S2e and S3e). Writes rows/<plant>[_track]/<date>-tuning_levels.json."""
+    alone is missing here") and of level shared: per task, each layout's S1 and picks at the validation seeds, and per
+    group of the sample (top: the 30 best by S1; random; all) the medians, the median gain over S1, the Spearman
+    correlation with S1 and the best layout. A pick whose search score fell below S1's is replaced by S1 (the elitist
+    pick, as S2e and S3e). Level shared: its pick with S1's grasp (S1sh) and with the best grasp of the rescored grid (Sh),
+    from val_shared/. Writes rows/<plant>[_track]/<date>-tuning_levels.json."""
     setenv(a.plant)
     out = {"plant": a.plant, "score": SCORE, "search_seeds": SEARCH_SEEDS, "val_seeds": VAL_SEEDS, "tasks": {}}
     names = (("S2", "grasp"), ("hom", "hom"), ("both", "both"))
@@ -1471,6 +1475,7 @@ def cmd_report_levels(a):
             continue
         lays = json.loads(lp.read_text())["layouts"]
         val = scores(task, read_rows(vp))
+        vsh = scores(task, read_rows(rows_dir(a.plant) / "val_shared" / f"{task}_d{TASKS[task]:g}.jsonl"))
         pk = {level: picks(task, a.plant, level) for _, level in names}
         per = []
         for L_ in lays:
@@ -1478,7 +1483,7 @@ def cmd_report_levels(a):
             v1 = val.get((c, "S1"))
             if not v1 or v1[2] < len(VAL_SEEDS):
                 continue
-            e = {"call": c, "xy": L_["xy"], "s1": L_["s1"], "s1_val": round(v1[0], 4)}
+            e = {"call": c, "xy": L_["xy"], "group": L_["group"], "s1": L_["s1"], "s1_val": round(v1[0], 4)}
             for pick, level in names:
                 v = val.get((c, pick))
                 p = pk[level].get(c)
@@ -1487,24 +1492,42 @@ def cmd_report_levels(a):
                 e[f"{level}_search"] = round(p["score"], 4)
                 e[f"{level}_val"] = round(v[0], 4)
                 e[f"{level}_elitist_val"] = round(v[0] if p["score"] >= L_["s1"] else v1[0], 4)
+            for pick, k in (("S1sh", "shared_s1grasp_val"), ("Sh", "shared_val")):
+                v = vsh.get((c, pick))
+                if v and v[2] >= len(VAL_SEEDS):
+                    e[k] = round(v[0], 4)
             per.append(e)
-        t = {"n": len(per), "layouts": per, "median_s1_val": round(float(np.median([e["s1_val"] for e in per])), 4)}
-        b1 = max(per, key=lambda e: e["s1_val"])
-        t["best_s1_val"] = {"xy": b1["xy"], "score": b1["s1_val"]}
-        for _, level in names:
-            for k in (f"{level}_val", f"{level}_elitist_val"):
-                rows = [e for e in per if k in e]
+        groups = {"top": [e for e in per if e["group"] == "top"], "random": [e for e in per if e["group"] == "random"],
+                  "all": per}
+        t = {"n": len(groups["top"]), "n_all": len(per), "layouts": per}
+        for g, rows_g in groups.items():
+            if not rows_g:
+                continue
+            b1 = max(rows_g, key=lambda e: e["s1_val"])
+            sfx = "" if g == "top" else f"_{g}"
+            t[f"median_s1_val{sfx}"] = round(float(np.median([e["s1_val"] for e in rows_g])), 4)
+            t[f"best_s1_val{sfx}"] = {"xy": b1["xy"], "score": b1["s1_val"]}
+            for k in [f"{lv}_{w}" for _, lv in names for w in ("val", "elitist_val")] + ["shared_s1grasp_val",
+                                                                                          "shared_val"]:
+                rows = [e for e in rows_g if k in e]
                 if not rows:
                     continue
-                gain = [e[k] - e["s1_val"] for e in rows]
                 b = max(rows, key=lambda e: e[k])
-                t[k] = {"n": len(rows), "median": round(float(np.median([e[k] for e in rows])), 4),
-                        "gain": stats(gain), "rho_s1_val": spearman([e["s1_val"] for e in rows], [e[k] for e in rows]),
-                        "best": {"xy": b["xy"], "score": b[k]}}
+                st = {"n": len(rows), "median": round(float(np.median([e[k] for e in rows])), 4),
+                      "gain": stats([e[k] - e["s1_val"] for e in rows]),
+                      "rho_s1_val": spearman([e["s1_val"] for e in rows], [e[k] for e in rows]),
+                      "best": {"xy": b["xy"], "score": b[k]}}
+                if g == "top":
+                    t[k] = st                                  # the 30 best: the keys of the first report (11-11)
+                else:
+                    t.setdefault(k, {})[g] = st
         out["tasks"][task] = t
-        print(f"{task}: {t['n']} layouts, S1 median {t['median_s1_val']} (seeds 20-24); " + "; ".join(
-            f"{level} median {t[k]['median']}, gain {t[k]['gain']['median']}, rho {t[k]['rho_s1_val']}, best {t[k]['best']}"
-            for _, level in names for k in [f"{level}_elitist_val"] if k in t), flush=True)
+        print(f"{task}: {t['n']} best and {t['n_all'] - t['n']} random layouts, S1 median {t['median_s1_val']} "
+              f"(seeds 20-24); " + "; ".join(
+                  f"{k} median {t[k]['median']}, gain {t[k]['gain']['median']}, rho {t[k]['rho_s1_val']}"
+                  + (f" (all {t[k]['all']['rho_s1_val']})" if "all" in t[k] else "")
+                  for k in ("grasp_elitist_val", "hom_elitist_val", "both_elitist_val", "shared_val") if k in t),
+              flush=True)
     p = rows_dir(a.plant) / f"{time.strftime('%Y%m%d')}-tuning_levels.json"
     p.write_text(json.dumps(out, indent=1))
     print("wrote", p.relative_to(ROOT))
@@ -1680,6 +1703,7 @@ def main():
     pq.add_argument("--task", required=True, choices=list(TASKS))
     pq.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pq.add_argument("--smoke", action="store_true")
+    pq.add_argument("--score", default="rollout", choices=("rollout", "track"))
     pb = sub.add_parser("probe")
     pb.add_argument("--task", required=True, choices=list(TASKS))
     pb.add_argument("--level", default="grasp", choices=("grasp", "full"))

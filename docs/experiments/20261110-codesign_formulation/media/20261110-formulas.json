@@ -207,19 +207,19 @@
   "name": "20261110-eq_inner6",
   "series": "inner",
   "slide": "34-35",
-  "what": "HOM: the joint speeds that best produce each fingertip's contact motion."
+  "what": "HOM, Eq. (2): the joint speeds whose spin, roll, separation and slide relative to the object best match their references."
  },
  {
   "name": "20261110-eq_inner7",
   "series": "inner",
   "slide": "34-35",
-  "what": "Press with force F through the servo's spring."
+  "what": "Impedance control: a finger in contact presses with its contact force F along the normal n, through the servo's spring."
  },
  {
   "name": "20261110-eq_inner8",
   "series": "inner",
   "slide": "34-35",
-  "what": "What tuning changes: the forces and the contact-mode weights."
+  "what": "What CEM refines in HOM: the weights of Eq. (2) and the contact forces, per sub-assembly role."
  },
  {
   "name": "20261110-eq_inner9",

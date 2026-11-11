@@ -368,7 +368,7 @@ def tuning(plant="sv25"):
         s1 = R.med(R.vals(J["tasks"][task]["layouts"], "s1"))
         ax.axhline(s1, color=GREY, ls=":", lw=2, label="S1: defaults, best of 16 grasps")
         row = {"s1": round(float(s1), 3)}
-        for level, c, lab in (("grasp", "#6ee7b7", "S2: tune the grasp"), ("full", INNER, "S3: tune grasp, forces, modes")):
+        for level, c, lab in (("grasp", "#6ee7b7", "S2: CEM-refined grasp"), ("full", INNER, "S3: CEM-refined grasp and HOM")):
             G = R.gens(plant, level, task)
             its = sorted({g["it"] for g in G})
             m = [R.med([g["best"] for g in G if g["it"] == k]) for k in its]
@@ -398,14 +398,16 @@ def tuning_track():
     fig, axs = plt.subplots(1, 3, figsize=(18, 5.4), sharey=True)
     out = {}
     for ax, (task, d) in zip(axs, (("twist", 40), ("roll", 40), ("press", 25))):
-        lays = json.loads((R / f"{task}_layouts.json").read_text())["layouts"]
+        lays = [L_ for L_ in json.loads((R / f"{task}_layouts.json").read_text())["layouts"] if L_["group"] == "top"]
+        top = {L_["call"] for L_ in lays}                 # the 30 best; the sample's random layouts ran level both only
         s1 = float(np.median([L_["s1"] for L_ in lays]))
         ax.axhline(s1, color=GREY, ls=":", lw=2, label="S1: defaults, best of 16 grasps")
         row = {"s1": round(s1, 4)}                       # four decimals: the slide rounds them to two
-        for level, c, lab in (("grasp", "#6ee7b7", "tune the grasp"), ("hom", "#7c3aed", "tune HOM's forces and modes"),
-                              ("both", INNER, "tune the grasp, forces and modes")):
+        for level, c, lab in (("grasp", "#6ee7b7", "CEM-refined grasp"), ("hom", "#7c3aed", "CEM-refined HOM"),
+                              ("both", INNER, "CEM-refined grasp and HOM")):
             gp = R / level / f"{task}_d{d}_gens.jsonl"
             G = [json.loads(x) for x in gp.read_text().splitlines() if x.strip()] if gp.exists() else []
+            G = [g for g in G if g["call"] in top]
             if not G:
                 continue
             its = sorted({g["it"] for g in G})
@@ -427,10 +429,16 @@ def tuning_track():
     reps = sorted(R.glob("*-tuning_levels.json"))
     if reps:            # the arms' picks at the validation seeds 20-24, elitist (hom_grasp_refine.py report_levels)
         rep = json.loads(reps[-1].read_text())["tasks"]
-        out["val"] = {t: {"layouts": r["n"], "s1": r["median_s1_val"], "best_s1": r["best_s1_val"]["xy"],
-                          **{lv: {"median": r[k]["median"], "gain": r[k]["gain"]["median"], "rho": r[k]["rho_s1_val"],
-                                  "best": r[k]["best"]["xy"]}
-                             for lv in ("grasp", "hom", "both") for k in [f"{lv}_elitist_val"] if k in r}}
+        def arm(x):     # one arm on the 30 best, with its Spearman correlation and best layout over the whole sample
+            return {"median": x["median"], "gain": x["gain"]["median"], "rho": x["rho_s1_val"], "best": x["best"]["xy"],
+                    **({"n_all": x["all"]["n"], "rho_all": x["all"]["rho_s1_val"], "best_all": x["all"]["best"]["xy"]}
+                       if "all" in x else {})}
+        out["val"] = {t: {"layouts": r["n"], "layouts_all": r.get("n_all", r["n"]), "s1": r["median_s1_val"],
+                          "best_s1": r["best_s1_val"]["xy"],
+                          "best_s1_all": r.get("best_s1_val_all", r["best_s1_val"])["xy"],
+                          **{lv: arm(r[k]) for lv in ("grasp", "hom", "both") for k in [f"{lv}_elitist_val"] if k in r},
+                          **{lv: arm(r[k]) for lv, k in (("shared", "shared_val"), ("shared_s1grasp", "shared_s1grasp_val"))
+                             if k in r and "median" in r[k]}}
                       for t, r in rep.items()}
         out["val_report"] = str(reps[-1].relative_to(ROOT))
     return out
