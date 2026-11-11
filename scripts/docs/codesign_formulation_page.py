@@ -238,6 +238,14 @@ def sec_sim():
             "location and the normal force, the quantities the model and HOM use. The crosstalk study on 11 layouts "
             "found that the layout changes how much one fingertip's magnets disturb another's reading, so sensing "
             "depends on the hand.</p>"
+            + "<p><b>The sphere-packed fingertip as the segue</b> (owner, 2026-11-10 night). HOM needs the contact patch, which "
+              "the HOM work simulated with Drake's hydroelastic contact; at Drake's 2,082 us per step on the hand, one "
+              "landscape of 30,000 rollouts would take about 34 days on one CPU core (estimated from the step costs). The "
+              "pads replace the integral of the pressure field by one spring per 1 mm sphere, and one GPU runs the same "
+              "landscape in 18 minutes. Contact overview, Figures 3, 5, 11 and 12, carry the comparison.</p>"
+            + series("pads")
+            + drawing("20261110-slide_cost_drake", "Drake alone (estimated from its step cost on the hand).", 70)
+            + drawing("20261110-slide_cost_all", "With the pads on one CPU core and on one GPU.", 70)
             + series("sim")
             + fig("20261110-evaluator.png", "The simulator as an evaluator built for co-design: fast enough for a "
                   "search, calibrated on hardware, and observable through the fingertips."))
@@ -259,7 +267,11 @@ def sec_slides():
             ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; contact_modes; eq_inner6 "
                                            "with hom_period; eq_inner7; eq_inner8, eq_inner9 with tuning"],
             ["36", "section opener", "eq_final_dyn, nested_dyn"],
-            ["36-38", "dynamics", "eq_sim1 to eq_sim4; evaluator"]]
+            ["36-38", "dynamics", "eq_sim1 to eq_sim4; evaluator"],
+            ["36-38", "the sphere pads as the segue", "eq_pads1, eq_pads2; slide_cost_drake, slide_cost_all; contact overview "
+             "Figures 3, 5, 11, 12"],
+            ["22, 32", "films", "opener_timelapse (real, 5 November), opener_eight_hands, opener_cad_sweep; film_three_hands "
+             "(three hands grasp and press, before the morphology section)"]]
     return ("<p>Every image is a PNG in <code>media/</code> named <code>20261110-&lt;name&gt;.png</code>, at 400 dpi "
             "for the LaTeX images and 160 dpi for the plots, sized for a 16:9 slide (Table 1). The slide numbers are those "
             "of the owner's deck of 2026-11-10.</p>"

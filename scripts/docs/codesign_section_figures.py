@@ -10,6 +10,8 @@ drawings. Writes docs/experiments/20261110-codesign_formulation/media/:
   20261110-slide_three_hands.png   and with the three hands that reach 0.95
   20261110-slide_size_trend.png    the best thumb-to-pair distance against object diameter, with Borras and Dollar's
                                    slope of 1 (the workspace rule) in purple
+  20261110-slide_cost_{drake,all}.png   time to simulate one landscape: Drake (estimated), the pads on a CPU core and
+                                   on one GPU
 
 Data: the 625-hand grids grid2dff_v4b_sv25 (SCS0009 plant, 2.5 MPa pads, best of 16 grasps, mean of seeds 0-2), the
 task-conflict study's validated covers (seeds 20-24, docs/experiments/20261103-hom_task_conflict/20261104-conflict_sv25.json)
@@ -84,6 +86,12 @@ def landscape():
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
     im = plane(ax, xs, ys, B, 0.85)
     star(ax, xs[i], ys[j])
+    for lab, (x, y) in (("A", (xs[i], ys[j])), ("B", (70.0, 110.0)), ("C", (125.0, 55.0))):   # the hands of the film
+        if lab != "A":
+            ax.scatter([x], [y], s=330, facecolors="white", edgecolors=INK, linewidths=1.8, zorder=5)
+            ax.text(x, y, lab, ha="center", va="center", fontsize=13, weight="bold", color=INK, zorder=6)
+        else:
+            ax.text(x + 7, y + 6, lab, ha="left", va="bottom", fontsize=15, weight="bold", color=INK, zorder=6)
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cb.set_label("press score")
     cb.outline.set_edgecolor(LINE)
@@ -173,6 +181,49 @@ def size_trend():
     return save(fig, "20261110-slide_size_trend.png"), slopes
 
 
+def cost_per_landscape():
+    """Time to simulate one landscape (625 hands x 16 grasps x 3 seeds = 30,000 rollouts): Drake estimated from its step
+    cost on the hand, the pads on one CPU core and in GPU batches as measured. Two images on one canvas: Drake alone, then
+    all three. Step costs on the hand from the contact overview's table (Drake 2,082 us, pads 106 us per 1 ms step); the
+    rollout times from the formulation page's figures.json (CPU 5.0 s; GPU median per rollout in a batch of 1536)."""
+    fi = json.loads((OUT / "20261110-figures.json").read_text())
+    gpu = float(fi.get("gpu", {}).get("s_per_rollout_median", 0.0365))
+    n = 625 * 16 * 3
+    cpu = 5.0
+    drake = cpu * 2082.0 / 106.0
+    rows = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", n * drake, "#6b7280"),
+            ("MuJoCo, 1 mm sphere pads,\none CPU core", n * cpu, "#f59e0b"),
+            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU (batches of 1536)", n * gpu, "#d97706")]
+
+    def human(sec):
+        return (f"{sec / 86400:.0f} days" if sec > 3 * 86400 else f"{sec / 3600:.0f} hours" if sec > 3 * 3600
+                else f"{sec / 60:.0f} minutes")
+    out = {}
+    for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", 3)):
+        fig, ax = plt.subplots(figsize=(13.0, 4.6))
+        for k, (lab, sec, col) in enumerate(rows):
+            y = len(rows) - 1 - k
+            vis = k < show
+            ax.barh(y, sec, color=col if vis else "none", height=0.58)
+            ax.text(sec * 1.25, y, human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
+            out[lab.split(",")[0]] = sec
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([r[0] for r in rows[::-1]], fontsize=15)
+        ax.set_xscale("log")
+        ax.set_xlim(300, 3e7)
+        ax.set_xticks([60, 3600, 86400, 30 * 86400])
+        ax.set_xticklabels(["1 minute", "1 hour", "1 day", "30 days"], fontsize=14)
+        ax.set_xlim(300, 3e7)
+        ax.set_title("One landscape: 625 hands \u00d7 16 grasps \u00d7 3 seeds = 30,000 rollouts", loc="left", fontsize=18)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color(LINE)
+        ax.grid(axis="x", color="#eef0f3")
+        save(fig, name)
+    return {k: round(v) for k, v in out.items()}
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     info = {}
@@ -180,6 +231,7 @@ def main():
     _, info["tasks"] = tasks()
     info["covers"] = covers()
     _, info["slopes"] = size_trend()
+    info["cost_per_landscape_s"] = cost_per_landscape()
     path = OUT / "20261110-figures.json"
     old = json.loads(path.read_text()) if path.exists() else {}
     old["section_figures"] = info

@@ -191,6 +191,40 @@
    "roll": 0.56,
    "pinpush": 1.2,
    "press": 1.09
+  },
+  "cost_per_landscape_s": {
+   "Drake hydroelastic": 2946226,
+   "MuJoCo": 150000,
+   "MuJoCo-Warp": 1095
+  }
+ },
+ "film_three_hands": {
+  "A": {
+   "layout": [
+    70.0,
+    150.0
+   ],
+   "grasp": 5,
+   "grid_score": 0.816,
+   "cpu_score": 0.869
+  },
+  "B": {
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "grasp": 11,
+   "grid_score": 0.802,
+   "cpu_score": 0.84
+  },
+  "C": {
+   "layout": [
+    125.0,
+    55.0
+   ],
+   "grasp": 13,
+   "grid_score": 0.293,
+   "cpu_score": 0.294
   }
  }
 }

@@ -126,6 +126,18 @@
   "what": "The fewest hands that reach a share alpha of every task's best."
  },
  {
+  "name": "20261110-eq_pads1",
+  "series": "pads",
+  "slide": "36-38",
+  "what": "Hydroelastic contact: a pressure field from the overlap depth, summed over the patch."
+ },
+ {
+  "name": "20261110-eq_pads2",
+  "series": "pads",
+  "slide": "36-38",
+  "what": "Sphere pads: the same law as a sum of springs, one per 1 mm sphere."
+ },
+ {
   "name": "20261110-eq_outer1",
   "series": "outer",
   "slide": "32-33",

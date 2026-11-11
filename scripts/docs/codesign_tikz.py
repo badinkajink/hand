@@ -150,6 +150,13 @@ THESIS = [  # (what, LaTeX); the rule under test on slides 24-25, and the questi
      + C(r"\max_{\pi}\ J_T(x_{0:H})\ \ \mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)", "executed in-hand manipulation")),
 ]
 
+PADS = [  # (what, LaTeX); owner, 2026-11-10 night: the sphere-packed contact model as the segue of the dynamics section
+    ("Hydroelastic contact: a pressure field from the overlap depth, summed over the patch.",
+     r"F=\int_{A}p\;\mathrm{d}A,\qquad p=E\,\frac{\delta}{R}"),
+    ("Sphere pads: the same law as a sum of springs, one per 1 mm sphere.",
+     r"F\approx" + C(r"\sum_i k_i\,\delta_i", "one spring per 1 mm sphere") + r",\qquad k_i=\frac{E\,a_i}{h_i}"),
+]
+
 MORPH = [  # (what, LaTeX); owner, 2026-11-10 evening: the morphology section with the co-design build's incrementalism.
     # The search's hands are symmetric tripods: two distances on the 5 mm lattice of the stored grids (25 x 25 = 625)
     ("A hand of the search: two distances on a 5 mm lattice, 625 hands.",
@@ -243,6 +250,7 @@ def formulas():
     for k, (what, tex) in enumerate(THESIS, 1):  # on two different slides: each its own canvas
         eq_img(f"20261110-eq_thesis{k}", tex, "thesis", what, "24-25")
     same_canvas([eq_img(f"20261110-eq_morph{k}", tex, "morph", what, "32") for k, (what, tex) in enumerate(MORPH, 1)])
+    same_canvas([eq_img(f"20261110-eq_pads{k}", tex, "pads", what, "36-38") for k, (what, tex) in enumerate(PADS, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
                  for k in range(1, len(OUTER) + 1)])
     same_canvas([eq_img(f"20261110-eq_inner{k}", tex, "inner", what, "34-35", strut=False)

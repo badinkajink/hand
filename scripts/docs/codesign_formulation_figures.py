@@ -154,6 +154,25 @@ def layout_space():
     return info
 
 
+def film_three_hands(picks=((70.0, 150.0), (70.0, 110.0), (125.0, 55.0))):
+    """Three hands of the press landscape grasp the 25 mm cylinder and press it (owner, 2026-11-10 night: "the reader
+    still needs some videos of grasping before hand"): the CPU plant at seed 0, each hand from its best grasp of 16,
+    side by side under a label bar with the hand and its GPU score. Writes 20261110-film_three_hands.mp4 (and .jpg)."""
+    import hom_films as HF
+    L, xs, ys, M, _ = grid()
+    clips, info = [], {}
+    for lab, xy in zip("ABC", picks):
+        call = HF.call_at(TASK, SIZE, *xy)
+        g = HF.best_grasp(TASK, SIZE, call)
+        sc = cell(xs, ys, M, *xy)
+        fr, res = HF.clip(TASK, "grid2dff_size", SIZE, call, g, f"{lab}: ({xy[0]:.0f}, {xy[1]:.0f}) mm, score {sc:.2f}",
+                          seed=0, render=True)
+        clips.append(fr)
+        info[lab] = dict(layout=list(xy), grasp=int(g), grid_score=round(sc, 3), cpu_score=round(float(HF.score(TASK, res)), 3))
+    HF.compose(clips, OUT / "20261110-film_three_hands.mp4")
+    return info
+
+
 # ------------------------------------------------------------------------------------------------ the EA
 def ea_anatomy(seed=7, gen=1):
     """One generation of the EA (population 16): the population, its ranking, the parents' mutations, the next one."""
@@ -346,6 +365,16 @@ def gpu_rate():
                 batch_s_median=round(float(np.median([r["build_s"] + r["run_s"] + r["score_s"] for r in rows])), 1))
 
 
+def main_film():
+    """Only the three-hands film (python ... film): the rest of the figures are unchanged."""
+    path = OUT / "20261110-figures.json"
+    info = json.loads(path.read_text()) if path.exists() else {}
+    info["film_three_hands"] = film_three_hands()
+    path.write_text(json.dumps(info, indent=1, default=float))
+    print(json.dumps(info["film_three_hands"]), flush=True)
+    return 0
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     only = sys.argv[1:]
@@ -364,4 +393,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_film() if sys.argv[1:] == ["film"] else main())
