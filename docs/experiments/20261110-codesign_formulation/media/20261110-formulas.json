@@ -45,16 +45,10 @@
   "name": "20261110-eq_cd08",
   "series": "codesign",
   "slide": "31",
-  "what": "The score is computed in a simulator, calibrated on hardware."
+  "what": "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world."
  },
  {
   "name": "20261110-eq_cd09",
-  "series": "codesign",
-  "slide": "32",
-  "what": "The controller is HOM, held fixed: only a grasp and a few parameters remain."
- },
- {
-  "name": "20261110-eq_cd10",
   "series": "codesign",
   "slide": "32",
   "what": "Each brace is one section of the talk."
@@ -63,19 +57,19 @@
   "name": "20261110-eq_final_outer",
   "series": "zoom",
   "slide": "",
-  "what": "Zoom 1: choose the hand."
+  "what": "Zoom 1: morphology optimization."
  },
  {
   "name": "20261110-eq_final_inner",
   "series": "zoom",
   "slide": "",
-  "what": "Zoom 2: run the hand."
+  "what": "Zoom 2: multi-hand control."
  },
  {
-  "name": "20261110-eq_final_sim",
+  "name": "20261110-eq_final_dyn",
   "series": "zoom",
   "slide": "",
-  "what": "Zoom 3: score the hand."
+  "what": "Zoom 3: dynamics."
  },
  {
   "name": "20261110-eq_metric1",
@@ -93,7 +87,7 @@
   "name": "20261110-eq_outer1",
   "series": "outer",
   "slide": "32-33",
-  "what": "A hand's fitness: its best grasp's score, averaged over three seeds."
+  "what": "A hand's fitness: its best controller's score, averaged over three seeds."
  },
  {
   "name": "20261110-eq_outer2",
@@ -129,46 +123,52 @@
   "name": "20261110-eq_inner1",
   "series": "inner",
   "slide": "34-35",
-  "what": "For one hand, the inner loop maximizes over the controller's free choices."
+  "what": "For one hand, the inner loop searches over controllers."
  },
  {
   "name": "20261110-eq_inner2",
   "series": "inner",
   "slide": "34-35",
-  "what": "Two choices: a grasp, then HOM's parameters."
+  "what": "The controller is HOM, held fixed: only a grasp and a few parameters remain."
  },
  {
   "name": "20261110-eq_inner3",
   "series": "inner",
   "slide": "34-35",
-  "what": "The foundational pose: the grasp farthest from every constraint."
+  "what": "Two choices: a grasp, then HOM's parameters."
  },
  {
   "name": "20261110-eq_inner4",
   "series": "inner",
   "slide": "34-35",
-  "what": "Sixteen candidate grasps per hand."
+  "what": "The foundational pose: the grasp farthest from every constraint."
  },
  {
   "name": "20261110-eq_inner5",
   "series": "inner",
   "slide": "34-35",
-  "what": "HOM: the joint speeds that best produce each fingertip's contact motion."
+  "what": "Sixteen candidate grasps per hand."
  },
  {
   "name": "20261110-eq_inner6",
   "series": "inner",
   "slide": "34-35",
-  "what": "Press with force F through the servo's spring."
+  "what": "HOM: the joint speeds that best produce each fingertip's contact motion."
  },
  {
   "name": "20261110-eq_inner7",
   "series": "inner",
   "slide": "34-35",
-  "what": "What tuning changes: the forces and the contact-mode weights."
+  "what": "Press with force F through the servo's spring."
  },
  {
   "name": "20261110-eq_inner8",
+  "series": "inner",
+  "slide": "34-35",
+  "what": "What tuning changes: the forces and the contact-mode weights."
+ },
+ {
+  "name": "20261110-eq_inner9",
   "series": "inner",
   "slide": "34-35",
   "what": "The cross-entropy method: sample, keep the elite, refit."
@@ -177,16 +177,22 @@
   "name": "20261110-eq_sim1",
   "series": "sim",
   "slide": "36-38",
-  "what": "Simulation stands in for the hardware."
+  "what": "A simulator stands in for the real dynamics, so that the simulated score predicts the real one."
  },
  {
   "name": "20261110-eq_sim2",
   "series": "sim",
   "slide": "36-38",
-  "what": "Rollouts per EA generation: one GPU batch."
+  "what": "The simulator's contact c, servo p and sensing s are calibrated on hardware."
  },
  {
   "name": "20261110-eq_sim3",
+  "series": "sim",
+  "slide": "36-38",
+  "what": "Rollouts per EA generation: one GPU batch."
+ },
+ {
+  "name": "20261110-eq_sim4",
   "series": "sim",
   "slide": "36-38",
   "what": "Sensing depends on the hand."

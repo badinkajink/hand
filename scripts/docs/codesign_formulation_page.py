@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds docs/experiments/20261110-codesign_formulation/20261110-sr2_codesign_formulation.html: the co-design problem of the
 hand-design talk built up one idea per slide (the owner's slides 21-31), then each level in turn: the outer loop (Yang et
-al.'s EA, slides 32-33), the inner loop (grasp synthesis, HOM and its tuning, slides 34-35) and the evaluator (simulation
+al.'s EA, slides 32-33), the inner loop (grasp synthesis, HOM and its tuning, slides 34-35) and the dynamics (a simulator
 built for co-design, slides 36-38). Owner, 2026-11-10: "an evolving latex formula/equation that captures the co-design
 problem (bi-level optimization), that also endures past these slides"; "make sure that we are incrementally, atomically
 building up our mathematical/conceptual formalisms. less is more".
@@ -33,6 +33,7 @@ FPR = "../20261029-foundational_pose_review/"
 SEARCH, TRACK, DESIGN = (FPR + "20261109-hom_search_methods.html", FPR + "20261109-hom_tracking_score.html",
                          FPR + "20261029-foundational_pose_hand_design.html")
 REFINE = "../20261103-hom_score_refine/20261103-hom_score_refine.html"
+CONFLICT = "../20261103-hom_task_conflict/20261104-hom_task_conflict.html"
 table, esc = P.table, P.esc
 
 
@@ -57,11 +58,11 @@ def series(name, extra=None):
     return "".join(out)
 
 
-def drawing(name, text):
+def drawing(name, text, width=55):
     """A drawing shown beside a step of the build, unnumbered like the formula images."""
     uri = P.data_uri(MEDIA / f"{name}.png", "image/png")
     return (f'<p>{text} <span class="small">(<code>media/{name}.png</code>)</span></p><p style="text-align:center">'
-            f'<img src="{uri}" alt="{esc(text)}" style="max-width:55%"></p>')
+            f'<img src="{uri}" alt="{esc(text)}" style="max-width:{width}%"></p>')
 
 
 def hand_drawings():
@@ -86,10 +87,13 @@ def sec_terms():
         "mm, on a 5 mm lattice. <b>Task</b> $T$: twist, roll or press. <b>Object size</b> $d$: the sphere's or the "
         "cylinder's diameter in mm. <b>Controller</b> $\\pi$: a map from the state $x$ to the commands $u$ of the nine "
         "joints. Here it is HOM (hand-object manipulation control) with a grasp $g$ and parameters $\\phi$.</p>"
-        "<p><b>Score</b> $J$: the tracking score of a rollout, in $[0,1]$. It is the share of the commanded rotation "
-        f"the object followed, times the share of the task with all three pads loaded (<a href=\"{TRACK}\">tracking-score "
-        "page</a>). <b>Simulator</b>: $c$ is the contact model (1 mm sphere pads at 2.5 MPa), $p$ the servo model "
-        "(0.72 N m/rad), $s$ the sensing model of the magnetic fingertips.</p>"
+        "<p><b>Dynamics</b> $f$: the motion of the hand, the object and the world over one 10 ms control period, "
+        "$x_{t+1}=f(x_t,u_t;\\,m,d)$, on the bench or in simulation. A <b>rollout</b> $x_{0:H}$ is the states $x_0$ to "
+        "$x_H$ of one run. <b>Score</b> $J$: the tracking score of a rollout, in $[0,1]$. It is the share of the "
+        "commanded rotation the object followed, times the share of the task with all three pads loaded (<a href=\""
+        f"{TRACK}\">tracking-score page</a>). <b>Simulator</b> $f^{{\\mathrm{{sim}}}}$: the dynamics modeled with the "
+        "contact model $c$ (1 mm sphere pads at 2.5 MPa), the servo model $p$ (0.72 N m/rad) and the sensing model $s$ of "
+        "the magnetic fingertips; $f^{\\mathrm{real}}$ is the hand on the bench.</p>"
         "<p>Every formula image adds one idea and carries only the formula and the brace that names the new term. "
         "The images of a series share one canvas and one baseline, so pasted at the same place on successive slides "
         "the formula grows in place.</p>")
@@ -101,9 +105,18 @@ def sec_build():
             "one of them.</p>" + series("codesign", hand_drawings())
             + "<p><b>The metric, after step 7.</b></p>" + series("metric")
             + "<p><b>The section openers.</b> The final form with one level in colour.</p>" + series("zoom")
-            + fig("20261110-nested_all.png", "The nested problem drawn as nested boxes: the search over hands holds "
-                  "the choice of grasp and parameters, which holds the simulation. Versions with one level highlighted "
-                  "(nested_outer, nested_inner, nested_sim) open each section."))
+            + fig("20261110-nested_all.png", "The nested problem as nested boxes: morphology optimization, multi-hand "
+                  "control and the dynamics, each with its method and its formula. The controller appears as nine joint "
+                  "commands; the grasp and HOM's parameters first appear with HOM in Section 4. Versions with one level "
+                  "highlighted (nested_outer, nested_inner, nested_dyn) open each section.")
+            + "<p><b>Tasks and object sizes as the outermost loop.</b> On the canvas of the figure above, a line in black "
+              "adds the tasks and the object sizes as a loop outside the three levels. Over a small, finite set the loop "
+              "ends with a few hands: on the SCS0009, one layout reached at most 0.84 of each of four HOM tasks' best, "
+              f"and three layouts reached 0.9 (<a href=\"{CONFLICT}\">task-conflict page</a>). Tasks and object sizes "
+              "drawn from the distribution $\\mathcal{D}$ are infinitely many.</p>"
+            + drawing("20261110-nested_loop_finite", "<b>First.</b> The three tasks at four object sizes each.", 70)
+            + drawing("20261110-nested_loop_infinite", "<b>Then.</b> Tasks and object sizes drawn from "
+                      "$\\mathcal{D}$.", 70))
 
 
 def sec_outer():
@@ -166,8 +179,10 @@ def sec_sim():
     rate = (f"A batch of {g.get('worlds_per_batch')} press rollouts took a median {g.get('batch_s_median')} s on the "
             f"{g.get('gpu', 'GPU')}, {1000 * g.get('s_per_rollout_median', 0):.1f} ms per rollout. One rollout on the CPU "
             "took 5.0 s. " if g else "")
-    return ("<p>The outer loop asks the simulator for thousands of rollouts, so each sim-to-real component was chosen "
-            "to keep the score fast, calibrated and observable (Figure 9). " + rate + "Fast: the fingertip is 1 mm "
+    return ("<p>The innermost level is the dynamics. A simulator stands in for the real dynamics, so that a hand's score "
+            "is predicted before the hand is set on the bench. The outer loop asks the simulator for thousands of "
+            "rollouts, so each sim-to-real component was chosen to keep the score fast, calibrated and observable "
+            "(Figure 9). " + rate + "Fast: the fingertip is 1 mm "
             "sphere pads, which run in batches on the GPU and agree across MuJoCo, MuJoCo-Warp, Newton and Drake. "
             "Calibrated: the pad modulus, 2.47 MPa, was fitted to presses of three printed tips on the UR5, and the "
             "servo stiffness was identified on the hand. Observable: the magnetic fingertips measure the contact "
@@ -180,16 +195,17 @@ def sec_sim():
 
 
 def sec_slides():
-    rows = [["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd10"],
+    rows = [["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd09"],
             ["28", "the hand beside steps 3 and 4: its mounts, then its joints", "hand_mounts, hand_joints"],
             ["30", "the metric", "eq_metric1, eq_metric2"],
-            ["32", "the levels named; section opener", "eq_cd10, nested_all; eq_final_outer and nested_outer"],
+            ["32", "the levels named; tasks and object sizes as the outermost loop; section opener",
+             "eq_cd09, nested_all, nested_loop_finite, nested_loop_infinite; eq_final_outer and nested_outer"],
             ["32-33", "morphology optimization", "layout_space; eq_outer1 to eq_outer6; ea_anatomy; ea_snapshots"],
             ["34", "section opener", "eq_final_inner, nested_inner"],
-            ["34-35", "multi-hand control", "eq_inner1 to eq_inner4; grasp_candidates_wide; contact_modes; eq_inner5 "
-                                           "with hom_period; eq_inner6; eq_inner7, eq_inner8 with tuning"],
-            ["36", "section opener", "eq_final_sim, nested_sim"],
-            ["36-38", "sim-to-real", "eq_sim1 to eq_sim3; evaluator"]]
+            ["34-35", "multi-hand control", "eq_inner1 to eq_inner5; grasp_candidates_wide; contact_modes; eq_inner6 "
+                                           "with hom_period; eq_inner7; eq_inner8, eq_inner9 with tuning"],
+            ["36", "section opener", "eq_final_dyn, nested_dyn"],
+            ["36-38", "dynamics", "eq_sim1 to eq_sim4; evaluator"]]
     return ("<p>Every image is a PNG in <code>media/</code> named <code>20261110-&lt;name&gt;.png</code>, at 400 dpi "
             "for the LaTeX images and 160 dpi for the plots, sized for a 16:9 slide (Table 1). The slide numbers are those "
             "of the owner's deck of 2026-11-10.</p>"
@@ -210,18 +226,20 @@ def main():
                 ("build", "The co-design problem, built up over slides 21 to 32", sec_build()),
                 ("outer", "Morphology optimization: the outer loop", sec_outer()),
                 ("inner", "Multi-hand control: the inner loop", sec_inner()),
-                ("sim", "Sim-to-real: an evaluator built for co-design", sec_sim()),
+                ("sim", "Dynamics: a simulator built for co-design", sec_sim()),
                 ("slides", "Images for the slides", sec_slides()),
                 ("files", "Files", sec_files())]
-    lede = ("The SR2 part of the hand-design talk follows one nested problem. The hand is chosen in an outer loop, "
-            "the grasp and HOM's parameters in an inner loop, and every candidate is scored in simulation. The "
-            "problem is built up over slides 21 to 32, one term per slide, and kept on screen afterwards. Each later "
+    lede = ("The SR2 part of the hand-design talk follows one nested problem. The hand is chosen in an outer loop and "
+            "its controller in an inner loop, subject to the dynamics of hand, object and world, real or simulated. The "
+            "problem is built up over slides 21 to 32, one term per slide, and kept on screen afterwards. Tasks and "
+            "object sizes then form a loop outside the three levels, and there are infinitely many of them. Each later "
             "section zooms into one level: the evolutionary algorithm of Yang et al. for the hand, grasp synthesis and "
-            "HOM for the controller, and a calibrated GPU simulator for the score.")
+            "HOM for the controller, and a calibrated GPU simulator for the dynamics.")
     summary = ("The talk's co-design problem built up one term per slide (hand, controller, spaces, object size, tasks, "
-               "metric, simulation, HOM), then zoomed level by level: Yang et al.'s EA (outer), grasp synthesis, HOM and "
-               "CEM tuning (inner), and a fast, calibrated, observable simulator (evaluator); 32 atomic LaTeX images and "
-               "diagrams for the slides.")
+               "metric, dynamics), drawn as three nested levels with tasks and object sizes as a loop outside them, then "
+               "zoomed level by level: Yang et al.'s EA (morphology optimization), grasp synthesis, HOM and CEM tuning "
+               "(multi-hand control), and a fast, calibrated, observable simulator (dynamics); 33 atomic LaTeX formula "
+               "images and 11 diagrams for the slides.")
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in
                      enumerate(sections, 1))

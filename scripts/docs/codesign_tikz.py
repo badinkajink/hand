@@ -4,10 +4,11 @@ diagrams"; "an evolving latex formula/equation that captures the co-design probl
 than cyclical"; HOM "even simpler/clearer"). Each figure is a standalone LaTeX file compiled with pdflatex and rasterized
 by pdftoppm at 400 dpi into docs/experiments/20261110-codesign_formulation/media/:
 
-  20261110-eq_step{1..8}.png       the co-design problem, one term more per slide; one canvas and one baseline for all
-  20261110-eq_final_{outer,inner,sim}.png   the final form with one level in colour
-  20261110-eq_outer.png, eq_inner_{split,grasp,hom,servo,tune}.png, eq_sim_{budget,sensing}.png   the levels' formulas
-  20261110-nested_{all,outer,inner,sim}.png the nested problem as nested boxes, whole and with one level highlighted
+  20261110-eq_cd{01..09}.png       the co-design problem, one term more per slide; one canvas and one baseline for all
+  20261110-eq_final_{outer,inner,dyn}.png   the final form with one level in colour
+  20261110-eq_{metric,outer,inner,sim}{k}.png   the metric's and the levels' formulas, one series each
+  20261110-nested_{all,outer,inner,dyn}.png the nested problem as nested boxes, whole and with one level highlighted
+  20261110-nested_loop_{finite,infinite}.png   the boxes with the tasks and object sizes above them as the outermost loop
   20261110-contact_modes.png        what HOM commands at each fingertip: stick, roll, slide, press
   20261110-hom_period.png           one HOM control period
   20261110-hand_{mounts,joints}.png the hand with its 6 mount coordinates or its 9 joints coloured (steps 3 and 4)
@@ -22,7 +23,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "docs/experiments/20261110-codesign_formulation/media"
@@ -60,11 +61,20 @@ def compile_tex(name, body, border="14pt"):
     return OUT / f"{name}.png"
 
 
-def same_canvas(paths):
-    """Pad the PNGs to one canvas, centred, so a slide sequence keeps its size and position."""
+def same_canvas(paths, size=None):
+    """Pad the PNGs to one canvas, centred, so a slide sequence keeps its size and position. With size, the canvas is
+    that many pixels, so a series keeps the canvas of images already pasted into slides; a wider image loses white
+    margin only."""
     ims = [Image.open(p).convert("RGB") for p in paths]
-    w, h = max(i.width for i in ims), max(i.height for i in ims)
+    w, h = size or (max(i.width for i in ims), max(i.height for i in ims))
     for p, im in zip(paths, ims):
+        if im.width > w or im.height > h:
+            l, t = max(0, (im.width - w) // 2), max(0, (im.height - h) // 2)
+            box = (l, t, l + min(w, im.width), t + min(h, im.height))
+            ink = ImageOps.invert(im.convert("L")).getbbox()
+            if ink[0] < box[0] or ink[1] < box[1] or ink[2] > box[2] or ink[3] > box[3]:
+                raise RuntimeError(f"{p}: the formula is wider or taller than the canvas {w} x {h}")
+            im = im.crop(box)
         c = Image.new("RGB", (w, h), "white")
         c.paste(im, ((w - im.width) // 2, (h - im.height) // 2))
         c.save(p)
@@ -90,8 +100,11 @@ def C(body, label):
     return r"{" + N + r"\underbrace{" + body + r"}_{\clab{" + label + r"}}}"
 
 
+CD_CANVAS = (3556, 564)  # px, the canvas of the build's images since 11-10 noon: steps already pasted keep their scale
 CD = [  # (slide, what, LaTeX); owner, 2026-11-10 afternoon: after the bi-level step the 6 mount coordinates, then the 9
-    # joint commands, and only then the object sizes and the tasks
+    # joint commands, and only then the object sizes and the tasks. Evening: the score is subject to the dynamics, real or
+    # simulated (the simulator's c, p and s move to the dynamics section), and the grasp g and HOM's parameters phi
+    # first appear with HOM (series "inner")
     ("21", "The best hand for a task maximizes the task's score.",
      r"m^\star_T=\arg\max_{m}\ \underbrace{J_T(m)}_{\clab{score of hand $m$ on task $T$}}"),
     ("23", "A hand is scored through its best controller: a bi-level problem.",
@@ -108,25 +121,24 @@ CD = [  # (slide, what, LaTeX); owner, 2026-11-10 afternoon: after the bi-level 
      r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ " + C(r"\mathbb{E}_{T,d}", "tasks and sizes") + r"\Big[\max_{\pi}\ J_{" + N + r"T}(m,\pi;d)\Big]"),
     ("30", "The score itself is a choice.",
      r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J_T(m,\pi;d)", "a choice of metric") + r"\Big]"),
-    ("31", "The score is computed in a simulator, calibrated on hardware.",
-     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ " + C(r"J^{\,\mathrm{sim}}_T(m,\pi;d\mid c,p,s)", "computed in simulation") + r"\Big]"),
-    ("32", "The controller is HOM, held fixed: only a grasp and a few parameters remain.",
-     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[" + C(r"\max_{g,\,\phi}", "grasp, HOM parameters") + r"\ J^{\,\mathrm{sim}}_T(m,{" + N
-     + r"g,\phi};d\mid c,p,s)\Big]"),
+    ("31", "The score is computed on a rollout, and the rollout obeys the dynamics of hand, object and world.",
+     r"m^\star=\arg\max_{m\in\mathbb{R}^{6}}\ \mathbb{E}_{T,d}\Big[\max_{\pi}\ J_T({" + N + r"x_{0:H}})\ \ "
+     + C(r"\mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)", "dynamics, real or simulated") + r"\Big]"),
 ]
+LEVEL_COLOUR = {"outer": "outer", "inner": "inner", "dyn": "sim"}
 
 
 def final(active=None):
-    """The final form; active in (None, 'outer', 'inner', 'sim'): None colours all three braces."""
-    col = {k: (k if active in (None, k) else "grey") for k in ("outer", "inner", "sim")}
+    """The final form; active in (None, 'outer', 'inner', 'dyn'): None colours all three braces."""
+    col = {k: (c if active in (None, k) else "grey") for k, c in LEVEL_COLOUR.items()}
     return (r"m^\star={\color{" + col["outer"] + r"}\underbrace{\arg\max_{m\in\mathbb{R}^{6}}}_{\clab{morphology "
             r"optimization}}}\qquad\mathbb{E}_{T,d}\Big[\;{\color{" + col["inner"]
-            + r"}\underbrace{\max_{g,\,\phi}}_{\clab{multi-hand control}}}\ \ {\color{" + col["sim"]
-            + r"}\underbrace{J^{\,\mathrm{sim}}_T(m,g,\phi;d\mid c,p,s)}_{\clab{sim-to-real}}}\Big]")
+            + r"}\underbrace{\max_{\pi}}_{\clab{multi-hand control}}}\ \ J_T(x_{0:H})\ \ {\color{" + col["dyn"]
+            + r"}\underbrace{\mathrm{s.t.}\ \ x_{t+1}=f(x_t,u_t;\,m,d)}_{\clab{dynamics}}}\Big]")
 
 
 OUTER = [  # (column label, line); the series shows lines 1..k, line k in colour, the rest held as phantoms
-    ("fitness", r"F(m)=\frac{1}{3}\sum_{s=1}^{3}\ \max_{g}\ J(m,g;\,s)", "A hand's fitness: its best grasp's score, averaged over three seeds."),
+    ("fitness", r"F(m)=\frac{1}{3}\sum_{s=1}^{3}\ \max_{\pi}\ J(m,\pi;\,s)", "A hand's fitness: its best controller's score, averaged over three seeds."),
     ("population", r"P_t=\{m_1,\dots,m_N\}", "A generation is a population of N hands."),
     ("keep", r"E_t=\operatorname{top}_{N/2}(P_t)", "Keep the best half."),
     ("parents", r"A_t=\operatorname{top}_{N/8}(P_t)", "The best eighth are the parents."),
@@ -135,13 +147,15 @@ OUTER = [  # (column label, line); the series shows lines 1..k, line k in colour
     ("next", r"P_{t+1}=E_t\cup\{m'_1,\dots,m'_{N/2}\}", "The kept half and the children form the next generation."),
 ]
 
-INNER = [  # (what, LaTeX)
-    ("For one hand, the inner loop maximizes over the controller's free choices.",
-     r"J^\star(m)=\max_{g,\,\phi}\ J(m,g,\phi)"),
+INNER = [  # (what, LaTeX); owner, 2026-11-10 evening: the grasp g and HOM's parameters phi first appear here, with HOM
+    ("For one hand, the inner loop searches over controllers.",
+     r"J^\star(m)=\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}\ J(m,\pi)"),
+    ("The controller is HOM, held fixed: only a grasp and a few parameters remain.",
+     r"J^\star(m)={\color{inner}\underbrace{\max_{g,\,\phi}}_{\clab{grasp, HOM parameters}}}\ \ J(m,g,\phi)"),
     ("Two choices: a grasp, then HOM's parameters.",
      r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\ \ {\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
     ("The foundational pose: the grasp farthest from every constraint.",
-     r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\text{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
+     r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\mathrm{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
     ("Sixteen candidate grasps per hand.",
      r"\mathcal{G}(m)=\{g_0,\,g_1,\,\dots,\,g_{15}\}"),
     ("HOM: the joint speeds that best produce each fingertip's contact motion.",
@@ -154,11 +168,15 @@ INNER = [  # (what, LaTeX)
      r"\phi^{(k)}\sim\mathcal{N}(\mu,\Sigma),\qquad(\mu,\Sigma)\leftarrow\operatorname{fit}\big(\text{elite}\big)"),
 ]
 
-SIM = [
-    ("Simulation stands in for the hardware.", r"J^{\,\mathrm{real}}\ \approx\ J^{\,\mathrm{sim}}(\,\cdot\mid c,\,p,\,s)"),
+SIM = [  # owner, 2026-11-10 evening: model the dynamics as closely as possible, at the highest throughput, so that a hand's
+    # quality is predicted before it is built
+    ("A simulator stands in for the real dynamics, so that the simulated score predicts the real one.",
+     r"f^{\,\mathrm{sim}}\approx f^{\,\mathrm{real}}\quad\Longrightarrow\quad J^{\,\mathrm{sim}}\approx J^{\,\mathrm{real}}"),
+    ("The simulator's contact c, servo p and sensing s are calibrated on hardware.",
+     r"f^{\,\mathrm{sim}}(x_t,u_t;\,m\mid{\color{sim}c,\,p,\,s})"),
     ("Rollouts per EA generation: one GPU batch.",
      r"\underbrace{32}_{\lab{new hands}}\times\underbrace{16}_{\lab{grasps}}\times\underbrace{3}_{\lab{seeds}}=1536"),
-    ("Sensing depends on the hand.", r"J^{\,\mathrm{sim}}(\,\cdot\mid c,\,p,\,{\color{sim}s(m)})"),
+    ("Sensing depends on the hand.", r"f^{\,\mathrm{sim}}(x_t,u_t;\,m\mid c,\,p,\,{\color{sim}s(m)})"),
 ]
 
 METRIC = [
@@ -188,9 +206,10 @@ def formulas():
         old.unlink()
     cd = [eq_img(f"20261110-eq_cd{k:02d}", tex, "codesign", what, sl) for k, (sl, what, tex) in enumerate(CD, 1)]
     cd.append(eq_img(f"20261110-eq_cd{len(CD) + 1:02d}", final(), "codesign", "Each brace is one section of the talk.", "32"))
-    for a, what in (("outer", "Zoom 1: choose the hand."), ("inner", "Zoom 2: run the hand."), ("sim", "Zoom 3: score the hand.")):
+    for a, what in (("outer", "Zoom 1: morphology optimization."), ("inner", "Zoom 2: multi-hand control."),
+                    ("dyn", "Zoom 3: dynamics.")):
         cd.append(eq_img(f"20261110-eq_final_{a}", final(a), "zoom", what))
-    same_canvas(cd)
+    same_canvas(cd, CD_CANVAS)
     same_canvas([eq_img(f"20261110-eq_metric{k}", tex, "metric", what, "30", strut=False)
                  for k, (what, tex) in enumerate(METRIC, 1)])
     same_canvas([eq_img(f"20261110-eq_outer{k}", outer_line(k), "outer", OUTER[k - 1][2], "32-33", strut=False, size=19)
@@ -203,34 +222,50 @@ def formulas():
 
 
 # ------------------------------------------------------------------------------------------------ the nested problem
-def nested(active):
-    """Three nested boxes: the hand search around the controller choice around the simulator."""
-    on = {k: active in ("all", k) for k in ("outer", "inner", "sim")}
-    def st(k):
-        return (f"fill={k}l, draw={k}, line width=1.6pt" if on[k] else "fill=pale, draw=grey!70, line width=1pt")
-    def tc(k):
-        return k if on[k] else "grey"
-    body = r"""\begin{tikzpicture}[font=\sffamily, every node/.style={inner sep=0pt}]
-\fontsize{13}{16}\selectfont
-\draw[rounded corners=10pt, %(so)s] (0,0) rectangle (17,9.2);
-\node[anchor=north west, text=%(to)s] at (0.45,8.75) {\fontsize{17}{20}\selectfont\bfseries Morphology optimization};
-\node[anchor=north west, text=%(to)s] at (0.45,8.05) {outer loop: choose the hand};
-\node[anchor=north east, text=%(to)s] at (16.55,8.85) {\fontsize{20}{24}\selectfont$\displaystyle\arg\max_{m\in\mathbb{R}^6}$};
-\node[anchor=north east, text=%(to)s, align=right] at (16.55,7.65) {Yang et al.'s evolutionary algorithm};
-\draw[rounded corners=9pt, %(si)s] (0.9,0.75) rectangle (16.1,7.05);
-\node[anchor=north west, text=%(ti)s] at (1.35,6.6) {\fontsize{17}{20}\selectfont\bfseries Multi-hand control};
-\node[anchor=north west, text=%(ti)s] at (1.35,5.9) {inner loop: run this hand};
-\node[anchor=north east, text=%(ti)s] at (15.65,6.75) {\fontsize{20}{24}\selectfont$\displaystyle\max_{g,\ \phi}$};
-\node[anchor=north east, text=%(ti)s, align=right] at (15.65,5.65) {grasp $g$ and HOM parameters $\phi$};
-\draw[rounded corners=8pt, %(ss)s] (1.8,1.45) rectangle (15.2,4.75);
-\node[anchor=north west, text=%(ts)s] at (2.25,4.35) {\fontsize{17}{20}\selectfont\bfseries Simulation};
-\node[anchor=north west, text=%(ts)s] at (2.25,3.65) {score one rollout};
-\node[anchor=north east, text=%(ts)s] at (14.75,4.45) {\fontsize{20}{24}\selectfont$\displaystyle J^{\,\mathrm{sim}}_T(m,g,\phi;\,d\mid c,p,s)$};
-\node[anchor=north west, text=%(ts)s] at (2.25,2.95) {contact $c$, servo $p$, sensing $s$: calibrated on hardware};
-\node[anchor=north west, text=%(ts)s] at (2.25,2.3) {tasks $T$ and object sizes $d$ drawn from $\mathcal{D}$};
-\end{tikzpicture}"""
-    return compile_tex(f"20261110-nested_{active}", body % {"so": st("outer"), "si": st("inner"), "ss": st("sim"),
-                                                            "to": tc("outer"), "ti": tc("inner"), "ts": tc("sim")})
+# Owner, 2026-11-10 evening: each level a title and one line, no more; the innermost level is the dynamics ("our bi-level
+# optimization problem is subject to the dynamics and constraints of the world/robot/environment, in reality and in
+# simulation"); the controller as u in R^9 until HOM is explained; the tasks T and object sizes d out of the boxes and
+# shown after them, in black, as "the true outer loop": a small finite set, then T and d drawn from D, of which there
+# are infinitely many.
+LEVELS = [  # (key, title, line, formula), outermost first
+    ("outer", "Morphology optimization", "Evolutionary algorithms for hand selection", r"\arg\max_{m\in\mathbb{R}^{6}}"),
+    ("inner", "Multi-hand control", "Grasp synthesis and in-hand manipulation", r"\max_{\pi:\,x\mapsto u\in\mathbb{R}^{9}}"),
+    ("dyn", "Dynamics", "Physical modeling and calibration", r"x_{t+1}=f(x_t,u_t;\,m)"),
+]
+TASK_LOOP = {
+    "finite": r"\textbf{for}\ \ $T\in\{\text{twist},\,\text{roll},\,\text{press}\},\ \ d\in\{d_1,\dots,d_4\}$:",
+    "infinite": r"\textbf{for}\ \ $T,\,d\sim\mathcal{D}$:",
+}
+
+
+def nested(active, loop=None):
+    """The three levels as nested boxes, whole ('all') or with one level highlighted; loop ('finite' or 'infinite') writes
+    the tasks and object sizes above the boxes, in black, as the outermost loop. 'all' and the loop versions share one
+    canvas, so on successive slides only the loop's line appears."""
+    W, inset, top, head = 18.2, 0.9, 8.1, 2.2        # cm: outer width, inset per level, outer top, a level's header
+    out = [r"\begin{tikzpicture}[font=\sffamily, every node/.style={inner sep=0pt}]"]
+    if active == "all":
+        out.append(r"\useasboundingbox (-0.75,-0.05) rectangle (%.2f,%.2f);" % (W + 0.05, top + 1.45))
+    for i, (key, title, line, tex) in enumerate(LEVELS):
+        on = active in ("all", key)
+        c = LEVEL_COLOUR[key]
+        x0, x1, y1 = i * inset, W - i * inset, top - i * head
+        y0 = 0.7 * i if i < len(LEVELS) - 1 else y1 - 2.25
+        out.append(r"\draw[rounded corners=%dpt, %s] (%.2f,%.2f) rectangle (%.2f,%.2f);"
+                   % (10 - i, f"fill={c}l, draw={c}, line width=1.6pt" if on else "fill=pale, draw=grey!70, line width=1pt",
+                      x0, y0, x1, y1))
+        tc = c if on else "grey"
+        out.append(r"\node[anchor=north west, text=%s] at (%.2f,%.2f) {\fontsize{17}{20}\selectfont\bfseries %s};"
+                   % (tc, x0 + 0.45, y1 - 0.45, title))
+        out.append(r"\node[anchor=north west, text=%s] at (%.2f,%.2f) {\fontsize{14}{17}\selectfont %s};"
+                   % (tc, x0 + 0.45, y1 - 1.2, line))
+        out.append(r"\node[anchor=east, text=%s] at (%.2f,%.2f) {\fontsize{20}{24}\selectfont$\displaystyle %s$};"
+                   % (tc, x1 - 0.45, y1 - 1.05, tex))
+    if loop:
+        out.append(r"\node[anchor=south west, text=ink] at (-0.7,%.2f) {\fontsize{19}{23}\selectfont %s};"
+                   % (top + 0.45, TASK_LOOP[loop]))
+    out.append(r"\end{tikzpicture}")
+    return compile_tex(f"20261110-nested_{'loop_' + loop if loop else active}", "\n".join(out))
 
 
 # ------------------------------------------------------------------------------------------------ HOM pictures
@@ -422,8 +457,11 @@ def hand(variant):
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     formulas()
-    for a in ("all", "outer", "inner", "sim"):
+    for old in OUT.glob("20261110-nested_*.png"):
+        old.unlink()
+    for a in ("outer", "inner", "dyn"):
         nested(a)
+    same_canvas([nested("all")] + [nested("all", loop) for loop in TASK_LOOP])
     contact_modes()
     hom_period()
     evaluator()
