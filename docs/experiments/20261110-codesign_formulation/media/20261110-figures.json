@@ -212,6 +212,7 @@
   "cost_per_landscape_s": {
    "Drake hydroelastic": 2946226,
    "MuJoCo": 150000,
+   "Newton hydroelastic (SDF)": 1872,
    "MuJoCo-Warp": 1095
   }
  },

@@ -246,7 +246,8 @@ def sec_sim():
               "landscape in 18 minutes. Contact overview, Figures 3, 5, 11 and 12, carry the comparison.</p>"
             + series("pads")
             + drawing("20261110-slide_cost_drake", "Drake alone (estimated from its step cost on the hand).", 70)
-            + drawing("20261110-slide_cost_all", "With the pads on one CPU core and on one GPU.", 70)
+            + drawing("20261110-slide_cost_all", "With the pads on one CPU core and on one GPU, and Newton's SDF hydroelastic contact on the same "
+                     "GPU, estimated from its throughput on the contact overview's pinch benchmark.", 70)
             + series("sim")
             + fig("20261110-evaluator.png", "The simulator as an evaluator built for co-design: fast enough for a "
                   "search, calibrated on hardware, and observable through the fingertips."))

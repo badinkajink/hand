@@ -192,24 +192,32 @@ def size_trend():
 
 def cost_per_landscape():
     """Time to simulate one landscape (625 hands x 16 grasps x 3 seeds = 30,000 rollouts): Drake estimated from its step
-    cost on the hand, the pads on one CPU core and in GPU batches as measured. Two images on one canvas: Drake alone, then
-    all three. Step costs on the hand from the contact overview's table (Drake 2,082 us, pads 106 us per 1 ms step); the
-    rollout times from the formulation page's figures.json (CPU 5.0 s; GPU median per rollout in a batch of 1536)."""
+    cost on the hand, the pads on one CPU core and in GPU batches as measured, and Newton's SDF hydroelastic contact on the
+    same GPU estimated from its throughput (owner, 11-11). Two images on one canvas: Drake alone, then all four. Step costs
+    on the hand from the contact overview's table (Drake 2,082 us, pads 106 us per 1 ms step); the rollout times from the
+    formulation page's figures.json (CPU 5.0 s; GPU median per rollout in a batch of 1536). Newton: the pads' GPU time
+    times the ratio of the two throughputs at 4,096 worlds on the overview's SR2 pinch benchmark (Figure 12,
+    docs/experiments/20261005-gpu_scaling: MuJoCo-Warp pads against Newton hydroelastic with contact reduction)."""
     fi = json.loads((OUT / "20261110-figures.json").read_text())
     gpu = float(fi.get("gpu", {}).get("s_per_rollout_median", 0.0365))
     n = 625 * 16 * 3
     cpu = 5.0
     drake = cpu * 2082.0 / 106.0
+    import contact_overview_page as CO
+    load = (lambda name: [json.loads(x) for x in (Path(CO.GPU) / name).read_text().splitlines() if x.strip()])
+    curves = CO.gpu_curves(load("gpu_scaling.jsonl"), load("newton_scaling.jsonl"))
+    ratio = curves["mjw_pads1"][4096] / curves["newton_hydro_mc"][4096]
     rows = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", n * drake, "#6b7280"),
             ("MuJoCo, 1 mm sphere pads,\none CPU core", n * cpu, "#f59e0b"),
+            ("Newton hydroelastic (SDF), one GPU\n(estimated from its throughput)", n * gpu * ratio, "#7a4fa6"),
             ("MuJoCo-Warp, 1 mm sphere pads,\none GPU (batches of 1536)", n * gpu, "#d97706")]
 
     def human(sec):
         return (f"{sec / 86400:.0f} days" if sec > 3 * 86400 else f"{sec / 3600:.0f} hours" if sec > 3 * 3600
                 else f"{sec / 60:.0f} minutes")
     out = {}
-    for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", 3)):
-        fig, ax = plt.subplots(figsize=(13.0, 4.6))
+    for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", len(rows))):
+        fig, ax = plt.subplots(figsize=(13.0, 5.6))
         for k, (lab, sec, col) in enumerate(rows):
             y = len(rows) - 1 - k
             vis = k < show
