@@ -49,14 +49,43 @@ plt.rcParams.update({"font.family": "Nimbus Sans", "font.size": 17, "axes.titles
                      "axes.titlepad": 10, "mathtext.fontset": "cm"})
 
 
+VARIANT = ""            # "track" (--track): every figure from the tracking score, files *_track.png (owner, 11-11: v2 deck)
+GRID_TRACK = "grid2dff_v4b_sv25r"                   # the grids rerun with the tracking fields (all four tasks)
+EA_TRACK = "ea_live_sv25_track"                     # the size study's live EA with the tracking score as the fitness
+
+
+def grid_track(task, size):
+    """The best-of-16 tracking score per layout of the rerun grid (mean of seeds 0-2), on grid()'s axes."""
+    import hom_landscape as L
+    import hom_rows
+    L.GRID_SRC = "grid2dff"
+    poses = L.grid_poses(task, size)
+    sc = {}
+    for x in (L.ROWS / GRID_TRACK / f"{task}_d{size:g}.jsonl").read_text().splitlines():
+        if x.strip():
+            r = hom_rows.rescale_metrics(json.loads(x))
+            if r.get("status", "ok") == "ok":
+                sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.track_score(task, r))
+    xs = np.unique([float(p[0]) for p in poses.values()])
+    ys = np.unique([float(p[1]) for p in poses.values()])
+    B = np.full((len(ys), len(xs)), np.nan)
+    for call, (x, y, rec) in poses.items():
+        if rec and rec.get("ok") and sc.get(call):
+            B[int(np.searchsorted(ys, y)), int(np.searchsorted(xs, x))] = max(np.mean(v) for v in sc[call].values())
+    return xs, ys, B
+
+
 def grid(task, size):
     import hom_landscape as L
+    if VARIANT == "track":
+        return grid_track(task, size)
     L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / "grid2dff_v4b_sv25"
     xs, ys, M = L.grid_maps(task, size)
     return np.asarray(xs, float), np.asarray(ys, float), np.asarray(M["best"], float)
 
 
 def save(fig, name):
+    name = name.replace(".png", "_track.png") if VARIANT == "track" else name
     fig.savefig(OUT / name, bbox_inches="tight", facecolor="white", dpi=200)
     plt.close(fig)
     return OUT / name
@@ -81,6 +110,7 @@ def star(ax, x, y, size=520):
 
 
 FILMED = (("A", (70.0, 150.0)), ("B", (70.0, 110.0)), ("C", (125.0, 55.0)))   # film_three_hands, left to right
+FILMED_TRACK = (("A", (70.0, 65.0)), ("B", (70.0, 110.0)), ("C", (125.0, 55.0)))  # its tracking-score version
 
 
 def landscape(filmed=True, name="20261110-slide_landscape.png"):
@@ -92,7 +122,7 @@ def landscape(filmed=True, name="20261110-slide_landscape.png"):
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
     im = plane(ax, xs, ys, B, 0.85)
     star(ax, xs[i], ys[j])
-    for lab, (x, y) in FILMED if filmed else ():
+    for lab, (x, y) in (FILMED_TRACK if VARIANT == "track" else FILMED) if filmed else ():
         if (x, y) == (xs[i], ys[j]):                           # the best hand: its letter sits on the star's top point
             ax.text(x, y + 4.6, lab, ha="center", va="bottom", fontsize=15, weight="bold", color=INK, zorder=6,
                     path_effects=[patheffects.withStroke(linewidth=4, foreground="white")])
@@ -106,7 +136,7 @@ def landscape(filmed=True, name="20261110-slide_landscape.png"):
     return save(fig, name), dict(best=[float(xs[i]), float(ys[j])], score=float(B[j, i]),
                                  reached=int(np.isfinite(B).sum()),
                                  filmed={lab: [*xy, round(float(B[list(ys).index(xy[1]), list(xs).index(xy[0])]), 3)]
-                                         for lab, xy in FILMED})
+                                         for lab, xy in (FILMED_TRACK if VARIANT == "track" else FILMED)})
 
 
 def tasks(marks=None, name="20261110-slide_tasks.png"):
@@ -135,8 +165,55 @@ def tasks(marks=None, name="20261110-slide_tasks.png"):
     return save(fig, name), info
 
 
+def covers_track(levels=(0.7, 0.75, 0.8, 0.85, 0.9, 0.95)):
+    """The task-conflict covers from the tracking-score grids (seeds 0-2): the one hand with the highest share of every
+    task's best (alpha*), and the fewest hands that reach alpha of every task's best (K*(alpha), an exact search over up
+    to four hands among the layouts that reach alpha on at least one task)."""
+    import itertools
+    R = {}
+    for task, size, *_ in TASKS:
+        xs, ys, B = grid(task, size)
+        top = np.nanmax(B)
+        for j, y in enumerate(ys):
+            for i, x in enumerate(xs):
+                if np.isfinite(B[j, i]):
+                    R.setdefault((float(x), float(y)), {})[task] = float(B[j, i] / top)
+    names = [t for t, *_ in TASKS]
+    share = {xy: min(r.get(t, 0.0) for t in names) for xy, r in R.items()}
+    one_xy = max(share, key=share.get)
+    tops = {t: float(np.nanmax(grid(t, sz)[2])) for t, sz, *_ in TASKS}
+    one_sc = {t: R[one_xy].get(t, 0.0) * tops[t] for t in names}
+    out = {"alpha_star": round(share[one_xy], 3), "one": [list(one_xy), names], "K": {},
+           "one_scores": {t: round(v, 3) for t, v in one_sc.items()}, "one_mean": round(float(np.mean(list(one_sc.values()))), 3),
+           "best_mean": round(float(np.mean(list(tops.values()))), 3)}
+    covers_at = {}
+    for a in levels:
+        serve = {xy: tuple(t for t in names if r.get(t, 0.0) >= a) for xy, r in R.items()}
+        cand = [xy for xy, sv in serve.items() if sv]
+        best = None
+        for k in range(1, 5):
+            for combo in itertools.combinations(cand, k):
+                if set().union(*(serve[c] for c in combo)) >= set(names):
+                    score = min(max(R[c].get(t, 0.0) for c in combo) for t in names)
+                    if best is None or score > best[0]:
+                        best = (score, combo)
+            if best:
+                break
+        out["K"][f"{a:.2f}"] = len(best[1]) if best else None
+        covers_at[a] = [(list(c), [t for t in names if R[c].get(t, 0.0) >= a]) for c in best[1]] if best else None
+    three_a = max((a for a in levels if covers_at[a] and len(covers_at[a]) == 3), default=None)
+    out["three_alpha"] = three_a
+    out["three"] = covers_at.get(three_a)
+    tasks([(out["one"][0], names)], "20261110-slide_one_hand.png")
+    if out["three"]:
+        tasks(out["three"], "20261110-slide_three_hands.png")
+    return out
+
+
 def covers():
     """The hands of the task-conflict study's validated covers: one hand (0.84 of every task's best), three (0.95)."""
+    if VARIANT == "track":
+        return covers_track()
     d = json.loads(CONFLICT.read_text())["val"]["coverage"]["val"]
     lv = {round(x["alpha"], 2): x for x in d["levels"]}
     one = [(c["x"], c["tasks"]) for c in lv[0.84]["cover"]]
@@ -146,11 +223,38 @@ def covers():
     return dict(one=one, three=three, alpha_star=d["alpha_star"])
 
 
+def ea_track_summary(near=0.05):
+    """hom_ea.cmd_report's per-size outcome of the live EA under the tracking score (rows EA_TRACK): the best layout and
+    the layouts within `near` of it (count, centroid, range), each layout's score its best grasp's mean over seeds 0-2.
+    Computed here so that hom_gpu (and CUDA) is not imported beside a GPU queue."""
+    import hom_landscape as L
+    import hom_rows
+    xs, ys = np.arange(40.0, 160.0 + 1e-9, 5.0), np.arange(50.0, 170.0 + 1e-9, 5.0)
+    inv = {k: (float(x), float(y)) for k, (x, y) in enumerate((x, y) for x in xs for y in ys)}
+    out = {}
+    for p in sorted((FPR / EA_TRACK).glob("*_d*_s0.jsonl")):
+        task, d = p.stem.split("_d")[0], float(p.stem.split("_d")[1].split("_s")[0])
+        sc = {}
+        for x in p.read_text().splitlines():
+            if x.strip():
+                r = hom_rows.rescale_metrics(json.loads(x))
+                sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.track_score(task, r))
+        fit = {c: max(float(np.mean(v)) for v in g.values()) for c, g in sc.items() if g}
+        if not fit:
+            continue
+        best = max(fit, key=fit.get)
+        nr = np.array([inv[c] for c, f in fit.items() if f >= fit[best] - near])
+        out[f"{task}_d{d:g}"] = {"task": task, "d_mm": d, "ea": {
+            "best_xy": list(inv[best]), "best": round(fit[best], 4), "layouts": len(fit), "near_n": len(nr),
+            "near_centroid": nr.mean(0).round(1).tolist(), "near_lo": nr.min(0).tolist(), "near_hi": nr.max(0).tolist()}}
+    return out
+
+
 def size_trend():
     """The best thumb-to-pair distance (centroid of the hands within 0.05 of each size's best, with their range)
     against object diameter, four tasks, least-squares lines; Borras and Dollar's slope of 1 through each panel's
     centre in purple."""
-    S = json.loads((FPR / "ea_live_sv25/summary.json").read_text())
+    S = ea_track_summary() if VARIANT == "track" else json.loads((FPR / "ea_live_sv25/summary.json").read_text())
 
     def series(task):
         pts = sorted((v["d_mm"], v["ea"]) for v in S.values() if isinstance(v, dict) and v.get("task") == task
@@ -300,7 +404,31 @@ def fidelity_tip():
     return {"E_pads_MPa": round(Ep, 2), "E_field_MPa": round(Ef, 2), "holds_rod": int(len(F))}
 
 
+def main_track():
+    """The figures of the v2 deck: the same drawings from the tracking score (files *_track.png)."""
+    global VARIANT
+    VARIANT = "track"
+    info = {}
+    _, info["landscape"] = landscape()
+    landscape(filmed=False, name="20261110-slide_landscape_best.png")
+    _, info["tasks"] = tasks()
+    info["covers"] = covers()
+    S = ea_track_summary()
+    n = {t: sum(1 for v in S.values() if v["task"] == t) for t, *_ in TASKS}
+    if min(n.values()) >= 8:                              # every task's sizes of the size study have run
+        _, info["slopes"] = size_trend()
+    info["ea_sizes"] = n
+    path = OUT / "20261110-figures.json"
+    old = json.loads(path.read_text()) if path.exists() else {}
+    old["section_figures_track"] = info
+    path.write_text(json.dumps(old, indent=1, default=float))
+    print(json.dumps(info, default=float)[:1500], flush=True)
+    return 0
+
+
 def main():
+    if "--track" in sys.argv:
+        return main_track()
     OUT.mkdir(parents=True, exist_ok=True)
     info = {}
     _, info["landscape"] = landscape()

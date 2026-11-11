@@ -191,8 +191,9 @@ INNER = [  # (what, LaTeX); owner, 2026-11-10 evening: the grasp g and HOM's par
      r"J^\star(m)=" + r"{\color{inner}\underbrace{\max_{g}}_{\clab{grasp synthesis}}}\qquad\qquad{\color{inner}\underbrace{\max_{\phi}}_{\clab{HOM tuning}}}\ \ J(m,g,\phi)"),
     ("The foundational pose: the grasp farthest from every constraint.",
      r"g_0=\arg\max_{v,\,\sigma}\ \sigma\quad\mathrm{s.t.}\quad c_j(v;\,m)\ge\sigma\ \ \forall j"),
-    ("Sixteen candidate grasps per hand.",
-     r"\mathcal{G}(m)=\{g_0,\,g_1,\,\dots,\,g_{15}\}"),
+    ("Sixteen candidate grasps per hand, each run under HOM with its default parameters; the hand keeps the best.",
+     r"g^\star=\arg\max_{g\in\mathcal{G}(m)}\ \tfrac{1}{3}\textstyle\sum_{s=1}^{3}\,{\color{inner}\underbrace{J(m,g,\phi_0;\,s)}"
+     r"_{\clab{one HOM rollout, seed $s$}}},\quad\mathcal{G}(m)=\{g_0,\dots,g_{15}\}"),
     ("HOM: the joint speeds that best produce each fingertip's contact motion.",
      r"u=\arg\min_{u}\ \sum_k w_k\Big(v_{\mathrm{ref},k}-\big[{\color{inner}\underbrace{A(m,g)}_{\clab{the hand}}}\,u+b\big]_k\Big)^2+w_{\mathrm{d}}\lVert u\rVert^2"),
     ("Press with force F through the servo's spring.",

@@ -201,7 +201,7 @@
   "name": "20261110-eq_inner5",
   "series": "inner",
   "slide": "34-35",
-  "what": "Sixteen candidate grasps per hand."
+  "what": "Sixteen candidate grasps per hand, each run under HOM with its default parameters; the hand keeps the best."
  },
  {
   "name": "20261110-eq_inner6",

@@ -41,9 +41,21 @@ plt.rcParams.update({"font.family": "Lato", "font.size": 15, "axes.titlesize": 1
                      "axes.titlepad": 10, "mathtext.fontset": "cm"})
 
 
+VARIANT = ""      # "track" (--track): hom_landscape ranks by the tracking score on the rerun grids; files *_track.*
+
+
+def use_track():
+    """The v2 deck's variant (owner, 2026-11-11): every grid table, EA lookup and film score of this process takes
+    hom_landscape.track_score on the grids rerun with the tracking fields, and every output is written as *_track."""
+    global VARIANT
+    import hom_landscape as L
+    VARIANT = "track"
+    L.rollout_score = L.track_score
+
+
 def grid():
     import hom_landscape as L
-    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / "grid2dff_v4b_sv25"
+    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / ("grid2dff_v4b_sv25r" if VARIANT == "track" else "grid2dff_v4b_sv25")
     xs, ys, M = L.grid_maps(TASK, SIZE)
     look = L.ea_landscape(TASK, SIZE)[0]["best"]
     return L, xs, ys, M, look
@@ -65,6 +77,7 @@ def cell(xs, ys, M, x, y):
 
 
 def save(fig, name):
+    name = name.replace(".png", "_track.png") if VARIANT == "track" else name
     fig.savefig(OUT / name, bbox_inches="tight", facecolor="white", dpi=160)
     plt.close(fig)
 
@@ -77,6 +90,8 @@ def still(xy, grasp=None, t_s=1.9, view=None):
     from PIL import Image
     import hom_films as HF
     cache = ROOT / "logs/20261110-codesign_stills" / f"{xy[0]:.0f}_{xy[1]:.0f}_{grasp}_{(view or 'side').replace(',', '_')}.png"
+    if VARIANT == "track":                                  # the tracking-score grids' grasp indices are the same sets
+        cache = cache.with_name("track_" + cache.name)
     if cache.exists() and grasp is not None:
         return np.asarray(Image.open(cache).convert("RGB")), grasp, None
     if view:
@@ -166,10 +181,11 @@ def film_three_hands(picks=((70.0, 150.0), (70.0, 110.0), (125.0, 55.0))):
         g = HF.best_grasp(TASK, SIZE, call)
         sc = cell(xs, ys, M, *xy)
         fr, res = HF.clip(TASK, "grid2dff_size", SIZE, call, g, f"{lab}: ({xy[0]:.0f}, {xy[1]:.0f}) mm, score {sc:.2f}",
-                          seed=0, render=True)
+                          seed=0, var="hold" if VARIANT == "track" else "base", render=True)
         clips.append(fr)
         info[lab] = dict(layout=list(xy), grasp=int(g), grid_score=round(sc, 3), cpu_score=round(float(HF.score(TASK, res)), 3))
-    HF.compose(clips, OUT / "20261110-film_three_hands.mp4")
+    HF.compose(clips, OUT / ("20261110-film_three_hands_track.mp4" if VARIANT == "track" else
+                             "20261110-film_three_hands.mp4"))
     return info
 
 
@@ -268,7 +284,7 @@ def ea_snapshots():
     ax.text(395, best_all + 0.005, "best hand on the grid", ha="right", va="bottom", fontsize=12)
     ax.set_xlabel("hands evaluated")
     ax.set_ylabel("best score found")
-    ax.set_ylim(0.45, best_all + 0.06)
+    ax.set_ylim(best_all - 0.37 if VARIANT == "track" else 0.45, best_all + 0.06)
     ax.legend(fontsize=13, loc="lower right", frameon=False)
     ax.set_title("median of 200 searches", fontsize=15)
     for s in ("top", "right"):
@@ -310,17 +326,34 @@ def grasp_candidates(xy):
         ax.imshow(img[:, 40:-40])
         ax.axis("off")
         best = j == gbest
-        col = INNER if best else ("#b91c1c" if g_sc[j] < 0.05 else INK)
+        col = INNER if best else ("#b91c1c" if g_sc[j] < 0.05 else INK)          # track: red is a score below 0.05
         ax.set_title(f"{g_sc[j]:.2f}" + ("  pose solve" if j == 0 else ""), fontsize=17, color=col,
                      weight="bold" if best else "normal")
         if best:
             ax.add_patch(Rectangle((0, 0), img.shape[1] - 81, img.shape[0] - 1, fill=False, ec=INNER, lw=6))
-    fig.suptitle("Sixteen grasps of one hand, best to worst: press score of each (red: the cylinder drops)",
+    fig.suptitle("Sixteen grasps of one hand, best to worst: press score of each (red: " + ("score below 0.05)"
+                 if VARIANT == "track" else "the cylinder drops)"),
                  fontsize=19, weight="bold", y=1.0)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
     fig.subplots_adjust(hspace=0.32)
     save(fig, "20261110-grasp_candidates_wide.png")
     return dict(layout=list(xy), best_grasp=gbest, scores={str(k): round(v, 3) for k, v in sorted(g_sc.items())})
+
+
+def fp_views(xy=(110.0, 85.0), task="twist", d=40.0):
+    """The talk's first "Which grasp?" figure: the foundational pose, the best and the worst grasp of one hand from three
+    sides (hom_landscape.cmd_views, as rendered for the talk on 2026-11-02 on hand (110, 85) mm). In the track variant
+    the hand is the twist's best under the tracking score, (105, 70) mm, and the grasps are ranked by that score."""
+    import argparse
+    import hom_films as HF
+    import hom_landscape as L
+    if VARIANT == "track":
+        xy = (105.0, 70.0)
+    L.GRID_SRC, L.GRID_ROWS = "grid2dff", L.ROWS / ("grid2dff_v4b_sv25r" if VARIANT == "track" else "grid2dff_v4b_sv25")
+    call = HF.call_at(task, d, *xy)
+    name = "20261111-twist_grasps" + ("_track" if VARIANT == "track" else "") + ".png"
+    L.cmd_views(argparse.Namespace(task=task, d=d, calls=[call], out=str(OUT / name)))
+    return dict(layout=list(xy), call=call, file=name)
 
 
 def tuning(plant="sv25"):
@@ -355,6 +388,45 @@ def tuning(plant="sv25"):
     return out
 
 
+def tuning_track():
+    """The inner loop's tuning under the tracking score (owner, 2026-11-11: "hom tuning alone is missing here ... this is
+    with the old scoring"): per task, the median over the 30 best SCS0009 layouts (S1 on the tracking score) of the best
+    candidate so far (seeds 0-2) by CEM iteration, for three arms from the same start (S1's grasp, HOM's defaults) and
+    the same budget (32 candidates x 8 iterations): the grasp alone, HOM's forces and contact modes alone, and both.
+    Rows: hom_grasp_refine.py --score track, docs/experiments/20261103-hom_score_refine/rows/sv25_track/."""
+    R = ROOT / "docs/experiments/20261103-hom_score_refine/rows/sv25_track"
+    fig, axs = plt.subplots(1, 3, figsize=(18, 5.4), sharey=True)
+    out = {}
+    for ax, (task, d) in zip(axs, (("twist", 40), ("roll", 40), ("press", 25))):
+        lays = json.loads((R / f"{task}_layouts.json").read_text())["layouts"]
+        s1 = float(np.median([L_["s1"] for L_ in lays]))
+        ax.axhline(s1, color=GREY, ls=":", lw=2, label="S1: defaults, best of 16 grasps")
+        row = {"s1": round(s1, 3)}
+        for level, c, lab in (("grasp", "#6ee7b7", "tune the grasp"), ("hom", "#7c3aed", "tune HOM's forces and modes"),
+                              ("both", INNER, "tune the grasp, forces and modes")):
+            gp = R / level / f"{task}_d{d}_gens.jsonl"
+            G = [json.loads(x) for x in gp.read_text().splitlines() if x.strip()] if gp.exists() else []
+            if not G:
+                continue
+            its = sorted({g["it"] for g in G})
+            m = [float(np.median([g["best"] for g in G if g["it"] == k])) for k in its]
+            q = [np.percentile([g["best"] for g in G if g["it"] == k], [25, 75]) for k in its]
+            ax.fill_between(its, [a_ for a_, _b in q], [b_ for _a, b_ in q], color=c, alpha=0.16, lw=0)
+            ax.plot(its, m, "-o", color=c, lw=3, ms=6, label=lab)
+            row[level] = round(m[-1], 3)
+            row[level + "_layouts"] = len({g["call"] for g in G})
+        out[task] = row
+        ax.set_title({"twist": "Twist", "roll": "Roll", "press": "Press"}[task])
+        ax.set_xlabel("CEM iteration")
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        ax.grid(alpha=0.25)
+    axs[0].set_ylabel("best score so far (median of 30 hands)")
+    axs[0].legend(loc="lower right", fontsize=12, frameon=False)
+    save(fig, "20261110-tuning.png")
+    return out
+
+
 def gpu_rate():
     """Rollouts per second of the GPU grid of the press (timing rows)."""
     rows = [json.loads(x) for x in (ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25/"
@@ -369,28 +441,35 @@ def main_film():
     """Only the three-hands film (python ... film): the rest of the figures are unchanged."""
     path = OUT / "20261110-figures.json"
     info = json.loads(path.read_text()) if path.exists() else {}
-    info["film_three_hands"] = film_three_hands()
+    key = "film_three_hands" + ("_track" if VARIANT == "track" else "")
+    info[key] = film_three_hands(((70.0, 65.0), (70.0, 110.0), (125.0, 55.0))) if VARIANT == "track" else film_three_hands()
+    info["film_three_hands"] = info[key] if VARIANT != "track" else info.get("film_three_hands")
     path.write_text(json.dumps(info, indent=1, default=float))
-    print(json.dumps(info["film_three_hands"]), flush=True)
+    print(json.dumps(info[key]), flush=True)
     return 0
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    only = sys.argv[1:]
+    only = [x for x in sys.argv[1:] if x != "--track"]
     path = OUT / "20261110-figures.json"
     info = json.loads(path.read_text()) if path.exists() else {}
-    jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate, "tuning": tuning,
-            "layout_space": layout_space}
+    sfx = "_track" if VARIANT == "track" else ""
+    jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
+            "tuning": tuning_track if VARIANT == "track" else tuning,
+            "layout_space": layout_space, "fp_views": fp_views}
     for k, fn in jobs.items():
         if not only or k in only:
-            info[k] = fn()
+            info[k + sfx] = fn()
     if not only or "grasp_candidates" in only:
-        info["grasp_candidates"] = grasp_candidates(tuple(info["layout_space"]["A"]["layout"]))
+        a_xy = (70.0, 65.0) if VARIANT == "track" else tuple(info["layout_space"]["A"]["layout"])
+        info["grasp_candidates" + sfx] = grasp_candidates(a_xy)
     path.write_text(json.dumps(info, indent=1, default=float))
     print(json.dumps(info, default=float)[:900], flush=True)
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main_film() if sys.argv[1:] == ["film"] else main())
+    if "--track" in sys.argv:
+        use_track()
+    sys.exit(main_film() if [x for x in sys.argv[1:] if x != "--track"] == ["film"] else main())

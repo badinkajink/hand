@@ -56,6 +56,14 @@ _iters.jsonl in rows/<band>/<level>/, the sample rows/<band>/<task>_layouts.json
     python3 scripts/hom/hom_grasp_refine.py run --task twist --level grasp --band k21mu0p4,k21mu0p7,k21 --layouts-from k21
     python3 scripts/hom/hom_grasp_refine.py validate --task twist --band k21mu0p4,k21mu0p7,k21 [--picks-from k21]
     python3 scripts/hom/hom_grasp_refine.py report --band k21mu0p4,k21mu0p7,k21   # rows/<band>/<date>-band_levels.json
+Level hom and --score track (owner, 2026-11-11, on the talk's tuning chart: "hom tuning alone is missing here ... this
+is with the old scoring"): level hom searches HOM's forces and contact modes alone, the grasp held at S1's (its spread
+and floor are zero), from HOM's defaults; level both is level full's search started from S1's grasp, so that the
+three arms share a start and a budget; --score track ranks every candidate by hom_landscape.track_score instead of
+rollout_score, writes its rows under rows/<plant>_track/, and takes S1 from the grid rerun that holds the tracking
+fields (GRID_TRACK: sv25 -> grid2dff_v4b_sv25r).
+    python3 scripts/hom/hom_grasp_refine.py run --task press --level hom --score track --top 30 --rand 0
+
 `validate --band` runs the band's picks, or with --picks-from another plant's, on every plant of the band; rows of the
 2026-11-03 queue (a plant's val/ and val_from_<plant>/) are read where they exist and never appended to.
 Shared forces and contact modes (level shared, 2026-11-04; owner, 2026-11-03: "is it possible to co-design HOM?", and
@@ -115,12 +123,12 @@ TASKS = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 POSE = {"twist": "tripod", "roll": "tripod", "pinpush": "pinch", "press": "press"}
 SEARCH_SEEDS, VAL_SEEDS = (0, 1, 2), (20, 21, 22, 23, 24)
 N_TOP, N_RAND = 30, 30
-POP = {"grasp": 24, "full": 32, "shared": 24}
+POP = {"grasp": 24, "full": 32, "shared": 24, "hom": 32, "both": 32}
 ITERS = 8
 SHARED_TOP, SHARED_RAND = 30, 10                    # level shared: the sample's layouts its candidates run on
 ELITE = 0.25
 SMOOTH = 0.8
-STD0 = {"grasp": 0.25, "full": 0.15}               # x the feasible width of each grasp variable
+STD0 = {"grasp": 0.25, "full": 0.15, "hom": 0.0, "both": 0.15}   # x each grasp variable's feasible width (hom: held)
 STD0_PRM, FLOOR_V, FLOOR_PRM = 0.3, 0.02, 0.03
 TRIES = 40                                          # draws per candidate before it is left out
 GEN_SEED = 100031                                   # per-period noise of the batches (unused by base and hold)
@@ -147,10 +155,26 @@ def setenv(plant):
 
 
 ROWS_ROOT = OUT / "rows"                            # --smoke: OUT / "rows_smoke", so a test never joins a run's rows
+SCORE = "rollout"                                   # --score: rollout (hom_landscape.rollout_score) or track
+GRID_TRACK = {"sv25": "_sv25r"}                     # the grid reruns that hold the tracking fields (post-reset step 1)
+
+
+def task_score(task, r):
+    """The score that ranks a rollout: the task score of the grids, or with --score track the tracking score."""
+    import hom_landscape as L
+    return L.track_score(task, r) if SCORE == "track" else L.rollout_score(task, r)
+
+
+def grid_dir(plant):
+    """The plant's grid rows, S1's source; with --score track the rerun that holds the tracking fields."""
+    tag = PLANTS[plant][2]
+    if SCORE == "track":
+        tag = GRID_TRACK.get(plant, tag)
+    return GRID_ROWS / f"grid2dff_v4b{tag}"
 
 
 def rows_dir(plant):
-    return ROWS_ROOT / plant
+    return ROWS_ROOT / (plant + ("_track" if SCORE == "track" else ""))
 
 
 def band_name(arg):
@@ -188,8 +212,8 @@ class Space:
         import hom_tasks as T
         b = np.array(FP.bounds(POSE[task]), float)
         self.task, self.level, self.nv = task, level, len(b)
-        self.forces = list(FORCES[task]) if level == "full" else []
-        self.modes = [f"w_{c}_{r}" for r in ROLES[task] for c in COMPS] if level == "full" else []
+        self.forces = list(FORCES[task]) if level in ("full", "hom", "both") else []
+        self.modes = [f"w_{c}_{r}" for r in ROLES[task] for c in COMPS] if level in ("full", "hom", "both") else []
         fb = np.log(np.array([FORCES[task][k] for k in self.forces], float).reshape(-1, 2))
         self.lo = np.r_[b[:, 0], fb[:, 0], np.zeros(len(self.modes))]
         self.hi = np.r_[b[:, 1], fb[:, 1], np.ones(len(self.modes))]
@@ -203,7 +227,7 @@ class Space:
         return mean, std
 
     def floor(self):
-        return np.r_[FLOOR_V * self.width, np.full(len(self.default_prm), FLOOR_PRM)]
+        return np.r_[(0.0 if self.level == "hom" else FLOOR_V) * self.width, np.full(len(self.default_prm), FLOOR_PRM)]
 
     def prm(self, x):
         """hom_tasks.PRM changes of the variables x: the forces (N) and the mode weights."""
@@ -429,7 +453,7 @@ def toy_rows(task):
 
 def s1_table(task, plant):
     """{call: (best grasp index, its mean score over seeds 0-2)} from the plant's grid rows."""
-    return best_of_set(task, GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}" / f"{task}_d{TASKS[task]:g}.jsonl")
+    return best_of_set(task, grid_dir(plant) / f"{task}_d{TASKS[task]:g}.jsonl")
 
 
 def best_of_set(task, p):
@@ -440,7 +464,7 @@ def best_of_set(task, p):
         if x.strip():
             r = json.loads(x)
             if int(r["seed"]) in SEARCH_SEEDS:
-                sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(L.rollout_score(task, r))
+                sc.setdefault(int(r["call"]), {}).setdefault(int(r.get("grasp", 0)), []).append(task_score(task, r))
     out = {}
     for c, g in sc.items():
         means = {j: float(np.mean(v)) for j, v in g.items() if len(v) >= len(SEARCH_SEEDS)}
@@ -621,7 +645,7 @@ def scores(task, rows):
     acc = {}
     for r in rows:
         a = acc.setdefault(ident(r), [[], []])
-        a[0].append(L.rollout_score(task, r))
+        a[0].append(task_score(task, r))
         a[1].append(margin(task, r))
     return {k: (float(np.mean(s)), float(np.mean(f)), len(s)) for k, (s, f) in acc.items()}
 
@@ -858,7 +882,7 @@ def cmd_run(a):
     gpath = path.with_name(path.stem + "_gens.jsonl")
     path.parent.mkdir(parents=True, exist_ok=True)
     space = {c: Space(task, level, L_["widths"]) for c, L_ in ((L_["call"], L_) for L_ in lays)}
-    if level == "grasp":
+    if level in ("grasp", "hom", "both"):   # from S1's grasp (level hom holds it there)
         start = {L_["call"]: L_["v1"] for L_ in lays}
     else:                                   # from S2's pick
         prev = band_picks(task, name, "grasp") if band else picks(task, a.plant, "grasp")
@@ -983,7 +1007,7 @@ def s1_start(task, plant, lays):
     """{call: (mean score, mean margin)} of S1's grasp at the search seeds, from the plant's grid rows."""
     import hom_landscape as L
     want = {int(L_["call"]): int(L_["s1_grasp"]) for L_ in lays}
-    p = GRID_ROWS / f"grid2dff_v4b{PLANTS[plant][2]}" / f"{task}_d{TASKS[task]:g}.jsonl"
+    p = grid_dir(plant) / f"{task}_d{TASKS[task]:g}.jsonl"
     acc = {}
     for x in p.read_text().splitlines():
         if not x.strip():
@@ -992,7 +1016,7 @@ def s1_start(task, plant, lays):
         c = int(r["call"])
         if want.get(c) == int(r.get("grasp", 0)) and int(r["seed"]) in SEARCH_SEEDS:
             a = acc.setdefault(c, [[], []])
-            a[0].append(L.rollout_score(task, r))
+            a[0].append(task_score(task, r))
             a[1].append(margin(task, r))
     return {c: (float(np.mean(s)), float(np.mean(m))) for c, (s, m) in acc.items()}
 
@@ -1552,7 +1576,9 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     pr = sub.add_parser("run")
     pr.add_argument("--task", required=True, choices=list(TASKS))
-    pr.add_argument("--level", required=True, choices=("grasp", "full", "shared"))
+    pr.add_argument("--level", required=True, choices=("grasp", "full", "shared", "hom", "both"))
+    pr.add_argument("--score", default="rollout", choices=("rollout", "track"),
+                    help="track: rank by the tracking score, rows under rows/<plant>_track/")
     pr.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pr.add_argument("--n", type=int, default=0, help="only the first n layouts of the sample (a smoke test)")
     pr.add_argument("--iters", type=int, default=0)
@@ -1594,6 +1620,8 @@ def main():
     pb.add_argument("--plant", default="sv25", choices=list(PLANTS))
     pb.add_argument("--n", type=int, default=3)
     a = ap.parse_args()
+    global SCORE
+    SCORE = getattr(a, "score", "rollout")
     if getattr(a, "smoke", False):
         global ROWS_ROOT
         ROWS_ROOT = OUT / "rows_smoke"

@@ -257,5 +257,167 @@
    "grid_score": 0.293,
    "cpu_score": 0.294
   }
+ },
+ "section_figures_track": {
+  "landscape": {
+   "best": [
+    70.0,
+    65.0
+   ],
+   "score": 0.6173647342995169,
+   "reached": 369,
+   "filmed": {
+    "A": [
+     70.0,
+     65.0,
+     0.617
+    ],
+    "B": [
+     70.0,
+     110.0,
+     0.565
+    ],
+    "C": [
+     125.0,
+     55.0,
+     0.0
+    ]
+   }
+  },
+  "tasks": {
+   "twist": {
+    "best": [
+     105.0,
+     70.0
+    ],
+    "score": 0.756
+   },
+   "roll": {
+    "best": [
+     120.0,
+     65.0
+    ],
+    "score": 0.372
+   },
+   "pinpush": {
+    "best": [
+     75.0,
+     80.0
+    ],
+    "score": 0.416
+   },
+   "press": {
+    "best": [
+     70.0,
+     65.0
+    ],
+    "score": 0.617
+   }
+  },
+  "covers": {
+   "alpha_star": 0.617,
+   "one": [
+    [
+     70.0,
+     110.0
+    ],
+    [
+     "twist",
+     "roll",
+     "pinpush",
+     "press"
+    ]
+   ],
+   "K": {
+    "0.70": 2,
+    "0.75": 2,
+    "0.80": 2,
+    "0.85": 3,
+    "0.90": 4,
+    "0.95": 4
+   },
+   "one_scores": {
+    "twist": 0.643,
+    "roll": 0.23,
+    "pinpush": 0.336,
+    "press": 0.565
+   },
+   "one_mean": 0.443,
+   "best_mean": 0.54,
+   "three_alpha": 0.85,
+   "three": [
+    [
+     [
+      80.0,
+      60.0
+     ],
+     [
+      "roll"
+     ]
+    ],
+    [
+     [
+      100.0,
+      60.0
+     ],
+     [
+      "twist"
+     ]
+    ],
+    [
+     [
+      75.0,
+      70.0
+     ],
+     [
+      "pinpush",
+      "press"
+     ]
+    ]
+   ]
+  },
+  "ea_sizes": {
+   "twist": 0,
+   "roll": 3,
+   "pinpush": 0,
+   "press": 0
+  }
+ },
+ "film_three_hands_track": {
+  "A": {
+   "layout": [
+    70.0,
+    65.0
+   ],
+   "grasp": 0,
+   "grid_score": 0.617,
+   "cpu_score": 0.63
+  },
+  "B": {
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "grasp": 11,
+   "grid_score": 0.565,
+   "cpu_score": 0.632
+  },
+  "C": {
+   "layout": [
+    125.0,
+    55.0
+   ],
+   "grasp": 0,
+   "grid_score": 0.0,
+   "cpu_score": 0.0
+  }
+ },
+ "fp_views_track": {
+  "layout": [
+   105.0,
+   70.0
+  ],
+  "call": 329,
+  "file": "20261111-twist_grasps_track.png"
  }
 }
