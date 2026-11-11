@@ -1,5 +1,17 @@
 [
  {
+  "date": "2026-11-11",
+  "file": "docs/experiments/20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html",
+  "title": "Implementation of the sphere-pad contact model on a convex fingertip surface",
+  "page_title": "Implementation of the sphere-pad contact model on a convex fingertip surface",
+  "topic": "contact",
+  "summary": "How the sphere pads of a convex fingertip are built: a 1 mm voxel grid cuts the exact surface into pieces, each piece becomes a 0.75 mm sphere touching the surface, and each sphere gets the stiffness E a/h of its piece of the hydroelastic layer through MuJoCo's solimp. The v4b fingertip gets 1,018 spheres at 122 to 449 N/m; under a flat plate each sphere's force equalled its spring to 2.0 parts per million, and the pad pushed 1.02 to 1.09 times the continuous law.",
+  "builder": "scripts/contact/sphere_pad_code_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 1.8
+ },
+ {
   "date": "2026-11-10",
   "file": "docs/experiments/20261110-hom_torque_control/20261110-hom_inverse_dynamics_control.html",
   "title": "Inverse-dynamics torque control of the SR2 hand's fingers under HOM",
