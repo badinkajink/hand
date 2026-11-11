@@ -16,6 +16,7 @@ press score) and from CPU renders of the SR2 hand. Writes docs/experiments/20261
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 import time
@@ -595,6 +596,136 @@ def compute_cost():
     return rec
 
 
+ROLES = (("twist", "f_tripod", "Twist: each of three fingers"), ("roll", "f_tripod", "Roll: each of three fingers"),
+         ("press", "f_pinch", "Press: the two pinching fingers"), ("press", "f_press", "Press: the pressing finger"),
+         ("pinpush", "f_pinch", "Pin-push: the two pinching fingers"), ("pinpush", "f_drive", "Pin-push: the pusher"))
+C_FORCE = "#b91c1c"
+
+
+def _forces_of_code():
+    """HOM's default contact forces (hom_tasks.PRM) and the ranges the CEM searches (hom_grasp_refine.FORCES), read from
+    the sources so that neither module is imported."""
+    import ast
+    src = (ROOT / "scripts/hom/hom_tasks.py").read_text()
+    prm = src[src.index("\nPRM = {"):]
+    prm = prm[:prm.index("}") + 1]
+    default = {k: float(v) for k, v in re.findall(r'"(f_\w+)": ([\d.]+)', prm)}
+    tree = ast.parse((ROOT / "scripts/hom/hom_grasp_refine.py").read_text())
+    rng = next(ast.literal_eval(n.value) for n in tree.body if isinstance(n, ast.Assign)
+               and any(getattr(t, "id", None) == "FORCES" for t in n.targets))
+    return default, rng
+
+
+def contact_force():
+    """Where HOM's contact forces act and which values the CEM picked (owner, 2026-11-11: "give the audience an
+    intuition for how these selected newtons come from / relate to HOM control"). (a) HOM moves each fingertip on the
+    object in its contact frame {L1}: spin, roll and slide, with the separation along x1 held at zero (Eq. 2); the
+    contact force F acts along that same x1: each finger in contact aims past the surface and presses with F, and
+    friction then allows up to mu F along the surface. (b) The newtons of each role: HOM's default, the range the CEM
+    searches and the forces it picked on the 30 best layouts of each task (the picks at the validation seeds; the deck:
+    S3 of the score-levels study, rows sv25/val; v2: the levels hom and both, rows sv25_track/val). Drawn in the style
+    of the HOM review page's Eq. (1) figure (scripts/hom/hom_eq1_figures.py)."""
+    import hom_eq1_figures as E
+    from matplotlib.patches import Circle, Polygon
+    track = VARIANT == "track"
+    default, rng = _forces_of_code()
+    mu, weight = 1.0, 0.025 * 9.81                 # the HOM scenes' friction and their objects' weight (N)
+    rdir = SRR / ("sv25_track" if track else "sv25")
+    levels = (("hom", "CEM-refined HOM", "#7c3aed"), ("both", "CEM-refined grasp and HOM", INNER)) if track else \
+        (("S3", "S3: CEM-refined grasp and HOM", INNER),)
+    picks = {}
+    for task in D_MM:
+        p = rdir / "val" / f"{task}_d{D_MM[task]}.jsonl"
+        lp = rdir / f"{task}_layouts.json"
+        if not p.exists() or not lp.exists():
+            continue
+        top = {L_["call"] for L_ in json.loads(lp.read_text())["layouts"] if L_.get("group", "top") == "top"}
+        for x in p.read_text().splitlines():
+            r = json.loads(x) if x.strip() else None
+            if r and r["pick"] in [lv for lv, _, _ in levels] and r["call"] in top:
+                for k, v in r["prm"].items():
+                    if k.startswith("f_"):
+                        picks.setdefault((task, k, r["pick"]), {})[r["call"]] = float(v)
+    rows = [(t, k, lab) for t, k, lab in ROLES if any((t, k, lv) in picks for lv, _, _ in levels)]
+    style = {"font.family": "serif", "font.serif": ["Times New Roman", "DejaVu Serif"], "mathtext.fontset": "stix",
+             "font.size": 15}
+    with plt.rc_context(style):
+        fig = plt.figure(figsize=(16.5, 6.2))
+        gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.25], wspace=0.06)
+        S = E.scene(gap=0.0)
+        p1, x1, z1 = S["p1"], S["x1"], S["z1"]
+        lim = ((p1[0] - 30.0, p1[0] + 33.0), (p1[1] - 24.0, p1[1] + 21.0))
+        ax = fig.add_subplot(gs[0, 0])
+        E.draw_hand(ax, S, fin_alpha=1.0, obj_alpha=1.0)
+        ax.set_aspect("equal")
+        ax.set_xlim(*lim[0])
+        ax.set_ylim(*lim[1])
+        ax.axis("off")
+        ax.set_title("(a) HOM sets the motion, $F$ sets the press", fontsize=17, pad=6)
+        ghost = S["pad"] + 3.0 * x1                       # the finger aims past the surface
+        ax.add_patch(Circle(tuple(ghost), E.RHO, fc="none", ec=E.C_FIN, lw=1.5, ls=(0, (4, 3)), zorder=6))
+        E.frame(ax, p1, x1, None, L=6.0, ms=11, lw=1.8)
+        half = math.atan(mu)
+        tip = p1 + 15.0 * x1
+        for s_ in (1.0, -1.0):                            # the friction cone, half-angle atan(mu)
+            ax.plot(*np.c_[p1, p1 + 17.0 * (math.cos(half) * x1 + s_ * math.sin(half) * z1)], color=C_FORCE, lw=1.3,
+                    ls=(0, (4, 3)), zorder=7)
+        ax.add_patch(Polygon([p1, p1 + 17.0 * (math.cos(half) * x1 + math.sin(half) * z1),
+                              p1 + 17.0 * (math.cos(half) * x1 - math.sin(half) * z1)], closed=True, fc=C_FORCE,
+                             alpha=0.08, ec="none", zorder=6))
+        E.arrow(ax, p1, tip, C_FORCE, lw=3.6, ms=21, z=9)
+        E.label(ax, tip + np.array([1.5, 3.5]), "$F$", C_FORCE, fs=20, ha="left")
+        E.arrow(ax, tip, tip - 0.85 * mu * 15.0 * z1, C_FORCE, lw=1.8, ms=14, ls=(0, (3, 2)), z=9)
+        E.label(ax, tip - 0.85 * mu * 15.0 * z1 + np.array([1.0, 2.5]), r"friction $\leq \mu F$", C_FORCE, fs=15,
+                ha="left")
+        q = p1 - 5.0 * x1 + 3.0 * z1                      # HOM's motion, drawn on the finger's side
+        E.arrow(ax, q, q - 13.0 * z1, E.AX_Z, lw=3.0, ms=18, z=9)
+        E.label(ax, q - 13.0 * z1 + np.array([-2.5, 2.5]), "slide", E.AX_Z, fs=16, ha="right")
+        E.curved(ax, p1, 6.5, 190, 330, "#111111", lw=2.0, ms=14)
+        E.label(ax, p1 + np.array([-13.5, -3.0]), "roll", "#111111", fs=16)
+        E.label(ax, p1 + 7.5 * x1 + np.array([0.5, -3.2]), "$x_1$", E.AX_X, fs=15)
+        E.label(ax, ghost + np.array([-4.0, -14.0]), "aimed past\nthe surface", E.C_FIN, fs=15.5)
+        ax.text(lim[0][0] + 0.8, lim[1][0] + 0.8, "HOM, Eq. (2): the fingertip's spin, roll\nand slide on the object; "
+                "separation 0", fontsize=15.5, va="bottom", ha="left", zorder=12,
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="#9ca3af", lw=0.8))
+        ax.text(lim[0][1] - 0.8, lim[1][1] - 0.8, "contact force: $F$ along $x_1$,\nfriction up to $\\mu F$ along "
+                "the surface", fontsize=15.5, va="top", ha="right", color=C_FORCE, zorder=12,
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec=C_FORCE, lw=0.8))
+        ax = fig.add_subplot(gs[0, 1])
+        for i, (task, key, lab) in enumerate(rows):
+            y = len(rows) - 1 - i
+            lo, hi = rng[task][key]
+            ax.plot([lo, hi], [y, y], color=LINE, lw=12, solid_capstyle="butt", zorder=1)
+            for j, (lv, _, col) in enumerate(levels):
+                v = np.array(sorted(picks.get((task, key, lv), {}).values()))
+                if len(v):                     # one dot per layout, spread up and down so that equal picks stay visible
+                    off = 0.0 if len(levels) == 1 else (-0.13 if j == 0 else 0.13)
+                    yy = y + off + np.random.default_rng(i * 10 + j).uniform(-0.08, 0.08, len(v))
+                    ax.scatter(v, yy, s=24, color=col, alpha=0.75, lw=0, zorder=3)
+            ax.scatter([default[key]], [y], marker="D", s=90, color=INK, zorder=4)
+        ax.axvline(weight, color=GREY, ls=":", lw=1.8, zorder=0)
+        ax.text(weight + 0.08, len(rows) - 0.45, f"object weight {weight:.2f} N", color="#6b7280", fontsize=15,
+                va="bottom")
+        ax.set_yticks(range(len(rows)))
+        ax.set_yticklabels([lab for _, _, lab in rows][::-1], fontsize=16)
+        ax.yaxis.tick_right()
+        ax.set_xlim(0, 6.3)
+        ax.set_ylim(-0.7, len(rows) - 0.2)
+        ax.set_xlabel("contact force $F$ (N)", fontsize=16)
+        ax.tick_params(axis="x", labelsize=15)
+        for sp in ("top", "left"):
+            ax.spines[sp].set_visible(False)
+        ax.set_title("(b) The newtons of each role", fontsize=17, pad=66)
+        hs = [plt.Line2D([], [], marker="D", ls="", color=INK, ms=8, label="HOM's default"),
+              plt.Line2D([], [], lw=8, color=LINE, label="range the CEM searches")]
+        hs += [plt.Line2D([], [], marker="o", ls="", color=c, ms=6, label=f"{n}, 30 layouts") for _, n, c in levels]
+        ax.legend(handles=hs, loc="lower center", fontsize=15, frameon=False, bbox_to_anchor=(0.5, 1.0), ncol=2)
+        save(fig, "20261111-contact_force.png")
+    med = {f"{t}_{k}_{lv}": round(float(np.median(list(v.values()))), 2) for (t, k, lv), v in picks.items()}
+    return {"default": default, "range": {t: {k: list(v) for k, v in r.items()} for t, r in rng.items()}, "mu": mu,
+            "weight_N": round(weight, 3), "median_pick": med, "rows": [f"{t}_{k}" for t, k, _ in rows]}
+
+
 def gpu_rate():
     """Rollouts per second of the GPU grid of the press (timing rows)."""
     rows = [json.loads(x) for x in (ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25/"
@@ -625,6 +756,7 @@ def main():
     sfx = "_track" if VARIANT == "track" else ""
     jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
             "tuning": tuning_track if VARIANT == "track" else tuning, "compute": compute_cost,
+            "contact_force": contact_force,
             "layout_space": layout_space, "fp_views": fp_views}
     for k, fn in jobs.items():
         if not only or k in only:

@@ -828,5 +828,125 @@
    "press": 37.4
   },
   "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
+ },
+ "contact_force_track": {
+  "default": {
+   "f_pinch": 3.0,
+   "f_drive": 1.5,
+   "f_press": 0.5,
+   "f_tripod": 2.5
+  },
+  "range": {
+   "twist": {
+    "f_tripod": [
+     1.0,
+     5.0
+    ]
+   },
+   "roll": {
+    "f_tripod": [
+     1.0,
+     5.0
+    ]
+   },
+   "pinpush": {
+    "f_pinch": [
+     1.5,
+     6.0
+    ],
+    "f_drive": [
+     0.5,
+     3.0
+    ]
+   },
+   "press": {
+    "f_pinch": [
+     1.5,
+     6.0
+    ],
+    "f_press": [
+     0.2,
+     2.0
+    ]
+   }
+  },
+  "mu": 1.0,
+  "weight_N": 0.245,
+  "median_pick": {
+   "twist_f_tripod_hom": 1.89,
+   "twist_f_tripod_both": 1.97,
+   "roll_f_tripod_hom": 2.18,
+   "roll_f_tripod_both": 2.12,
+   "press_f_pinch_hom": 1.76,
+   "press_f_press_hom": 0.47,
+   "press_f_pinch_both": 1.73,
+   "press_f_press_both": 0.49
+  },
+  "rows": [
+   "twist_f_tripod",
+   "roll_f_tripod",
+   "press_f_pinch",
+   "press_f_press"
+  ]
+ },
+ "contact_force": {
+  "default": {
+   "f_pinch": 3.0,
+   "f_drive": 1.5,
+   "f_press": 0.5,
+   "f_tripod": 2.5
+  },
+  "range": {
+   "twist": {
+    "f_tripod": [
+     1.0,
+     5.0
+    ]
+   },
+   "roll": {
+    "f_tripod": [
+     1.0,
+     5.0
+    ]
+   },
+   "pinpush": {
+    "f_pinch": [
+     1.5,
+     6.0
+    ],
+    "f_drive": [
+     0.5,
+     3.0
+    ]
+   },
+   "press": {
+    "f_pinch": [
+     1.5,
+     6.0
+    ],
+    "f_press": [
+     0.2,
+     2.0
+    ]
+   }
+  },
+  "mu": 1.0,
+  "weight_N": 0.245,
+  "median_pick": {
+   "twist_f_tripod_S3": 2.61,
+   "roll_f_tripod_S3": 2.77,
+   "pinpush_f_pinch_S3": 3.06,
+   "pinpush_f_drive_S3": 1.46,
+   "press_f_pinch_S3": 1.79,
+   "press_f_press_S3": 0.45
+  },
+  "rows": [
+   "twist_f_tripod",
+   "roll_f_tripod",
+   "press_f_pinch",
+   "press_f_press",
+   "pinpush_f_pinch",
+   "pinpush_f_drive"
+  ]
  }
 }
