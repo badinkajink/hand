@@ -249,6 +249,9 @@ ramp about the pinch axis), \(\bar r=\tau_\text{onset}/2\mu N\). {{SCALING_NOTE}
 <p>A pad of small spheres reproduces the Winkler foundation when each sphere is given the foundation&#8217;s stiffness times
 its share of the area. Pressed on a flat with 1&#8202;N, the 1&#8202;mm pad&#8217;s arm is {{FLAT_ARM}}&#8202;mm, against the foundation&#8217;s
 {{FLAT_BED}}&#8202;mm.</p>
+<p>The construction of the spheres on any convex fingertip, from the exact surface to MuJoCo&#8217;s solref and solimp, is
+given step by step with its code on the <a href="../experiments/20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html">sphere-pad
+implementation page</a>.</p>
 <p>The pad replaces the pressure field with \(n\) spheres of radius \(r_s\). The spheres sit inside the fingertip, and their
 outer surfaces trace its shape. Each sphere is an ordinary MuJoCo contact with condim&#160;3: a normal force and friction in
 two directions. The pad&#8217;s force and torque are sums over the spheres that touch the tool:</p>
