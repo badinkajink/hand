@@ -376,11 +376,17 @@
     ]
    ]
   },
+  "slopes": {
+   "twist": 1.74,
+   "roll": 0.37,
+   "pinpush": 1.13,
+   "press": 1.29
+  },
   "ea_sizes": {
-   "twist": 0,
-   "roll": 3,
-   "pinpush": 0,
-   "press": 0
+   "twist": 9,
+   "roll": 9,
+   "pinpush": 8,
+   "press": 8
   }
  },
  "film_three_hands_track": {
@@ -486,6 +492,341 @@
    "hom_layouts": 30,
    "both": 0.8449,
    "both_layouts": 30
-  }
+  },
+  "val": {
+   "twist": {
+    "layouts": 30,
+    "layouts_all": 30,
+    "s1": 0.5706,
+    "best_s1": [
+     105.0,
+     70.0
+    ],
+    "best_s1_all": [
+     105.0,
+     70.0
+    ],
+    "grasp": {
+     "median": 0.7889,
+     "gain": 0.1747,
+     "rho": 0.433,
+     "best": [
+      110.0,
+      65.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.433,
+     "best_all": [
+      110.0,
+      65.0
+     ]
+    },
+    "hom": {
+     "median": 0.6683,
+     "gain": 0.0873,
+     "rho": 0.526,
+     "best": [
+      100.0,
+      70.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.526,
+     "best_all": [
+      100.0,
+      70.0
+     ]
+    },
+    "both": {
+     "median": 0.762,
+     "gain": 0.1528,
+     "rho": 0.584,
+     "best": [
+      75.0,
+      65.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.584,
+     "best_all": [
+      75.0,
+      65.0
+     ]
+    }
+   },
+   "roll": {
+    "layouts": 30,
+    "layouts_all": 30,
+    "s1": 0.2167,
+    "best_s1": [
+     80.0,
+     60.0
+    ],
+    "best_s1_all": [
+     80.0,
+     60.0
+    ],
+    "grasp": {
+     "median": 0.3275,
+     "gain": 0.0748,
+     "rho": 0.671,
+     "best": [
+      80.0,
+      80.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.671,
+     "best_all": [
+      80.0,
+      80.0
+     ]
+    },
+    "hom": {
+     "median": 0.3339,
+     "gain": 0.0823,
+     "rho": 0.301,
+     "best": [
+      120.0,
+      65.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.301,
+     "best_all": [
+      120.0,
+      65.0
+     ]
+    },
+    "both": {
+     "median": 0.4101,
+     "gain": 0.1367,
+     "rho": 0.203,
+     "best": [
+      80.0,
+      60.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.203,
+     "best_all": [
+      80.0,
+      60.0
+     ]
+    }
+   },
+   "press": {
+    "layouts": 30,
+    "layouts_all": 30,
+    "s1": 0.504,
+    "best_s1": [
+     90.0,
+     100.0
+    ],
+    "best_s1_all": [
+     90.0,
+     100.0
+    ],
+    "grasp": {
+     "median": 0.599,
+     "gain": 0.0531,
+     "rho": 0.4,
+     "best": [
+      70.0,
+      105.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.4,
+     "best_all": [
+      70.0,
+      105.0
+     ]
+    },
+    "hom": {
+     "median": 0.7811,
+     "gain": 0.2404,
+     "rho": 0.069,
+     "best": [
+      85.0,
+      100.0
+     ],
+     "n_all": 30,
+     "rho_all": 0.069,
+     "best_all": [
+      85.0,
+      100.0
+     ]
+    },
+    "both": {
+     "median": 0.8439,
+     "gain": 0.2986,
+     "rho": -0.164,
+     "best": [
+      90.0,
+      100.0
+     ],
+     "n_all": 30,
+     "rho_all": -0.164,
+     "best_all": [
+      90.0,
+      100.0
+     ]
+    }
+   }
+  },
+  "val_report": "docs/experiments/20261103-hom_score_refine/rows/sv25_track/20261111-tuning_levels.json"
+ },
+ "compute": {
+  "made": "2026-11-11 13:39",
+  "variant": "deck",
+  "stages": {
+   "s1": {
+    "build": 315.3,
+    "physics": 2666.66,
+    "scoring": 299.22,
+    "rollouts": 89280,
+    "other": 0.0
+   },
+   "cem": {
+    "build": 1137.04,
+    "physics": 10342.69,
+    "scoring": 1107.3,
+    "rollouts": 322527,
+    "other": 762.9699999999993
+   },
+   "val": {
+    "build": 66.25,
+    "physics": 130.23,
+    "scoring": 12.219999999999999,
+    "rollouts": 3600,
+    "other": 17.30000000000001
+   },
+   "all": {
+    "build": 4880.026990077775,
+    "physics": 44389.47297369267,
+    "scoring": 4752.386799156688,
+    "other": 3274.567466948952,
+    "rollouts": 1428480
+   }
+  },
+  "layouts": {
+   "twist": 527,
+   "roll": 527,
+   "pinpush": 437,
+   "press": 369
+  },
+  "tasks": [
+   "twist",
+   "roll",
+   "pinpush",
+   "press"
+  ],
+  "levels": [
+   "grasp",
+   "full"
+  ],
+  "runs_s": {
+   "twist_grasp": 1720.0,
+   "twist_full": 2087.0,
+   "roll_grasp": 1111.0,
+   "roll_full": 1330.0,
+   "pinpush_grasp": 1709.0,
+   "pinpush_full": 2247.0,
+   "press_grasp": 1371.0,
+   "press_full": 1775.0
+  },
+  "val_s": {
+   "twist": 62.0,
+   "roll": 45.0,
+   "pinpush": 65.0,
+   "press": 54.0
+  },
+  "ms_per_rollout": {
+   "twist": 45.3,
+   "roll": 28.9,
+   "pinpush": 48.8,
+   "press": 38.5
+  },
+  "s1_ms_per_rollout": {
+   "twist": 40.5,
+   "roll": 26.8,
+   "pinpush": 44.0,
+   "press": 37.1
+  },
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
+ },
+ "compute_track": {
+  "made": "2026-11-11 13:39",
+  "variant": "track",
+  "stages": {
+   "s1": {
+    "build": 293.98,
+    "physics": 2669.79,
+    "scoring": 989.5100000000001,
+    "rollouts": 89280,
+    "other": 0.0
+   },
+   "cem": {
+    "build": 866.87,
+    "physics": 6398.42,
+    "scoring": 1024.97,
+    "rollouts": 207354,
+    "other": 622.25
+   },
+   "val": {
+    "build": 45.17,
+    "physics": 69.37,
+    "scoring": 9.06,
+    "rollouts": 1800,
+    "other": 14.399999999999991
+   },
+   "all": {
+    "build": 6028.96342951442,
+    "physics": 44500.14441228056,
+    "scoring": 7128.527514332477,
+    "other": 4327.664464124203,
+    "rollouts": 1428480
+   }
+  },
+  "layouts": {
+   "twist": 527,
+   "roll": 527,
+   "pinpush": 437,
+   "press": 369
+  },
+  "tasks": [
+   "twist",
+   "roll",
+   "press"
+  ],
+  "levels": [
+   "grasp",
+   "hom",
+   "both"
+  ],
+  "runs_s": {
+   "press_grasp": 947.4,
+   "press_hom": 927.2,
+   "press_both": 911.8,
+   "twist_grasp": 1223.0,
+   "twist_hom": 1254.1,
+   "twist_both": 1202.5,
+   "roll_grasp": 820.4,
+   "roll_hom": 814.7,
+   "roll_both": 811.6
+  },
+  "val_s": {
+   "twist": 52,
+   "roll": 39,
+   "press": 47
+  },
+  "ms_per_rollout": {
+   "twist": 53.2,
+   "roll": 35.4,
+   "press": 40.3,
+   "pinpush": 43.8
+  },
+  "s1_ms_per_rollout": {
+   "twist": 58.5,
+   "roll": 35.2,
+   "pinpush": 43.9,
+   "press": 37.4
+  },
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
  }
 }
