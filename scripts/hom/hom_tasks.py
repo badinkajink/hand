@@ -874,7 +874,8 @@ def track_errors(task, rows, h):
     """Per task row (deg): the angle between the object's orientation and the commanded one, and the commanded rotation's
     angle from the task's start. Spheres: both orientations integrated from the world-frame angular velocities, measured
     and commanded. Cylinders: the axis against the start axis turned by the commanded pinch angle about palm x (the
-    sense of pinch_angle)."""
+    sense of pinch_angle). None for a diverged rollout, whose angular velocity is not finite: scipy refuses to compose its
+    rotations, and on 2026-11-11 one such draw of the twist's HOM-only tuning stopped a batch of 2,048 rollouts."""
     from scipy.spatial.transform import Rotation
     if task in ("pinpush", "press"):
         A = np.array([r["axis"] for r in rows], float)
@@ -884,6 +885,8 @@ def track_errors(task, rows, h):
         return np.degrees(np.arccos(np.clip(np.einsum("ij,ij->i", A, a_ref), -1.0, 1.0))), np.degrees(np.abs(th))
     W = np.radians(np.array([r["w_dps"] for r in rows], float)) * h
     Wr = np.radians(np.array([r.get("w_ref_dps", [0.0, 0.0, 0.0]) for r in rows], float)) * h
+    if not np.isfinite(np.linalg.norm(np.vstack([W, Wr]), axis=1)).all():
+        return None, None
     R, Rr = to_scipy(quat_integrate(W)), to_scipy(quat_integrate(Wr))      # before each row, as the loop of 11-09
     return np.degrees((Rr.inv() * R).magnitude()), np.degrees(Rr.magnitude())
 
@@ -928,9 +931,9 @@ def metrics(task, setup, rows, s0, se):
     out["metrics_dt"] = h
     # tracking (2026-11-09, hom_landscape.track_score): the angle between the object's orientation and the commanded one,
     # RMS over the task, against the RMS of the commanded rotation; and the share of the task with all three pads loaded
-    e, ref = track_errors(task, task_rows, h)
-    out["track_err_rms_deg"] = round(float(np.sqrt(np.mean(e ** 2))), 2)
-    out["track_ref_rms_deg"] = round(float(np.sqrt(np.mean(ref ** 2))), 2)
+    e, ref = track_errors(task, task_rows, h)                # None, None when the rollout diverged: track_score 0
+    out["track_err_rms_deg"] = round(float(np.sqrt(np.mean(e ** 2))), 2) if e is not None else None
+    out["track_ref_rms_deg"] = round(float(np.sqrt(np.mean(ref ** 2))), 2) if ref is not None else None
     pe = [r["pusher_est"] for r in task_rows if r.get("pusher_est") and r["pusher_est"]["F_true"] > 0.05]
     if pe:                                                 # the unsensed pusher's estimate against the simulator
         loc = [x["p_err_mm"] for x in pe if x["p_err_mm"] is not None]

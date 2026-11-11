@@ -458,5 +458,34 @@
    "14": 0.506,
    "15": 0.538
   }
+ },
+ "tuning_track": {
+  "twist": {
+   "s1": 0.5696,
+   "grasp": 0.7912,
+   "grasp_layouts": 30,
+   "hom": 0.6789,
+   "hom_layouts": 30,
+   "both": 0.7995,
+   "both_layouts": 30
+  },
+  "roll": {
+   "s1": 0.2274,
+   "grasp": 0.3519,
+   "grasp_layouts": 30,
+   "hom": 0.3644,
+   "hom_layouts": 30,
+   "both": 0.4354,
+   "both_layouts": 30
+  },
+  "press": {
+   "s1": 0.495,
+   "grasp": 0.616,
+   "grasp_layouts": 30,
+   "hom": 0.7817,
+   "hom_layouts": 30,
+   "both": 0.8449,
+   "both_layouts": 30
+  }
  }
 }

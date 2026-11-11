@@ -109,3 +109,4 @@ docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/press_d18_s
 docs/experiments/20261029-foundational_pose_review/rows/ea_live_sv25/press_d45_s[0-9].jsonl
 docs/experiments/20261029-foundational_pose_review/rows/pso16_live_sv25/*_s[0-9].jsonl
 docs/experiments/20261103-hom_score_refine/rows/sv25/full_pso/*_d[0-9][0-9].jsonl
+docs/experiments/20261103-hom_score_refine/rows/sv25_track/*/*_d[0-9][0-9].jsonl

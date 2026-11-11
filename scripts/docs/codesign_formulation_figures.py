@@ -401,7 +401,7 @@ def tuning_track():
         lays = json.loads((R / f"{task}_layouts.json").read_text())["layouts"]
         s1 = float(np.median([L_["s1"] for L_ in lays]))
         ax.axhline(s1, color=GREY, ls=":", lw=2, label="S1: defaults, best of 16 grasps")
-        row = {"s1": round(s1, 3)}
+        row = {"s1": round(s1, 4)}                       # four decimals: the slide rounds them to two
         for level, c, lab in (("grasp", "#6ee7b7", "tune the grasp"), ("hom", "#7c3aed", "tune HOM's forces and modes"),
                               ("both", INNER, "tune the grasp, forces and modes")):
             gp = R / level / f"{task}_d{d}_gens.jsonl"
@@ -413,7 +413,7 @@ def tuning_track():
             q = [np.percentile([g["best"] for g in G if g["it"] == k], [25, 75]) for k in its]
             ax.fill_between(its, [a_ for a_, _b in q], [b_ for _a, b_ in q], color=c, alpha=0.16, lw=0)
             ax.plot(its, m, "-o", color=c, lw=3, ms=6, label=lab)
-            row[level] = round(m[-1], 3)
+            row[level] = round(m[-1], 4)
             row[level + "_layouts"] = len({g["call"] for g in G})
         out[task] = row
         ax.set_title({"twist": "Twist", "roll": "Roll", "press": "Press"}[task])
