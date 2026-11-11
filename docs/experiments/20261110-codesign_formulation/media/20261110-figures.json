@@ -496,7 +496,7 @@
   "val": {
    "twist": {
     "layouts": 30,
-    "layouts_all": 30,
+    "layouts_all": 60,
     "s1": 0.5706,
     "best_s1": [
      105.0,
@@ -544,8 +544,8 @@
       75.0,
       65.0
      ],
-     "n_all": 30,
-     "rho_all": 0.584,
+     "n_all": 60,
+     "rho_all": 0.887,
      "best_all": [
       75.0,
       65.0
@@ -554,7 +554,7 @@
    },
    "roll": {
     "layouts": 30,
-    "layouts_all": 30,
+    "layouts_all": 60,
     "s1": 0.2167,
     "best_s1": [
      80.0,
@@ -602,17 +602,45 @@
       80.0,
       60.0
      ],
-     "n_all": 30,
-     "rho_all": 0.203,
+     "n_all": 60,
+     "rho_all": 0.706,
      "best_all": [
       80.0,
       60.0
      ]
     }
    },
+   "pinpush": {
+    "layouts": 30,
+    "layouts_all": 60,
+    "s1": 0.3696,
+    "best_s1": [
+     75.0,
+     80.0
+    ],
+    "best_s1_all": [
+     75.0,
+     55.0
+    ],
+    "both": {
+     "median": 0.4387,
+     "gain": 0.0703,
+     "rho": 0.229,
+     "best": [
+      75.0,
+      115.0
+     ],
+     "n_all": 60,
+     "rho_all": 0.639,
+     "best_all": [
+      75.0,
+      55.0
+     ]
+    }
+   },
    "press": {
     "layouts": 30,
-    "layouts_all": 30,
+    "layouts_all": 60,
     "s1": 0.504,
     "best_s1": [
      90.0,
@@ -660,11 +688,11 @@
       90.0,
       100.0
      ],
-     "n_all": 30,
-     "rho_all": -0.164,
+     "n_all": 60,
+     "rho_all": 0.479,
      "best_all": [
       90.0,
-      100.0
+      75.0
      ]
     }
    }
@@ -870,6 +898,8 @@
    "twist_f_tripod_both": 1.97,
    "roll_f_tripod_hom": 2.18,
    "roll_f_tripod_both": 2.12,
+   "pinpush_f_pinch_both": 3.58,
+   "pinpush_f_drive_both": 1.55,
    "press_f_pinch_hom": 1.76,
    "press_f_press_hom": 0.47,
    "press_f_pinch_both": 1.73,
@@ -879,7 +909,9 @@
    "twist_f_tripod",
    "roll_f_tripod",
    "press_f_pinch",
-   "press_f_press"
+   "press_f_press",
+   "pinpush_f_pinch",
+   "pinpush_f_drive"
   ]
  },
  "contact_force": {
@@ -1066,5 +1098,17 @@
   "T_max_mNm": 5.3,
   "R_mm": 10.55,
   "tool_d_mm": 12.5
+ },
+ "finger_spheres": {
+  "scene": "logs/20261102-hom_servo_plant/scenes/cyl025.0/x092.5_y102.5_pads_bv2__kp0.72_kv0_fr0.18_fl0_dp0.0144.xml",
+  "finger": "thumb",
+  "q_rad": [
+   0.0,
+   0.55,
+   0.55
+  ],
+  "spheres": 447,
+  "pads": 1018,
+  "meshes": 9
  }
 }

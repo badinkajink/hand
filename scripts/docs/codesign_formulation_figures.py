@@ -901,6 +901,103 @@ def drake_hydro(E=2.5e6, F=3.0, mu=1.0):
             "T_max_mNm": round(mu * F * arm * 1e3, 2), "R_mm": R * 1e3, "tool_d_mm": 2e3 * rc}
 
 
+FINGER_SCENE = ROOT / ("logs/20261102-hom_servo_plant/scenes/cyl025.0/"
+                       "x092.5_y102.5_pads_bv2__kp0.72_kv0_fr0.18_fl0_dp0.0144.xml")   # a scene of the talk's landscapes
+
+
+def finger_spheres(q=(0.0, 0.55, 0.55)):
+    """One finger of the cad_v2 hand with the v4b fingertip for the talk's SR2 slide (owner, 2026-11-11: "update the
+    morphit + sphere packed model with the newest fingertip"), in the four views of the cad_v1 page's Figure 4: the CAD
+    part meshes; the collision spheres of the rigid parts with the pad's 1,018 sphere pads; both; the spheres from the
+    dorsal side. From a scene of the talk's landscapes (cad_v2 hand, replace_tips' tcd_ell7.4x8.5x11x22 pads), thumb at
+    yaw, MCP and PIP q (rad), every other geom hidden. Rendered on Mesa's software renderer (MUJOCO_GL=egl with the Mesa
+    vendor file), off the GPU queue."""
+    import mujoco
+    from PIL import Image, ImageDraw, ImageFont
+    m = mujoco.MjModel.from_xml_path(str(FINGER_SCENE))
+    d = mujoco.MjData(m)
+    f = "thumb"
+    for j, v in zip(("yaw", "mcp", "pip"), q):
+        d.qpos[m.joint(f"{f}_{j}").qposadr[0]] = v
+    mujoco.mj_forward(m, d)
+    mine = {i for i in range(m.nbody) if m.body(i).name.startswith(f + "_")}
+    kind = []
+    for g in range(m.ngeom):
+        nm = m.geom(g).name or ""
+        if m.geom_bodyid[g] not in mine:
+            kind.append(None)
+        elif "_pad" in nm:
+            kind.append("pad")
+        elif m.geom_type[g] == mujoco.mjtGeom.mjGEOM_SPHERE:
+            kind.append("sphere")
+        elif m.geom_group[g] == 2:
+            kind.append("mesh")
+        elif nm.endswith("_tipvis"):
+            kind.append("tipmesh")
+        else:
+            kind.append(None)
+    col = {"mesh": (0.42, 0.36, 0.80, 1.0), "tipmesh": (0.10, 0.10, 0.11, 1.0), "sphere": (0.96, 0.55, 0.24, 1.0),
+           "pad": (0.13, 0.77, 0.37, 1.0)}
+    base = m.geom_rgba.copy()
+    for t in range(m.ntex):                               # a white sky, as the cad_v1 page's figures
+        if m.tex_type[t] == mujoco.mjtTexture.mjTEXTURE_SKYBOX:
+            a, n_ = m.tex_adr[t], m.tex_width[t] * m.tex_height[t] * m.tex_nchannel[t]
+            m.tex_data[a:a + n_] = 255
+    ids = [m.body(f"{f}_{b}").id for b in ("mount", "mcp_frame", "pip_frame", "tip")]
+    pts = np.array([d.geom_xpos[g] for g, k in enumerate(kind) if k in ("sphere", "pad")])
+    lo_, hi_ = pts.min(axis=0), pts.max(axis=0)
+    look = 0.5 * (lo_ + hi_)
+    span = float(np.linalg.norm(hi_ - lo_))
+    ax_ = d.xaxis[m.joint(f"{f}_pip").id]
+    az0 = math.degrees(math.atan2(ax_[1], ax_[0]))
+    m.vis.global_.fovy = 12
+    m.vis.global_.offwidth, m.vis.global_.offheight = 1280, 1280
+    m.vis.headlight.ambient[:] = (0.45, 0.45, 0.45)
+    m.vis.headlight.diffuse[:] = (0.6, 0.6, 0.6)
+    W, H = 620, 820
+    views = (({"mesh", "tipmesh"}, az0 - 45, "CAD meshes"), ({"sphere", "pad"}, az0 - 45, "Spheres and the pad\u2019s spheres"),
+             ({"mesh", "tipmesh", "sphere", "pad"}, az0 - 45, "Both"), ({"sphere", "pad"}, az0 + 135, "Spheres, dorsal side"))
+    shots = []
+    with mujoco.Renderer(m, H, W) as r:
+        opt = mujoco.MjvOption()
+        for grp in range(6):
+            opt.geomgroup[grp] = 1
+            opt.sitegroup[grp] = 0                         # the scene's gantry and frame sites
+        for show, az, title in views:
+            rgba = base.copy()
+            for g, k in enumerate(kind):
+                rgba[g] = col[k] if k in show else (0, 0, 0, 0)
+            m.geom_rgba[:] = rgba
+            cam = mujoco.MjvCamera()
+            cam.lookat[:] = look
+            cam.distance, cam.azimuth, cam.elevation = 0.62 * span / math.tan(math.radians(6.0)), az, -12.0
+            r.update_scene(d, camera=cam, scene_option=opt)
+            shots.append((r.render().copy(), title))
+    m.geom_rgba[:] = base
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+    rows = np.flatnonzero(np.any([(im < 245).any(axis=(1, 2)) for im, _ in shots], axis=0))
+    r0, r1 = max(0, rows[0] - 16), min(H, rows[-1] + 17)
+    tiles = []
+    for im, title in shots:
+        crop = Image.fromarray(im[r0:r1])
+        bar = Image.new("RGB", (crop.width, 40), "white")
+        ImageDraw.Draw(bar).text((10, 7), title, fill="black", font=font)
+        t = Image.new("RGB", (crop.width, crop.height + 40), "white")
+        t.paste(bar, (0, 0))
+        t.paste(crop, (0, 40))
+        tiles.append(t)
+    w, h = tiles[0].size
+    sheet = Image.new("RGB", (2 * w, 2 * h), "white")
+    for k, t in enumerate(tiles):
+        sheet.paste(t, ((k % 2) * w, (k // 2) * h))
+    out = OUT / "20261111-finger_spheres_cad_v2.png"
+    sheet.save(out)
+    print("wrote", out.relative_to(ROOT), flush=True)
+    return {"scene": str(FINGER_SCENE.relative_to(ROOT)), "finger": f, "q_rad": list(q),
+            "spheres": int(sum(k == "sphere" for k in kind)), "pads": int(sum(k == "pad" for k in kind)),
+            "meshes": int(sum(k == "mesh" for k in kind))}
+
+
 def gpu_rate():
     """Rollouts per second of the GPU grid of the press (timing rows)."""
     rows = [json.loads(x) for x in (ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25/"
@@ -932,6 +1029,7 @@ def main():
     jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
             "tuning": tuning_track if VARIANT == "track" else tuning, "compute": compute_cost,
             "contact_force": contact_force, "pinch_film": pinch_film, "drake_hydro": drake_hydro,
+            "finger_spheres": finger_spheres,
             "layout_space": layout_space, "fp_views": fp_views}
     for k, fn in jobs.items():
         if not only or k in only:
