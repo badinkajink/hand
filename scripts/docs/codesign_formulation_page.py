@@ -132,7 +132,16 @@ def sec_build():
               if r["what"].startswith("The score itself"))
     return (f"<p>The problem is stated once and grows one term per slide; the new term is in colour. After step {mt} two "
             "images define the metric. The last step names the three levels, and each later section zooms into "
-            "one of them.</p>" + series("codesign", hand_drawings())
+            "one of them.</p>"
+            + "<p><b>The thesis, before the build (slides 24-25).</b> Borras and Dollar (IJRR 2015) computed the precision "
+              "manipulation workspace of a two-link tripod, the object poses held in static equilibrium at fixed fingertip "
+              "contacts, and found it largest when the palm diameter is the object's plus one finger length. The talk "
+              "asks whether that rule holds when the manipulation is executed: a controller, soft contact that rolls "
+              "and slides, finite servos and dynamics.</p>"
+            + drawing("20261110-bd_rule", "The rule as a schematic, drawn for the talk: each finger base half a finger "
+                      "length outside the object's surface.", 35)
+            + series("thesis")
+            + series("codesign", hand_drawings())
             + f"<p><b>The metric, after step {mt}.</b></p>" + series("metric")
             + "<p><b>The section openers.</b> The final form with one level in colour.</p>" + series("zoom")
             + fig("20261110-nested_all.png", "The nested problem as nested boxes: morphology optimization, multi-hand "
@@ -235,7 +244,9 @@ def sec_sim():
 
 
 def sec_slides():
-    rows = [["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd09"],
+    rows = [["24-25", "the thesis: Borras and Dollar's rule, and whether it holds for executed manipulation",
+             "bd_rule with eq_thesis1; eq_thesis2"],
+            ["21-32", "the co-design build, one term per slide", "eq_cd01 to eq_cd09"],
             ["28", "the hand beside steps 3 and 4: its mounts, then its joints", "hand_mounts, hand_joints"],
             ["31", "the metric", "eq_metric1, eq_metric2"],
             ["32", "the levels named; tasks, object sizes and metrics as the outermost loop; section opener",
