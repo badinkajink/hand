@@ -521,8 +521,15 @@ def _compute_record():
     s1_s = sum(s1[t][k] for t in TASKS3 for k in comps)
     cem_s = sum(layouts[t] * 768 * rate[t] for t in TASKS3)
     phys = sum(cem[t]["physics"] for t in TASKS3) / sum(wall.values())
+    one = {k: s1["twist"][k] / s1["twist"]["rollouts"] for k in comps}
+    meas_wall = sum(wall.values())
+    cem_parts = {k: sum(cem[t][k] for t in TASKS3) / meas_wall * cem_s for k in comps}
+    cem_parts["other"] = max(0.0, cem_s - sum(cem_parts.values()))
+    parts = {"one": {**{k: round(v, 5) for k, v in one.items()}, "other": 0.0},
+             "s1": {**{k: round(sum(s1[t][k] for t in TASKS3), 1) for k in comps}, "other": 0.0},
+             "cem": {k: round(v, 1) for k, v in cem_parts.items()}}
     return {"made": time.strftime("%Y-%m-%d %H:%M"), "variant": VARIANT or "deck", "tasks": list(TASKS3),
-            "lattice": 625, "layouts": layouts,
+            "lattice": 625, "layouts": layouts, "parts": parts,
             "one": {"task": "twist", "s": round(sum(s1["twist"][k] for k in comps) / s1["twist"]["rollouts"], 4)},
             "s1": {"s": round(s1_s, 1), "rollouts": sum(s1[t]["rollouts"] for t in TASKS3),
                    "physics_share": round(sum(s1[t]["physics"] for t in TASKS3) / s1_s, 3)},
@@ -559,12 +566,14 @@ def compute_cost():
         return f"{1000 * x:.0f} ms" if x < 1 else (f"{x:.0f} s" if x < 60 else (f"{x / 60:.0f} min" if x < 3600 else
                                                                                 f"{x / 3600:.1f} h"))
     rows = [("one", f"One rollout\n1 layout \u00d7 1 grasp \u00d7 1 seed ({rec['one']['task']})", rec["one"]["s"],
-             None, GREY),
+             None, "#64748b"),
             ("s1", f"S1 landscapes, three tasks\n{n:,} layouts \u00d7 48 rollouts", rec["s1"]["s"], rec["s1"]["rollouts"],
-             OUTER),
+             "#64748b"),
             ("cem", f"CEM-refined grasp and HOM, three tasks\n{n:,} layouts \u00d7 768 rollouts", rec["cem"]["s"],
-             rec["cem"]["rollouts"], INNER)]
-    fig, ax = plt.subplots(figsize=(11.5, 4.9))        # text >= 13 px when the slide shows it 1,150 px wide
+             rec["cem"]["rollouts"], "#64748b")]
+    fig = plt.figure(figsize=(14.0, 5.0))               # text >= 13 px when the slide shows it 1,150 px wide
+    gs = fig.add_gridspec(1, 2, width_ratios=[2.15, 1.0], wspace=0.06)
+    ax, ax2 = fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1])
     x0 = 0.01
     for i, (k, _lab, x, nr, col) in enumerate(rows):
         y, est = len(rows) - 1 - i, k == "cem"
@@ -573,10 +582,10 @@ def compute_cost():
         txt = (f"about {dur(x)}, {nr / 1e6:.2f} M rollouts (estimate)" if est else
                dur(x) + (f", {nr:,} rollouts" if nr else ""))
         if nr:                                          # inside the long bars, at their end
-            ax.text(x / 1.4, y, txt, va="center", ha="right", fontsize=16, color=INK, zorder=5,
+            ax.text(x / 1.4, y, txt, va="center", ha="right", fontsize=15, color=INK, zorder=5,
                     bbox=dict(boxstyle="round,pad=0.25", fc="white", ec="none", alpha=0.9))
         else:
-            ax.text(x * 1.35, y, txt, va="center", ha="left", fontsize=17, color=INK)
+            ax.text(x * 1.35, y, txt, va="center", ha="left", fontsize=16, color=INK)
     ax.set_xscale("log")
     ticks = (0.01, 0.1, 1.0, 10.0, 60.0, 600.0, 3600.0, 36000.0)
     ax.set_xticks(ticks)
@@ -585,12 +594,33 @@ def compute_cost():
     ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
     ax.set_xlim(x0, 1.2e5)
     ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([lab for _, lab, _, _, _ in rows][::-1], fontsize=16)
-    ax.set_xlabel(f"GPU time on one {rec['gpu'].replace('NVIDIA GeForce ', '')}, log scale", fontsize=16)
-    ax.tick_params(axis="x", labelsize=15)
+    ax.set_yticklabels([lab for _, lab, _, _, _ in rows][::-1], fontsize=15)
+    ax.set_xlabel(f"GPU time on one {rec['gpu'].replace('NVIDIA GeForce ', '')}, log scale", fontsize=15)
+    ax.tick_params(axis="x", labelsize=14)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
     ax.grid(axis="x", alpha=0.25)
+    parts = (("physics", "GPU physics", OUTER, "white"), ("build", "scene build", "#93c5fd", INK),
+             ("scoring", "scoring", SIM, "white"), ("other", "candidate sampling", GREY, INK))
+    for i, (k, *_r) in enumerate(rows):
+        y, pr = len(rows) - 1 - i, rec["parts"][k]
+        tot, left = sum(pr.values()), 0.0
+        for c, lab, col, tc in parts:
+            w = 100.0 * pr[c] / tot
+            ax2.barh(y, w, left=left, height=0.56, color=col, edgecolor="white", linewidth=0.8,
+                     label=lab if i == len(rows) - 1 else None)
+            if w >= 5:
+                ax2.text(left + w / 2, y, f"{w:.0f}", ha="center", va="center", fontsize=14 if w >= 15 else 12.5,
+                         color=tc)
+            left += w
+    ax2.set_xlim(0, 100)
+    ax2.set_ylim(-0.6, len(rows) - 0.4)
+    ax2.set_yticks([])
+    ax2.set_xlabel("share of the bar\u2019s time (%)", fontsize=15)
+    ax2.tick_params(axis="x", labelsize=14)
+    for sp in ("top", "right", "left"):
+        ax2.spines[sp].set_visible(False)
+    ax2.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, fontsize=14, frameon=False)
     save(fig, "20261111-compute.png")
     return rec
 
@@ -725,6 +755,152 @@ def contact_force():
             "weight_N": round(weight, 3), "median_pick": med, "rows": [f"{t}_{k}" for t, k, _ in rows]}
 
 
+def pinch_film():
+    """Three panels of the hand-brake study's film (owner, 2026-11-11: "a video ... showing how without condim 4, just
+    basic point contacts, we can't stabilize a grasp"): thumb and index of the SR2 hand lower the screwdriver from
+    horizontal by relaxing their pinch, in MuJoCo with point contact (condim 3), with condim 4 and with the 1 mm sphere
+    pads (docs/experiments/20261001-hom_hand_brake, films *_d15.mp4 of scripts/hom/hom_hand_brake.py), each under a label
+    bar. Writes media/20261111-pinch_three_contacts.mp4 and its poster."""
+    import imageio.v2 as imageio
+    from PIL import Image, ImageDraw, ImageFont
+    src = ROOT / "docs/experiments/20261001-hom_hand_brake/media"
+    panels = (("mp3", "Point contact (condim 3)"), ("p4s", "Condim 4: torsional friction"),
+              ("s1", "1 mm sphere pads"))
+    clips = [[f for f in imageio.get_reader(str(src / f"20261001-hand_brake_{k}_d15.mp4"))] for k, _ in panels]
+    n = min(len(c) for c in clips)
+    h, w = clips[0][0].shape[:2]
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 22)
+    bar = Image.new("RGB", (w * len(panels), 40), "white")
+    dr = ImageDraw.Draw(bar)
+    for i, (_, lab) in enumerate(panels):
+        dr.text((i * w + 10, 8), lab, fill="black", font=font)
+    bar = np.asarray(bar)
+    frames = [np.concatenate([bar, np.concatenate([c[i] for c in clips], axis=1)], axis=0) for i in range(n)]
+    out = OUT / "20261111-pinch_three_contacts.mp4"
+    imageio.mimwrite(str(out), frames, fps=25, codec="libx264", quality=7, macro_block_size=8)
+    Image.fromarray(frames[min(n - 1, 48)]).save(OUT / "20261111-pinch_three_contacts_poster.jpg", quality=88)
+    rows = {}
+    for x in (ROOT / "docs/experiments/20261001-hom_hand_brake/hand_brake.jsonl").read_text().splitlines():
+        r = json.loads(x)
+        if r.get("d_mm") == 15.0:
+            rows[r["spec"]] = {"N_start": round(r["N_start"], 2), "N_at_45": round(r["N_at_45"], 2),
+                               "N_at_80": round(r["N_at_80"], 2), "phi_end": round(r["phi_end"], 1),
+                               "phi_max": round(r["phi_max"], 1)}
+    print("wrote", out.relative_to(ROOT), f"{out.stat().st_size / 1e6:.2f} MB, {n} frames", flush=True)
+    return {"frames": n, "size": [w * len(panels), h + 40], "brake_d15": rows}
+
+
+def drake_hydro(E=2.5e6, F=3.0, mu=1.0):
+    """Drake's hydroelastic contact for the talk (owner, 2026-11-11: "an explanation of drake and its hydroelastic
+    model ... zoomed in on drake with some more clarity / visual focus/detail on how it actually works (drake) in hom").
+    The 10.55 mm fingertip sphere pressed with F onto the 12.5 mm screwdriver, the tool's axis along x, computed from the
+    law Drake uses for a compliant sphere, p = E d / R with d the depth below the sphere's surface: (a) the field in the
+    section through the tool's axis, (b) the contact surface (the tool's surface inside the fingertip) with the pressure
+    on it, (c) the patch seen through the tool with the friction arm r = int(rho p dA) / int(p dA)."""
+    from matplotlib.patches import Circle, Rectangle
+    R, rc = 10.55e-3, 6.25e-3
+    th = np.linspace(-0.9, 0.9, 721)                       # rad around the tool from its top
+    xs = np.linspace(-6e-3, 6e-3, 721)
+    TH, X = np.meshgrid(th, xs, indexing="ij")
+    Y, Z = rc * np.sin(TH), rc * np.cos(TH)
+    dA = rc * (th[1] - th[0]) * (xs[1] - xs[0])
+
+    def field(delta):
+        cz = rc + R - delta
+        d = R - np.sqrt(X ** 2 + Y ** 2 + (Z - cz) ** 2)
+        return np.where(d > 0, E * d / R, 0.0)
+    lo, hi = 1e-7, 2e-3
+    for _ in range(60):                                     # the approach at which the normal force is F
+        mid = 0.5 * (lo + hi)
+        Fz = float((field(mid) * np.cos(TH)).sum() * dA)
+        lo, hi = (mid, hi) if Fz < F else (lo, mid)
+    delta = 0.5 * (lo + hi)
+    P = field(delta)
+    rho = np.sqrt(X ** 2 + Y ** 2)
+    arm = float((P * rho).sum() / P.sum())
+    area = float((P > 0).sum() * dA)
+    style = {"font.family": "serif", "font.serif": ["Times New Roman", "DejaVu Serif"], "mathtext.fontset": "stix",
+             "font.size": 15}
+    with plt.rc_context(style):
+        fig, axs = plt.subplots(1, 3, figsize=(16.0, 5.4), gridspec_kw={"width_ratios": [1.0, 1.0, 1.0], "wspace": 0.22})
+        cz = rc + R - delta
+        # (a) the field in the fingertip, the section y = 0 through the tool's axis
+        ax = axs[0]
+        g = np.linspace(-R, R, 400)
+        GX, GZ = np.meshgrid(g, g)
+        rr = np.sqrt(GX ** 2 + GZ ** 2)
+        Pf = np.where(rr <= R, E * (R - rr) / R, np.nan)
+        ax.add_patch(Rectangle((-16, -rc * 1e3), 32, 2 * rc * 1e3, fc="#e5e7eb", ec="#4b5563", lw=1.4, zorder=1))
+        cs = ax.contourf(GX * 1e3, (GZ + cz) * 1e3, Pf / 1e6, levels=np.linspace(0, E / 1e6, 11), cmap="Blues",
+                         zorder=2)
+        ax.add_patch(Circle((0, cz * 1e3), R * 1e3, fill=False, ec="#1e3a8a", lw=1.6, zorder=3))
+        a0 = float(np.sqrt(max(R ** 2 - (R - delta) ** 2, 0.0)))
+        ax.plot([-a0 * 1e3, a0 * 1e3], [rc * 1e3, rc * 1e3], color=C_FORCE, lw=4.0, solid_capstyle="butt", zorder=4)
+        ax.text(9.5, -2.5, "tool", fontsize=15, color="#374151", ha="right")
+        ax.text(-R * 1e3 - 0.5, cz * 1e3 + R * 1e3 * 0.75, "fingertip", fontsize=15, color="#1e3a8a", ha="right")
+        ax.set_xlim(-17, 14)
+        ax.set_ylim(-8, cz * 1e3 + R * 1e3 + 1.5)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        cb = fig.colorbar(cs, ax=ax, fraction=0.05, pad=0.02, ticks=[0, E / 2e6, E / 1e6])
+        cb.set_label("field pressure (MPa)", fontsize=14)
+        cb.ax.tick_params(labelsize=13)
+        ax.set_title("(a) The fingertip's field:\n$p = E\\,d/R$, zero on its surface", fontsize=16)
+        # (b) the contact surface and its pressure, zoomed
+        ax = axs[1]
+        a = float(np.sqrt(max(R ** 2 - (R - delta) ** 2, 0.0)))
+        zz = np.linspace(-1, 1, 7)
+        sec = np.linspace(-1.25 * a, 1.25 * a, 400)
+        ax.add_patch(Rectangle((-8, -4), 16, 4 + rc * 1e3 - rc * 1e3, fc="#e5e7eb", ec="none"))
+        t_ = np.linspace(-np.pi, np.pi, 400)
+        ax.plot(R * 1e3 * np.cos(t_), cz * 1e3 + R * 1e3 * np.sin(t_), color="#1e3a8a", lw=1.6)
+        ax.axhline(rc * 1e3, color="#4b5563", lw=1.4)
+        pin = np.where(np.abs(sec) < a, E * ((R - np.sqrt(sec ** 2 + (rc - cz) ** 2)) / R), 0.0)
+        pin = np.maximum(pin, 0.0)
+        ax.plot(sec * 1e3, np.full_like(sec, rc * 1e3), color=C_FORCE, lw=4.0, solid_capstyle="butt",
+                alpha=np.nan if False else 1.0, zorder=3)
+        sc = 2.2 / max(pin.max(), 1.0)                          # mm of arrow per Pa
+        for x_ in np.linspace(-0.92 * a, 0.92 * a, 9):
+            pv = E * max(R - np.sqrt(x_ ** 2 + (rc - cz) ** 2), 0.0) / R
+            if pv > 0:
+                ax.annotate("", xy=(x_ * 1e3, rc * 1e3), xytext=(x_ * 1e3, rc * 1e3 + sc * pv * 1.0 + 0.05),
+                            arrowprops=dict(arrowstyle="-|>", color=C_FORCE, lw=1.6))
+        ax.plot(sec * 1e3, rc * 1e3 + sc * pin, color=C_FORCE, lw=1.2, ls=(0, (3, 2)))
+        ax.text(0, rc * 1e3 + sc * pin.max() + 0.35, f"peak {pin.max() / 1e6:.2f} MPa", ha="center", fontsize=14,
+                color=C_FORCE)
+        ax.text(0, rc * 1e3 - 1.15, "contact surface: the tool's\nsurface inside the fingertip", ha="center",
+                va="top", fontsize=14, color=C_FORCE)
+        ax.set_xlim(-1.6 * a * 1e3, 1.6 * a * 1e3)
+        ax.set_ylim(rc * 1e3 - 3.0, rc * 1e3 + sc * pin.max() + 1.4)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(f"(b) Section through the overlap,\n{delta * 1e6:.0f} \u00b5m deep at {F:g} N", fontsize=16)
+        # (c) the patch seen through the tool
+        ax = axs[2]
+        S_ = rc * TH
+        m = P > 0
+        ext = np.abs(X[m]).max() * 1.35
+        cs2 = ax.contourf(X * 1e3, S_ * 1e3, np.where(m, P / 1e6, np.nan), levels=10, cmap="Reds")
+        ax.add_patch(Circle((0, 0), arm * 1e3, fill=False, ec="k", lw=1.6, ls=(0, (4, 3))))
+        ax.text(arm * 1e3 * 0.72, arm * 1e3 * 0.72 + 0.25, r"$\bar r$", fontsize=17, ha="left")
+        ax.set_xlim(-ext * 1e3, ext * 1e3)
+        ax.set_ylim(-ext * 1e3, ext * 1e3)
+        ax.set_aspect("equal")
+        ax.set_xlabel("along the tool (mm)", fontsize=14)
+        ax.set_ylabel("around the tool (mm)", fontsize=14)
+        ax.tick_params(labelsize=13)
+        for sp_ in ("top", "right"):
+            ax.spines[sp_].set_visible(False)
+        ax.set_title("(c) The patch: $F = \\int p\\,dA$,\n$T \\leq \\mu \\int r\\,p\\,dA = \\mu F \\bar r$",
+                     fontsize=16)
+        ax.text(0.02, 0.02, f"area {area * 1e6:.1f} mm$^2$, $\\bar r$ = {arm * 1e3:.2f} mm", transform=ax.transAxes,
+                fontsize=14, va="bottom")
+        save(fig, "20261111-drake_hydro.png")
+    return {"E_Pa": E, "F_N": F, "mu": mu, "delta_um": round(delta * 1e6, 1), "patch_area_mm2": round(area * 1e6, 2),
+            "arm_mm": round(arm * 1e3, 3), "peak_MPa": round(float(P.max()) / 1e6, 3),
+            "T_max_mNm": round(mu * F * arm * 1e3, 2), "R_mm": R * 1e3, "tool_d_mm": 2e3 * rc}
+
+
 def gpu_rate():
     """Rollouts per second of the GPU grid of the press (timing rows)."""
     rows = [json.loads(x) for x in (ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25/"
@@ -755,7 +931,7 @@ def main():
     sfx = "_track" if VARIANT == "track" else ""
     jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
             "tuning": tuning_track if VARIANT == "track" else tuning, "compute": compute_cost,
-            "contact_force": contact_force,
+            "contact_force": contact_force, "pinch_film": pinch_film, "drake_hydro": drake_hydro,
             "layout_space": layout_space, "fp_views": fp_views}
     for k, fn in jobs.items():
         if not only or k in only:

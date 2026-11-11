@@ -294,6 +294,99 @@ def size_trend():
     return save(fig, "20261110-slide_size_trend.png"), slopes
 
 
+RL_RUNS = ROOT / "results/rl"
+
+
+def rl_run_times():
+    """Wall time of every PPO training run under results/rl (the lift and reorientation policies of 2026-05-27 to 10-11):
+    from each run's first TensorBoard event file (its name carries the start, in s since the epoch) to the last write of
+    its event files. Kept in figures.json (rl_runs), since results/ is not in git."""
+    import glob
+    import re as _re
+    w = []
+    for d in sorted(RL_RUNS.glob("*/")):
+        ev = glob.glob(str(d / "**/events.out.tfevents.*"), recursive=True)
+        if ev:
+            t0 = min(int(_re.search(r"tfevents\.(\d+)", e).group(1)) for e in ev)
+            w.append((max(Path(e).stat().st_mtime for e in ev) - t0) / 60.0)
+    w = np.array([x for x in w if 0.5 <= x <= 24 * 60])           # past a day: resumed or touched later
+    q = lambda p_: round(float(np.percentile(w, p_)), 1)           # noqa: E731
+    return {"runs": int(len(w)), "min_p10": q(10), "min_p25": q(25), "min_median": q(50), "min_p75": q(75),
+            "gpu_hours": round(float(w.sum()) / 60.0), "best_case_min": 10.0,
+            "source": "results/rl/*/tensorboard event files, 0.5 min to 24 h"}
+
+
+def cost_of_search():
+    """The time to CEM-refine grasp and HOM on every layout of the twist, the roll and the press (1,423 layouts x 768
+    rollouts, the workload of the compute chart, codesign_formulation_figures.py compute) on four simulators, and the time
+    to train one policy per layout instead (owner, 2026-11-11: "update the 'how long would the search take' plots to be
+    consistent with this timing chart"; "add an axis for RL training as well ... the ~10 minutes, at best, it would take
+    to train a policy would make evaluation really, really hard"). MuJoCo-Warp: the chart's estimate. One CPU core: the
+    CPU runner's time per rollout with every contact (score-levels page, Table 18: 3.31, 1.72 and 2.09 s). Drake: those
+    times the step-cost ratio on the hand, 2,082 / 106 us (contact overview, Table 1). Newton's SDF hydroelastic contact:
+    the MuJoCo-Warp time times the ratio of the two throughputs at 4,096 worlds (contact overview, Figure 12). RL: one PPO
+    policy per layout on the same GPU, at 10 min (best case) and at the median of our trainings (rl_run_times). Two
+    images: Drake alone, then every row."""
+    path = OUT / "20261110-figures.json"
+    fi = json.loads(path.read_text())
+    rec = fi["compute_track" if VARIANT == "track" else "compute"]
+    lay = rec["layouts"]
+    n_lay, n_roll = sum(lay.values()), rec["cem"]["rollouts"]
+    rl = rl_run_times() if RL_RUNS.exists() else fi["rl_runs"]
+    fi["rl_runs"] = rl
+    thr = json.loads((ROOT / "docs/experiments/20261103-hom_score_refine/compute/20261104-throughput.json").read_text())
+    cpu_roll = {t: float(thr["cpu"][t]["plant_p1"]["wall_s"]) for t in lay}
+    cpu = sum(lay[t] * 768 * cpu_roll[t] for t in lay)
+    mjw = float(rec["cem"]["s"])
+    import contact_overview_page as CO
+    load = (lambda name: [json.loads(x) for x in (Path(CO.GPU) / name).read_text().splitlines() if x.strip()])
+    curves = CO.gpu_curves(load("gpu_scaling.jsonl"), load("newton_scaling.jsonl"))
+    ratio = curves["mjw_pads1"][4096] / curves["newton_hydro_mc"][4096]
+    rows = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", cpu * 2082.0 / 106.0, "#6b7280"),
+            ("MuJoCo, 1 mm sphere pads,\none CPU core", cpu, "#f59e0b"),
+            ("Newton hydroelastic (SDF), one GPU\n(estimated from its throughput)", mjw * ratio, "#7a4fa6"),
+            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU", mjw, "#d97706"),
+            (f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
+             n_lay * 60.0 * rl["min_median"], "#0f766e"),
+            (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
+             "#14b8a6")]
+
+    def human(sec):
+        return (f"{sec / 86400 / 365:.1f} years" if sec > 400 * 86400 else f"{sec / 86400:.0f} days" if sec > 3 * 86400
+                else f"{sec / 3600:.0f} hours" if sec > 3 * 3600 else f"{sec / 60:.0f} minutes")
+    out = {}
+    for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", len(rows))):
+        fig, ax = plt.subplots(figsize=(13.0, 6.4))
+        for k, (lab, sec, col) in enumerate(rows):
+            y = len(rows) - 1 - k + (0.0 if k < 4 else -0.35)
+            vis = k < show
+            ax.barh(y, sec, color=col if vis else "none", height=0.58)
+            ax.text(sec * 1.25, y, human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
+            out[lab.split("\n")[0]] = round(sec)
+        ys = [len(rows) - 1 - k + (0.0 if k < 4 else -0.35) for k in range(len(rows))]
+        ax.set_yticks(ys)
+        ax.set_yticklabels([r[0] for r in rows], fontsize=14.5)
+        ax.axhline(1.33, color=LINE, lw=1.0, ls=(0, (4, 3)))
+        ax.set_xscale("log")
+        ax.set_xticks([3600, 86400, 30 * 86400, 365 * 86400])
+        ax.set_xticklabels(["1 hour", "1 day", "30 days", "1 year"], fontsize=14)
+        ax.set_xlim(3000, 5e8)
+        ax.set_ylim(-1.0, len(rows) - 0.45)
+        ax.set_title(f"Every layout of three tasks: {n_lay:,} layouts \u00d7 768 rollouts = {n_roll / 1e6:.2f} M "
+                     "rollouts,\nor one trained policy per layout", loc="left", fontsize=17)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color(LINE)
+        ax.grid(axis="x", color="#eef0f3")
+        save(fig, name)
+    res = {"rows_s": out, "layouts": n_lay, "rollouts": n_roll, "cpu_s_per_rollout": cpu_roll,
+           "newton_ratio": round(float(ratio), 3), "drake_ratio": round(2082.0 / 106.0, 2)}
+    fi["cost_search" + ("_track" if VARIANT == "track" else "")] = res
+    path.write_text(json.dumps(fi, indent=1, default=float))
+    return res
+
+
 def cost_per_landscape():
     """Time to simulate one landscape (625 hands x 16 grasps x 3 seeds = 30,000 rollouts): Drake estimated from its step
     cost on the hand, the pads on one CPU core and in GPU batches as measured, and Newton's SDF hydroelastic contact on the
@@ -427,6 +520,11 @@ def main_track():
 
 
 def main():
+    if "cost" in sys.argv[1:]:          # only the search-time charts (owner, 11-11), for the deck or with --track for v2
+        global VARIANT
+        VARIANT = "track" if "--track" in sys.argv else ""
+        print(json.dumps(cost_of_search(), default=float), flush=True)
+        return 0
     if "--track" in sys.argv:
         return main_track()
     OUT.mkdir(parents=True, exist_ok=True)

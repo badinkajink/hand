@@ -672,7 +672,7 @@
   "val_report": "docs/experiments/20261103-hom_score_refine/rows/sv25_track/20261111-tuning_levels.json"
  },
  "compute": {
-  "made": "2026-11-11 14:04",
+  "made": "2026-11-11 14:13",
   "variant": "deck",
   "tasks": [
    "twist",
@@ -684,6 +684,26 @@
    "twist": 527,
    "roll": 527,
    "press": 369
+  },
+  "parts": {
+   "one": {
+    "build": 0.00277,
+    "physics": 0.03335,
+    "scoring": 0.00435,
+    "other": 0.0
+   },
+   "s1": {
+    "build": 223.3,
+    "physics": 1915.5,
+    "scoring": 219.8,
+    "other": 0.0
+   },
+   "cem": {
+    "build": 3345.3,
+    "physics": 31698.9,
+    "scoring": 3510.4,
+    "other": 2376.2
+   }
   },
   "one": {
    "task": "twist",
@@ -727,7 +747,7 @@
   "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER"
  },
  "compute_track": {
-  "made": "2026-11-11 14:04",
+  "made": "2026-11-11 14:14",
   "variant": "track",
   "tasks": [
    "twist",
@@ -739,6 +759,26 @@
    "twist": 527,
    "roll": 527,
    "press": 369
+  },
+  "parts": {
+   "one": {
+    "build": 0.00266,
+    "physics": 0.03327,
+    "scoring": 0.02253,
+    "other": 0.0
+   },
+   "s1": {
+    "build": 205.6,
+    "physics": 1921.0,
+    "scoring": 906.3,
+    "other": 0.0
+   },
+   "cem": {
+    "build": 4128.0,
+    "physics": 33350.6,
+    "scoring": 5332.5,
+    "other": 3389.9
+   }
   },
   "one": {
    "task": "twist",
@@ -901,5 +941,130 @@
    "pinpush_f_pinch",
    "pinpush_f_drive"
   ]
+ },
+ "rl_runs": {
+  "runs": 595,
+  "min_p10": 3.6,
+  "min_p25": 8.7,
+  "min_median": 35.7,
+  "min_p75": 52.8,
+  "gpu_hours": 354,
+  "best_case_min": 10.0,
+  "source": "results/rl/*/tensorboard event files, 0.5 min to 24 h"
+ },
+ "cost_search": {
+  "rows_s": {
+   "Drake hydroelastic, one CPU core": 51547728,
+   "MuJoCo, 1 mm sphere pads,": 2624428,
+   "Newton hydroelastic (SDF), one GPU": 69970,
+   "MuJoCo-Warp, 1 mm sphere pads,": 40931,
+   "RL: a policy per layout, 36 min each": 3048066,
+   "RL: a policy per layout,": 853800
+  },
+  "layouts": 1423,
+  "rollouts": 1092864,
+  "cpu_s_per_rollout": {
+   "twist": 3.306,
+   "roll": 1.717,
+   "press": 2.087
+  },
+  "newton_ratio": 1.709,
+  "drake_ratio": 19.64
+ },
+ "cost_search_track": {
+  "rows_s": {
+   "Drake hydroelastic, one CPU core": 51547728,
+   "MuJoCo, 1 mm sphere pads,": 2624428,
+   "Newton hydroelastic (SDF), one GPU": 78979,
+   "MuJoCo-Warp, 1 mm sphere pads,": 46201,
+   "RL: a policy per layout, 36 min each": 3048066,
+   "RL: a policy per layout,": 853800
+  },
+  "layouts": 1423,
+  "rollouts": 1092864,
+  "cpu_s_per_rollout": {
+   "twist": 3.306,
+   "roll": 1.717,
+   "press": 2.087
+  },
+  "newton_ratio": 1.709,
+  "drake_ratio": 19.64
+ },
+ "pinch_film": {
+  "frames": 140,
+  "size": [
+   1200,
+   340
+  ],
+  "brake_d15": {
+   "drake:point": {
+    "N_start": 3.54,
+    "N_at_45": 3.4,
+    "N_at_80": 3.27,
+    "phi_end": 153.5,
+    "phi_max": 178.9
+   },
+   "drake:hydro:rt0.01": {
+    "N_start": 3.64,
+    "N_at_45": 1.26,
+    "N_at_80": 0.4,
+    "phi_end": 87.5,
+    "phi_max": 87.5
+   },
+   "drake:hydro:rt0.02": {
+    "N_start": 3.59,
+    "N_at_45": 1.28,
+    "N_at_80": 0.43,
+    "phi_end": 87.4,
+    "phi_max": 87.4
+   },
+   "drake:hydro": {
+    "N_start": 3.6,
+    "N_at_45": 1.28,
+    "N_at_80": 1.19,
+    "phi_end": 92.5,
+    "phi_max": 111.7
+   },
+   "mj:point3": {
+    "N_start": 3.68,
+    "N_at_45": 3.55,
+    "N_at_80": 3.51,
+    "phi_end": 126.9,
+    "phi_max": 173.6
+   },
+   "mj:point4s": {
+    "N_start": 3.67,
+    "N_at_45": 1.28,
+    "N_at_80": 0.41,
+    "phi_end": 86.5,
+    "phi_max": 86.5
+   },
+   "mj:spheres:s1:rs0.75:tr0.02": {
+    "N_start": 3.57,
+    "N_at_45": 1.33,
+    "N_at_80": 0.45,
+    "phi_end": 88.2,
+    "phi_max": 88.2
+   },
+   "mj:spheres:s1:rs0.75:tr0.1": {
+    "N_start": 3.36,
+    "N_at_45": 1.46,
+    "N_at_80": 1.29,
+    "phi_end": 88.5,
+    "phi_max": 92.6
+   }
+  }
+ },
+ "drake_hydro": {
+  "E_Pa": 2500000.0,
+  "F_N": 3.0,
+  "mu": 1.0,
+  "delta_um": 806.5,
+  "patch_area_mm2": 32.3,
+  "arm_mm": 1.767,
+  "peak_MPa": 0.191,
+  "T_max_mNm": 5.3,
+  "R_mm": 10.55,
+  "tool_d_mm": 12.5
  }
 }
