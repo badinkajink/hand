@@ -28,6 +28,20 @@ commit both repositories. Asked the owner (10:04): validation at seeds 20-24 onl
 random layouts per task and the shared set under J (~2.5 h), for the notes of slide 'question' (still the earlier
 score: gains 0.05-0.20, Spearman 0.56-0.75, shared set 0.19 of 0.20). Search-seed numbers under J: gain 0.17/0.16/0.33,
 Spearman 0.54/0.18/-0.21 over the 30 best, best layout moves on twist, roll and press.
+State 11:15: owner said yes to the full set (10:35): logs/20261111-talk_v2/full_set.sh (random 30 layouts, pin-push, shared
+HOM, rescored grids, validation; ~5 h GPU) waits for after_val_levels.sh. Every chain script now continues when its
+upstream script ends without its done line (wait_upstream.sh). Both decks and the formulation page use the HOM paper's
+terms since hand 136239972 / contact 77dfb59 (memory feedback_hom_paper_language). Size study: 15 of 31 runs at 11:13.
+State 12:57: size study done 12:54 (31 runs, rc 0); size trend drawn (slopes twist 1.74, roll 0.37, pin-push 1.13,
+press 1.29) and v2 rebuilt with 1 pending (the tuning note, after validation); val_levels.sh validated twist and roll by
+12:55, press next, then after_val_levels.sh and full_set.sh (~5 h). Side task done: sphere-pad implementation page
+(hand d5f114a2e, 12efa7226, c7599611d).
+State 11-12 11:00: full set done 11-11 16:37 (30 steps rc 0, v2 with 0 pending); its rows committed 11-12. The
+practice talk ran 11-11 16:00 (JCH). Feedback, the transcribed handwritten notes and suggested edits to the owner's
+slides: contact talks/20261117-hand_design/20261112-talk_feedback.md. v2 restructured after it (contact 6c9669e): one
+central film (abstract twist), contributions and the GPU result in slides 10-12, a four-part co-design diagram, HOM math
+and the old intro in the backup; 66 main slides. v1 unchanged. Side task 11-11: slide 85, GP and MLP error against
+training holds (hand ae9366bee, contact 8253d08).
 Items (v2): film_three_hands under J (A = (70, 65), B = (70, 110), C = (125, 55)); press landscape and four-task
 landscapes under J; EA anatomy on the J press landscape; covers K*(alpha) from the J grids; size trend and thesis slopes
 from queue 2; grasp candidates of the new hand A with J scores; tuning chart from queue 1; slide text: how the 16 grasps
