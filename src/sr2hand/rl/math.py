@@ -61,3 +61,10 @@ def quat_to_mat(q: torch.Tensor) -> torch.Tensor:
     return torch.stack([1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w),
                         2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w),
                         2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)], -1).reshape(*q.shape[:-1], 3, 3)
+
+
+def quat_from_axis_angle(axis: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:
+    """Unit wxyz quaternions (..., 4) of rotations by `angle` (...) about unit axes `axis` (..., 3); the torch twin of
+    sr2hand.geometry.rotations.quat_from_axis_angle (checked against it, 2026-11-12)."""
+    h = 0.5 * angle
+    return torch.cat([torch.cos(h)[..., None], torch.sin(h)[..., None] * axis], dim=-1)

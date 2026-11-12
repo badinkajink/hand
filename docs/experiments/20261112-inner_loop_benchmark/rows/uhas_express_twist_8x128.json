@@ -1,0 +1,19 @@
+{
+ "task": "twist",
+ "worlds": 64,
+ "held_at_handover": 52,
+ "iters": 8,
+ "pop": 128,
+ "contact_err_mm": {
+  "median": 8.039480209350586,
+  "p90": 11.868401527404785,
+  "max": 17.63278579711914
+ },
+ "joint_err_deg_median": {
+  "yaw": 2.0760350227355957,
+  "mcp": 11.969731330871582,
+  "pip": 24.05257797241211
+ },
+ "share_within_2mm": 0.0,
+ "share_within_5mm": 0.23076923076923078
+}

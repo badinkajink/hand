@@ -513,7 +513,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
 | `tracking_objects_print.py` | Print files of the tracked objects of the object seating and tracking plan (docs/notes/20261105-object_seating_and_ tracking/): the 25 mm x 100 mm cylinder and the 40 mm sphere of the HOM tasks, each with its hexagonal t |
 
-## hom/ (91)
+## hom/ (97)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -591,6 +591,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_search6d.py` | Six search methods on the SR2 hand's six-coordinate layouts under HOM, run live on the GPU evaluator (post-reset step 4; the search methods page, 20261109-hom_search_methods.html, compared them by replay on the 2-D latti |
 | `hom_search_compare.py` | Particle swarm optimization against the evolutionary algorithm of Yang et al., random search, a Sobol sequence and the FP paper's RRT, on the stored full grids of the SR2 layout study (owner, 2026-11-09: "see if particle |
 | `hom_search_methods_page.py` | Builds docs/experiments/20261029-foundational_pose_review/20261109-hom_search_methods.html: the search methods of the SR2 layout study explained from first principles (the evolutionary algorithm of Yang et al., particle  |
+| `hom_search_qd.py` | MAP-Elites, CMA-ME, CMA-ES and Bayesian optimization against the EA of Yang et al. |
 | `hom_stiffness_page.py` | Builds docs/experiments/20261029-foundational_pose_review/20261110-hom_servo_stiffness_mujoco4.html: the SR2 hand's HOM landscapes at the default objects on the SCS0009 stiffness measured on 2026-11-06 (0.55 N m/rad, the |
 | `hom_table_check.py` | The CPU runner with a table under the object until the lift, the full version of the ground check (owner, 2026-10-30: "doing these tasks with an initial grasp, raise, and then manipulate"; scripts/hom/hom_ground.py is th |
 | `hom_task_conflict.py` | Tasks whose best finger layouts differ: one layout for all of them (a generalist), or a change of layout between tasks (owner, 2026-11-03 20:3x: "how can we accommodate tasks with conflicting morphology objectives? |
@@ -608,8 +609,13 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_turn3.py` | The three-finger reorientation of the bench, driven by the relative contact-velocity controller of arXiv 2609.25619 (Wang, Oh, Pollard) instead of the deployed open-loop joint trajectories. |
 | `hom_turn3_films.py` | Films of the three-finger turn on the fitted plant: the deployed open-loop plan, the relative contact-velocity (HOM) controller with its governor, and without it. |
 | `hom_turn_rl_contact_page.py` | Build docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html. |
+| `inner_loop_benchmark_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html: published inner-loop evaluators against HOM on the SR2 layout lattice, each judged by the J of the hand it would pick and by its w |
+| `karma_sr2.py` | KaRMA (Peticco and Agrawal, arXiv 2605.15548, 2026) on the SR2 hand's layout lattice, the kinematic inner-loop evaluator of the inner-loop benchmark (owner, 2026-11-12: "evaluate some of the other inner loop controls we  |
 | `scale_turn_cad_v1_page.py` | Page: the scale-turn study of 13-14 October repeated on the CAD-model hand (2026-10-14). |
 | `scale_turn_controllers_page.py` | Page: in-hand turn of cylinders on the scale-study layouts under HOM control and sampling MPC (2026-10-13). |
+| `uhas_sr2.py` | UHAS (Casas et al., arXiv 2607.03570, 2026) trained and evaluated on the SR2 hand's layouts in MuJoCo-Warp with the sphere-pad fingertips: the learned inner-loop controller of the inner-loop benchmark (owner, 2026-11-12: |
+| `uhas_sr2_cik.py` | The sphere controller of UHAS (Casas et al., "Cross-Embodiment Robot Manipulation via a Unified Hand Action Space", arXiv 2607.03570, 2026; code in docs/uhas/UHAS_sim) for the SR2 hand's layouts, in torch and batched ove |
+| `uhas_sr2_film.py` | A film of HOM and of the trained UHAS policy side by side on one layout, grasp and seed of the inner-loop benchmark (scripts/hom/uhas_sr2.py), for its page. |
 
 ## mechanisms/ (37)
 
