@@ -36,6 +36,12 @@ BLOCK = TG.HexBlock()          # 30 mm across flats, 17 mm tall, 13 mm tag36h11
 BLOCK_G = 3.0                  # g: hollow, 0.8 mm walls (plan)
 MASS_G = 25.0                  # the HOM scenes' object mass
 IDS = {"cylinder": (10, 11, 12, 13, 14, 15), "sphere": (16, 17, 18, 19, 20, 21)}
+END_IDS = (22, 23)              # the cylinder's end faces, +z_O and -z_O (2026-11-12)
+# The objects as printed on 2026-11-12 (scripts/hardware/tracking_objects_print.py): the stems put the block's top 15 mm
+# below the lowest finger point of the plan's five layouts and the measured servo's five best per task
+# (docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db.json); radii are the taped or bare surfaces.
+OBJECTS = {"cylinder": dict(r_mm=12.5, stem_mm=35.6, length_mm=100.0, tape_mm=0.8),
+           "sphere": dict(r_mm=20.0, stem_mm=25.7, tape_mm=0.0)}
 POCKET_DEPTH = 4.0             # mm: the seat's pocket around the block's lower end
 POCKET_CLEAR = 0.3             # mm per side
 POCKET_WALL = 3.0              # mm
@@ -64,6 +70,18 @@ def plate_maps():
 def block_map(shape):
     """The tag map of the shape's block in B (mm)."""
     return TG.HexBlock(ids=IDS[shape]).tag_map()
+
+
+def object_map(shape) -> TG.TagMap:
+    """Every tag of the printed object in its HOM frame O (mm): the block's six from B through T_OB at the printed stem,
+    and on the cylinder the two end-face tags, upright with +y_O up (right +x_O on the +z_O end, -x_O on the -z_O end)."""
+    o = OBJECTS[shape]
+    out = block_map(shape).transformed(T_OB(o["r_mm"], o["stem_mm"]))
+    if shape == "cylinder":
+        h = o["length_mm"] / 2
+        out.add(END_IDS[0], (0.0, 0.0, h), (1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
+        out.add(END_IDS[1], (0.0, 0.0, -h), (-1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
+    return out
 
 
 def block_centre_O(r_mm, stem_mm):

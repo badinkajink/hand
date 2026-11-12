@@ -94,12 +94,24 @@ command (section "Seat and the arm's lift").
 
 | | Cylinder (pin-push, press) | Sphere (roll, twist) |
 |---|---|---|
-| Body | 25 mm × 100 mm, axis along y_P | 40 mm |
-| Stem | 4 mm, 35.6 mm long, from the middle of the underside | 4 mm, 25.2 mm long, from the lower pole |
-| Top of the tag block | 15 mm below the lowest finger point of the five layouts' grasps | same |
-| Mass | 25 g with stem and block, by infill; no ballast | same |
+| Body | 25 mm × 100 mm, axis along y_P; printed at 23.4 mm under 0.8 mm grip tape | 40 mm, bare |
+| Stem | 4 mm, 35.6 mm long, from the middle of the underside | 4 mm, 25.7 mm long, from the lower pole |
+| Top of the tag block | 15 mm below the lowest finger point of the five layouts' grasps and the measured servo's five best per task | same |
+| Tags | block ids 10 to 15; end faces 22 (+z_O) and 23 (−z_O), 13 mm | block ids 16 to 21 |
+| Mass | 25 g with stem, block and tape, by infill; no ballast | same |
 | Centre of mass | 7.5 mm below O | 7.0 mm below O |
 | Seat interface | the block's flat underside | same |
+
+The objects as printed on 2026-11-12 are in `assets/tracking/20261112-objects/` (`scripts/hardware/tracking_objects_print.py`;
+owner: stems for both layout sets, about 0.8 mm grip tape on the cylinder, the sphere bare and at the generalist and the
+pin-push specialist only). Each block is printed in one piece with its stem, upright, so the stem lies on the block's
+axis; the stem ends in a 45° cone, a flat seat 10 mm across and a 2.4 × 5 mm key, glued into a matching flat and slot
+on the object, and the CAD assembly shares no volume. The cylinder is printed standing, so it comes out round; its two
+end tags enter a bundle adjustment with the block's, which measures the cylinder against its block. The sphere is two
+hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The
+measured servo's best layouts (grids of 2026-11-10, press, roll and twist) reach 18.5 mm below the cylinder and 10.7 mm
+below the sphere (`rows/stem_sv25_sv55db.json`), so the cylinder's stem stays at 35.6 mm and the sphere's grows by
+0.5 mm.
 
 The sizes, the 25 g and the axis direction are those of the HOM scenes (`scripts/hom/hand_object_scale_sim.py:70`,
 `hom_tasks.py:77-81`). At the open and touch poses of the five layouts' S3 grasps the fingers reach up to 20.6 mm below
@@ -113,7 +125,7 @@ The tag block is a hexagonal prism, 30 mm across flats and 17 mm tall, hollow wi
 its six side faces is 17.3 mm wide and bears a 13 mm tag36h11, the largest whose one-cell white border fits the face.
 The tags are printed into the faces in matte black and white PLA on the P1S with the AMS, flush with the face, so
 their geometry follows the CAD. Laser-printed matte labels are the fallback. The lower face is flat. Each body has its
-own tag IDs: hand 6 to 8, seat 9, cylinder 10 to 15, sphere 16 to 21. Each tag map is refined by a bundle adjustment
+own tag IDs: hand 6 to 8, seat 9, cylinder 10 to 15 and its end faces 22 and 23, sphere 16 to 21. Each tag map is refined by a bundle adjustment
 over about 40 views (step 3).
 
 The tags are placed below the fingers because the pads cover the object's sides. On the 40 mm sphere, tags printed on
@@ -304,11 +316,12 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 |---|---|---|
 | Tag test plate | session, printed | step 1; STLs in `assets/tracking/20261107-tag_prints/` (2026-11-07) |
 | Tag blocks: cylinder, sphere, spare | session, printed | P1S with AMS, matte black and white PLA; the step-3 block (ids 10-15, 4.2 mm bore) in the same folder |
-| Cylinder and sphere | session, printed | infill for 25 g; stem and block in one piece with the lower half |
+| Cylinder and sphere | session, printed | `assets/tracking/20261112-objects/` (2026-11-12): blocks with their stems, the cylinder, the sphere's hemispheres and dowels; infill for 25 g |
+| ChArUco board | session, printed | `assets/tracking/20261112-charuco_board/` (2026-11-12): 7 × 5 squares of 21 mm, for each colour camera's lens and the hand-eye calibration |
 | Flat seat on a pedestal | session, printed | fixed to the table under the block |
 | Turntable adapter and 20° wedge | session, printed | step 3 |
 | Catch tray around the seat | session, printed | |
-| Hand tag mounts, two | owner | positions from step 2 |
+| Clip for the ChArUco board on the hand | session, printed | replaces the two hand tag mounts (owner, 2026-11-12: one board for both calibrations) |
 | Camera and light mounts | owner | fixed to the table |
 | USB 3 cable and port for the second D435 | bought if needed | |
 | Two LED panels | bought | |
@@ -319,11 +332,14 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 1. Contact surface. The HOM results use friction 1.0, which stands for grip tape on the bench tools. Bare PLA gives
    0.37 to 0.44 against the pads, and at 0.4 the twist's median best-of-set score falls from 0.91 to 0.08 in
    simulation. Recommended: grip tape or a rubber coating on the contact surfaces, measured in step 4. The tags are on
-   the block, so the surface can be covered entirely.
+   the block, so the surface can be covered entirely. Decided 2026-11-12: grip tape of about 0.8 mm on the cylinder,
+   the sphere bare for now.
 2. The sphere's tags at the roll, press and twist specialists' layouts, where the stem touches a finger: tags on the
-   sphere's surface, or a sphere series at the generalist and the pin-push specialist only.
+   sphere's surface, or a sphere series at the generalist and the pin-push specialist only. Decided 2026-11-12: the stem,
+   at those two layouts.
 3. Hand tag mounts: two 40 mm tags on static parts of the hand, facing the cameras at 0° and 260°. They check the arm's
-   route to $T_{CP}$ and give the frame age.
+   route to $T_{CP}$ and give the frame age. Decided 2026-11-12: one ChArUco board, moved in front of each camera for
+   its lens and then clipped to the hand for the hand-eye poses.
 4. Camera host: corvus, which already has a D435, unless the tracker delays the servo or board logs there. Otherwise a
    second computer synchronised to corvus by chrony.
 5. Object pose for the HOM controller: the tracker, as in the "sense" variant, is recommended first. The tactile and

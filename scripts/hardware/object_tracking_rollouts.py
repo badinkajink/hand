@@ -63,6 +63,10 @@ LAYOUTS = {(70.0, 110.0): "generalist", (100.0, 70.0): "twist", (85.0, 170.0): "
 TASKS = ("pinpush", "press", "roll", "twist")
 SHAPE = {t: ("sphere" if R.POSE[t] == "tripod" else "cylinder") for t in TASKS}
 SEEDS = (20, 21, 22, 23, 24)
+# The measured SCS0009 (post-reset step 1, 2026-11-10: kp 0.55 N m/rad and the 0.59 deg dead band) reorders the layouts;
+# its grids (press, roll, twist; no pin-push) give the second set the stems must clear (owner, 2026-11-12: "Both sets").
+GRID_SV55DB = ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv55db"
+GRID_TOP = 5                    # layouts per task by tracking score
 BLOCK_BELOW_TIP = 15.0          # mm: the block's top below the lowest finger point at the grasp (plan)
 CLEAR_RANGE = 0.010             # m: the added geoms' margin and gap
 
@@ -77,6 +81,33 @@ def picks():
             L_ = lays[xy]
             p = p3[L_["call"]]
             out.append((task, xy, role, L_["call"], L_["d"], p["v"], p["prm"]))
+    return out
+
+
+def grid_picks(rows_dir=GRID_SV55DB, top=GRID_TOP):
+    """[(task, None, role, call, d6, v, None)] of a grid's best layouts: per task with grid rows, the `top` layouts by
+    mean tracking score over seeds (hom_landscape.track_score), each with its best grasp, whose vector comes from the
+    toy's pose rows of that object size (fp_sr2_toy.size_name, the grid's layouts `grid2dff`)."""
+    out = []
+    for task in TASKS:
+        p = rows_dir / f"{task}_d{R.TASKS[task]:g}.jsonl"
+        if not p.exists():
+            continue
+        acc = {}
+        for line in p.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                acc.setdefault((int(r["call"]), int(r.get("grasp", 0))), []).append(L.track_score(task, r))
+        best = {}
+        for (call, g), sc in acc.items():
+            if call not in best or np.mean(sc) > best[call][0]:
+                best[call] = (float(np.mean(sc)), g)
+        toy_path = HG.ROWS / f"{FP.size_name('grid2dff', SHAPE[task], R.TASKS[task])}.jsonl"
+        toy = {int(r["call"]): r for r in (json.loads(x) for x in toy_path.read_text().splitlines() if x.strip())}
+        for k, (call, (score, g)) in enumerate(sorted(best.items(), key=lambda kv: -kv[1][0])[:top]):
+            rec = toy[call]["fp"][HG.POSE[task]]
+            v = (rec.get("grasps") or [rec])[g]["v"]
+            out.append((task, None, f"{rows_dir.name} #{k + 1}, tracking {score:.2f}", call, toy[call]["d"], v, None))
     return out
 
 
@@ -126,15 +157,19 @@ def cmd_stem(a):
     """The lowest finger point below the object's lowest point at each pick's open and touch poses; the stem of each
     shape puts the block's top BLOCK_BELOW_TIP below the lowest over the five layouts and the shape's two tasks."""
     import mujoco
-    res = {"rows": [], "stem_mm": {}}
-    for task, xy, role, call, d6, v, prm in picks():
+    res = {"rows": [], "stem_mm": {}, "sets": ["the plan's five layouts (sv25 S3 picks)"]}
+    todo = picks()
+    if a.with_sv55db:
+        todo += grid_picks()
+        res["sets"].append(f"{GRID_SV55DB.name}: top {GRID_TOP} per task by tracking score")
+    for task, xy, role, call, d6, v, prm in todo:
         setup, scene, bm, q_open, m_pt = prepare(task, d6, v)
         q_open2, q_touch = T.open_pose(setup, m_pt)
         d = mujoco.MjData(m_pt)
         tb = m_pt.body(S.OBJ).id
         qa = m_pt.jnt_qposadr[m_pt.body_jntadr[tb]]
         sel = finger_geoms(m_pt) & ((m_pt.geom_contype != 0) | (m_pt.geom_conaffinity != 0) | (m_pt.geom_group <= 2))
-        row = {"task": task, "xy": xy, "role": role, "call": call}
+        row = {"task": task, "xy": xy, "role": role, "call": call, "d6": list(map(float, d6))}
         for name, q in (("open", q_open), ("touch", q_touch)):
             d.qpos[qa:qa + 7] = [0.0, 0.0, S.Z_OBJ, *setup["quat"]]
             for f in HG.FINGERS:
@@ -150,8 +185,8 @@ def cmd_stem(a):
                     if SHAPE[r["task"]] == shape)
         res["stem_mm"][shape] = round(max(0.0, worst) + BLOCK_BELOW_TIP, 1)
     ROWS.mkdir(parents=True, exist_ok=True)
-    (ROWS / "stem.json").write_text(json.dumps(res, indent=1))
-    print("stem", res["stem_mm"])
+    (ROWS / a.out).write_text(json.dumps(res, indent=1))
+    print("stem", res["stem_mm"], "->", ROWS / a.out)
     return 0
 
 
@@ -397,7 +432,9 @@ def cmd_run(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("stem")
+    p = sub.add_parser("stem")
+    p.add_argument("--with-sv55db", action="store_true", help="also the measured servo's best layouts (GRID_SV55DB)")
+    p.add_argument("--out", default="stem.json")
     p = sub.add_parser("run")
     p.add_argument("--configs", nargs="+", default=["base", "built"])
     p.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))

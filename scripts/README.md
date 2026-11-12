@@ -456,7 +456,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (48)
+## hardware/ (49)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -510,6 +510,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
+| `tracking_objects_print.py` | Print files of the tracked objects of the object seating and tracking plan (docs/notes/20261105-object_seating_and_ tracking/): the 25 mm x 100 mm cylinder and the 40 mm sphere of the HOM tasks, each with its hexagonal t |
 
 ## hom/ (91)
 

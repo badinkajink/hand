@@ -355,7 +355,8 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
     """A Bambu Studio project of two-colour parts through the command line. Each item {name, white, black, place} is
     assembled from its white and black STLs as one object with two parts, on filaments FILAMENT["white"] and
     FILAMENT["black"], its white body centred at `place` (mm on the bed); the prime tower goes to `tower`. The project is
-    sliced once so that its G-code can be checked (the owner slices again in the GUI). Returns the slice's numbers and
+    sliced once so that its G-code can be checked (the owner slices again in the GUI); an item whose black is None is a
+    part in white only. Returns the slice's numbers and
     the problems found: the P1S start sequence, temperatures, filaments loaded, each black part's offset from its white
     part against the STLs, every printed move on the bed and the prime tower clear of every part."""
     import re
@@ -376,7 +377,7 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
         fils[-1].write_text(json.dumps(DF.bbl_preset("filament", P1S["filament"], {"filament_colour": [col]}), indent=1))
     objs = [{"path": str(it[colour]), "count": 1, "filaments": [FILAMENT[colour]], "assemble_index": [k],
              "pos_x": [it["place"][0]], "pos_y": [it["place"][1]], "pos_z": [0.0]}
-            for k, it in enumerate(items, 1) for colour in ("white", "black")]
+            for k, it in enumerate(items, 1) for colour in ("white", "black") if it.get(colour) is not None]
     (work / "assemble.json").write_text(json.dumps(
         {"plates": [{"plate_name": plate_name, "need_arrange": False, "objects": objs}]}, indent=1))
     # --export-3mf takes a bare name: the command line joins it to --outputdir
@@ -403,6 +404,10 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
     placed = {f: (np.array(m.split(), float).reshape(4, 4)[:3, 3], int(e)) for m, f, e in parts}
     offsets = {}
     for it in items:
+        if it.get("black") is None:                     # a part in white only
+            if placed[Path(it["white"]).name][1] != FILAMENT["white"]:
+                problems.append(f"{it['name']}: filament {placed[Path(it['white']).name][1]}")
+            continue
         t = {c: placed[Path(it[c]).name] for c in ("white", "black")}
         ctr = {c: trimesh.load(it[c], force="mesh").bounds.mean(0) for c in ("white", "black")}
         off = (t["black"][0] - t["white"][0]) - (ctr["black"] - ctr["white"])
