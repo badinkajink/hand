@@ -1,0 +1,106 @@
+{
+ "what": "mount of the ChArUco board on the camera arm's fork",
+ "script": "scripts/hardware/charuco_board_mount_print.py",
+ "notch_P_mm": [
+  [
+   -170.06,
+   96.8
+  ],
+  [
+   -149.66,
+   117.2
+  ]
+ ],
+ "arm_top_z_P_mm": 75.9,
+ "hole_P_mm": [
+  -160.06,
+  126.8
+ ],
+ "solids_checked": 121,
+ "solids_not_manifold": [],
+ "overlap_with_arm_mm3": 0.0,
+ "gap_to_arm_mm": 0.0,
+ "mount": {
+  "overlap_mm3": 0.0,
+  "nearest": [
+   {
+    "solid": 2,
+    "label": "Part 1",
+    "gap_mm": 21.43
+   },
+   {
+    "solid": 1,
+    "label": "Part 003",
+    "gap_mm": 24.08
+   },
+   {
+    "solid": 45,
+    "label": "Part 046",
+    "gap_mm": 29.35
+   }
+  ]
+ },
+ "board facing -x_P": {
+  "overlap_mm3": 0.0,
+  "nearest": [
+   {
+    "solid": 44,
+    "label": "Part 045",
+    "gap_mm": 34.5
+   },
+   {
+    "solid": 47,
+    "label": "Part 048",
+    "gap_mm": 34.62
+   },
+   {
+    "solid": 1,
+    "label": "Part 003",
+    "gap_mm": 53.47
+   }
+  ]
+ },
+ "board facing -y_P": {
+  "overlap_mm3": 0.0,
+  "nearest": [
+   {
+    "solid": 2,
+    "label": "Part 1",
+    "gap_mm": 16.0
+   },
+   {
+    "solid": 45,
+    "label": "Part 046",
+    "gap_mm": 17.69
+   },
+   {
+    "solid": 48,
+    "label": "Part 049",
+    "gap_mm": 18.5
+   }
+  ]
+ },
+ "board_with_arm_gap_mm": {
+  "-x": 16.0,
+  "-y": 6.0
+ },
+ "stl": {
+  "file": "assets/tracking/20261112-charuco_board/20261112-charuco_board_mount_white.stl",
+  "watertight": true,
+  "triangles": 864,
+  "bounds_mm": [
+   [
+    -176.86,
+    -133.8,
+    0.0
+   ],
+   [
+    -142.86,
+    -97.0,
+    46.0
+   ]
+  ],
+  "volume_mm3": 23073.5
+ },
+ "ok": true
+}

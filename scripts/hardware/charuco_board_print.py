@@ -8,7 +8,8 @@ black squares meet, so the black filament's spread on the tag block (0.16 mm per
 
 The pattern comes from OpenCV once (`layout`, written to src/sr2hand/tracking/charuco_7x5_5x5_100.json). `build` makes
 the white plate and its black cells in one frame with manifold3d, face up on z = 0: the board in an 8 mm white margin,
-163 x 121 x 4 mm, the black 0.6 mm deep, four M3 clearance holes 4 mm in from the corners. `check` draws the black
+163 x 121 x 4 mm, the black 0.6 mm deep, M3 clearance holes 4 mm in from the corners and a pair 12 mm apart at the
+middle of the top and bottom edges, by which the hand mount (charuco_board_mount_print.py) holds it. `check` draws the black
 body's top faces at 10 px/mm and runs OpenCV's ChArUco detector on the drawing and on OpenCV's own drawing of the board: all
 24 corners, with their ids, must agree. `bambu` writes the Bambu Studio project, the white on filament 2 and the black on filament 3.
 
@@ -43,6 +44,7 @@ NX, NY, SQUARE, MARKER, DICT = 7, 5, 21.0, 14.0, "DICT_5X5_100"
 LAYOUT_PPM = 2                 # px/mm of the layout image: every edge of this board falls on its 0.5 mm grid
 MARGIN, THICK, DEPTH = 8.0, 4.0, 0.6     # mm: white margin round the board, plate thickness, black depth
 HOLE_IN = 4.0                  # mm: the M3 clearance holes' centres from the plate's edges
+MOUNT_HOLE_DX = 12.0           # mm: the M3 pair at the middle of the top and bottom edges, for the hand mount's post
 PROJECT = OUT / f"{DATE}-charuco_board_p1s.3mf"
 PLACE, TOWER = (105.0, 95.0), (205.0, 200.0)   # mm on the P1S bed: the board's centre and the prime tower
 CHECK_PPM = 10.0               # px/mm of check's drawing (4 x 4 supersampled)
@@ -100,8 +102,9 @@ def cmd_build(a):
     S = M.Manifold.cube([PW, PH, THICK]).translate([-PW / 2, -PH / 2, 0.0])
     for sx in (-1, 1):
         for sy in (-1, 1):
-            S = S - M.Manifold.cylinder(THICK + 2.0, OP.HOLE_D / 2, OP.HOLE_D / 2, OP.HOLE_SEG).translate(
-                [sx * (PW / 2 - HOLE_IN), sy * (PH / 2 - HOLE_IN), -1.0])
+            for x in (sx * (PW / 2 - HOLE_IN), sx * MOUNT_HOLE_DX / 2):   # the corners, and the mount's pair mid-edge
+                S = S - M.Manifold.cylinder(THICK + 2.0, OP.HOLE_D / 2, OP.HOLE_D / 2, OP.HOLE_SEG).translate(
+                    [x, sy * (PH / 2 - HOLE_IN), -1.0])
     px = 1.0 / lay["px_per_mm"]
     runs = [M.CrossSection.square([(c1 - c0 + 1) * px, px]).translate([c0 * px - W / 2, H / 2 - (r + 1) * px])
             for r, c0, c1 in lay["black_runs"]]
@@ -156,7 +159,7 @@ def cmd_check(a):
     err = [float(np.linalg.norm(found[k] - want[k])) / CHECK_PPM for k in want if k in found]
     aw, ab = OP.area(OP.in_plane(mesh["white"], top, up)), OP.area(OP.in_plane(mesh["black"], top, up))
     PW, PH = W + 2 * MARGIN, H + 2 * MARGIN
-    face = PW * PH - 4 * 0.5 * OP.HOLE_SEG * (OP.HOLE_D / 2) ** 2 * np.sin(2 * np.pi / OP.HOLE_SEG)
+    face = PW * PH - 8 * 0.5 * OP.HOLE_SEG * (OP.HOLE_D / 2) ** 2 * np.sin(2 * np.pi / OP.HOLE_SEG)
     ok = len(found) == len(want) and max(err) < 0.05 and abs(face - aw - ab) < 1e-3
     rep = json.loads(REPORT.read_text())
     rep["check"] = {"ok": bool(ok), "ppm": CHECK_PPM, "corners_found": len(found), "corners": len(want),
@@ -206,7 +209,8 @@ def write_readme(rep):
          "",
          f"Files: `{stl('white').name}` and `{stl('black').name}`, one frame, face up on z = 0: the board in an "
          f"{MARGIN:g} mm white margin, {rep['plate_mm'][0]:g} x {rep['plate_mm'][1]:g} x {THICK:g} mm, the black "
-         f"{DEPTH} mm deep, four M3 clearance holes {HOLE_IN:g} mm in from the corners. Load both at once as one "
+         f"{DEPTH} mm deep, M3 clearance holes {HOLE_IN:g} mm in from the corners and a pair {MOUNT_HOLE_DX:g} mm apart "
+         f"at the middle of the top and bottom edges for the hand mount. Load both at once as one "
          "object with two parts and give the black part the black filament. Matte white and matte black PLA, 0.2 mm "
          "layers, at least 3 top layers, textured PEI plate."]
     if c:
@@ -223,6 +227,18 @@ def write_readme(rep):
                   f"{q['used_g'].get('2', 0):.1f} g white and {q['used_g'].get('3', 0):.1f} g black, "
                   f"{q['filament_loads']} filament loads. It is not in git; `charuco_board_print.py bambu` rebuilds "
                   "it."]
+    mount = OUT / f"{DATE}-charuco_board_mount.json"
+    if mount.exists():
+        mr = json.loads(mount.read_text())
+        L += ["", f"Hand mount: `{Path(mr['stl']['file']).name}`, white PLA, printed flange down (no AMS). A 20 x 20 mm "
+                  "post drops into the notch at the end of the hand's camera arm, and its flange rests on the arm and "
+                  "is bolted through the arm's M5 hole with an M5 bolt and nut. The board hangs from the post's -x_P "
+                  "face or its -y_P face by two M3 self-tapping screws through the pair at the middle of its top edge. "
+                  f"Against the {mr['solids_checked']} solids of the hand's CAD assembly in its modelled pose nothing "
+                  f"touches but the arm: the nearest solid is {mr['mount']['nearest'][0]['gap_mm']:.1f} mm from the "
+                  f"mount, {mr['board facing -x_P']['nearest'][0]['gap_mm']:.1f} mm from the board facing -x_P and "
+                  f"{mr['board facing -y_P']['nearest'][0]['gap_mm']:.1f} mm from the board facing -y_P "
+                  "(`charuco_board_mount_print.py build`)."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
 
 

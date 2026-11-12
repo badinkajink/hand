@@ -321,7 +321,7 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 | Flat seat on a pedestal | session, printed | fixed to the table under the block |
 | Turntable adapter and 20° wedge | session, printed | step 3 |
 | Catch tray around the seat | session, printed | |
-| Clip for the ChArUco board on the hand | session, printed | replaces the two hand tag mounts (owner, 2026-11-12: one board for both calibrations) |
+| Mount for the ChArUco board on the hand | session, printed | `assets/tracking/20261112-charuco_board/` (2026-11-12): a post in the notch at the end of the hand's camera arm, bolted through its M5 hole; the board hangs facing −x_P or −y_P, at least 16 mm from every other solid of the hand's CAD; replaces the two hand tag mounts (owner: one board for both calibrations) |
 | Camera and light mounts | owner | fixed to the table |
 | USB 3 cable and port for the second D435 | bought if needed | |
 | Two LED panels | bought | |
