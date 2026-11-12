@@ -66,7 +66,7 @@ def build():
              rig_dense=MEDIA / "20261104-v3_id456_dense_presses.png", rig_tilt=MEDIA / "20261104-v3_id123456_by_tilt.png",
              rig_id3=MEDIA / "20261104-v3_id3_seat1_vs_robot.png", id3_poster=MEDIA / "20261104-v3_id3_seat1_film_poster.png",
              rig_cov=MEDIA / "20261104-v3_rig_coverage.png", rig_pool=MEDIA / "20261105-v3_id456_other_tips_holds.png",
-             gp_mlp=MEDIA / "20261105-v3_gp_vs_mlp.png",
+             gp_mlp=MEDIA / "20261105-v3_gp_vs_mlp.png", gp_mlp_curve=MEDIA / "20261111-v3_gp_mlp_curve.png",
              id3_film=UR5 / "lab/20261104-tipcal-timelapse_short.mp4",
              film=UR5 / "media/20261022-lab_sphere2_overhead.mp4", film_poster=UR5 / "media/20261022-lab_sphere2_overhead.png")
     S, lede, summary, film_html = sections(N, F, P, link, L)

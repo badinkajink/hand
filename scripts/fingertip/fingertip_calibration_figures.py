@@ -574,6 +574,7 @@ RIG_COV_TIPS = {"1": ("logs/20261028-spherev3id1_twists", "logs/20261028-rodv3id
                 "3": ("logs/20261030-spherev3id3", "logs/20261030-rodv3id3")}
 RIG_POOL = UR5 / "20261105-v3_ids456_pooled_with_ids123.json"
 GP_MLP = UR5 / "20261105-v3_gp_vs_mlp.json"
+GP_MLP_CURVE = UR5 / "20261111-v3_gp_mlp_curve.json"
 TILTS = (("0-0.1", "Under 0.1"), ("0.1-0.3", "0.1 to 0.3"), ("0.3-0.5", "0.3 to 0.5"), ("0.5-9", "Over 0.5"))
 
 
@@ -999,6 +1000,42 @@ def fig_gp_mlp():
     save(fig, "20261105-v3_gp_vs_mlp.png")
 
 
+def fig_gp_mlp_curve():
+    """The board GP and the MLP ensemble of 64 units a layer against the number of training holds on the six v3 tips
+    (scripts/ur5/ur5_tip_calibration_v3_mlp_curve.py on the splits of the two data curves, commit ae9366be of 2026-11-11):
+    location error at 1 N and over, medians over four seeds; (a) v3 IDs 1 to 3 on the finger, (b) v3 IDs 4 to 6 on the
+    inverted rig."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    C = json.loads(at_head(GP_MLP_CURVE))["sets"]
+    models = (("gp", "Board GP", "-", "o", 6), ("mlp", "Ensemble, 64 units a layer", "--", "s", 5.5))
+    fig, axes = plt.subplots(1, 2, figsize=(9.6, 4.9), sharey=True)
+    keys = []
+    for ax, (key, cols, ttl) in zip(axes, (("finger", V3COL, "(a) v3 IDs 1 to 3, on the finger"),
+                                           ("rig", RIGCOL, "(b) v3 IDs 4 to 6, on the inverted rig"))):
+        fr = [f"{f:g}" for f in C[key]["fractions"]]
+        for tip, d in C[key]["tips"].items():
+            for m, _, ls, mk, ms in models:
+                med = [d["median"][f][m] for f in fr]
+                ax.plot([r["n_train"] for r in med], [r["location_mm"] for r in med], ls=ls, marker=mk, ms=ms,
+                        color=cols[tip], lw=1.8)
+            keys.append(Line2D([], [], color=cols[tip], lw=6, label=f"v3 ID {tip}, {d['holds']:,} holds"))
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xticks([250, 500, 1000, 2000, 4000])
+        ax.set_xticklabels(["250", "500", "1,000", "2,000", "4,000"])
+        ax.minorticks_off()
+        ax.set_xlabel("Training holds")
+        ax.set_title(ttl)
+    axes[0].set_ylabel("Location error, median (mm)")
+    log_ticks(axes[0], (0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4))
+    h = keys + [Line2D([], [], ls=ls, marker=mk, ms=ms, lw=1.8, color="0.35", label=nm) for _, nm, ls, mk, ms in models]
+    fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
+    save(fig, "20261111-v3_gp_mlp_curve.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -1008,7 +1045,7 @@ def main():
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
                 rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
-                gp_mlp=fig_gp_mlp)
+                gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

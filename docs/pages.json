@@ -57,7 +57,7 @@
   "builder": "scripts/docs/codesign_formulation_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 17.4
+  "mb": 17.8
  },
  {
   "date": "2026-11-10",
@@ -357,7 +357,7 @@
   "builder": "scripts/fingertip/fingertip_calibration_page.py",
   "artifact": "https://claude.ai/artifact/XQncz6bx1daWQhVv6sRWrA",
   "status": "current",
-  "mb": 9.0
+  "mb": 9.1
  },
  {
   "date": "2026-10-23",

@@ -189,6 +189,15 @@ def sections(N, F, P, link, L):
     GM_E, GM_G = GM_MODELS[1:], ("gaps",)
     gm_loc_g = " and ".join(f"{gma(m, GM_G)[0]:.2f}" for m in GM_E)
     gm_rho_g = " and ".join(f"{gmu(m, GM_G)[0]:.2f}" for m in GM_E)
+    # the ensemble of 64 units against the board GP on the splits of the two data curves (commit ae9366be of 2026-11-11)
+    GCF = jl(UR5D / "20261111-v3_gp_mlp_curve.json")["sets"]
+    GC = {t: d for s in ("finger", "rig") for t, d in GCF[s]["tips"].items()}
+    gcl = lambda ts, f, m: rg([GC[t]["median"][f][m]["location_mm"] for t in ts])  # noqa: E731
+    gc_gp = lambda f: [t for t in GC if GC[t]["median"][f]["gp"]["location_mm"] < GC[t]["median"][f]["mlp"]["location_mm"]]  # noqa: E731
+    gc_fall = lambda ts, m: rg([GC[t]["median"]["0.7"][m]["location_mm"] - GC[t]["median"]["1"][m]["location_mm"]  # noqa: E731
+                                for t in ts])
+    gc_ids = lambda ts: ("v3 ID " if len(ts) == 1 else "v3 IDs ") + " and ".join(ts)  # noqa: E731
+    assert not any(gc_gp(f) for f in ("0.35", "0.5", "0.7", "1")), "the text says the ensemble is lower from 0.35 on"
     t2 = {k: TT[k]["tips"]["v3 ID 2"]["gp_direction"] for k in FX}
     t1 = {k: TT[k]["tips"]["v3 ID 1"]["gp_direction"] for k in FX}
     tg = lambda k, t: TT[k]["tips"][t]["gain_uT_per_N"]["1-2"]  # noqa: E731
@@ -1861,6 +1870,23 @@ def sections(N, F, P, link, L):
                 "with a fifth of every set's points held out; two markers of a colour are the two seeds. (b) Location error by set "
                 "with the gaps held out. (c) Spearman correlation of each model's uncertainty with its location error. Drawn from "
                 "the file of Table 33.")
+        + "<p>On 11-11 the ensemble of 64 units was also trained on the splits of the two data curves (Sections 14 and 15). "
+        f"Each tip had four seeds and six shares of the other points, {sum(len(d['mlp_rows']) for d in GC.values())} fits "
+        "in all (" + P.code("scripts/ur5/ur5_tip_calibration_v3_mlp_curve.py") + "). Each fit was scored on the held-out "
+        "holds of 1 N and over of the GP fit with the same seed and share. With all points in training, the ensemble's "
+        f"location error is {gcl(DT, '1', 'mlp')} mm on v3 IDs 1 to 3 (Figure 20). The GP's error there is "
+        f"{gcl(DT, '1', 'gp')} mm. On IDs 4 to 6 the ensemble's error is {gcl(RGT, '1', 'mlp')} mm, and the GP's is "
+        f"{gcl(RGT, '1', 'gp')} mm. With a tenth of the points, the GP is lower on {gc_ids(gc_gp('0.1'))}, and with a "
+        f"fifth on {gc_ids(gc_gp('0.2'))}. From a share of 0.35 on, the ensemble is lower on all six tips. Both errors "
+        "were still falling with all points in training. From 0.7 to all of the points, the GP's error falls by "
+        f"{gc_fall(DT, 'gp')} mm on v3 IDs 1 to 3. On IDs 4 to 6 it falls by {gc_fall(RGT, 'gp')} mm. The ensemble's "
+        f"error falls by {gc_fall(DT, 'mlp')} mm and by {gc_fall(RGT, 'mlp')} mm on the same tips.</p>"
+        + P.fig(20, F["gp_mlp_curve"], "The board GP and the MLP ensemble of 64 units a layer against the number of "
+                "training holds, on the splits of the data curves of Sections 14 and 15. (a) v3 IDs 1 to 3 on the finger. "
+                "(b) v3 IDs 4 to 6 on the inverted rig, each tip's sessions pooled. Location error over the held-out holds of "
+                "1 N and over, median over four seeds, on log scales. Solid lines and circles: GP; dashed lines and squares: "
+                "ensemble. Drawn from "
+                + P.code("docs/experiments/20261022-ur5_tip_calibration/data/20261111-v3_gp_mlp_curve.json") + ".")
     )
     S.append(("shared", "Board GP shared by the six v3 tips", body))
 

@@ -1,3 +1,836 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:f2cba36f8b2834e681785ba27af07d1061cc39e6fe1a93b32af038d1410d7c43
-size 14047
+{
+ "coverage_cb2t": {
+  "grid": 52,
+  "twin": 18,
+  "dense": 37,
+  "ref": 6,
+  "fast_grid": 52,
+  "rate": 18,
+  "press_holds": 921
+ },
+ "pooling_shear": {
+  "n_slides": 5,
+  "n_holds": 165,
+  "hexe_shear_N": 0.3524278419729063,
+  "physical": {
+   "shear_err_N": 0.9811172538324089,
+   "angle_deg": 57.062303861633495
+  },
+  "id1_presses": {
+   "shear_err_N": 0.18298779570450577,
+   "angle_deg": 10.985131286375472
+  },
+  "id1_presses_and_id2_slides": {
+   "shear_err_N": 0.13465286339432989,
+   "angle_deg": 7.568341530201482
+  },
+  "id1_presses_and_id2_presses_slides": {
+   "shear_err_N": 0.14052833223835087,
+   "angle_deg": 7.557399939854504
+  },
+  "id2_presses_slides": {
+   "shear_err_N": 0.16166596645561984,
+   "angle_deg": 8.193262426511962
+  }
+ },
+ "transfer": {
+  "gp_id1": {
+   "over_1p5N": 1.4201985426636712,
+   "under_1p5N": 1.2942847592976476
+  },
+  "gp_own_5fold": {
+   "over_1p5N": 0.39026120525733693,
+   "under_1p5N": 0.9088782198540203
+  },
+  "physical_own_rest": {
+   "over_1p5N": 1.0756557575596355,
+   "under_1p5N": 9.77142221741419
+  }
+ },
+ "by_level": {
+  "20261022-210852-sphere2": {
+   "gp_by_level": {
+    "0.25": 2.58,
+    "0.5": 1.54,
+    "1": 0.89,
+    "2": 0.65,
+    "3": 0.47,
+    "3.5": 0.29,
+    "5": 0.26
+   },
+   "physical_by_level": {
+    "0.25": 9.83,
+    "0.5": 9.85,
+    "1": 2.62,
+    "2": 1.9,
+    "3": 1.92,
+    "3.5": 2.0,
+    "5": 2.27
+   },
+   "gp_over_1p5N": 0.462,
+   "gp_under_1p5N": 1.512,
+   "gp_fn_err_N": 0.068,
+   "n_holds": 357,
+   "n_groups": 58
+  },
+  "20261023-203938-cb1t": {
+   "gp_by_level": {
+    "0.25": 1.74,
+    "0.5": 0.92,
+    "1": 0.65,
+    "2": 0.52,
+    "3": 1.14,
+    "3.5": 0.28,
+    "5": 0.58
+   },
+   "physical_by_level": {
+    "0.25": 11.3,
+    "0.5": 10.44,
+    "1": 7.51,
+    "2": 1.14,
+    "3": 1.2,
+    "3.5": 1.16,
+    "5": 1.24
+   },
+   "gp_over_1p5N": 0.528,
+   "gp_under_1p5N": 0.961,
+   "gp_fn_err_N": 0.074,
+   "n_holds": 302,
+   "n_groups": 51
+  },
+  "20261025-152920-cb2t": {
+   "gp_by_level": {
+    "0.25": 1.29,
+    "0.5": 0.79,
+    "1": 0.5,
+    "2": 0.36,
+    "3": 0.69,
+    "3.5": 0.25,
+    "5": 0.46
+   },
+   "physical_by_level": {
+    "0.25": 9.53,
+    "0.5": 8.67,
+    "1": 3.16,
+    "2": 1.59,
+    "3": 1.29,
+    "3.5": 1.04,
+    "5": 0.9
+   },
+   "gp_over_1p5N": 0.369,
+   "gp_under_1p5N": 0.752,
+   "gp_fn_err_N": 0.061,
+   "n_holds": 921,
+   "n_groups": 104
+  }
+ },
+ "shear_cb2t": {
+  "n_slides": 87,
+  "n_holds": 2255,
+  "hexe_median_N": 0.35004677518902655
+ },
+ "sessions": {
+  "20261022-210852-sphere2": {
+   "press_holds": 357,
+   "presses": 74,
+   "turn_holds": 78,
+   "turns": 10
+  },
+  "20261023-104526-rod1-joint": {
+   "press_holds": 280,
+   "presses": 56,
+   "turn_holds": 22,
+   "turns": 2
+  },
+  "20261023-203938-cb1t": {
+   "press_holds": 302,
+   "presses": 60,
+   "turn_holds": 64,
+   "turns": 8
+  },
+  "20261025-114653-cb1r": {
+   "press_holds": 170,
+   "presses": 38,
+   "turn_holds": 254,
+   "turns": 16
+  },
+  "20261025-152920-cb2t": {
+   "press_holds": 921,
+   "presses": 187,
+   "turn_holds": 2433,
+   "turns": 109
+  },
+  "20261026-134522-cb3t": {
+   "press_holds": 270,
+   "presses": 60,
+   "turn_holds": 543,
+   "turns": 25
+  },
+  "20261026-180938-rod3t": {
+   "press_holds": 103,
+   "presses": 32,
+   "turn_holds": 0,
+   "turns": 0
+  },
+  "20261026-192158-v2id1": {
+   "press_holds": 1057,
+   "presses": 217,
+   "turn_holds": 2800,
+   "turns": 126
+  },
+  "20261027-095303-rodv2id1": {
+   "press_holds": 546,
+   "presses": 99,
+   "turn_holds": 281,
+   "turns": 41
+  },
+  "20261027-143529-tallv2id1": {
+   "press_holds": 214,
+   "presses": 45,
+   "turn_holds": 0,
+   "turns": 0
+  }
+ },
+ "coverage_v2id1": {
+  "20261026-192158-v2id1": 217,
+  "20261027-143529-tallv2id1": 45,
+  "20261027-095303-rodv2id1": 99
+ },
+ "v3id3_sessions": {
+  "sphere": {
+   "folder": "logs/20261030-spherev3id3",
+   "press": {
+    "holds": 713,
+    "actions": 146
+   },
+   "slide": {
+    "holds": 2013,
+    "actions": 77
+   },
+   "twist": {
+    "holds": 90,
+    "actions": 12
+   },
+   "roll": {
+    "holds": 22,
+    "actions": 2
+   }
+  },
+  "tall": {
+   "folder": "logs/20261030-tallv3id3",
+   "press": {
+    "holds": 282,
+    "actions": 57
+   },
+   "slide": {
+    "holds": 1000,
+    "actions": 40
+   },
+   "twist": {
+    "holds": 36,
+    "actions": 4
+   },
+   "roll": {
+    "holds": 0,
+    "actions": 0
+   }
+  },
+  "rod": {
+   "folder": "logs/20261030-rodv3id3",
+   "press": {
+    "holds": 462,
+    "actions": 75
+   },
+   "slide": {
+    "holds": 168,
+    "actions": 24
+   },
+   "twist": {
+    "holds": 14,
+    "actions": 2
+   },
+   "roll": {
+    "holds": 24,
+    "actions": 4
+   }
+  }
+ },
+ "rig_sessions": {
+  "20261102-145010-s1v6b": {
+   "press": {
+    "holds": 1983,
+    "actions": 574
+   },
+   "twist": {
+    "holds": 60,
+    "actions": 30
+   }
+  },
+  "20261102-182710-s2v5": {
+   "press": {
+    "holds": 1976,
+    "actions": 573
+   },
+   "twist": {
+    "holds": 60,
+    "actions": 30
+   }
+  },
+  "20261102-220337-s3v4": {
+   "press": {
+    "holds": 2869,
+    "actions": 827
+   },
+   "twist": {
+    "holds": 64,
+    "actions": 32
+   }
+  },
+  "20261103-122020-s1sph2b": {
+   "press": {
+    "holds": 883,
+    "actions": 260
+   }
+  },
+  "20261103-144808-s2sph2": {
+   "press": {
+    "holds": 922,
+    "actions": 269
+   }
+  },
+  "20261103-172647-rod21": {
+   "offset": {
+    "holds": 2064,
+    "actions": 59
+   },
+   "press": {
+    "holds": 385,
+    "actions": 112
+   },
+   "roll": {
+    "holds": 40,
+    "actions": 8
+   },
+   "slide": {
+    "holds": 256,
+    "actions": 59
+   },
+   "sweep": {
+    "holds": 291,
+    "actions": 59
+   },
+   "twist": {
+    "holds": 72,
+    "actions": 12
+   }
+  },
+  "20261103-172647-rod21_dense": {
+   "offset": {
+    "holds": 2064,
+    "actions": 59
+   },
+   "press": {
+    "holds": 685,
+    "actions": 188
+   },
+   "roll": {
+    "holds": 40,
+    "actions": 8
+   },
+   "slide": {
+    "holds": 256,
+    "actions": 59
+   },
+   "sweep": {
+    "holds": 291,
+    "actions": 59
+   },
+   "twist": {
+    "holds": 72,
+    "actions": 12
+   }
+  },
+  "20261103-202017-rod32": {
+   "offset": {
+    "holds": 1749,
+    "actions": 56
+   },
+   "press": {
+    "holds": 421,
+    "actions": 121
+   },
+   "roll": {
+    "holds": 40,
+    "actions": 8
+   },
+   "slide": {
+    "holds": 220,
+    "actions": 56
+   },
+   "sweep": {
+    "holds": 276,
+    "actions": 56
+   },
+   "twist": {
+    "holds": 72,
+    "actions": 12
+   }
+  },
+  "20261103-202017-rod32_dense": {
+   "offset": {
+    "holds": 1749,
+    "actions": 56
+   },
+   "press": {
+    "holds": 701,
+    "actions": 191
+   },
+   "roll": {
+    "holds": 40,
+    "actions": 8
+   },
+   "slide": {
+    "holds": 220,
+    "actions": 56
+   },
+   "sweep": {
+    "holds": 276,
+    "actions": 56
+   },
+   "twist": {
+    "holds": 72,
+    "actions": 12
+   }
+  },
+  "20261103-214753-rod13": {
+   "offset": {
+    "holds": 1934,
+    "actions": 62
+   },
+   "press": {
+    "holds": 416,
+    "actions": 119
+   },
+   "roll": {
+    "holds": 30,
+    "actions": 6
+   },
+   "slide": {
+    "holds": 242,
+    "actions": 62
+   },
+   "sweep": {
+    "holds": 305,
+    "actions": 62
+   },
+   "twist": {
+    "holds": 84,
+    "actions": 14
+   }
+  },
+  "20261103-214753-rod13_dense": {
+   "offset": {
+    "holds": 1934,
+    "actions": 62
+   },
+   "press": {
+    "holds": 716,
+    "actions": 194
+   },
+   "roll": {
+    "holds": 30,
+    "actions": 6
+   },
+   "slide": {
+    "holds": 242,
+    "actions": 62
+   },
+   "sweep": {
+    "holds": 305,
+    "actions": 62
+   },
+   "twist": {
+    "holds": 84,
+    "actions": 14
+   }
+  },
+  "20261104-145215-id3pts11": {
+   "press": {
+    "holds": 500,
+    "actions": 125
+   }
+  }
+ },
+ "rig_tilt": {
+  "1": {
+   "0-0.1": {
+    "holds": 259,
+    "location_mm": 0.39,
+    "direction_deg": 2.8,
+    "shear_N": 0.15
+   },
+   "0.1-0.3": {
+    "holds": 392,
+    "location_mm": 0.46,
+    "direction_deg": 4.8,
+    "shear_N": 0.16
+   },
+   "0.3-0.5": {
+    "holds": 168,
+    "location_mm": 0.5,
+    "direction_deg": 6.3,
+    "shear_N": 0.16
+   },
+   "0.5-9": {
+    "holds": 178,
+    "location_mm": 0.71,
+    "direction_deg": 6.4,
+    "shear_N": 0.19
+   }
+  },
+  "2": {
+   "0-0.1": {
+    "holds": 349,
+    "location_mm": 0.4,
+    "direction_deg": 3.1,
+    "shear_N": 0.15
+   },
+   "0.1-0.3": {
+    "holds": 662,
+    "location_mm": 0.48,
+    "direction_deg": 4.3,
+    "shear_N": 0.15
+   },
+   "0.3-0.5": {
+    "holds": 395,
+    "location_mm": 0.53,
+    "direction_deg": 4.8,
+    "shear_N": 0.15
+   },
+   "0.5-9": {
+    "holds": 341,
+    "location_mm": 0.56,
+    "direction_deg": 5.0,
+    "shear_N": 0.14
+   }
+  },
+  "3": {
+   "0-0.1": {
+    "holds": 338,
+    "location_mm": 0.39,
+    "direction_deg": 2.9,
+    "shear_N": 0.14
+   },
+   "0.1-0.3": {
+    "holds": 596,
+    "location_mm": 0.48,
+    "direction_deg": 4.0,
+    "shear_N": 0.14
+   },
+   "0.3-0.5": {
+    "holds": 357,
+    "location_mm": 0.6,
+    "direction_deg": 6.0,
+    "shear_N": 0.16
+   },
+   "0.5-9": {
+    "holds": 278,
+    "location_mm": 0.56,
+    "direction_deg": 5.9,
+    "shear_N": 0.16
+   }
+  },
+  "4": {
+   "0-0.1": {
+    "holds": 447,
+    "location_mm": 0.67,
+    "direction_deg": 4.4,
+    "shear_N": 0.17
+   },
+   "0.1-0.3": {
+    "holds": 1382,
+    "location_mm": 0.8,
+    "direction_deg": 4.4,
+    "shear_N": 0.19
+   },
+   "0.3-0.5": {
+    "holds": 591,
+    "location_mm": 0.77,
+    "direction_deg": 5.2,
+    "shear_N": 0.25
+   },
+   "0.5-9": {
+    "holds": 77,
+    "location_mm": 0.85,
+    "direction_deg": 7.8,
+    "shear_N": 0.37
+   }
+  },
+  "5": {
+   "0-0.1": {
+    "holds": 887,
+    "location_mm": 0.48,
+    "direction_deg": 3.0,
+    "shear_N": 0.13
+   },
+   "0.1-0.3": {
+    "holds": 1760,
+    "location_mm": 0.8,
+    "direction_deg": 5.2,
+    "shear_N": 0.22
+   },
+   "0.3-0.5": {
+    "holds": 948,
+    "location_mm": 0.71,
+    "direction_deg": 5.3,
+    "shear_N": 0.24
+   },
+   "0.5-9": {
+    "holds": 269,
+    "location_mm": 0.79,
+    "direction_deg": 5.7,
+    "shear_N": 0.29
+   }
+  },
+  "6": {
+   "0-0.1": {
+    "holds": 493,
+    "location_mm": 0.67,
+    "direction_deg": 4.7,
+    "shear_N": 0.21
+   },
+   "0.1-0.3": {
+    "holds": 1479,
+    "location_mm": 0.8,
+    "direction_deg": 5.1,
+    "shear_N": 0.2
+   },
+   "0.3-0.5": {
+    "holds": 933,
+    "location_mm": 0.75,
+    "direction_deg": 5.7,
+    "shear_N": 0.24
+   },
+   "0.5-9": {
+    "holds": 197,
+    "location_mm": 0.79,
+    "direction_deg": 6.8,
+    "shear_N": 0.24
+   }
+  }
+ },
+ "rig_refs": {
+  "1": {
+   "20261028-spherev3id1_twists": {
+    "presses": 7,
+    "level_N": 2.0,
+    "label_mm": 0.025,
+    "board_pct": 13.6,
+    "direction_deg": 2.98
+   },
+   "20261028-rodv3id1": {
+    "presses": 4,
+    "level_N": 2.0,
+    "label_mm": 0.026,
+    "board_pct": 11.4,
+    "direction_deg": 1.44
+   }
+  },
+  "2": {
+   "20261029-spherev3id2": {
+    "presses": 9,
+    "level_N": 2.0,
+    "label_mm": 0.041,
+    "board_pct": 11.9,
+    "direction_deg": 3.22
+   },
+   "20261029-rodv3id2": {
+    "presses": 4,
+    "level_N": 2.0,
+    "label_mm": 0.013,
+    "board_pct": 8.5,
+    "direction_deg": 1.38
+   }
+  },
+  "3": {
+   "20261030-spherev3id3": {
+    "presses": 9,
+    "level_N": 2.0,
+    "label_mm": 0.039,
+    "board_pct": 10.5,
+    "direction_deg": 3.71
+   },
+   "20261030-rodv3id3": {
+    "presses": 4,
+    "level_N": 2.0,
+    "label_mm": 0.026,
+    "board_pct": 11.0,
+    "direction_deg": 1.97
+   }
+  },
+  "4": {
+   "20261102-220337-s3v4": {
+    "presses": 24,
+    "level_N": 2.0,
+    "label_mm": 0.077,
+    "board_pct": 16.8,
+    "direction_deg": 1.47
+   },
+   "20261103-202017-rod32_dense": {
+    "presses": 10,
+    "level_N": 2.0,
+    "label_mm": 0.0,
+    "board_pct": 21.1,
+    "direction_deg": 2.86
+   }
+  },
+  "5": {
+   "20261102-182710-s2v5": {
+    "presses": 12,
+    "level_N": 2.0,
+    "label_mm": 0.041,
+    "board_pct": 14.8,
+    "direction_deg": 1.77
+   },
+   "20261103-144808-s2sph2": {
+    "presses": 12,
+    "level_N": 2.0,
+    "label_mm": 0.357,
+    "board_pct": 23.1,
+    "direction_deg": 1.14
+   },
+   "20261103-172647-rod21_dense": {
+    "presses": 12,
+    "level_N": 2.0,
+    "label_mm": 0.0,
+    "board_pct": 12.4,
+    "direction_deg": 1.74
+   }
+  },
+  "6": {
+   "20261102-145010-s1v6b": {
+    "presses": 12,
+    "level_N": 2.0,
+    "label_mm": 0.022,
+    "board_pct": 8.9,
+    "direction_deg": 1.09
+   },
+   "20261103-122020-s1sph2b": {
+    "presses": 11,
+    "level_N": 2.0,
+    "label_mm": 0.027,
+    "board_pct": 9.5,
+    "direction_deg": 1.6
+   },
+   "20261103-214753-rod13_dense": {
+    "presses": 10,
+    "level_N": 2.0,
+    "label_mm": 0.0,
+    "board_pct": 16.6,
+    "direction_deg": 3.58
+   }
+  }
+ },
+ "rig_id3": {
+  "inverted": {
+   "holds": 500,
+   "groups": 111,
+   "location_mm": 0.588,
+   "loc_normal_mm": 0.592,
+   "direction_deg": 2.72,
+   "dir_normal_deg": 2.77,
+   "magnitude_pct": 5.8,
+   "seeds_normal_mm": [
+    0.619,
+    0.614,
+    0.544,
+    0.57
+   ]
+  },
+  "tip mode, presses": {
+   "holds": 1177,
+   "groups": 126,
+   "location_mm": 0.364,
+   "loc_normal_mm": 0.319,
+   "direction_deg": 2.9,
+   "dir_normal_deg": 2.09,
+   "magnitude_pct": 5.4,
+   "seeds_normal_mm": [
+    0.343,
+    0.281,
+    0.337,
+    0.301
+   ]
+  },
+  "tip mode, all": {
+   "holds": 3508,
+   "groups": 129,
+   "location_mm": 0.442,
+   "loc_normal_mm": 0.341,
+   "direction_deg": 4.44,
+   "dir_normal_deg": 2.75,
+   "magnitude_pct": 6.7,
+   "seeds_normal_mm": [
+    0.326,
+    0.339,
+    0.343,
+    0.387
+   ]
+  },
+  "transfer": {
+   "holds": 377,
+   "location_mm": 0.893,
+   "loc_normal_mm": 0.661,
+   "offset_mm": [
+    -0.463,
+    0.133,
+    0.525
+   ],
+   "direction_deg": 7.77,
+   "magnitude_pct": 15.3
+  },
+  "refs": {
+   "presses": 14,
+   "board_pct": 15.0,
+   "uT_per_N": [
+    15.4,
+    15.5,
+    14.9,
+    13.9,
+    15.0,
+    14.5,
+    18.1,
+    15.5,
+    13.6,
+    13.9,
+    15.2,
+    15.7,
+    17.5,
+    15.8
+   ]
+  },
+  "board_uT_per_N": 28.12,
+  "pad_vs_session_mm_deg": [
+   0.4158,
+   0.9803
+  ]
+ },
+ "rig_coverage": {
+  "tip_holds": 3508,
+  "rig_holds": 500,
+  "far": 92,
+  "far_edge": 48,
+  "far_face": 44,
+  "far_1N": 70,
+  "z_tip_min": {
+   "1": 3.619467911950247,
+   "2": 4.303859590962432,
+   "3": 4.310101365891145
+  },
+  "z_far": [
+   0.5953417223360947,
+   2.1250795766182877,
+   7.210856174180193
+  ]
+ }
+}
