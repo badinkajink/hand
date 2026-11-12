@@ -8,7 +8,9 @@ interesting comparison between these methods: sobol, rrt, yang ga, pso ga"; "gre
 t-sne, from first principles").
 
 Data: rows/20261109-search_compare.tsv and rows/20261109-search_compare_curves.tsv, rows/20261109-pareto_twist_press.tsv
-(scripts/hom/hom_search_compare.py), with its figures in media/.
+(scripts/hom/hom_search_compare.py), with its figures in media/. Section 'qd' (owner, 2026-11-12: "can we test how
+map-elites and/or another outer loops optimizer does"): rows/20261112-search_qd.tsv and its curves
+(scripts/hom/hom_search_qd.py), MAP-Elites, CMA-ME, CMA-ES and Bayesian optimization on the tracking-score grids.
 
     .venv/bin/python scripts/hom/hom_search_methods_page.py
 """
@@ -66,6 +68,20 @@ REFS = [
     '[9] L. van der Maaten and G. Hinton, "Visualizing data using t-SNE", Journal of Machine Learning Research 9, '
     '2579-2605, 2008.',
     '[10] M. Wattenberg, F. Viégas and I. Johnson, "How to use t-SNE effectively", Distill, 2016.',
+    '[11] J.-B. Mouret and J. Clune, "Illuminating search spaces by mapping elites", arXiv 1504.04909, 2015.',
+    '[12] V. Vassiliades and J.-B. Mouret, "Discovering the elite hypervolume by leveraging interspecies correlation", '
+    'Proc. GECCO, 149-156, 2018.',
+    '[13] M. C. Fontaine, J. Togelius, S. Nikolaidis and A. K. Hoover, "Covariance matrix adaptation for the rapid '
+    'illumination of behavior space", Proc. GECCO, 94-102, 2020.',
+    '[14] N. Hansen and A. Ostermeier, "Completely derandomized self-adaptation in evolution strategies", Evolutionary '
+    'Computation 9(2), 159-195, 2001.',
+    '[15] A. Auger and N. Hansen, "A restart CMA evolution strategy with increasing population size", Proc. IEEE '
+    'Congress on Evolutionary Computation, 1769-1776, 2005.',
+    '[16] C. E. Rasmussen and C. K. I. Williams, "Gaussian Processes for Machine Learning", MIT Press, 2006.',
+    '[17] K. Kandasamy, A. Krishnamurthy, J. Schneider and B. Póczos, "Parallelised Bayesian optimisation via Thompson '
+    'sampling", Proc. AISTATS, 133-142, 2018.',
+    '[18] B. Tjanaka, M. C. Fontaine, D. H. Lee, Y. Zhang, N. R. Balam, N. Dennler, S. S. Garlanka, N. D. Klapsis and '
+    'S. Nikolaidis, "pyribs: a bare-bones Python library for quality diversity optimization", Proc. GECCO, 220-229, 2023.',
 ]
 ALGS: list[str] = []
 
@@ -82,6 +98,26 @@ def load():
                                                                           delimiter="\t")}
     F = list(csv.DictReader(open(ROWS / "20261109-pareto_twist_press.tsv"), delimiter="\t"))
     return S, F
+
+
+QD_METHODS = ("ea64", "ea16", "random", "mapelites", "mapelites4", "cmame", "cmaes", "bo")
+QD_HEAD = {"ea64": "EA 64", "ea16": "EA 16", "random": "Random", "mapelites": "MAP-Elites 8 &#215; 8",
+           "mapelites4": "MAP-Elites 4 &#215; 4", "cmame": "CMA-ME", "cmaes": "CMA-ES", "bo": "BO"}
+
+
+def load_qd():
+    p = ROWS / "20261112-search_qd.tsv"
+    if not p.exists():
+        return {}
+    return {(r["task"], r["method"]): r for r in csv.DictReader(open(p), delimiter="\t")}
+
+
+def qpc(Q, task, m, col="within_0.05_by_6000"):
+    return 100 * float(Q[(task, m)][col])
+
+
+def qspan(Q, m, col="within_0.05_by_6000"):
+    return span_pc([qpc(Q, t, m, col) for t in TASKS])
 
 
 def pc(S, plant, task, m, col="within_0.05_by_6000"):
@@ -136,6 +172,11 @@ def sec_terms():
          "(Section 4), the cross-entropy method (Section 7), a Sobol sequence and a rapidly-exploring random tree "
          "(Section 5)."),
         ("Pareto front, t-SNE", "Sections 8 and 9."),
+        ("MAP-Elites, CMA-ME, CMA-ES, BO", "MAP-Elites, its variant with a CMA-ES emitter, the covariance matrix adaptation "
+         "evolution strategy, and Bayesian optimization (Section SEC[qd]). They are replayed on the tracking-score grids "
+         "only."),
+        ("J", "the tracking score, the fitness of Section SEC[qd]: the best grasp's mean tracking score over seeds 0-2 on "
+         "the hand-design talk's grids (<code>rows/grid2dff_v4b_sv25r</code>)."),
     ]
     return '<dl class="terms">' + "".join(f"<dt>{t}</dt><dd>{d}</dd>" for t, d in terms) + "</dl>"
 
@@ -1042,6 +1083,112 @@ press the best incumbent tracked within <<gp>> of the best validated layout.</p>
     return t
 
 
+def sec_qd(Q):
+    """MAP-Elites, CMA-ME, CMA-ES and Bayesian optimization replayed on the tracking-score grids (owner, 2026-11-12)."""
+    if not Q:
+        return ""
+    best = {t: float(Q[(t, "ea64")]["grid_best"]) for t in TASKS}
+    t = fill(r"""<p>The hand-design talk ranks layouts by J, the tracking score. On its four grids (SCS0009 plant at
+0.72 N&#8201;m/rad, 2.5 MPa pads, MuJoCo 3.6.0; <code>rows/grid2dff_v4b_sv25r</code>), four more methods were replayed
+next to the EA and random search, 200 runs each (<code>scripts/hom/hom_search_qd.py</code>). The replay follows Section
+SEC[results]: a layout's fitness is its best grasp's mean J over seeds 0-2, and it costs its grid rollouts once. Every
+method moves in the gantries' box, scaled to the unit square, and is scored at the nearest lattice layout. The grids' best
+J is <<tw>> on the twist, <<ro>> on the roll, <<pp>> on the pin-push and <<pr>> on the press.</p>
+<p>MAP-Elites [11] keeps an archive, a grid of cells over a measure of the candidates. Each cell keeps the best
+candidate found in it, its elite. Each round, elites drawn at random are varied, and a child enters the cell of its
+measure when the cell is empty or the child beats the elite there. The aim is the whole archive: the best candidate of
+every cell, a map of how fitness varies over the measure. Here the measure is the layout itself. The archive therefore keeps the best
+layout of each 15 mm square (8 &#215; 8 cells) or each 30 mm square (4 &#215; 4). A child comes from the iso+line operator
+of Vassiliades and Mouret [12]. It is an elite moved by a Gaussian step of 0.05 of the box, plus 0.2 times a Gaussian
+along the line to a second elite. CMA-ME [13] fills the same archive from a CMA-ES that ranks children by how much
+they improve the archive. Both ran in pyribs [18], 16 children a round after 16 random layouts.</p>
+<p>CMA-ES [14] draws each generation from a Gaussian over the box. It moves the mean to a weighted mean of the best
+draws and adapts the covariance toward the steps that succeeded. Its step size shrinks as the search converges. A
+restart at a random point with a doubled population (IPOP [15]) follows when it stops, or after three generations
+without a new layout. It ran in pycma from a step of 0.3 of the box, with 6 draws a generation at the first start.</p>
+<p>Bayesian optimization models the fitness with a Gaussian process [16], fitted to the layouts run so far. At a
+layout not yet run the process predicts a mean and an uncertainty. Each round draws 16 functions from the
+process and runs the best unrun layout of each draw, batch Thompson sampling [17]. A layout of high mean or high
+uncertainty is often the best of a draw, so the search weighs exploitation against exploration without a tuned
+constant. The kernel is a Mat&#233;rn 5/2 with white noise, its length scales fitted again each round (scikit-learn),
+after 16 random layouts.</p>""", tw=f"{best['twist']:.2f}", ro=f"{best['roll']:.2f}", pp=f"{best['pinpush']:.2f}",
+             pr=f"{best['press']:.2f}")
+    t += alg("MAP-Elites on the layout lattice (<code>hom_search_qd.run_ribs</code>, pyribs).",
+             r"""\Require archive of \(8 \times 8\) cells over the unit square, batch \(b = 16\), budget \(B\) rollouts
+\State draw \(b\) layouts at random; evaluate each; insert each into the cell of its position
+\While{rollouts spent \(< B\)}
+\For{each of \(b\) children}
+\State draw two elites \(e_1, e_2\) from the archive at random
+\State child \(\gets e_1 + 0.05\,\mathcal{N}(0, I) + 0.2\,\mathcal{N}(0, 1)\,(e_2 - e_1)\), clipped to the square
+\State evaluate the lattice layout nearest the child, unless it was evaluated before
+\State if its cell is empty or the child beats the cell's elite: the child becomes the elite
+\EndFor
+\EndWhile
+\State \Return the incumbent, and the archive""")
+    t += alg("Bayesian optimization with batch Thompson sampling (<code>hom_search_qd.run_bo</code>).",
+             r"""\Require the lattice's layouts \(z_1 \ldots z_{625}\) in the unit square, batch \(b = 16\), budget \(B\)
+\State evaluate \(b\) layouts drawn at random
+\While{rollouts spent \(< B\)}
+\State fit a Gaussian process (Mat\'ern 5/2 plus white noise) to the evaluated layouts' fitness
+\For{\(j = 1 \ldots b\)}
+\State draw a function \(f_j\) from the process's posterior at every layout not yet evaluated
+\State run the layout of largest \(f_j\) among those not yet chosen this round
+\EndFor
+\EndWhile
+\State \Return the incumbent""")
+    import hom_search_qd as QD
+    ratio = [float(Q[(tk, "bo")]["median_to_0.05"]) / float(Q[(tk, "ea64")]["median_to_0.05"]) for tk in TASKS]
+    t += fill(r"""<p>Bayesian optimization was the most reliable and the fastest method on all four tasks (Figure
+<<f>>, Table <<t1>>). By 6,000 rollouts it came within 0.05 of the best J in <<bt>> % of twist runs and <<br>> % of
+roll runs. The EA with 64 individuals did so in <<et>> and <<er>> %. On the pin-push <<ppboth>>. On the press Bayesian optimization did so in <<bpr>> % and the EA in <<epr>> %. The median rollouts to within 0.05 under Bayesian
+optimization were <<r0>> to <<r1>> times the EA's (Table <<t2>>).</p>
+<p>CMA-ES came within 0.05 in <<ct>> % of twist runs and <<cpr>> % of press runs, like the EA, and in <<cr>> % of roll
+runs. MAP-Elites with 8 &#215; 8 cells did so in <<mt>> % of twist runs and <<mr>> % of roll runs, near random search's
+<<rt>> and <<rr>> %. With 4 &#215; 4 cells it did so in <<m4t>> and <<m4r>> %, and CMA-ME in <<cmt>> and <<cmr>> %. On the
+pin-push, where <<npp>> layouts lie within 0.05 of the best, every method did so in <<ppmin>> % of runs or more.</p>""",
+              f=P.FIG[0] + 1, t1=P.TAB[0] + 1, t2=P.TAB[0] + 2,
+              bt=pct(qpc(Q, "twist", "bo")), br=pct(qpc(Q, "roll", "bo")), et=pct(qpc(Q, "twist", "ea64")),
+              er=pct(qpc(Q, "roll", "ea64")), ppboth=(f"both did so in {pct(qpc(Q, 'pinpush', 'bo'))} % of runs"
+                      if pct(qpc(Q, "pinpush", "bo")) == pct(qpc(Q, "pinpush", "ea64")) else
+                      f"Bayesian optimization did so in {pct(qpc(Q, 'pinpush', 'bo'))} % of runs and the EA in "
+                      f"{pct(qpc(Q, 'pinpush', 'ea64'))} %"),
+              bpr=pct(qpc(Q, "press", "bo")), epr=pct(qpc(Q, "press", "ea64")),
+              r0=f"{min(ratio):.2f}", r1=f"{max(ratio):.2f}",
+              ct=pct(qpc(Q, "twist", "cmaes")), cpr=pct(qpc(Q, "press", "cmaes")), cr=pct(qpc(Q, "roll", "cmaes")),
+              mt=pct(qpc(Q, "twist", "mapelites")), mr=pct(qpc(Q, "roll", "mapelites")),
+              rt=pct(qpc(Q, "twist", "random")), rr=pct(qpc(Q, "roll", "random")),
+              m4t=pct(qpc(Q, "twist", "mapelites4")), m4r=pct(qpc(Q, "roll", "mapelites4")),
+              cmt=pct(qpc(Q, "twist", "cmame")), cmr=pct(qpc(Q, "roll", "cmame")),
+              npp=Q[("pinpush", "ea64")]["grid_near_0.05"],
+              ppmin=pct(min(qpc(Q, "pinpush", m) for m in QD_METHODS)))
+    t += img(QD.FIG, "Share of 200 runs whose incumbent is within 0.05 of the grid's best J, against the rollouts spent, "
+             "on the four tracking-score grids of the hand-design talk (SCS0009 plant, 2.5 MPa pads). Replays; the "
+             "dotted line marks 6,000 rollouts. <code>scripts/hom/hom_search_qd.py</code>.")
+    rows = [[TNAME[tk], f"{best[tk]:.2f}", Q[(tk, "ea64")]["grid_near_0.05"]] + [pct(qpc(Q, tk, m)) for m in QD_METHODS]
+            for tk in TASKS]
+    t += table(["Task", "Grid's best J", "Layouts within 0.05"] + [QD_HEAD[m] for m in QD_METHODS], rows,
+               "Share of 200 runs (%) within 0.05 of the grid's best J by 6,000 rollouts, on the tracking-score grids. "
+               "MAP-Elites 8 &#215; 8 and 4 &#215; 4: archives of 15 and 30 mm cells; BO: Bayesian optimization.",
+               num_from=1)
+    rows = [[TNAME[tk]] + [(f"{float(Q[(tk, m)]['median_to_0.05']):,.0f}" if Q[(tk, m)]["median_to_0.05"] else "&#8211;")
+                           for m in QD_METHODS] for tk in TASKS]
+    t += table(["Task"] + [QD_HEAD[m] for m in QD_METHODS], rows,
+               "Median rollouts to the first incumbent within 0.05 of the grid's best J, over the runs that got there "
+               "within 12,000 rollouts.", num_from=1)
+    t += fill(r"""<p>MAP-Elites spends its rollouts across its archive (Figure <<f2>>). In one run on the roll it had run
+146 layouts by 6,000 rollouts, spread over every region of the lattice. The EA's 148 gathered on the two regions of
+high J. That spread is MAP-Elites' purpose, the best layout of every cell. As a search for the single best layout it is
+close to random search on the twist and the roll, whose maps have three layouts within 0.05 of the best.</p>
+<p>Bayesian optimization spends computing time on its model. On one CPU core a run of 12,000 roll rollouts spent
+1.1 s fitting and drawing, about 0.06 s a round. A round's 16 layouts cost 768 rollouts, about 28 s of the GPU at
+0.0365 s a rollout. The replay's count of rollouts is therefore also its cost.</p>""",
+              f2=P.FIG[0] + 1)
+    t += img(QD.FIG_ARCHIVE, "The roll's J over the lattice (left), and the layouts that one run of MAP-Elites with 8 "
+             "&#215; 8 cells (middle, thin lines: the cells) and of the EA with 64 individuals (right) ran by 6,000 "
+             "rollouts (circles), with each run's incumbent (red star) and the grid's best (white star). Run 0 of 200.")
+    return t
+
+
 def sec_limits(S5):
     nv = [S5[k]["validated"] for k in s5_keys()] if s5_ok(S5) else []
     return r"""<ul>
@@ -1060,6 +1207,8 @@ rerun at seeds 20-24 at its task and size.</li>
 on MuJoCo 4.0 are on the <a href="20261110-hom_servo_stiffness_mujoco4.html">stiffness page</a>; the methods were not
 compared on them.</li>
 <li>All grids ran on the MuJoCo and MuJoCo-Warp versions of 2026-10-30 to 11-02, and the live searches on MuJoCo 3.6.</li>
+<li>MAP-Elites, CMA-ME, CMA-ES and Bayesian optimization (Section SEC[qd]) were replayed on the four tracking-score grids
+at the default objects only, with the settings of their papers and libraries. None of them has run live.</li>
 </ul>"""
 
 
@@ -1077,7 +1226,13 @@ the swarm comes within 0.05 of the best validated tracking score from more start
 layout more than 0.02 apart, the differences have another source.</li>
 """ if s5_ok(S5) else r"""<li>Live EA and PSO searches at new object sizes, three random starts each, to test whether the
 replay's ranking holds with fresh rollout noise.</li>
-""") + r"""<li>The replays on the grids of the measured servo (<code>rows/grid2dff_v4b_sv55db</code>, stiffness page) with
+""") + r"""<li>Bayesian optimization live at the size study's object sizes, one GPU evaluation a round, scored by J and
+validated at seeds 20-24 (<code>hom_ea.py run --method bo</code>, not written yet). Its lead in Section SEC[qd] fails if
+it comes within 0.05 of the best validated J from fewer starts than the EA with 64.</li>
+<li>Bayesian optimization on the six-coordinate Sobol layouts (Section SEC[search6d]), where the EA and the swarms
+stalled. Its fitted length scales in six coordinates set how far its model extrapolates; the lead fails there if it comes
+within 0.05 from fewer of the 9 starts than random search.</li>
+<li>The replays on the grids of the measured servo (<code>rows/grid2dff_v4b_sv55db</code>, stiffness page) with
 <code>hom_search_compare.py</code>. The EA's ranking there fails if another method comes within 0.05 in 10 percentage
 points more runs on any task.</li>
 </ul>"""
@@ -1103,7 +1258,11 @@ the EA: <code>hom_landscape.ea_search</code>; the live searches: <code>scripts/h
 (<code>ea_live_sv25/*_val.jsonl</code>) and the timings in git, each search's rollouts (5-6 MB a search) on the
 workstation; summary <code>rows/20261110-live_sizes_sv25_summary.json</code>; queues
 <code>logs/20261110-hom_post_reset/gpu_queue_step5.sh</code> and <code>gpu_queue_step5b.sh</code>.</li>
-""" if s5_ok(S5) else "") + r"""<li>This page: <code>scripts/hom/hom_search_methods_page.py</code>.</li>
+""" if s5_ok(S5) else "") + r"""<li>MAP-Elites, CMA-ME, CMA-ES and Bayesian optimization: <code>scripts/hom/hom_search_qd.py</code> (pycma 4.5.0,
+pyribs 0.12.1, scikit-learn 1.9.1; the <code>search</code> extra of <code>pyproject.toml</code>); rows
+<code>rows/20261112-search_qd.tsv</code> and <code>rows/20261112-search_qd_curves.tsv</code>; log
+<code>logs/20261112-search_qd/replay.log</code>.</li>
+<li>This page: <code>scripts/hom/hom_search_methods_page.py</code>.</li>
 </ul>"""
 
 
@@ -1139,6 +1298,12 @@ validated layout from <<ea>> of 18 starts. The 16-particle swarm did so from <<p
 alone, with <<tea>> and <<tpso>> of 6 starts.""", ea=nw["ea"], pso=nw["pso"], tea=tw["ea"], tpso=tw["pso"])
         live = (f" Live at four new object sizes the EA came within 0.05 of the best validated layout from {nw['ea']} of "
                 f"18 starts and the 16-particle swarm from {nw['pso']}")
+    Q = load_qd()
+    if Q:
+        text += fill(""" Replayed on the hand-design talk's four tracking-score grids, Bayesian optimization came within
+0.05 of the best J by 6,000 rollouts in <<b>> % of runs. The EA with 64 did so in <<e>> %, CMA-ES in <<c>> %, MAP-Elites
+in <<m>> % and random search in <<r>> %.""", b=qspan(Q, "bo"), e=qspan(Q, "ea64"), c=qspan(Q, "cmaes"),
+                     m=qspan(Q, "mapelites"), r=qspan(Q, "random"))
     summary = (f"On the SR2 hand's 625-layout lattice the EA of Yang et al. with 64 individuals was the most reliable of "
                f"six search methods: on the SCS0009 roll it came within 0.05 of the grid's best by 6,000 rollouts in {e} % "
                f"of 200 replays, against {pso} % for particle swarms, {pct(pc(S, 'scs0009', 'roll', 'random'))} % for "
@@ -1146,6 +1311,11 @@ alone, with <<tea>> and <<tpso>> of 6 starts.""", ea=nw["ea"], pso=nw["pso"], te
                "six-coordinate Sobol layouts, searched live, the EA and the 16-particle swarm stalled on layouts already "
                "run, and RRT and random search found the best ones" + ("." + live if live else "") +
                "; first-principles notes on the EA, PSO, CEM, Pareto fronts and t-SNE.")
+    if Q:
+        summary += (f" On the talk's tracking-score grids Bayesian optimization came within 0.05 of the best J by 6,000 "
+                    f"rollouts in {qspan(Q, 'bo')} % of 200 replays per task, the EA in {qspan(Q, 'ea64')} %, CMA-ES in "
+                    f"{qspan(Q, 'cmaes')} %, MAP-Elites in {qspan(Q, 'mapelites')} % and random search in "
+                    f"{qspan(Q, 'random')} %.")
     return text, summary
 
 
@@ -1168,6 +1338,7 @@ def main():
                 ("tsne", "t-SNE maps", sec_tsne()),
                 ("search6d", "Live searches over the six-coordinate layouts", sec_search6d(S6)),
                 ("newsizes", "Live searches at object sizes without a stored grid", sec_newsizes(S, S5)),
+                ("qd", "MAP-Elites, CMA-ES and Bayesian optimization under the tracking score", sec_qd(load_qd())),
                 ("limits", "Limitations", sec_limits(S5)),
                 ("future", "Future work", sec_future(S5)),
                 ("refs", "References and files", '<ol class="refs">' + "".join(f"<li>{r[r.index(']') + 2:]}</li>"
@@ -1179,9 +1350,11 @@ def main():
     sections = [(sid, hd, unit(re.sub(r"SEC\[(\w+)\]", lambda m_: str(num[m_.group(1)]), b))) for sid, hd, b in sections]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in enumerate(sections, 1))
-    byline = ("Replay of the stored grids, 2026-11-09, and live searches on the six-coordinate layouts, 2026-11-10 "
+    byline = ("Replay of the stored grids, 2026-11-09; live searches on the six-coordinate layouts, 2026-11-10 "
               "(Section SEC[search6d])" + (" and at four new object sizes (Section SEC[newsizes])" if "newsizes" in num
-                                           else "") + ". The grids: the CAD-model SR2 hand with the v4b "
+                                           else "") + ("; replays of MAP-Elites, CMA-ES and Bayesian optimization on the "
+                                                       "tracking-score grids, 2026-11-12 (Section SEC[qd])" if "qd" in num
+                                                       else "") + ". The grids: the CAD-model SR2 hand with the v4b "
               "fingertip (<code>SCALE_HAND=cad_v2</code>), HOM on MuJoCo-Warp, the work plant at 10 MPa (2026-10-30) and "
               "the SCS0009 plant at 2.5 MPa (2026-11-02). Follows <a href=\"" + TRENDS + "\">the trends page</a>, Section "
               "3, and <a href=\"" + DESIGN + "\">the design page</a>. Builder: "

@@ -49,6 +49,15 @@ arm = [
   "mink>=1.1,<1.2",
 ]
 
+# Layout-search methods beside the EA (scripts/hom/hom_search_qd.py): pycma's CMA-ES, pyribs' MAP-Elites and
+# CMA-ME, and scikit-learn's Gaussian process for Bayesian optimization. Installed into .venv on 2026-11-12 with
+# `uv pip install cma==4.5.0 ribs==0.12.1 scikit-learn==1.9.1` (a `uv sync` with one extra drops the others).
+search = [
+  "cma==4.5.0",
+  "ribs==0.12.1",
+  "scikit-learn==1.9.1",
+]
+
 dev = [
   "pytest>=8.3",
   "ruff>=0.6.9",
