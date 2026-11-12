@@ -17,13 +17,15 @@ uhas_express_twist_32x512.json). GPU queue logs/20261112-uhas_sr2/: train_twist.
 budget, ~2.1 s per iteration, ends ~15:20, J proxy 0.019 at 17 min) -> eval of 109 test layouts -> after_twist.sh (film) ->
 single_twist.sh (one layout (105, 70), 30 min, eval) -> open_twist.sh (open-hand start, 120 min, eval, film; ends ~18:20).
 queue.log in that folder gets one line per step with its rc.
-Next:
-1. Wait for "queue done" in logs/20261112-karma_sr2/queue.log and "open film rc" in logs/20261112-uhas_sr2/queue.log; every rc must be 0. On a failure read that step's log (train_*.log, eval_*.log, film_*.log, batch_*.log), fix the cause and rerun the step's command from its queue script; a resguard kill shows in ~/.claude/resguard_events.jsonl.
-2. Build the page: .venv/bin/python scripts/hom/inner_loop_benchmark_page.py. Rewrite lede() so it states the outcome with numbers (time per layout of each evaluator; J of KaRMA's first choice on each task; UHAS's mean test J and held share against HOM's; the open-hand variant). Then python3 scripts/docs/prose_lint.py --top 20 on the page until within targets; search the text for the banned words of ~/.claude/CLAUDE.md.
-3. Look at every figure and film poster at displayed size (media/20261112-karma_maps.png, 20261112-uhas_vs_hom.png, 20261112-film_hom_uhas_twist*.jpg) and fix what is unreadable.
-4. Commit the page, its rows (docs/experiments/20261112-inner_loop_benchmark/rows/*), media and the docs indices it refreshed; push.
-5. Publish the page as an artifact (first publish) and give the owner the local path with the URL; the docs index picks the URL up on the next build.
-6. Report to the owner in the note's State and, when a window is open, in chat: outer loop (BO beats the EA in replay; MAP-Elites does not), KaRMA, UHAS, the costs. Offer next: live BO at the size study's sizes; UHAS on the other tasks; KaRMA on the full lattice.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Wait for "queue done" in logs/20261112-karma_sr2/queue.log and "open film rc" in logs/20261112-uhas_sr2/queue.log; every rc must be 0. On a failure read that step's log (train_*.log, eval_*.log, film_*.log, batch_*.log), fix the cause and rerun the step's command from its queue script; a resguard kill shows in ~/.claude/resguard_events.jsonl.
+- [ ] 2. Build the page: .venv/bin/python scripts/hom/inner_loop_benchmark_page.py. Rewrite lede() so it states the outcome with numbers (time per layout of each evaluator; J of KaRMA's first choice on each task; UHAS's mean test J and held share against HOM's; the open-hand variant). Then python3 scripts/docs/prose_lint.py --top 20 on the page until within targets; search the text for the banned words of ~/.claude/CLAUDE.md.
+- [ ] 3. Look at every figure and film poster at displayed size (media/20261112-karma_maps.png, 20261112-uhas_vs_hom.png, 20261112-film_hom_uhas_twist*.jpg) and fix what is unreadable.
+- [ ] 4. Commit the page, its rows (docs/experiments/20261112-inner_loop_benchmark/rows/*), media and the docs indices it refreshed; push.
+- [ ] 5. Publish the page as an artifact (first publish) and give the owner the local path with the URL; the docs index picks the URL up on the next build.
+- [ ] 6. Report to the owner in the note's State and, when a window is open, in chat: outer loop (BO beats the EA in replay; MAP-Elites does not), KaRMA, UHAS, the costs. Offer next: live BO at the size study's sizes; UHAS on the other tasks; KaRMA on the full lattice.
+<!-- /ap:steps -->
 Claimed: scripts/hom/hom_search_qd.py, karma_sr2.py, uhas_sr2*.py, inner_loop_benchmark_page.py,
 docs/experiments/20261112-inner_loop_benchmark/, logs/20261112-*.
 Waiting on owner: whether to run Bayesian optimization live as the outer loop (size study's sizes, ~3 h GPU).
