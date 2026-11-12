@@ -562,7 +562,9 @@ points, against 0.54&#8211;0.56&#8202;mm for the GP on at most 1,500 holds a set
 1.00&#8211;1.03&#8202;mm, against 1.24&#8202;mm. The GP&#8217;s uncertainty ranks the errors in those gaps better, with a rank
 correlation of 0.44 against 0.20&#8211;0.31
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#shared),
-Section 16). The contact viewer was replayed on a rod roll of v3 ID 5 that turned the pad by &#177;6&#176; at about
+Section 16). With each tip&#8217;s own holds in training, the ensemble&#8217;s error is 0.42&#8211;0.46&#8202;mm on v3 IDs 1 to 3.
+On IDs 4 to 6 it is 0.63&#8211;0.68&#8202;mm. The GP&#8217;s error is 0.46&#8211;0.51 and 0.78&#8211;0.82&#8202;mm on the same
+tips. Both errors were still falling with all of the training points (Figure 20 there). The contact viewer was replayed on a rod roll of v3 ID 5 that turned the pad by &#177;6&#176; at about
 4&#8202;N. With a board GP fitted to v3 ID 5&#8217;s 6,186 holds, none of them from a roll, its contacts were a median
 0.49&#8202;mm from the robot&#8217;s contact point. With the physical model alone they were 3.06&#8202;mm away
 ([viewer on a UR5 roll](exp:20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html)). The
