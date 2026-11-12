@@ -905,6 +905,54 @@ FINGER_SCENE = ROOT / ("logs/20261102-hom_servo_plant/scenes/cyl025.0/"
                        "x092.5_y102.5_pads_bv2__kp0.72_kv0_fr0.18_fl0_dp0.0144.xml")   # a scene of the talk's landscapes
 
 
+def gp_mlp_curve():
+    """Held-out location error of the board GP and of the MLP ensemble on the six v3 tips against the number of training
+    holds (owner, 2026-11-11: "the v3 fingertips error against number of points (loss curve, with GP and MLP)"): the
+    board GP rows of the data curves of 11-02 and 11-04 and the MLP rows of scripts/ur5/ur5_tip_calibration_v3_mlp_curve.py
+    on the same splits; holds of 1 N and over, medians over four seeds, one line per tip."""
+    C = json.loads((ROOT / "docs/experiments/20261022-ur5_tip_calibration/data/20261111-v3_gp_mlp_curve.json").read_text())
+    fig, axes = plt.subplots(1, 2, figsize=(13.0, 5.0), sharey=True)
+    models = (("gp", "Board GP", INK, "o"), ("mlp", "MLP ensemble of five", OUTER, "^"))
+    rec = {}
+    for ax, (name, title) in zip(axes, (("finger", "(a) v3 IDs 1 to 3 on the finger"),
+                                        ("rig", "(b) v3 IDs 4 to 6 on the inverted rig"))):
+        S = C["sets"][name]
+        for m, label, col, mk in models:
+            tips = {}
+            for tip, d in S["tips"].items():
+                pts = [(v[m]["n_train"], v[m]["location_mm"]) for v in d["median"].values() if v[m]]
+                ax.plot(*zip(*pts), color=col, lw=1.1, alpha=0.35)
+                tips[tip] = pts
+            k = min(len(v) for v in tips.values())
+            mid = [(float(np.median([v[i][0] for v in tips.values()])), float(np.median([v[i][1] for v in tips.values()])))
+                   for i in range(k)]
+            ax.plot(*zip(*mid), color=col, marker=mk, lw=2.8, ms=8, label=label)
+            for tip, v in tips.items():
+                rec.setdefault(name, {}).setdefault(tip, {})[m] = v
+            rec.setdefault(f"{name}_median", {})[m] = mid
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ticks = [250, 500, 1000, 2000, 4000]
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([f"{t:,}" for t in ticks])
+        ax.set_yticks([0.4, 0.5, 0.7, 1, 1.5, 2, 3, 4])
+        ax.set_yticklabels(["0.4", "0.5", "0.7", "1", "1.5", "2", "3", "4"])
+        ax.minorticks_off()
+        ax.set_xlim(170, 7000)
+        ax.set_xlabel("Training holds")
+        ax.set_title(title, fontsize=16)
+        ax.grid(True, color=PALE, lw=1)
+        for sp in ax.spines.values():
+            sp.set_color(LINE)
+    axes[0].set_ylabel("Location error, median (mm)")
+    axes[0].legend(loc="upper right", frameon=False, fontsize=13)
+    axes[1].text(0.97, 0.97, "thick: median over the three tips\nthin: each tip", transform=axes[1].transAxes,
+                 ha="right", va="top", fontsize=13, color="0.35")
+    fig.tight_layout()
+    save(fig, "20261111-v3_gp_mlp_curve.png")
+    return rec
+
+
 def finger_spheres(q=(0.0, 0.55, 0.55)):
     """One finger of the cad_v2 hand with the v4b fingertip for the talk's SR2 slide (owner, 2026-11-11: "update the
     morphit + sphere packed model with the newest fingertip"), in the four views of the cad_v1 page's Figure 4: the CAD
@@ -1029,7 +1077,7 @@ def main():
     jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
             "tuning": tuning_track if VARIANT == "track" else tuning, "compute": compute_cost,
             "contact_force": contact_force, "pinch_film": pinch_film, "drake_hydro": drake_hydro,
-            "finger_spheres": finger_spheres,
+            "finger_spheres": finger_spheres, "gp_mlp_curve": gp_mlp_curve,
             "layout_space": layout_space, "fp_views": fp_views}
     for k, fn in jobs.items():
         if not only or k in only:
