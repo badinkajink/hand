@@ -456,7 +456,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (47)
+## hardware/ (48)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -469,6 +469,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `build_cad_v3_hand.py` | cad_v3: the SR2 hand as built, on the lab's UR5 (CB3), in MuJoCo. |
 | `build_real_v1_scenes.py` | Build the `real_v1` base topology from the CAD-measured finger geometry. |
 | `calibrate_plant_kp.py` | Find the actuator gain and torque ceiling that reproduce the bench's measured shortfall. |
+| `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
 | `object_tracking_mjcf.py` | MJCF pieces and tag layouts of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv), scripts/ha |
@@ -721,7 +722,7 @@ Reinforcement learning: the trainer and its launchers, the morphology runs, poli
 | `train_real_v1_blind_pair.sh` | Real-hardware-family observation transfer: sighted vs hidden-object actor. |
 | `train_reorient_on_morph.sh` | Skip-lift REORIENTER on a NEW morphology — does the balanced grasp give a balanced grip? |
 
-## ur5/ (111)
+## ur5/ (112)
 
 The UR5 calibration cell: session plans, the cell model, registration and analysis of the presses, the ATI sensor and the inverted rig.
 
@@ -836,6 +837,7 @@ The UR5 calibration cell: session plans, the cell model, registration and analys
 | `ur5_tip_calibration_twist_board.py` | Whether v2 ID 1's board shows the friction torque of the UR5 twists (owner, 2026-10-27: "you still think there's no good way to detect twists/wrenches?"). |
 | `ur5_tip_calibration_v1_tips.py` | How well the three v1 tips sense, on their UR5 presses (owner, 2026-10-26 19:2x: "run a thorough set of analysis on the v1 id 3 data that we did get ... |
 | `ur5_tip_calibration_v3_data_curve.py` | Held-out error of the board GP on the v3 tips against the number of training holds (lab, 11-02 14:59, for the owner's go on more runs: "if it's possible to get twists/wrenches, e.g. |
+| `ur5_tip_calibration_v3_mlp_curve.py` | Held-out error of the MLP ensemble on the v3 tips against the number of training holds, on the board GP's splits of the data curves (owner, 2026-11-11: "updated charts describing the v3 fingertips error against number of |
 | `ur5_tip_calibration_v3_suite.py` | v3 ID 1's calibration suite on the UR5 cell (owner, 2026-10-27 21:5x, to the lab: "sure, we can run the v3 id 1 registration and suite ... |
 | `ur5_tip_calibration_wrist_order.py` | Reorders a UR5 plan's actions so that no travel swings wrist 1 from negative to positive while wrist 2 rises (lab, 2026-10-30 00:13: three of the HEX-E's link losses came at the end of such travels in tall stage 2's grid |
 

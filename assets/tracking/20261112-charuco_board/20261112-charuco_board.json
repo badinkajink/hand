@@ -1,0 +1,174 @@
+{
+ "what": "ChArUco board for the D435 colour cameras' lens and hand-eye calibrations, white and black STLs",
+ "script": "scripts/hardware/charuco_board_print.py",
+ "board": {
+  "dictionary": "DICT_5X5_100",
+  "squares": [
+   7,
+   5
+  ],
+  "square_mm": 21.0,
+  "marker_mm": 14.0,
+  "ids": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16
+  ]
+ },
+ "plate_mm": [
+  163.0,
+  121.0,
+  4.0
+ ],
+ "black_depth_mm": 0.6,
+ "files": {
+  "white": {
+   "file": "assets/tracking/20261112-charuco_board/20261112-charuco_board_7x5_white.stl",
+   "triangles": 2820,
+   "watertight": true,
+   "shells": 1,
+   "bounds_mm": [
+    [
+     -81.5,
+     -60.5,
+     0.0
+    ],
+    [
+     81.5,
+     60.5,
+     4.0
+    ]
+   ]
+  },
+  "black": {
+   "file": "assets/tracking/20261112-charuco_board/20261112-charuco_board_7x5_black.stl",
+   "triangles": 2188,
+   "watertight": true,
+   "shells": 21,
+   "bounds_mm": [
+    [
+     -73.505,
+     -52.505,
+     3.4
+    ],
+    [
+     73.505,
+     52.505,
+     4.0
+    ]
+   ]
+  }
+ },
+ "volume_mm3": {
+  "solid": 78747.1473,
+  "white": 72502.7457,
+  "black": 6244.4015,
+  "black_expected": 6234.0,
+  "overlap": 0.0
+ },
+ "ok": true,
+ "check": {
+  "ok": true,
+  "ppm": 10.0,
+  "corners_found": 24,
+  "corners": 24,
+  "corner_err_mm": [
+   0.0005,
+   0.001,
+   0.0013
+  ],
+  "face_mm2": 19686.787,
+  "white_mm2": 9279.451,
+  "black_mm2": 10407.336
+ },
+ "bambu": {
+  "project": "assets/tracking/20261112-charuco_board/20261112-charuco_board_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "no_brim",
+   "sparse_infill_pattern": "gyroid",
+   "wipe_tower_x": [
+    "205"
+   ],
+   "wipe_tower_y": [
+    "200"
+   ]
+  },
+  "colours": [
+   "#898989",
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 2,
+   "black": 3
+  },
+  "place_mm": {
+   "board": [
+    105.0,
+    95.0
+   ]
+  },
+  "prediction_s": 5794.0,
+  "used_g": {
+   "2": 44.64,
+   "3": 7.98
+  },
+  "filament_loads": 4,
+  "layers": 20,
+  "extrusion_box_mm": [
+   23.71,
+   32.71,
+   224.01,
+   216.46
+  ],
+  "part_offset_err_mm": {
+   "board": 0.0
+  },
+  "boxes_mm": {
+   "tower": [
+    207.0,
+    200.1,
+    224.0,
+    216.5
+   ],
+   "object": [
+    23.7,
+    32.7,
+    186.3,
+    153.3
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "389",
+   "123",
+   "123",
+   "0",
+   "143",
+   "425",
+   "623",
+   "0"
+  ],
+  "problems": []
+ }
+}

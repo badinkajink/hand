@@ -182,14 +182,14 @@ def to_px(P, c, r, d, half):
     return (np.stack([Q @ r, Q @ d], -1) + half) * PPM - 0.5
 
 
-def draw(tris, c, r, d, half):
+def draw(tris, c, r, d, half, ppm=PPM):
     """The triangles drawn black on white over the square of half-width `half` (mm) about c, at PPM px/mm, drawn at
     SS times the resolution and averaged."""
     import cv2
-    N = int(round(2 * half * PPM))
+    N = int(round(2 * half * ppm))
     big = np.full((N * SS, N * SS), 255, np.uint8)
     Q = tris - c
-    uv = (np.stack([Q @ r, Q @ d], -1) + half) * PPM * SS - 0.5
+    uv = (np.stack([Q @ r, Q @ d], -1) + half) * ppm * SS - 0.5
     for t in np.round(uv * 256).astype(np.int32):
         cv2.fillConvexPoly(big, t, 0, lineType=cv2.LINE_8, shift=8)
     return cv2.resize(big, (N, N), interpolation=cv2.INTER_AREA)
@@ -345,14 +345,19 @@ def extrusion_bounds(gcode):
             continue
         w = dict((t[0], float(t[1:])) for t in m.group(1).split() if t[0] in "XYE" and len(t) > 1)
         x, y = w.get("X", x), w.get("Y", y)
-        if w.get("E", 0.0) > 0 and x is not None and y is not None and feat not in (None, "Custom") and not change:
+        if ("X" in w or "Y" in w) and w.get("E", 0.0) > 0 and x is not None and y is not None \
+                and feat not in (None, "Custom") and not change:        # a G1 E alone is an unretraction in place
             lo, hi = np.minimum(lo, (x, y)), np.maximum(hi, (x, y))
     return np.concatenate([lo, hi])
 
 
-def cmd_bambu(a):
-    """The project through Bambu Studio's command line: each part assembled from its two STLs as one object with two
-    parts, sliced once so that its G-code can be checked (the owner slices again in the GUI)."""
+def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
+    """A Bambu Studio project of two-colour parts through the command line. Each item {name, white, black, place} is
+    assembled from its white and black STLs as one object with two parts, on filaments FILAMENT["white"] and
+    FILAMENT["black"], its white body centred at `place` (mm on the bed); the prime tower goes to `tower`. The project is
+    sliced once so that its G-code can be checked (the owner slices again in the GUI). Returns the slice's numbers and
+    the problems found: the P1S start sequence, temperatures, filaments loaded, each black part's offset from its white
+    part against the STLs, every printed move on the bed and the prime tower clear of every part."""
     import re
     import shutil
     import subprocess
@@ -361,32 +366,32 @@ def cmd_bambu(a):
     import trimesh
 
     import dip_fit_print_plates as DF        # bbl_preset (presets with the printer's G-code templates), BAMBU, the check
-    work = ROOT / f"logs/{DATE}-tag_prints/bambu"
     work.mkdir(parents=True, exist_ok=True)
+    process = dict(P1S_PROCESS, wipe_tower_x=[f"{tower[0]:g}"], wipe_tower_y=[f"{tower[1]:g}"])
     (work / "machine.json").write_text(json.dumps(DF.bbl_preset("machine", P1S["machine"]), indent=1))
-    (work / "process.json").write_text(json.dumps(DF.bbl_preset("process", P1S["process"], P1S_PROCESS), indent=1))
+    (work / "process.json").write_text(json.dumps(DF.bbl_preset("process", P1S["process"], process), indent=1))
     fils = []
     for k, col in enumerate(COLOURS, 1):
         fils.append(work / f"filament{k}.json")
         fils[-1].write_text(json.dumps(DF.bbl_preset("filament", P1S["filament"], {"filament_colour": [col]}), indent=1))
-    objs = [{"path": str(stl(part, colour)), "count": 1, "filaments": [FILAMENT[colour]], "assemble_index": [k],
-             "pos_x": [PLACE[part][0]], "pos_y": [PLACE[part][1]], "pos_z": [0.0]}
-            for k, part in enumerate(("plate", "block"), 1) for colour in ("white", "black")]
+    objs = [{"path": str(it[colour]), "count": 1, "filaments": [FILAMENT[colour]], "assemble_index": [k],
+             "pos_x": [it["place"][0]], "pos_y": [it["place"][1]], "pos_z": [0.0]}
+            for k, it in enumerate(items, 1) for colour in ("white", "black")]
     (work / "assemble.json").write_text(json.dumps(
-        {"plates": [{"plate_name": "tag plate and block", "need_arrange": False, "objects": objs}]}, indent=1))
+        {"plates": [{"plate_name": plate_name, "need_arrange": False, "objects": objs}]}, indent=1))
     # --export-3mf takes a bare name: the command line joins it to --outputdir
     cmd = DF.BAMBU + ["--debug", "1", "--arrange", "0", "--orient", "0",
                       "--load-settings", f"{work / 'machine.json'};{work / 'process.json'}",
                       "--load-filaments", ";".join(str(f) for f in fils),
                       "--load-assemble-list", str(work / "assemble.json"),
-                      "--slice", "0", "--export-3mf", PROJECT.name, "--outputdir", str(work)]
+                      "--slice", "0", "--export-3mf", project.name, "--outputdir", str(work)]
     r = subprocess.run(cmd, capture_output=True, text=True)
     (work / "cli.log").write_text(r.stdout + r.stderr)
     res = json.loads((work / "result.json").read_text())
     if res.get("return_code") != 0:
         raise SystemExit(f"Bambu Studio: {res.get('error_string')} (log {work / 'cli.log'})")
-    shutil.copy(work / PROJECT.name, PROJECT)
-    with zipfile.ZipFile(PROJECT) as z:
+    shutil.copy(work / project.name, project)
+    with zipfile.ZipFile(project) as z:
         msets = z.read("Metadata/model_settings.config").decode()
         info = z.read("Metadata/slice_info.config").decode()
         gcode = z.read("Metadata/plate_1.gcode").decode(errors="replace")
@@ -397,35 +402,88 @@ def cmd_bambu(a):
                        r'.*?key="extruder" value="(\d+)"', msets, re.S)
     placed = {f: (np.array(m.split(), float).reshape(4, 4)[:3, 3], int(e)) for m, f, e in parts}
     offsets = {}
-    for part in ("plate", "block"):
-        t = {c: placed[stl(part, c).name] for c in ("white", "black")}
-        ctr = {c: trimesh.load(stl(part, c), force="mesh").bounds.mean(0) for c in ("white", "black")}
+    for it in items:
+        t = {c: placed[Path(it[c]).name] for c in ("white", "black")}
+        ctr = {c: trimesh.load(it[c], force="mesh").bounds.mean(0) for c in ("white", "black")}
         off = (t["black"][0] - t["white"][0]) - (ctr["black"] - ctr["white"])
-        offsets[part] = float(np.abs(off).max())
-        if t["white"][1] != FILAMENT["white"] or t["black"][1] != FILAMENT["black"] or offsets[part] > 1e-4:
-            problems.append(f"{part}: filaments {t['white'][1]} and {t['black'][1]}, black part off by {off} mm")
+        offsets[it["name"]] = float(np.abs(off).max())
+        if t["white"][1] != FILAMENT["white"] or t["black"][1] != FILAMENT["black"] or offsets[it["name"]] > 1e-4:
+            problems.append(f"{it['name']}: filaments {t['white'][1]} and {t['black'][1]}, black part off by {off} mm")
     loads = [int(v) for v in re.findall(r"^\s*M620 S(\d+)A", gcode, re.M)]
     if sorted(set(loads)) != [FILAMENT["white"] - 1, FILAMENT["black"] - 1]:
         problems.append(f"filaments loaded {sorted(set(loads))}")
     box = extrusion_bounds(gcode)
     if box[:2].min() < 0 or box[2:].max() > BED:
         problems.append(f"extrusion outside the bed {box}")
+    boxes = feature_boxes(gcode)
+    for name, b in boxes.items():
+        if name != "tower" and "tower" in boxes and overlap(boxes["tower"], b, 2.0):
+            problems.append(f"prime tower {np.round(boxes['tower'], 1)} meets object {name} {np.round(b, 1)}")
     used = {i: float(g) for i, g in re.findall(r'<filament id="(\d+)"[^>]*used_g="([\d.]+)"', info)}
+    return {"project": str(project.relative_to(ROOT)), "presets": P1S, "process": process,
+            "colours": COLOURS, "filament": FILAMENT, "place_mm": {it["name"]: it["place"] for it in items},
+            "prediction_s": float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1)),
+            "used_g": used, "filament_loads": len(loads),
+            "layers": int(re.search(r"; total layer number: (\d+)", gcode).group(1)),
+            "extrusion_box_mm": np.round(box, 2).tolist(), "part_offset_err_mm": offsets,
+            "boxes_mm": {k: np.round(v, 1).tolist() for k, v in boxes.items()},
+            "flush_volumes_matrix": proj.get("flush_volumes_matrix"), "problems": problems}
+
+
+def feature_boxes(gcode):
+    """{object label, "object" when the G-code has none, or "tower": (x0, y0, x1, y1)} of a Bambu G-code's extrusions
+    outside filament changes. The tower is what lies between WIPE_TOWER_START and WIPE_TOWER_END; the feature labels
+    run on for a few moves into the next feature in both directions, so they do not separate tower and parts."""
+    import re
+    x = y = feat = obj = None
+    change = tower = False
+    pts = {}
+    for line in gcode.splitlines():
+        if line.startswith("; FEATURE:"):
+            feat = line[10:].strip()
+        elif line.startswith("; WIPE_TOWER_START"):
+            tower = True
+        elif line.startswith("; WIPE_TOWER_END"):
+            tower = False
+        elif line.startswith("M624 "):
+            obj = line.split()[1]
+        elif line.startswith("M625"):
+            obj = None
+        elif re.match(r"\s*M620 S\d+A", line):
+            change = True
+        elif re.match(r"\s*M621 S", line):
+            change = False
+        m = re.match(r"G[01] ([^;]*)", line)
+        if not m:
+            continue
+        w = dict((t[0], float(t[1:])) for t in m.group(1).split() if t[0] in "XYE" and len(t) > 1)
+        x, y = w.get("X", x), w.get("Y", y)
+        if not ("X" in w or "Y" in w) or w.get("E", 0.0) <= 0 or x is None or y is None or change \
+                or feat in (None, "Custom"):                            # a G1 E alone is an unretraction in place
+            continue
+        if tower:
+            pts.setdefault("tower", []).append((x, y))
+        elif feat != "Prime tower":
+            pts.setdefault(obj or "object", []).append((x, y))
+    return {k: np.concatenate([np.min(v, 0), np.max(v, 0)]) for k, v in pts.items()}
+
+
+def overlap(a, b, gap):
+    """Whether boxes (x0, y0, x1, y1) a and b come closer than gap (mm)."""
+    return not (a[2] + gap < b[0] or b[2] + gap < a[0] or a[3] + gap < b[1] or b[3] + gap < a[1])
+
+
+def cmd_bambu(a):
+    items = [{"name": p, "white": stl(p, "white"), "black": stl(p, "black"), "place": PLACE[p]} for p in ("plate", "block")]
+    b = bambu_project(items, PROJECT, ROOT / f"logs/{DATE}-tag_prints/bambu", "tag plate and block")
     rep = json.loads(REPORT.read_text())
-    rep["bambu"] = {"project": str(PROJECT.relative_to(ROOT)), "presets": P1S, "process": P1S_PROCESS,
-                    "colours": COLOURS, "filament": FILAMENT, "place_mm": PLACE,
-                    "prediction_s": float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1)),
-                    "used_g": used, "filament_loads": len(loads),
-                    "layers": int(re.search(r"; total layer number: (\d+)", gcode).group(1)),
-                    "extrusion_box_mm": np.round(box, 2).tolist(), "part_offset_err_mm": offsets,
-                    "flush_volumes_matrix": proj.get("flush_volumes_matrix"), "problems": problems}
+    rep["bambu"] = b
     REPORT.write_text(json.dumps(rep, indent=1))
     write_readme(rep)
-    b = rep["bambu"]
     print(f"{PROJECT.relative_to(ROOT)}: {b['prediction_s'] / 60:.0f} min, {b['layers']} layers, "
-          f"{b['filament_loads']} filament loads, used {used} g, extrusion box {b['extrusion_box_mm']}")
-    print("problems:", problems or "none")
-    if problems:
+          f"{b['filament_loads']} filament loads, used {b['used_g']} g, extrusion box {b['extrusion_box_mm']}")
+    print("problems:", b["problems"] or "none")
+    if b["problems"]:
         raise SystemExit(1)
 
 

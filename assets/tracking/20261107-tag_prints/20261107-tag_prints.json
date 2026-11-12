@@ -417,12 +417,32 @@
   "extrusion_box_mm": [
    25.21,
    33.21,
-   195.35,
+   194.79,
    185.08
   ],
   "part_offset_err_mm": {
    "plate": 0.0,
    "block": 0.0
+  },
+  "boxes_mm": {
+   "tower": [
+    177.0,
+    160.1,
+    194.0,
+    176.5
+   ],
+   "AgAAAAAAAAA=": [
+    45.2,
+    150.9,
+    74.8,
+    185.1
+   ],
+   "AQAAAAAAAAA=": [
+    25.2,
+    33.2,
+    194.8,
+    102.8
+   ]
   },
   "flush_volumes_matrix": [
    "0",
