@@ -232,7 +232,8 @@ at 2.5&#8202;MPa scored twelve tips: the v4b tip, two blocks, three capsules, tw
 quarter-ellipsoids and a hemisphere
 ([fingertip shapes on the v4b finger](exp:20261104-fingertip_shape_rerun/20261104-fingertip_shapes_v4b_finger.html)). A
 tip&#8217;s score is the held turn of the grasps on four cylinder cells and of HOM on D1&#8211;D8, as a fraction of
-90&#176;. Four finalists were chosen by this score under five friction and servo conditions, by the agreement with Drake
+90&#176;. HOM is the controller that commands each finger by how it should roll, spin, slide and separate relative to the
+object. Four finalists were chosen by this score under five friction and servo conditions, by the agreement with Drake
 and by the share of grasps with three loaded fingers. They were scored again on fresh placements (J3). The best finalist was the half-ellipsoid 7.4&#8202;&#215;&#8202;8.5&#8202;&#215;&#8202;16/32&#8202;mm.
 Its J3 was 0.259, against 0.195 for the v4b tip. The 90&#8202;% interval of the paired difference runs from &#8722;0.017
 to +0.160, and the other three finalists scored below the v4b tip. The HOM grasps, forces and contact modes refined for
@@ -613,7 +614,28 @@ measured on the UR5 within 135&#8202;&#181;m RMS, against 133&#8202;&#181;m for 
 printed pad&#8217;s bulk is within about 22&#8202;% of the FE model. The estimator reports its forces at the same pads the
 simulations use, so a measured contact and a simulated one can be compared pad by pad. The fits, the turn they change in
 two simulators, the rod presses and the pads&#8217; creep under the measured shear are in the contact overview
-(<a href="contact_model.html#pad-calibration">calibration of the pads</a>).</p>"""),
+(<a href="contact_model.html#pad-calibration">calibration of the pads</a>).</p>
+<p>In simulation, the HOM controller&#8217;s inputs from each fingertip are one contact point and one normal force. Its
+fingertip model adds the errors measured on the UR5 to each true contact. A fixed offset of 0.4&#8202;mm and random noise
+are added to the point. The noise&#8217;s sigma is 0.4&#8202;mm at 1.5&#8202;N and over, 0.7&#8202;mm from 0.5&#8202;N and 1.3&#8202;mm below. A
+gain error with a sigma of 5&#8202;% and 0.07&#8202;N of noise are added to the force. A contact that reads under 0.25&#8202;N is
+dropped. In 120 runs of each of four tasks, the controller tracked as well without the fingertips&#8217; contact points as
+with them ([HOM control and fingertip sensing](exp:20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html),
+Section 9). The force reading mattered under calibration errors with a sigma of 1&#176; per joint and 1&#8202;mm per axis
+of the object frame. In the pin-push, the thumb and index finger pinch a cylinder and the middle finger pushes it.
+Without fingertip sensing its pad forces were off by a median 1.05&#8202;N, and with the contact points alone by
+1.07&#8202;N. A loop on the fingertips&#8217; force brought that error to 0.31&#8202;N. With the same loop, the sphere
+was held in 72 of 120 runs of the sphere twist, against 119 of 120 without it.</p>
+<p>On 2026-11-13 HOM was run with the servo model of the hand&#8217;s SCS0009 servos, at the bench&#8217;s 50&#8202;Hz. The
+object&#8217;s pose came from a simulated tag tracker, with 0.5&#8202;mm and 1&#176; of noise and 40&#8202;ms of delay. The
+tracking score of a run is computed from the RMS angle between the sphere&#8217;s orientation and the commanded one. One
+minus that angle&#8217;s ratio to the RMS commanded rotation of 59.5&#176; is kept at zero or above. The result is multiplied
+by the share of the task with all three pads above 0.05&#8202;N. A run in which the sphere falls scores 0. Over 40 runs
+of the sphere twist, HOM&#8217;s mean tracking score was 0.283 without fingertip sensing and 0.302 with the fingertip
+model. With the exact state it was 0.375. In further runs the tracked pose was predicted from the commanded rotation and
+pulled toward each tracker frame with a time constant of 0.2&#8202;s. With that filter and the fingertip model, the mean
+score was 0.318
+([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html), Sections 9 and 10).</p>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b
@@ -861,6 +883,10 @@ PAGES = [
      "Steel near the pad: the magnets&#8217; images, a test against fields from outside the pad, the viewer&#8217;s toggle"),
     ("Method", "20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html",
      "Sphere pads built from a convex tip&#8217;s surface: voxel pieces, each sphere&#8217;s stiffness, a flat press in MuJoCo"),
+    ("Method", "20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html",
+     "The fingertips as the HOM controller&#8217;s contact sensor in simulation: the fingertip model, calibration errors, a force loop"),
+    ("Method", "20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
+     "HOM and sampling planners on the sphere twist; HOM with the tag tracker and the fingertip model (Sections 9 and 10)"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
