@@ -108,7 +108,10 @@ pin-push specialist only). Each block is printed in one piece with its stem, upr
 axis; the stem ends in a 45° cone, a flat seat 10 mm across and a 2.4 × 5 mm key, glued into a matching flat and slot
 on the object, and the CAD assembly shares no volume. The cylinder is printed standing, so it comes out round; its two
 end tags enter a bundle adjustment with the block's, which measures the cylinder against its block. The owner printed
-it without end tags on 2026-11-13, which saved 12.5 g of PLA. Its map is then its block's, placed by the seat and key,
+it without end tags on 2026-11-13; the plate then takes 80.0 g of PLA against 93.8 g in the slicer. The first attempt
+was cancelled after 4 min: the project files left the one-part objects without a filament on the object, Bambu Studio's
+window put them on filament 1, mapped to the black spool, and the slice made 359 filament changes in 12 h instead of 67
+in 3.9 h. The projects now put black on filament 1 and white on 2. Its map is then its block's, placed by the seat and key,
 as for the sphere. A plate pressed on the face of tag 10 or 13 lies parallel to its axis, and equal gaps to the
 cylinder at both ends set its turn when it is glued. The sphere is two
 hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The

@@ -163,29 +163,29 @@ def sec_files(J):
                "Print files. Each two-colour part is a white body and its black cells in one frame: load both files "
                "as one object with two parts and give the black part the black filament. Every file lies in its print "
                "orientation on z = 0.", num_from=2)
-    proj = [
-        (flink(f"{OBJ}/20261112-objects_p1s.3mf", github=False), "all nine object parts",
-         hours(O["bambu"]["prediction_s"]), f"{O['bambu']['used_g']['2']:.1f}", f"{O['bambu']['used_g']['3']:.1f}",
-         str(O["bambu"]["filament_loads"])),
-    ] + [
-        (flink(f"{OBJ}/20261112-objects_p1s_{v}.3mf", github=False), what, hours(q["prediction_s"]),
-         f"{q['used_g']['2']:.1f}", f"{q['used_g']['3']:.1f}", str(q["filament_loads"]))
+    def row(path, what, q):
+        f, u = q.get("filament", {"white": 2, "black": 3}), q["used_g"]
+        return (flink(path, github=False), what, hours(q["prediction_s"]), f"{u.get(str(f['white']), 0):.1f}",
+                f"{u.get(str(f['black']), 0):.1f}", f"{f['white']}, {f['black']}", str(q["filament_loads"]))
+
+    proj = [row(f"{OBJ}/20261112-objects_p1s.3mf", "all nine object parts", O["bambu"])] + [
+        row(f"{OBJ}/20261112-objects_p1s_{v}.3mf", what, q)
         for v, what in (("cylinder_tag23", "the same, the cylinder with end tag 23 only"),
-                        ("cylinder_plain", "the same, the cylinder without end tags"))
+                        ("cylinder_plain", "the same, the cylinder without end tags; printed 2026-11-13"))
         if (q := O.get("bambu_variants", {}).get(v))
-    ] + [
-        (flink(f"{BRD}/20261112-charuco_board_p1s.3mf", github=False), "the board",
-         hours(B["bambu"]["prediction_s"]), f"{B['bambu']['used_g']['2']:.1f}", f"{B['bambu']['used_g']['3']:.1f}",
-         str(B["bambu"]["filament_loads"])),
-        (flink(f"{TAGP}/20261107-tag_prints_p1s.3mf", github=False), "test plate and step-3 block",
-         hours(T["bambu"]["prediction_s"]), f"{T['bambu']['used_g']['2']:.1f}", f"{T['bambu']['used_g']['3']:.1f}",
-         str(T["bambu"]["filament_loads"])),
-    ]
-    t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Loads"], proj,
-               "Bambu Studio projects for the P1S with the AMS: white PLA on filament 2, black on filament 3, 0.20 mm "
-               "layers, textured PEI plate, the slicer's default 15 % gyroid infill. The projects are on the "
-               "workstation only (<code>.gitignore</code>); each print script's <code>bambu</code> command rebuilds "
-               "its project. The mount prints in white alone and has no project.", num_from=2)
+    ] + [row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
+         row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
+    t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
+                "Loads"], proj,
+               "Bambu Studio projects for the P1S with the AMS: 0.20 mm layers, textured PEI plate, the slicer's "
+               "default 15 % gyroid infill. The objects' projects put black PLA on filament 1 and white on filament 2, "
+               "so that filament 1 maps to the black spool in AMS slot A1 (owner, 2026-11-13). The board's and the test "
+               "prints' projects put white on filament 2 and black on 3. Each object's filament is written on the "
+               "object, where Bambu Studio's window reads it. Before 2026-11-13 the window put the objects' one-part "
+               "parts on filament 1, and a slice of the plain-cylinder plate then made 359 filament changes in 12 h "
+               "instead of 67 in 3.9 h. The projects are on the workstation only (<code>.gitignore</code>); each print "
+               "script's <code>bambu</code> command rebuilds its project. The mount prints in white alone and has no "
+               "project.", num_from=2)
     hw = ("<p>The mount is fixed with one M5 &times; 16 bolt and a nut, and the board with two M3 self-tapping screws "
           "of 10 to 12 mm. The stems and the dowels are glued with cyanoacrylate or two-part epoxy. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "

@@ -271,6 +271,9 @@ def cmd_check(a):
 PLACE = {"cylinder_block": (45.0, 60.0), "sphere_block": (45.0, 110.0), "cylinder": (45.0, 165.0),
          "sphere_lower": (110.0, 60.0), "sphere_upper": (110.0, 120.0), "sphere_pin": (150.0, 60.0)}
 TOWER = (190.0, 180.0)
+# the projects' filaments (owner, 2026-11-13: "please have the blocks use the black pla on a1"): black on filament 1 for
+# the black spool in AMS slot A1, white on filament 2 for the slot that holds the white; no third filament
+FILAMENTS, COLOURS = {"black": 1, "white": 2}, ["#000000", "#FFFFFF"]
 
 
 def cmd_bambu(a):
@@ -286,7 +289,7 @@ def cmd_bambu(a):
     variant = a.cylinder != "cylinder"
     project = OUT / f"{DATE}-objects_p1s_{a.cylinder}.3mf" if variant else PROJECT
     work = ROOT / f"logs/{DATE}-objects/bambu{'_' + a.cylinder if variant else ''}"
-    q = OP.bambu_project(items, project, work, "tracked objects", tower=TOWER)
+    q = OP.bambu_project(items, project, work, "tracked objects", tower=TOWER, colours=COLOURS, filament=FILAMENTS)
     rep = json.loads(REPORT.read_text())
     if variant:
         rep.setdefault("bambu_variants", {})[a.cylinder] = q
@@ -368,13 +371,19 @@ def write_readme(rep):
         L += ["", f"Check: every tag face of the black bodies, drawn at {OP.PPM:.0f} px/mm from the mesh, decodes as its "
                   f"own id with corners {span} mm RMS from the map."]
     def sliced(q):
-        return (f"{q['prediction_s'] / 3600:.1f} h, {q['used_g'].get('2', 0):.1f} g white and "
-                f"{q['used_g'].get('3', 0):.1f} g black, {q['filament_loads']} filament loads")
+        f, u = q.get("filament", {"white": 2, "black": 3}), q["used_g"]
+        return (f"{q['prediction_s'] / 3600:.1f} h, {u.get(str(f['white']), 0):.1f} g white and "
+                f"{u.get(str(f['black']), 0):.1f} g black, {q['filament_loads']} filament loads")
 
     if "bambu" in rep:
         q = rep["bambu"]
-        s = (f"Bambu Studio project: `{Path(q['project']).name}`, all parts on one plate, the white on filament 2 and "
-             f"the black on filament 3 (AMS slots 2 and 3). Sliced by the command line: {sliced(q)}.")
+        fil = q.get("filament", {"white": 2, "black": 3})
+        s = (f"Bambu Studio project: `{Path(q['project']).name}`, all parts on one plate, the black on filament "
+             f"{fil['black']} and the white on filament {fil['white']}. Map filament {fil['black']} to the black spool "
+             f"(AMS slot A1) and filament {fil['white']} to the white one when sending (owner, 2026-11-13). Each "
+             "object's filament is written on the object, where Bambu Studio's window reads it; before 2026-11-13 the "
+             "window put the one-part objects on filament 1. Sliced by the command line: "
+             f"{sliced(q)}.")
         phrase = {"cylinder_tag23": "the cylinder bearing only end tag 23", "cylinder_plain": "the cylinder without end tags"}
         if rep.get("bambu_variants"):
             s += (" Tag 22 lies on the printed cylinder's top, so with it the prime tower rises to "

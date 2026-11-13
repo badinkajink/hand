@@ -351,12 +351,32 @@ def extrusion_bounds(gcode):
     return np.concatenate([lo, hi])
 
 
-def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
+def object_filaments(msets: str) -> str:
+    """model_settings.config with every object's own filament written on the object. Bambu Studio's window reads a
+    one-part object's filament from the object, not from its part, and an object without one falls back to filament 1:
+    the objects' plate of 2026-11-13 printed its white parts from the black spool in the owner's slice (359 filament
+    changes against 67). A two-part object takes its first part's filament, the white body's."""
+    import re
+
+    def fix(m):
+        obj = m.group(0)
+        if re.search(r'key="extruder"', obj.split("<part", 1)[0]):
+            return obj
+        e = re.findall(r'key="extruder" value="(\d+)"', obj)
+        if not e:
+            return obj
+        return re.sub(r'(<metadata key="name" value="[^"]*"/>)', rf'\1\n    <metadata key="extruder" value="{e[0]}"/>',
+                      obj, count=1)
+    return re.sub(r'<object id="\d+">.*?</object>', fix, msets, flags=re.S)
+
+
+def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0), colours=None, filament=None):
     """A Bambu Studio project of two-colour parts through the command line. Each item {name, white, black, place} is
-    assembled from its white and black STLs as one object with two parts, on filaments FILAMENT["white"] and
-    FILAMENT["black"], its white body centred at `place` (mm on the bed); the prime tower goes to `tower`. The project is
-    sliced once so that its G-code can be checked (the owner slices again in the GUI); an item whose black is None is a
-    part in white only. Returns the slice's numbers and
+    assembled from its white and black STLs as one object with two parts, on filaments filament["white"] and
+    filament["black"] (default FILAMENT, with the colours COLOURS), its white body centred at `place` (mm on the bed);
+    the prime tower goes to `tower`. The project is sliced once so that its G-code can be checked (the owner slices again
+    in the GUI); an item whose black is None is a part in white only. Each object's filament is also written on the
+    object (object_filaments), where the window reads it. Returns the slice's numbers and
     the problems found: the P1S start sequence, temperatures, filaments loaded, each black part's offset from its white
     part against the STLs, every printed move on the bed and the prime tower clear of every part."""
     import re
@@ -367,12 +387,14 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
     import trimesh
 
     import dip_fit_print_plates as DF        # bbl_preset (presets with the printer's G-code templates), BAMBU, the check
+    colours = COLOURS if colours is None else colours
+    FILAMENT = globals()["FILAMENT"] if filament is None else filament   # noqa: N806
     work.mkdir(parents=True, exist_ok=True)
     process = dict(P1S_PROCESS, wipe_tower_x=[f"{tower[0]:g}"], wipe_tower_y=[f"{tower[1]:g}"])
     (work / "machine.json").write_text(json.dumps(DF.bbl_preset("machine", P1S["machine"]), indent=1))
     (work / "process.json").write_text(json.dumps(DF.bbl_preset("process", P1S["process"], process), indent=1))
     fils = []
-    for k, col in enumerate(COLOURS, 1):
+    for k, col in enumerate(colours, 1):
         fils.append(work / f"filament{k}.json")
         fils[-1].write_text(json.dumps(DF.bbl_preset("filament", P1S["filament"], {"filament_colour": [col]}), indent=1))
     objs = [{"path": str(it[colour]), "count": 1, "filaments": [FILAMENT[colour]], "assemble_index": [k],
@@ -391,7 +413,13 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
     res = json.loads((work / "result.json").read_text())
     if res.get("return_code") != 0:
         raise SystemExit(f"Bambu Studio: {res.get('error_string')} (log {work / 'cli.log'})")
-    shutil.copy(work / project.name, project)
+    with zipfile.ZipFile(work / project.name) as z:
+        entries = [(i, z.read(i.filename)) for i in z.infolist()]
+    with zipfile.ZipFile(project, "w", zipfile.ZIP_DEFLATED) as z:
+        for i, data in entries:
+            if i.filename == "Metadata/model_settings.config":
+                data = object_filaments(data.decode()).encode()
+            z.writestr(i, data)
     with zipfile.ZipFile(project) as z:
         msets = z.read("Metadata/model_settings.config").decode()
         info = z.read("Metadata/slice_info.config").decode()
@@ -414,8 +442,14 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
         offsets[it["name"]] = float(np.abs(off).max())
         if t["white"][1] != FILAMENT["white"] or t["black"][1] != FILAMENT["black"] or offsets[it["name"]] > 1e-4:
             problems.append(f"{it['name']}: filaments {t['white'][1]} and {t['black'][1]}, black part off by {off} mm")
+    for m in re.finditer(r'<object id="\d+">(.*?)</object>', msets, re.S):    # the filament the window will read
+        head = m.group(1).split("<part", 1)[0]
+        e = re.search(r'key="extruder" value="(\d+)"', head)
+        name = re.search(r'key="name" value="([^"]+)"', head)
+        if e is None or int(e.group(1)) != FILAMENT["white"]:
+            problems.append(f"object {name.group(1) if name else '?'}: filament on the object {e and e.group(1)}")
     loads = [int(v) for v in re.findall(r"^\s*M620 S(\d+)A", gcode, re.M)]
-    if sorted(set(loads)) != [FILAMENT["white"] - 1, FILAMENT["black"] - 1]:
+    if sorted(set(loads)) != sorted([FILAMENT["white"] - 1, FILAMENT["black"] - 1]):
         problems.append(f"filaments loaded {sorted(set(loads))}")
     box = extrusion_bounds(gcode)
     if box[:2].min() < 0 or box[2:].max() > BED:
@@ -426,7 +460,7 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0)):
             problems.append(f"prime tower {np.round(boxes['tower'], 1)} meets object {name} {np.round(b, 1)}")
     used = {i: float(g) for i, g in re.findall(r'<filament id="(\d+)"[^>]*used_g="([\d.]+)"', info)}
     return {"project": str(project.relative_to(ROOT)), "presets": P1S, "process": process,
-            "colours": COLOURS, "filament": FILAMENT, "place_mm": {it["name"]: it["place"] for it in items},
+            "colours": colours, "filament": FILAMENT, "place_mm": {it["name"]: it["place"] for it in items},
             "prediction_s": float(re.search(r'key="prediction" value="([\d.]+)"', info).group(1)),
             "used_g": used, "filament_loads": len(loads),
             "layers": int(re.search(r"; total layer number: (\d+)", gcode).group(1)),
