@@ -58,14 +58,16 @@ class Replay:
 
 def run_clip(B, world, policy=None, F=None, start="handover"):
     """One episode of one world: HOM throughout, or HOM to the task and the policy after. Returns the per-period states
-    (qpos, mocap positions, time) and the episode's row with J."""
+    (qpos, mocap positions, time, each finger's pad force and the force through its rigid parts on the object, N) and
+    the episode's row with J, the task phase's mean rigid-part force (sum over the fingers) and the pads' share of the
+    finger forces on the object."""
     import hom_landscape as L
     B.begin([world], record=True, hom=policy is None or start == "handover")
     trace = []
 
     def keep():
         trace.append((B.vw["qpos"][0].cpu().numpy().copy(), B.vw["mocap_pos"][0].cpu().numpy().copy(),
-                      B.clock[min(B.k, len(B.clock) - 1)]))
+                      B.clock[min(B.k, len(B.clock) - 1)], B.k))
     if policy is None:
         while not B.done():
             keep()
@@ -89,7 +91,12 @@ def run_clip(B, world, policy=None, F=None, start="handover"):
                 tr.advance(task, B.scene.r)
     row = dict(B.finish()[0])
     row["J"] = L.track_score(B.task, row)
-    return trace, row
+    ft = B.rec["ft"][:, 0].cpu().numpy()
+    fl = np.maximum(B.rec["fo"][:, 0].cpu().numpy() - ft, 0.0)
+    task = [k for k, t in enumerate(B.clock) if t >= B.t_task - 1e-9]
+    row["link_force_mean_N"] = round(float(fl[task].sum(1).mean()), 3)
+    row["pad_share"] = round(float(ft[task].sum() / max(1e-9, ft[task].sum() + fl[task].sum())), 3)
+    return [(q, m, t, ft[k], fl[k]) for q, m, t, k in trace], row
 
 
 def frames_of(trace, scene, world, label):
@@ -99,11 +106,12 @@ def frames_of(trace, scene, world, label):
     film = HF.Film(rp, world["setup"])
     out = []
     try:
-        for i, (qpos, mocap, t) in enumerate(trace):
+        for i, (qpos, mocap, t, fp, fl) in enumerate(trace):
             if i % 4:
                 continue
             rp.show(qpos, mocap, t)
-            out.append(film.frame(rp, label, f"t = {t:.2f} s"))
+            out.append(film.frame(rp, label, f"t = {t:.2f} s   pads {fp[0]:.1f} {fp[1]:.1f} {fp[2]:.1f} N   "
+                                             f"links {fl[0]:.1f} {fl[1]:.1f} {fl[2]:.1f} N"))
     finally:
         film.close()
     return [HR.annotate(f, label, size=14) for f in out]
@@ -116,6 +124,7 @@ def main():
                     "layout by HOM's J")
     ap.add_argument("--grasp", type=int, default=None, help="default the layout's best grasp by HOM's J")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--tag", default="", help="appended to the film's and the row's names, e.g. _x50y110")
     a = ap.parse_args()
     run = Path(a.run)
     sp = json.loads((run / "split.json").read_text())
@@ -141,12 +150,13 @@ def main():
     fh = frames_of(tr_h, scene, world, f"HOM: J {row_h['J']:.2f}; {lab}")
     fu = frames_of(tr_u, scene, world, f"UHAS, trained {Path(ckpt).stem}: J {row_u['J']:.2f}")
     import hom_films as HF
-    tag = "" if sp.get("start", "handover") == "handover" else "_" + sp["start"]
+    tag = ("" if sp.get("start", "handover") == "handover" else "_" + sp["start"]) + a.tag
     out = OUT / "media" / f"20261112-film_hom_uhas_{task}{tag}.mp4"
     HF.compose([fh, fu], out)
+    keys = ("J", "held", "track_err_rms_deg", "track_ref_rms_deg", "contact_all_frac", "link_force_max_N",
+            "link_force_mean_N", "pad_share", "drift_max_mm")
     info = {"task": task, "layout": list(xy), "grasp": g, "seed": a.seed, "run": run.name, "checkpoint": Path(ckpt).name,
-            "hom": {k: row_h.get(k) for k in ("J", "held", "track_err_rms_deg", "track_ref_rms_deg", "contact_all_frac")},
-            "uhas": {k: row_u.get(k) for k in ("J", "held", "track_err_rms_deg", "track_ref_rms_deg", "contact_all_frac")},
+            "hom": {k: row_h.get(k) for k in keys}, "uhas": {k: row_u.get(k) for k in keys},
             "grid_J_of_grasp": float(grasps[g])}
     (OUT / "rows" / f"film_hom_uhas_{task}{tag}.json").write_text(json.dumps(info, indent=1, default=float))
     print(json.dumps(info, default=float))
