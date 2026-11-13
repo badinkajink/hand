@@ -342,6 +342,9 @@ def page():
     H = {k: j(FITS / f"20261113-handeye_{k}.json") for k in ("tcp_fitted_lens", "fk_fitted_lens", "tcp_factory_lens")}
     Hs = {k: j(FITS / f"20261113-handeye_{k}_fitted_lens_scale.json") for k in ("tcp", "fk")}
     bd = j(FITS / "20261113-block_and_depth.json")
+    ovl = j(FITS / "20261113-render_overlap.json")
+    ovm = {sn: np.median([x["rms_px"] for x in ovl["rows"] if x["cam"] == sn and x["rms_px"] is not None]) for sn in SNS}
+    ovx = {sn: max(x["rms_px"] for x in ovl["rows"] if x["cam"] == sn and x["rms_px"] is not None) for sn in SNS}
     views = {d: rows(DATA / d / "views.jsonl") for d in ("lens_paper", "lens_paper_b")}
     fac = {sn: recs[0]["cams"][sn]["streams"]["color"] for sn in SNS}
     he = H["tcp_fitted_lens"]
@@ -457,8 +460,11 @@ and 0.5&deg; (<code>docs/notes/20261105-object_seating_and_tracking/</code>); on
 Through fk(q), the nominal table, the RMS is 1.7 times as large. With the factory lenses the disagreement reaches
 3.1 mm and 1.6&deg;.</p>
 <p>The cameras are {sep:.0f} mm apart and their viewing axes {ang:.1f}&deg; apart. The film (Figure 1) replays the 17
-poses in the MuJoCo model of the hand on the UR5, with both cameras placed by this fit. Figure 3 lays the render from
-each fitted camera over that camera's undistorted frame.</p>
+poses in the MuJoCo model of the hand on the UR5, with both cameras placed by this fit. In the model the gantries stand
+at the station's home layout, and the fingers hang at the angles read from the limp servos on 11-13. Figure 3 lays the
+render from each fitted camera over that camera's undistorted frame. The board's corners, detected in both, lie
+{ovm[SNS[0]]:.2f} and {ovm[SNS[1]]:.2f} px apart (median over the 17 poses; {ovx[SNS[0]]:.1f} and
+{ovx[SNS[1]]:.1f} px at worst). The render places the arm through fk(q), the model's own kinematics.</p>
 {ov_fig}
 <p>In a second fit, one more number was free: a scale factor of the board. The arm's own distances then set the
 board's size. It comes out at {sc:.4f} (&plusmn; {Hs['tcp']['board_scale_sd']:.4f}) through the TCP pose and
@@ -502,6 +508,11 @@ alone.</li>
 <li>The block's map was not adjusted. With 13.0 mm tags the two cameras still differ by 2.7 mm. A bundle adjustment of
 the map from both cameras with their poses fixed (<code>sr2hand.tracking.pose.bundle_adjust</code>) is next.</li>
 <li>One arm pose of camera 832412070344 misses the 1 mm acceptance (1.18 mm). The session was not repeated.</li>
+<li>The servos have been limp since 11-06, so the fingers hung under gravity during the session. Their angles in the
+render were read on 11-13 with the arm within 6&deg; of the untilted poses; in the tilted poses the real fingers swing
+by up to about 19&deg;.</li>
+<li>The cad_v3 model draws hand tag 6 turned 180&deg; in its plane against the printed tag (Figure 3, left). The tag's
+pose in the model needs the same turn before the tracker uses the hand tags.</li>
 </ul>"""))
 
     pose_rows = []
@@ -527,7 +538,8 @@ block and the depth need the raw frames: <code>lab/block_depth_check.py</code> a
        caption="The arm poses with the corners each camera found (of 36). Pose 15's turn was recorded as rx +0.3 rad; its joints match the rx &minus;0.3 rad pose. Pose 2 was recorded as up from x +30 mm; its joints put it at x 0.", n=4)}"""))
 
     filmfig = film_html(1, MEDIA / "20261113-calibration_replay.mp4", MEDIA / "20261113-calibration_replay_poster.jpg",
-                        f"The 17 arm poses replayed in the MuJoCo model of the SR2 hand on the UR5 (cad_v3, hand joints at zero). "
+                        f"The 17 arm poses replayed in the MuJoCo model of the SR2 hand on the UR5 (cad_v3). The gantries stand at the "
+                        f"station's home layout; the fingers hang at the angles read from the servos on 11-13. "
                         f"Left: the cell, with each camera's viewing pyramid to 0.36 m ({SNS[0]} orange, {SNS[1]} blue). The board "
                         f"on tool0, the cameras, the hex block and the table are placed by the fits through fk(q). Right: the renders from the "
                         f"two fitted cameras.")
