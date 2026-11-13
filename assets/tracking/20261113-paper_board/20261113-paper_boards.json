@@ -1,0 +1,87 @@
+{
+ "what": "paper calibration boards for a 140 x 130 mm rigid back, Letter PDF at actual size",
+ "script": "scripts/hardware/paper_board_print.py",
+ "pdf": "assets/tracking/20261113-paper_board/20261113-paper_boards_letter.pdf",
+ "page_mm": [
+  215.9,
+  279.4
+ ],
+ "trim_mm": [
+  140.0,
+  130.0
+ ],
+ "charuco": {
+  "squares": [
+   7,
+   7
+  ],
+  "square": 15.0,
+  "marker": 10.5,
+  "dictionary": "DICT_5X5_100"
+ },
+ "checkerboard": {
+  "squares": [
+   9,
+   8
+  ],
+  "square": 12.0
+ },
+ "pages": [
+  {
+   "title": "ChArUco board, 7 \u00d7 7 squares of 15 mm",
+   "pattern_mm": [
+    105.0,
+    105.0
+   ],
+   "margin_mm": [
+    17.5,
+    12.5
+   ],
+   "pattern_top_left_mm": [
+    55.45,
+    37.5
+   ],
+   "rectangles": 299
+  },
+  {
+   "title": "Checkerboard, 9 \u00d7 8 squares of 12 mm",
+   "pattern_mm": [
+    108.0,
+    96.0
+   ],
+   "margin_mm": [
+    16.0,
+    17.0
+   ],
+   "pattern_top_left_mm": [
+    53.95,
+    42.0
+   ],
+   "rectangles": 36
+  }
+ ],
+ "check": {
+  "charuco": {
+   "corners_found": 36,
+   "corners": 36,
+   "corner_err_mm": [
+    0.0125,
+    0.0201
+   ]
+  },
+  "checkerboard": {
+   "found": true,
+   "corners": 56,
+   "spacing_mm": [
+    11.9999,
+    11.9961
+   ],
+   "spacing_sd_mm": [
+    0.0052,
+    0.004
+   ]
+  },
+  "dpi": 300,
+  "ok": true
+ }
+}

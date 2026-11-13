@@ -10,8 +10,8 @@ task, at its height, at azimuths 0 and 260 deg from x_P, aimed as in object_trac
 height in the task is the generalist's pin-push rollout of 2026-11-05 plus the 40 mm lift.
 
     drawings  section drawings of the joints and a drawing of the board (femtip: manifold3d, matplotlib)
-    renders   MuJoCo renders of the objects, the mount and the cameras' views, and logs/20261113-tracking_prints/
-              views.json (camera stack)
+    renders   MuJoCo renders of the objects, the mount and the cameras' views, and the page's rows/views.json
+              (camera stack)
     viewers   the MJCF models of the page's two viewers in logs/20261113-tracking_prints/viewer (camera stack)
 
     ~/.claude/bin/resguard.sh run --mem 2G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -408,8 +408,8 @@ def fig_views():
            "rows": [{"camera_deg": az, "face": face, "turn_deg": turn, "view_deg": a, "corners_in_image": ins,
                      "distance_m": dist, "shift_mm": sh}
                     for (az, face, turn), (a, ins, dist, sh) in sorted(VA.items())]}
-    LOGS.mkdir(parents=True, exist_ok=True)
-    (LOGS / "views.json").write_text(json.dumps(rep, indent=1))
+    (D / "rows").mkdir(parents=True, exist_ok=True)
+    (D / "rows/views.json").write_text(json.dumps(rep, indent=1))
     for r in rep["rows"]:
         print(r)
 

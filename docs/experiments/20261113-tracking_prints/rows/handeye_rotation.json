@@ -1,0 +1,150 @@
+{
+ "what": "hand-eye calibration error against the hand's rotation range, board at an unmeasured place",
+ "script": "scripts/hardware/handeye_rotation_sim.py",
+ "setup": {
+  "fx_px": 1397.0,
+  "image_px": [
+   1080,
+   1920
+  ],
+  "corners": 36,
+  "square_mm": 15.0,
+  "poses": 20,
+  "move_mm": 40.0,
+  "sigma_px": 0.1,
+  "sigma_arm_mm": 0.05,
+  "sigma_arm_deg": 0.005,
+  "board_on_tool0_mm": [
+   -130.0,
+   60.0,
+   110.0
+  ],
+  "camera_dist_mm": 400.0,
+  "board_measured_mm_deg": [
+   0.5,
+   0.5
+  ]
+ },
+ "rows": [
+  {
+   "rotation": "three axes",
+   "range_deg": 0.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": false,
+   "min_rel_singular_value": 1.2576444772490617e-07,
+   "camera_pos_rms_mm": null,
+   "camera_rot_rms_deg": 0.0465,
+   "palm_in_camera_pos_rms_mm": null
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 1.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 1.9337477858083555e-05,
+   "camera_pos_rms_mm": 2.173,
+   "camera_rot_rms_deg": 0.0448,
+   "palm_in_camera_pos_rms_mm": 2.172
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 2.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 3.853583212165611e-05,
+   "camera_pos_rms_mm": 1.107,
+   "camera_rot_rms_deg": 0.0447,
+   "palm_in_camera_pos_rms_mm": 1.093
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 5.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 9.091056647357894e-05,
+   "camera_pos_rms_mm": 0.502,
+   "camera_rot_rms_deg": 0.0445,
+   "palm_in_camera_pos_rms_mm": 0.453
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 10.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 0.0001399198893158958,
+   "camera_pos_rms_mm": 0.336,
+   "camera_rot_rms_deg": 0.0439,
+   "palm_in_camera_pos_rms_mm": 0.251
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 20.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 0.0001708225590588937,
+   "camera_pos_rms_mm": 0.27,
+   "camera_rot_rms_deg": 0.0421,
+   "palm_in_camera_pos_rms_mm": 0.162
+  },
+  {
+   "rotation": "three axes",
+   "range_deg": 30.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 0.00018203043236767922,
+   "camera_pos_rms_mm": 0.243,
+   "camera_rot_rms_deg": 0.0398,
+   "palm_in_camera_pos_rms_mm": 0.137
+  },
+  {
+   "rotation": "flange axis only",
+   "range_deg": 10.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": false,
+   "min_rel_singular_value": 1.3755246477350805e-07,
+   "camera_pos_rms_mm": null,
+   "camera_rot_rms_deg": 0.0446,
+   "palm_in_camera_pos_rms_mm": null
+  },
+  {
+   "rotation": "flange axis only",
+   "range_deg": 30.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": false,
+   "min_rel_singular_value": 1.3750261944147824e-07,
+   "camera_pos_rms_mm": null,
+   "camera_rot_rms_deg": 0.0439,
+   "palm_in_camera_pos_rms_mm": null
+  },
+  {
+   "rotation": "translations, board measured",
+   "range_deg": 0.0,
+   "trials": 40,
+   "poses": 20,
+   "all_corners_in_view": true,
+   "determined": true,
+   "min_rel_singular_value": 0.00018000506409368377,
+   "camera_pos_rms_mm": 0.889,
+   "camera_rot_rms_deg": 0.0443,
+   "palm_in_camera_pos_rms_mm": 0.839
+  }
+ ]
+}

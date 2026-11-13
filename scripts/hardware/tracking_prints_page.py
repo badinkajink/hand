@@ -45,6 +45,7 @@ OBJ = "assets/tracking/20261112-objects"
 BRD = "assets/tracking/20261112-charuco_board"
 TAGP = "assets/tracking/20261107-tag_prints"
 STEM_ROWS = "docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db.json"
+PAPER = "assets/tracking/20261113-paper_board"
 
 
 def rel(path):
@@ -64,7 +65,9 @@ def load():
         ("obj", f"{OBJ}/20261112-objects.json"), ("brd", f"{BRD}/20261112-charuco_board.json"),
         ("mnt", f"{BRD}/20261112-charuco_board_mount.json"), ("tag", f"{TAGP}/20261107-tag_prints.json"),
         ("stem", STEM_ROWS))}
-    J["views"] = json.loads((ROOT / f"logs/{DATE}-tracking_prints/views.json").read_text())
+    J["views"] = json.loads((D / "rows/views.json").read_text())
+    J["he"] = json.loads((D / "rows/handeye_rotation.json").read_text())
+    J["paper"] = json.loads((ROOT / f"{PAPER}/20261113-paper_boards.json").read_text())
     return J
 
 
@@ -103,6 +106,14 @@ def sec_terms():
         ("Turn", "a rotation of the hand about $z_P$ through $P$'s origin, from its orientation in the task (deg)."),
         ("View angle", "the angle between the board's outward normal and the direction from the board's centre to a "
                        "camera (deg): 0&deg; is head-on, above 90&deg; the camera faces the board's back."),
+        ("Turn range &plusmn;$a$", "in a simulated hand-eye calibration, each pose's rotation of the flange: a "
+                                   "rotation vector whose components about tool0's three axes are drawn from "
+                                   "[&minus;$a$, $a$] (deg)."),
+        ("RMS error of a calibration", "the root mean square over 40 simulated calibrations of three errors. Two are "
+                                       "the distance between the fitted and the true camera position (mm) and the "
+                                       "angle between the two orientations (deg). The third is the distance between "
+                                       "the fitted and the true position of $P$ in the camera at the task's pose "
+                                       "(mm)."),
         ("Lens calibration", "a camera's focal lengths, principal point and distortion coefficients, fitted to "
                              "views of a flat board at many tilts."),
         ("Hand-eye calibration", "each camera's pose in $W$ and the board's pose in $E$, fitted to views of the board "
@@ -138,6 +149,9 @@ def sec_files(J):
         ("Tag test plate (step 1, 2026-11-07)", stls("tag_test_plate", TAGP), "3.0", "free-standing"),
         ("Tag block of step 3 (2026-11-07, ids 10 to 15, 4.2 mm bore)", stls("tag_block_ids10-15", TAGP), "17.0",
          "turntable shaft"),
+        ("Paper boards for a 140 &times; 130 mm back (2026-11-13): ChArUco 7 &times; 7 and checkerboard 9 &times; 8, "
+         "Letter, actual size", flink(f"{PAPER}/20261113-paper_boards_letter.pdf"), "paper",
+         "glued to a rigid back screwed to the hand"),
     ]
     t1 = table(["Part", "Print files", "Height as printed (mm)", "Joined to"], rows,
                "Print files. Each two-colour part is a white body and its black cells in one frame: load both files "
@@ -321,7 +335,7 @@ def sec_views(J):
     return p1 + f5 + t + p2
 
 
-def sec_calibration():
+def sec_calibration(J):
     eq1 = "$$T_{CB}^{(i)} = T_{CW}\\,T_{WE}^{(i)}\\,T_{EB}, \\qquad i = 1, \\dots, N$$"
     eq2 = "$$T_{CP} = T_{CW}\\,T_{WE}\\,T_{EP}, \\qquad T_{PO} = T_{CP}^{-1}\\,T_{CO}$$"
     p1 = ("<p>Each colour camera is calibrated twice for the tracker. In the lens calibration the focal lengths, the "
@@ -343,6 +357,55 @@ def sec_calibration():
           "camera for 20 or more views, which reach the image's corners and tilt the board by up to about 45&deg;. "
           "For the hand-eye calibration the board is fixed to the hand, and the arm turns it through about 15 poses "
           "about at least two axes.</p>")
+    he = {(r["rotation"], r["range_deg"]): r for r in J["he"]["rows"]}
+    st = J["he"]["setup"]
+
+    def cell(v, k):
+        return "not determined" if v is None else f"{v:.{k}f}"
+    hrow = [("none (translations only)", he[("three axes", 0.0)])]
+    hrow += [(f"&plusmn;{a:g}&deg; about the three axes", he[("three axes", a)]) for a in (1.0, 2.0, 5.0, 10.0, 20.0, 30.0)]
+    hrow += [(f"&plusmn;{a:g}&deg; about the flange's axis only", he[("flange axis only", a)]) for a in (10.0, 30.0)]
+    hrow += [("none, board's place measured to 0.5 mm", he[("translations, board measured", 0.0)])]
+    th = table(["Turn range of the flange", "Camera position (mm)", "Camera orientation (deg)", "Palm in the camera (mm)"],
+               [(n, cell(r["camera_pos_rms_mm"], 2), f"{r['camera_rot_rms_deg']:.3f}",
+                 cell(r["palm_in_camera_pos_rms_mm"], 2)) for n, r in hrow],
+               f"RMS errors of {he[('three axes', 5.0)]['trials']} simulated hand-eye calibrations of one camera per "
+               f"row, {st['poses']} poses each, with the board at an unmeasured place on the hand. Not determined: the "
+               f"fit has three directions (translations only) or one (flange's axis only) without information.")
+    nh = P.TAB[0]
+    pc = J["paper"]["check"]
+    fp = img(ROOT / f"{PAPER}/20261113-paper_boards_preview.png",
+             "The two pages of the paper boards' PDF, cropped to the trim outlines. Left: a ChArUco board of 7 &times; 7 squares of 15 mm, with 36 "
+             "corners and markers 0 to 23 of DICT_5X5_100. Right: a checkerboard of 9 &times; 8 squares of 12 mm, with "
+             "56 corners. Each is centred in a 140 &times; 130 mm trim outline with crop marks. Its white border of "
+             "12.5 mm or more leaves room for glue and screws, and a 100 mm bar checks the printer's scale.")
+    nf = P.FIG[0]
+    p4 = ("<p>The owner screws a paper board to a flat edge of the hand, at a place that is not measured, and the arm "
+          "moves it mostly by translation (owner, 2026-11-13). The board's place on the flange, $T_{EB}$, is then fitted "
+          "with the camera's pose. With the flange's orientation fixed, the board's offset and the camera's position "
+          "enter the fit only as a sum. Translations then fix each camera's orientation and leave three directions of "
+          "its position undetermined; turns of the flange about two or more axes separate the two. A simulation of the "
+          f"fit (<code>scripts/hardware/handeye_rotation_sim.py</code>, Table {nh}) moved the board within "
+          f"&plusmn;{st['move_mm']:g} mm along each axis in {st['poses']} poses. Its corners had {st['sigma_px']:g} px "
+          f"of noise, and the arm {st['sigma_arm_mm']:g} mm and {st['sigma_arm_deg']:g}&deg; per pose.</p>"
+          "<p>Translations alone left the camera's position undetermined, and so did turns about the flange's axis "
+          "alone (joint 6). Turns of &plusmn;5&deg; about the three axes gave "
+          f"{he[('three axes', 5.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS for the palm's position in the camera. "
+          f"At &plusmn;10&deg; it was {he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm, and at "
+          f"&plusmn;20&deg; {he[('three axes', 20.0)]['palm_in_camera_pos_rms_mm']:.2f} mm; the plan's target for the "
+          "object in $P$ is 0.3 mm. The camera's orientation came out within 0.05&deg; RMS in every case. Measuring "
+          "the board's place on the hand with calipers to 0.5 mm per axis gave "
+          f"{he[('translations, board measured', 0.0)]['palm_in_camera_pos_rms_mm']:.2f} mm from translations alone. "
+          "The hand-eye poses therefore tilt the hand about two horizontal axes and turn it about the flange's axis, "
+          "by 10&deg; or more each.</p>")
+    p5 = (f"<p>The paper boards are one Letter PDF at actual size, sized for the owner's rigid back of about 140 "
+          f"&times; 130 mm (Figure {nf}; {flink(PAPER + '/20261113-paper_boards_letter.pdf')}). Rasterized at "
+          f"{pc['dpi']} dpi, all {pc['charuco']['corners_found']} ChArUco corners were found within "
+          f"{pc['charuco']['corner_err_mm'][1]:.3f} mm of the board model. The checkerboard's corners lay "
+          f"{pc['checkerboard']['spacing_mm'][0]:.3f} mm apart. The ChArUco page is the one to use: each corner is "
+          "named by its markers, so partly hidden views count. After printing, the squares are measured along both "
+          "edges with calipers, and the board is glued over its whole back. The lens calibration needs tilts of up to "
+          "about 45&deg;, so it is done first, with the board held by hand before it is screwed on.</p>")
     rows = [
         ("Flatness", "a 4 mm PLA plate", "glued over its whole back to glass, aluminium or acrylic; paper clamped at "
          "its edges bows"),
@@ -352,8 +415,8 @@ def sec_calibration():
          "needs every inner corner"),
         ("Order of the corners", "fixed by the markers", "check that the first corner stays at the same corner of the "
          "board; a view numbered from the other end enters the fit as a 180&deg; turn"),
-        ("Fixing to the hand", "two M3 screws into the mount", "a clamp on the mount's post or another static part, "
-         "facing &minus;$y_P$"),
+        ("Fixing to the hand", "two M3 screws into the mount", "its rigid back screwed to a flat edge of the hand at "
+         "a place that is fitted (owner, 2026-11-13)"),
     ]
     t = table(["Requirement", "Printed ChArUco board", "Paper checkerboard"], rows,
               "The printed board and a paper checkerboard in the two calibrations.", num_from=9)
@@ -364,7 +427,7 @@ def sec_calibration():
           "fit the board's translations are compared with the arm's, which are metric, so the square size enters "
           "there. The printed board adds partial views: near the fingers and at the image's edges a plain "
           "checkerboard view is lost whenever one inner corner is hidden.</p>")
-    return p1 + p2 + p3 + t
+    return p1 + p2 + p4 + th + p5 + fp + p3 + t
 
 
 def sec_earlier():
@@ -385,7 +448,9 @@ def sec_limits():
             "the renders and in Viewer 2 has its fingers in the CAD's modelled pose, and the views omit the arm, the "
             "cables and the camera mounts. The view angles and the renders do not check the arm's reach or its "
             "joint limits for the turned poses. The stems' clearance comes from the HOM simulation of 2026-11-05 and "
-            "from static grasp poses on the measured servo's grids.</p>")
+            "from static grasp poses on the measured servo's grids. The hand-eye simulation has random noise only; the lens "
+            "model, the board's flatness and scale, and the arm's kinematic errors add systematic errors to a real "
+            "calibration.</p>")
 
 
 def sec_future():
@@ -395,10 +460,10 @@ def sec_future():
         "Calibrate each colour camera's lens with distortion from 20 or more views of a flat board, and solve the "
         "tag block of 2026-11-09 again with the fitted model. If its depth moves by less than 1 mm, the depth maps' "
         "3.6 to 6.9 mm offset comes from the depth stream.",
-        "Plan about 15 hand-eye poses per camera in <code>scripts/ur5/ur5_cb3_cell.py</code>, with the board on the "
-        "&minus;$y_P$ face. The turns about $z_P$ are 0&deg; to +45&deg; for camera 260 and +90&deg; to +135&deg; "
-        "for camera 0. Each pose adds a tilt of up to &plusmn;20&deg; about a second axis. If joint 6 cannot reach "
-        "&minus;90&deg; from the task's pose, a board facing $+x_P$ on another part of the hand is needed for camera 0.",
+        "Calibrate each camera's hand-eye with the paper board screwed to the hand. Use about 20 poses that move it "
+        "within &plusmn;40 mm and turn the flange by &plusmn;10&deg; or more about each of tool0's three axes, every "
+        "path checked in <code>scripts/ur5/ur5_cb3_cell.py</code>. Fit the two halves of the poses apart; if the palm's "
+        "position in a camera differs by more than 0.3 mm between them, add poses with larger turns.",
         "Design the flat seat on its pedestal, the catch tray and the turntable adapter with its 20&deg; wedge "
         "(plan, Parts). The seat's height is set by the arm's pose of the hand in the task. The adapter needs the "
         "STS3032 horn's dimensions.",
@@ -414,6 +479,8 @@ def sec_scripts():
              "shared two-colour and Bambu steps"),
             ("scripts/hardware/object_tracking_mjcf.py", "the objects, blocks and tag maps used by the tracker and the "
              "simulation"),
+            ("scripts/hardware/paper_board_print.py", "the paper boards' PDF and its check"),
+            ("scripts/hardware/handeye_rotation_sim.py", "the hand-eye calibration's error against the turn range"),
             ("scripts/hardware/tracking_prints_media.py", "this page's renders, drawings and viewer models"),
             ("scripts/hardware/tracking_prints_page.py", "this page"),
             (PLAN, "the plan")]
@@ -423,18 +490,21 @@ def sec_scripts():
 # ------------------------------------------------------------------------------------------------ page
 def lede_and_summary(J):
     stem = J["stem"]["stem_mm"]
-    lede = (f"The two HOM objects, their tag blocks and a 7 &times; 5 ChArUco board with its mount on the hand are "
-            f"ready to print. Each block prints in one piece with its stem, {stem['cylinder']:.1f} mm on the cylinder "
-            f"and {stem['sphere']:.1f} mm on the sphere. Its top then lies 15 mm below the lowest finger point of both "
-            f"layout sets. All 14 tags decode from the print files, 0.022 mm RMS from the tracker's map. The board "
-            f"hangs on the mount's &minus;$y_P$ face. It is in camera 260's view with the hand turned 0 to +45&deg; "
-            f"about $z_P$, and in camera 0's at +90 to +135&deg;. A paper checkerboard can replace the printed board if it is "
-            f"flat and measured, and fixed to the hand for the hand-eye poses.")
+    he = {(r["rotation"], r["range_deg"]): r for r in J["he"]["rows"]}
+    lede = (f"The two HOM objects and their tag blocks are ready to print. Each block prints in one piece with its "
+            f"stem, {stem['cylinder']:.1f} mm on the cylinder and {stem['sphere']:.1f} mm on the sphere. Its top then "
+            f"lies 15 mm below the lowest finger point of both layout sets. All 14 tags decode from the print files, "
+            f"0.022 mm RMS from the tracker's map. For the cameras' calibration a paper ChArUco board fits the owner's "
+            f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
+            f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
+            f"in the camera to {he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS in simulation.")
     summary = (f"Print files of the HOM cylinder and sphere on tag-block stems ({stem['cylinder']:.1f} and "
                f"{stem['sphere']:.1f} mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at "
-               f"0.022 mm RMS) and of a 7 x 5 ChArUco board with its mount on the SR2 hand's camera arm. The board on "
-               f"the mount's -y face is seen by camera 260 with the hand turned 0 to +45 deg about z_P and by camera 0 "
-               f"at +90 to +135 deg; a flat, measured paper checkerboard fixed to the hand can replace it.")
+               f"0.022 mm RMS), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
+               f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
+               f"position undetermined; turns of +-10 deg about three axes give "
+               f"{he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS for the palm in the camera in "
+               f"simulation.")
     return lede, summary
 
 
@@ -464,7 +534,7 @@ def main():
         ("stems", "Stem length and finger clearance", sec_stems(J)),
         ("board", "ChArUco board and its mount on the hand", sec_board(J, "{{VIEWER_HAND}}")),
         ("views", "The board seen by the two cameras", sec_views(J)),
-        ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration()),
+        ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration(J)),
         ("earlier", "Tag test plate and step-3 block of 2026-11-07", sec_earlier()),
         ("limits", "Limitations", sec_limits()),
         ("future", "Future work", sec_future()),

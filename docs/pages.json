@@ -5,7 +5,7 @@
   "title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
   "page_title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
   "topic": "hardware",
-  "summary": "Print files of the HOM cylinder and sphere on tag-block stems (35.6 and 25.7 mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at 0.022 mm RMS) and of a 7 x 5 ChArUco board with its mount on the SR2 hand's camera arm. The board on the mount's -y face is seen by camera 260 with the hand turned 0 to +45 deg about z_P and by camera 0 at +90 to +135 deg; a flat, measured paper checkerboard fixed to the hand can replace it.",
+  "summary": "Print files of the HOM cylinder and sphere on tag-block stems (35.6 and 25.7 mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at 0.022 mm RMS), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm back. With the board at an unmeasured place on the hand, translations alone leave each camera's position undetermined; turns of +-10 deg about three axes give 0.25 mm RMS for the palm in the camera in simulation.",
   "builder": null,
   "artifact": "https://claude.ai/artifact/CfmQuMQ9dc6V3VToYK3DqF",
   "status": "current",
@@ -17,11 +17,11 @@
   "title": "Sampling MPC and HOM on the SR2 sphere twist",
   "page_title": "Sampling MPC and HOM on the SR2 sphere twist",
   "topic": "design",
-  "summary": "On the SCS0009 plant HOM's mean J over 40 runs of the sphere twist was 0.388. At a budget that runs in real time, predictive sampling reached 0.335.",
+  "summary": "On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was 0.388 with 7.7 N of grip, at 2.0 ms of one CPU core per 10 ms period. The best sampling planner, DIAL annealing, reached 0.461 with 4.7 N and 2.0 target reversals per joint per second against HOM's 0.6; for one hand it needs 11.7 s of GPU per second of control. At a budget that runs in real time, predictive sampling reached 0.335. Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; its best J was 0.370 at 1/s.",
   "builder": "scripts/hom/inner_loop_mpc_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 0.1
+  "mb": 0.2
  },
  {
   "date": "2026-11-12",

@@ -456,7 +456,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (52)
+## hardware/ (54)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -472,12 +472,14 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `charuco_board_mount_print.py` | The mount that holds the ChArUco board of scripts/hardware/charuco_board_print.py on the SR2 hand for the hand-eye poses (owner, 2026-11-12: at the camera arm's fork). |
 | `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
+| `handeye_rotation_sim.py` | Hand-eye calibration of a table-fixed camera with the board screwed to the hand at an unmeasured place: how the error of the camera's pose depends on how far the hand turns between poses (owner, 2026-11-13: "it will be o |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
 | `object_tracking_mjcf.py` | MJCF pieces and tag layouts of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv), scripts/ha |
 | `object_tracking_print.py` | Print files of steps 1 and 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/): the tag test plate and the hexagonal tag block. |
 | `object_tracking_rollouts.py` | Step 2 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), the physics: the HOM tasks of the five layouts of the task-conflict study (generalist (70,110); specialists twist (100,70 |
 | `object_tracking_sim.py` | Steps 1-3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, the camera side. |
 | `object_tracking_sim_page.py` | Builds docs/experiments/20261105-object_tracking_sim/20261105-object_tracking_sim.html: steps 1 to 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) in simulation, with the owne |
+| `paper_board_print.py` | Paper calibration boards for the D435 colour cameras of the object tracking plan, sized for the owner's rigid back of about 140 x 130 mm (owner, 2026-11-13: "i have an approximately 14cm x 13cm rigid back. |
 | `plant_drop_gate.py` | Does the corrected plant make the simulator FAIL the way the bench fails? |
 | `plant_ranking_test.py` | Does the corrected plant make the simulator RANK the hands the bench ranked? |
 | `probe_real_v1_pivot.py` | Is the real_v1 grasp a rotational LOCK about the pinch axis? |
