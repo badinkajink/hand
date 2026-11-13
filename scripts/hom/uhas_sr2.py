@@ -78,7 +78,10 @@ REW = {"dist": -10.0, "rot": 1.0, "rot_eps": 0.1, "lat": -0.016, "rad": -0.004, 
 # The period's reward is then clipped at zero before the drop penalty (legged_gym's only_positive_rewards): at -0.5 for the
 # torque term a 64-world smoke run's untrained policy paid 8 per period, more than a held sphere earns, so dropping the
 # sphere would have paid. inner_loop_mpc.py's planners have the same terms in their cost.
-REW_LIMITS = {"tau": -0.2, "tau_on": 0.8, "q": -0.1, "q_band_deg": 3.0, "rate": -0.04}
+# The run 20261112-2313_twist_limits_s0 (140 min) kept the torque term near 15 per period, most joints at the cap of 3,
+# where the hinge is flat; its mean reward was 0.44 per period against 5.8 for the published reward, and its test J 0.033
+# against 0.204. --limits-tau and --limits-cap set the weight and the cap (0 removes it) for a second run.
+REW_LIMITS = {"tau": -0.2, "tau_on": 0.8, "tau_cap": 3.0, "q": -0.1, "q_band_deg": 3.0, "rate": -0.04}
 LIMITS = False
 PPO_CFG = {
     "num_steps_per_env": 16, "save_interval": 50, "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
@@ -383,7 +386,7 @@ class Tracker:
             dmd = lim["kp"] * (q_cmd.reshape(self.W, 9).float() - q9).abs() / lim["tau"]
             band = math.radians(L_["q_band_deg"])
             near = torch.minimum(q9 - lim["lo"], lim["hi"] - q9)
-            pen = torch.stack([((dmd - L_["tau_on"]) / (1.0 - L_["tau_on"])).clamp(0.0, 3.0).sum(-1),
+            pen = torch.stack([((dmd - L_["tau_on"]) / (1.0 - L_["tau_on"])).clamp(min=0.0, max=L_["tau_cap"]).sum(-1),
                                ((band - near) / band).clamp(0.0, 1.0).sum(-1), ((a - a_prev) ** 2).sum(-1)], -1)
             rew = (rew + pen @ torch.tensor([L_["tau"], L_["q"], L_["rate"]], device=self.dev)).clamp_min(0.0)
             self.pen = pen
@@ -627,6 +630,12 @@ def cmd_train(a):
     global LIMITS
     LIMITS = bool(a.limits)
     tag = ("" if a.start == "handover" else f"_{a.start}") + ("_limits" if LIMITS else "")
+    if LIMITS and a.limits_tau is not None:
+        REW_LIMITS["tau"] = a.limits_tau
+        tag += f"_tau{abs(a.limits_tau):g}"
+    if LIMITS and a.limits_cap is not None:
+        REW_LIMITS["tau_cap"] = a.limits_cap if a.limits_cap > 0 else None
+        tag += f"_cap{a.limits_cap:g}"
     if a.only:                                        # UHAS's single-hand baseline: one layout, its own grasps
         one = (float(a.only[0]), float(a.only[1]))
         entries = [e for e in grid_entries(a.task) if xy_of(e[0]) == one]
@@ -801,6 +810,9 @@ def main():
                    help="the policy takes over at HOM's handover, or acts from the open hand with the object on its post")
     t.add_argument("--limits", action="store_true", help="the joint and actuator limit terms (REW_LIMITS) in the "
                    "reward")
+    t.add_argument("--limits-tau", type=float, default=None, help="weight of the servo-demand term (-0.2)")
+    t.add_argument("--limits-cap", type=float, default=None, help="cap of the servo-demand hinge per joint (3); 0 "
+                   "removes the cap")
     e = sub.add_parser("eval")
     e.add_argument("--run", required=True)
     e.add_argument("--split", default="test", choices=("test", "train"))
