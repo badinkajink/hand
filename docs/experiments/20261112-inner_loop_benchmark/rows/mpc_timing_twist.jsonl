@@ -1,0 +1,8 @@
+{"plant_worlds": 16, "n": 32, "worlds": 512, "replan_s": 3.12, "ms_per_period": 26.0, "us_per_world_period": 50.78, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 20:59"}
+{"plant_worlds": 16, "n": 64, "worlds": 1024, "replan_s": 5.393, "ms_per_period": 44.95, "us_per_world_period": 43.89, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:00"}
+{"plant_worlds": 16, "n": 128, "worlds": 2048, "replan_s": 10.059, "ms_per_period": 83.82, "us_per_world_period": 40.93, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:01"}
+{"plant_worlds": 1, "n": 16, "worlds": 16, "iters": 4, "H": 30, "replan": 10, "replan_s": 0.729, "ms_per_period": 6.07, "us_per_world_period": 379.54, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:02"}
+{"plant_worlds": 1, "n": 64, "worlds": 64, "iters": 4, "H": 30, "replan": 10, "replan_s": 1.075, "ms_per_period": 8.96, "us_per_world_period": 139.95, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:02"}
+{"plant_worlds": 1, "n": 256, "worlds": 256, "iters": 4, "H": 30, "replan": 10, "replan_s": 2.012, "ms_per_period": 16.77, "us_per_world_period": 65.5, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:03"}
+{"plant_worlds": 1, "n": 64, "worlds": 64, "iters": 1, "H": 15, "replan": 10, "replan_s": 0.126, "ms_per_period": 8.37, "us_per_world_period": 130.86, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:03"}
+{"plant_worlds": 1, "n": 256, "worlds": 256, "iters": 1, "H": 15, "replan": 10, "replan_s": 0.232, "ms_per_period": 15.48, "us_per_world_period": 60.47, "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER", "when": "2026-11-12 21:03"}

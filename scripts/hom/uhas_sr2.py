@@ -72,6 +72,12 @@ D_MM = {"twist": 40.0, "roll": 40.0, "pinpush": 25.0, "press": 25.0}
 VARIANT = {"twist": "base", "roll": "base", "pinpush": "hold", "press": "hold"}
 REW = {"dist": -10.0, "rot": 1.0, "rot_eps": 0.1, "lat": -0.016, "rad": -0.004, "fall": -100.0, "contact": 2.0,
        "fall_dist": 0.2, "drop_m": 0.015, "f_on": 0.05}
+# train --limits (owner, 2026-11-12: "run uhas training with joint and actuator limits built into training"): per period,
+# -0.5 sum_j clip((servo demand_j / torque limit - 0.8) / 0.2, 0, 3), the demand kp |target - q| and 0.8 the SCS0009's
+# overload threshold; -0.25 sum_j clip((3 deg - distance to the joint's range limit) / 3 deg, 0, 1); -0.05 |a - a_prev|^2.
+# inner_loop_mpc.py's planners have the same terms in their cost.
+REW_LIMITS = {"tau": -0.5, "tau_on": 0.8, "q": -0.25, "q_band_deg": 3.0, "rate": -0.05}
+LIMITS = False
 PPO_CFG = {
     "num_steps_per_env": 16, "save_interval": 50, "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
     "logger": "tensorboard",
@@ -356,8 +362,10 @@ class Tracker:
         cri = torch.cat([pol, B.ft_t.float(), (self.tau.float() / task.n)[:, None]], -1)
         return pol, cri
 
-    def reward(self, task, B, C):
-        """UHAS's reward terms with the task's reference, the drop test, and J's ingredients."""
+    def reward(self, task, B, C, q_cmd=None, a=None, a_prev=None, lim=None):
+        """UHAS's reward terms with the task's reference, the drop test, and J's ingredients; with LIMITS, the limit
+        terms of REW_LIMITS (q_cmd: the servo targets just applied, a and a_prev: this and the last action, lim: the
+        joints' kp, torque limits and ranges)."""
         p = B.vw["qpos"][:, B.qa:B.qa + 3].float() - self.palm
         dist = (p - self.p_ref).norm(dim=-1).clamp(max=REW["fall_dist"])
         err = self.rot_error(task, B)
@@ -368,6 +376,15 @@ class Tracker:
         drop = self.alive & (p[:, 2] < self.p0[:, 2] - REW["drop_m"])
         rew = (REW["dist"] * dist + REW["rot"] / (err + REW["rot_eps"]) + REW["lat"] * lat + REW["rad"] * rad
                + REW["contact"] * on3)
+        if LIMITS and q_cmd is not None:
+            q9, L_ = qj.reshape(self.W, 9), REW_LIMITS
+            dmd = lim["kp"] * (q_cmd.reshape(self.W, 9).float() - q9).abs() / lim["tau"]
+            band = math.radians(L_["q_band_deg"])
+            near = torch.minimum(q9 - lim["lo"], lim["hi"] - q9)
+            pen = torch.stack([((dmd - L_["tau_on"]) / (1.0 - L_["tau_on"])).clamp(0.0, 3.0).sum(-1),
+                               ((band - near) / band).clamp(0.0, 1.0).sum(-1), ((a - a_prev) ** 2).sum(-1)], -1)
+            rew = rew + pen @ torch.tensor([L_["tau"], L_["q"], L_["rate"]], device=self.dev)
+            self.pen = pen
         rew = torch.where(drop, rew + REW["fall"], rew)
         live = self.alive.float() * (self.tau >= task.k0).float()
         ref = self.commanded(task)
@@ -412,6 +429,11 @@ class TrainEnv:
         self.snap = torch.zeros(W, dtype=torch.long, device=device)
         self.C = self.pool_C.subset(torch.zeros(W, dtype=torch.long, device=device))
         self.mounts = self.C.mounts
+        m, B = self.B.m, self.B
+        t9 = (lambda x: torch.tensor(np.asarray(x, np.float32).reshape(-1), device=device))
+        self.lim = {"kp": t9(B.kp), "tau": t9(np.abs(m.actuator_forcerange[B.act.reshape(-1)]).max(1)),
+                    "lo": t9(B.lo), "hi": t9(B.hi)}
+        self.pen_sum, self.pen_n = torch.zeros(3, device=device), 0
         self.done_j, self.done_n = [], 0
         self.reset_worlds(torch.arange(W, device=device))
         self.obs = self.observe()
@@ -490,6 +512,7 @@ class TrainEnv:
         q = self.C.solve(a)
         self.B.physics(q)
         tr = self.tr
+        a_prev = tr.last_a
         tr.last_a = a
         tr.tau += 1
         if self.task.k_lift is not None:                  # each world's post goes away at its own lift time
@@ -497,7 +520,10 @@ class TrainEnv:
             if len(lift):
                 self.B.vw["mocap_pos"][lift, self.B.mo_post, 2] -= 1.0
         tr.advance(self.task, self.scene.r)
-        rew, drop = tr.reward(self.task, self.B, self.C)
+        rew, drop = tr.reward(self.task, self.B, self.C, q, a, a_prev, self.lim)
+        if LIMITS:
+            self.pen_sum += tr.pen.mean(0)
+            self.pen_n += 1
         tout = (tr.tau >= self.task.n) & ~drop
         done = drop | tout
         self.episode_length_buf += 1
@@ -518,8 +544,13 @@ class TrainEnv:
             return {"J_proxy": None, "world_episodes": 0}
         j = torch.cat(self.done_j)
         self.done_j = []
-        return {"J_proxy": round(j.mean().item(), 4), "J_proxy_p90": round(j.quantile(0.9).item(), 4),
-                "world_episodes": int(len(j))}
+        out = {"J_proxy": round(j.mean().item(), 4), "J_proxy_p90": round(j.quantile(0.9).item(), 4),
+               "world_episodes": int(len(j))}
+        if self.pen_n:                                    # the limit terms' means per world and period, unweighted
+            out.update(zip(("pen_tau", "pen_q", "pen_rate"), (self.pen_sum / self.pen_n).round(decimals=4).tolist()))
+            self.pen_sum.zero_()
+            self.pen_n = 0
+        return out
 
 
 # ------------------------------------------------------------------------------------------------ evaluation
@@ -591,7 +622,9 @@ def cmd_smoke(a):
 def cmd_train(a):
     from rsl_rl.runners import OnPolicyRunner
     entries, train, test, _J = train_entries(a.task, a.split_seed)
-    tag = "" if a.start == "handover" else f"_{a.start}"
+    global LIMITS
+    LIMITS = bool(a.limits)
+    tag = ("" if a.start == "handover" else f"_{a.start}") + ("_limits" if LIMITS else "")
     if a.only:                                        # UHAS's single-hand baseline: one layout, its own grasps
         one = (float(a.only[0]), float(a.only[1]))
         entries = [e for e in grid_entries(a.task) if xy_of(e[0]) == one]
@@ -601,7 +634,8 @@ def cmd_train(a):
     run = RUNS / f"{stamp}_{a.task}{tag}_s{a.seed}"
     run.mkdir(parents=True, exist_ok=True)
     (run / "split.json").write_text(json.dumps({"task": a.task, "split_seed": a.split_seed, "train": train,
-                                                 "test": test, "grasps": len(entries), "start": a.start}, indent=1))
+                                                 "test": test, "grasps": len(entries), "start": a.start,
+                                                 "limits": REW_LIMITS if LIMITS else None}, indent=1))
     torch.manual_seed(a.seed)
     t0 = time.time()
     env = TrainEnv(a.task, entries, a.worlds, pool_batches=a.pool, seed=a.seed, start=a.start)
@@ -763,6 +797,8 @@ def main():
     t.add_argument("--only", nargs=2, type=float, default=None, help="train on this layout alone (x_sep y_sep, mm)")
     t.add_argument("--start", default="handover", choices=("handover", "open"),
                    help="the policy takes over at HOM's handover, or acts from the open hand with the object on its post")
+    t.add_argument("--limits", action="store_true", help="the joint and actuator limit terms (REW_LIMITS) in the "
+                   "reward")
     e = sub.add_parser("eval")
     e.add_argument("--run", required=True)
     e.add_argument("--split", default="test", choices=("test", "train"))
