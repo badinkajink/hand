@@ -423,7 +423,9 @@ def embed(xml_path, *, element_id: str, height_px: int = 480, title: str | None 
           autoplay: bool = False) -> str:
     """HTML fragment (div + scripts) showing the MJCF model at xml_path in a live MuJoCo viewer.
 
-    element_id     id of the viewer's div; also names its MEMFS directory, so it must be unique on the page.
+    element_id     id of the viewer's div; also names its MEMFS directory, so it must be unique on the page. A
+                   section or figure with the same id is found first and its contents are replaced, the runtime's
+                   and the model's payloads with them ("payload ... is missing" in data-mjwasm-status).
     height_px      height of the 3D view; the width follows the container.
     title          text above the view (plain text, escaped).
     extra_files    files the XML scan cannot find; see collect().
