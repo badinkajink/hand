@@ -1,4 +1,10 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-13 15:50: 2x2 done (J, 40 runs; plant pads / point): HOM 0.388 / 0.275; PS rt pad model 0.335 / 0.196, point
+model 0.332 / 0.247; DIAL 4x64 pad model 0.461 / 0.328, point model 0.426 / 0.442. Pad minus point model: DIAL +0.035
+(-0.000 to +0.072) on pads, -0.114 (-0.180 to -0.056, 0 of 20) on point. Own model pads vs point plant +0.019 (n.s.).
+Films media/20261113-film_mpc_twist_p0_s0_models.mp4 and _plant_pt.mp4 checked. Real time (one hand, s per 0.1 s):
+1x64 1 ms 0.090, J 0.387; 3x16 at a 2 ms planner step 0.101 (1 % over), J 0.431; 2x64 2 ms 0.099; 2x32 0.082; 2x16
+0.068; 2x64 1 ms 0.197; 4x64 h30 2 ms 0.627. Added before the pick: timing 3x12 and J runs 2x32, 2x16, 3x12 at 2 ms.
 State 11-13 14:45: owner 14:2x asked for the planner with point-contact tips on a point-contact plant, the pad model on
 that plant, HOM vs DIAL there, "quantifiably and with a clear trend"; then PS on the same ablation and "an annealed
 sampling config that can run in realtime with minimal performance loss". Commit 0fa84188e: inner_loop_mpc.py

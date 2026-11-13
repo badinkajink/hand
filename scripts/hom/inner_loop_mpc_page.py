@@ -143,8 +143,9 @@ PLANTS = [("pt", "Point contact"), ("pt_t0.5", "Point contact, 0.5 mm torsion"),
 PLANT_SHORT = {"pt": "point", "pt_t0.5": "0.5 mm", "pt_t1": "1 mm", "pt_t2": "2 mm", "pads": "pads"}
 # planner configurations: (iterations, horizon, knots, replanning interval in periods, planner step s or None, samples)
 CFG_FULL, CFG_PSRT = (4, 30, 3, 10, None, 64), (1, 10, 2, 10, None, 64)
-RT_CANDS = [(1, 10, 2, 10, None, 64), (2, 8, 2, 10, None, 16), (2, 10, 2, 10, 0.002, 64), (1, 20, 3, 10, 0.002, 64),
-            (3, 10, 2, 10, 0.002, 32), (2, 20, 3, 20, 0.002, 64)]      # logs/20261112-mpc/pick_rt.py's candidates
+RT_CANDS = [(1, 10, 2, 10, None, 64), (2, 10, 2, 10, 0.002, 64), (1, 20, 3, 10, 0.002, 64), (3, 10, 2, 10, 0.002, 32),
+            (3, 10, 2, 10, 0.002, 16), (2, 20, 3, 20, 0.002, 64), (2, 10, 2, 10, 0.002, 32), (2, 10, 2, 10, 0.002, 16),
+            (3, 10, 2, 10, 0.002, 12)]      # logs/20261112-mpc/pick_rt.py's candidates
 RT_TABLE = [("ps", CFG_PSRT), ("ps", (1, 20, 3, 10, 0.002, 64)), ("anneal", CFG_FULL), ("anneal", (2, 10, 2, 10, None, 64))] \
     + [("anneal", c) for c in RT_CANDS]
 
@@ -565,12 +566,14 @@ def sec_contact(S, R, T, rt, figs):
     if not S.get(hom_stem("pt")) and not S.get(stem_of("ps", CFG_PSRT, model="pt")):
         return sec_pt(S)
     t = r"""<p>The plant's fingertips and the planner's model of them were varied separately. Table <<tm>> lists the
-five contact models of the v4b tip. The sphere pads are the benchmark's plant. Point contact is the tip's convex mesh,
-which touches the sphere at one point and resists no torque about the contact normal. With MuJoCo's condim 4 a point
-contact also resists a torque about its normal, up to $\mu_t$ times its normal force. On the two-pad rig of 1 October
-the pads' pinch torque followed an arm of $1.00\,\mathrm{mm}\,(N/1\,\mathrm{N})^{0.25}$ at 10 MPa, which scales as
-$E^{-1/4}$. For the 2.5 MPa pads that gives $\mu_t$ of about 1.4 mm at 1 N and 1.8 mm at 2.5 N. The torsion models at
-0.5, 1 and 2 mm bracket that value.</p>
+contact models of the v4b tip: the sphere pads, point contact, and point contact with torsion at three coefficients.
+The sphere pads are the benchmark's plant. Point contact is the tip's convex mesh, which touches the sphere at one point
+and resists no torque about the contact normal. With MuJoCo's condim 4 a point contact also resists a torque about its
+normal, up to $\mu_t$ times its normal force. On the two-pad rig of 1 October the pads' torque about the pinch axis
+was $\mu N r$, with an arm $r = 1.00\,\mathrm{mm}\,(N/1\,\mathrm{N})^{0.25}$ at 10 MPa that scales as $E^{-1/4}$. For
+2.5 MPa pads at friction 1 that is a $\mu_t$ of about 1.4 mm at 1 N and 1.8 mm at 2.5 N. That rig pinched a 25 mm
+cylinder between two spherical tips, so the value transfers to the v4b tip and the 40 mm sphere only roughly. The
+coefficients 0.5, 1 and 2 mm bracket it.</p>
 <p>HOM computes its commands from the contact geometry and rolls out no model, so only the plant changes for it. The
 planners rolled out the pad model or the point-contact model, and on the torsion plants also the plant's own model.
 Predictive sampling ran at the real-time budget on every plant. DIAL annealing ran on every plant at the real-time
@@ -678,9 +681,10 @@ def sec_realtime(S, T, R, rt, figs):
     t = fill(r"""<p>DIAL annealing at the benchmark's budget needed <<f>> s of GPU for one hand per 0.1 s of control.
 A planner runs in real time when one hand's replanning takes no longer than the replanning interval. A period of
 rollouts, ten physics steps of 1 ms, took <<p16>> ms for one hand at 16 samples and <<p64>> ms at 64. At a 0.1 s
-interval the iterations times the horizon must therefore stay near ten periods. Two changes double that budget. The
-planner's model can step its physics every 2 ms, five steps per period, while the plant keeps 1 ms. Or the plan can
-be replaced every 0.2 s, with a horizon of at least 0.2 s. Table <<tn>> lists the configurations that were run.</p>""",
+interval the iterations times the horizon must therefore stay near ten periods. Two changes double that budget. In
+one, the planner's model steps its physics every 2 ms, five steps per period, while the plant keeps 1 ms. In the
+other, the plan is replaced every 0.2 s and its horizon is at least 0.2 s. Table <<tn>> lists the configurations that
+were run.</p>""",
              f=f2(full, 2), p16=f2(1e3 * v16 / 120 if v16 else None, 1), p64=f2(1e3 * full / 120 if full else None, 1),
              tn=P.TAB[0] + 1)
     rows = []
