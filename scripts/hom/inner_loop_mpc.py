@@ -478,7 +478,7 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
     the rows of hom_gpu.Batch.score, the usability metrics (inner_loop_usability.metrics) and the planner's record.
     trace (a list): world 0's positions, mocap positions, time and period index before each period, for films."""
     B.begin(chunk, record=True, hom=True)
-    if float(B.cal_q.abs().max()) > 0:
+    if method != "hom" and float(B.cal_q.abs().max()) > 0:
         raise RuntimeError("calibration offsets in the plant: the planner's and the policy's targets bypass them")
     P, vw, k0 = B.W, B.vw, B.k
     task = UH.Task(B)

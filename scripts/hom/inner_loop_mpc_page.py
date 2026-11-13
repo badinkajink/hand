@@ -432,13 +432,13 @@ def sec_sensing(S):
     rows = []
     hs = S.get("hom_twist")
     if hs:
-        rows.append(["Exact, 100 Hz (Table 3)", f2(hs["J"], 3), f"{100 * hs['held']:.0f}", f2(hs["err"], 1),
-                     f2(hs["contact"]), f2(hs["grip_mean_N"], 1)])
+        rows.append(["Exact, 100 Hz", f2(hs["J"], 3), f"{100 * hs['held']:.0f}", f2(hs["err"], 1),
+                     f2(hs["contact"]), f2(hs["grip_mean_N"], 1), f2(hs["reversals_ps"])])
     for v, desc in VARIANTS:
         s_ = S.get(f"hom_twist_{v}")
         if s_:
             rows.append([desc[0].upper() + desc[1:], f2(s_["J"], 3), f"{100 * s_['held']:.0f}", f2(s_["err"], 1),
-                         f2(s_["contact"]), f2(s_["grip_mean_N"], 1)])
+                         f2(s_["contact"]), f2(s_["grip_mean_N"], 1), f2(s_["reversals_ps"])])
     pl = []
     for stem, lab in (("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"), ("anneal_twist", "DIAL annealing")):
         ex, nz = S.get(stem), S.get(stem.replace("_twist", "_twist_d4n") if stem == "anneal_twist" else
@@ -454,8 +454,10 @@ of 29 October, at the bench's 50 Hz. The tag tracker's pose has 0.5 mm and 1 deg
 magnetic fingertips' model adds their measured errors of contact point and force. The planners and UHAS still read the
 plant's exact state.</p>""", r=REVIEW)
     if len(rows) > 1:
-        t += table(["Measurement", "Mean J", "Held (%)", "Tracking error (deg)", "Three-pad share", "Grip (N)"], rows,
-                   "HOM under the sensing variants of <code>hom_tasks.VARIANTS</code>, on the same 40 runs.")
+        t += table(["Measurement", "Mean J", "Held (%)", "Tracking error (deg)", "Three-pad share", "Grip (N)",
+                    "Target reversals (1/s)"], rows,
+                   "HOM under the sensing variants of <code>hom_tasks.VARIANTS</code>, on the same 40 runs. HOM does "
+                   "not filter the measured pose, so the tracker's noise reaches its servo targets.")
     if pl:
         t += r"""<p>A planner copies the plant's state into its rollouts. With the tag tracker the copy is 40 ms old, and
 the sphere's pose in it carries the tracker's noise. Here each plan starts from the plant's state 4 periods earlier, with
@@ -554,6 +556,12 @@ def lede(S, T):
         bj, bg = max(fb)
         parts.append(fill("Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; "
                           "its best J was <<j>> at <<g>>/s.", j=f"{bj:.3f}", g=f"{bg:g}"))
+    ft = [(S[f"hom_twist_ft{f:g}"]["J"], f) for f in (1.5, 2.0, 3.5) if S.get(f"hom_twist_ft{f:g}")]
+    if ft:
+        bj, bf = max(ft)
+        if bj > hs["J"]:
+            parts.append(fill("A commanded pad force of <<f>> N per finger in place of 2.5 N raised HOM's J to <<j>>.",
+                              f=f"{bf:g}", j=f"{bj:.3f}"))
     text = " ".join(parts)
     return text, re.sub(r"\s+", " ", text)
 
