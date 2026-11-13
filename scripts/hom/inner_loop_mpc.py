@@ -56,6 +56,7 @@ import json  # noqa: E402
 import math  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
+import xml.etree.ElementTree as ET  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import numpy as np  # noqa: E402
@@ -95,6 +96,7 @@ HS_UNIT = (1.0, 1.0, 0.02, 0.02)
 PLAN_HS = dict(sigma=0.3, bound=3.0, rate=2.0)    # the noise and the bound in units; the knot-rate cost's scale, units/s
 HS_METHODS = tuple("hs_" + m for m in METHODS if m != "spider_wc")
 KNOT_T = np.linspace(0.0, H, KNOTS)
+PLAN_DT = None                  # the planner's physics step, s (--plan-dt); None: the plant's 1 ms
 
 
 def interp(times, knot_t=KNOT_T):
@@ -114,6 +116,8 @@ def configure(replan, horizon, knots, iters):
     again."""
     global REPLAN, H, KNOTS, KNOT_T, W_ROLL, W_EXEC, W_SHIFT
     REPLAN, H, KNOTS = int(replan), int(horizon), int(knots)
+    if REPLAN > H:
+        raise SystemExit(f"replanning every {REPLAN} periods needs a horizon of at least that ({H})")
     PLAN["iters"] = int(iters)
     KNOT_T = np.linspace(0.0, H, KNOTS)
     W_ROLL = interp(np.arange(1, H + 1), KNOT_T)
@@ -168,13 +172,48 @@ def worlds_of(prs, seeds, variant=None, prm=None):
 
 
 def model_scene(scene, model):
-    """The scene the planner rolls out in: the plant's own (pads) or the same hand with point contact on the v4b tip's
-    convex mesh (pt, the Scene's second model; owner, 2026-11-13: "try MPC without the sphere packed model")."""
+    """The scene a planner rolls out in or the plant runs in: the sphere pads (pads), point contact on the v4b tip's
+    convex mesh (pt, the Scene's second model; owner, 2026-11-13: "try MPC without the sphere packed model"), or that
+    point contact with a torsional friction coefficient of x millimetres (pt_t<x>, torsion_scene)."""
     if model == "pads":
         return scene
     s2 = copy.copy(scene)
-    s2.pads_path = scene.pt_path
+    s2.pads_path = scene.pt_path if model == "pt" else torsion_scene(scene.pt_path, float(model[4:]))
     return s2
+
+
+def torsion_scene(pt_path, mm):
+    """The point-contact scene with condim 4 on the three tip meshes: each tip contact resists a torque about its normal
+    of up to mm/1000 times its normal force (MuJoCo's torsional friction coefficient, in metres). MuJoCo takes the larger
+    of two geoms' coefficients, so every geom gets it; the other contacts keep condim 3, where it has no effect. The
+    pads' pinch torque, measured on the rig of 2026-10-01 (an arm of 1.00 mm (N / 1 N)^0.25 at 10 MPa, scaling as
+    E^-1/4), corresponds to about 1.4 mm at 1 N and 1.8 mm at 2.5 N for the 2.5 MPa pads. Written once beside pt_path."""
+    out = pt_path.with_name(f"{pt_path.stem}__tor{mm:g}mm.xml")
+    if out.exists():
+        return out
+    root = ET.parse(pt_path).getroot()
+    for g in root.iter("geom"):                   # the default classes' geoms too
+        fr = g.get("friction")
+        if fr is not None:
+            v = fr.split() + ["0.0001", "0.0001"]
+            g.set("friction", f"{v[0]} {mm / 1000:g} {v[2]}")
+        if (g.get("name") or "").endswith("_tipgeom"):
+            g.set("condim", "4")
+    tmp = out.with_name(out.name + f".{os.getpid()}.tmp")
+    ET.ElementTree(root).write(tmp)
+    os.replace(tmp, out)
+    return out
+
+
+def contact_model(s):
+    """argparse type of --model and --plant-model: pads, pt or pt_t<x> (x > 0, mm)."""
+    if s in ("pads", "pt") or (s.startswith("pt_t") and float(s[4:]) > 0):
+        return s
+    raise argparse.ArgumentTypeError(f"{s}: pads, pt or pt_t<mm>")
+
+
+def model_label(model):
+    return {"pads": "pad model", "pt": "point-contact model"}.get(model, f"point contact, {model[4:]} mm torsion")
 
 
 LABELS = {"hom": "HOM", "ps": "Predictive sampling", "ps_rt": "Predictive sampling, real-time budget", "mppi": "MPPI",
@@ -207,7 +246,7 @@ class Rollouts:
         self.P, self.n = len(chunk), n
         self.mu = tuple(frictions) if frictions else None
         self.G = len(self.mu) if self.mu else 1
-        self.B = UH.UBatch(scene, TASK, self.rep(chunk), T.DT_C, gen_seed=0)
+        self.B = UH.UBatch(scene, TASK, self.rep(chunk), T.DT_C, gen_seed=0, phys_dt=PLAN_DT)
         if self.mu:
             set_friction(self.B, np.tile(np.repeat(np.asarray(self.mu, np.float32), n), self.P))
         B = self.B
@@ -562,10 +601,16 @@ def row_key(r):
 
 
 def cmd_run(a):
+    global PLAN_DT
     import hom_landscape as L
     configure(a.replan, a.horizon, a.knots, a.iters)
     if (a.replan, a.horizon, a.knots, a.iters) != (10, 30, 3, 4):
         a.tag = f"_r{a.replan}h{a.horizon}k{a.knots}i{a.iters}" + a.tag
+    if a.n != 64:
+        a.tag = f"_n{a.n}" + a.tag
+    if a.plan_dt is not None:
+        PLAN_DT = a.plan_dt
+        a.tag = f"_pdt{1e3 * a.plan_dt:g}" + a.tag
     if a.model != "pads":
         a.tag = f"_{a.model}" + a.tag
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
@@ -596,7 +641,8 @@ def cmd_run(a):
     if prm:
         a.tag = f"_ft{a.f_tripod:g}" + a.tag
     scene, worlds = worlds_of(prs, a.seeds, a.variant, prm)
-    tag = "" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}"
+    tag = ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}") + ("" if a.plant_model == "pads"
+                                                                 else f"_plant_{a.plant_model}")
     out = ROWS / f"mpc_{a.method}_twist{tag}{a.tag}.jsonl"
     done = set()
     if out.exists():
@@ -605,7 +651,8 @@ def cmd_run(a):
                                   a.plant_mu) not in done]
     PL = inner_loop_plant.describe()
     print(f"{a.method}: {len(todo)} of {len(worlds)} worlds to run ({len(prs)} pairs, seeds {a.seeds}), plant friction "
-          f"{a.plant_mu:g}; plant {PL['plant']}, scenes {PL['scenes']}", flush=True)
+          f"{a.plant_mu:g}; plant {PL['plant']}, scenes {PL['scenes']}; plant contact {a.plant_model}, planner model "
+          f"{a.model}", flush=True)
     if not todo:
         return 0
     Wc = min(a.chunk, len(todo))
@@ -615,7 +662,7 @@ def cmd_run(a):
         chunk = todo[c0:c0 + Wc]
         pad = chunk + [chunk[-1]] * (Wc - len(chunk))
         if B is None:
-            B = UH.UBatch(scene, TASK, pad, pad[0]["var"]["dt"], gen_seed=0)
+            B = UH.UBatch(model_scene(scene, a.plant_model), TASK, pad, pad[0]["var"]["dt"], gen_seed=0)
             if a.plant_mu != 1.0:
                 set_friction(B, np.full(Wc, a.plant_mu, np.float32))
             if a.method in METHODS:
@@ -637,7 +684,8 @@ def cmd_run(a):
                    "seed": wd_["seed"], "by": wd_["by"], "plant_mu": a.plant_mu, "J": L.track_score(TASK, r), **PL}
             row.update({k: r.get(k) for k in IU.KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in IU.METRICS})
-            row.update({"model": a.model, "att_gain": UH.ATT_GAIN, "variant": a.variant, "meas": dict(MEAS),
+            row.update({"model": a.model, "plant_model": a.plant_model, "att_gain": UH.ATT_GAIN, "variant": a.variant,
+                        "meas": dict(MEAS),
                         "pose_filter": HG.POSE_FILTER,
                         "space": "hom" if a.method in HS_METHODS else "joint"})
             row.update({"chunk_wall_s": round(wall, 2), "chunk_worlds": Wc, "run": a.run if a.method == "uhas" else None,
@@ -648,7 +696,7 @@ def cmd_run(a):
                             "iters_mean": round(float(np.mean(pr["iters"])), 2), "n": R.n, "groups": R.G,
                             "plan": {"iters": PLAN["iters"], "sigma": (PLAN_HS if a.method in HS_METHODS
                                                                        else PLAN)["sigma"]}, "replan": REPLAN, "H": H,
-                            "knots": KNOTS})
+                            "knots": KNOTS, "plan_dt": PLAN_DT})
             rows.append(row)
         with open(out, "a") as fh:
             for r_ in rows:
@@ -677,43 +725,56 @@ def cmd_pairs(a):
 
 
 def cmd_timing(a):
-    """Wall time of a rollout period and of one replanning for a chunk of plant worlds."""
-    configure(a.replan, a.horizon, a.knots, a.iters)
+    """Wall time of a rollout period and of one replanning for a chunk of plant worlds: the configuration of the flags, or
+    each of --configs, "iterations,horizon,knots,replanning interval,planner step in ms,samples"."""
+    global PLAN_DT
     prs = json.loads((ROWS / "mpc_pairs_twist.json").read_text())["pairs"]
     scene, worlds = worlds_of(prs, [0])
     chunk = (worlds * 4)[:a.chunk]
     B = UH.UBatch(scene, TASK, chunk, T.DT_C, gen_seed=0)
+    if a.configs:
+        cfgs = []
+        for c in a.configs:
+            i_, h_, k_, r_, dt_ms, n_ = c.split(",")
+            cfgs.append((int(i_), int(h_), int(k_), int(r_), float(dt_ms), [int(n_)]))
+    else:
+        cfgs = [(a.iters, a.horizon, a.knots, a.replan, 1e3 * a.plan_dt if a.plan_dt else 1.0, a.n)]
     out = []
-    for n in a.n:
-        R = Rollouts(model_scene(scene, a.model), chunk, n)
-        B.begin(chunk, record=False, hom=True)
-        R.begin(chunk)
-        vw = B.vw
-        palm = vw["mocap_pos"][:, B.mo_palm].float()
-        p0 = vw["qpos"][:, B.qa:B.qa + 3].float() - palm
-        q0 = vw["qpos"][:, B.qa + 3:B.qa + 7].float()
-        ctx = {"palm": palm.repeat_interleave(n, 0), "p0": p0.repeat_interleave(n, 0),
-               "goal": q0[:, None].expand(len(chunk), H, 4).repeat_interleave(n, 0)}
-        u = vw["ctrl"][:, B.act_t].float()
-        mpc = MPC("mppi", len(chunk), R.lim.lo, R.lim.hi, n, 1, 0)
-        with torch.inference_mode():
-            mpc.plan(R, B.state(), u, ctx)
-            torch.cuda.synchronize()
-            t0 = time.perf_counter()
-            for _ in range(3):
+    for iters, h_, k_, r_, dt_ms, ns in cfgs:
+        configure(r_, h_, k_, iters)
+        PLAN_DT = None if dt_ms == 1.0 else 1e-3 * dt_ms
+        for n in ns:
+            R = Rollouts(model_scene(scene, a.model), chunk, n)
+            B.begin(chunk, record=False, hom=True)
+            R.begin(chunk)
+            vw = B.vw
+            palm = vw["mocap_pos"][:, B.mo_palm].float()
+            p0 = vw["qpos"][:, B.qa:B.qa + 3].float() - palm
+            q0 = vw["qpos"][:, B.qa + 3:B.qa + 7].float()
+            ctx = {"palm": palm.repeat_interleave(n, 0), "p0": p0.repeat_interleave(n, 0),
+                   "goal": q0[:, None].expand(len(chunk), H, 4).repeat_interleave(n, 0)}
+            u = vw["ctrl"][:, B.act_t].float()
+            mpc = MPC("mppi", len(chunk), R.lim.lo, R.lim.hi, n, 1, 0)
+            with torch.inference_mode():
                 mpc.plan(R, B.state(), u, ctx)
-            torch.cuda.synchronize()
-        dt = (time.perf_counter() - t0) / 3
-        per = dt / (PLAN["iters"] * H)
-        row = {"plant_worlds": len(chunk), "n": n, "worlds": R.B.W, "iters": PLAN["iters"], "H": H,
-               "replan": REPLAN, "replan_s": round(dt, 3),
-               "ms_per_period": round(1e3 * per, 2), "us_per_world_period": round(1e6 * per / R.B.W, 2),
-               "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M"), "model": a.model,
-               **inner_loop_plant.describe()}
-        print(json.dumps(row), flush=True)
-        out.append(row)
-        del R
-        torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+                t0 = time.perf_counter()
+                for _ in range(3):
+                    mpc.plan(R, B.state(), u, ctx)
+                torch.cuda.synchronize()
+            dt = (time.perf_counter() - t0) / 3
+            per = dt / (PLAN["iters"] * H)
+            row = {"plant_worlds": len(chunk), "n": n, "worlds": R.B.W, "iters": PLAN["iters"], "H": H, "knots": KNOTS,
+                   "replan": REPLAN, "plan_dt": PLAN_DT, "replan_s": round(dt, 3), "budget_s": REPLAN * T.DT_C,
+                   "ms_per_period": round(1e3 * per, 2), "us_per_world_period": round(1e6 * per / R.B.W, 2),
+                   "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M"), "model": a.model,
+                   **inner_loop_plant.describe()}
+            print(json.dumps(row), flush=True)
+            out.append(row)
+            del R
+            torch.cuda.empty_cache()
+    PLAN_DT = None
+    configure(10, 30, 3, 4)
     with open(ROWS / "mpc_timing_twist.jsonl", "a") as fh:
         for r_ in out:
             fh.write(json.dumps(r_) + "\n")
@@ -729,7 +790,8 @@ def cmd_film(a):
     p = json.loads((ROWS / "mpc_pairs_twist.json").read_text())["pairs"][a.pair]
     scene, worlds = worlds_of([p], [a.seed])
     world = worlds[0]
-    B = UH.UBatch(scene, TASK, [world], T.DT_C, gen_seed=a.seed)
+    plant_scene = model_scene(scene, a.plant_model)
+    B = UH.UBatch(plant_scene, TASK, [world], T.DT_C, gen_seed=a.seed)
     if a.plant_mu != 1.0:
         set_friction(B, np.full(1, a.plant_mu, np.float32))
     clips, info = [], {}
@@ -753,10 +815,12 @@ def cmd_film(a):
         J = L.track_score(TASK, r)
         ft = B.rec["ft"][:, 0].cpu().numpy()
         fl = np.maximum(B.rec["fo"][:, 0].cpu().numpy() - ft, 0.0)
-        lab = SHORT.get(name, name) + (", point contact" if arg == "pt" else "")
+        lab = SHORT.get(name, name)
+        if method in METHODS + HS_METHODS and (arg or a.plant_model != "pads"):
+            lab += ", " + model_label(arg or "pads")
         if name == "hom" and UH.ATT_GAIN > 0:
             lab += f", feedback {UH.ATT_GAIN:g}/s"
-        clips.append(UF.frames_of([(q, m, t, ft[k], fl[k]) for q, m, t, k in trace], scene, world,
+        clips.append(UF.frames_of([(q, m, t, ft[k], fl[k]) for q, m, t, k in trace], plant_scene, world,
                                   f"{lab}: J {J:.2f}, {M['grip_mean_N'][0]:.1f} N, "
                                   f"{M['reversals_ps'][0]:.1f} rev/s"))
         info[spec] = {"J": J, "held": bool(r.get("held")), "track_err_rms_deg": r.get("track_err_rms_deg"),
@@ -767,9 +831,11 @@ def cmd_film(a):
         torch.cuda.empty_cache()
     UH.ATT_GAIN = 0.0
     configure(10, 30, 3, 4)
-    name = f"film_mpc_twist_p{a.pair}_s{a.seed}" + ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}") + a.tag
+    name = (f"film_mpc_twist_p{a.pair}_s{a.seed}" + ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}")
+            + ("" if a.plant_model == "pads" else f"_plant_{a.plant_model}") + a.tag)
     HF.compose(clips, UH.OUT / "media" / f"20261113-{name}.mp4", grid=(2, 2) if len(clips) == 4 else None)
     (ROWS / f"{name}.json").write_text(json.dumps({"pair": p, "seed": a.seed, "plant_mu": a.plant_mu,
+                                                   "plant_model": a.plant_model,
                                                    "methods": a.methods, "clips": info,
                                                    **inner_loop_plant.describe()}, indent=1, default=float))
     return 0
@@ -810,18 +876,23 @@ def main():
     p.add_argument("--att-gain", type=float, default=0.0, help="method hom: feedback on the measured orientation, 1/s "
                    "(uhas_sr2.ATT_GAIN)")
     for q in (sub.choices["timing"], sub.choices["run"]):
-        q.add_argument("--model", default="pads", choices=("pads", "pt"), help="the planner's model: the plant's pads "
-                       "or point contact")
+        q.add_argument("--model", default="pads", type=contact_model, help="the planner's contact model: pads, pt "
+                       "(point contact) or pt_t<mm> (point contact with torsional friction; torsion_scene)")
         q.add_argument("--replan", type=int, default=10, help="periods between replannings")
         q.add_argument("--horizon", type=int, default=30, help="periods")
         q.add_argument("--knots", type=int, default=3)
         q.add_argument("--iters", type=int, default=4)
+        q.add_argument("--plan-dt", type=float, default=None, help="the planner's physics step, s (the plant's: 0.001)")
+    p.add_argument("--plant-model", default="pads", type=contact_model, help="the plant's contact model, as --model")
+    sub.choices["timing"].add_argument("--configs", nargs="+", default=None, help="instead of the flags: "
+                                       "iterations,horizon,knots,replanning interval,planner step in ms,samples")
     p = sub.add_parser("film")
     p.add_argument("--pair", type=int, default=0, help="index into rows/mpc_pairs_twist.json")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--methods", nargs="+", default=["hom", "ps_rt", "anneal", "uhas"],
-                   help="hom[:gain], ps_rt, a planner[:pt], uhas[:run]; four make a two-by-two film")
+                   help="hom[:gain], ps_rt[:model], a planner[:model], uhas[:run]; four make a two-by-two film")
     p.add_argument("--plant-mu", type=float, default=1.0)
+    p.add_argument("--plant-model", default="pads", type=contact_model, help="the plant's contact model (run --model)")
     p.add_argument("--n", type=int, default=64)
     p.add_argument("--tag", default="")
     a = ap.parse_args()

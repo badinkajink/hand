@@ -115,6 +115,84 @@ def f2(x, d=2):
     return "&#8212;" if x is None or (isinstance(x, float) and not np.isfinite(x)) else f"{x:.{d}f}"
 
 
+def paired(ra, rb, n_boot=4000, seed=0):
+    """J(a) - J(b) on the same worlds: the mean over the pairs (seeds averaged within a pair), its 95 % bootstrap
+    interval over the pairs and the number of pairs where a is higher."""
+    A, B = {key(r): r["J"] for r in ra}, {key(r): r["J"] for r in rb}
+    d = {}
+    for k in set(A) & set(B):
+        d.setdefault(k[:3], []).append(A[k] - B[k])
+    if len(d) < 4:
+        return None
+    v = np.array([np.mean(x) for x in d.values()])
+    bs = np.random.default_rng(seed).choice(v, (n_boot, len(v))).mean(1)
+    return {"d": float(v.mean()), "lo": float(np.percentile(bs, 2.5)), "hi": float(np.percentile(bs, 97.5)),
+            "n": len(v), "wins": int((v > 0).sum())}
+
+
+def fd(p):
+    """A paired difference as text: +0.035 (-0.01 to +0.08), 12 of 20."""
+    if not p:
+        return "&#8212;"
+    return f"{p['d']:+.3f} ({p['lo']:+.3f} to {p['hi']:+.3f}), {p['wins']} of {p['n']}"
+
+
+# contact models of the plant and of a planner: (rows tag, label); the pads are the benchmark's plant
+PLANTS = [("pt", "Point contact"), ("pt_t0.5", "Point contact, 0.5 mm torsion"),
+          ("pt_t1", "Point contact, 1 mm torsion"), ("pt_t2", "Point contact, 2 mm torsion"), ("pads", "Sphere pads")]
+PLANT_SHORT = {"pt": "point", "pt_t0.5": "0.5 mm", "pt_t1": "1 mm", "pt_t2": "2 mm", "pads": "pads"}
+# planner configurations: (iterations, horizon, knots, replanning interval in periods, planner step s or None, samples)
+CFG_FULL, CFG_PSRT = (4, 30, 3, 10, None, 64), (1, 10, 2, 10, None, 64)
+RT_CANDS = [(1, 10, 2, 10, None, 64), (2, 8, 2, 10, None, 16), (2, 10, 2, 10, 0.002, 64), (1, 20, 3, 10, 0.002, 64),
+            (3, 10, 2, 10, 0.002, 32), (2, 20, 3, 20, 0.002, 64)]      # logs/20261112-mpc/pick_rt.py's candidates
+RT_TABLE = [("ps", CFG_PSRT), ("ps", (1, 20, 3, 10, 0.002, 64)), ("anneal", CFG_FULL), ("anneal", (2, 10, 2, 10, None, 64))] \
+    + [("anneal", c) for c in RT_CANDS]
+
+
+def cfg_tag(c):
+    """The rows-name tag of inner_loop_mpc.py run for a configuration: planner step, samples, then the schedule."""
+    it, h, k, r, dt, n = c
+    return ((f"_pdt{1e3 * dt:g}" if dt else "") + (f"_n{n}" if n != 64 else "")
+            + (f"_r{r}h{h}k{k}i{it}" if (r, h, k, it) != (10, 30, 3, 4) else ""))
+
+
+def stem_of(method, cfg, plant="pads", model="pads", delay=""):
+    """inner_loop_mpc.py's rows stem: mpc_<method>_twist[_plant_<plant>][<delay>][_<model>]<cfg_tag>."""
+    return (f"{method}_twist" + ("" if plant == "pads" else f"_plant_{plant}") + delay
+            + ("" if model == "pads" else f"_{model}") + cfg_tag(cfg))
+
+
+def hom_stem(plant):
+    return "hom_twist" + ("" if plant == "pads" else f"_plant_{plant}")
+
+
+def one_hand_cfg(T, c, model="pads"):
+    """GPU seconds of one hand's replanning for a configuration (the newest timing row; rows of 11-13 morning carry
+    no knots or planner step and count as 1 ms)."""
+    it, h, k, r, dt, n = c
+    m = [t for t in T if t["plant_worlds"] == 1 and t["n"] == n and t.get("iters") == it and t["H"] == h
+         and t.get("knots", k) == k and t.get("replan", 10) == r and t.get("plan_dt") == dt
+         and t.get("model", "pads") == model]
+    return m[-1]["replan_s"] if m else None
+
+
+def rt_pick(R, T):
+    """The real-time DIAL configuration of the contact runs: the candidate whose point-contact plant rows exist (the
+    lane's pick), else the real-time candidate with the highest mean J."""
+    for c in RT_CANDS:
+        if R.get(stem_of("anneal", c, plant="pt")):
+            return c
+    ok = [(np.mean([r["J"] for r in R[stem_of("anneal", c)]]), c) for c in RT_CANDS
+          if len(R.get(stem_of("anneal", c), [])) == 40 and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
+    return max(ok)[1] if ok else None
+
+
+def cfg_text(c):
+    it, h, k, r, dt, n = c
+    return (f"{it} &#215; {n} over {h * PERIOD_S:g} s, {k} knots, every {r * PERIOD_S:g} s"
+            + (f", {1e3 * dt:g} ms step" if dt else ""))
+
+
 # ------------------------------------------------------------------------------------------------ figures
 def plt_setup():
     import matplotlib
@@ -177,6 +255,86 @@ def fig_pairs(rows_h, rows_m, label, out):
     return out
 
 
+def contact_lines(S, rt):
+    """The lines of the contact-model figure: (label, colour, line style, {plant: stats})."""
+    lines = [("HOM", "#555555", "-", {p: S.get(hom_stem(p)) for p, _ in PLANTS})]
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time",
+                                                                                   "#3a6ea5"),
+                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+        if cfg is None:
+            continue
+        for model, ls, ml in (("pads", "-", "pad model"), ("pt", "--", "point-contact model"), ("own", ":",
+                                                                                                 "plant's own model")):
+            pts = {p: S.get(stem_of(meth, cfg, plant=p, model=p if model == "own" else model)) for p, _ in PLANTS
+                   if not (model == "own" and p in ("pads", "pt"))}
+            if any(pts.values()):
+                lines.append((f"{lab}, {ml}", col, ls, pts))
+    return lines
+
+
+def fig_contact(S, rt, out):
+    """Mean J against the plant's contact model for HOM and the planners with the pad and the point-contact model."""
+    plt = plt_setup()
+    lines = contact_lines(S, rt)
+    xs = {p: i for i, (p, _) in enumerate(PLANTS)}
+    fig, ax = plt.subplots(figsize=(8.6, 6.4))
+    k = 0
+    for lab, col, ls, pts in lines:
+        P_ = [(xs[p], s["J"], s["J_se"]) for p, s in pts.items() if s]
+        if not P_:
+            continue
+        P_.sort()
+        dx = 0.035 * (k - len(lines) / 2)
+        k += 1
+        ax.errorbar([x + dx for x, _, _ in P_], [y for _, y, _ in P_], yerr=[e for _, _, e in P_], color=col, ls=ls,
+                    marker="o" if ls == "-" else "s" if ls == "--" else "^", ms=5, capsize=2, lw=1.6, label=lab)
+    ax.set_xticks(range(len(PLANTS)))
+    ax.set_xticklabels([PLANT_SHORT[p] for p, _ in PLANTS])
+    ax.set_xlabel("Plant's fingertip contact (torsional friction coefficient of the point contact)")
+    ax.set_ylabel("Mean J over 40 runs")
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=10, frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.16))
+    fig.tight_layout()
+    fig.savefig(out, dpi=100)
+    plt.close(fig)
+    return out
+
+
+def fig_realtime(S, T, out):
+    """Mean J against the GPU time per second of control of one hand, for predictive sampling and DIAL annealing."""
+    plt = plt_setup()
+    fig, ax = plt.subplots(figsize=(8.6, 5.0))
+    for meth, cfg in RT_TABLE:
+        s, v = S.get(stem_of(meth, cfg)), one_hand_cfg(T, cfg)
+        if not s or v is None:
+            continue
+        g = v / (cfg[3] * PERIOD_S)
+        ax.errorbar([g], [s["J"]], yerr=[s["J_se"]], fmt="o" if meth == "anneal" else "s", capsize=2,
+                    color="#3a6ea5" if meth == "anneal" else "#c06a1a", ms=6)
+        it, h, k, r, dt, n = cfg
+        ax.annotate(f"{it}x{n}, {h * 10} ms" + (f", {1e3 * dt:g} ms step" if dt else "") + (", every 0.2 s" if r == 20
+                                                                                          else ""),
+                    (g, s["J"]), textcoords="offset points", xytext=(6, 4), fontsize=10)
+    hs = S.get("hom_twist")
+    if hs:
+        ax.axhline(hs["J"], color="#555555", ls="--", lw=1.2)
+        ax.text(0.97, hs["J"], " HOM", transform=ax.get_yaxis_transform(), va="bottom", ha="right", fontsize=11,
+                color="#555555")
+    ax.axvline(1.0, color="#aa3333", lw=1.2)
+    ax.text(1.0, 0.02, " real time", transform=ax.get_xaxis_transform(), color="#aa3333", fontsize=11)
+    ax.set_xscale("log")
+    ax.set_xlabel("GPU time per second of control, one hand")
+    ax.set_ylabel("Mean J over 40 runs")
+    ax.plot([], [], "s", color="#c06a1a", label="Predictive sampling")
+    ax.plot([], [], "o", color="#3a6ea5", label="DIAL annealing")
+    ax.legend(frameon=False, loc="lower right")
+    ax.grid(alpha=0.3, which="both")
+    fig.tight_layout()
+    fig.savefig(out, dpi=100)
+    plt.close(fig)
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ sections
 def sec_terms():
     rows = [
@@ -196,9 +354,16 @@ def sec_terms():
         ["Target reversals", "sign changes of a servo target's rate where the rate exceeds 1 deg/s, per joint per second",
          "1/s"],
         ["Target rate", "RMS rate of the servo targets over the joints and periods", "deg/s"],
-        ["Replanning time", "wall time of one replanning, every 0.1 s of control; for 16 hands planned together "
-         "(the runs) or one hand alone (the timing runs)", "s"],
-        ["GPU time per second of control", "replanning time of one hand alone over 0.1 s; 1 is real time", "s/s"],
+        ["Replanning time", "wall time of one replanning, every 0.1 s of control unless stated; for 16 hands planned "
+         "together (the runs) or one hand alone (the timing runs)", "s"],
+        ["GPU time per second of control", "replanning time of one hand alone over the replanning interval; 1 or less "
+         "runs in real time", "s/s"],
+        ["Point contact", "one contact between a tip's convex mesh and the sphere, with no torque about its normal",
+         "&#8212;"],
+        ["Torsional friction coefficient $\\mu_t$", "the largest torque about a point contact's normal per newton of "
+         "normal force (MuJoCo's condim 4)", "mm"],
+        ["Paired difference", "J of one controller minus J of another on the same worlds, seeds averaged within a pair; "
+         "the mean over the 20 pairs with its 95 % interval from 4,000 bootstrap resamples of the pairs", "J"],
     ]
     return table(["Term", "Definition", "Unit or range"], rows, "Terms and metrics. Every metric is computed on the task "
                  "phase, from HOM's handover at 2.4 s to the end of the schedule.", num_from=9)
@@ -303,16 +468,28 @@ def sec_films():
         info = json.loads(info_p.read_text())
         pr = info["pair"]
         cl = info["clips"]
+        plant = info.get("plant_model", "pads")
         parts = []
         k = (pr["x"], pr["y"], pr["grasp"], info["seed"])
         for spec, c in cl.items():
-            nm = spec.split(":")[0]
-            tab = TABLE_ROWS.get(FILM_STEM.get(nm, ""), {}).get(k)
+            nm, _, arg = spec.partition(":")
+            if nm == "hom":
+                stem = hom_stem(plant)
+            elif nm in ("ps_rt", "anneal"):
+                stem = stem_of("ps" if nm == "ps_rt" else nm, CFG_PSRT if nm == "ps_rt" else CFG_FULL, plant=plant,
+                               model=arg or "pads")
+            else:
+                stem = FILM_STEM.get(nm, "")
+            tab = TABLE_ROWS.get(stem, {}).get(k)
             nm_ = FILM_NAME.get(nm, esc(spec))
+            if nm in ("ps_rt", "anneal", "hs_anneal") and (arg or plant != "pads"):
+                nm_ += {"pads": " with the pad model", "pt": " with the point-contact model"}.get(
+                    arg or "pads", f" with the {esc(arg)} model")
             parts.append(f"{nm_[0].upper() + nm_[1:]}: J {c['J']:.2f}"
                          + (f" (in the table's run {tab['J']:.2f})" if tab and nm != "hom" else "")
                          + f", grip {c['grip_mean_N']:.1f} N, {c['reversals_ps']:.1f} reversals per joint per s")
-        cap = (f"Layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}, plant friction "
+        cap = (f"Layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}, the plant's fingertips "
+               f"{'sphere pads' if plant == 'pads' else dict(PLANTS)[plant].lower()}, plant friction "
                f"{info['plant_mu']:g}; the task phase from 2.4 s. " + ". ".join(parts) + ". A planner's run in the "
                "film draws other samples than its run in the table. Each frame gives each finger's pad force and the "
                "force through its rigid parts on the sphere (N); the links are drawn see-through and the sphere's "
@@ -380,6 +557,178 @@ $$\omega = \omega_{\mathrm{ref}} + \mathrm{sat}_{1\,\mathrm{rad/s}}\big(k\,\log(
         t += table(["Commanded force per finger (N)", "Mean J", "Held (%)", "Tracking error (deg)", "Three-pad share",
                     "Grip (N)", "Saturation (%)", "Target reversals (1/s)"], fr,
                    "HOM with another commanded pad force, on the same 40 runs.")
+    return t
+
+
+def sec_contact(S, R, T, rt, figs):
+    """The plant's fingertip contact and the planner's model of it, varied separately."""
+    if not S.get(hom_stem("pt")) and not S.get(stem_of("ps", CFG_PSRT, model="pt")):
+        return sec_pt(S)
+    t = r"""<p>The plant's fingertips and the planner's model of them were varied separately. Table <<tm>> lists the
+five contact models of the v4b tip. The sphere pads are the benchmark's plant. Point contact is the tip's convex mesh,
+which touches the sphere at one point and resists no torque about the contact normal. With MuJoCo's condim 4 a point
+contact also resists a torque about its normal, up to $\mu_t$ times its normal force. On the two-pad rig of 1 October
+the pads' pinch torque followed an arm of $1.00\,\mathrm{mm}\,(N/1\,\mathrm{N})^{0.25}$ at 10 MPa, which scales as
+$E^{-1/4}$. For the 2.5 MPa pads that gives $\mu_t$ of about 1.4 mm at 1 N and 1.8 mm at 2.5 N. The torsion models at
+0.5, 1 and 2 mm bracket that value.</p>
+<p>HOM computes its commands from the contact geometry and rolls out no model, so only the plant changes for it. The
+planners rolled out the pad model or the point-contact model, and on the torsion plants also the plant's own model.
+Predictive sampling ran at the real-time budget on every plant. DIAL annealing ran on every plant at the real-time
+configuration with the highest mean J on the pads, from the section on annealed sampling at the real-time budget. DIAL
+annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and the point-contact plants.</p>"""
+    t = fill(t, tm=P.TAB[0] + 1)
+    t += table(["Contact model", "Contact with the sphere", "Torque about the normal", "Used as"],
+               [["Sphere pads", "1,018 spheres of 0.75 mm radius per tip, each a soft contact, 2.5 MPa",
+                 "from the friction over the patch", "plant; planner's model"],
+                ["Point contact", "the tip's convex mesh, one contact", "none", "plant; planner's model"],
+                ["Point contact with torsion", "the same, condim 4, $\\mu_t$ = 0.5, 1 or 2 mm",
+                 "up to $\\mu_t$ times the normal force", "plant; the planner's model on that plant"]],
+               "Contact models of the v4b tip (<code>inner_loop_mpc.py</code> <code>--plant-model</code> and "
+               "<code>--model</code>: <code>pads</code>, <code>pt</code>, <code>pt_t&lt;mm&gt;</code>). Every model "
+               "has friction 1.0 against the sphere.")
+    cols = [("hom", None, "pads")]
+    for meth, cfg in (("ps", CFG_PSRT), ("anneal", rt), ("anneal", CFG_FULL)):
+        if cfg is not None:
+            cols += [(meth, cfg, "pads"), (meth, cfg, "pt"), (meth, cfg, "own")]
+    rows = []
+    for p, lab in PLANTS:
+        row = [lab]
+        for meth, cfg, model in cols:
+            if meth == "hom":
+                s = S.get(hom_stem(p))
+            elif model == "own" and p in ("pads", "pt"):
+                s = None
+            else:
+                s = S.get(stem_of(meth, cfg, plant=p, model=p if model == "own" else model))
+            row.append(f2(s["J"], 3) if s else "&#8212;")
+        rows.append(row)
+    names = {"ps": "PS real time", "anneal": "DIAL"}
+    hdr = ["Plant"] + ["HOM"] + [f"{names[m]}{' 4 &#215; 64' if c == CFG_FULL else (' real time' if m == 'anneal' else '')}"
+                                f", {'pad' if mo == 'pads' else 'point' if mo == 'pt' else 'own'} model"
+                                for m, c, mo in cols[1:]]
+    keep = [i for i in range(len(hdr)) if i == 0 or any(r_[i] != "&#8212;" for r_ in rows)]
+    tj = P.TAB[0] + 1
+    t += table([hdr[i] for i in keep], [[r_[i] for i in keep] for r_ in rows],
+               "Mean J over the 40 runs on each plant. A planner's own model is the plant's: on the pads plant the pad "
+               "model, on the point-contact plant the point-contact model.", num_from=1)
+    if figs.get("contact"):
+        t += P.img(figs["contact"], "Mean J against the plant's fingertip contact (bars: one standard error over the 40 "
+                   "runs). Solid lines plan with the pad model, dashed with the point-contact model, dotted with the "
+                   "plant's own torsion model; HOM in grey.")
+    # paired differences: the pad model against the point-contact model on each plant, and the plants against each other
+    rows_p, plan = [], []
+    for meth, cfg in (("ps", CFG_PSRT), ("anneal", rt), ("anneal", CFG_FULL)):
+        if cfg is None:
+            continue
+        lab = f"{names[meth]}{' 4 &#215; 64' if cfg == CFG_FULL else (' real time' if meth == 'anneal' else '')}"
+        plan.append((meth, cfg, lab))
+        for model in ("pads", "pt"):
+            d = paired(R.get(stem_of(meth, cfg, model=model), []), R.get(stem_of(meth, cfg, plant="pt", model=model),
+                                                                         []))
+            if d:
+                rows_p.append([f"{lab}, {'pad' if model == 'pads' else 'point-contact'} model", fd(d)])
+    dh = paired(R.get("hom_twist", []), R.get(hom_stem("pt"), []))
+    if dh:
+        rows_p.insert(0, ["HOM", fd(dh)])
+    rows_m = [[lab_p] + [fd(paired(R.get(stem_of(m, c, plant=p), []), R.get(stem_of(m, c, plant=p, model="pt"), [])))
+                         for m, c, _l in plan] for p, lab_p in PLANTS]
+    rows_m = [r_ for r_ in rows_m if any(x != "&#8212;" for x in r_[1:])]
+    tm_ = P.TAB[0] + 1
+    if rows_m:
+        t += table(["Plant"] + [lab for _m, _c, lab in plan], rows_m,
+                   "J with the pad model minus J with the point-contact model, on each plant: the mean over the 20 "
+                   "pairs (seeds averaged within a pair), its 95 % bootstrap interval, and the pairs where the pad "
+                   "model was higher.")
+    if rows_p:
+        t += table(["Controller", "J on the pads plant minus J on the point-contact plant"], rows_p,
+                   "The plant's effect on each controller, with the same statistics.")
+    t += sec_contact_text(S, R, rt, tj, tm_)
+    return t
+
+
+def sec_contact_text(S, R, rt, tj, tm_):
+    """Sentences on the contact runs from the numbers that exist."""
+    out = []
+    h0, h1 = S.get("hom_twist"), S.get(hom_stem("pt"))
+    if h0 and h1:
+        out.append(fill("HOM's mean J was <<a>> on the pads and <<b>> on point contact (Table <<tj>>).",
+                        a=f"{h0['J']:.3f}", b=f"{h1['J']:.3f}", tj=tj))
+        ht = [(PLANT_SHORT[p], S[hom_stem(p)]["J"]) for p in ("pt_t0.5", "pt_t1", "pt_t2") if S.get(hom_stem(p))]
+        if ht:
+            out.append("With torsion it was " + ", ".join(f"{j:.3f} at {lab}" for lab, j in ht) + ".")
+    for meth, cfg, lab in (("anneal", CFG_FULL, "DIAL annealing at 4 &#215; 64"), ("anneal", rt, "real-time DIAL"),
+                           ("ps", CFG_PSRT, "real-time predictive sampling")):
+        if cfg is None:
+            continue
+        a = paired(R.get(stem_of(meth, cfg), []), R.get(stem_of(meth, cfg, model="pt"), []))
+        b = paired(R.get(stem_of(meth, cfg, plant="pt"), []), R.get(stem_of(meth, cfg, plant="pt", model="pt"), []))
+        if a and b:
+            out.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<b>> on the "
+                            "point-contact plant (Table <<tm>>).", l=lab, a=f"{a['d']:+.3f}", b=f"{b['d']:+.3f}",
+                            tm=tm_))
+    return f"<p>{' '.join(out)}</p>" if out else ""
+
+
+def sec_realtime(S, T, R, rt, figs):
+    """DIAL annealing at budgets that run in real time for one hand."""
+    full = one_hand_cfg(T, CFG_FULL)
+    if not any(S.get(stem_of("anneal", c)) for c in RT_CANDS):
+        return ""
+    v16 = one_hand(T, 16, 4, 30)
+    t = fill(r"""<p>DIAL annealing at the benchmark's budget needed <<f>> s of GPU for one hand per 0.1 s of control.
+A planner runs in real time when one hand's replanning takes no longer than the replanning interval. A period of
+rollouts, ten physics steps of 1 ms, took <<p16>> ms for one hand at 16 samples and <<p64>> ms at 64. At a 0.1 s
+interval the iterations times the horizon must therefore stay near ten periods. Two changes double that budget. The
+planner's model can step its physics every 2 ms, five steps per period, while the plant keeps 1 ms. Or the plan can
+be replaced every 0.2 s, with a horizon of at least 0.2 s. Table <<tn>> lists the configurations that were run.</p>""",
+             f=f2(full, 2), p16=f2(1e3 * v16 / 120 if v16 else None, 1), p64=f2(1e3 * full / 120 if full else None, 1),
+             tn=P.TAB[0] + 1)
+    rows = []
+    for meth, cfg in RT_TABLE:
+        s = S.get(stem_of(meth, cfg))
+        if not s:
+            continue
+        it, h, k, r, dt, n = cfg
+        v = one_hand_cfg(T, cfg)
+        g = v / (r * PERIOD_S) if v is not None else None
+        rows.append(["PS" if meth == "ps" else "DIAL", f"{it} &#215; {n}", f"{h * PERIOD_S:g}", str(k),
+                     f"{r * PERIOD_S:g}", f"{1e3 * (dt or 0.001):g}", f2(v, 3), f2(g, 2), f2(s["J"], 3),
+                     f"{100 * s['held']:.0f}", f2(s["reversals_ps"])])
+    t += table(["Planner", "Iterations &#215; samples", "Horizon (s)", "Knots", "Replanning interval (s)",
+                "Model's physics step (ms)", "Replanning, one hand (s)", "GPU time per second of control", "Mean J",
+                "Held (%)", "Target reversals (1/s)"], rows,
+               "Predictive sampling (PS) and DIAL annealing at several budgets, 40 runs each on the pads plant with the "
+               "pad model. One hand's replanning time is from <code>inner_loop_mpc.py timing --chunk 1</code> on the RTX "
+               "4070 Ti SUPER; a GPU time per second of control of 1 or less runs in real time.", num_from=1)
+    if figs.get("realtime"):
+        t += P.img(figs["realtime"], "Mean J against one hand's GPU time per second of control (log scale; bars: one "
+                   "standard error). Labels give iterations x samples, the horizon, the model's physics step if not 1 ms "
+                   "and the replanning interval if not 0.1 s.")
+    ok = [(S[stem_of("anneal", c)]["J"], c) for c in RT_CANDS if S.get(stem_of("anneal", c))
+          and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
+    sf, sp = S.get("anneal_twist"), S.get(stem_of("ps", CFG_PSRT))
+    if ok and sf:
+        bj, bc = max(ok)
+        t += fill("<p>The best real-time DIAL configuration, <<c>>, reached <<j>>. DIAL at the benchmark's budget "
+                  "reached <<f>> and real-time predictive sampling <<p>>.</p>", c=cfg_text(bc), j=f"{bj:.3f}",
+                  f=f"{sf['J']:.3f}", p=f"{sp['J']:.3f}" if sp else "&#8212;")
+    if rt is not None:
+        lat = []
+        for meth, cfg, lab in (("ps", CFG_PSRT, "PS, real time"), ("anneal", rt, "DIAL, real time")):
+            cells = [lab]
+            for dl in ("", "_d4n", "_d14n"):
+                s = S.get(stem_of(meth, cfg, delay=dl))
+                cells.append(f2(s["J"], 3) if s else "&#8212;")
+            lat.append(cells)
+        if any(c != "&#8212;" for r_ in lat for c in r_[2:]):
+            t += r"""<p>On the bench the planner starts from the tag tracker's pose, 40 ms old with 0.5 mm and 1 deg of
+noise. Its plan also reaches the servos one replanning time after that pose. The runs below plan from the plant's
+state 4 or 14 periods earlier, with the tracker's noise on the sphere's pose. The plan is applied when it is computed,
+without a forward prediction of the state.</p>"""
+            t += table(["Planner", "Exact state", "40 ms old, tracker noise", "140 ms old, tracker noise"], lat,
+                       "Mean J of the real-time planners from delayed, noisy states (<code>--plan-delay</code>, "
+                       "<code>--plan-noise</code>); 140 ms is the tracker's 40 ms and one replanning interval.",
+                       num_from=1)
     return t
 
 
@@ -541,17 +890,17 @@ the SCS0009 can press.</p>"""
 
 def sec_future():
     items = [
-        "HOM-space sampling: per finger the two rolling and two sliding rates of Eq. (2)'s reference relative twist, "
-        "12 numbers per knot, with v<sub>sep</sub> and the spin left to HOM (the 30 October planner, "
-        "<code>scripts/hom/hom_mpc_gpu.py</code>, sampled 2 numbers per knot). The claim that sampling in HOM's space "
-        "is cheaper is falsified if it needs more than 256 rollouts per 0.1 s to reach DIAL annealing's J.",
-        "Noisy state: HOM and the planners with the tag tracker's noise (0.5 mm, 1 deg, 40 ms late) and the magnetic "
-        "fingertips' contact estimates (<code>hom_tasks.VARIANTS</code> sense and tip), at 100 Hz; and without the "
-        "tags, the sphere's pose estimated in the hand from the contacts.",
         "UHAS retrained on the SCS0009 plant (published reward, and with the limit terms), 120 min each, then its "
-        "evaluation, usability and the 20 pairs (<code>scripts/hom/uhas_sr2.py train</code>).",
-        "The friction-0.4 block and MPPI, CEM, iCEM, SPIDER and its worst case on the SCS0009 plant (lane "
+        "evaluation, usability and the 20 pairs (<code>scripts/hom/uhas_sr2.py train</code>; lane "
         "<code>logs/20261112-mpc/lane.txt</code>).",
+        "The friction-0.4 block, MPPI, CEM and predictive sampling at the full budget on the SCS0009 plant (same lane).",
+        "Planning from a state predicted over the latency, with the plan applied at the times it was computed for. The "
+        "runs from a 140 ms old state apply the plan when it arrives, without that prediction "
+        "(<code>measured</code> in <code>inner_loop_mpc.py</code>).",
+        "The pads' torsional friction coefficient measured in this scene: the torque about each tip's normal over its "
+        "normal force while the sphere spins, to place the pads on the torsion axis of the contact figure. The rig of "
+        "1 October gives 1.4 to 1.8 mm; a value outside 1 to 2 mm in this scene would falsify that transfer to the v4b "
+        "tip.",
     ]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -566,7 +915,7 @@ def sec_files():
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
-def lede(S, T):
+def lede(S, T, R_=None):
     hs = S.get("hom_twist")
     if not hs:
         return "Results pending.", "Results pending."
@@ -585,6 +934,21 @@ def lede(S, T):
     rt = S.get("ps_twist_r10h10k2i1")
     if rt:
         parts.append(fill("At a budget that runs in real time, predictive sampling reached <<r>>.", r=f"{rt['J']:.3f}"))
+    ok = [(S[stem_of("anneal", c)]["J"], c) for c in RT_CANDS if S.get(stem_of("anneal", c))
+          and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
+    if ok:
+        bj, bc = max(ok)
+        parts.append(fill("DIAL annealing reached <<j>> in real time with <<c>>.", j=f"{bj:.3f}",
+                          c=cfg_text(bc).replace("&#215;", "x")))
+    h1 = S.get(hom_stem("pt"))
+    a = paired(R_.get("anneal_twist", []), R_.get("anneal_twist_pt", [])) if R_ else None
+    b = paired(R_.get(stem_of("anneal", CFG_FULL, plant="pt"), []),
+               R_.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt"), [])) if R_ else None
+    if h1:
+        parts.append(fill("With point-contact fingertips in the plant HOM's J was <<b>>.", b=f"{h1['J']:.3f}"))
+    if a and b:
+        parts.append(fill("DIAL's J with the pad model minus its J with the point-contact model was <<a>> on the pads "
+                          "plant and <<b>> on the point-contact plant.", a=f"{a['d']:+.3f}", b=f"{b['d']:+.3f}"))
     h2 = S.get("hs_anneal_twist")
     if h2:
         parts.append(fill("Sampling HOM's rolling and sliding rates in place of the servo targets gave <<j>> with <<r>> "
@@ -612,6 +976,13 @@ def main():
         stem for stem, _l in PF_RUNS] + [
         "anneal_twist_pt", "hom_twist_mu0.4", "ps_twist_mu0.4_r10h10k2i1", "anneal_twist_mu0.4", "spider_twist_mu0.4",
         "spider_wc_twist_mu0.4"]
+    for p, _ in PLANTS:                             # the contact runs: every plant, the pad, point and own models
+        stems.append(hom_stem(p))
+        for meth, cfg in [("ps", CFG_PSRT), ("anneal", CFG_FULL)] + [("anneal", c) for c in RT_CANDS]:
+            stems += [stem_of(meth, cfg, plant=p, model=m) for m in ("pads", "pt", p)]
+    for meth, cfg in RT_TABLE:                      # the real-time configurations, and from delayed noisy states
+        stems += [stem_of(meth, cfg, delay=dl) for dl in ("", "_d4n", "_d14n")]
+    stems = list(dict.fromkeys(stems))
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}
     hom04 = {key(r): r for r in R["hom_twist_mu0.4"]}
@@ -630,6 +1001,11 @@ def main():
     if R.get("anneal_twist") and R["hom_twist"]:
         figs["pairs"] = fig_pairs(R["hom_twist"], R["anneal_twist"], "DIAL annealing", MEDIA / "20261113-mpc_pairs.png")
     T = timing_rows()
+    rt = rt_pick(R, T)
+    if S.get(hom_stem("pt")) or S.get(stem_of("ps", CFG_PSRT, model="pt")):
+        figs["contact"] = fig_contact(S, rt, MEDIA / "20261113-mpc_contact_models.png")
+    if any(S.get(stem_of("anneal", c)) for c in RT_CANDS):
+        figs["realtime"] = fig_realtime(S, T, MEDIA / "20261113-mpc_realtime.png")
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("setup", "Plant, task and pairs", sec_setup(S)),
                 ("methods", "The controllers", sec_methods()),
@@ -637,10 +1013,11 @@ def main():
                 ("films", "Films", sec_films()),
                 ("feedback", "Two simple changes to HOM", sec_feedback(S)),
                 ("hs", "Sampling in HOM's space", sec_hs(S)),
-                ("pt", "A planner with point-contact fingertips", sec_pt(S)),
+                ("compute", "Compute per second of control", sec_compute(T, S)),
+                ("realtime", "Annealed sampling at the real-time budget", sec_realtime(S, T, R, rt, figs)),
+                ("contact", "Fingertip contact model of the plant and of the planner", sec_contact(S, R, T, rt, figs)),
                 ("sensing", "Measured state in place of the simulator's", sec_sensing(S)),
                 ("filter", "A complementary filter on the sphere's pose", sec_filter(S)),
-                ("compute", "Compute per second of control", sec_compute(T, S)),
                 ("friction", "Plant friction 0.4", sec_friction(S)),
                 ("work", "The same runs on the work plant", sec_work(SW)),
                 ("future", "Future work", sec_future()),
@@ -649,7 +1026,7 @@ def main():
     sections = [x for x in sections if x[2]]
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
     sections = [(sid, hd, b.replace("WORKSEC", str(num.get("work", "&#8212;")))) for sid, hd, b in sections]
-    lede_t, summary = lede(S, T)
+    lede_t, summary = lede(S, T, R)
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N\b|s\b|min\b|h\b)", "\\1&nbsp;\\2", s_))
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{unit(b)}</section>'

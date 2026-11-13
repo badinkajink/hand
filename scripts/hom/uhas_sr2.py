@@ -136,8 +136,8 @@ class UBatch(HG.Batch):
 
     CAPTURE = False
 
-    def __init__(self, scene, task, worlds, dt, gen_seed=0):
-        super().__init__(scene, task, worlds, dt, gen_seed=gen_seed)
+    def __init__(self, scene, task, worlds, dt, gen_seed=0, phys_dt=None):
+        super().__init__(scene, task, worlds, dt, gen_seed=gen_seed, phys_dt=phys_dt)
         self.mount_bid = {f: self.m.body(f"{f}_mount").id for f in HG.FINGERS}
         self.t_task = T.T_LIFT + 0.4
         self.first = True
