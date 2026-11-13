@@ -1,13 +1,15 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
-State 11-13 10:50: EVERY benchmark run of 11-12 and 11-13 before 10:30 (HOM, UHAS train/eval/usability, MPC) used the
-WORK plant (4 N m/rad, 1 N m, 10 MPa scenes): no script set HOS_PLANT/HOS_SCENES. Fixed by scripts/hom/inner_loop_plant.py
-(imported before hom_gpu); old rows and films renamed *_work10; rows now record plant and scenes. Owner told 10:4x.
-Reruns on the SCS0009 plant run from logs/20261112-mpc/lane.sh (lines in lane.txt, appended as code is ready; done lines
-in lane.done): HOM J 0.388 (held 0.97, grip 7.7 N), PS real-time 0.335; anneal, smokes of the HOM-space planner (hs_*)
-and of the film command, timing, HOM angle feedback (--att-gain 1-8), anneal with point-contact model (--model pt), HOM
-under sensing variants (--variant). New page: scripts/hom/inner_loop_mpc_page.py ->
-docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html (not yet published). UHAS must be
-retrained on the SCS0009 plant (tonight). The State lines below are WORK-plant numbers.
+State 11-13 12:10: page docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html (builder
+scripts/hom/inner_loop_mpc_page.py) published at https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f (colorado login),
+commits 4fc181db7, ef59860cb, c35fc5d84 pushed. SCS0009 plant (scripts/hom/inner_loop_plant.py; every run before 11-13
+10:30 was on the work plant, rows *_work10): HOM J 0.388 (grip 7.7 N, saturation 16 %, 0.63 rev/s); DIAL annealing 0.461
+(4.7 N, 2.0 rev/s; one hand 1.17 s GPU per 0.1 s); PS real-time 0.335 (0.089 s per 0.1 s); DIAL with a point-contact
+model 0.426 (replanning 18 % faster); HOM angle feedback lowers J (0.370 at 1/s to 0.322 at 8/s: three-pad share falls);
+HOM-space DIAL (hs_anneal: Eq. 2 solved again around HOM's own relative twist, separation row x10; zero plan = HOM,
+checked 0.772 on pair 0) smoke 0.569 at 16 samples, full runs queued. Films p0 and p10 in the page. Lane continues
+(lane.txt): HOM sensing variants, HOM force sweep, planners from a 40 ms old noisy state, hs_anneal x2, iCEM, SPIDER,
+SPIDER worst case, friction 0.4 block, PS, MPPI, CEM, then UHAS on the SCS0009 plant (uhas_train_eval.sh, ~22:00).
+After each block: rebuild the page, commit, republish the same file path.
 State 11-13 08:50 (work plant): MPC on the 20 pairs x seeds 0-1, exact model: mean J HOM 0.402 (not 0.634,
 the last chunk's mean, as told to the owner on 11-12), DIAL anneal 0.582, iCEM 0.566, SPIDER 0.549, MPPI 0.506, CEM 0.499,
 PS 0.480, SPIDER worst case 0.379, PS near real time 0.396, UHAS 0.389 (held 0.88); planners grip 16.5-23 N against 9.6,
@@ -47,7 +49,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [ ] 9. MPC and UHAS reruns (owner 11-12 21:0x go): wait for 'queue done' in logs/20261112-mpc/queue.log (launched 21:07; order hom, uhas, ps, mppi, cem, icem, anneal, spider, spider_wc, ps_rt, UHAS limits s0 train/eval/usability/pairs, plant friction 0.4 for hom, uhas, uhas limits, anneal, spider, spider_wc, then UHAS limits s1 and published s1); every rc 0, else read logs/20261112-mpc/<step>.log and ~/.claude/resguard_events.jsonl, fix, rerun that step's command (the rows files resume)
 - [ ] 10. Page section on the MPC: per controller on the 20 pairs x seeds 0-1 (rows/mpc_*_twist*.jsonl): mean J, held share, usability medians over held rollouts, GPU seconds per second of control (replan_s_mean / 0.1 s for one hand from rows/mpc_timing_twist.jsonl); the friction-0.4 table (spider vs spider_wc isolates the worst case); UHAS with limits against UHAS published at seeds 0-1; films of the best planner and of UHAS with limits on HOM's best pair (uhas_sr2_film.py --tag)
 - [x] 12. Resguard at 01:38 on 11-13 (seen by the feed poller's session): the watchdog killed the queue step usability_… Done 11-13 08:47: Done 11-13 08:47: the kills (01:38 and again 08:44, PSI full 19.5-19.8 at 16 GB available) were numpy huge-page direct compaction (compact_stall 4.3 M, 99 % failed), not RSS; logs/20261112-mpc/queue4.sh sets NUMPY_MADVISE_HUGEPAGE=0, waits 1 min before each launch, retries rc 3 every 2 min and a kill once; the usability step then ran at memory pressure 0.00
-- [ ] 13. queue4 (launched 08:45, logs/20261112-mpc/queue4.sh, lines in queue.log): usability and pairs of limits_s0; friction 0.4 for hom, uhas, uhas limits_s0, ps near real time (I 1, H 10, K 2), anneal, spider, spider_wc; then UHAS limits with the torque term at -0.02 and no cap (--limits-tau -0.02 --limits-cap 0, seed 0; replaces limits_s1, commit 25250e0f8) and the published reward at seed 1, each with eval, usability, pairs and friction-0.4 pairs. Expected done about 15:30. Wait for 'queue4 done'; on a failure read the step log and resguard events
+- [x] 13. queue4 (launched 08:45, logs/20261112-mpc/queue4.sh, lines in queue.log): usability and pairs of limits_s0; f… Done 11-13 11:35: Superseded 11-13 10:30: queue4's runs were on the work plant; reruns on the SCS0009 plant go through logs/20261112-mpc/lane.sh (lines in lane.txt)
+- [ ] 14. Lane logs/20261112-mpc/lane.sh on the SCS0009 plant (owner 11-13: films/page to analyze, HOM-space controls, MPC without the sphere pads, noisy pose, HOM real-time, a simple HOM improvement): wait for each line of lane.txt to appear in lane.done (queue.log has '<name> rc'); rebuild .venv/bin/python scripts/hom/inner_loop_mpc_page.py; commit the page, rows, media and indices; republish the page to its artifact URL (first publish 11-13 ~12:30). UHAS trainings on the SCS0009 plant are the lane's last two lines (logs/20261112-mpc/uhas_train_eval.sh, ~5.5 h).
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J
