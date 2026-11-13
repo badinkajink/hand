@@ -456,7 +456,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (50)
+## hardware/ (52)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -512,8 +512,10 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
 | `tracking_objects_print.py` | Print files of the tracked objects of the object seating and tracking plan (docs/notes/20261105-object_seating_and_ tracking/): the 25 mm x 100 mm cylinder and the 40 mm sphere of the HOM tasks, each with its hexagonal t |
+| `tracking_prints_media.py` | Figures and viewer models of the page on the printed tracking objects and the calibration board (docs/experiments/20261113-tracking_prints/, built by scripts/hardware/tracking_prints_page.py). |
+| `tracking_prints_page.py` | Builds docs/experiments/20261113-tracking_prints/20261113-tracking_prints_and_calibration_board.html: the print files of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) with render |
 
-## hom/ (97)
+## hom/ (101)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -610,6 +612,10 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_turn3_films.py` | Films of the three-finger turn on the fitted plant: the deployed open-loop plan, the relative contact-velocity (HOM) controller with its governor, and without it. |
 | `hom_turn_rl_contact_page.py` | Build docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html. |
 | `inner_loop_benchmark_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html: published inner-loop evaluators against HOM on the SR2 layout lattice, each judged by the J of the hand it would pick and by its w |
+| `inner_loop_mpc.py` | Sampling MPC on the SR2 hand in MuJoCo-Warp: the training-free baselines of the inner-loop benchmark (owner, 2026-11-12: "let's try MPC. |
+| `inner_loop_mpc_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html: sampling MPC (predictive sampling, MPPI, CEM, iCEM, DIAL-MPC's annealing, SPIDER and its worst case) against HOM on the inner-loop  |
+| `inner_loop_plant.py` | The inner-loop benchmark's plant: the hand-design talk's, as its grid grid2dff_v4b_sv25r was run (the SCS0009 servo plant, 0.72 N m/rad and 0.18 N m, and the 2.5 MPa pads of the scene cache logs/20261102-hom_servo_plant/ |
+| `inner_loop_usability.py` | Usability of an inner-loop controller on the SR2 hand: the forces, joint states and commands a controller needs for the task, scored the same way for HOM and for a trained UHAS policy (scripts/hom/uhas_sr2.py) on the sam |
 | `karma_sr2.py` | KaRMA (Peticco and Agrawal, arXiv 2605.15548, 2026) on the SR2 hand's layout lattice, the kinematic inner-loop evaluator of the inner-loop benchmark (owner, 2026-11-12: "evaluate some of the other inner loop controls we  |
 | `scale_turn_cad_v1_page.py` | Page: the scale-turn study of 13-14 October repeated on the CAD-model hand (2026-10-14). |
 | `scale_turn_controllers_page.py` | Page: in-hand turn of cylinders on the scale-study layouts under HOM control and sampling MPC (2026-10-13). |

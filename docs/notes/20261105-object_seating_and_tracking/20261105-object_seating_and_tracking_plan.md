@@ -295,7 +295,10 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    in 29 of 30.
 5. Cameras and hand frame in the cell. Mount the cameras on their sides at 0° and 260°, the lights and the hand tags
    (decisions 3 and 4), and add them to `cell.json`. Calibrate the cameras against the arm's base with the hand tags
-   (about 15 poses). Accept when the two routes to $T_{CP}$ agree within 1 mm and 0.5°, the tracked motion of a seated
+   (about 15 poses). The ChArUco board on the mount's −y_P face is in camera 260's view at turns of 0 to +45° about
+   z_P and in camera 0's at +90 to +135°, which is −90 to −135° on joint 6; the −x_P face faces away from both
+   cameras in the task orientation. A paper checkerboard can replace the board if it is flat and measured, and fixed
+   to the hand for the hand-eye poses (`docs/experiments/20261113-tracking_prints/`, 2026-11-13). Accept when the two routes to $T_{CP}$ agree within 1 mm and 0.5°, the tracked motion of a seated
    object's block matches arm steps of 10 to 40 mm within 0.3 mm, and the frame age from the hand tags is at most 50 ms
    median.
 6. The arm's lift. Run the lift and its return 100 times with an object held. Accept a return within 0.1 mm of the
@@ -321,7 +324,7 @@ The lab's rules apply to every arm motion. There is no freedrive with the SR2 ha
 | Flat seat on a pedestal | session, printed | fixed to the table under the block |
 | Turntable adapter and 20° wedge | session, printed | step 3 |
 | Catch tray around the seat | session, printed | |
-| Mount for the ChArUco board on the hand | session, printed | `assets/tracking/20261112-charuco_board/` (2026-11-12): a post in the notch at the end of the hand's camera arm, bolted through its M5 hole; the board hangs facing −x_P or −y_P, at least 16 mm from every other solid of the hand's CAD; replaces the two hand tag mounts (owner: one board for both calibrations) |
+| Mount for the ChArUco board on the hand | session, printed | `assets/tracking/20261112-charuco_board/` (2026-11-12): a post in the notch at the end of the hand's camera arm, bolted through its M5 hole; the board hangs facing −x_P or −y_P, at least 16 mm from every other solid of the hand's CAD; replaces the two hand tag mounts (owner: one board for both calibrations); both cameras see the −y_P face, with the hand turned (step 5) |
 | Camera and light mounts | owner | fixed to the table |
 | USB 3 cable and port for the second D435 | bought if needed | |
 | Two LED panels | bought | |

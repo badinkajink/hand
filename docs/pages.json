@@ -1,5 +1,41 @@
 [
  {
+  "date": "2026-11-13",
+  "file": "docs/experiments/20261113-tracking_prints/20261113-tracking_prints_and_calibration_board.html",
+  "title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
+  "page_title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
+  "topic": "hardware",
+  "summary": "Print files of the HOM cylinder and sphere on tag-block stems (35.6 and 25.7 mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at 0.022 mm RMS) and of a 7 x 5 ChArUco board with its mount on the SR2 hand's camera arm. The board on the mount's -y face is seen by camera 260 with the hand turned 0 to +45 deg about z_P and by camera 0 at +90 to +135 deg; a flat, measured paper checkerboard fixed to the hand can replace it.",
+  "builder": null,
+  "artifact": "https://claude.ai/artifact/CfmQuMQ9dc6V3VToYK3DqF",
+  "status": "current",
+  "mb": 6.6
+ },
+ {
+  "date": "2026-11-13",
+  "file": "docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
+  "title": "Sampling MPC and HOM on the SR2 sphere twist",
+  "page_title": "Sampling MPC and HOM on the SR2 sphere twist",
+  "topic": "design",
+  "summary": "On the SCS0009 plant HOM's mean J over 40 runs of the sphere twist was 0.388. At a budget that runs in real time, predictive sampling reached 0.335.",
+  "builder": "scripts/hom/inner_loop_mpc_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.1
+ },
+ {
+  "date": "2026-11-12",
+  "file": "docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html",
+  "title": "Inner-loop evaluators for SR2 hand co-design: HOM, KaRMA and UHAS",
+  "page_title": "Inner-loop evaluators for SR2 hand co-design: HOM, KaRMA and UHAS",
+  "topic": "design",
+  "summary": "HOM scored a layout of the SR2 lattice in 2.8 s of the GPU; KaRMA took 170 s on one CPU core and UHAS a training run first. KaRMA's first choice on the twist scores J 0.57 under HOM, where the best layout scores 0.76.",
+  "builder": "scripts/hom/inner_loop_benchmark_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.1
+ },
+ {
   "date": "2026-11-11",
   "file": "docs/experiments/20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html",
   "title": "Implementation of the sphere-pad contact model on a convex fingertip surface",
