@@ -73,10 +73,12 @@ VARIANT = {"twist": "base", "roll": "base", "pinpush": "hold", "press": "hold"}
 REW = {"dist": -10.0, "rot": 1.0, "rot_eps": 0.1, "lat": -0.016, "rad": -0.004, "fall": -100.0, "contact": 2.0,
        "fall_dist": 0.2, "drop_m": 0.015, "f_on": 0.05}
 # train --limits (owner, 2026-11-12: "run uhas training with joint and actuator limits built into training"): per period,
-# -0.5 sum_j clip((servo demand_j / torque limit - 0.8) / 0.2, 0, 3), the demand kp |target - q| and 0.8 the SCS0009's
-# overload threshold; -0.25 sum_j clip((3 deg - distance to the joint's range limit) / 3 deg, 0, 1); -0.05 |a - a_prev|^2.
-# inner_loop_mpc.py's planners have the same terms in their cost.
-REW_LIMITS = {"tau": -0.5, "tau_on": 0.8, "q": -0.25, "q_band_deg": 3.0, "rate": -0.05}
+# -0.2 sum_j clip((servo demand_j / torque limit - 0.8) / 0.2, 0, 3), the demand kp |target - q| and 0.8 the SCS0009's
+# overload threshold; -0.1 sum_j clip((3 deg - distance to the joint's range limit) / 3 deg, 0, 1); -0.04 |a - a_prev|^2.
+# The period's reward is then clipped at zero before the drop penalty (legged_gym's only_positive_rewards): at -0.5 for the
+# torque term a 64-world smoke run's untrained policy paid 8 per period, more than a held sphere earns, so dropping the
+# sphere would have paid. inner_loop_mpc.py's planners have the same terms in their cost.
+REW_LIMITS = {"tau": -0.2, "tau_on": 0.8, "q": -0.1, "q_band_deg": 3.0, "rate": -0.04}
 LIMITS = False
 PPO_CFG = {
     "num_steps_per_env": 16, "save_interval": 50, "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
@@ -383,7 +385,7 @@ class Tracker:
             near = torch.minimum(q9 - lim["lo"], lim["hi"] - q9)
             pen = torch.stack([((dmd - L_["tau_on"]) / (1.0 - L_["tau_on"])).clamp(0.0, 3.0).sum(-1),
                                ((band - near) / band).clamp(0.0, 1.0).sum(-1), ((a - a_prev) ** 2).sum(-1)], -1)
-            rew = rew + pen @ torch.tensor([L_["tau"], L_["q"], L_["rate"]], device=self.dev)
+            rew = (rew + pen @ torch.tensor([L_["tau"], L_["q"], L_["rate"]], device=self.dev)).clamp_min(0.0)
             self.pen = pen
         rew = torch.where(drop, rew + REW["fall"], rew)
         live = self.alive.float() * (self.tau >= task.k0).float()
