@@ -79,7 +79,7 @@ ROWS = UH.OUT / "rows"
 RUN = "20261112-1244_twist_s0"           # the UHAS run whose test split and usability rows choose the pairs
 REPLAN, H, KNOTS = 10, 30, 3             # periods between replannings, horizon (periods), knots (the first pinned)
 COST = dict(rot_deg=5.0, pos_mm=3.0, pad=2.0, f_on=0.05, drop=100.0, drop_m=0.015, tau=0.5, tau_on=0.8, q=0.25,
-            q_band_deg=3.0, rate=1.0, rate_dps=20.0)
+            q_band_deg=3.0, rate=1.0, rate_dps=20.0, acc=0.0, rev=0.0, err_db_deg=0.0)
 PLAN = dict(iters=4, sigma=0.08, lam_rel=0.03, elite_frac=0.15, momentum=0.1, sigma_min=0.005,
             ar_alpha=0.7, keep=2, beta1=0.5, beta2=0.5, sp_first=0.5, sp_last=1.0, sp_final=0.1, sp_exploit=0.01,
             sp_exploit_scale=0.01, sp_temp=0.3, sp_top=0.1, sp_improve=0.01, frictions=(0.4, 0.7, 1.0))
@@ -97,12 +97,18 @@ PLAN_HS = dict(sigma=0.3, bound=3.0, rate=2.0)    # the noise and the bound in u
 HS_METHODS = tuple("hs_" + m for m in METHODS if m != "spider_wc")
 KNOT_T = np.linspace(0.0, H, KNOTS)
 PLAN_DT = None                  # the planner's physics step, s (--plan-dt); None: the plant's 1 ms
+WARM = "hold"                   # past its last knot the shifted plan holds the last knot, or (extrap) keeps its slope
 
 
-def interp(times, knot_t=KNOT_T):
-    """(len(times), K): the linear weights of the knots at each time, in periods (the last knot held beyond it)."""
+def interp(times, knot_t=KNOT_T, extrap=False):
+    """(len(times), K): the linear weights of the knots at each time, in periods. Beyond the last knot the last knot is
+    held, or with extrap the last segment's slope continues."""
     K = len(knot_t)
     w = np.stack([np.interp(times, knot_t, np.eye(K)[k]) for k in range(K)], 1)
+    if extrap and K > 1:
+        a = np.clip((np.asarray(times, float) - knot_t[-1]) / (knot_t[-1] - knot_t[-2]), 0.0, None)
+        w[:, -1] += a
+        w[:, -2] -= a
     return torch.tensor(w, dtype=torch.float32, device="cuda")
 
 
@@ -122,7 +128,7 @@ def configure(replan, horizon, knots, iters):
     KNOT_T = np.linspace(0.0, H, KNOTS)
     W_ROLL = interp(np.arange(1, H + 1), KNOT_T)
     W_EXEC = interp(np.arange(1, REPLAN + 1), KNOT_T)
-    W_SHIFT = interp(REPLAN + KNOT_T, KNOT_T)
+    W_SHIFT = interp(REPLAN + KNOT_T, KNOT_T, extrap=WARM == "extrap")
 
 
 # ------------------------------------------------------------------------------------------------ worlds
@@ -288,6 +294,8 @@ class Rollouts:
         p = qp[:, B.qa:B.qa + 3] - ctx["palm"]
         dq = quat_mul(qp[:, B.qa + 3:B.qa + 7], quat_conj(ctx["goal"][:, h]))
         err = 2.0 * torch.asin(dq[:, 1:].norm(dim=-1).clamp(max=1.0))
+        if COST["err_db_deg"] > 0:
+            err = (err - math.radians(COST["err_db_deg"])).clamp(min=0.0)
         drop |= p[:, 2] < ctx["p0"][:, 2] - COST["drop_m"]
         q = qp[:, self.q9]
         dmd = self.kp * (u - q).abs() / lim.tau
@@ -355,6 +363,7 @@ class MPC:
         self.gen = torch.Generator(device="cuda")
         self.gen.manual_seed(1000 + seed)
         self.nom, self.elites = None, None
+        self.r_prev = None              # the executed targets' rate at the end of the last segment (P, D), per s
         self.ar = torch.arange(P, device="cuda")
 
     def noise(self, n, scale):
@@ -371,9 +380,17 @@ class MPC:
         return S
 
     def rate_cost(self, S):
+        """The knots' rates (rate), their changes from one knot gap to the next and from the executed rate to the
+        first gap (acc), and the sign flips of each target's rate at the replanning (rev), in the rate scale."""
         gap = float(KNOT_T[1] - KNOT_T[0]) * T.DT_C
         r = torch.diff(S, dim=2) / gap / self.rate_scale
-        return COST["rate"] * (r ** 2).sum((-1, -2))
+        c = COST["rate"] * (r ** 2).sum((-1, -2))
+        if COST["acc"] > 0 and r.shape[2] > 1:
+            c = c + COST["acc"] * (torch.diff(r, dim=2) ** 2).sum((-1, -2))
+        if self.r_prev is not None and (COST["acc"] > 0 or COST["rev"] > 0):
+            rp, r0 = (self.r_prev / self.rate_scale)[:, None], r[:, :, 0]
+            c = c + COST["acc"] * ((r0 - rp) ** 2).sum(-1) + COST["rev"] * (-(r0 * rp)).clamp(min=0.0).sum(-1)
+        return c
 
     def evaluate(self, R, st, S, ctx):
         """Costs (P, n) of the samples S (P, n, K, 9), each the worst over the friction groups."""
@@ -576,6 +593,8 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
                     st = (dict(B.state(), plant=B) if hs else measured(hist, B, gen_m) if hist else B.state())
                     knots, inf = mpc.plan(R, st, u, dict(ctx0, goal=goal.repeat_interleave(r, 0)))
                     seg = torch.einsum("hk,pkj->phj", W_EXEC, knots)
+                    if REPLAN > 1:
+                        mpc.r_prev = (seg[:, -1] - seg[:, -2]) / T.DT_C
                     torch.cuda.synchronize()
                     plan_rec["walls"].append(time.perf_counter() - t0)
                     plan_rec["iters"].append(inf["iters"])
@@ -601,8 +620,9 @@ def row_key(r):
 
 
 def cmd_run(a):
-    global PLAN_DT
+    global PLAN_DT, WARM
     import hom_landscape as L
+    WARM = a.warm
     configure(a.replan, a.horizon, a.knots, a.iters)
     if (a.replan, a.horizon, a.knots, a.iters) != (10, 30, 3, 4):
         a.tag = f"_r{a.replan}h{a.horizon}k{a.knots}i{a.iters}" + a.tag
@@ -611,6 +631,14 @@ def cmd_run(a):
     if a.plan_dt is not None:
         PLAN_DT = a.plan_dt
         a.tag = f"_pdt{1e3 * a.plan_dt:g}" + a.tag
+    sh = "" if WARM == "hold" else f"_{WARM}"          # the reversal options (owner, 2026-11-13)
+    for flag, d, k, nm in ((a.lam_rel, PLAN, "lam_rel", "lam"), (a.sigma, PLAN, "sigma", "sig"),
+                           (a.rate_w, COST, "rate", "rw"), (a.acc_w, COST, "acc", "acc"), (a.rev_w, COST, "rev", "rev"),
+                           (a.err_db, COST, "err_db_deg", "db")):
+        if flag is not None:
+            d[k] = flag
+            sh += f"_{nm}{flag:g}"
+    a.tag = sh + a.tag
     if a.model != "pads":
         a.tag = f"_{a.model}" + a.tag
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
@@ -696,7 +724,10 @@ def cmd_run(a):
                             "iters_mean": round(float(np.mean(pr["iters"])), 2), "n": R.n, "groups": R.G,
                             "plan": {"iters": PLAN["iters"], "sigma": (PLAN_HS if a.method in HS_METHODS
                                                                        else PLAN)["sigma"]}, "replan": REPLAN, "H": H,
-                            "knots": KNOTS, "plan_dt": PLAN_DT})
+                            "knots": KNOTS, "plan_dt": PLAN_DT,
+                            "shaping": {"warm": WARM, "lam_rel": PLAN["lam_rel"], "sigma": PLAN["sigma"],
+                                        "rate_w": COST["rate"], "acc_w": COST["acc"], "rev_w": COST["rev"],
+                                        "err_db_deg": COST["err_db_deg"]}})
             rows.append(row)
         with open(out, "a") as fh:
             for r_ in rows:
@@ -884,6 +915,18 @@ def main():
         q.add_argument("--iters", type=int, default=4)
         q.add_argument("--plan-dt", type=float, default=None, help="the planner's physics step, s (the plant's: 0.001)")
     p.add_argument("--plant-model", default="pads", type=contact_model, help="the plant's contact model, as --model")
+    p.add_argument("--warm", default="hold", choices=("hold", "extrap"), help="the shifted plan past its last knot: "
+                   "hold it, or continue the last segment's slope")
+    p.add_argument("--lam-rel", type=float, default=None, help="MPPI's and annealing's temperature over the costs' "
+                   "standard deviation (PLAN lam_rel, 0.03)")
+    p.add_argument("--sigma", type=float, default=None, help="the knots' sampling noise, rad (PLAN sigma, 0.08)")
+    p.add_argument("--rate-w", type=float, default=None, help="weight of the knot-rate cost (COST rate, 1)")
+    p.add_argument("--acc-w", type=float, default=None, help="weight of the rate changes between knot gaps and from "
+                   "the executed rate, in the rate scale (COST acc, 0)")
+    p.add_argument("--rev-w", type=float, default=None, help="weight of the sign flips of the targets' rates at the "
+                   "replanning: max(0, -r_new r_executed) in the rate scale squared (COST rev, 0)")
+    p.add_argument("--err-db", type=float, default=None, help="dead band on the rotation error in the cost, deg "
+                   "(COST err_db_deg, 0)")
     sub.choices["timing"].add_argument("--configs", nargs="+", default=None, help="instead of the flags: "
                                        "iterations,horizon,knots,replanning interval,planner step in ms,samples")
     p = sub.add_parser("film")

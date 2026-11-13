@@ -157,10 +157,11 @@ def cfg_tag(c):
             + (f"_r{r}h{h}k{k}i{it}" if (r, h, k, it) != (10, 30, 3, 4) else ""))
 
 
-def stem_of(method, cfg, plant="pads", model="pads", delay=""):
-    """inner_loop_mpc.py's rows stem: mpc_<method>_twist[_plant_<plant>][<delay>][_<model>]<cfg_tag>."""
+def stem_of(method, cfg, plant="pads", model="pads", delay="", sh=""):
+    """inner_loop_mpc.py's rows stem: mpc_<method>_twist[_plant_<plant>][<delay>][_<model>][<options>]<cfg_tag>, the
+    options those of the reversal runs (_extrap, _lam<x>, _sig<x>, _rw<x>, _acc<x>, _rev<x>, _db<x>, in that order)."""
     return (f"{method}_twist" + ("" if plant == "pads" else f"_plant_{plant}") + delay
-            + ("" if model == "pads" else f"_{model}") + cfg_tag(cfg))
+            + ("" if model == "pads" else f"_{model}") + sh + cfg_tag(cfg))
 
 
 def hom_stem(plant):
@@ -273,28 +274,119 @@ def contact_lines(S, rt):
     return lines
 
 
-def fig_contact(S, rt, out):
-    """Mean J against the plant's contact model for HOM and the planners with the pad and the point-contact model."""
+def fig_contact(S, R, rt, out):
+    """Left: mean J against the plant's contact model. Right: J with the pad model minus J with the point-contact model
+    (paired over the 20 pairs, 95 % bootstrap interval), for each planner."""
     plt = plt_setup()
-    lines = contact_lines(S, rt)
     xs = {p: i for i, (p, _) in enumerate(PLANTS)}
-    fig, ax = plt.subplots(figsize=(8.6, 6.4))
-    k = 0
-    for lab, col, ls, pts in lines:
-        P_ = [(xs[p], s["J"], s["J_se"]) for p, s in pts.items() if s]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 6.2))
+    left = [("HOM", "#555555", "-", "o", {p: S.get(hom_stem(p)) for p, _ in PLANTS})]
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time", "#3a6ea5"),
+                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+        if cfg is None:
+            continue
+        left.append((f"{lab}, pad model", col, "-", "o", {p: S.get(stem_of(meth, cfg, plant=p)) for p, _ in PLANTS}))
+        own = {p: S.get(stem_of(meth, cfg, plant=p, model="pt" if p == "pt" else p if p != "pads" else "pads"))
+               for p, _ in PLANTS}
+        left.append((f"{lab}, plant's own model", col, ":", "^", own))
+    for k, (lab, col, ls, mk, pts) in enumerate(left):
+        P_ = sorted((xs[p], s_["J"]) for p, s_ in pts.items() if s_)
         if not P_:
             continue
-        P_.sort()
-        dx = 0.035 * (k - len(lines) / 2)
+        a1.plot([x + 0.03 * (k - 3) for x, _ in P_], [y for _, y in P_], color=col, marker=mk, ms=5, lw=1.6,
+                ls=ls if len(P_) == len(PLANTS) else "none", label=lab)     # no line across plants not run
+    a1.set_ylabel("Mean J over 40 runs")
+    a1.set_title("Mean J", fontsize=13)
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time",
+                                                                             "#3a6ea5"),
+                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+        if cfg is None:
+            continue
+        pts = []
+        for p, _ in PLANTS:
+            d = paired(R.get(stem_of(meth, cfg, plant=p), []), R.get(stem_of(meth, cfg, plant=p, model="pt"), []))
+            if d:
+                pts.append((xs[p], d))
+        if not pts:
+            continue
+        off = {"PS, real time": -0.08, "DIAL, real time": 0.0}.get(lab, 0.08)
+        a2.errorbar([x + off for x, _ in pts], [d["d"] for _, d in pts],
+                    yerr=[[d["d"] - d["lo"] for _, d in pts], [d["hi"] - d["d"] for _, d in pts]], color=col, marker="s",
+                    ms=5, capsize=3, lw=1.6, ls="-" if len(pts) == len(PLANTS) else "none",
+                    label=f"{lab}: pad minus point-contact model")
+    a2.axhline(0.0, color="#888888", lw=1)
+    a2.set_ylabel("Difference in J")
+    a2.set_title("Pad minus point-contact model", fontsize=13)
+    for a in (a1, a2):
+        a.set_xticks(range(len(PLANTS)))
+        a.set_xticklabels([PLANT_SHORT[p] for p, _ in PLANTS])
+        a.set_xlabel("Plant's fingertip contact")
+        a.grid(alpha=0.3)
+    h1, l1 = a1.get_legend_handles_labels()
+    h2, l2 = a2.get_legend_handles_labels()
+    fig.legend(h1 + h2, l1 + l2, loc="lower center", ncol=2, fontsize=10, frameon=False)
+    fig.tight_layout(rect=(0, 0.27, 1, 1))
+    fig.savefig(out, dpi=100)
+    plt.close(fig)
+    return out
+
+
+# the reversal options (owner, 2026-11-13): (method, configuration, option tag, label, kind)
+CFG_REV = (3, 10, 2, 10, 0.002, 16)
+REV_RUNS = [("anneal", CFG_REV, "", "None (3 &#215; 16, 2 ms step)", "&#8212;"),
+            ("anneal", CFG_REV, "_lam0.3", "Temperature 0.3", "sampling"),
+            ("anneal", CFG_REV, "_lam1", "Temperature 1.0", "sampling"),
+            ("anneal", CFG_REV, "_extrap", "Warm start continues the slope", "sampling"),
+            ("anneal", CFG_REV, "_extrap_lam1", "Slope continued, temperature 1.0", "sampling"),
+            ("anneal", CFG_REV, "_sig0.04", "Sampling noise 0.04 rad", "sampling"),
+            ("anneal", CFG_REV, "_rw4", "Knot-rate weight 4", "cost"),
+            ("anneal", CFG_REV, "_acc1", "Rate-change cost, weight 1", "cost"),
+            ("anneal", CFG_REV, "_acc4", "Rate-change cost, weight 4", "cost"),
+            ("anneal", CFG_REV, "_rev10", "Reversal cost, weight 10", "cost"),
+            ("anneal", CFG_REV, "_db3", "Dead band of 3 deg on the error", "cost"),
+            ("anneal", CFG_REV, "_extrap_lam1_acc1", "Slope continued, temperature 1.0, rate-change cost 1", "both"),
+            ("ps", CFG_PSRT, "", "PS real time: none", "&#8212;"),
+            ("ps", CFG_PSRT, "_extrap", "PS real time: slope continued", "sampling"),
+            ("anneal", CFG_FULL, "", "DIAL 4 &#215; 64: none", "&#8212;"),
+            ("anneal", CFG_FULL, "_lam1", "DIAL 4 &#215; 64: temperature 1.0", "sampling"),
+            ("anneal", CFG_FULL, "_acc1", "DIAL 4 &#215; 64: rate-change cost 1", "cost")]
+REV_REF = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "PS, real time"), ("anneal_twist", "DIAL"),
+           ("icem_twist", "iCEM"), ("spider_twist", "SPIDER"), ("mppi_twist", "MPPI"), ("cem_twist", "CEM"),
+           ("ps_twist", "PS")]
+
+
+def fig_reversals(S, out):
+    """Mean J against target reversals: the benchmark's controllers, and the reversal options on the real-time DIAL."""
+    plt = plt_setup()
+    fig, ax = plt.subplots(figsize=(8.6, 5.4))
+    for stem, lab in REV_REF:
+        s = S.get(stem)
+        if s:
+            ax.plot(s["reversals_ps"], s["J"], "o", color="#555555" if stem == "hom_twist" else "#999999", ms=7)
+            ax.annotate(lab, (s["reversals_ps"], s["J"]), textcoords="offset points", xytext=(5, 4), fontsize=10,
+                        color="#555555")
+    base = S.get(stem_of("anneal", CFG_REV))
+    col = {"sampling": "#3a6ea5", "cost": "#c06a1a", "both": "#7a3a8a", "&#8212;": "#1b3a63"}
+    k = 0
+    for meth, cfg, sh, lab, kind in REV_RUNS:
+        s = S.get(stem_of(meth, cfg, sh=sh))
+        if not s or cfg != CFG_REV:
+            continue
         k += 1
-        ax.errorbar([x + dx for x, _, _ in P_], [y for _, y, _ in P_], yerr=[e for _, _, e in P_], color=col, ls=ls,
-                    marker="o" if ls == "-" else "s" if ls == "--" else "^", ms=5, capsize=2, lw=1.6, label=lab)
-    ax.set_xticks(range(len(PLANTS)))
-    ax.set_xticklabels([PLANT_SHORT[p] for p, _ in PLANTS])
-    ax.set_xlabel("Plant's fingertip contact (torsional friction coefficient of the point contact)")
+        ax.plot(s["reversals_ps"], s["J"], "s" if kind == "cost" else "D" if kind == "both" else "^", color=col[kind],
+                ms=7)
+        ax.annotate(str(k), (s["reversals_ps"], s["J"]), textcoords="offset points", xytext=(5, -10), fontsize=10,
+                    color=col[kind])
+        if base and sh:
+            ax.annotate("", (s["reversals_ps"], s["J"]), (base["reversals_ps"], base["J"]),
+                        arrowprops=dict(arrowstyle="->", color=col[kind], alpha=0.35, lw=1))
+    ax.set_xlabel("Target reversals per joint per second (median over held runs)")
     ax.set_ylabel("Mean J over 40 runs")
+    ax.plot([], [], "^", color=col["sampling"], label="sampling options")
+    ax.plot([], [], "s", color=col["cost"], label="cost options")
+    ax.plot([], [], "D", color=col["both"], label="both")
+    ax.legend(frameon=False, loc="lower right")
     ax.grid(alpha=0.3)
-    ax.legend(fontsize=10, frameon=False, ncol=2, loc="upper center", bbox_to_anchor=(0.5, -0.16))
     fig.tight_layout()
     fig.savefig(out, dpi=100)
     plt.close(fig)
@@ -615,9 +707,10 @@ annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and 
                "Mean J over the 40 runs on each plant. A planner's own model is the plant's: on the pads plant the pad "
                "model, on the point-contact plant the point-contact model.", num_from=1)
     if figs.get("contact"):
-        t += P.img(figs["contact"], "Mean J against the plant's fingertip contact (bars: one standard error over the 40 "
-                   "runs). Solid lines plan with the pad model, dashed with the point-contact model, dotted with the "
-                   "plant's own torsion model; HOM in grey.")
+        t += P.img(figs["contact"], "Left: mean J over the 40 runs against the plant's fingertip contact; solid lines "
+                   "plan with the pad model, dotted with the plant's own model, HOM in grey. Right: J with the pad model "
+                   "minus J with the point-contact model on the same worlds, the mean over the 20 pairs with its 95 % "
+                   "bootstrap interval; above zero the pad model planned better.")
     # paired differences: the pad model against the point-contact model on each plant, and the plants against each other
     rows_p, plan = [], []
     for meth, cfg in (("ps", CFG_PSRT), ("anneal", rt), ("anneal", CFG_FULL)):
@@ -733,6 +826,59 @@ without a forward prediction of the state.</p>"""
                        "Mean J of the real-time planners from delayed, noisy states (<code>--plan-delay</code>, "
                        "<code>--plan-noise</code>); 140 ms is the tracker's 40 ms and one replanning interval.",
                        num_from=1)
+    return t
+
+
+def sec_reversals(S, figs):
+    """Why the planners' targets reverse, and the sampling and cost options tested against it."""
+    if not any(S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, _k in REV_RUNS if sh):
+        return ""
+    hs, sd, si = S.get("hom_twist"), S.get("anneal_twist"), S.get("icem_twist")
+    t = fill(r"""<p>HOM's targets reversed <<h>> times per joint per second, DIAL annealing's <<d>> and iCEM's <<i>>.
+A planner's targets are linear between two replannings, so they can reverse only at a replanning, at most ten times
+per second. Across the planners the reversals rose with the tracking accuracy (Figure <<f>>). Two parts of the
+planners make the targets reverse more often than the task needs.</p>
+<p>The first is the temperature of the MPPI step of MPPI and DIAL annealing, which weights the samples by
+$\exp(-(c - c_{\min})/\lambda)$ with $\lambda = 0.03\,\mathrm{std}(c)$. For normally distributed costs that gives an
+effective sample size of 1.1, at 16 and at 64 samples. Each iteration then moves the plan by about 0.96 of one sample's
+noise. Finger motions that change the cost little, such as those that keep the grasp and the sphere's rotation, take a
+random direction at each replanning. At $\lambda = 1.0\,\mathrm{std}(c)$ the effective sample size is 7.8 at 16 samples
+and 27 at 64, and the step's noise falls to 0.37 and 0.20 of a sample's.</p>
+<p>The second is the warm start. Before a replanning the plan is shifted by the replanning interval, and past its last
+knot it holds the last knot. When the horizon equals the interval, as in every real-time configuration with two knots,
+the shifted plan is a constant target. Each replanning then starts from a zero rate and rebuilds the rate from the
+samples. Continuing the last segment's slope past the horizon keeps the rate.</p>
+<p>The options in Table <<tn>> were run on DIAL annealing at 3 &#215; 16 samples with a 2 ms model step, which
+needs 0.101 s of GPU per 0.1 s for one hand; three were also run on real-time predictive sampling and the benchmark's
+DIAL. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
+$\dot u_{j,k}$ the plan's rate in its $k$-th knot gap and $\dot u_s = 20$ deg/s:</p>
+$$c_{\mathrm{acc}} = w_a \sum_j \sum_{k \ge 1} \Big(\frac{\dot u_{j,k} - \dot u_{j,k-1}}{\dot u_s}\Big)^2, \qquad
+c_{\mathrm{rev}} = w_r \sum_j \frac{\max(0, -\dot u_{j,1}\,\dot u_{j,0})}{\dot u_s^2}$$
+<p>The dead band replaces the rotation error $e_t$ in the cost by $\max(0, e_t - 3^\circ)$. J still scores the full
+error.</p>""", h=f2(hs["reversals_ps"]) if hs else "&#8212;", d=f2(sd["reversals_ps"]) if sd else "&#8212;",
+             i=f2(si["reversals_ps"]) if si else "&#8212;", f=P.FIG[0] + 1, tn=P.TAB[0] + 1)
+    if figs.get("reversals"):
+        t = t.replace("</p>", "</p>" + P.img(figs["reversals"], "Mean J against target reversals per joint per second. "
+                                             "Grey: the benchmark's controllers. Coloured: the options on DIAL "
+                                             "annealing at 3 x 16 samples, numbered as in the table, with arrows from "
+                                             "the configuration without options."), 1)
+    rows, k = [], 0
+    for meth, cfg, sh, lab, kind in REV_RUNS:
+        s = S.get(stem_of(meth, cfg, sh=sh))
+        if not s:
+            continue
+        num = ""
+        if cfg == CFG_REV:
+            k += 1
+            num = f"{k}. "
+        rows.append([num + lab, kind, f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["err"], 1), f2(s["reversals_ps"]),
+                     f2(s["cmd_rate_dps"], 1), f2(s["grip_mean_N"], 1)])
+    t += table(["Option", "Changes the", "Mean J", "Held (%)", "Tracking error (deg)", "Target reversals (1/s)",
+                "Target rate (deg/s)", "Grip (N)"], rows,
+               "The reversal options, 40 runs each on the SCS0009 plant with the pad model (<code>inner_loop_mpc.py "
+               "run</code> <code>--lam-rel</code>, <code>--warm extrap</code>, <code>--sigma</code>, <code>--rate-w"
+               "</code>, <code>--acc-w</code>, <code>--rev-w</code>, <code>--err-db</code>). Temperature: $\\lambda$ "
+               "over the costs' standard deviation (0.03 without options).", num_from=2)
     return t
 
 
@@ -986,6 +1132,7 @@ def main():
             stems += [stem_of(meth, cfg, plant=p, model=m) for m in ("pads", "pt", p)]
     for meth, cfg in RT_TABLE:                      # the real-time configurations, and from delayed noisy states
         stems += [stem_of(meth, cfg, delay=dl) for dl in ("", "_d4n", "_d14n")]
+    stems += [stem_of(m, c, sh=sh) for m, c, sh, _l, _k in REV_RUNS] + [s_ for s_, _l in REV_REF]
     stems = list(dict.fromkeys(stems))
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}
@@ -1007,9 +1154,11 @@ def main():
     T = timing_rows()
     rt = rt_pick(R, T)
     if S.get(hom_stem("pt")) or S.get(stem_of("ps", CFG_PSRT, model="pt")):
-        figs["contact"] = fig_contact(S, rt, MEDIA / "20261113-mpc_contact_models.png")
+        figs["contact"] = fig_contact(S, R, rt, MEDIA / "20261113-mpc_contact_models.png")
     if any(S.get(stem_of("anneal", c)) for c in RT_CANDS):
         figs["realtime"] = fig_realtime(S, T, MEDIA / "20261113-mpc_realtime.png")
+    if any(S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, _k in REV_RUNS if sh):
+        figs["reversals"] = fig_reversals(S, MEDIA / "20261113-mpc_reversals.png")
     sections = [("terms", "Terms and metrics", sec_terms()),
                 ("setup", "Plant, task and pairs", sec_setup(S)),
                 ("methods", "The controllers", sec_methods()),
@@ -1019,6 +1168,7 @@ def main():
                 ("hs", "Sampling in HOM's space", sec_hs(S)),
                 ("compute", "Compute per second of control", sec_compute(T, S)),
                 ("realtime", "Annealed sampling at the real-time budget", sec_realtime(S, T, R, rt, figs)),
+                ("reversals", "Target reversals of the sampling planners", sec_reversals(S, figs)),
                 ("contact", "Fingertip contact model of the plant and of the planner", sec_contact(S, R, T, rt, figs)),
                 ("sensing", "Measured state in place of the simulator's", sec_sensing(S)),
                 ("filter", "A complementary filter on the sphere's pose", sec_filter(S)),
