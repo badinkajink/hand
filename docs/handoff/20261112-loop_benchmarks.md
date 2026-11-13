@@ -1,4 +1,15 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-13 13:35: page v3 at https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f (local
+docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html, builder scripts/hom/inner_loop_mpc_page.py),
+commit bb8b61b24 pushed. New since 12:10: HOM's pose through a complementary filter (hom_gpu.POSE_FILTER; inner_loop_mpc
+--pose-tau, --meas-every): tag tracker noise 9.6 -> 2.0 reversals/s at tau 0.2, 0.96 at 0.5 (exact 0.91), J 0.283 ->
+0.310/0.315 (exact 0.375); open loop after the grasp J 0.342; 17 Hz tracker filtered J 0.299; with the fingertip model
+still 7.4 reversals/s (CoP noise: filter it next). HOM-space DIAL (hs_anneal, 40 runs) J 0.415 at 0.63 reversals/s,
+7.2 s per replanning for 16 hands; DIAL from a 40 ms old noisy state 0.408. HOM's commanded force 2 N: J 0.415.
+Owner 13:2x asked about compute on corvus and a policy streamer: told HOM is CPU-only (2.0 ms per period here), corvus
+i7-8700K/RTX 2070, wired ping 0.31-0.56 ms to 192.168.0.5 (no WiFi needed), UDP state up / targets down with a hold
+and stop watchdog. Not yet done: measure HOM and the two-camera tag tracker on corvus; build the streamer; filter the
+fingertip CoP. corvus's LFS store backed up here (11,948 objects verified) and deleted by another session.
 State 11-13 12:10: page docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html (builder
 scripts/hom/inner_loop_mpc_page.py) published at https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f (colorado login),
 commits 4fc181db7, ef59860cb, c35fc5d84 pushed. SCS0009 plant (scripts/hom/inner_loop_plant.py; every run before 11-13
@@ -51,6 +62,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 12. Resguard at 01:38 on 11-13 (seen by the feed poller's session): the watchdog killed the queue step usability_… Done 11-13 08:47: Done 11-13 08:47: the kills (01:38 and again 08:44, PSI full 19.5-19.8 at 16 GB available) were numpy huge-page direct compaction (compact_stall 4.3 M, 99 % failed), not RSS; logs/20261112-mpc/queue4.sh sets NUMPY_MADVISE_HUGEPAGE=0, waits 1 min before each launch, retries rc 3 every 2 min and a kill once; the usability step then ran at memory pressure 0.00
 - [x] 13. queue4 (launched 08:45, logs/20261112-mpc/queue4.sh, lines in queue.log): usability and pairs of limits_s0; f… Done 11-13 11:35: Superseded 11-13 10:30: queue4's runs were on the work plant; reruns on the SCS0009 plant go through logs/20261112-mpc/lane.sh (lines in lane.txt)
 - [ ] 14. Lane logs/20261112-mpc/lane.sh on the SCS0009 plant (owner 11-13: films/page to analyze, HOM-space controls, MPC without the sphere pads, noisy pose, HOM real-time, a simple HOM improvement): wait for each line of lane.txt to appear in lane.done (queue.log has '<name> rc'); rebuild .venv/bin/python scripts/hom/inner_loop_mpc_page.py; commit the page, rows, media and indices; republish the page to its artifact URL (first publish 11-13 ~12:30). UHAS trainings on the SCS0009 plant are the lane's last two lines (logs/20261112-mpc/uhas_train_eval.sh, ~5.5 h).
+- [ ] 15. Owner 11-13 13:2x: (a) measure HOM's controller time and the two-camera tag tracker (fps, CPU) on corvus after the owner's camera calibration; (b) a UDP streamer, corvus sends joint angles, tag poses and fingertip readings, the workstation returns servo targets with sequence numbers, corvus holds the last target and stops after ~3 missed periods; (c) filter the fingertip CoP as the pose is filtered (7.4 reversals/s remain with the tip model at tau 0.2), then rerun sv_pf_tip
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J
