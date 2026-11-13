@@ -1,4 +1,16 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-13 14:45: owner 14:2x asked for the planner with point-contact tips on a point-contact plant, the pad model on
+that plant, HOM vs DIAL there, "quantifiably and with a clear trend"; then PS on the same ablation and "an annealed
+sampling config that can run in realtime with minimal performance loss". Commit 0fa84188e: inner_loop_mpc.py
+--plant-model pads|pt|pt_t<mm> (pt_t: condim 4 on the tip meshes, torsional coefficient on every geom; XML written once
+beside the pt scene as ..._pt__..__tor<mm>mm.xml; the pads' pinch torque ~1.4-1.8 mm by the 10-01 rig), --plan-dt,
+rows named _n<n>, timing --configs; uhas_sr2.UBatch(phys_dt); page builder sections "Annealed sampling at the real-time
+budget" and "Fingertip contact model of the plant and of the planner" (shown once rows exist). Lane: 42 lines inserted
+after sv_spider_wc (staged copy logs/20261112-mpc/lane_insert_1113b.txt): 2x2 (HOM, PS rt, DIAL 4x64 on pads/pt plants
+and models), two films (p0, pads and pt plants), rt timing + 8 rt J runs, HOM and PS rt on pt_t0.5/1/2, then
+logs/20261112-mpc/pick_rt.py writes rt_pick.txt (best real-time DIAL by J) that the sv_rtD_* lines read with $(cat):
+DIAL rt on every plant with pad, point and own models, and from 40/140 ms old noisy states. Ends ~19:00; the old lane
+(mu04, ps, mppi, cem, UHAS) follows. Then rebuild the page, commit page + rows + media + indices, republish.
 State 11-13 13:35: page v3 at https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f (local
 docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html, builder scripts/hom/inner_loop_mpc_page.py),
 commit bb8b61b24 pushed. New since 12:10: HOM's pose through a complementary filter (hom_gpu.POSE_FILTER; inner_loop_mpc
@@ -63,6 +75,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 13. queue4 (launched 08:45, logs/20261112-mpc/queue4.sh, lines in queue.log): usability and pairs of limits_s0; f… Done 11-13 11:35: Superseded 11-13 10:30: queue4's runs were on the work plant; reruns on the SCS0009 plant go through logs/20261112-mpc/lane.sh (lines in lane.txt)
 - [ ] 14. Lane logs/20261112-mpc/lane.sh on the SCS0009 plant (owner 11-13: films/page to analyze, HOM-space controls, MPC without the sphere pads, noisy pose, HOM real-time, a simple HOM improvement): wait for each line of lane.txt to appear in lane.done (queue.log has '<name> rc'); rebuild .venv/bin/python scripts/hom/inner_loop_mpc_page.py; commit the page, rows, media and indices; republish the page to its artifact URL (first publish 11-13 ~12:30). UHAS trainings on the SCS0009 plant are the lane's last two lines (logs/20261112-mpc/uhas_train_eval.sh, ~5.5 h).
 - [ ] 15. Owner 11-13 13:2x: (a) measure HOM's controller time and the two-camera tag tracker (fps, CPU) on corvus after the owner's camera calibration; (b) a UDP streamer, corvus sends joint angles, tag poses and fingertip readings, the workstation returns servo targets with sequence numbers, corvus holds the last target and stops after ~3 missed periods; (c) filter the fingertip CoP as the pose is filtered (7.4 reversals/s remain with the tip model at tau 0.2), then rerun sv_pf_tip
+- [ ] 16. Owner 11-13 14:2x: contact-model ablation and real-time DIAL. When the lane's sv_plpt_*, sv_rt_*, sv_pltor*, sv_rtD_* lines are done (logs/20261112-mpc/queue.log; rows under docs/experiments/20261112-inner_loop_benchmark/rows/mpc_*_plant_* and *_pdt2_*/_r10h*), rebuild the page (.venv/bin/python scripts/hom/inner_loop_mpc_page.py via resguard), look at media/20261113-mpc_contact_models.png, 20261113-mpc_realtime.png and the films film_mpc_twist_p0_s0_models / _plant_pt at displayed size, commit page + rows + media + indices, republish the same file to https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f, and report: HOM vs DIAL vs PS on the point plant, pad-minus-point paired differences per plant, the trend over torsion 0-2 mm, and the best real-time DIAL config (J, one-hand s per interval, J from a 140 ms old noisy state).
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J
