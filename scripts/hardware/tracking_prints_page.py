@@ -460,11 +460,18 @@ def sec_earlier():
             "against 0.77 and 0.75 px with the CAD map; the frames are in "
             "<code>logs/20261109-tag_block_bench/cams/</code>. The tracker drops tags seen more than 65&deg; from their "
             "normal (<code>sr2hand.tracking.pose.MAX_VIEW_DEG</code>), and <code>pose.bundle_adjust</code> fits each "
-            "tag's size and takes the scale from measured lengths (plan, step 3).</p>")
+            "tag's size and takes the scale from measured lengths (plan, step 3). In the lens and arm calibration of "
+            "2026-11-13 (<a href=\"../20261113-camera_arm_calibration/20261113-camera_arm_calibration.html\">its "
+            "page</a>), tag 13 triangulated at 13.02 mm with the fitted lenses. There the 13.33 mm is attributed to the "
+            "factory model, which has no distortion.</p>")
 
 
 def sec_limits():
-    return ("<p>No part on this page has been printed or measured. The checks are on the print files: the decode of "
+    return ("<p>The objects, the blocks, the PLA board and its mount have not been printed or measured. The paper "
+            "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
+            "href=\"../20261113-camera_arm_calibration/20261113-camera_arm_calibration.html\">its page</a>). There the "
+            "arm measured its squares at 15.031 mm, and the board's solved shape is 0.25 mm RMS out of plane. The "
+            "checks on this page are on the print files: the decode of "
             "each tag face on a drawing, the shared volumes and gaps in CAD, and the slicer's estimates. The hand in "
             "the renders and in Viewer 2 has its fingers in the CAD's modelled pose, and the views omit the arm, the "
             "cables and the camera mounts. The view angles and the renders do not check the arm's reach or its "

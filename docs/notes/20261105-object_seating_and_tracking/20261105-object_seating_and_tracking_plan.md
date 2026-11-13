@@ -288,6 +288,12 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    measured lengths, on the block the three across-flats. In simulation of this print (40 views) it brings the map to
    0.028 mm RMS of the print and a single camera's depth bias from 5.3 mm (CAD map) and 7.6 mm (rigid adjustment) to
    0.44 mm. The frames and corner bursts (19 MB) are on the workstation in `logs/20261109-tag_block_bench/cams/`.
+   The lens and arm calibration of 2026-11-13 measured both
+   (`docs/experiments/20261113-camera_arm_calibration/20261113-camera_arm_calibration.html`). With the fitted lenses,
+   tag 13 triangulates at 13.02 mm over 17 arm poses. Against the board solved in IR1, the depth reads 0.9 and 1.8 mm
+   farther. The two cameras' block centres differ by 8.13 mm with 13.33 mm tags and by 2.71 mm with 13.0 mm tags. On
+   that page the 13.33 mm is attributed to the factory model, which has no distortion. A two-camera bundle adjustment
+   of the block map, with the cameras' poses held, is next.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.
