@@ -296,7 +296,11 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    tag 13 triangulates at 13.02 mm over 17 arm poses. Against the board solved in IR1, the depth reads 0.9 and 1.8 mm
    farther. The two cameras' block centres differ by 8.13 mm with 13.33 mm tags and by 2.71 mm with 13.0 mm tags. On
    that page the 13.33 mm is attributed to the factory model, which has no distortion. A two-camera bundle adjustment
-   of the block map, with the cameras' poses held, is next.
+   of the block map (`pose.bundle_adjust_multi`, 35 views, the cameras' poses held) gave tags of 12.98 to 13.02 mm,
+   0.29 to 0.35 mm inside the caliper faces. With it the cameras' block centres lie 0.36 mm apart over the 17 arm
+   poses, down from 2.71 mm. The map for the tracker is
+   `docs/experiments/20261113-camera_arm_calibration/data/fits/20261113-hex_block_map.json` (`TagMap.to_json`). It
+   is the 11-07 test block's; the new cylinder block bears the same ids 10 to 15 and needs its own run.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.

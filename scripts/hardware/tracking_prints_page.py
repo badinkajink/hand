@@ -471,7 +471,10 @@ def sec_earlier():
             "tag's size and takes the scale from measured lengths (plan, step 3). In the lens and arm calibration of "
             "2026-11-13 (<a href=\"../20261113-camera_arm_calibration/20261113-camera_arm_calibration.html\">its "
             "page</a>), tag 13 triangulated at 13.02 mm with the fitted lenses. There the 13.33 mm is attributed to the "
-            "factory model, which has no distortion.</p>")
+            "factory model, which has no distortion. A map of this block fitted there from 35 views by both cameras "
+            "has tags of 12.98 to 13.02 mm, and with it the two cameras place the block 0.36 mm apart "
+            "(<code>data/fits/20261113-hex_block_map.json</code> in that page's folder). It belongs to this block "
+            "alone: the new cylinder block bears the same ids 10 to 15 and needs its own map.</p>")
 
 
 def sec_limits():

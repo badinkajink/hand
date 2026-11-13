@@ -5,7 +5,8 @@ of the whole scene would be cool) don't go crazy with it").
 
     data   (corvus only: reads logs/20261113-camera_arm_calibration/) writes docs/experiments/20261113-camera_arm_calibration/data/:
            poses.jsonl without per-frame metadata, the hand-held views, the fits, and the checks of the hex block and the
-           depth (data/fits/20261113-block_and_depth.json, 20261113-block_and_table.json)
+           depth (data/fits/20261113-block_and_depth.json, 20261113-block_and_table.json). The hex block's map
+           (data/fits/20261113-block_map_fit.json, 20261113-hex_block_map.json) comes from lab/block_map_fit.py.
     figs   the matplotlib figures into media/ from data/
     page   docs/experiments/20261113-camera_arm_calibration/20261113-camera_arm_calibration.html from data/ and media/
 
@@ -361,18 +362,33 @@ def page():
     dz133 = np.median([d[3] for d in scan[13.33]["depth_minus_solve"]])
     fx = {sn: L["cams"][sn]["lens"]["fx"] for sn in SNS}
     sc = Hs["tcp"]["board_scale"]
+    bm = j(FITS / "20261113-block_map_fit.json")
+    bA, bB, bc = bm["fits"]["A"], bm["fits"]["B_across_flats"], bm["checks"]
+    bviews = rows(DATA / "20261113-block_views.jsonl")
+    lying = [np.degrees(np.arccos(abs(np.array(r["T_PB_nominal"])[2, 2]))) > 45 for r in bviews]
+    pv = bA["rms_px_per_view"]
+    up_med = np.median([x for x, l in zip(pv, lying) if not l and x is not None])
+    ly_med = np.median([x for x, l in zip(pv, lying) if l and x is not None])
+    bsz = list(bA["sizes_mm"].values())
+    bin_ = [-t["along_normal_mm"] for t in bA["tags"].values()]
+    bturn = [t["turn_deg"] for t in bA["tags"].values()]
+    bside = max(t["in_face_mm"] for t in bA["tags"].values())
+    bopp, bBopp = list(bA["opposite_mm"].values()), list(bB["opposite_mm"].values())
+    arm_fit, arm_13 = bc["fitted A"]["arm_poses"]["cameras_apart_mm"], bc["nominal 13.0"]["arm_poses"]["cameras_apart_mm"]
 
     lede = (f"Both D435 colour cameras now have fitted lenses and fitted poses in the UR5's base. The lenses reproject the "
             f"board's corners at {L['cams'][SNS[0]]['rms_px']:.2f} and {L['cams'][SNS[1]]['rms_px']:.2f} px. Their focal "
             f"lengths are {fx[SNS[0]]:.0f} and {fx[SNS[1]]:.0f} px, 1.5 % under the factory values, with radial "
             f"distortion that the factory model leaves out. The board's position from the arm, through the controller's TCP "
             f"pose, differs from each camera's own solve by {dpm[SNS[0]]:.2f} and {dpm[SNS[1]]:.2f} mm (median) and "
-            f"{dmx:.2f} mm at worst. The depth is good to 1 to 2 mm. The hex block's tags measure "
-            f"{np.mean(e13):.2f} mm across; the block's map of 11-09 had 13.33 mm.")
+            f"{dmx:.2f} mm at worst. The depth is good to 1 to 2 mm. The hex block's tags measure 13.0 mm, not the "
+            f"13.33 mm of its 11-09 map. A map of the block fitted from {bm['views']} views in both cameras brings the two "
+            f"cameras' placements of it from {arm_13:.1f} mm apart to {arm_fit:.2f} mm.")
     summary = (f"D435 lens and arm calibration on the UR5 (17 owner-jogged poses, 120 hand-held views): focal lengths "
                f"{fx[SNS[0]]:.0f}/{fx[SNS[1]]:.0f} px with distortion, board from the arm vs each camera "
                f"{dpm[SNS[0]]:.2f}/{dpm[SNS[1]]:.2f} mm median through the TCP pose; depth within 1-2 mm; "
-               f"hex block tags {np.mean(e13):.2f} mm, not 13.33.")
+               f"hex block map fitted from {bm['views']} two-camera views (tags 13.0 mm, not 13.33, recessed 0.3 mm): "
+               f"cameras {arm_fit:.2f} mm apart on the block, from {arm_13:.2f}.")
 
     ov = "".join(f'<img src="{img_uri(MEDIA / f"20261113-overlay_p{p:02d}.jpg", 1400)}" alt="overlay pose {p}" style="width:100%">'
                  for p in (0, 3, 12))
@@ -408,7 +424,7 @@ orientations.</dd>
 <p>The two D435s stand on the table, both upright at 1920 &times; 1080, serials {SNS[0]} and {SNS[1]}. The board was
 fixed to the SR2 hand on the UR5. The owner jogged the arm with the pendant through 17 poses. Nine were moves of the
 tool, &plusmn;30 to &plusmn;120 mm sideways, 30 mm up, and 40 mm toward and away from the cameras. Six were turns of
-0.3 rad (17&deg;) each way about the tool's three axes. Two combined a side move with a turn. Table 4 lists them.
+0.3 rad (17&deg;) each way about the tool's three axes. Two combined a side move with a turn. Table 5 lists them.
 Colour exposure, gain and white balance were fixed for the session; the white paper reads about 200 of 255.</p>
 <p>The owner then took the board off the hand and held it in front of both cameras, for 60 views per camera. The
 views were tilted up to 70&deg;, and their corners reached x 43 to 1833 px and y 59 to 1006 px (Figure 2). Views tilted more than 70&deg; are left out of
@@ -487,10 +503,45 @@ fitted lenses, each camera places it within 0.2 mm across the 17 poses. The two 
 {', '.join(f'{x:.2f}' for x in e13)} mm on its four edges (mean {np.mean(e13):.2f} mm, {bd['tag13']['n']} poses).
 With 13.0 mm tags the two cameras differ by {scan[13.0]['diff_mm']:.1f} mm (Table 3). The depth at {SNS[1]}'s
 tag faces then lies {dz13:+.1f} mm from the solve, against {dz133:+.1f} mm with 13.33 mm tags. {SNS[0]} stands 240 to 246 mm
-from the block, closer than the D435's depth range, and gives no depth there.</p>
+from the block, closer than the D435's depth range, and gives no depth there. Section 6 fits the block's own map.</p>
 {table(["tag size in the map (mm)", "distance between the two cameras' block centres (mm)"], sc_rows, num=(1,),
        caption="The hex block placed through each camera's fitted pose, against the tag size of its map (fitted lenses unless noted).", n=3)}
 {fig(5, MEDIA / "20261113-tag_size_and_depth.png", "Left: the distance between the block centres placed through the two cameras, against the tag size of the block's map. Right: depth minus the infrared solve of the board at each arm pose.")}"""))
+
+    ck = [("CAD map, 13.33 mm tags", bc["nominal 13.33"]), ("CAD map, 13.0 mm tags", bc["nominal 13.0"]),
+          ("fitted map", bc["fitted A"])]
+    ck_rows = [[n, f"{c['arm_poses']['cameras_apart_mm']:.2f}",
+                f"{c['held_out']['cameras_apart_mm']['median']:.2f} / {c['held_out']['cameras_apart_mm']['max']:.2f}",
+                f"{c['held_out']['joint_rms_px']['median']:.2f}"] for n, c in ck]
+    S.append(("blockmap", "A map of the hex block from both cameras", f"""
+<p>After the arm session the owner turned the hex block by hand in front of both cameras. This is the test block
+printed on 11-07. It stood upright at several places on the table in {len(lying) - sum(lying)} views and lay on a side
+face in {sum(lying)}. <code>lab/block_views.py</code> saved a view when the block was still in both cameras and had
+turned 15&deg; or moved 25 mm from every saved view. Each tag's corners are the mean of six frames.</p>
+<p>The fit (<code>sr2hand.tracking.pose.bundle_adjust_multi</code>) holds both cameras at their fitted poses and lenses.
+Their {sep:.0f} mm baseline then sets the scale, so no caliper length enters. Each tag's pose and size on the block are
+free, and so is the block's pose in each view. Tag 10 holds the block's frame. The result is fitted rigidly onto the CAD
+map (across flats 29.985 mm, tags 13.0 mm). Tags seen more than 65&deg; from their normal are left out, as in the
+tracker.</p>
+<p>The corners reproject at {bA['rms_px']:.2f} px: a median {up_med:.2f} px in the upright views and {ly_med:.2f} px in
+the lying ones. The tags measure {min(bsz):.2f} to {max(bsz):.2f} mm. Each sits {min(bin_):.2f} to {max(bin_):.2f} mm
+inside its face and is turned {min(bturn):.1f} to {max(bturn):.1f}&deg;, with at most {bside:.2f} mm of sideways shift.
+Opposite tags lie {min(bopp):.2f} to {max(bopp):.2f} mm apart; the calipers measure 29.985 mm across the faces. The
+tags are printed slightly recessed (owner). A second fit that holds the calipers' length to 0.03 mm still puts them
+{min(bBopp):.2f} to {max(bBopp):.2f} mm apart. Fitted from {len(bm['train'])} of the {bm['views']} views, the map moves
+by {bA['map_A_train_vs_A_mm'][0]:.2f} mm RMS.</p>
+<p>With the fitted map the two cameras place the block {arm_fit:.2f} mm apart over the 17 arm poses. With 13.0 mm tags
+they were {arm_13:.2f} mm apart (Table 4). On the held-out views the median distance is
+{bc['fitted A']['held_out']['cameras_apart_mm']['median']:.1f} mm. The worst held-out views show one tag to one camera,
+whose own solve is then weak in depth. Solving from both cameras at once avoids that: the held-out views then reproject
+at {bc['fitted A']['held_out']['joint_rms_px']['median']:.2f} px, against {bc['nominal 13.0']['held_out']['joint_rms_px']['median']:.2f}
+px with the CAD map.</p>
+<p>The recess and the spacing come from the same fit. They reconcile the arm's scale with the calipers, but they do not
+check one against the other. A depth gauge between a tag's surface and its face's rim would: a reading near 0.3 mm
+means the two scales agree to about 0.05 mm over 30 mm.</p>
+{table(["map of the block", "cameras apart, 17 arm poses (mm)", f"cameras apart, {len(bm['test'])} held-out views, median / max (mm)",
+        "both cameras at once, held-out RMS (px)"], ck_rows, num=(1, 2, 3),
+       caption="The hex block placed by each camera's own solve through its fitted pose: the distance between the two cameras' block origins. The held-out views are every fifth view, left out of the fit that checks them. The last column solves the block from both cameras at once.", n=4)}"""))
 
     S.append(("use", "Use in the tracker", f"""
 <ul>
@@ -498,15 +549,20 @@ from the block, closer than the D435's depth range, and gives no depth there.</p
 <code>board_offsets_mm</code>).</li>
 <li>Camera poses in the base, T_CB in mm, through the TCP pose: {code('data/fits/20261113-handeye_tcp_fitted_lens.json')}.
 Use the controller's TCP pose for the flange, as in this fit.</li>
-<li>Hex block: tags of 13.0 mm until a two-camera adjustment of its map exists.</li>
+<li>Hex block, the 11-07 test block only: {code('data/fits/20261113-hex_block_map.json')}, read with
+<code>TagMap.from_corners</code> from its <code>corners_mm</code>. The new cylinder and sphere blocks use the same
+tags 10 to 15. Each needs its own run of <code>lab/block_views.py</code> and <code>lab/block_map_fit.py</code>, and only
+one block may be in view at a time.</li>
 </ul>"""))
 
-    S.append(("limits", "Limitations and next steps", """
+    S.append(("limits", "Limitations and next steps", f"""
 <ul>
 <li>The arm poses cover a band around the image centre (Figure 2); the image corners come from the hand-held views
 alone.</li>
-<li>The block's map was not adjusted. With 13.0 mm tags the two cameras still differ by 2.7 mm. A bundle adjustment of
-the map from both cameras with their poses fixed (<code>sr2hand.tracking.pose.bundle_adjust</code>) is next.</li>
+<li>The block's tags sit 0.3 mm inside its faces by the map's fit alone. A depth-gauge reading would check the arm's
+scale against the calipers (Section 6).</li>
+<li>Views of the block lying on a side fit at {ly_med:.2f} px against {up_med:.2f} px upright, mostly in {SNS[0]}, which saw
+those tags at 35 to 55&deg;. The recess's edges may shift the corners at such angles.</li>
 <li>One arm pose of camera 832412070344 misses the 1 mm acceptance (1.18 mm). The session was not repeated.</li>
 <li>The servos have been limp since 11-06, so the fingers hung under gravity during the session. Their angles in the
 render were read on 11-13 with the arm within 6&deg; of the untilted poses; in the tilted poses the real fingers swing
@@ -529,13 +585,16 @@ raw frames and depth (1.4 GB) stay on corvus in <code>logs/20261113-camera_arm_c
 <pre class="cmd">L=docs/experiments/20261113-camera_arm_calibration/lab; O=docs/experiments/20261113-camera_arm_calibration/data
 python3 $L/lens_board_fit.py $O --arm --json lens.json
 python3 $L/handeye_fit.py $O lens.json --tcp [--fit-scale]
-python3 $L/lens_board_fit.py $O --flat --no-k3      # the flat-board fit</pre>
+python3 $L/lens_board_fit.py $O --flat --no-k3      # the flat-board fit
+python3 $L/block_map_fit.py $O/20261113-block_views.jsonl $O/fits/20261113-lens_board_k3_arm.json \\
+    $O/fits/20261113-handeye_tcp_fitted_lens.json - map_fit.json map.json   # the block's map; - skips the arm-pose check</pre>
 <p>Recording: <code>lab/preview.py</code> (the live window), <code>lab/record.sh</code> and
-<code>lab/record_pose.py</code> (one arm pose), <code>lab/lens_views.py</code> (hand-held views). The checks of the
+<code>lab/record_pose.py</code> (one arm pose), <code>lab/lens_views.py</code> (hand-held views),
+<code>lab/block_views.py</code> (the block's views, kept in <code>data/20261113-block_views.jsonl</code>). The checks of the
 block and the depth need the raw frames: <code>lab/block_depth_check.py</code> and this page's builder,
 <code>scripts/hardware/camera_arm_calibration_page.py data</code>. The film: <code>scripts/hardware/camera_arm_calibration_film.py</code>.</p>
 {table(["pose", "label", "joints (deg)", f"{SNS[0]} corners, colour / IR", f"{SNS[1]}"], pose_rows, num=(0, 3, 4),
-       caption="The arm poses with the corners each camera found (of 36). Pose 15's turn was recorded as rx +0.3 rad; its joints match the rx &minus;0.3 rad pose. Pose 2 was recorded as up from x +30 mm; its joints put it at x 0.", n=4)}"""))
+       caption="The arm poses with the corners each camera found (of 36). Pose 15's turn was recorded as rx +0.3 rad; its joints match the rx &minus;0.3 rad pose. Pose 2 was recorded as up from x +30 mm; its joints put it at x 0.", n=5)}"""))
 
     filmfig = film_html(1, MEDIA / "20261113-calibration_replay.mp4", MEDIA / "20261113-calibration_replay_poster.jpg",
                         f"The 17 arm poses replayed in the MuJoCo model of the SR2 hand on the UR5 (cad_v3). The gantries stand at the "
@@ -548,7 +607,7 @@ block and the depth need the raw frames: <code>lab/block_depth_check.py</code> a
     title = "Lens and arm calibration of the two D435 tracking cameras on the UR5"
     h = TEMPLATE.read_text()
     for k, v in dict(TITLE=title, TEXCSS="", EYEBROW="SR2 hand on the UR5 &middot; object tracking, step 5 of the plan",
-                     H1=title, LEDE=lede, BYLINE="2026-11-13, corvus. The owner jogged the arm and held the board.",
+                     H1=title, LEDE=lede, BYLINE="2026-11-13, corvus. The owner jogged the arm, held the board and turned the block.",
                      FILM=filmfig, TOC=toc, SECTIONS=secs,
                      FOOTER=f"Built by <code>scripts/hardware/camera_arm_calibration_page.py</code> from <code>data/</code>.").items():
         h = h.replace("{{" + k + "}}", v)

@@ -10,6 +10,8 @@ solve_multi  one body's pose in a common frame P from the corners seen by severa
 bundle_adjust  a tag map refined from many views of the body: the views' poses and each tag's pose and size on the body
              (the first tag's pose held as the gauge, measured lengths for the scale), least squares over the
              reprojection error, then the map turned and moved as a whole onto the starting map.
+bundle_adjust_multi  the same from views seen by several cameras with known, held poses: one body pose per view shared
+             by the cameras, whose baseline sets the scale, so every tag's size is free without measured lengths.
 """
 from __future__ import annotations
 
@@ -212,6 +214,104 @@ def bundle_adjust(views: list, tag_map: TagMap, cam: Camera, T0_views: list, fix
         "sizes_mm": {i: float(np.linalg.norm(fitted[i][0] - fitted[i][1])) for i in ids},
         "lengths_mm": [(i, j, L, float(np.linalg.norm(centres[i] - centres[j]))) for i, j, L, _sd in lengths],
         "T_views": Tv}
+
+
+def bundle_adjust_multi(views: list, tag_map: TagMap, cams: list, T_PC: list, T0_views: list, fixed=None, lengths=(),
+                        px_sd=0.1, max_view_deg=MAX_VIEW_DEG, loss="linear"):
+    """(refined TagMap, info) from views of one body by several cameras whose poses T_PC in a common frame P are known
+    and held: views[v][k] = camera k's {id: (4, 2) corners} in view v, T0_views[v] the body's starting pose T_PB.
+
+    The two-camera form of bundle_adjust (lab session of 2026-11-13, the hex block on the UR5's D435s): one body pose per
+    view, shared by the cameras. Their baseline fixes the scale, so every tag's edge is free, and every tag's pose except
+    `fixed`'s (default: the lowest id), which holds the gauge. `lengths` (i, j, mm, sd) between tag centres are optional
+    extra residuals (leave them out to keep a caliper length as an independent check). A camera's tags seen more than
+    max_view_deg from their normal at the starting pose are left out, as solve_body leaves them out. The residuals are
+    the corners' reprojection errors over px_sd (with scipy's `loss`, f_scale 5, i.e. 0.5 px at px_sd 0.1) and each
+    length's error over its sd; a robust loss softens the lengths too, so fit with lengths under loss="linear". On
+    the hex block (35 views, 2026-11-13) the map fitted from 28 views and from all 35 differed by 0.03 mm RMS.
+    Afterwards the refined corners are fitted rigidly onto the starting map's, so the result
+    stays in its frame. info: the reprojection RMS per camera and per view, each tag's size, the views' poses T_PB (in
+    the refined map's frame) and the observations used."""
+    ids = tag_map.ids()
+    fixed = ids[0] if fixed is None else fixed
+    free = [i for i in ids if i != fixed]
+    nv, nf, nc = len(views), len(free), len(cams)
+    T_CP = [tf_inv(T) for T in T_PC]
+    cen = {i: tag_map.corners[i].mean(0) for i in ids}
+    obs = []                                                  # (view, camera, tag ids, (4n, 2) corners)
+    for v, (vw, T0) in enumerate(zip(views, T0_views)):
+        for k in range(nc):
+            use = sorted(i for i in vw[k] if i in cen)
+            if use and max_view_deg is not None:
+                ang = view_angles(tag_map, use, T_CP[k] @ T0)
+                use = [i for i, a in zip(use, ang) if a <= max_view_deg]
+            if use:
+                obs.append((v, k, use, np.concatenate([np.asarray(vw[k][i], float) for i in use])))
+    o_tag, o_size = 6 * nv, 6 * (nv + nf)
+
+    def unpack(x):
+        Tv = [T0 @ tf(exp_so3(x[6 * v:6 * v + 3]), x[6 * v + 3:6 * v + 6]) for v, T0 in enumerate(T0_views)]
+        s = np.exp(x[o_size:])
+        corners, centres = {}, {}
+        for n, i in enumerate(ids):
+            if i == fixed:
+                R, t = np.eye(3), np.zeros(3)
+            else:
+                p = x[o_tag + 6 * free.index(i):o_tag + 6 * free.index(i) + 6]
+                R, t = exp_so3(p[:3]), p[3:]
+            corners[i] = s[n] * (tag_map.corners[i] - cen[i]) @ R.T + cen[i] + t
+            centres[i] = cen[i] + t
+        return Tv, corners, centres
+
+    def res(x):
+        Tv, corners, centres = unpack(x)
+        out = [(project(cams[k], T_CP[k] @ Tv[v], np.concatenate([corners[i] for i in use])) - uv).ravel() / px_sd
+               for v, k, use, uv in obs]
+        out.append(np.array([(np.linalg.norm(centres[i] - centres[j]) - L) / sd for i, j, L, sd in lengths]))
+        return np.concatenate(out)
+
+    n_x = o_size + len(ids)
+    rows = []                                                 # Jacobian sparsity: which parameters each row reads
+    for v, k, use, uv in obs:
+        cols = list(range(6 * v, 6 * v + 6))
+        for i in use:
+            if i != fixed:
+                cols += list(range(o_tag + 6 * free.index(i), o_tag + 6 * free.index(i) + 6))
+            cols.append(o_size + ids.index(i))
+        rows += [cols] * (8 * len(use))
+    for i, j, _L, _sd in lengths:
+        rows.append([c for t in (i, j) if t != fixed for c in range(o_tag + 6 * free.index(t), o_tag + 6 * free.index(t) + 6)])
+    from scipy.sparse import lil_matrix
+    sp = lil_matrix((len(rows), n_x), dtype=int)
+    for r, cols in enumerate(rows):
+        sp[r, cols] = 1
+    x0 = np.zeros(n_x)
+    scale = np.r_[np.tile(np.r_[1e-3, 1e-3, 1e-3, 0.1, 0.1, 0.1], nv + nf), np.full(len(ids), 1e-3)]
+    sol = least_squares(res, x0, x_scale=scale, method="trf", jac_sparsity=sp, loss=loss, f_scale=5.0)
+    Tv, corners, centres = unpack(sol.x)
+    A = np.concatenate([corners[i] for i in ids])
+    R, t = kabsch(A, tag_map.stacked(ids))
+    fitted = {i: corners[i] @ R.T + t for i in ids}
+    G = tf(R, t)                                              # old body frame -> the refined map's frame
+    Tv = [T @ tf_inv(G) for T in Tv]
+    e = sol.fun[:sol.fun.size - len(lengths)].reshape(-1, 2) * px_sd
+    if loss != "linear":                                      # sol.fun is not the raw residual under a robust loss
+        _Tv, _c, _ = unpack(sol.x)
+        e = np.concatenate([project(cams[k], T_CP[k] @ _Tv[v], np.concatenate([_c[i] for i in use])) - uv
+                            for v, k, use, uv in obs])
+    per_cam, per_view, n0 = {k: [] for k in range(nc)}, {v: [] for v in range(nv)}, 0
+    for v, k, use, uv in obs:
+        ek = e[n0:n0 + len(uv)]
+        n0 += len(uv)
+        per_cam[k].append(ek)
+        per_view[v].append(ek)
+    rms = lambda a: float(np.sqrt((np.concatenate(a) ** 2).sum(1).mean())) if a else None  # noqa: E731
+    return TagMap.from_corners(tag_map.family, tag_map.size, fitted), {
+        "views": nv, "corners": len(e), "rms_px": float(np.sqrt((e ** 2).sum(1).mean())), "cost": float(sol.cost),
+        "rms_px_per_cam": [rms(per_cam[k]) for k in range(nc)], "rms_px_per_view": [rms(per_view[v]) for v in range(nv)],
+        "sizes_mm": {i: float(np.linalg.norm(fitted[i][0] - fitted[i][1])) for i in ids},
+        "lengths_mm": [(i, j, L, float(np.linalg.norm(centres[i] - centres[j]))) for i, j, L, _sd in lengths],
+        "T_views": Tv, "obs": [(v, k, use) for v, k, use, _uv in obs], "status": sol.message}
 
 
 def map_error(est: TagMap, ref: TagMap):
