@@ -113,3 +113,5 @@ docs/experiments/20261103-hom_score_refine/rows/sv25_track/*/*_d[0-9][0-9].jsonl
 # UHAS evaluation rows over 2 MB (2026-11-12): kept on the workstation; the page reads them, summaries go in git
 docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_20261112-1244_twist_s0_test.jsonl
 docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_20261112-1606_twist_open_s0_test.jsonl
+# work-plant UHAS evaluation rows of 11-12/13, over 2 MB (kept on the workstation)
+docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_*_test_work10.jsonl

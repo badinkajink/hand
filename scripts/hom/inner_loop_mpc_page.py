@@ -37,6 +37,10 @@ BENCH = "20261112-inner_loop_benchmark.html"
 REVIEW = "../20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html"
 fill, table, esc = P.fill, P.table, P.esc
 SERVO = "kp0.72_kv0_fr0.18_fl0_dp0.0144"
+VARIANTS = (("rate50", "exact, 50 Hz"), ("notip", "tag tracker, no fingertip sensing"),
+            ("sense", "tag tracker, contact points and forces with Gaussian noise"),
+            ("tip", "tag tracker and the magnetic fingertips' model"),
+            ("cal_tip", "the same with calibration errors (joints 1 deg, object frame 1 mm)"))
 PERIOD_S = 0.01
 # (file stem after mpc_, label); the stems are inner_loop_mpc.py's rows names on the servo plant
 MAIN = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"),
@@ -121,20 +125,26 @@ def plt_setup():
     return plt
 
 
+FIG_LABEL = {"hom_twist": "HOM", "ps_twist_r10h10k2i1": "PS, real time", "ps_twist": "PS", "mppi_twist": "MPPI",
+             "cem_twist": "CEM", "icem_twist": "iCEM", "anneal_twist": "DIAL", "spider_twist": "SPIDER",
+             "spider_wc_twist": "SPIDER, worst case", "hs_anneal_twist": "DIAL, HOM space"}
+
+
 def fig_overview(S, out):
     """J, grip and target reversals per controller, and the J of each pair under HOM and DIAL annealing."""
     plt = plt_setup()
-    labs = [lab for stem, lab in MAIN if S.get(stem)]
-    st = [S[stem] for stem, lab in MAIN if S.get(stem)]
+    stems = [stem for stem, _lab in MAIN if S.get(stem)] + [k for k in ("hs_anneal_twist",) if S.get(k)]
+    labs = [FIG_LABEL.get(k, k) for k in stems]
+    st = [S[k] for k in stems]
     y = np.arange(len(labs))[::-1]
-    fig, ax = plt.subplots(1, 3, figsize=(13.5, 0.42 * len(labs) + 1.9), sharey=True)
-    col = ["#555555" if lab == "HOM" else "#3a6ea5" for lab in labs]
+    fig, ax = plt.subplots(1, 3, figsize=(8.6, 0.36 * len(labs) + 1.5), sharey=True)
+    col = ["#555555" if k == "hom_twist" else "#8a5a2b" if k.startswith("hs_") else "#3a6ea5" for k in stems]
     ax[0].barh(y, [s["J"] for s in st], xerr=[s["J_se"] for s in st], color=col, capsize=3)
-    ax[0].set_xlabel("Mean J over 40 runs")
+    ax[0].set_xlabel("Mean J")
     ax[1].barh(y, [s["grip_mean_N"] for s in st], color=col)
-    ax[1].set_xlabel("Grip, median (N)")
+    ax[1].set_xlabel("Grip (N)")
     ax[2].barh(y, [s["reversals_ps"] for s in st], color=col)
-    ax[2].set_xlabel("Target reversals per joint per s")
+    ax[2].set_xlabel("Reversals (1/s)")
     ax[0].set_yticks(y)
     ax[0].set_yticklabels(labs)
     for a in ax:
@@ -155,8 +165,8 @@ def fig_pairs(rows_h, rows_m, label, out):
         ys = [r["J"] for r in rows_m if r["by"] == by and key(r) in hom]
         ax.scatter(xs, ys, marker=mk, s=36, alpha=0.8, label=nm)
     ax.plot([0, 1], [0, 1], color="#888888", lw=1)
-    ax.set_xlim(-0.02, 0.9)
-    ax.set_ylim(-0.02, 0.9)
+    ax.set_xlim(-0.02, 0.97)
+    ax.set_ylim(-0.02, 0.97)
     ax.set_xlabel("J under HOM")
     ax.set_ylabel(f"J under {label}")
     ax.legend(loc="upper left", frameon=False)
@@ -197,33 +207,33 @@ def sec_terms():
 def sec_setup(S):
     return fill(r"""<p>The task is the inner-loop benchmark's twist of the 40 mm sphere (<a href="<<b>>">benchmark page</a>).
 HOM closes the hand, squeezes and lifts. From 2.4 s the controller under test drives the nine servo targets. The
-schedule commands 40 deg/s about the vertical for 0.5 s, then back for 0.5 s, a 0.3 s rest and a 30 deg/s ramp for 3 s.
-The plant is the hand-design talk's: the SCS0009 servo model (0.72 N m/rad, 0.18 N m), the v4b sphere pads at 2.5 MPa,
-friction 1.0, MuJoCo-Warp 3.6 with a 1 ms step and a 10 ms control period. Twenty pairs of a layout and a grasp are
-used, each at seeds 0 and 1: the ten test layouts with HOM's best J and the ten with UHAS's best J
-(<code>rows/mpc_pairs_twist.json</code>).</p>
-<p>The runs of 12 November and of 13 November before 10:30 used another plant by mistake: the scripts set no plant, and
-the default is the work plant of 4 N m/rad and 1 N m per joint, with 10 MPa pads. That plant is 5.6 times as strong
-as the SCS0009. Those rows are kept under the suffix <code>_work10</code> and summarized in Section <<w>>. Since
+schedule commands 40 deg/s about the vertical for 0.5 s and then back for 0.5 s. A 0.3 s rest and a 30 deg/s ramp
+for 3 s follow. The plant is the hand-design talk's. Each servo is the SCS0009 model of 0.72 N m/rad with a 0.18 N m
+limit, and the v4b tips are sphere pads at 2.5 MPa with friction 1.0. MuJoCo-Warp 3.6 steps the physics every 1 ms,
+and the controller runs every 10 ms. Twenty pairs of a layout and a grasp were run, each at seeds 0 and 1. They are the
+ten test layouts with HOM's best J and the ten with UHAS's best J (<code>rows/mpc_pairs_twist.json</code>).</p>
+<p>The runs of 12 November and of 13 November before 10:30 were made on another plant by mistake. The scripts set no
+plant, so the default was used: the work plant of 4 N m/rad and 1 N m per joint, with 10 MPa pads. That plant is 5.6
+times as strong as the SCS0009. Those rows are kept under the suffix <code>_work10</code> and summarized in Section <<w>>. Since
 then <code>scripts/hom/inner_loop_plant.py</code> sets the plant before any physics is loaded, and every row records it.</p>""",
                 b=BENCH, w="WORKSEC")
 
 
 def sec_methods():
-    t = r"""<p>Every planner rolls out the plant's own MuJoCo-Warp model unless Section 7 says otherwise. Every 0.1 s
+    t = r"""<p>Every planner rolls out the plant's own MuJoCo-Warp model, except the point-contact planner of its own section. Every 0.1 s
 the full state of each plant world is copied into its planner worlds: positions, velocities, servo targets and the
-solver's warm start. A plan holds the nine servo targets at three knots over 0.3 s, linear between them. Its first
-knot is pinned to the target applied now, so a plan has 18 free numbers. The plant applies the first 0.1 s. Each
-replanning spends 4 iterations of 64 samples per hand, 256 rollouts. The real-time budget is 1 iteration of 64 rollouts
-over 0.1 s with two knots. The cost of a rollout is summed over its periods:</p>
+solver's warm start. A plan consists of the nine servo targets at three knots over 0.3 s, linear between them. Its
+first knot is pinned to the target applied now, so a plan has 18 free numbers. The plant applies the first 0.1 s. In
+each replanning, 4 iterations of 64 samples are rolled out per hand, 256 rollouts. The real-time budget is 1 iteration
+of 64 rollouts over 0.1 s with two knots. The cost of a rollout is summed over its periods:</p>
 $$c = \sum_t \Big[\Big(\frac{e_t}{5^\circ}\Big)^2 + \Big(\frac{d_t}{3\,\mathrm{mm}}\Big)^2 + 2\,n^{\mathrm{off}}_t
 + 100\,\mathbb{1}_{\mathrm{fell}} + 0.5 \sum_j \mathrm{clip}\Big(\frac{k_p |u_j - q_j|/\tau_{\max} - 0.8}{0.2}, 0, 3\Big)
 + 0.25 \sum_j \mathrm{clip}\Big(\frac{3^\circ - \delta_j}{3^\circ}, 0, 1\Big)\Big]
 + \sum_{\mathrm{knots}} \sum_j \Big(\frac{\dot u_j}{20^\circ/\mathrm{s}}\Big)^2$$
-<p>Here $e_t$ is the angle to the commanded orientation, $d_t$ the sphere's distance from its start, $n^{\mathrm{off}}_t$
-the number of pads under 0.05 N, $u_j$ and $q_j$ a servo's target and angle, $\delta_j$ the joint's distance to its
-range limit and $\dot u_j$ the target's rate between knots. The planners differ in how they update the plan from the
-sampled costs:</p>"""
+<p>Here $e_t$ is the angle to the commanded orientation and $d_t$ the sphere's distance from its start. The number of
+pads under 0.05 N is $n^{\mathrm{off}}_t$. A servo's target and angle are $u_j$ and $q_j$, its joint's distance to the
+range limit is $\delta_j$, and $\dot u_j$ is the target's rate between knots. The planners differ in how the plan is
+updated from the sampled costs:</p>"""
     rows = [["Predictive sampling [1]", "the cheapest of the nominal plan and its noisy copies"],
             ["MPPI [2]", "weights $\\exp(-(c - c_{\\min})/\\lambda)$ with $\\lambda = 0.03\\,\\mathrm{std}(c)$"],
             ["CEM", "the cheapest 15 % set the mean and the spread; the mean is executed"],
@@ -237,8 +247,8 @@ sampled costs:</p>"""
     t += table(["Planner", "Update"], rows, "The sampling planners (<code>scripts/hom/inner_loop_mpc.py</code>).",
                num_from=9)
     t += r"""<p>HOM is the controller of the talk (<code>scripts/hom/hom_gpu.py</code>, batched in torch on the GPU).
-Its twist command is the schedule's angular velocity alone. Section 6 adds feedback on the sphere's measured
-orientation.</p>"""
+Its twist command is the schedule's angular velocity alone. The section on simple changes to HOM adds feedback on
+the sphere's measured orientation.</p>"""
     return t
 
 
@@ -260,20 +270,28 @@ def sec_results(S, figs):
     t = ""
     if best:
         t += fill(r"""<p>On the SCS0009 plant HOM's mean J was <<h>>, with the sphere kept in <<hh>> % of the runs.
-The best planner was <<bl>>, at <<bj>>. Table <<tn>> gives every controller; the medians of the usability metrics are
-over the held runs.</p>""", h=f"{hs['J']:.3f}", hh=f"{100 * hs['held']:.0f}", bl=best[1], bj=f"{best[0]:.3f}",
+The best planner was <<bl>>, at <<bj>>. Every controller is listed in Table <<tn>>; the medians of the usability
+metrics are taken over the held runs.</p>""", h=f"{hs['J']:.3f}", hh=f"{100 * hs['held']:.0f}", bl=best[1], bj=f"{best[0]:.3f}",
                   tn=P.TAB[0] + 1)
     t += table(["Controller", "Mean J", "Held (%)", "Above HOM (%)", "Tracking error (deg)", "Three-pad share",
                 "Grip (N)", "Rigid-part force (N)", "Saturation (%)", "Target reversals (1/s)", "Target rate (deg/s)"],
                body, "Twenty pairs at seeds 0 and 1 on the SCS0009 plant at 2.5 MPa, plant friction 1.0; the planners "
                "plan with the plant's own model.")
     if figs.get("overview"):
-        t += P.img(figs["overview"], "Mean J (bars: one standard error over the 40 runs), grip and target reversals "
-                   "per controller on the SCS0009 plant; HOM in grey.")
+        t += P.img(figs["overview"], "Mean J (bars: one standard error over the 40 runs), median grip and target "
+                   "reversals per joint per second on the SCS0009 plant. HOM in grey, the planners over servo targets "
+                   "in blue, DIAL annealing in HOM's space in brown. PS: predictive sampling; DIAL: DIAL-MPC's "
+                   "annealing.")
     if figs.get("pairs"):
         t += P.img(figs["pairs"], "J of each run under HOM and under DIAL annealing on the same pair and seed. Above "
                    "the diagonal the planner tracked better.")
     return t
+
+
+FILM_NAME = {"hom": "HOM", "ps_rt": "predictive sampling at the real-time budget", "anneal": "DIAL annealing",
+             "hs_anneal": "DIAL annealing in HOM's space", "uhas": "UHAS"}
+FILM_STEM = {"hom": "hom_twist", "ps_rt": "ps_twist_r10h10k2i1", "anneal": "anneal_twist", "hs_anneal": "hs_anneal_twist"}
+TABLE_ROWS = {}
 
 
 def sec_films():
@@ -286,14 +304,18 @@ def sec_films():
         pr = info["pair"]
         cl = info["clips"]
         parts = []
+        k = (pr["x"], pr["y"], pr["grasp"], info["seed"])
         for spec, c in cl.items():
             nm = spec.split(":")[0]
-            parts.append(f"{esc(spec)}: J {c['J']:.2f}, grip {c['grip_mean_N']:.1f} N, "
-                         f"{c['reversals_ps']:.1f} reversals/s")
+            tab = TABLE_ROWS.get(FILM_STEM.get(nm, ""), {}).get(k)
+            parts.append(f"{FILM_NAME.get(nm, esc(spec))}: J {c['J']:.2f}"
+                         + (f" (in the table's run {tab['J']:.2f})" if tab and nm != "hom" else "")
+                         + f", grip {c['grip_mean_N']:.1f} N, {c['reversals_ps']:.1f} reversals per joint per s")
         cap = (f"Layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}, plant friction "
-               f"{info['plant_mu']:g}; the task phase from 2.4 s. " + "; ".join(parts) + ". Each frame gives each "
-               "finger's pad force and the force through its rigid parts on the sphere (N); the links are drawn "
-               "see-through and the sphere's axes as rods.")
+               f"{info['plant_mu']:g}; the task phase from 2.4 s. " + "; ".join(parts) + ". A planner's run in the "
+               "film draws other samples than its run in the table. Each frame gives each finger's pad force and the "
+               "force through its rigid parts on the sphere (N); the links are drawn see-through and the sphere's "
+               "axes as rods.")
         out += P.film(p, cap)
     return out
 
@@ -314,9 +336,9 @@ def sec_compute(T, S):
               "Compute per second of control for one hand on the RTX 4070 Ti SUPER (rows/mpc_timing_twist.jsonl); HOM's "
               "controller timed on one core of this workstation over 1,560 periods (median 2.01 ms, p99 2.09 ms).",
               num_from=1)
-    return t + r"""<p>A planner world costs about the same to simulate as a plant world, so a plan of 256 rollouts of
-30 periods costs about 7,700 plant periods per 10 control periods. HOM costs one controller evaluation per period and no
-rollouts.</p>"""
+    return t + r"""<p>A planner world costs about as much to simulate as a plant world. A plan of 256 rollouts of 30
+periods therefore costs about 7,700 plant periods per 10 control periods. HOM costs one controller evaluation per period
+and no rollouts.</p>"""
 
 
 def sec_feedback(S):
@@ -335,14 +357,28 @@ def sec_feedback(S):
                     f2(hs["reversals_ps"])])
     t = r"""<p>HOM's twist command is the schedule's angular velocity $\omega_{\mathrm{ref}}$, expressed in the
 measured object frame. Nothing in it reacts to the angle the sphere has actually turned, so slip and lag accumulate. The
-feedback adds a proportional term on the rotation from the measured orientation $R$ to the commanded one $R_c$, the
-schedule's angular velocity integrated from the task's start as in J:</p>
+commanded orientation $R_c$ is the schedule's angular velocity integrated from the task's start, as in J. The feedback
+adds a proportional term on the rotation from the measured orientation $R$ to $R_c$:</p>
 $$\omega = \omega_{\mathrm{ref}} + \mathrm{sat}_{1\,\mathrm{rad/s}}\big(k\,\log(R_c R^{\top})^{\vee}\big)$$
 <p>Eq. (1) and Eq. (2) of HOM are unchanged; only the object twist they are given changes
 (<code>uhas_sr2.ATT_GAIN</code>, <code>inner_loop_mpc.py run --method hom --att-gain k</code>).</p>"""
     t += table(["Gain k (1/s)", "Mean J", "Held (%)", "Above HOM (%)", "Tracking error (deg)", "Three-pad share",
                 "Grip (N)", "Saturation (%)", "Target reversals (1/s)"], rows,
                "HOM with feedback on the measured orientation, on the same 40 runs.")
+    fr = []
+    for f in (1.5, 2.0, 2.5, 3.5):
+        s_ = hs if f == 2.5 else S.get(f"hom_twist_ft{f:g}")
+        if s_:
+            fr.append([f"{f:g}" + (" (HOM)" if f == 2.5 else ""), f2(s_["J"], 3), f"{100 * s_['held']:.0f}",
+                       f2(s_["err"], 1), f2(s_["contact"]), f2(s_["grip_mean_N"], 1), f"{100 * s_['sat_frac']:.0f}",
+                       f2(s_["reversals_ps"])])
+    if len(fr) > 1:
+        t += r"""<p>HOM's other free quantity in the twist is the pad force it commands per finger, 2.5 N
+(<code>hom_tasks.PRM</code>, <code>f_tripod</code>). On the SCS0009 plant HOM's servos are at their torque limit in
+16 % of the joint-periods, so a lower force may leave room for the twist.</p>"""
+        t += table(["Commanded force per finger (N)", "Mean J", "Held (%)", "Tracking error (deg)", "Three-pad share",
+                    "Grip (N)", "Saturation (%)", "Target reversals (1/s)"], fr,
+                   "HOM with another commanded pad force, on the same 40 runs.")
     return t
 
 
@@ -360,6 +396,72 @@ one point, where the plant's tip is 1,018 sphere pads (the scene cache's <code>p
 the point-contact model, and the plant keeps the pads.</p>"""
     t += table(["Planner", "Mean J", "Held (%)", "Grip (N)", "Target reversals (1/s)", "Replanning, 16 hands (s)"],
                rows, "DIAL annealing with its own model of the fingertips, on the same 40 runs.")
+    return t
+
+
+def sec_hs(S):
+    rows = []
+    for stem, lab in (("hom_twist", "HOM"), ("anneal_twist", "DIAL annealing, servo targets (18 numbers per plan)"),
+                      ("hs_anneal_twist", "DIAL annealing in HOM's space (24 numbers per plan), noise 0.3"),
+                      ("hs_anneal_twist_hs0.1", "DIAL annealing in HOM's space, noise 0.1"),
+                      ("hs_ps_twist", "Predictive sampling in HOM's space"), ("hs_icem_twist", "iCEM in HOM's space")):
+        s_ = S.get(stem)
+        if s_:
+            rows.append([lab, f2(s_["J"], 3), f"{100 * s_['held']:.0f}", "&#8212;" if stem == "hom_twist" else
+                         f"{100 * s_['above']:.0f}", f2(s_["err"], 1), f2(s_["grip_mean_N"], 1),
+                         f2(s_["reversals_ps"]), f2(s_["cmd_rate_dps"], 1),
+                         "&#8212;" if s_["replan_s"] is None else f2(s_["replan_s"], 2),
+                         "&#8212;" if not s_.get("rollouts") else f"{s_['rollouts']:.0f}"])
+    if not any(S.get(k) for k in ("hs_anneal_twist", "hs_anneal_twist_hs0.1", "hs_ps_twist", "hs_icem_twist")):
+        return ""
+    t = r"""<p>A HOM-space plan sets, per finger and knot, the two rolling and the two sliding rates of the contact
+relative to the sphere: 12 numbers per knot, the separation and the spin about the normal left to HOM. Each period HOM
+solves its Eq. (2) as usual. It then solves it again with every row's reference taken from its own solution, the plan's
+rates added to the rolling and sliding rows, those rows at weight 1 and the separation row at 10 times its weight. A
+finger has three joints, so without the heavier separation row the added rates pulled the pads off the sphere. With
+the plan at zero the controller is HOM; on HOM's best pair a run with noise 10<sup>-9</sup> gave HOM's J, 0.772.
+Each sample's rollout runs HOM in its own world, from a copy of the plant's physics state and HOM's state
+(<code>inner_loop_mpc.HomRollouts</code>). One unit of noise is 1 rad/s of rolling or 20 mm/s of sliding.</p>"""
+    return t + table(["Controller", "Mean J", "Held (%)", "Above HOM (%)", "Tracking error (deg)", "Grip (N)",
+                      "Target reversals (1/s)", "Target rate (deg/s)", "Replanning, 16 hands (s)", "Rollouts per "
+                      "replanning"], rows, "Sampling over HOM's relative twists against sampling over the servo targets, "
+                     "on the same 40 runs.")
+
+
+def sec_sensing(S):
+    rows = []
+    hs = S.get("hom_twist")
+    if hs:
+        rows.append(["Exact, 100 Hz (Table 3)", f2(hs["J"], 3), f"{100 * hs['held']:.0f}", f2(hs["err"], 1),
+                     f2(hs["contact"]), f2(hs["grip_mean_N"], 1)])
+    for v, desc in VARIANTS:
+        s_ = S.get(f"hom_twist_{v}")
+        if s_:
+            rows.append([desc[0].upper() + desc[1:], f2(s_["J"], 3), f"{100 * s_['held']:.0f}", f2(s_["err"], 1),
+                         f2(s_["contact"]), f2(s_["grip_mean_N"], 1)])
+    pl = []
+    for stem, lab in (("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"), ("anneal_twist", "DIAL annealing")):
+        ex, nz = S.get(stem), S.get(stem.replace("_twist", "_twist_d4n") if stem == "anneal_twist" else
+                                    "ps_twist_d4n_r10h10k2i1")
+        if ex and nz:
+            pl.append([lab, f2(ex["J"], 3), f2(nz["J"], 3), f"{100 * nz['held']:.0f}", f2(nz["err"], 1),
+                       f2(nz["contact"])])
+    if len(rows) < 2 and not pl:
+        return ""
+    t = fill(r"""<p>HOM reads the joint angles, the sphere's pose and each fingertip's contact point and force. Every
+row above reads them exactly. Here they come through the sensing models of the <a href="<<r>>">HOM control review</a>
+of 29 October, at the bench's 50 Hz. The tag tracker's pose has 0.5 mm and 1 deg of noise and arrives 40 ms late. The
+magnetic fingertips' model adds their measured errors of contact point and force. The planners and UHAS still read the
+plant's exact state.</p>""", r=REVIEW)
+    if len(rows) > 1:
+        t += table(["Measurement", "Mean J", "Held (%)", "Tracking error (deg)", "Three-pad share", "Grip (N)"], rows,
+                   "HOM under the sensing variants of <code>hom_tasks.VARIANTS</code>, on the same 40 runs.")
+    if pl:
+        t += r"""<p>A planner copies the plant's state into its rollouts. With the tag tracker the copy is 40 ms old, and
+the sphere's pose in it carries the tracker's noise. Here each plan starts from the plant's state 4 periods earlier, with
+0.5 mm and 1 deg of noise on the sphere's pose, and is applied from now (<code>--plan-delay 4 --plan-noise</code>).</p>"""
+        t += table(["Planner", "Mean J, exact state", "Mean J, measured state", "Held (%)", "Tracking error (deg)",
+                    "Three-pad share"], pl, "Planners from a 40 ms old, noisy state, on the same 40 runs.")
     return t
 
 
@@ -388,7 +490,7 @@ def sec_work(SW):
                          f"{100 * s['sat_frac']:.0f}", f2(s["reversals_ps"])])
     if not rows:
         return ""
-    t = r"""<p>The first runs used the work plant: 4 N m/rad and a 1 N m limit per joint, 5.6 times the SCS0009's
+    t = r"""<p>The first runs were made on the work plant: 4 N m/rad and a 1 N m limit per joint, 5.6 times the SCS0009's
 torque, with 10 MPa pads. On it, UHAS gripped the sphere with a median 57 N and saturated its servos in 91 % of the
 joint-periods. Neither is possible with 0.18 N m joints. The planners' grip of 16 to 23 N on that plant also exceeds what
 the SCS0009 can press.</p>"""
@@ -401,8 +503,8 @@ def sec_future():
     items = [
         "HOM-space sampling: per finger the two rolling and two sliding rates of Eq. (2)'s reference relative twist, "
         "12 numbers per knot, with v<sub>sep</sub> and the spin left to HOM (the 30 October planner, "
-        "<code>scripts/hom/hom_mpc_gpu.py</code>, sampled 2 numbers per knot). It falsifies the claim that HOM's "
-        "structure makes sampling cheaper if it needs more than 256 rollouts per 0.1 s to match DIAL annealing's J.",
+        "<code>scripts/hom/hom_mpc_gpu.py</code>, sampled 2 numbers per knot). The claim that sampling in HOM's space "
+        "is cheaper is falsified if it needs more than 256 rollouts per 0.1 s to reach DIAL annealing's J.",
         "Noisy state: HOM and the planners with the tag tracker's noise (0.5 mm, 1 deg, 40 ms late) and the magnetic "
         "fingertips' contact estimates (<code>hom_tasks.VARIANTS</code> sense and tip), at 100 Hz; and without the "
         "tags, the sphere's pose estimated in the hand from the contacts.",
@@ -424,26 +526,34 @@ def sec_files():
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
-def lede(S):
+def lede(S, T):
     hs = S.get("hom_twist")
     if not hs:
         return "Results pending.", "Results pending."
-    parts = [fill("On the SCS0009 plant HOM's mean J over 40 runs of the sphere twist was <<h>>.", h=f"{hs['J']:.3f}")]
+    parts = [fill("On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was <<h>> with <<g>> N of grip. "
+                  "It needs 2.0 ms of one CPU core per 10 ms period.", h=f"{hs['J']:.3f}", g=f"{hs['grip_mean_N']:.1f}")]
     pl = [(S[stem]["J"], lab, S[stem]) for stem, lab in MAIN if S.get(stem) and stem not in
           ("hom_twist", "ps_twist_r10h10k2i1")]
+    v = one_hand(T, 64, 4, 30)
     if pl:
         bj, bl, bs = max(pl, key=lambda x: x[0])
-        parts.append(fill("The best sampling planner, <<bl>>, reached <<bj>> with <<g>> N of grip against HOM's "
-                          "<<hg>> N.", bl=bl, bj=f"{bj:.3f}", g=f"{bs['grip_mean_N']:.1f}",
-                          hg=f"{hs['grip_mean_N']:.1f}"))
+        parts.append(fill("The best sampling planner, <<bl>>, reached <<bj>> with <<g>> N of grip. Its targets "
+                          "reversed <<r>> times per joint per second, HOM's <<hr>> times.", bl=bl, bj=f"{bj:.3f}",
+                          g=f"{bs['grip_mean_N']:.1f}", r=f"{bs['reversals_ps']:.1f}", hr=f"{hs['reversals_ps']:.1f}"))
+        if v:
+            parts.append(fill("For one hand it needs <<v>> s of GPU per second of control.", v=f"{v / 0.1:.1f}"))
     rt = S.get("ps_twist_r10h10k2i1")
     if rt:
         parts.append(fill("At a budget that runs in real time, predictive sampling reached <<r>>.", r=f"{rt['J']:.3f}"))
+    h2 = S.get("hs_anneal_twist")
+    if h2:
+        parts.append(fill("Sampling HOM's rolling and sliding rates in place of the servo targets gave <<j>> with <<r>> "
+                          "reversals per second.", j=f"{h2['J']:.3f}", r=f"{h2['reversals_ps']:.1f}"))
     fb = [(S[f"hom_twist_att{g}"]["J"], g) for g in (1, 2, 4, 8) if S.get(f"hom_twist_att{g}")]
     if fb:
         bj, bg = max(fb)
-        parts.append(fill("Feedback on the measured angle took HOM to <<j>> at a gain of <<g>>/s.", j=f"{bj:.3f}",
-                          g=f"{bg:g}"))
+        parts.append(fill("Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; "
+                          "its best J was <<j>> at <<g>>/s.", j=f"{bj:.3f}", g=f"{bg:g}"))
     text = " ".join(parts)
     return text, re.sub(r"\s+", " ", text)
 
@@ -451,12 +561,15 @@ def lede(S):
 def main():
     P.FIG[0] = P.TAB[0] = P.FILM[0] = 0
     stems = [s for s, _ in MAIN] + [f"hom_twist_att{g}" for g in (1, 2, 4, 8)] + [
+        "hs_anneal_twist", "hs_anneal_twist_hs0.1", "hs_ps_twist", "hs_icem_twist", "hom_twist_ft1.5", "hom_twist_ft2",
+        "hom_twist_ft3.5", "anneal_twist_d4n", "ps_twist_d4n_r10h10k2i1"] + [f"hom_twist_{v}" for v, _d in VARIANTS] + [
         "anneal_twist_pt", "hom_twist_mu0.4", "ps_twist_mu0.4_r10h10k2i1", "anneal_twist_mu0.4", "spider_twist_mu0.4",
         "spider_wc_twist_mu0.4"]
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}
     hom04 = {key(r): r for r in R["hom_twist_mu0.4"]}
     S = {s: stats(v, hom04 if "mu0.4" in s else hom) for s, v in R.items() if v}
+    TABLE_ROWS.update({s_: {key(r): r for r in v} for s_, v in R.items() if v})
     SW = {}
     hw = {key(r): r for r in load("hom_twist_work10")}
     for stem, _lab in MAIN + [("uhas_twist", "")]:
@@ -475,8 +588,10 @@ def main():
                 ("methods", "The controllers", sec_methods()),
                 ("results", "HOM and the planners on the SCS0009 plant", sec_results(S, figs)),
                 ("films", "Films", sec_films()),
-                ("feedback", "HOM with feedback on the measured angle", sec_feedback(S)),
+                ("feedback", "Two simple changes to HOM", sec_feedback(S)),
+                ("hs", "Sampling in HOM's space", sec_hs(S)),
                 ("pt", "A planner with point-contact fingertips", sec_pt(S)),
+                ("sensing", "Measured state in place of the simulator's", sec_sensing(S)),
                 ("compute", "Compute per second of control", sec_compute(T, S)),
                 ("friction", "Plant friction 0.4", sec_friction(S)),
                 ("work", "The same runs on the work plant", sec_work(SW)),
@@ -486,7 +601,7 @@ def main():
     sections = [x for x in sections if x[2]]
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
     sections = [(sid, hd, b.replace("WORKSEC", str(num.get("work", "&#8212;")))) for sid, hd, b in sections]
-    lede_t, summary = lede(S)
+    lede_t, summary = lede(S, T)
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N\b|s\b|min\b|h\b)", "\\1&nbsp;\\2", s_))
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{unit(b)}</section>'

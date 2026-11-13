@@ -865,7 +865,7 @@ class Batch:
         self.c1 = None
         self.ap_x = None                                   # the ellipsoid-cylinder witness' previous point
         self.R_bm = self.p_bm = None
-        self.v_add = None
+        self.v_add, self.v_add_rows, self.v_add_sep_w = None, [1, 2, 4, 5], 10.0
         pr = self.prm
         self.scale = T_([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3)
         pats = np.array(np.meshgrid([0, 1, 2], [0, 1, 2], [0, 1, 2], indexing="ij")).reshape(3, -1).T
@@ -1049,30 +1049,44 @@ class Batch:
         v_ref[..., 3] = v_ref[..., 3] + th.where(floop & (force > 0), self.flg[:, None] * (force - Fm), th.zeros_like(Fm))
         aw = (dist < pr.aw_dist) & (v_ref[..., 3] > 0) & ~floop
         v_ref[..., 3] = th.where(aw, th.zeros_like(dist), v_ref[..., 3])
-        if getattr(self, "v_add", None) is not None:  # inner_loop_mpc.py's HOM-space planner: rolls, slides (W, 3, 6)
-            v_ref = v_ref + self.v_add
         # Eq. (2): min |sw (A u + b - v_ref)|^2 + w_damp |u|^2 + w_healthy |k (theta_h - theta) - u|^2, box bounds
-        sw = th.sqrt(self.weights) * self.scale                                          # (W, 3, 6)
-        As = sw[..., None] * A
-        rs = sw * (v_ref - b)
         I3 = th.eye(3, dtype=f64, device=self.dev)
-        Hm = As.transpose(-1, -2) @ As + (pr.w_damp + pr.w_healthy) * I3
-        g = th.einsum("wfij,wfi->wfj", As, rs) + pr.w_healthy * pr.k_healthy * (self.healthy - theta)
         lb = th.maximum(th.full_like(theta, -pr.u_max), (self.lo_t - self.theta_ref) / dt)
         ub = th.minimum(th.full_like(theta, pr.u_max), (self.hi_t - self.theta_ref) / dt)
         lb, ub = th.minimum(lb, ub - 1e-12), th.maximum(ub, lb + 1e-12)
         P = self.pats
         fixed = (P > 0)[:, None, None, :]
         bound = th.where(P[:, None, None, :] == 1, lb[None], ub[None])
-        Mm = th.where(fixed[..., None], I3.expand(27, 1, 1, 3, 3) * 1.0, Hm[None].expand(27, -1, -1, -1, -1))
-        cc = th.where(fixed, bound, g[None].expand(27, -1, -1, -1))
-        uu = solve3(Mm, cc)
-        feas = ((uu >= lb[None] - 1e-9) & (uu <= ub[None] + 1e-9)).all(-1)
-        obj = 0.5 * th.einsum("pwfi,wfij,pwfj->pwf", uu, Hm, uu) - (uu * g[None]).sum(-1)
-        obj = th.where(feas, obj, th.full_like(obj, float("inf")))
-        best = obj.argmin(0)
-        u_sol = th.gather(uu, 0, best[None, ..., None].expand(1, -1, -1, 3))[0]
-        u_sol = th.minimum(th.maximum(u_sol, lb), ub)
+
+        def eq2(weights, v_ref):
+            sw = th.sqrt(weights) * self.scale                                           # (W, 3, 6)
+            As = sw[..., None] * A
+            rs = sw * (v_ref - b)
+            Hm = As.transpose(-1, -2) @ As + (pr.w_damp + pr.w_healthy) * I3
+            g = th.einsum("wfij,wfi->wfj", As, rs) + pr.w_healthy * pr.k_healthy * (self.healthy - theta)
+            Mm = th.where(fixed[..., None], I3.expand(27, 1, 1, 3, 3) * 1.0, Hm[None].expand(27, -1, -1, -1, -1))
+            cc = th.where(fixed, bound, g[None].expand(27, -1, -1, -1))
+            uu = solve3(Mm, cc)
+            feas = ((uu >= lb[None] - 1e-9) & (uu <= ub[None] + 1e-9)).all(-1)
+            obj = 0.5 * th.einsum("pwfi,wfij,pwfj->pwf", uu, Hm, uu) - (uu * g[None]).sum(-1)
+            obj = th.where(feas, obj, th.full_like(obj, float("inf")))
+            best = obj.argmin(0)
+            u_ = th.gather(uu, 0, best[None, ..., None].expand(1, -1, -1, 3))[0]
+            return th.minimum(th.maximum(u_, lb), ub)
+
+        u_sol = eq2(self.weights, v_ref)
+        if getattr(self, "v_add", None) is not None:
+            # inner_loop_mpc.py's HOM-space planner: Eq. (2) again with every row's reference the relative twist of
+            # HOM's own solution, plus the planner's v_add in the rows v_add_rows (the rolls, free in the twist, and the
+            # slides) at weight 1; the separation row at v_add_sep_w times its weight (a finger has three joints, so the
+            # added rows would otherwise trade against the contact). With v_add zero the solution is HOM's.
+            rows = self.v_add_rows
+            v2 = th.einsum("wfij,wfj->wfi", A, u_sol) + b
+            v2[..., rows] = v2[..., rows] + self.v_add[..., rows]
+            w2 = self.weights.clone()
+            w2[..., rows] = 1.0
+            w2[..., 3] = w2[..., 3] * self.v_add_sep_w
+            u_sol = eq2(w2, v2)
         tr = self.theta_ref + dt * u_sol
         tr = th.minimum(th.maximum(tr, theta - pr.lead), theta + pr.lead)
         self.theta_ref.copy_(th.minimum(th.maximum(tr, self.lo_t), self.hi_t))

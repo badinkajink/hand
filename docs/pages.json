@@ -17,23 +17,11 @@
   "title": "Sampling MPC and HOM on the SR2 sphere twist",
   "page_title": "Sampling MPC and HOM on the SR2 sphere twist",
   "topic": "design",
-  "summary": "On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was 0.388 with 7.7 N of grip, at 2.0 ms of one CPU core per 10 ms period. The best sampling planner, DIAL annealing, reached 0.461 with 4.7 N and 2.0 target reversals per joint per second against HOM's 0.6; for one hand it needs 11.7 s of GPU per second of control. At a budget that runs in real time, predictive sampling reached 0.335. Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; its best J was 0.370 at 1/s.",
+  "summary": "On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was 0.388 with 7.7 N of grip. It needs 2.0 ms of one CPU core per 10 ms period. The best sampling planner, DIAL annealing, reached 0.461 with 4.7 N of grip. Its targets reversed 2.0 times per joint per second, HOM's 0.6 times. For one hand it needs 11.7 s of GPU per second of control. At a budget that runs in real time, predictive sampling reached 0.335. Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; its best J was 0.370 at 1/s.",
   "builder": "scripts/hom/inner_loop_mpc_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 0.2
- },
- {
-  "date": "2026-11-12",
-  "file": "docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html",
-  "title": "Inner-loop evaluators for SR2 hand co-design: HOM, KaRMA and UHAS",
-  "page_title": "Inner-loop evaluators for SR2 hand co-design: HOM, KaRMA and UHAS",
-  "topic": "design",
-  "summary": "HOM scored a layout of the SR2 lattice in 2.8 s of the GPU; KaRMA took 170 s on one CPU core and UHAS a training run first. KaRMA's first choice on the twist scores J 0.57 under HOM, where the best layout scores 0.76.",
-  "builder": "scripts/hom/inner_loop_benchmark_page.py",
-  "artifact": null,
-  "status": "current",
-  "mb": 0.1
+  "mb": 2.1
  },
  {
   "date": "2026-11-11",

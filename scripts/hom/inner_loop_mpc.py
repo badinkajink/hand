@@ -86,7 +86,10 @@ METHODS = ("ps", "mppi", "cem", "icem", "anneal", "spider", "spider_wc")
 # HOM-space planners (owner, 2026-11-13: "HOM-space controls ... 18-dim control space ... keep fixed ... v_sep (x') and
 # probably w_spin (ex')"): a plan sets, per finger and knot, the two rolling and the two sliding rates of the reference
 # relative twist of HOM's Eq. (2) (rows HS_FREE of spin, roll y, roll z, sep, slide y, slide z), 12 numbers per knot in
-# units of HS_UNIT (rad/s, m/s); those rows get weight 1, and HOM keeps the spin, the separation and its force loop.
+# units of HS_UNIT (rad/s, m/s). Each period HOM solves Eq. (2) as usual, then again with those rows' references set to
+# the relative twist of its own solution plus the sample's and their weights to 1 (hom_gpu.Batch.control, v_add): the
+# zero plan is HOM, and HOM keeps the spin, the separation and its force loop. (A first version, 11:00, set those rows'
+# weights to 1 around a zero reference: its zero plan held every contact sticking and lost the pads.)
 HS_FREE = [1, 2, 4, 5]
 HS_UNIT = (1.0, 1.0, 0.02, 0.02)
 PLAN_HS = dict(sigma=0.3, bound=3.0, rate=2.0)    # the noise and the bound in units; the knot-rate cost's scale, units/s
@@ -147,7 +150,7 @@ def pairs(run=RUN, n_top=10):
     return out
 
 
-def worlds_of(prs, seeds, variant=None):
+def worlds_of(prs, seeds, variant=None, prm=None):
     """The pairs' worlds at the seeds; variant: a sensing variant of hom_tasks.VARIANTS (HOM's measurement), default
     the benchmark's (exact, 100 Hz)."""
     scene = HG.Scene(T.SHAPE[TASK], UH.D_MM[TASK])
@@ -160,7 +163,7 @@ def worlds_of(prs, seeds, variant=None):
         bm, q_open = scene.prepare(mxy, setup)
         for sd in seeds:
             out.append({"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open, "by": want[k],
-                        "var": HG.variant_world(variant or UH.VARIANT[TASK], sd)})
+                        "var": HG.variant_world(variant or UH.VARIANT[TASK], sd), **({"prm": prm} if prm else {})})
     return scene, out
 
 
@@ -179,6 +182,11 @@ LABELS = {"hom": "HOM", "ps": "Predictive sampling", "ps_rt": "Predictive sampli
           "spider_wc": "SPIDER, worst case", "uhas": "UHAS", "hs_ps": "Predictive sampling in HOM's space",
           "hs_mppi": "MPPI in HOM's space", "hs_cem": "CEM in HOM's space", "hs_icem": "iCEM in HOM's space",
           "hs_anneal": "DIAL annealing in HOM's space", "hs_spider": "SPIDER in HOM's space"}
+
+
+SHORT = {"hom": "HOM", "ps": "PS", "ps_rt": "PS, real time", "mppi": "MPPI", "cem": "CEM", "icem": "iCEM",
+         "anneal": "DIAL", "spider": "SPIDER", "spider_wc": "SPIDER worst case", "uhas": "UHAS", "hs_ps": "PS, HOM space",
+         "hs_anneal": "DIAL, HOM space", "hs_icem": "iCEM, HOM space"}      # film labels (480 px clips)
 
 
 def set_friction(B, mu):
@@ -259,11 +267,6 @@ def hs_add(u):
     return add
 
 
-def hs_weights(B):
-    """Eq. (2)'s rows that a HOM-space plan sets take weight 1 (the twist's rolls are free, weight 0, in HOM)."""
-    B.weights[..., HS_FREE] = 1.0
-
-
 class HomRollouts(Rollouts):
     """The planner's worlds under HOM for the HOM-space planners: every period HOM computes the servo targets from
     the measured state, with the sample's rolls and slides added to Eq. (2)'s reference. Before each replanning the
@@ -272,7 +275,7 @@ class HomRollouts(Rollouts):
 
     def begin(self, chunk):
         super().begin(chunk)
-        hs_weights(self.B)
+        self.B.v_add_rows = HS_FREE
         dt = self.B.prm.dt
         self.B.clock = self.B.clock + [self.B.clock[-1] + (i + 1) * dt for i in range(64)]   # rollouts past the end
 
@@ -449,6 +452,27 @@ def ref_table(task):
     return torch.stack(out)
 
 
+# The planners' measured state (owner, 2026-11-13: "how well we can do with noisy in hand pose estimation"): with
+# MEAS["delay"] > 0 a plan starts from the plant's state that many periods earlier (the tag tracker's 40 ms is 4), with
+# MEAS["pos_mm"] and MEAS["rot_deg"] of Gaussian noise on the object's position and orientation (hom_tasks.VARIANTS
+# "notip": 0.5 mm, 1 deg); the plan is applied from now. The joint-space planners only.
+MEAS = {"delay": 0, "pos_mm": 0.0, "rot_deg": 0.0}
+
+
+def measured(hist, B, gen):
+    """The planner's start state: the oldest of the kept states, the object's pose noised."""
+    st = {k_: v.clone() for k_, v in hist[0].items()}
+    W, qa = B.W, B.qa
+    if MEAS["pos_mm"] > 0:
+        st["qpos"][:, qa:qa + 3] += torch.randn((W, 3), generator=gen, device="cuda") * (MEAS["pos_mm"] * 1e-3)
+    if MEAS["rot_deg"] > 0:
+        ax = torch.nn.functional.normalize(torch.randn((W, 3), generator=gen, device="cuda"), dim=-1)
+        ang = torch.randn(W, generator=gen, device="cuda") * math.radians(MEAS["rot_deg"])
+        q = quat_mul(quat_from_axis_angle(ax, ang), st["qpos"][:, qa + 3:qa + 7].float())
+        st["qpos"][:, qa + 3:qa + 7] = q / q.norm(dim=-1, keepdim=True)
+    return st
+
+
 def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
     """One batch of plant worlds through the episode: HOM to the task, then HOM, the policy or the planner. Returns
     the rows of hom_gpu.Batch.score, the usability metrics (inner_loop_usability.metrics) and the planner's record.
@@ -469,7 +493,7 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
         Qref = ref_table(task)
         ctx0 = {"palm": palm.repeat_interleave(r, 0), "p0": p0.repeat_interleave(r, 0)}
         if hs:
-            hs_weights(B)
+            B.v_add_rows = HS_FREE
             bd = torch.full((12,), PLAN_HS["bound"], device="cuda")
             mpc = MPC(method[3:], P, -bd, bd, R.n, R.G, seed, D=12, sigma=PLAN_HS["sigma"], rate_scale=PLAN_HS["rate"])
             u = torch.zeros((P, 12), device="cuda")
@@ -485,6 +509,9 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
         tr.reset(torch.arange(P, device="cuda"), B, Cc, F, mounts, B.n_out[:, 0].float())
     Q, Cm, A = [], [], []
     tau = 0
+    hist = []
+    gen_m = torch.Generator(device="cuda")
+    gen_m.manual_seed(2000 + seed)
     with torch.inference_mode():
         while not B.done():
             if trace is not None:
@@ -500,12 +527,15 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
                 tr.tau += 1
                 tr.advance(task, B.scene.r)
             else:
+                if MEAS["delay"] > 0 or MEAS["pos_mm"] > 0 or MEAS["rot_deg"] > 0:
+                    hist.append({k_: v.clone() for k_, v in B.state().items() if k_ != "body_pos"})
+                    hist = hist[-(MEAS["delay"] + 1):]
                 if tau % REPLAN == 0:
                     t0 = time.perf_counter()
                     i = torch.arange(tau + 1, tau + H + 1, device="cuda").clamp(max=task.n)
                     goal = quat_mul(Qref[i][None].expand(P, H, 4), q0[:, None].expand(P, H, 4))
-                    knots, inf = mpc.plan(R, dict(B.state(), plant=B) if hs else B.state(), u,
-                                          dict(ctx0, goal=goal.repeat_interleave(r, 0)))
+                    st = (dict(B.state(), plant=B) if hs else measured(hist, B, gen_m) if hist else B.state())
+                    knots, inf = mpc.plan(R, st, u, dict(ctx0, goal=goal.repeat_interleave(r, 0)))
                     seg = torch.einsum("hk,pkj->phj", W_EXEC, knots)
                     torch.cuda.synchronize()
                     plan_rec["walls"].append(time.perf_counter() - t0)
@@ -541,6 +571,14 @@ def cmd_run(a):
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
     if UH.ATT_GAIN > 0:
         a.tag = f"_att{a.att_gain:g}" + a.tag
+    if a.hs_sigma is not None:
+        PLAN_HS["sigma"] = a.hs_sigma
+        a.tag = f"_hs{a.hs_sigma:g}" + a.tag
+    if a.plan_delay or a.plan_noise:
+        if a.method not in METHODS:
+            raise SystemExit("--plan-delay/--plan-noise: the joint-space planners only")
+        MEAS.update(delay=a.plan_delay, pos_mm=0.5 if a.plan_noise else 0.0, rot_deg=1.0 if a.plan_noise else 0.0)
+        a.tag = f"_d{a.plan_delay}" + ("n" if a.plan_noise else "") + a.tag
     if a.variant != UH.VARIANT[TASK]:
         if a.method != "hom":
             raise SystemExit("--variant: only HOM reads the measured state; the planners and UHAS read the plant's")
@@ -548,7 +586,10 @@ def cmd_run(a):
     prs = json.loads((ROWS / "mpc_pairs_twist.json").read_text())["pairs"]
     if a.limit_pairs:
         prs = prs[:a.limit_pairs]
-    scene, worlds = worlds_of(prs, a.seeds, a.variant)
+    prm = {"f_tripod": a.f_tripod} if a.f_tripod is not None else None
+    if prm:
+        a.tag = f"_ft{a.f_tripod:g}" + a.tag
+    scene, worlds = worlds_of(prs, a.seeds, a.variant, prm)
     tag = "" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}"
     out = ROWS / f"mpc_{a.method}_twist{tag}{a.tag}.jsonl"
     done = set()
@@ -590,7 +631,7 @@ def cmd_run(a):
                    "seed": wd_["seed"], "by": wd_["by"], "plant_mu": a.plant_mu, "J": L.track_score(TASK, r), **PL}
             row.update({k: r.get(k) for k in IU.KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in IU.METRICS})
-            row.update({"model": a.model, "att_gain": UH.ATT_GAIN, "variant": a.variant,
+            row.update({"model": a.model, "att_gain": UH.ATT_GAIN, "variant": a.variant, "meas": dict(MEAS),
                         "space": "hom" if a.method in HS_METHODS else "joint"})
             row.update({"chunk_wall_s": round(wall, 2), "chunk_worlds": Wc, "run": a.run if a.method == "uhas" else None,
                         "checkpoint": Path(ckpt).name if ckpt else None})
@@ -705,14 +746,12 @@ def cmd_film(a):
         J = L.track_score(TASK, r)
         ft = B.rec["ft"][:, 0].cpu().numpy()
         fl = np.maximum(B.rec["fo"][:, 0].cpu().numpy() - ft, 0.0)
-        lab = LABELS.get(name, name) + (", point-contact model" if arg == "pt" else "")
+        lab = SHORT.get(name, name) + (", point contact" if arg == "pt" else "")
         if name == "hom" and UH.ATT_GAIN > 0:
-            lab += f" with angle feedback {UH.ATT_GAIN:g}/s"
-        if pr["walls"]:
-            lab += f" ({np.mean(pr['walls']) / (REPLAN * T.DT_C):.1f} s of GPU per s)"
+            lab += f", feedback {UH.ATT_GAIN:g}/s"
         clips.append(UF.frames_of([(q, m, t, ft[k], fl[k]) for q, m, t, k in trace], scene, world,
-                                  f"{lab}: J {J:.2f}, grip {M['grip_mean_N'][0]:.1f} N, "
-                                  f"{M['reversals_ps'][0]:.1f} reversals/s"))
+                                  f"{lab}: J {J:.2f}, {M['grip_mean_N'][0]:.1f} N, "
+                                  f"{M['reversals_ps'][0]:.1f} rev/s"))
         info[spec] = {"J": J, "held": bool(r.get("held")), "track_err_rms_deg": r.get("track_err_rms_deg"),
                       "contact_all_frac": r.get("contact_all_frac"), **{k: float(M[k][0]) for k in IU.METRICS},
                       "replan_s_mean": float(np.mean(pr["walls"])) if pr["walls"] else None}
@@ -748,6 +787,14 @@ def main():
     p.add_argument("--n", type=int, default=64, help="samples per plant world and iteration")
     p.add_argument("--limit-pairs", type=int, default=0, help="only the first pairs (smoke tests)")
     p.add_argument("--tag", default="", help="appended to the rows' file name")
+    p.add_argument("--plan-delay", type=int, default=0, help="planners: plan from the plant's state this many periods "
+                   "earlier (4: the tag tracker's 40 ms)")
+    p.add_argument("--plan-noise", action="store_true", help="planners: the tag tracker's noise on the object's pose "
+                   "(0.5 mm, 1 deg)")
+    p.add_argument("--f-tripod", type=float, default=None, help="HOM's commanded pad force per finger, N "
+                   "(hom_tasks.PRM f_tripod, 2.5), for every world")
+    p.add_argument("--hs-sigma", type=float, default=None, help="HOM-space planners: the sampling noise in units "
+                   "(PLAN_HS sigma, 0.3)")
     p.add_argument("--variant", default="base", choices=sorted(T.VARIANTS), help="method hom: the sensing variant "
                    "(hom_tasks.VARIANTS; sense and tip run at 50 Hz)")
     p.add_argument("--att-gain", type=float, default=0.0, help="method hom: feedback on the measured orientation, 1/s "
