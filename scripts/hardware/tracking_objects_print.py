@@ -157,6 +157,7 @@ PARTS = {"cylinder_block": "cylinder block and stem, ids 10-15", "sphere_block":
 # prints in the first three layers. Each alternative replaces the cylinder on the plate (bambu --cylinder).
 CYLINDERS = {"cylinder": OM.END_IDS, "cylinder_tag23": (23,), "cylinder_plain": ()}
 ALTERNATIVES = {"cylinder_tag23": "cylinder body, end tag 23 only", "cylinder_plain": "cylinder body without end tags"}
+PRINTED = {"cylinder": "cylinder_plain"}   # owner, 2026-11-13: "i sent the print with no cylinder end tag"
 
 
 def cmd_build(a):
@@ -353,7 +354,14 @@ def write_readme(rep):
           "(sphere): the seats touch the flats and the keys clear their slots. With end tag 23 alone the adjustment has "
           "seven tags, and the cylinder's turn about the stem is read from where tag 23 sits, "
           f"{o['cylinder']['length_mm'] / 2:g} mm from the stem. Without end tags the cylinder's map is the CAD's; the "
-          f"key's clearance then leaves its turn about the stem within +-{math.degrees(2 * KEY_CLEAR / KEY[1]):.1f} deg."]
+          f"key's clearance then leaves its turn about the stem within +-{math.degrees(2 * KEY_CLEAR / KEY[1]):.1f} deg.",
+          "",
+          f"Printed: the owner printed the {ALTERNATIVES[PRINTED['cylinder']].replace('body, ', '')} on 2026-11-13. "
+          "Its map is then its block's, placed by the seat and key, as for the sphere. A flat plate pressed on the face "
+          f"of tag {OM.IDS['cylinder'][0]} or {OM.IDS['cylinder'][3]} lies parallel to the cylinder's axis, "
+          f"{OM.BLOCK.across_flats / 2 - sc['cylinder']['r_print_mm']:.1f} mm outside its printed side. Equal gaps "
+          "at both ends of the cylinder set its turn on the block before the glue sets (epoxy leaves time to "
+          "adjust). A gap difference d over a spacing L along the axis is a turn of d / L rad."]
     if "check_ok" in rep:
         rms = [r["corner_rms_mm"] for p in P.values() for r in p.get("check", [])]
         span = f"{min(rms):.3f}" if f"{min(rms):.3f}" == f"{max(rms):.3f}" else f"{min(rms):.3f} to {max(rms):.3f}"

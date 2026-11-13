@@ -107,7 +107,10 @@ owner: stems for both layout sets, about 0.8 mm grip tape on the cylinder, the s
 pin-push specialist only). Each block is printed in one piece with its stem, upright, so the stem lies on the block's
 axis; the stem ends in a 45° cone, a flat seat 10 mm across and a 2.4 × 5 mm key, glued into a matching flat and slot
 on the object, and the CAD assembly shares no volume. The cylinder is printed standing, so it comes out round; its two
-end tags enter a bundle adjustment with the block's, which measures the cylinder against its block. The sphere is two
+end tags enter a bundle adjustment with the block's, which measures the cylinder against its block. The owner printed
+it without end tags on 2026-11-13, which saved 12.5 g of PLA. Its map is then its block's, placed by the seat and key,
+as for the sphere. A plate pressed on the face of tag 10 or 13 lies parallel to its axis, and equal gaps to the
+cylinder at both ends set its turn when it is glued. The sphere is two
 hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The
 measured servo's best layouts (grids of 2026-11-10, press, roll and twist) reach 18.5 mm below the cylinder and 10.7 mm
 below the sphere (`rows/stem_sv25_sv55db.json`), so the cylinder's stem stays at 35.6 mm and the sphere's grows by

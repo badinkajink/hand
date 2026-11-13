@@ -25,6 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
 import docs_index  # noqa: E402
+import object_tracking_mjcf as OM  # noqa: E402
 import fp_review_page as P  # noqa: E402
 import mjwasm_embed  # noqa: E402
 import retro_style  # noqa: E402
@@ -140,7 +141,8 @@ def sec_files(J):
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
         ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
          "printed standing; grip tape on its side"),
-        ("Cylinder without end tags (in place of the above)", stls("cylinder_plain", colours=("white",)), "100.0",
+        ("Cylinder without end tags (in place of the above; printed 2026-11-13)",
+         stls("cylinder_plain", colours=("white",)), "100.0",
          "printed standing; grip tape on its side"),
         ("Sphere, lower hemisphere", stls("sphere_lower", colours=("white",)), "19.4", "three dowels into the upper half"),
         ("Sphere, upper hemisphere", stls("sphere_upper", colours=("white",)), "20.0", ""),
@@ -224,9 +226,15 @@ def sec_objects(J, viewer):
           f"block and the object share {o['assembly_overlap_mm3']['cylinder']:g} mm<sup>3</sup> on the cylinder and "
           f"{o['assembly_overlap_mm3']['sphere']:g} mm<sup>3</sup> on the sphere.</p>")
     p2 = ("<p>The cylinder is printed standing, so its section comes out round, at 23.4 mm; 0.8 mm of grip tape brings "
-          "it to the HOM scenes' 25 mm. Its end faces bear tags 22 and 23. In a bundle adjustment of the assembled "
-          "object these two tags are measured against the block's six. An error in the glue joint then enters the "
-          "object's tag map and drops out of the tracked pose. The sphere is two hemispheres on three dowels and stays "
+          "it to the HOM scenes' 25 mm. In the print files its end faces bear tags 22 and 23. In a bundle adjustment of "
+          "the assembled object these two tags are measured against the block's six. An error in the glue joint then "
+          "enters the object's tag map and drops out of the tracked pose. The owner printed the cylinder without end "
+          "tags (2026-11-13). Its map is then its block's, placed by the seat and key, as for the sphere. A flat plate "
+          f"pressed on the face of tag {OM.IDS['cylinder'][0]} or {OM.IDS['cylinder'][3]} lies parallel to the "
+          f"cylinder's axis, {OM.BLOCK.across_flats / 2 - seat['cylinder']['r_print_mm']:.1f} mm outside its printed "
+          "side. Equal gaps at both ends of the cylinder set its turn on the block before the glue sets. A gap "
+          "difference $d$ over a spacing $L$ along the axis is a turn of $d/L$ rad. The sphere is two hemispheres on "
+          "three dowels and stays "
           "bare (owner, 2026-11-12). Each tag face of the print files decodes as its own id, and its "
           f"corners lie {max(c['corner_rms_mm'] for p in op.values() for c in p.get('check', [])):.3f} mm RMS from "
           "the tracker's map (<code>object_tracking_mjcf.object_map</code>).</p>")
@@ -467,7 +475,8 @@ def sec_earlier():
 
 
 def sec_limits():
-    return ("<p>The objects, the blocks, the PLA board and its mount have not been printed or measured. The paper "
+    return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
+            "have not been measured. The PLA board and its mount have not been printed. The paper "
             "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
             "href=\"../20261113-camera_arm_calibration/20261113-camera_arm_calibration.html\">its page</a>). There the "
             "arm measured its squares at 15.031 mm, and the board's solved shape is 0.25 mm RMS out of plane. The "
