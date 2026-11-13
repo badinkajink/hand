@@ -1,4 +1,13 @@
-Status: active (window 8955e04e; armed as a safety net for the queues that end after this window)
+Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-13 08:50: MPC on the 20 pairs x seeds 0-1, exact model (rows/mpc_*_twist.jsonl): mean J HOM 0.402 (not 0.634,
+the last chunk's mean, as told to the owner on 11-12), DIAL anneal 0.582, iCEM 0.566, SPIDER 0.549, MPPI 0.506, CEM 0.499,
+PS 0.480, SPIDER worst case 0.379, PS near real time 0.396, UHAS 0.389 (held 0.88); planners grip 16.5-23 N against 9.6,
+reverse 1.65-3.15 per joint per s against 0.25; one hand 1.075 s GPU per 0.1 s replanning (near-real-time PS 0.086 s).
+UHAS limits s0 (140 min): test J 0.033, held 0.63, against 0.204 and 0.76 published. queue4 runs the rest (step 13).
+State 17:45: GPU queue done (all rc 0). UHAS from HOM's handover (156 min PPO): mean test J 0.32 vs HOM 0.25 per layout,
+HOM's best layout still best (0.756 vs 0.714), rho 0.54; open-hand UHAS held 0 of 5,232; single-layout 0.015.
+Usability (f32837c6a, inner_loop_usability.py, 1,744 worlds): grip 56 vs 10 N, servo saturation 83 vs 0 %, target
+reversals 20 vs 0.4 per joint per s, drift 26 vs 8 mm. Films sent to the owner. KaRMA sph25 at 107/128 rows.
 Task: owner 2026-11-12: "test how map-elites and/or another outer loops optimizer does"; "evaluate some of the other
 inner loop controls we tried? Karma, uhas? If we have to train our own uhas, that's fine, esp since we have so many
 demonstrations already"; then "in an ideal world we can show these other methods (... published ...) are both worse and
@@ -19,12 +28,20 @@ single_twist.sh (one layout (105, 70), 30 min, eval) -> open_twist.sh (open-hand
 queue.log in that folder gets one line per step with its rc.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Wait for "queue done" in logs/20261112-karma_sr2/queue.log and "open film rc" in logs/20261112-uhas_sr2/queue.log; every rc must be 0. On a failure read that step's log (train_*.log, eval_*.log, film_*.log, batch_*.log), fix the cause and rerun the step's command from its queue script; a resguard kill shows in ~/.claude/resguard_events.jsonl.
+- [x] 1. Wait for "queue done" in logs/20261112-karma_sr2/queue.log and "open film rc" in logs/20261112-uhas_sr2/queue… Done 11-12 21:08: Done 11-12 18:16: KaRMA queue done (sph40 rc 0 15:49, sph25 rc 0 18:16); UHAS queue all rc 0 (train, eval, film, single, open, films with forces 17:29-17:30, usability rc 0 17:35)
 - [ ] 2. Build the page: .venv/bin/python scripts/hom/inner_loop_benchmark_page.py. Rewrite lede() so it states the outcome with numbers (time per layout of each evaluator; J of KaRMA's first choice on each task; UHAS's mean test J and held share against HOM's; the open-hand variant). Then python3 scripts/docs/prose_lint.py --top 20 on the page until within targets; search the text for the banned words of ~/.claude/CLAUDE.md.
 - [ ] 3. Look at every figure and film poster at displayed size (media/20261112-karma_maps.png, 20261112-uhas_vs_hom.png, 20261112-film_hom_uhas_twist*.jpg) and fix what is unreadable.
 - [ ] 4. Commit the page, its rows (docs/experiments/20261112-inner_loop_benchmark/rows/*), media and the docs indices it refreshed; push.
 - [ ] 5. Publish the page as an artifact (first publish) and give the owner the local path with the URL; the docs index picks the URL up on the next build.
 - [ ] 6. Report to the owner in the note's State and, when a window is open, in chat: outer loop (BO beats the EA in replay; MAP-Elites does not), KaRMA, UHAS, the costs. Offer next: live BO at the size study's sizes; UHAS on the other tasks; KaRMA on the full lattice.
+- [ ] 7. Page: add the usability section from rows/usability_twist_20261112-1244_twist_s0.jsonl (scripts/hom/inner_loop_usability.py; medians over held rollouts, HOM against UHAS) and the three force-labelled films (media/20261112-film_hom_uhas_twist.mp4, _x50y110.mp4, _open.mp4); state that UHAS's mean test J beat HOM's (0.32 against 0.25 per layout) with 56 N grip, 83 % servo saturation and 20 target reversals per joint per second; summarize the two >2 MB evaluation rows into a committed file under 2 MB for the builder
+- [ ] 9. MPC and UHAS reruns (owner 11-12 21:0x go): wait for 'queue done' in logs/20261112-mpc/queue.log (launched 21:07; order hom, uhas, ps, mppi, cem, icem, anneal, spider, spider_wc, ps_rt, UHAS limits s0 train/eval/usability/pairs, plant friction 0.4 for hom, uhas, uhas limits, anneal, spider, spider_wc, then UHAS limits s1 and published s1); every rc 0, else read logs/20261112-mpc/<step>.log and ~/.claude/resguard_events.jsonl, fix, rerun that step's command (the rows files resume)
+- [ ] 10. Page section on the MPC: per controller on the 20 pairs x seeds 0-1 (rows/mpc_*_twist*.jsonl): mean J, held share, usability medians over held rollouts, GPU seconds per second of control (replan_s_mean / 0.1 s for one hand from rows/mpc_timing_twist.jsonl); the friction-0.4 table (spider vs spider_wc isolates the worst case); UHAS with limits against UHAS published at seeds 0-1; films of the best planner and of UHAS with limits on HOM's best pair (uhas_sr2_film.py --tag)
+- [x] 12. Resguard at 01:38 on 11-13 (seen by the feed poller's session): the watchdog killed the queue step usability_… Done 11-13 08:47: Done 11-13 08:47: the kills (01:38 and again 08:44, PSI full 19.5-19.8 at 16 GB available) were numpy huge-page direct compaction (compact_stall 4.3 M, 99 % failed), not RSS; logs/20261112-mpc/queue4.sh sets NUMPY_MADVISE_HUGEPAGE=0, waits 1 min before each launch, retries rc 3 every 2 min and a kill once; the usability step then ran at memory pressure 0.00
+- [ ] 13. queue4 (launched 08:45, logs/20261112-mpc/queue4.sh, lines in queue.log): usability and pairs of limits_s0; friction 0.4 for hom, uhas, uhas limits_s0, ps near real time (I 1, H 10, K 2), anneal, spider, spider_wc; then UHAS limits with the torque term at -0.02 and no cap (--limits-tau -0.02 --limits-cap 0, seed 0; replaces limits_s1, commit 25250e0f8) and the published reward at seed 1, each with eval, usability, pairs and friction-0.4 pairs. Expected done about 15:30. Wait for 'queue4 done'; on a failure read the step log and resguard events
+Standing directions (for every step):
+- Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
+- Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J
 <!-- /ap:steps -->
 Claimed: scripts/hom/hom_search_qd.py, karma_sr2.py, uhas_sr2*.py, inner_loop_benchmark_page.py,
 docs/experiments/20261112-inner_loop_benchmark/, logs/20261112-*.
