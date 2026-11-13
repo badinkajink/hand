@@ -620,7 +620,7 @@ fingertip model adds the errors measured on the UR5 to each true contact. A fixe
 are added to the point. The noise&#8217;s sigma is 0.4&#8202;mm at 1.5&#8202;N and over, 0.7&#8202;mm from 0.5&#8202;N and 1.3&#8202;mm below. A
 gain error with a sigma of 5&#8202;% and 0.07&#8202;N of noise are added to the force. A contact that reads under 0.25&#8202;N is
 dropped. In 120 runs of each of four tasks, the controller tracked as well without the fingertips&#8217; contact points as
-with them ([HOM control and fingertip sensing](exp:20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html),
+with them ([HOM control and fingertip sensing](exp:20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html#eval),
 Section 9). The force reading mattered under calibration errors with a sigma of 1&#176; per joint and 1&#8202;mm per axis
 of the object frame. In the pin-push, the thumb and index finger pinch a cylinder and the middle finger pushes it.
 Without fingertip sensing its pad forces were off by a median 1.05&#8202;N, and with the contact points alone by
@@ -635,7 +635,8 @@ of the sphere twist, HOM&#8217;s mean tracking score was 0.283 without fingertip
 model. With the exact state it was 0.375. In further runs the tracked pose was predicted from the commanded rotation and
 pulled toward each tracker frame with a time constant of 0.2&#8202;s. With that filter and the fingertip model, the mean
 score was 0.318
-([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html), Sections 9 and 10).</p>"""),
+([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#sensing), sections on measured
+state and on the [pose filter](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#filter)).</p>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b
@@ -886,7 +887,7 @@ PAGES = [
     ("Method", "20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html",
      "The fingertips as the HOM controller&#8217;s contact sensor in simulation: the fingertip model, calibration errors, a force loop"),
     ("Method", "20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
-     "HOM and sampling planners on the sphere twist; HOM with the tag tracker and the fingertip model (Sections 9 and 10)"),
+     "HOM and sampling planners on the sphere twist; HOM with the tag tracker, the fingertip model and a filter on the pose"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
