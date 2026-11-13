@@ -456,7 +456,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (54)
+## hardware/ (56)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -469,6 +469,8 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `build_cad_v3_hand.py` | cad_v3: the SR2 hand as built, on the lab's UR5 (CB3), in MuJoCo. |
 | `build_real_v1_scenes.py` | Build the `real_v1` base topology from the CAD-measured finger geometry. |
 | `calibrate_plant_kp.py` | Find the actuator gain and torque ceiling that reproduce the bench's measured shortfall. |
+| `camera_arm_calibration_film.py` | Film and overlay stills of the D435 camera calibration of 2026-11-13 in the cad_v3 MuJoCo scene of the SR2 hand on the UR5 (assets/mjcf/experimental/20261104-cad_v3/ur5_full_k1.xml, the hand as built). |
+| `camera_arm_calibration_page.py` | Result page of 2026-11-13: lens and arm calibration of the two D435 tracking cameras on the UR5, with the owner jogging the arm (owner: "sure, build it here, something that we can ideally store, replay, (render a nice mu |
 | `charuco_board_mount_print.py` | The mount that holds the ChArUco board of scripts/hardware/charuco_board_print.py on the SR2 hand for the hand-eye poses (owner, 2026-11-12: at the camera arm's fork). |
 | `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |

@@ -13,6 +13,18 @@
  },
  {
   "date": "2026-11-13",
+  "file": "docs/experiments/20261113-camera_arm_calibration/20261113-camera_arm_calibration.html",
+  "title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
+  "page_title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
+  "topic": "hardware",
+  "summary": "D435 lens and arm calibration on the UR5 (17 owner-jogged poses, 120 hand-held views): focal lengths 1371/1368 px with distortion, board from the arm vs each camera 0.58/0.37 mm median through the TCP pose; depth within 1-2 mm; hex block tags 13.02 mm, not 13.33.",
+  "builder": "scripts/hardware/camera_arm_calibration_page.py",
+  "artifact": "https://claude.ai/artifact/Jp3GWo4rjpCzcNKroMPHfR",
+  "status": "current",
+  "mb": 4.3
+ },
+ {
+  "date": "2026-11-13",
   "file": "docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
   "title": "Sampling MPC and HOM on the SR2 sphere twist",
   "page_title": "Sampling MPC and HOM on the SR2 sphere twist",
