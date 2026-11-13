@@ -138,6 +138,10 @@ def sec_files(J):
         ("Sphere's tag block and stem (ids 16 to 21)", stls("sphere_block"), f"{op['sphere_block']['height_mm']:.1f}",
          "glued to the lower hemisphere's flat and slot"),
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
+        ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
+         "printed standing; grip tape on its side"),
+        ("Cylinder without end tags (in place of the above)", stls("cylinder_plain", colours=("white",)), "100.0",
+         "printed standing; grip tape on its side"),
         ("Sphere, lower hemisphere", stls("sphere_lower", colours=("white",)), "19.4", "three dowels into the upper half"),
         ("Sphere, upper hemisphere", stls("sphere_upper", colours=("white",)), "20.0", ""),
         ("Dowel, print three", stls("sphere_pin", colours=("white",)), "7.6", "2.9 mm in 3.1 mm holes, 4 mm deep"),
@@ -161,6 +165,13 @@ def sec_files(J):
         (flink(f"{OBJ}/20261112-objects_p1s.3mf", github=False), "all nine object parts",
          hours(O["bambu"]["prediction_s"]), f"{O['bambu']['used_g']['2']:.1f}", f"{O['bambu']['used_g']['3']:.1f}",
          str(O["bambu"]["filament_loads"])),
+    ] + [
+        (flink(f"{OBJ}/20261112-objects_p1s_{v}.3mf", github=False), what, hours(q["prediction_s"]),
+         f"{q['used_g']['2']:.1f}", f"{q['used_g']['3']:.1f}", str(q["filament_loads"]))
+        for v, what in (("cylinder_tag23", "the same, the cylinder with end tag 23 only"),
+                        ("cylinder_plain", "the same, the cylinder without end tags"))
+        if (q := O.get("bambu_variants", {}).get(v))
+    ] + [
         (flink(f"{BRD}/20261112-charuco_board_p1s.3mf", github=False), "the board",
          hours(B["bambu"]["prediction_s"]), f"{B['bambu']['used_g']['2']:.1f}", f"{B['bambu']['used_g']['3']:.1f}",
          str(B["bambu"]["filament_loads"])),
@@ -177,7 +188,17 @@ def sec_files(J):
           "of 10 to 12 mm. The stems and the dowels are glued with cyanoacrylate or two-part epoxy. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "
           "to another plate.</p>")
-    return t1 + t2 + hw
+    alt = ""
+    if O.get("bambu_variants", {}).get("cylinder_tag23"):
+        q0, q1 = O["bambu"], O["bambu_variants"]["cylinder_tag23"]
+        dg = sum(q0["used_g"].values()) - sum(q1["used_g"].values())
+        dm = (q0["prediction_s"] - q1["prediction_s"]) / 60
+        alt = ("<p>The cylinder's top tag (22) lies 100 mm above the bed, so with it the prime tower rises to the "
+               f"cylinder's top. The cylinder with end tag 23 only saves {dg:.1f} g of PLA and {dm:.0f} min (owner, "
+               "2026-11-13). The block's six tags still give the cylinder's pose. In the bundle adjustment the "
+               "cylinder's turn on its block is then read from where tag 23 sits, 50 mm from the stem. Without end tags "
+               "the key's 0.1 mm clearance per side leaves that turn within &plusmn;2.3&deg;.</p>")
+    return t1 + t2 + alt + hw
 
 
 def sec_objects(J, viewer):

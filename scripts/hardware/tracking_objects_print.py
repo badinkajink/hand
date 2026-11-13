@@ -16,7 +16,9 @@ servo's five best per task).
 
 Files lie in print orientation on z = 0, each two-colour part as a white body and its black cells in one frame. `build`
 (femtip, manifold3d) writes them; `check` (camera stack) draws every tag face of the black bodies and detects it against
-the map; `bambu` writes one Bambu Studio project of all parts (white on filament 2, black on 3).
+the map; `bambu` writes one Bambu Studio project of all parts (white on filament 2, black on 3). `build` also writes two
+alternatives of the cylinder, with end tag 23 only and without end tags (owner, 2026-11-13: the end tags "cause a lot of
+pla usage"), and `bambu --cylinder NAME` slices the plate with one of them in a project of its own.
 
     ~/.claude/bin/resguard.sh run --mem 3G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
         ~/miniconda3/envs/femtip/bin/python scripts/hardware/tracking_objects_print.py build
@@ -105,18 +107,21 @@ def flat(r, seat_y):
         m4(np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]]), (0.0, -r - 1.0, 0.0)))  # its axis along +y_O, up to seat_y
 
 
-def cylinder_body():
-    """(white, black) of the cylinder in O turned to print: standing on its -z_O end."""
+def cylinder_body(ids=OM.END_IDS):
+    """(white, black) of the cylinder in O turned to print, standing on its -z_O end, with the end tags `ids`; black is
+    None when `ids` is empty."""
     import manifold3d as M
     r, _d, seat_y = seat("cylinder")
     L = OM.OBJECTS["cylinder"]["length_mm"]
     S = M.Manifold.cylinder(L, r, r, SEG).translate([0.0, 0.0, -L / 2]) - flat(r, seat_y) - slot(seat_y)
+    T = m4(R_PRINT["cylinder"], (0.0, 0.0, L / 2))
+    if not ids:
+        return S.transform(T), None
     ends = TG.TagMap(OM.BLOCK.family, OM.BLOCK.tag_size)
     full = OM.object_map("cylinder")
-    for i in OM.END_IDS:
+    for i in ids:
         ends.frames[i], ends.corners[i] = full.frames[i], full.corners[i]
     cells = OP.black_cells(ends, END_DEPTH)
-    T = m4(R_PRINT["cylinder"], (0.0, 0.0, L / 2))
     return (S - cells).transform(T), (S ^ cells).transform(T)
 
 
@@ -147,6 +152,11 @@ def stl(name, colour="white"):
 PARTS = {"cylinder_block": "cylinder block and stem, ids 10-15", "sphere_block": "sphere block and stem, ids 16-21",
          "cylinder": "cylinder body, end tags 22 and 23", "sphere_lower": "sphere, lower hemisphere with the seat",
          "sphere_upper": "sphere, upper hemisphere", "sphere_pin": "dowel pin of the sphere (print three)"}
+# the cylinder with fewer end tags (owner, 2026-11-13: "do we need the apriltag on the end of the cylinder? it causes a
+# lot of pla usage"). Tag 22 lies on the printed cylinder's top, so with it the prime tower rises to 100 mm; tag 23
+# prints in the first three layers. Each alternative replaces the cylinder on the plate (bambu --cylinder).
+CYLINDERS = {"cylinder": OM.END_IDS, "cylinder_tag23": (23,), "cylinder_plain": ()}
+ALTERNATIVES = {"cylinder_tag23": "cylinder body, end tag 23 only", "cylinder_plain": "cylinder body without end tags"}
 
 
 def cmd_build(a):
@@ -156,12 +166,15 @@ def cmd_build(a):
            "seat": {s: dict(zip(("r_print_mm", "flat_depth_mm", "seat_y_O_mm"), map(float, seat(s))))
                     for s in ("cylinder", "sphere")},
            "parts": {}}
+    if REPORT.exists():                   # the projects' slices stay until bambu slices again
+        old = json.loads(REPORT.read_text())
+        rep.update({k: old[k] for k in ("bambu", "bambu_variants") if k in old})
     bodies = {}
     for shape in ("cylinder", "sphere"):
         w, b, top = block_stem(shape)
         bodies[f"{shape}_block"] = (w, b)
         rep["parts"][f"{shape}_block"] = {"height_mm": round(top + KEY[2], 3)}
-    bodies["cylinder"] = cylinder_body()
+    bodies.update({name: cylinder_body(ids) for name, ids in CYLINDERS.items()})
     low, up, pin = sphere_halves()
     # the assembly: each block and stem moved back into O against its body; the seat only touches the flat and the key
     # clears its slot, so the shared volume is zero
@@ -181,7 +194,7 @@ def cmd_build(a):
     ok = True
     for name, (w, b) in bodies.items():
         info = rep["parts"].setdefault(name, {})
-        info["what"] = PARTS[name]
+        info["what"] = {**PARTS, **ALTERNATIVES}[name]
         vol = {"white": w.volume(), "black": b.volume() if b is not None else 0.0}
         if b is not None:
             vol["overlap"] = (w ^ b).volume()
@@ -212,10 +225,12 @@ def print_maps():
     for shape in ("cylinder", "sphere"):
         out[f"{shape}_block"] = [OP.shifted(OM.block_map(shape), OM.BLOCK.height / 2)]
     full = OM.object_map("cylinder").transformed(np.r_[m4(R_PRINT["cylinder"], (0.0, 0.0, 50.0)), [[0, 0, 0, 1.0]]])
-    ends = TG.TagMap(full.family, full.size)
-    for i in OM.END_IDS:
-        ends.frames[i], ends.corners[i] = full.frames[i], full.corners[i]
-    out["cylinder"] = [ends]
+    for name, ids in CYLINDERS.items():
+        if ids:
+            ends = TG.TagMap(full.family, full.size)
+            for i in ids:
+                ends.frames[i], ends.corners[i] = full.frames[i], full.corners[i]
+            out[name] = [ends]
     return out
 
 
@@ -260,18 +275,25 @@ TOWER = (190.0, 180.0)
 def cmd_bambu(a):
     items = []
     for name in PARTS:
-        it = {"name": name, "white": stl(name), "black": stl(name, "black") if stl(name, "black").exists() else None,
+        src = a.cylinder if name == "cylinder" else name
+        it = {"name": name, "white": stl(src), "black": stl(src, "black") if stl(src, "black").exists() else None,
               "place": PLACE[name]}
         items.append(it)
     pins = [dict(items[-1], name=f"sphere_pin_{k}", place=(PLACE["sphere_pin"][0] + 12.0 * k, PLACE["sphere_pin"][1]))
             for k in range(3)]
     items = items[:-1] + pins
-    q = OP.bambu_project(items, PROJECT, ROOT / f"logs/{DATE}-objects/bambu", "tracked objects", tower=TOWER)
+    variant = a.cylinder != "cylinder"
+    project = OUT / f"{DATE}-objects_p1s_{a.cylinder}.3mf" if variant else PROJECT
+    work = ROOT / f"logs/{DATE}-objects/bambu{'_' + a.cylinder if variant else ''}"
+    q = OP.bambu_project(items, project, work, "tracked objects", tower=TOWER)
     rep = json.loads(REPORT.read_text())
-    rep["bambu"] = q
+    if variant:
+        rep.setdefault("bambu_variants", {})[a.cylinder] = q
+    else:
+        rep["bambu"] = q
     REPORT.write_text(json.dumps(rep, indent=1))
     write_readme(rep)
-    print(f"{PROJECT.relative_to(ROOT)}: {q['prediction_s'] / 3600:.1f} h, {q['layers']} layers, "
+    print(f"{project.relative_to(ROOT)}: {q['prediction_s'] / 3600:.1f} h, {q['layers']} layers, "
           f"{q['filament_loads']} filament loads, used {q['used_g']} g")
     print("problems:", q["problems"] or "none")
     if q["problems"]:
@@ -290,12 +312,17 @@ def write_readme(rep):
          "",
          "| Part | Files | Print |",
          "|---|---|---|"]
-    for name, what in PARTS.items():
-        p = P[name]
+    names = list(PARTS)
+    k = names.index("cylinder") + 1
+    names[k:k] = [n for n in ALTERNATIVES if n in P]
+    for name in names:
+        what, p = {**PARTS, **ALTERNATIVES}[name], P[name]
         files = ", ".join(f"`{Path(p[c]['file']).name}`" for c in ("white", "black") if c in p)
         how = {"cylinder_block": "upright, block on the bed; 65 layers in both colours",
                "sphere_block": "upright, block on the bed; 65 layers in both colours",
                "cylinder": "standing on its -z end (tag 23 on the bed, tag 22 on top)",
+               "cylinder_tag23": "in place of the cylinder above, standing on its -z end (tag 23 on the bed)",
+               "cylinder_plain": "in place of the cylinder above, standing; white only",
                "sphere_lower": "flat side down, the seat on top", "sphere_upper": "flat side down",
                "sphere_pin": "standing; print three"}[name]
         L.append(f"| {what} | {files} | {how} |")
@@ -323,19 +350,30 @@ def write_readme(rep):
           "the block's three across-flats as lengths) gives its map, and with it where the cylinder sits on its block. "
           "The sphere's map is its block's, placed by the seat and key. In the CAD the assembled parts share "
           f"{rep['assembly_overlap_mm3']['cylinder']:g} mm3 (cylinder) and {rep['assembly_overlap_mm3']['sphere']:g} mm3 "
-          "(sphere): the seats touch the flats and the keys clear their slots."]
+          "(sphere): the seats touch the flats and the keys clear their slots. With end tag 23 alone the adjustment has "
+          "seven tags, and the cylinder's turn about the stem is read from where tag 23 sits, "
+          f"{o['cylinder']['length_mm'] / 2:g} mm from the stem. Without end tags the cylinder's map is the CAD's; the "
+          f"key's clearance then leaves its turn about the stem within +-{math.degrees(2 * KEY_CLEAR / KEY[1]):.1f} deg."]
     if "check_ok" in rep:
         rms = [r["corner_rms_mm"] for p in P.values() for r in p.get("check", [])]
         span = f"{min(rms):.3f}" if f"{min(rms):.3f}" == f"{max(rms):.3f}" else f"{min(rms):.3f} to {max(rms):.3f}"
         L += ["", f"Check: every tag face of the black bodies, drawn at {OP.PPM:.0f} px/mm from the mesh, decodes as its "
                   f"own id with corners {span} mm RMS from the map."]
+    def sliced(q):
+        return (f"{q['prediction_s'] / 3600:.1f} h, {q['used_g'].get('2', 0):.1f} g white and "
+                f"{q['used_g'].get('3', 0):.1f} g black, {q['filament_loads']} filament loads")
+
     if "bambu" in rep:
         q = rep["bambu"]
-        L += ["", f"Bambu Studio project: `{Path(q['project']).name}`, all parts on one plate, the white on filament 2 "
-                  f"and the black on filament 3 (AMS slots 2 and 3). Sliced by the command line: "
-                  f"{q['prediction_s'] / 3600:.1f} h, {q['used_g'].get('2', 0):.1f} g white and "
-                  f"{q['used_g'].get('3', 0):.1f} g black, {q['filament_loads']} filament loads. Not in git; "
-                  "`tracking_objects_print.py bambu` rebuilds it."]
+        s = (f"Bambu Studio project: `{Path(q['project']).name}`, all parts on one plate, the white on filament 2 and "
+             f"the black on filament 3 (AMS slots 2 and 3). Sliced by the command line: {sliced(q)}.")
+        phrase = {"cylinder_tag23": "the cylinder bearing only end tag 23", "cylinder_plain": "the cylinder without end tags"}
+        if rep.get("bambu_variants"):
+            s += (" Tag 22 lies on the printed cylinder's top, so with it the prime tower rises to "
+                  f"{o['cylinder']['length_mm']:g} mm.")
+        for v, qv in rep.get("bambu_variants", {}).items():
+            s += f" With {phrase[v]} in its place, `{Path(qv['project']).name}`: {sliced(qv)}."
+        L += ["", s + " Not in git; `tracking_objects_print.py bambu [--cylinder NAME]` rebuilds them."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -345,7 +383,9 @@ def main():
     sub.add_parser("build")
     p = sub.add_parser("check")
     p.add_argument("--preview")
-    sub.add_parser("bambu")
+    p = sub.add_parser("bambu")
+    p.add_argument("--cylinder", choices=list(CYLINDERS), default="cylinder",
+                   help="the cylinder on the plate; an alternative writes its own project beside the default one")
     a = ap.parse_args()
     {"build": cmd_build, "check": cmd_check, "bambu": cmd_bambu}[a.cmd](a)
 
