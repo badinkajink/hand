@@ -17,7 +17,7 @@
   "title": "Sampling MPC and HOM on the SR2 sphere twist",
   "page_title": "Sampling MPC and HOM on the SR2 sphere twist",
   "topic": "design",
-  "summary": "On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was 0.388 with 7.7 N of grip. It needs 2.0 ms of one CPU core per 10 ms period. The best sampling planner, DIAL annealing, reached 0.461 with 4.7 N of grip. Its targets reversed 2.0 times per joint per second, HOM's 0.6 times. For one hand it needs 11.7 s of GPU per second of control. At a budget that runs in real time, predictive sampling reached 0.335. Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; its best J was 0.370 at 1/s. A commanded pad force of 2 N per finger in place of 2.5 N raised HOM's J to 0.415.",
+  "summary": "On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was 0.388 with 7.7 N of grip. It needs 2.0 ms of one CPU core per 10 ms period. The best sampling planner, DIAL annealing, reached 0.461 with 4.7 N of grip. Its targets reversed 2.0 times per joint per second, HOM's 0.6 times. For one hand it needs 11.7 s of GPU per second of control. At a budget that runs in real time, predictive sampling reached 0.335. Sampling HOM's rolling and sliding rates in place of the servo targets gave 0.415 with 0.6 reversals per second. Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; its best J was 0.370 at 1/s. A commanded pad force of 2 N per finger in place of 2.5 N raised HOM's J to 0.415.",
   "builder": "scripts/hom/inner_loop_mpc_page.py",
   "artifact": "https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f",
   "status": "current",

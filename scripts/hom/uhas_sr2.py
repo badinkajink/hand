@@ -187,6 +187,7 @@ class UBatch(HG.Batch):
         cop = th.where((F > 0)[..., None], cop, th.zeros_like(cop))
         w_ref, s_push, th_cmd, ph = self.schedule(t)
         w_ref_t = th.tensor(w_ref, dtype=self.f64, device=self.dev)
+        self.w_pred = w_ref_t                          # the pose filter's prediction (hom_gpu.POSE_FILTER)
         v_ref = th.zeros((W, 3), dtype=self.f64, device=self.dev)
         if self.task == "roll":
             v_ref = th.cross(w_ref_t.expand(W, 3), -self.scene.r * self.n_out[:, 0], dim=-1)

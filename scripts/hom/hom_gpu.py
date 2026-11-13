@@ -98,6 +98,13 @@ DMAX = 4                               # longest measurement delay, control peri
 # actuators (their force is computed from the step's starting state as well).
 DEADBAND = math.radians(float(os.environ.get("HOS_DEADBAND_DEG", "0") or 0.0))
 OVER_OK = {"dt", "contact_force_min", "force_loop_gain", "reanchor"}    # the HomParams a variant may change here
+# The object's measured pose through a complementary filter (owner, 2026-11-13: "for a known geometry, can't we use the
+# complementary filter to have some belief model of the object pose?"): None, or {"tau": s, "every": periods}. From
+# the task's start each period predicts the orientation with the schedule's angular velocity (Batch.w_pred, set by the
+# caller); when a tracker frame arrives (every `every` periods) the estimate kept for the frame's own time (k - delay)
+# is compared with the frame, and dt_frame / tau of the difference, in position and in rotation, is applied to the
+# current estimate. tau inf: no correction after the start (open loop); tau None: each frame is held until the next.
+POSE_FILTER = None
 FP_ROWS = {"2dfp": "rrt2d", "rrt6d": "rrt6d", "sobol8k": "sobol8k", "sobol6d": "sobol6d"}
 
 
@@ -908,6 +915,7 @@ class Batch:
                     "quat": th.zeros((self.L, W, 4), dtype=f64, device=dev),
                     "cop": th.zeros((self.L, W, 3, 3), dtype=f64, device=dev),
                     "F": th.zeros((self.L, W, 3), dtype=f64, device=dev)}
+        self.pf, self.w_pred = None, None                  # the pose filter's state (POSE_FILTER)
         self.gen = th.Generator(device=dev)
         self.gen.manual_seed(int(self.gen_seed))
         self.qadr_t = th.tensor(self.qadr, device=dev)
@@ -954,7 +962,41 @@ class Batch:
         Fsel = th.where(md == 2, F_tip, th.where(md == 3, F_sn, F))
         csel = th.where((md == 2)[..., None], cop_tip, th.where((md == 3)[..., None], cop_sn, cop))
         Fm = th.where(valid, Fsel, th.zeros_like(Fsel))
+        if POSE_FILTER is not None:
+            pos_m, quat_m = self._pose_filter(k, pos_m, quat_m)
         return {"q": q_m, "pos": pos_m, "quat": quat_m, "cop": csel, "F": Fm, "valid": valid, "quat_d": quat}
+
+    def _pose_filter(self, k, pos_m, quat_m):
+        """The object's pose after POSE_FILTER from this period's measurement (W, 3) and (W, 4)."""
+        from sr2hand.rl.math import quat_conj, quat_from_axis_angle, quat_to_rotvec
+        th, W, dt = self.torch, self.W, self.prm.dt
+        tau, every = POSE_FILTER.get("tau"), int(POSE_FILTER.get("every", 1))
+        fresh = (k % every) == 0
+        if self.pf is None:
+            self.pf = {"p": pos_m.clone(), "q": quat_m.clone(), "zp": pos_m.clone(), "zq": quat_m.clone(),
+                       "hp": pos_m[None].repeat(self.L, 1, 1), "hq": quat_m[None].repeat(self.L, 1, 1)}
+        pf = self.pf
+        if fresh:
+            pf["zp"], pf["zq"] = pos_m.clone(), quat_m.clone()
+        if tau is None or self.clock[k] < self.t_task - 1e-9:
+            p_, q_ = pf["zp"].clone(), pf["zq"].clone()       # held frames; raw frames before the task
+        else:
+            w = (self.w_pred if self.w_pred is not None else th.zeros(3, dtype=self.f64, device=self.dev)).expand(W, 3)
+            ang = w.norm(dim=-1)
+            q_ = self._quat_mul(quat_from_axis_angle(w / ang.clamp_min(1e-12)[:, None], ang * dt), pf["q"])
+            p_ = pf["p"].clone()
+            if fresh and math.isfinite(tau):
+                a = min(1.0, every * dt / tau)
+                ref = (k - self.delay) % self.L
+                ar = th.arange(W, device=self.dev)
+                e = a * quat_to_rotvec(self._quat_mul(pf["zq"], quat_conj(pf["hq"][ref, ar])))
+                en = e.norm(dim=-1)
+                q_ = self._quat_mul(quat_from_axis_angle(e / en.clamp_min(1e-12)[:, None], en), q_)
+                p_ = p_ + a * (pf["zp"] - pf["hp"][ref, ar])
+            q_ = q_ / q_.norm(dim=-1, keepdim=True)
+        pf["p"], pf["q"] = p_, q_
+        pf["hp"][k % self.L], pf["hq"][k % self.L] = p_, q_
+        return p_, q_
 
     def mirror(self, meas):
         """The mirror's kinematics at the measured state; returns its views."""

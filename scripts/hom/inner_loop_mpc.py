@@ -574,6 +574,12 @@ def cmd_run(a):
     if a.hs_sigma is not None:
         PLAN_HS["sigma"] = a.hs_sigma
         a.tag = f"_hs{a.hs_sigma:g}" + a.tag
+    if a.pose_tau is not None or a.meas_every > 1:
+        if a.method != "hom":
+            raise SystemExit("--pose-tau/--meas-every: HOM's measured pose (hom_gpu.POSE_FILTER)")
+        HG.POSE_FILTER = {"tau": a.pose_tau, "every": a.meas_every}
+        a.tag = (f"_pf{a.pose_tau:g}" if a.pose_tau is not None else "_hold") + (f"e{a.meas_every}" if a.meas_every > 1
+                                                                                 else "") + a.tag
     if a.plan_delay or a.plan_noise:
         if a.method not in METHODS:
             raise SystemExit("--plan-delay/--plan-noise: the joint-space planners only")
@@ -632,6 +638,7 @@ def cmd_run(a):
             row.update({k: r.get(k) for k in IU.KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in IU.METRICS})
             row.update({"model": a.model, "att_gain": UH.ATT_GAIN, "variant": a.variant, "meas": dict(MEAS),
+                        "pose_filter": HG.POSE_FILTER,
                         "space": "hom" if a.method in HS_METHODS else "joint"})
             row.update({"chunk_wall_s": round(wall, 2), "chunk_worlds": Wc, "run": a.run if a.method == "uhas" else None,
                         "checkpoint": Path(ckpt).name if ckpt else None})
@@ -787,6 +794,9 @@ def main():
     p.add_argument("--n", type=int, default=64, help="samples per plant world and iteration")
     p.add_argument("--limit-pairs", type=int, default=0, help="only the first pairs (smoke tests)")
     p.add_argument("--tag", default="", help="appended to the rows' file name")
+    p.add_argument("--pose-tau", type=float, default=None, help="method hom: the pose filter's time constant, s (inf: "
+                   "open loop from the task's start; hom_gpu.POSE_FILTER)")
+    p.add_argument("--meas-every", type=int, default=1, help="method hom: a tracker frame every this many periods")
     p.add_argument("--plan-delay", type=int, default=0, help="planners: plan from the plant's state this many periods "
                    "earlier (4: the tag tracker's 40 ms)")
     p.add_argument("--plan-noise", action="store_true", help="planners: the tag tracker's noise on the object's pose "

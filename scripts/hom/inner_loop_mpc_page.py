@@ -308,11 +308,12 @@ def sec_films():
         for spec, c in cl.items():
             nm = spec.split(":")[0]
             tab = TABLE_ROWS.get(FILM_STEM.get(nm, ""), {}).get(k)
-            parts.append(f"{FILM_NAME.get(nm, esc(spec))}: J {c['J']:.2f}"
+            nm_ = FILM_NAME.get(nm, esc(spec))
+            parts.append(f"{nm_[0].upper() + nm_[1:]}: J {c['J']:.2f}"
                          + (f" (in the table's run {tab['J']:.2f})" if tab and nm != "hom" else "")
                          + f", grip {c['grip_mean_N']:.1f} N, {c['reversals_ps']:.1f} reversals per joint per s")
         cap = (f"Layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}, plant friction "
-               f"{info['plant_mu']:g}; the task phase from 2.4 s. " + "; ".join(parts) + ". A planner's run in the "
+               f"{info['plant_mu']:g}; the task phase from 2.4 s. " + ". ".join(parts) + ". A planner's run in the "
                "film draws other samples than its run in the table. Each frame gives each finger's pad force and the "
                "force through its rigid parts on the sphere (N); the links are drawn see-through and the sphere's "
                "axes as rods.")
@@ -391,8 +392,8 @@ def sec_pt(S):
              f2(sp["replan_s"], 2) if sp else "&#8212;"],
             ["DIAL annealing, point-contact model", f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["grip_mean_N"], 1),
              f2(s["reversals_ps"]), f2(s["replan_s"], 2)]]
-    t = r"""<p>The point-contact model is the same hand with each v4b tip as one convex mesh that touches the sphere at
-one point, where the plant's tip is 1,018 sphere pads (the scene cache's <code>pt</code> model). The planner rolls out
+    t = r"""<p>The point-contact model is the same hand with each v4b tip as one convex mesh, which touches the sphere at
+one point (the scene cache's <code>pt</code> model). The plant's tip is 1,018 sphere pads. The planner rolls out
 the point-contact model, and the plant keeps the pads.</p>"""
     t += table(["Planner", "Mean J", "Held (%)", "Grip (N)", "Target reversals (1/s)", "Replanning, 16 hands (s)"],
                rows, "DIAL annealing with its own model of the fingertips, on the same 40 runs.")
@@ -414,11 +415,12 @@ def sec_hs(S):
                          "&#8212;" if not s_.get("rollouts") else f"{s_['rollouts']:.0f}"])
     if not any(S.get(k) for k in ("hs_anneal_twist", "hs_anneal_twist_hs0.1", "hs_ps_twist", "hs_icem_twist")):
         return ""
-    t = r"""<p>A HOM-space plan sets, per finger and knot, the two rolling and the two sliding rates of the contact
-relative to the sphere: 12 numbers per knot, the separation and the spin about the normal left to HOM. Each period HOM
-solves its Eq. (2) as usual. It then solves it again with every row's reference taken from its own solution, the plan's
-rates added to the rolling and sliding rows, those rows at weight 1 and the separation row at 10 times its weight. A
-finger has three joints, so without the heavier separation row the added rates pulled the pads off the sphere. With
+    t = r"""<p>A HOM-space plan sets the two rolling and the two sliding rates of each contact relative to the
+sphere, 12 numbers per knot. The separation and the spin about the normal are left to HOM. Each period HOM solves its
+Eq. (2) as usual and then solves it a second time. In the second solve every row's reference is taken from the first
+solution, and the plan's rates are added to the rolling and sliding rows. Those rows get weight 1, and the separation
+row 10 times its weight. A finger has three joints, so without the heavier separation row the added rates pulled the
+pads off the sphere. With
 the plan at zero the controller is HOM; on HOM's best pair a run with noise 10<sup>-9</sup> gave HOM's J, 0.772.
 Each sample's rollout runs HOM in its own world, from a copy of the plant's physics state and HOM's state
 (<code>inner_loop_mpc.HomRollouts</code>). One unit of noise is 1 rad/s of rolling or 20 mm/s of sliding.</p>"""
@@ -460,11 +462,47 @@ plant's exact state.</p>""", r=REVIEW)
                    "not filter the measured pose, so the tracker's noise reaches its servo targets.")
     if pl:
         t += r"""<p>A planner copies the plant's state into its rollouts. With the tag tracker the copy is 40 ms old, and
-the sphere's pose in it carries the tracker's noise. Here each plan starts from the plant's state 4 periods earlier, with
-0.5 mm and 1 deg of noise on the sphere's pose, and is applied from now (<code>--plan-delay 4 --plan-noise</code>).</p>"""
+the sphere's pose in it has the tracker's noise. Here each plan starts from the plant's state 4 periods earlier, with
+0.5 mm and 1 deg of noise on the sphere's pose. The plan is applied from now (<code>--plan-delay 4 --plan-noise</code>).</p>"""
         t += table(["Planner", "Mean J, exact state", "Mean J, measured state", "Held (%)", "Tracking error (deg)",
                     "Three-pad share"], pl, "Planners from a 40 ms old, noisy state, on the same 40 runs.")
     return t
+
+
+PF_RUNS = (("hom_twist_notip", "Tag tracker 50 Hz, frames used as they come"),
+           ("hom_twist_notip_pf0.05", "Tag tracker 50 Hz, filter 0.05 s"),
+           ("hom_twist_notip_pf0.1", "Tag tracker 50 Hz, filter 0.1 s"),
+           ("hom_twist_notip_pf0.2", "Tag tracker 50 Hz, filter 0.2 s"),
+           ("hom_twist_notip_pf0.5", "Tag tracker 50 Hz, filter 0.5 s"),
+           ("hom_twist_notip_pfinf", "Tag tracker until the task, then open loop"),
+           ("hom_twist_notip_holde3", "Tag tracker 17 Hz, each frame held"),
+           ("hom_twist_notip_pf0.2e3", "Tag tracker 17 Hz, filter 0.2 s"),
+           ("hom_twist_tip", "Tag tracker and fingertip model, frames as they come"),
+           ("hom_twist_tip_pf0.1", "Tag tracker and fingertip model, filter 0.1 s"),
+           ("hom_twist_tip_pf0.2", "Tag tracker and fingertip model, filter 0.2 s"),
+           ("hom_twist_rate50", "Exact pose, 50 Hz"),
+           ("hom_twist_rate50_pf0.2", "Exact pose, 50 Hz, filter 0.2 s"))
+
+
+def sec_filter(S):
+    rows = []
+    for stem, lab in PF_RUNS:
+        s_ = S.get(stem)
+        if s_:
+            rows.append([lab, f2(s_["J"], 3), f"{100 * s_['held']:.0f}", f2(s_["err"], 1), f2(s_["contact"]),
+                         f2(s_["reversals_ps"]), f2(s_["cmd_rate_dps"], 1)])
+    if not any(S.get(stem) for stem, _l in PF_RUNS if "_pf" in stem or "hold" in stem):
+        return ""
+    t = r"""<p>HOM feeds the measured pose of the sphere into its contact geometry every period, so the tracker's
+noise reaches the servo targets. A complementary filter keeps a belief of the pose instead. Each period it rotates the
+estimate by the schedule's angular velocity. A tracker frame is compared with the estimate that was kept for the
+frame's own time, 40 ms earlier. The current estimate then moves by $\Delta t_{\mathrm{frame}}/\tau$ of the difference,
+in position and in rotation (<code>hom_gpu.POSE_FILTER</code>). With $\tau$ infinite the estimate is never
+corrected after the task's start: open loop. A 17 Hz tracker sends a frame every third period.</p>"""
+    return t + table(["Measurement of the sphere's pose", "Mean J", "Held (%)", "Tracking error (deg)",
+                      "Three-pad share", "Target reversals (1/s)", "Target rate (deg/s)"], rows,
+                     "HOM with the tag tracker's pose (0.5 mm, 1 deg, 40 ms late) through the complementary filter, on "
+                     "the same 40 runs at 50 Hz.")
 
 
 def sec_friction(S):
@@ -571,6 +609,7 @@ def main():
     stems = [s for s, _ in MAIN] + [f"hom_twist_att{g}" for g in (1, 2, 4, 8)] + [
         "hs_anneal_twist", "hs_anneal_twist_hs0.1", "hs_ps_twist", "hs_icem_twist", "hom_twist_ft1.5", "hom_twist_ft2",
         "hom_twist_ft3.5", "anneal_twist_d4n", "ps_twist_d4n_r10h10k2i1"] + [f"hom_twist_{v}" for v, _d in VARIANTS] + [
+        stem for stem, _l in PF_RUNS] + [
         "anneal_twist_pt", "hom_twist_mu0.4", "ps_twist_mu0.4_r10h10k2i1", "anneal_twist_mu0.4", "spider_twist_mu0.4",
         "spider_wc_twist_mu0.4"]
     R = {s: load(s) for s in stems}
@@ -600,6 +639,7 @@ def main():
                 ("hs", "Sampling in HOM's space", sec_hs(S)),
                 ("pt", "A planner with point-contact fingertips", sec_pt(S)),
                 ("sensing", "Measured state in place of the simulator's", sec_sensing(S)),
+                ("filter", "A complementary filter on the sphere's pose", sec_filter(S)),
                 ("compute", "Compute per second of control", sec_compute(T, S)),
                 ("friction", "Plant friction 0.4", sec_friction(S)),
                 ("work", "The same runs on the work plant", sec_work(SW)),
