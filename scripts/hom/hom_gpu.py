@@ -865,6 +865,7 @@ class Batch:
         self.c1 = None
         self.ap_x = None                                   # the ellipsoid-cylinder witness' previous point
         self.R_bm = self.p_bm = None
+        self.v_add = None
         pr = self.prm
         self.scale = T_([1.0, 1.0, 1.0] + [1.0 / pr.ell] * 3)
         pats = np.array(np.meshgrid([0, 1, 2], [0, 1, 2], [0, 1, 2], indexing="ij")).reshape(3, -1).T
@@ -1048,6 +1049,8 @@ class Batch:
         v_ref[..., 3] = v_ref[..., 3] + th.where(floop & (force > 0), self.flg[:, None] * (force - Fm), th.zeros_like(Fm))
         aw = (dist < pr.aw_dist) & (v_ref[..., 3] > 0) & ~floop
         v_ref[..., 3] = th.where(aw, th.zeros_like(dist), v_ref[..., 3])
+        if getattr(self, "v_add", None) is not None:  # inner_loop_mpc.py's HOM-space planner: rolls, slides (W, 3, 6)
+            v_ref = v_ref + self.v_add
         # Eq. (2): min |sw (A u + b - v_ref)|^2 + w_damp |u|^2 + w_healthy |k (theta_h - theta) - u|^2, box bounds
         sw = th.sqrt(self.weights) * self.scale                                          # (W, 3, 6)
         As = sw[..., None] * A

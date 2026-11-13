@@ -27,6 +27,7 @@ import torch  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import inner_loop_plant  # noqa: E402,F401  the talk's plant (SCS0009, 2.5 MPa pads), set before hom_gpu reads it
 import hom_gpu as HG  # noqa: E402
 import uhas_sr2 as UH  # noqa: E402
 import uhas_sr2_cik as U  # noqa: E402

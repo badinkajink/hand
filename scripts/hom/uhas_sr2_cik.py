@@ -254,6 +254,7 @@ def cmd_check():
     """The torch kinematics against MuJoCo's on random angles and layouts, and a film strip of postures."""
     os.environ.setdefault("SCALE_HAND", "cad_v2")
     import mujoco
+    import inner_loop_plant  # noqa: F401  the talk's plant, set before hom_gpu reads it
     import hom_gpu as HG
     sc = HG.Scene("sphere", 40.0)
     m = mujoco.MjModel.from_xml_path(str(sc.pads_path))

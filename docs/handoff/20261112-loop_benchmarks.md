@@ -1,5 +1,14 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
-State 11-13 08:50: MPC on the 20 pairs x seeds 0-1, exact model (rows/mpc_*_twist.jsonl): mean J HOM 0.402 (not 0.634,
+State 11-13 10:50: EVERY benchmark run of 11-12 and 11-13 before 10:30 (HOM, UHAS train/eval/usability, MPC) used the
+WORK plant (4 N m/rad, 1 N m, 10 MPa scenes): no script set HOS_PLANT/HOS_SCENES. Fixed by scripts/hom/inner_loop_plant.py
+(imported before hom_gpu); old rows and films renamed *_work10; rows now record plant and scenes. Owner told 10:4x.
+Reruns on the SCS0009 plant run from logs/20261112-mpc/lane.sh (lines in lane.txt, appended as code is ready; done lines
+in lane.done): HOM J 0.388 (held 0.97, grip 7.7 N), PS real-time 0.335; anneal, smokes of the HOM-space planner (hs_*)
+and of the film command, timing, HOM angle feedback (--att-gain 1-8), anneal with point-contact model (--model pt), HOM
+under sensing variants (--variant). New page: scripts/hom/inner_loop_mpc_page.py ->
+docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html (not yet published). UHAS must be
+retrained on the SCS0009 plant (tonight). The State lines below are WORK-plant numbers.
+State 11-13 08:50 (work plant): MPC on the 20 pairs x seeds 0-1, exact model: mean J HOM 0.402 (not 0.634,
 the last chunk's mean, as told to the owner on 11-12), DIAL anneal 0.582, iCEM 0.566, SPIDER 0.549, MPPI 0.506, CEM 0.499,
 PS 0.480, SPIDER worst case 0.379, PS near real time 0.396, UHAS 0.389 (held 0.88); planners grip 16.5-23 N against 9.6,
 reverse 1.65-3.15 per joint per s against 0.25; one hand 1.075 s GPU per 0.1 s replanning (near-real-time PS 0.086 s).

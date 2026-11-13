@@ -59,11 +59,12 @@ import torch  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import inner_loop_plant  # noqa: E402,F401  the talk's plant (SCS0009, 2.5 MPa pads), set before hom_gpu reads it
 import hom_gpu as HG  # noqa: E402
 import uhas_sr2_cik as U  # noqa: E402
 import warp as wp  # noqa: E402
 from sr2hand.geometry.rotations import mat_to_quat  # noqa: E402
-from sr2hand.rl.math import quat_conj, quat_from_axis_angle, quat_mul  # noqa: E402
+from sr2hand.rl.math import quat_conj, quat_from_axis_angle, quat_mul, quat_to_rotvec  # noqa: E402
 
 T = HG.T
 RUNS = ROOT / "results/uhas_sr2"
@@ -83,6 +84,11 @@ REW = {"dist": -10.0, "rot": 1.0, "rot_eps": 0.1, "lat": -0.016, "rad": -0.004, 
 # against 0.204. --limits-tau and --limits-cap set the weight and the cap (0 removes it) for a second run.
 REW_LIMITS = {"tau": -0.2, "tau_on": 0.8, "tau_cap": 3.0, "q": -0.1, "q_band_deg": 3.0, "rate": -0.04}
 LIMITS = False
+# HOM with feedback on the object's measured orientation (owner, 2026-11-13: "any reasonably fast and simple way to
+# improve HOM performance?"): in the task phase of the twist and the roll, the commanded angular velocity is the
+# schedule's plus ATT_GAIN (1/s) times the rotation vector from the measured orientation to the commanded one (the
+# schedule's angular velocity integrated from the task's start, as J's reference), at most ATT_MAX rad/s. 0: off.
+ATT_GAIN, ATT_MAX = 0.0, 1.0
 PPO_CFG = {
     "num_steps_per_env": 16, "save_interval": 50, "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
     "logger": "tensorboard",
@@ -159,6 +165,7 @@ class UBatch(HG.Batch):
             self.clock.append(t)
             t += self.prm.dt
         self.k, self.post_off, self.record = 0, False, record
+        self.q_cmd = None
         n = len(self.clock)
         th = self.torch
         if record:
@@ -205,7 +212,18 @@ class UBatch(HG.Batch):
             mv = self.mirror(meas)
             Rd = self._quat_mat(meas["quat_d"])
             RdT = Rd.transpose(-1, -2)
-            V = th.cat([th.einsum("wij,j->wi", RdT, w_ref_t), th.einsum("wij,wj->wi", RdT, v_ref)], -1)
+            w_cmd = w_ref_t.expand(W, 3)
+            if ATT_GAIN > 0 and self.task in ("twist", "roll") and t >= self.t_task - 1e-9:
+                qm = meas["quat"] / meas["quat"].norm(dim=-1, keepdim=True)
+                if self.q_cmd is None:
+                    self.q_cmd = qm.clone()
+                w_fb = ATT_GAIN * quat_to_rotvec(quat_mul(self.q_cmd, quat_conj(qm)))
+                w_cmd = w_cmd + w_fb * (ATT_MAX / w_fb.norm(dim=-1, keepdim=True).clamp_min(ATT_MAX))
+                ang = w_ref_t.norm()
+                if float(ang) > 0:
+                    dq = quat_from_axis_angle(w_ref_t / ang, ang * self.prm.dt).expand(W, 4)
+                    self.q_cmd = quat_mul(dq, self.q_cmd)
+            V = th.cat([th.einsum("wij,wj->wi", RdT, w_cmd), th.einsum("wij,wj->wi", RdT, v_ref)], -1)
             ctrl = self.control(t, meas, mv, V, s_push) - self.cal_q
         else:
             ctrl = q_policy.to(self.f64)
@@ -646,7 +664,8 @@ def cmd_train(a):
     run.mkdir(parents=True, exist_ok=True)
     (run / "split.json").write_text(json.dumps({"task": a.task, "split_seed": a.split_seed, "train": train,
                                                  "test": test, "grasps": len(entries), "start": a.start,
-                                                 "limits": REW_LIMITS if LIMITS else None}, indent=1))
+                                                 "limits": REW_LIMITS if LIMITS else None,
+                                                 **inner_loop_plant.describe()}, indent=1))
     torch.manual_seed(a.seed)
     t0 = time.time()
     env = TrainEnv(a.task, entries, a.worlds, pool_batches=a.pool, seed=a.seed, start=a.start)
@@ -719,6 +738,7 @@ def cmd_eval(a):
     with open(out, "w") as fh:
         for r in rows:
             r["checkpoint"] = Path(path).name
+            r.update(inner_loop_plant.describe(), train_plant=sp.get("plant"))   # runs before 11-13: none recorded
             fh.write(json.dumps(r, default=float) + "\n")
         fh.flush()
         os.fsync(fh.fileno())

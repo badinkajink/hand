@@ -42,6 +42,7 @@ import torch  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import inner_loop_plant  # noqa: E402,F401  the talk's plant (SCS0009, 2.5 MPa pads), set before hom_gpu reads it
 import hom_gpu as HG  # noqa: E402
 import uhas_sr2 as UH  # noqa: E402
 import uhas_sr2_cik as U  # noqa: E402
@@ -155,7 +156,7 @@ def run(task, scene, worlds, W, policy=None, label="hom"):
         for i, (wd_, r) in enumerate(zip(chunk, res)):
             x, y = UH.xy_of(wd_["key"])
             row = {"controller": label, "x_sep": x, "y_sep": y, "grasp": int(wd_["key"].get("grasp", 0)),
-                   "seed": wd_["seed"], "J": L.track_score(task, r)}
+                   "seed": wd_["seed"], "J": L.track_score(task, r), **inner_loop_plant.describe()}
             row.update({k: r.get(k) for k in KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in METRICS})
             rows.append(row)

@@ -68,3 +68,13 @@ def quat_from_axis_angle(axis: torch.Tensor, angle: torch.Tensor) -> torch.Tenso
     sr2hand.geometry.rotations.quat_from_axis_angle (checked against it, 2026-11-12)."""
     h = 0.5 * angle
     return torch.cat([torch.cos(h)[..., None], torch.sin(h)[..., None] * axis], dim=-1)
+
+
+def quat_to_rotvec(q: torch.Tensor) -> torch.Tensor:
+    """Rotation vectors (..., 3), the angle in [0, pi] times the unit axis, of unit wxyz quaternions (..., 4); the torch
+    twin of scipy's Rotation.as_rotvec (checked against it, 2026-11-13)."""
+    q = torch.where(q[..., :1] < 0, -q, q)
+    v = q[..., 1:]
+    s = v.norm(dim=-1, keepdim=True)
+    ang = 2.0 * torch.atan2(s, q[..., :1])
+    return torch.where(s > 1e-12, v * (ang / s.clamp_min(1e-12)), 2.0 * v)

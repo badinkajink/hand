@@ -51,6 +51,7 @@ import os
 os.environ.setdefault("SCALE_HAND", "cad_v2")
 
 import argparse  # noqa: E402
+import copy  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import sys  # noqa: E402
@@ -63,6 +64,7 @@ import torch  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import _paths  # noqa: E402,F401  every folder of scripts/ and src/ on sys.path
+import inner_loop_plant  # noqa: E402,F401  the talk's plant (SCS0009, 2.5 MPa pads), set before hom_gpu reads it
 import hom_gpu as HG  # noqa: E402
 import inner_loop_usability as IU  # noqa: E402
 import uhas_sr2 as UH  # noqa: E402
@@ -81,6 +83,14 @@ PLAN = dict(iters=4, sigma=0.08, lam_rel=0.03, elite_frac=0.15, momentum=0.1, si
             ar_alpha=0.7, keep=2, beta1=0.5, beta2=0.5, sp_first=0.5, sp_last=1.0, sp_final=0.1, sp_exploit=0.01,
             sp_exploit_scale=0.01, sp_temp=0.3, sp_top=0.1, sp_improve=0.01, frictions=(0.4, 0.7, 1.0))
 METHODS = ("ps", "mppi", "cem", "icem", "anneal", "spider", "spider_wc")
+# HOM-space planners (owner, 2026-11-13: "HOM-space controls ... 18-dim control space ... keep fixed ... v_sep (x') and
+# probably w_spin (ex')"): a plan sets, per finger and knot, the two rolling and the two sliding rates of the reference
+# relative twist of HOM's Eq. (2) (rows HS_FREE of spin, roll y, roll z, sep, slide y, slide z), 12 numbers per knot in
+# units of HS_UNIT (rad/s, m/s); those rows get weight 1, and HOM keeps the spin, the separation and its force loop.
+HS_FREE = [1, 2, 4, 5]
+HS_UNIT = (1.0, 1.0, 0.02, 0.02)
+PLAN_HS = dict(sigma=0.3, bound=3.0, rate=2.0)    # the noise and the bound in units; the knot-rate cost's scale, units/s
+HS_METHODS = tuple("hs_" + m for m in METHODS if m != "spider_wc")
 KNOT_T = np.linspace(0.0, H, KNOTS)
 
 
@@ -137,7 +147,9 @@ def pairs(run=RUN, n_top=10):
     return out
 
 
-def worlds_of(prs, seeds):
+def worlds_of(prs, seeds, variant=None):
+    """The pairs' worlds at the seeds; variant: a sensing variant of hom_tasks.VARIANTS (HOM's measurement), default
+    the benchmark's (exact, 100 Hz)."""
     scene = HG.Scene(T.SHAPE[TASK], UH.D_MM[TASK])
     want = {(p["x"], p["y"], p["grasp"]): p["by"] for p in prs}
     out = []
@@ -148,8 +160,25 @@ def worlds_of(prs, seeds):
         bm, q_open = scene.prepare(mxy, setup)
         for sd in seeds:
             out.append({"key": key, "seed": sd, "setup": setup, "body_mounts": bm, "q_open": q_open, "by": want[k],
-                        "var": HG.variant_world(UH.VARIANT[TASK], sd)})
+                        "var": HG.variant_world(variant or UH.VARIANT[TASK], sd)})
     return scene, out
+
+
+def model_scene(scene, model):
+    """The scene the planner rolls out in: the plant's own (pads) or the same hand with point contact on the v4b tip's
+    convex mesh (pt, the Scene's second model; owner, 2026-11-13: "try MPC without the sphere packed model")."""
+    if model == "pads":
+        return scene
+    s2 = copy.copy(scene)
+    s2.pads_path = scene.pt_path
+    return s2
+
+
+LABELS = {"hom": "HOM", "ps": "Predictive sampling", "ps_rt": "Predictive sampling, real-time budget", "mppi": "MPPI",
+          "cem": "CEM", "icem": "iCEM", "anneal": "DIAL annealing", "spider": "SPIDER",
+          "spider_wc": "SPIDER, worst case", "uhas": "UHAS", "hs_ps": "Predictive sampling in HOM's space",
+          "hs_mppi": "MPPI in HOM's space", "hs_cem": "CEM in HOM's space", "hs_icem": "iCEM in HOM's space",
+          "hs_anneal": "DIAL annealing in HOM's space", "hs_spider": "SPIDER in HOM's space"}
 
 
 def set_friction(B, mu):
@@ -194,27 +223,81 @@ class Rollouts:
     def rollout(self, Uh, ctx):
         """The cost of each world's targets Uh (W, H, 9) from the loaded state (W,): the task's terms and the limit
         terms summed over the periods."""
-        B, vw, lim = self.B, self.B.vw, self.lim
+        B, vw = self.B, self.B.vw
         c = torch.zeros(B.W, device="cuda")
         drop = torch.zeros(B.W, dtype=torch.bool, device="cuda")
-        band = math.radians(COST["q_band_deg"])
-        lim_on = lim.limited.float()
         for h in range(H):
             vw["ctrl"][:, B.act_t] = Uh[:, h]
             wp.capture_launch(B.graph)
-            qp = vw["qpos"]
-            p = qp[:, B.qa:B.qa + 3] - ctx["palm"]
-            dq = quat_mul(qp[:, B.qa + 3:B.qa + 7], quat_conj(ctx["goal"][:, h]))
-            err = 2.0 * torch.asin(dq[:, 1:].norm(dim=-1).clamp(max=1.0))
-            drop |= p[:, 2] < ctx["p0"][:, 2] - COST["drop_m"]
-            q = qp[:, self.q9]
-            dmd = self.kp * (Uh[:, h] - q).abs() / lim.tau
-            near = torch.minimum(q - lim.lo, lim.hi - q)
-            c += ((err / math.radians(COST["rot_deg"])) ** 2
-                  + ((p - ctx["p0"]).norm(dim=-1) / (1e-3 * COST["pos_mm"])) ** 2
-                  + COST["pad"] * (B.ft_t < COST["f_on"]).float().sum(-1) + COST["drop"] * drop.float()
-                  + COST["tau"] * ((dmd - COST["tau_on"]) / (1.0 - COST["tau_on"])).clamp(0.0, 3.0).sum(-1)
-                  + COST["q"] * (((band - near) / band).clamp(0.0, 1.0) * lim_on).sum(-1))
+            c += self.period_cost(Uh[:, h], ctx, h, drop)
+        return torch.nan_to_num(c, nan=1e6, posinf=1e6)
+
+    def period_cost(self, u, ctx, h, drop):
+        """The cost of period h after the physics, for the servo targets u (W, 9) that were applied; drop (W,) is
+        updated in place."""
+        B, lim = self.B, self.lim
+        band = math.radians(COST["q_band_deg"])
+        qp = B.vw["qpos"]
+        p = qp[:, B.qa:B.qa + 3] - ctx["palm"]
+        dq = quat_mul(qp[:, B.qa + 3:B.qa + 7], quat_conj(ctx["goal"][:, h]))
+        err = 2.0 * torch.asin(dq[:, 1:].norm(dim=-1).clamp(max=1.0))
+        drop |= p[:, 2] < ctx["p0"][:, 2] - COST["drop_m"]
+        q = qp[:, self.q9]
+        dmd = self.kp * (u - q).abs() / lim.tau
+        near = torch.minimum(q - lim.lo, lim.hi - q)
+        return ((err / math.radians(COST["rot_deg"])) ** 2
+                + ((p - ctx["p0"]).norm(dim=-1) / (1e-3 * COST["pos_mm"])) ** 2
+                + COST["pad"] * (B.ft_t < COST["f_on"]).float().sum(-1) + COST["drop"] * drop.float()
+                + COST["tau"] * ((dmd - COST["tau_on"]) / (1.0 - COST["tau_on"])).clamp(0.0, 3.0).sum(-1)
+                + COST["q"] * (((band - near) / band).clamp(0.0, 1.0) * lim.limited.float()).sum(-1))
+
+
+def hs_add(u):
+    """The added reference relative twists (W, 3, 6) of HOM-space samples u (W, 12): rows HS_FREE, in HS_UNIT."""
+    add = torch.zeros((u.shape[0], 3, 6), dtype=torch.float64, device="cuda")
+    add[..., HS_FREE] = (u.reshape(-1, 3, 4) * torch.tensor(HS_UNIT, device="cuda")).double()
+    return add
+
+
+def hs_weights(B):
+    """Eq. (2)'s rows that a HOM-space plan sets take weight 1 (the twist's rolls are free, weight 0, in HOM)."""
+    B.weights[..., HS_FREE] = 1.0
+
+
+class HomRollouts(Rollouts):
+    """The planner's worlds under HOM for the HOM-space planners: every period HOM computes the servo targets from
+    the measured state, with the sample's rolls and slides added to Eq. (2)'s reference. Before each replanning the
+    plant's physics state and HOM's state (reference angles, filtered contact points, the witness's warm start, the
+    orientation feedback's command, the measurement buffer, the forces of the last step) are copied in."""
+
+    def begin(self, chunk):
+        super().begin(chunk)
+        hs_weights(self.B)
+        dt = self.B.prm.dt
+        self.B.clock = self.B.clock + [self.B.clock[-1] + (i + 1) * dt for i in range(64)]   # rollouts past the end
+
+    def load(self, st):
+        super().load(st)
+        pl, B, r = st["plant"], self.B, self.G * self.n
+        for c in ("theta_ref", "c1", "ap_x", "R_bm", "p_bm", "q_cmd"):
+            v = getattr(pl, c, None)
+            setattr(B, c, None if v is None else v.repeat_interleave(r, 0).clone())
+        B.n_ra = pl.n_ra.repeat_interleave(r, 0).clone()
+        for name in ("ft_t", "fo_t", "cop_t"):
+            getattr(B, name).copy_(getattr(pl, name).repeat_interleave(r, 0))
+        B.buf = {k_: v.repeat_interleave(r, 1).clone() for k_, v in pl.buf.items()}
+        B.k, B.post_off = pl.k, pl.post_off
+
+    def rollout(self, Uh, ctx):
+        """The cost of each world's HOM-space plan Uh (W, H, 12) from the loaded state."""
+        B = self.B
+        c = torch.zeros(B.W, device="cuda")
+        drop = torch.zeros(B.W, dtype=torch.bool, device="cuda")
+        for h in range(H):
+            B.v_add = hs_add(Uh[:, h])
+            B.tick(None)
+            c += self.period_cost(B.vw["ctrl"][:, B.act_t], ctx, h, drop)
+        B.v_add = None
         return torch.nan_to_num(c, nan=1e6, posinf=1e6)
 
 
@@ -222,8 +305,10 @@ class Rollouts:
 class MPC:
     """One planner for P plant worlds: the nominal knots (P, K, 9) and the update rule of its method."""
 
-    def __init__(self, method, P, lo, hi, n, G, seed):
-        self.m, self.P, self.n, self.G = method, P, n, G
+    def __init__(self, method, P, lo, hi, n, G, seed, D=9, sigma=None, rate_scale=None):
+        self.m, self.P, self.n, self.G, self.D = method, P, n, G, D
+        self.sig = PLAN["sigma"] if sigma is None else sigma
+        self.rate_scale = math.radians(COST["rate_dps"]) if rate_scale is None else rate_scale
         self.lo, self.hi = lo, hi
         self.gen = torch.Generator(device="cuda")
         self.gen.manual_seed(1000 + seed)
@@ -231,7 +316,7 @@ class MPC:
         self.ar = torch.arange(P, device="cuda")
 
     def noise(self, n, scale):
-        e = torch.randn((self.P, n, KNOTS, 9), generator=self.gen, device="cuda")
+        e = torch.randn((self.P, n, KNOTS, self.D), generator=self.gen, device="cuda")
         if self.m == "icem":
             a = PLAN["ar_alpha"]
             for k in range(1, KNOTS):
@@ -245,14 +330,14 @@ class MPC:
 
     def rate_cost(self, S):
         gap = float(KNOT_T[1] - KNOT_T[0]) * T.DT_C
-        r = torch.diff(S, dim=2) / gap / math.radians(COST["rate_dps"])
+        r = torch.diff(S, dim=2) / gap / self.rate_scale
         return COST["rate"] * (r ** 2).sum((-1, -2))
 
     def evaluate(self, R, st, S, ctx):
         """Costs (P, n) of the samples S (P, n, K, 9), each the worst over the friction groups."""
         P, n = S.shape[:2]
         Uh = torch.einsum("hk,pnkj->pnhj", W_ROLL, S)
-        Uh = Uh[:, None].expand(P, self.G, n, H, 9).reshape(P * self.G * n, H, 9)
+        Uh = Uh[:, None].expand(P, self.G, n, H, self.D).reshape(P * self.G * n, H, self.D)
         R.load(st)
         c = R.rollout(Uh, ctx).reshape(P, self.G, n).max(1).values
         return c + self.rate_cost(S)
@@ -263,12 +348,12 @@ class MPC:
     def plan(self, R, st, u, ctx):
         """The knots (P, K, 9) to execute from the plant state st; u (P, 9) the targets applied now."""
         if self.nom is None:
-            self.nom = u[:, None].expand(self.P, KNOTS, 9).clone()
+            self.nom = u[:, None].expand(self.P, KNOTS, self.D).clone()
         else:
             self.nom = torch.einsum("ik,pkj->pij", W_SHIFT, self.nom)
             if self.elites is not None:
                 self.elites = torch.einsum("ik,pekj->peij", W_SHIFT, self.elites)
-        m, I, n, sig = self.m, PLAN["iters"], self.n, PLAN["sigma"]
+        m, I, n, sig = self.m, PLAN["iters"], self.n, self.sig
         nom0 = self.constrain(self.nom[:, None], u)
         if m == "ps":
             best_c = torch.full((self.P,), float("inf"), device="cuda")
@@ -364,16 +449,18 @@ def ref_table(task):
     return torch.stack(out)
 
 
-def episode(B, chunk, method, R=None, policy=None, F=None, seed=0):
+def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
     """One batch of plant worlds through the episode: HOM to the task, then HOM, the policy or the planner. Returns
-    the rows of hom_gpu.Batch.score, the usability metrics (inner_loop_usability.metrics) and the planner's record."""
+    the rows of hom_gpu.Batch.score, the usability metrics (inner_loop_usability.metrics) and the planner's record.
+    trace (a list): world 0's positions, mocap positions, time and period index before each period, for films."""
     B.begin(chunk, record=True, hom=True)
     if float(B.cal_q.abs().max()) > 0:
         raise RuntimeError("calibration offsets in the plant: the planner's and the policy's targets bypass them")
     P, vw, k0 = B.W, B.vw, B.k
     task = UH.Task(B)
     plan_rec = {"walls": [], "iters": [], "rollouts": []}
-    if method in METHODS:
+    hs = method in HS_METHODS
+    if method in METHODS or hs:
         R.begin(chunk)
         r = R.G * R.n
         palm = vw["mocap_pos"][:, B.mo_palm].float().clone()
@@ -381,8 +468,14 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0):
         q0 = vw["qpos"][:, B.qa + 3:B.qa + 7].float().clone()
         Qref = ref_table(task)
         ctx0 = {"palm": palm.repeat_interleave(r, 0), "p0": p0.repeat_interleave(r, 0)}
-        mpc = MPC(method, P, R.lim.lo, R.lim.hi, R.n, R.G, seed)
-        u = vw["ctrl"][:, B.act_t].float().clone()
+        if hs:
+            hs_weights(B)
+            bd = torch.full((12,), PLAN_HS["bound"], device="cuda")
+            mpc = MPC(method[3:], P, -bd, bd, R.n, R.G, seed, D=12, sigma=PLAN_HS["sigma"], rate_scale=PLAN_HS["rate"])
+            u = torch.zeros((P, 12), device="cuda")
+        else:
+            mpc = MPC(method, P, R.lim.lo, R.lim.hi, R.n, R.G, seed)
+            u = vw["ctrl"][:, B.act_t].float().clone()
     elif method == "uhas":
         from tensordict import TensorDict
         mounts = torch.tensor(np.array([[wd_["body_mounts"][f] for f in HG.FINGERS] for wd_ in chunk]),
@@ -394,6 +487,9 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0):
     tau = 0
     with torch.inference_mode():
         while not B.done():
+            if trace is not None:
+                trace.append((vw["qpos"][0].cpu().numpy().copy(), vw["mocap_pos"][0].cpu().numpy().copy(),
+                              B.clock[min(B.k, len(B.clock) - 1)], B.k))
             if method == "hom":
                 B.tick(None)
             elif method == "uhas":
@@ -408,18 +504,24 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0):
                     t0 = time.perf_counter()
                     i = torch.arange(tau + 1, tau + H + 1, device="cuda").clamp(max=task.n)
                     goal = quat_mul(Qref[i][None].expand(P, H, 4), q0[:, None].expand(P, H, 4))
-                    knots, inf = mpc.plan(R, B.state(), u, dict(ctx0, goal=goal.repeat_interleave(r, 0)))
+                    knots, inf = mpc.plan(R, dict(B.state(), plant=B) if hs else B.state(), u,
+                                          dict(ctx0, goal=goal.repeat_interleave(r, 0)))
                     seg = torch.einsum("hk,pkj->phj", W_EXEC, knots)
                     torch.cuda.synchronize()
                     plan_rec["walls"].append(time.perf_counter() - t0)
                     plan_rec["iters"].append(inf["iters"])
                     plan_rec["rollouts"].append(inf["rollouts"])
                 u = seg[:, tau % REPLAN]
-                B.tick(u.reshape(P, 3, 3))
+                if hs:
+                    B.v_add = hs_add(u)
+                    B.tick(None)
+                else:
+                    B.tick(u.reshape(P, 3, 3))
             Q.append(vw["qpos"][:, B.qadr_t].reshape(P, 9).float().clone())
             Cm.append(IU.targets(B).reshape(P, 9).clone())
             A.append(wp.to_torch(B.wd.actuator_force)[:, B.act_t].float().clone())
             tau += 1
+    B.v_add = None
     res = B.finish()
     M = IU.metrics(B, k0, torch.stack(Q), torch.stack(Cm), torch.stack(A), IU.Limits(B), B.prm.dt)
     return res, M, plan_rec
@@ -434,10 +536,19 @@ def cmd_run(a):
     configure(a.replan, a.horizon, a.knots, a.iters)
     if (a.replan, a.horizon, a.knots, a.iters) != (10, 30, 3, 4):
         a.tag = f"_r{a.replan}h{a.horizon}k{a.knots}i{a.iters}" + a.tag
+    if a.model != "pads":
+        a.tag = f"_{a.model}" + a.tag
+    UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
+    if UH.ATT_GAIN > 0:
+        a.tag = f"_att{a.att_gain:g}" + a.tag
+    if a.variant != UH.VARIANT[TASK]:
+        if a.method != "hom":
+            raise SystemExit("--variant: only HOM reads the measured state; the planners and UHAS read the plant's")
+        a.tag = f"_{a.variant}" + a.tag
     prs = json.loads((ROWS / "mpc_pairs_twist.json").read_text())["pairs"]
     if a.limit_pairs:
         prs = prs[:a.limit_pairs]
-    scene, worlds = worlds_of(prs, a.seeds)
+    scene, worlds = worlds_of(prs, a.seeds, a.variant)
     tag = "" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}"
     out = ROWS / f"mpc_{a.method}_twist{tag}{a.tag}.jsonl"
     done = set()
@@ -445,8 +556,9 @@ def cmd_run(a):
         done = {row_key(json.loads(x)) for x in out.read_text().splitlines() if x.strip()}
     todo = [w for w in worlds if (a.method, *UH.xy_of(w["key"]), int(w["key"].get("grasp", 0)), w["seed"],
                                   a.plant_mu) not in done]
+    PL = inner_loop_plant.describe()
     print(f"{a.method}: {len(todo)} of {len(worlds)} worlds to run ({len(prs)} pairs, seeds {a.seeds}), plant friction "
-          f"{a.plant_mu:g}", flush=True)
+          f"{a.plant_mu:g}; plant {PL['plant']}, scenes {PL['scenes']}", flush=True)
     if not todo:
         return 0
     Wc = min(a.chunk, len(todo))
@@ -456,13 +568,15 @@ def cmd_run(a):
         chunk = todo[c0:c0 + Wc]
         pad = chunk + [chunk[-1]] * (Wc - len(chunk))
         if B is None:
-            B = UH.UBatch(scene, TASK, pad, T.DT_C, gen_seed=0)
+            B = UH.UBatch(scene, TASK, pad, pad[0]["var"]["dt"], gen_seed=0)
             if a.plant_mu != 1.0:
                 set_friction(B, np.full(Wc, a.plant_mu, np.float32))
             if a.method in METHODS:
                 fr = PLAN["frictions"] if a.method == "spider_wc" else None
                 n = a.n // len(fr) if fr else a.n
-                R = Rollouts(scene, pad, n, fr)
+                R = Rollouts(model_scene(scene, a.model), pad, n, fr)
+            elif a.method in HS_METHODS:
+                R = HomRollouts(model_scene(scene, a.model), pad, a.n)
             elif a.method == "uhas":
                 F = U.Fingers(B.m, "cuda")
                 policy, ckpt = UH.load_policy(UH.RUNS / a.run)
@@ -473,16 +587,19 @@ def cmd_run(a):
         for i, (wd_, r) in enumerate(zip(chunk, res)):
             x, y = UH.xy_of(wd_["key"])
             row = {"controller": a.method, "x_sep": x, "y_sep": y, "grasp": int(wd_["key"].get("grasp", 0)),
-                   "seed": wd_["seed"], "by": wd_["by"], "plant_mu": a.plant_mu, "J": L.track_score(TASK, r)}
+                   "seed": wd_["seed"], "by": wd_["by"], "plant_mu": a.plant_mu, "J": L.track_score(TASK, r), **PL}
             row.update({k: r.get(k) for k in IU.KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in IU.METRICS})
+            row.update({"model": a.model, "att_gain": UH.ATT_GAIN, "variant": a.variant,
+                        "space": "hom" if a.method in HS_METHODS else "joint"})
             row.update({"chunk_wall_s": round(wall, 2), "chunk_worlds": Wc, "run": a.run if a.method == "uhas" else None,
                         "checkpoint": Path(ckpt).name if ckpt else None})
             if pr["walls"]:
                 row.update({"replan_s_mean": round(float(np.mean(pr["walls"])), 4), "replans": len(pr["walls"]),
                             "rollouts_per_replan": round(float(np.mean(pr["rollouts"])), 1),
                             "iters_mean": round(float(np.mean(pr["iters"])), 2), "n": R.n, "groups": R.G,
-                            "plan": {k: PLAN[k] for k in ("iters", "sigma")}, "replan": REPLAN, "H": H,
+                            "plan": {"iters": PLAN["iters"], "sigma": (PLAN_HS if a.method in HS_METHODS
+                                                                       else PLAN)["sigma"]}, "replan": REPLAN, "H": H,
                             "knots": KNOTS})
             rows.append(row)
         with open(out, "a") as fh:
@@ -520,7 +637,7 @@ def cmd_timing(a):
     B = UH.UBatch(scene, TASK, chunk, T.DT_C, gen_seed=0)
     out = []
     for n in a.n:
-        R = Rollouts(scene, chunk, n)
+        R = Rollouts(model_scene(scene, a.model), chunk, n)
         B.begin(chunk, record=False, hom=True)
         R.begin(chunk)
         vw = B.vw
@@ -543,7 +660,8 @@ def cmd_timing(a):
         row = {"plant_worlds": len(chunk), "n": n, "worlds": R.B.W, "iters": PLAN["iters"], "H": H,
                "replan": REPLAN, "replan_s": round(dt, 3),
                "ms_per_period": round(1e3 * per, 2), "us_per_world_period": round(1e6 * per / R.B.W, 2),
-               "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M")}
+               "gpu": torch.cuda.get_device_name(0), "when": time.strftime("%Y-%m-%d %H:%M"), "model": a.model,
+               **inner_loop_plant.describe()}
         print(json.dumps(row), flush=True)
         out.append(row)
         del R
@@ -551,6 +669,63 @@ def cmd_timing(a):
     with open(ROWS / "mpc_timing_twist.jsonl", "a") as fh:
         for r_ in out:
             fh.write(json.dumps(r_) + "\n")
+    return 0
+
+
+def cmd_film(a):
+    """Films of several controllers on one pair and seed (the films of uhas_sr2_film.py: links see-through, the
+    sphere's axes as rods, each finger's pad and rigid-part force per frame), side by side or two by two."""
+    import hom_films as HF
+    import hom_landscape as L
+    import uhas_sr2_film as UF
+    p = json.loads((ROWS / "mpc_pairs_twist.json").read_text())["pairs"][a.pair]
+    scene, worlds = worlds_of([p], [a.seed])
+    world = worlds[0]
+    B = UH.UBatch(scene, TASK, [world], T.DT_C, gen_seed=a.seed)
+    if a.plant_mu != 1.0:
+        set_friction(B, np.full(1, a.plant_mu, np.float32))
+    clips, info = [], {}
+    for spec in a.methods:
+        name, _, arg = spec.partition(":")
+        method = "ps" if name == "ps_rt" else name
+        configure(*((10, 10, 2, 1) if name == "ps_rt" else (10, 30, 3, 4)))
+        UH.ATT_GAIN = float(arg) if name == "hom" and arg else 0.0
+        R = policy = F = None
+        if method in METHODS:
+            fr = PLAN["frictions"] if method == "spider_wc" else None
+            R = Rollouts(model_scene(scene, arg or "pads"), [world], a.n // len(fr) if fr else a.n, fr)
+        elif method in HS_METHODS:
+            R = HomRollouts(model_scene(scene, arg or "pads"), [world], a.n)
+        elif method == "uhas":
+            F = U.Fingers(B.m, "cuda")
+            policy, _ckpt = UH.load_policy(UH.RUNS / (arg or RUN))
+        trace = []
+        res, M, pr = episode(B, [world], method, R, policy, F, seed=a.seed, trace=trace)
+        r = dict(res[0])
+        J = L.track_score(TASK, r)
+        ft = B.rec["ft"][:, 0].cpu().numpy()
+        fl = np.maximum(B.rec["fo"][:, 0].cpu().numpy() - ft, 0.0)
+        lab = LABELS.get(name, name) + (", point-contact model" if arg == "pt" else "")
+        if name == "hom" and UH.ATT_GAIN > 0:
+            lab += f" with angle feedback {UH.ATT_GAIN:g}/s"
+        if pr["walls"]:
+            lab += f" ({np.mean(pr['walls']) / (REPLAN * T.DT_C):.1f} s of GPU per s)"
+        clips.append(UF.frames_of([(q, m, t, ft[k], fl[k]) for q, m, t, k in trace], scene, world,
+                                  f"{lab}: J {J:.2f}, grip {M['grip_mean_N'][0]:.1f} N, "
+                                  f"{M['reversals_ps'][0]:.1f} reversals/s"))
+        info[spec] = {"J": J, "held": bool(r.get("held")), "track_err_rms_deg": r.get("track_err_rms_deg"),
+                      "contact_all_frac": r.get("contact_all_frac"), **{k: float(M[k][0]) for k in IU.METRICS},
+                      "replan_s_mean": float(np.mean(pr["walls"])) if pr["walls"] else None}
+        print(spec, json.dumps(info[spec], default=float), flush=True)
+        del R
+        torch.cuda.empty_cache()
+    UH.ATT_GAIN = 0.0
+    configure(10, 30, 3, 4)
+    name = f"film_mpc_twist_p{a.pair}_s{a.seed}" + ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}") + a.tag
+    HF.compose(clips, UH.OUT / "media" / f"20261113-{name}.mp4", grid=(2, 2) if len(clips) == 4 else None)
+    (ROWS / f"{name}.json").write_text(json.dumps({"pair": p, "seed": a.seed, "plant_mu": a.plant_mu,
+                                                   "methods": a.methods, "clips": info,
+                                                   **inner_loop_plant.describe()}, indent=1, default=float))
     return 0
 
 
@@ -564,7 +739,7 @@ def main():
     p.add_argument("--chunk", type=int, default=16)
     p.add_argument("--n", type=int, nargs="+", default=[128])
     p = sub.add_parser("run")
-    p.add_argument("--method", required=True, choices=("hom", "uhas") + METHODS)
+    p.add_argument("--method", required=True, choices=("hom", "uhas") + METHODS + HS_METHODS)
     p.add_argument("--run", default=RUN, help="the UHAS run (method uhas)")
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1])
     p.add_argument("--plant-mu", type=float, default=1.0, help="the plant's sliding friction (the planners' model "
@@ -573,13 +748,27 @@ def main():
     p.add_argument("--n", type=int, default=64, help="samples per plant world and iteration")
     p.add_argument("--limit-pairs", type=int, default=0, help="only the first pairs (smoke tests)")
     p.add_argument("--tag", default="", help="appended to the rows' file name")
+    p.add_argument("--variant", default="base", choices=sorted(T.VARIANTS), help="method hom: the sensing variant "
+                   "(hom_tasks.VARIANTS; sense and tip run at 50 Hz)")
+    p.add_argument("--att-gain", type=float, default=0.0, help="method hom: feedback on the measured orientation, 1/s "
+                   "(uhas_sr2.ATT_GAIN)")
     for q in (sub.choices["timing"], sub.choices["run"]):
+        q.add_argument("--model", default="pads", choices=("pads", "pt"), help="the planner's model: the plant's pads "
+                       "or point contact")
         q.add_argument("--replan", type=int, default=10, help="periods between replannings")
         q.add_argument("--horizon", type=int, default=30, help="periods")
         q.add_argument("--knots", type=int, default=3)
         q.add_argument("--iters", type=int, default=4)
+    p = sub.add_parser("film")
+    p.add_argument("--pair", type=int, default=0, help="index into rows/mpc_pairs_twist.json")
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--methods", nargs="+", default=["hom", "ps_rt", "anneal", "uhas"],
+                   help="hom[:gain], ps_rt, a planner[:pt], uhas[:run]; four make a two-by-two film")
+    p.add_argument("--plant-mu", type=float, default=1.0)
+    p.add_argument("--n", type=int, default=64)
+    p.add_argument("--tag", default="")
     a = ap.parse_args()
-    return {"pairs": cmd_pairs, "timing": cmd_timing, "run": cmd_run}[a.cmd](a)
+    return {"pairs": cmd_pairs, "timing": cmd_timing, "run": cmd_run, "film": cmd_film}[a.cmd](a)
 
 
 if __name__ == "__main__":
