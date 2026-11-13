@@ -43,10 +43,12 @@ DT_BENCH = 0.02                                   # s: the servo bus's closed-lo
 
 
 def _paths():
-    """scripts/ (hom_tasks and the scene builders) and the manta host package (plan, servos) on sys.path."""
+    """scripts/ and its topic folders (hom_tasks and the scene builders in scripts/hom/ since 2026-11-03, through
+    scripts/_paths) and the manta host package (plan, servos) on sys.path."""
     for p in (ROOT / "scripts", ROOT / "src/sr2hand/driver/manta/host"):
         if str(p) not in sys.path:
             sys.path.insert(0, str(p))
+    import _paths as _scripts_paths  # noqa: F401  every folder of scripts/ and src/ on sys.path
 
 
 def _driver():
