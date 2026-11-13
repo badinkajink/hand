@@ -17,7 +17,7 @@
   "title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
   "page_title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
   "topic": "hardware",
-  "summary": "D435 lens and arm calibration on the UR5 (17 owner-jogged poses, 120 hand-held views): focal lengths 1371/1368 px with distortion, board from the arm vs each camera 0.58/0.37 mm median through the TCP pose; depth within 1-2 mm; hex block map fitted from 35 two-camera views (tags 13.0 mm, not 13.33, recessed 0.3 mm): cameras 0.36 mm apart on the block, from 2.71.",
+  "summary": "D435 lens and arm calibration on the UR5 (17 owner-jogged poses, 120 hand-held views): focal lengths 1371/1368 px with distortion, board from the arm vs each camera 0.58/0.37 mm median through the TCP pose; depth within 1-2 mm; hex block map fitted from 35 two-camera views (tags 13.0 mm, not 13.33, recessed 0.3 mm): cameras 0.36 mm apart on the block, from 2.71; 836612071918 later moved and re-solved from 31 board views in both cameras (sd 0.16 mm).",
   "builder": "scripts/hardware/camera_arm_calibration_page.py",
   "artifact": "https://claude.ai/artifact/Jp3GWo4rjpCzcNKroMPHfR",
   "status": "current",

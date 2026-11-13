@@ -303,7 +303,11 @@ Each step names its acceptance test. Steps 1 to 3 need no time on the hand or th
    0.29 to 0.35 mm inside the caliper faces. With it the cameras' block centres lie 0.36 mm apart over the 17 arm
    poses, down from 2.71 mm. The map for the tracker is
    `docs/experiments/20261113-camera_arm_calibration/data/fits/20261113-hex_block_map.json` (`TagMap.to_json`). It
-   is the 11-07 test block's; the new cylinder block bears the same ids 10 to 15 and needs its own run.
+   is the 11-07 test block's; the new cylinder block bears the same ids 10 to 15 and needs its own run. The owner
+   moved camera 836612071918 at about 16:00 on 2026-11-13, and its pose was re-solved against the unmoved camera from
+   31 board views. In a test on the old place the method landed 0.42 mm and 0.14 deg from the arm's fit. The cameras'
+   poses for the tracker are in
+   `docs/experiments/20261113-camera_arm_calibration/data/fits/20261113-handeye_tcp_fitted_lens_moved836.json`.
 4. Objects and seat. Print the cylinder and the sphere at the infill that makes 25 g, with the chosen contact surface
    (decision 1). Measure their mass and centre of mass. Measure the pad's friction on the surface with the hand on the
    UR5. One fingertip presses the seated object at 1 and 2 N while the arm slides 5 mm, and the HEX-E gives the forces.
