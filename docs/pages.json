@@ -13,6 +13,18 @@
  },
  {
   "date": "2026-11-13",
+  "file": "docs/experiments/20261113-tag_tracking_throughput/20261113-tag_tracking_throughput.html",
+  "title": "Throughput of the two-camera tag tracker on corvus and the controller link",
+  "page_title": "Throughput of the two-camera tag tracker on corvus and the controller link",
+  "topic": "hardware",
+  "summary": "Two-camera tag tracker on corvus: 30 Hz at 1080p (42 ms frame age) and 60 Hz at 540p (22 ms), 100 % of frames tracked, still-block jitter 0.013 mm / 0.05°, 31-38 % of a core; UDP link to the workstation 3.4 ms round trip; closed loop needs servo reads during the station's stream.",
+  "builder": "scripts/hardware/tag_tracking_throughput_page.py",
+  "artifact": "https://claude.ai/artifact/Exa5G8ZwaJizH5gUFZcuBo",
+  "status": "current",
+  "mb": 1.7
+ },
+ {
+  "date": "2026-11-13",
   "file": "docs/experiments/20261113-camera_arm_calibration/20261113-camera_arm_calibration.html",
   "title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
   "page_title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",

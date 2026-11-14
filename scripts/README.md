@@ -80,7 +80,7 @@ Jobs on the DeltaAI cluster.
 | `make_inline_breadth_queue.py` | Emit packed-queue manifests for the inline-hand questions that breadth can answer. |
 | `make_seed_manifest.py` | Write the (design, seed) manifest that deltaai_seed_array.slurm consumes. |
 
-## contact/ (86)
+## contact/ (87)
 
 Fingertip contact models and simulators: the sphere pads, the contact bed, the reorientation on each backend, Drake, Newton, MuJoCo-Warp and DiffMJX.
 
@@ -172,6 +172,7 @@ Fingertip contact models and simulators: the sphere pads, the contact bed, the r
 | `sphere_pad_code_data.py` | Numbers, figures and film of the sphere-pad implementation page (scripts/contact/sphere_pad_code_page.py), 2026-11-11. |
 | `sphere_pad_code_page.py` | Implementation page of the sphere-pad fingertip (2026-11-11), a subpage of the contact model overview (docs/overviews/contact_model.html, sections 'mechanics' and 'pads'). |
 | `sprung_skin_page.py` | Result page: presliding compliance from a sprung skin under the 1 mm sphere pads (2026-10-12). |
+| `steel_hand_compare.py` | Steel (Skild AI's PGS solver in Newton) and Newton's hydroelastic fingertip contact against MuJoCo with the sphere pads, on the twist of the inner-loop benchmark (2026-11-13; owner: "if steel has hydroelastic contact bui |
 
 ## contact_surface/ (9)
 
@@ -456,7 +457,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (56)
+## hardware/ (58)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -515,6 +516,8 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
+| `tag_tracking_throughput_page.py` | Result page of 2026-11-13: throughput of the two-camera tag tracker on corvus and the controller link for sim2real control (owner, 16:2x: "see how much throughput we can get on tag tracking ... |
+| `tag_tracking_throughput_page_text.py` | Text of the throughput page (scripts/hardware/tag_tracking_throughput_page.py page): every number from its data file. |
 | `tracking_objects_print.py` | Print files of the tracked objects of the object seating and tracking plan (docs/notes/20261105-object_seating_and_ tracking/): the 25 mm x 100 mm cylinder and the 40 mm sphere of the HOM tasks, each with its hexagonal t |
 | `tracking_prints_media.py` | Figures and viewer models of the page on the printed tracking objects and the calibration board (docs/experiments/20261113-tracking_prints/, built by scripts/hardware/tracking_prints_page.py). |
 | `tracking_prints_page.py` | Builds docs/experiments/20261113-tracking_prints/20261113-tracking_prints_and_calibration_board.html: the print files of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) with render |
