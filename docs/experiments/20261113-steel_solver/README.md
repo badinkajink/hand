@@ -106,3 +106,5 @@ HOM on `mjc_pads`: mean J 0.382, median 0.394, 40 of 40 held, 3.7 s per rollout.
 rollouts, all 37 held. The other 3 `mjc_pt` rollouts stopped when HOM's least-squares solve did not converge
 ("SVD did not converge"). On the CPU, Steel with point contact gave J 0.618 on the first pair at seed 0 (pads 0.773,
 MuJoCo point contact 0.412), at 124 s per rollout.
+The owner closed this comparison on 2026-11-14 ("if its not gonna be faster or better than mjwarp, dont bother"); the
+page's future-work items were not run.
