@@ -77,8 +77,18 @@ the script is not edited while a line that runs it is queued. Lines of 2026-11-1
   steps. Steel point contact went to NaN with CUDA graphs. A graph-replay bug of the script skipped 10 steps at each
   capture; it is fixed.
 - `steel_smoke2` (line 90, 17:10): failed at once, because the script was edited under the queued line.
-- `steel_stage1` (line 110, before the lane's mu04 block): `logs/20261113-steel/stage1.sh`, HOM on the five Newton
-  plants (40 worlds per batch) and throughput at 16, 256 and 1024 worlds, every step capped at 5 or 10 min.
+- `steel_stage1` (line 110, 18:29-19:01): `logs/20261113-steel/stage1.sh`, HOM on the five Newton plants (40 worlds per
+  batch) and throughput at 16, 256 and 1024 worlds. The HOM rows finished (`rows/hom_<plant>_sap.jsonl`). Every
+  hydroelastic throughput run above 16 worlds failed to allocate GPU memory: with sweep and prune over all 1,348 shapes
+  of a world, Newton sized its narrow-phase buffers for every shape pair (9.3 GB at 256 worlds). The resguard watchdog
+  killed the line twice (18:48, 19:01, memory PSI full 16.6 and 17.0) while 1024-world builds grew past the line's 8 GB
+  scope; `timeout` had put each step in its own process group, so the step outlived the kill until 19:03.
+- `steel_stage2` (line 114, after `sv_mu04_anneal`): `logs/20261113-steel/stage2.sh`, the same HOM and throughput runs
+  with `--contact-pairs obj` (the default since then): the explicit broad phase over the object's pairs only (1,347
+  per world), and every mesh but the hydroelastic tips as its convex hull, as MuJoCo collides it. Throughput at 16, 64,
+  256 and 1024 worlds, one process per world count, against MuJoCo-Warp with the same object-only masks (16 to 2048
+  worlds). A Newton build takes about 7 MB of host memory per world (1.10 GB at 4 worlds, 1.54 GB at 64, on the CPU),
+  so the line has a 12 GB scope; the steps run under `timeout --foreground`.
 
 ## CPU references (2026-11-13)
 

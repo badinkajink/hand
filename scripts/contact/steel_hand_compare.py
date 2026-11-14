@@ -136,6 +136,12 @@ def gpu_used_mb():
         return None
 
 
+def host_rss_mb():
+    """This process's peak resident set (MB)."""
+    import resource
+    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+
 # ------------------------------------------------------------------------------------------------ Newton plant
 def pair_xml(scene, bm, palm):
     """The point-contact scene of the reference layout with this pair's palm pose and finger mounts written into the
@@ -158,8 +164,50 @@ def pair_xml(scene, bm, palm):
     return xml
 
 
-def world_builder(newton, xml, plant):
-    """One world's builder from a pair's MJCF with the plant's contact and servo settings, and its index maps."""
+def object_only(m):
+    """MuJoCo's contact masks with every geom off the object meeting the object only (contype 2, conaffinity 0), the
+    object's own masks kept: the contact pairs of the Newton plants with --contact-pairs obj."""
+    tool = np.flatnonzero(m.geom_bodyid == m.body(T.S.OBJ).id)
+    other = np.setdiff1d(np.flatnonzero((m.geom_contype != 0) | (m.geom_conaffinity != 0)), tool)
+    m.geom_contype[other], m.geom_conaffinity[other] = 2, 0
+    m.geom_conaffinity[tool] |= 2
+    return tool
+
+
+def object_pairs(xml, lab):
+    """The pairs of the object's geoms with every other geom that has contact enabled (bodies not welded together), as
+    index pairs of the Newton builder's shapes (labels `lab`). Newton's own sizing over all 1,348 shapes asked for 9.3 GB
+    at 256 worlds; the benchmark GPU plant's filter (hom_gpu.Batch) still leaves 81,588 pairs per world, most of them
+    between the fingers' link spheres (2026-11-13)."""
+    import mujoco
+    m = mujoco.MjModel.from_xml_string(xml)
+    coll = np.flatnonzero((m.geom_contype != 0) | (m.geom_conaffinity != 0))
+    if len(coll) != len(lab):
+        raise RuntimeError(f"{len(coll)} colliding geoms against {len(lab)} Newton shapes")
+    # Newton imports the colliding geoms under their names and names an unnamed one <body>_geom_<k>
+    byname = {n: i for i, n in enumerate(lab)}
+    index = {}
+    for g in coll:
+        name = m.geom(g).name
+        if not name:
+            body = m.body(m.geom_bodyid[g]).name
+            cand = sorted(n for n in lab if n.startswith(f"{body}_geom_"))
+            k = [int(h) for h in coll if m.geom_bodyid[h] == m.geom_bodyid[g] and not m.geom(h).name].index(int(g))
+            name = cand[k] if k < len(cand) else None
+        if name not in byname:
+            raise RuntimeError(f"geom {g} ({m.geom(g).name!r}) has no Newton shape")
+        index[int(g)] = byname[name]
+    tool = object_only(m)
+    wt = m.body_weldid[m.body(T.S.OBJ).id]
+    out = [(index[int(t)], index[int(g)]) for t in tool for g in coll
+           if g not in tool and m.body_weldid[m.geom_bodyid[g]] != wt]
+    return np.array(out, np.int32).reshape(-1, 2)
+
+
+def world_builder(newton, xml, plant, pairs="obj"):
+    """One world's builder from a pair's MJCF with the plant's contact and servo settings, and its index maps. With pairs
+    "obj" the mesh geoms other than the hydroelastic tips collide as their convex hulls, as in MuJoCo; Newton's importer
+    keeps them triangle meshes (stage 1), and a 40 mm sphere among them met 17,000 triangles per world."""
     b = newton.ModelBuilder(gravity=(0.0, 0.0, -9.81))
     if plant.startswith("steel"):
         newton.solvers.SolverSteel.register_custom_attributes(b)
@@ -169,6 +217,12 @@ def world_builder(newton, xml, plant):
     obj_body = blab.index(T.S.OBJ)
     tips = [i for i, n in enumerate(lab) if n.endswith("_tipgeom")]
     obj_shapes = [i for i in range(len(lab)) if b.shape_body[i] == obj_body]
+    if pairs == "obj":
+        keep = set(tips + obj_shapes) if "hydro" in plant else set()
+        meshes = [i for i in range(len(lab)) if b.shape_type[i] == newton.GeoType.MESH and i not in keep]
+        b.approximate_meshes("convex_hull", shape_indices=meshes, raise_on_failure=True)
+        if len(b.shape_label) != len(lab):
+            raise RuntimeError("the convex hulls changed the shape count")
     for i in range(len(lab)):
         b.shape_margin[i] = 0.0
         b.shape_gap[i] = GAP
@@ -198,7 +252,7 @@ def world_builder(newton, xml, plant):
             b.joint_target_kd[d] = 0.0
     free_q = b.joint_q_start[jl.index(next(n for n in jl if n.endswith("freejoint")))]
     return b, {"dof": dof, "free_q": free_q, "obj_body": obj_body, "nbody": len(blab), "nshape": len(lab),
-               "post": lab.index("post"), "blab": blab}
+               "post": lab.index("post"), "blab": blab, "pairs": object_pairs(xml, lab)}
 
 
 class NewtonBatch:
@@ -206,7 +260,8 @@ class NewtonBatch:
     SolverMuJoCo or SolverSteel. Host copies of the joint state, the targets and the shape transforms are pushed before
     each stretch of steps and read back after it; World views give each world hom_tasks.Plant's interface."""
 
-    def __init__(self, xmls, plant, steel_iters=None, drive_mode="rows", capture=True, hydro_buf=(1.0, 1)):
+    def __init__(self, xmls, plant, steel_iters=None, drive_mode="rows", capture=True, hydro_buf=(1.0, 1),
+                 pairs="obj"):
         import newton
         import warp as wp
         self.newton, self.wp, self.plant, self.n = newton, wp, plant, len(xmls)
@@ -215,12 +270,15 @@ class NewtonBatch:
         if plant.startswith("steel"):
             newton.solvers.SolverSteel.register_custom_attributes(scene)
         if all(x == xmls[0] for x in xmls):
-            b0, info = world_builder(newton, xmls[0], plant)
+            b0, info = world_builder(newton, xmls[0], plant, pairs)
             scene.replicate(b0, self.n)
+            local = [info["pairs"]] * self.n
         else:
+            local = []
             for x in xmls:
-                b0, info = world_builder(newton, x, plant)
+                b0, info = world_builder(newton, x, plant, pairs)
                 scene.add_world(b0)
+                local.append(info["pairs"])
         self.info = info
         self.dof, self.free_q, self.obj_body = info["dof"], info["free_q"], info["obj_body"]
         self.model = model = scene.finalize(device="cuda:0" if wp.is_cuda_available() else "cpu")
@@ -251,13 +309,23 @@ class NewtonBatch:
         self.post = np.array([w * self.ns + info["post"] for w in range(n)])
         cmax = 1024 if self.hydro else 256
         kw = {}
+        # pairs "obj": the object's pairs (object_pairs) through the explicit broad phase, and a triangle-pair budget
+        # of 4,096 per world (with the convex hulls of world_builder no pair reaches the triangle path); "sap": sweep
+        # and prune over all shapes with Newton's own sizing (stage 1)
+        self.pairs_mode = pairs
+        if pairs == "obj":
+            allp = np.concatenate([lp + w * self.ns for w, lp in enumerate(local)]).astype(np.int32)
+            self.npairs_world = len(local[0])
+            kw.update(broad_phase="explicit", shape_pairs_filtered=wp.array(allp, dtype=wp.vec2i, device=self.dev),
+                      max_triangle_pairs=4096 * n)
+        else:
+            kw.update(broad_phase="sap")
         if self.hydro:
             from newton.geometry import HydroelasticSDF
             kw["sdf_hydroelastic_config"] = HydroelasticSDF.Config(reduce_contacts=True, anchor_contact=True,
                                                                    buffer_fraction=float(hydro_buf[0]),
                                                                    buffer_mult_broad=int(hydro_buf[1]))
-        self.pipe = newton.CollisionPipeline(model, reduce_contacts=True, rigid_contact_max=n * cmax,
-                                             broad_phase="sap", **kw)
+        self.pipe = newton.CollisionPipeline(model, reduce_contacts=True, rigid_contact_max=n * cmax, **kw)
         self.contacts_buf = self.pipe.contacts()
         if plant.startswith("steel"):
             # row capacities of Skild's Panda hydroelastic preset (the default 32 dense rows per world dropped 148 of
@@ -578,7 +646,7 @@ def cmd_hom(a):
     import threading
     scene, ws = worlds(a.seeds, a.pairs)
     tag = a.plant + (f"_it{a.iters}" if a.iters else "") + (f"_{a.drive_mode}" if a.drive_mode != "rows" else "") \
-        + ("_eager" if a.no_capture else "") + a.tag
+        + ("_eager" if a.no_capture else "") + ("_sap" if a.contact_pairs == "sap" else "") + a.tag
     path = ROWS / f"hom_{tag}.jsonl"
     skip = done(path)
     trd = LOGS / "traj" / tag
@@ -615,7 +683,8 @@ def cmd_hom(a):
         chunk = ws[c0:c0 + a.chunk]
         t0 = time.time()
         xmls = [pair_xml(scene, scene.body_mounts(mxy), setup["palm"]) for _p, _k, mxy, setup, _q, _s in chunk]
-        B = NewtonBatch(xmls, a.plant, steel_iters=a.iters, drive_mode=a.drive_mode, capture=not a.no_capture)
+        B = NewtonBatch(xmls, a.plant, steel_iters=a.iters, drive_mode=a.drive_mode, capture=not a.no_capture,
+                        pairs=a.contact_pairs)
         build_s = time.time() - t0
         sync = Sync(len(chunk))
         out = [None] * len(chunk)
@@ -638,7 +707,8 @@ def cmd_hom(a):
         wall = time.time() - t1
         for w, (p, key, mxy, setup, q_open, sd) in enumerate(chunk):
             row = base_row(p, sd)
-            row.update(chunk=len(chunk), build_s=round(build_s, 1), batch_wall_s=round(wall, 1), nan_t=B.nan_t[w])
+            row.update(chunk=len(chunk), build_s=round(build_s, 1), batch_wall_s=round(wall, 1), nan_t=B.nan_t[w],
+                       pairs=B.pairs_mode)
             r = out[w]
             if isinstance(r, tuple) and len(r) == 2 and isinstance(r[0], Exception):
                 row.update(status="error", error=f"{type(r[0]).__name__}: {r[0]}", tb=r[1])
@@ -653,13 +723,14 @@ def cmd_hom(a):
 
 # ------------------------------------------------------------------------------------------------ speed
 def first_snap(plant="mjc_pads"):
-    """The state at the task's start of the plant's own HOM run on the first pair, seed 0: a rigid point contact started
-    from the pads' squeezed grasp (the tip meshes 0.36-0.62 mm inside the sphere) throws the sphere out in Steel."""
-    p = json.loads(PAIRS.read_text())["pairs"][0]
-    f = LOGS / "traj" / plant / f"{pair_name(p)}_s0_snap.json"
-    if not f.exists():
-        raise SystemExit(f"{f} missing: run `hom --plant {plant} --seeds 0 --pairs 1` first")
-    return p, json.loads(f.read_text())
+    """The state at the task's start of the plant's own HOM run, seed 0, on the first pair that has one, and the pair's
+    index: a rigid point contact started from the pads' squeezed grasp (the tip meshes 0.36-0.62 mm inside the sphere)
+    throws the sphere out in Steel."""
+    for i, p in enumerate(json.loads(PAIRS.read_text())["pairs"]):
+        f = LOGS / "traj" / plant / f"{pair_name(p)}_s0_snap.json"
+        if f.exists():
+            return i, p, json.loads(f.read_text())
+    raise SystemExit(f"no state at 2.4 s under {LOGS / 'traj' / plant}: run `hom --plant {plant} --seeds 0` first")
 
 
 def speed_newton(a, nw, scene, setup, mxy, snap):
@@ -668,7 +739,7 @@ def speed_newton(a, nw, scene, setup, mxy, snap):
     # the hydroelastic stage buffers at their default size take 13.8 GB at 128 worlds (2026-10-06); above 64 worlds the
     # 2026-10-06 sizing (newton_hand_throughput.py: fraction 0.013, broad phase x40) with a margin
     buf = (1.0, 1) if nw <= 64 else (0.02, 40)
-    B = NewtonBatch([xml] * nw, a.plant, steel_iters=a.iters, drive_mode=a.drive_mode, hydro_buf=buf)
+    B = NewtonBatch([xml] * nw, a.plant, steel_iters=a.iters, drive_mode=a.drive_mode, hydro_buf=buf, pairs=a.contact_pairs)
     build_s = time.time() - t0
     B.set_state_all(snap)
     B.st[B.post, 2] = B.st0[B.post, 2] - 1.0
@@ -687,6 +758,7 @@ def speed_newton(a, nw, scene, setup, mxy, snap):
                 held_frac=float(np.mean(np.nan_to_num(drift, nan=1e9) < 20.0)),
                 drift_mm_median=float(np.nanmedian(drift)), drift_mm_max=float(np.nanmax(drift)),
                 nan_worlds=int(sum(t is not None for t in B.nan_t)), build_s=round(build_s, 1), hydro_buf=list(buf),
+                pairs=B.pairs_mode, pairs_per_world=getattr(B, "npairs_world", None), host_rss_mb=host_rss_mb(),
                 solver_opts={k: str(v) for k, v in B.solver_opts.items()})
 
 
@@ -708,7 +780,9 @@ def speed_mjw(a, nw, scene, setup, mxy, snap):
     pads = np.array([g for g in range(m.ngeom) if "_pad" in (m.geom(g).name or "")
                      or (fine.search(m.geom(g).name or "") and m.geom_size[g][0] < 0.002)], int)
     tool = np.flatnonzero(m.geom_bodyid == ob)
-    if len(pads):
+    if a.contact_pairs == "obj":
+        object_only(m)
+    elif len(pads):
         m.geom_contype[pads], m.geom_conaffinity[pads] = 2, 0
         m.geom_conaffinity[tool] = m.geom_conaffinity[tool] | 2
     m.opt.tolerance, m.opt.iterations, m.opt.ls_iterations = 1e-6, 20, 10
@@ -744,16 +818,17 @@ def speed_mjw(a, nw, scene, setup, mxy, snap):
     drift = np.linalg.norm(wd.xpos.numpy()[:, ob, :] - o0, axis=1) * 1e3
     return dict(us_per_world_step=1e6 * el / (nb * 10 * nw), contacts_per_world=int(wd.nacon.numpy()[0]) / nw,
                 held_frac=float(np.mean(drift < 20.0)), drift_mm_median=float(np.median(drift)),
-                drift_mm_max=float(drift.max()), nefc_world_max=int(wd.nefc.numpy().max()))
+                drift_mm_max=float(drift.max()), nefc_world_max=int(wd.nefc.numpy().max()), pairs=a.contact_pairs,
+                host_rss_mb=host_rss_mb())
 
 
 def cmd_speed(a):
     src = {"mjw_pads": "mjc_pads", "mjw_pt": "mjc_pt"}.get(a.plant, a.plant)
     src += (f"_it{a.iters}" if a.iters and not a.plant.startswith("mjw_") else "") + \
         (f"_{a.drive_mode}" if a.drive_mode != "rows" and not a.plant.startswith("mjw_") else "")
-    p, snap = first_snap(a.snap_from or src)
-    scene, ws = worlds([0], 1)
-    _p, _key, mxy, setup, _q_open, _sd = ws[0]
+    i, p, snap = first_snap(a.snap_from or src)
+    scene, ws = worlds([0], i + 1)
+    _p, _key, mxy, setup, _q_open, _sd = ws[i]
     import warp
     for nw in a.nworld:
         row = {"plant": a.plant, "nworld": nw, "pair": pair_name(p), "iters": a.iters, "drive_mode": a.drive_mode,
@@ -796,6 +871,9 @@ def main():
         q.add_argument("--iters", type=int, default=None, help="Steel: PGS iterations (default per plant)")
         q.add_argument("--drive-mode", choices=["rows", "augmented"], default="rows")
         q.add_argument("--tag", default="")
+        q.add_argument("--contact-pairs", choices=["obj", "sap"], default="obj",
+                       help="obj: the object's contact pairs only (Newton: explicit list; MuJoCo-Warp: masks); sap: Newton's "
+                            "sweep and prune over all shapes, MuJoCo-Warp with the benchmark's filter")
     a = ap.parse_args()
     return {"hom": cmd_hom, "speed": cmd_speed}[a.cmd](a)
 
