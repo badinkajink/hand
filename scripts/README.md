@@ -80,7 +80,7 @@ Jobs on the DeltaAI cluster.
 | `make_inline_breadth_queue.py` | Emit packed-queue manifests for the inline-hand questions that breadth can answer. |
 | `make_seed_manifest.py` | Write the (design, seed) manifest that deltaai_seed_array.slurm consumes. |
 
-## contact/ (87)
+## contact/ (91)
 
 Fingertip contact models and simulators: the sphere pads, the contact bed, the reorientation on each backend, Drake, Newton, MuJoCo-Warp and DiffMJX.
 
@@ -173,6 +173,10 @@ Fingertip contact models and simulators: the sphere pads, the contact bed, the r
 | `sphere_pad_code_page.py` | Implementation page of the sphere-pad fingertip (2026-11-11), a subpage of the contact model overview (docs/overviews/contact_model.html, sections 'mechanics' and 'pads'). |
 | `sprung_skin_page.py` | Result page: presliding compliance from a sprung skin under the 1 mm sphere pads (2026-10-12). |
 | `steel_hand_compare.py` | Steel (Skild AI's PGS solver in Newton) and Newton's hydroelastic fingertip contact against MuJoCo with the sphere pads, on the twist of the inner-loop benchmark (2026-11-13; owner: "if steel has hydroelastic contact bui |
+| `steel_hand_film.py` | Films of HOM through the twist on the plants of steel_hand_compare.py, two by two on one pair and seed (2026-11-13): MuJoCo with the sphere pads (the benchmark's model, CPU), SolverSteel with compliant hydroelastic rows, |
+| `steel_hom_stop_inputs.py` | HOM's inputs at the moment its least squares fails ("SVD did not converge"), for the stopped rollouts of steel_hand_compare.py (2026-11-13): runs that script's `hom` command with HomController.step wrapped, and appends o |
+| `steel_solver_page.py` | Result page of 2026-11-13: Steel (Skild AI's PGS solver in Newton) and Newton's hydroelastic fingertip contact against MuJoCo-Warp with the sphere pads on the twist of the inner-loop benchmark (owner: "if steel has hydro |
+| `steel_solver_page_text.py` | Text of the Steel comparison page (scripts/contact/steel_solver_page.py page): every number from its data file. |
 
 ## contact_surface/ (9)
 

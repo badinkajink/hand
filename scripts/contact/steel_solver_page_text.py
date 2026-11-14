@@ -112,7 +112,7 @@ settings: 20 iterations, 20 line-search steps, elliptic friction cones and impra
         ci = "" if h["diff_ci"] is None else f"{f3(h['diff_ci'][0])} to {f3(h['diff_ci'][1])}"
         body.append([LABEL[k], f"{h['held']}", f"{h['stopped']}", f3(h["mean_J"]),
                      "" if k == "mjc_pads" else f3(h["diff"]), ci, f3(h1["mean_J"]) if h1 else ""])
-    t2 = table(["Plant", "Held of 40", "Stopped", "Mean J", "ΔJ", "ΔJ, 95 % interval", "Mean J, all shapes"], body,
+    t2 = table(["Plant", "Held of 40", "Stopped", "Mean J", "ΔJ", "ΔJ, 95 % interval", "Mean J, first run"], body,
                num=(1, 2, 3, 4, 6), n=2,
                caption="HOM through the twist on each plant, 20 pairs at seeds 0 and 1. Stopped rollouts count as drops "
                        "(J 0). The last column is the first run of the Newton plants, with every pair of shapes "
@@ -154,10 +154,16 @@ were triangle meshes. For Steel's compliant hydroelastic plant the mean J change
         row += [f"{s1.get('contacts_per_world', 0):.1f}" if s1 else "–",
                 f"{min(s[str(n)]['held_frac'] for n in NW if str(n) in s):.2f}" if s else "–"]
         sb.append(row)
+    names = json.loads((ROOT / "docs/experiments/20261112-inner_loop_benchmark/rows/mpc_pairs_twist.json").read_text())
+    idx = {f"x{q['x']:g}_y{q['y']:g}_g{q['grasp']}": i for i, q in enumerate(names["pairs"])}
+    other = [f"pair {idx[S[k]['1024']['pair']]} for {LABEL.get(k, k)}" for k, _l in SPEED
+             if "1024" in S.get(k, {}) and idx[S[k]["1024"]["pair"]] != 0]
     t3 = table(["Plant"] + [f"{n} worlds" for n in NW] + ["Contacts per world, 1024", "Lowest held share"], sb,
                num=tuple(range(1, 8)), n=3,
-               caption="GPU time per world and step (µs) on the RTX 4070 Ti SUPER, from each plant's own grasp of pair "
-                       "0, with object-only contact pairs. The MuJoCo-Warp rows use the benchmark's settings.")
+               caption="GPU time per world and step (µs) on the RTX 4070 Ti SUPER, with object-only contact pairs. "
+                       "The worlds start from the plant's own grasp of pair 0 at 2.4 s, or of the first pair whose "
+                       "seed-0 rollout finished (" + ", ".join(other) + "). MuJoCo-Warp ran the benchmark's solver "
+                       "settings.")
     bf = d.get("speed_bench_filter", {}).get("mjw_pads", {}).get("1024", {}).get("us_per_world_step")
     f3p = fig(4, MEDIA / "20261113-throughput_vs_worlds.png",
               "GPU time per world and step against the number of worlds. Solid: MuJoCo-Warp. Dashed: the Newton plants.")
@@ -191,8 +197,8 @@ calibration of \\(k_h\\) and the pinch-torque test of the runbook's stage 3 were
     S_.append(("failures", "Runs that failed", """
 <ol>
 <li><b>Sweep and prune over all shapes (18:29 to 19:01).</b> In the first run every shape of a world could be paired
-with every other, 1,348 shapes, most of them the tips' small rigid spheres. Newton sized its narrow-phase buffer for all
-those pairs and asked for 9.3 GB at 256 worlds, so every hydroelastic throughput run above 16 worlds failed. Its HOM rows
+with every other, 1,348 shapes, most of them the tips' small rigid spheres. Newton's narrow-phase buffer was sized for all
+those pairs, 9.3 GB at 256 worlds, so every hydroelastic throughput run above 16 worlds failed. Its HOM rows
 are the last column of Table 2.</li>
 <li><b>Two watchdog kills (18:48 and 19:01).</b> About 11 GB of host memory is needed to build 1024 worlds, and the lane
 line had an 8 GB limit. The box paged, and the memory watchdog stopped the line twice. Each step ran under
@@ -210,8 +216,8 @@ the sphere, and Table 3 gives the rerun.</li>
     S_.append(("next", "Future work", """
 <ol>
 <li><b>Fewer Steel iterations.</b> <code>speed --plant steel_hydro --iters 8</code> and
-<code>hom --plant steel_hydro --iters 8</code> would show whether half the iterations halve the 9.2 µs. Even at half it
-stays above the pads' 2.8 µs, which would leave the result unchanged.</li>
+<code>hom --plant steel_hydro --iters 8</code> would show whether half the iterations halve the 9.2 µs. Half of 9.2 µs
+is still above the pads' 2.8 µs, so the speed condition of the rule would still fail.</li>
 <li><b>Tip stiffness from the presses.</b> Fitting \\(k_h\\) to the v3 tips' UR5 presses
 (<code>docs/experiments/20261030-v3_tip_contact_model/</code>) and rerunning <code>hom --plant steel_hydro</code> would
 test whether the tip stiffness accounts for the gap in J. A ΔJ interval containing 0 would mean that it does.</li>
@@ -226,6 +232,8 @@ test whether the tip stiffness accounts for the gap in J. A ΔJ interval contain
 with every pair of shapes.</li>
 <li><code>rows/speed.jsonl</code>: throughput. The rows of Table 3 have <code>pairs</code> set to <code>obj</code>.</li>
 <li><code>rows/film_twist_p*_s0.json</code>: the films' clips.</li>
+<li><code>rows/hom_stopped_inputs.jsonl</code>: HOM's inputs at the 11 stopped rollouts rerun on the CPU
+(<code>scripts/contact/steel_hom_stop_inputs.py</code>), with their rows in <code>rows/hom_*_diag.jsonl</code>.</li>
 </ul>
 <p>The compact data of this page are <code>data/20261113-steel_solver.json</code>. Trajectories and the grasps at 2.4 s are in
 <code>logs/20261113-steel/traj/</code> on the workstation.</p>

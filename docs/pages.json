@@ -25,6 +25,18 @@
  },
  {
   "date": "2026-11-13",
+  "file": "docs/experiments/20261113-steel_solver/20261113-steel_solver_vs_sphere_pads.html",
+  "title": "Steel and Newton hydroelastic contact against the sphere pads on the sphere twist",
+  "page_title": "Steel and Newton hydroelastic contact against the sphere pads on the sphere twist",
+  "topic": "contact",
+  "summary": "Steel did not replace the sphere pads on the sphere twist: with compliant hydroelastic contact HOM's mean J was 0.29 (pads 0.38) at 3.3 times the pads' GPU time at 1024 worlds; with point contact Steel was 1.28 times faster than the pads, 1.9 times slower than MuJoCo-Warp point contact, and J fell to 0.18.",
+  "builder": "scripts/contact/steel_solver_page.py",
+  "artifact": "https://claude.ai/artifact/45CGtwzmDUozYYvJ3op5gA",
+  "status": "current",
+  "mb": 3.2
+ },
+ {
+  "date": "2026-11-13",
   "file": "docs/experiments/20261113-camera_arm_calibration/20261113-camera_arm_calibration.html",
   "title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
   "page_title": "Lens and arm calibration of the two D435 tracking cameras on the UR5",
