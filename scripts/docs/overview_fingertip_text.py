@@ -636,7 +636,15 @@ model. With the exact state it was 0.375. In further runs the tracked pose was p
 pulled toward each tracker frame with a time constant of 0.2&#8202;s. With that filter and the fingertip model, the mean
 score was 0.318
 ([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#sensing), sections on measured
-state and on the [pose filter](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#filter)).</p>"""),
+state and on the [pose filter](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#filter)).</p>
+<p>In the same benchmark, the tip&#8217;s contact model in the simulated hand was varied. The controller was given the
+exact state at 100&#8202;Hz. On the sphere pads, HOM&#8217;s mean tracking score was 0.388. Point contact on the tip&#8217;s
+convex mesh has no torque about the contact normal, and with it the score fell to 0.275. Averaged over the 20 hand
+layouts, the drop was 0.112. Its 95&#8202;% interval, from a bootstrap over the layouts, was 0.041 to 0.204. MuJoCo&#8217;s
+torsional friction is a torque about the contact normal of up to a coefficient times the normal force. At coefficients of
+0.5 and 2&#8202;mm the score was 0.308 and 0.351
+([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#contact), section on the
+contact model).</p>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b
@@ -887,7 +895,8 @@ PAGES = [
     ("Method", "20261029-hom_control_review/20261029-hom_control_and_fingertip_sensing.html",
      "The fingertips as the HOM controller&#8217;s contact sensor in simulation: the fingertip model, calibration errors, a force loop"),
     ("Method", "20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
-     "HOM and sampling planners on the sphere twist; HOM with the tag tracker, the fingertip model and a filter on the pose"),
+     "HOM and sampling planners on the sphere twist; the tip&#8217;s contact model in the plant; HOM with the tag tracker, "
+     "the fingertip model and a filter on the pose"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
