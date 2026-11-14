@@ -107,7 +107,7 @@ def timing_rows():
 def one_hand(T, n, iters, H, model="pads"):
     """GPU seconds per replanning of one hand alone (timing rows, the last of each setting)."""
     m = [r for r in T if r["plant_worlds"] == 1 and r["n"] == n and r.get("iters") == iters and r["H"] == H
-         and r.get("model", "pads") == model]
+         and r.get("model", "pads") == model and r.get("plan_dt") is None]
     return m[-1]["replan_s"] if m else None
 
 
@@ -130,11 +130,20 @@ def paired(ra, rb, n_boot=4000, seed=0):
             "n": len(v), "wins": int((v > 0).sum())}
 
 
+def sg(x):
+    return f"{x:+.3f}".replace("-0.000", "0.000").replace("+0.000", "0.000")
+
+
 def fd(p):
     """A paired difference as text: +0.035 (-0.01 to +0.08), 12 of 20."""
     if not p:
         return "&#8212;"
-    return f"{p['d']:+.3f} ({p['lo']:+.3f} to {p['hi']:+.3f}), {p['wins']} of {p['n']}"
+    return f"{sg(p['d'])} ({sg(p['lo'])} to {sg(p['hi'])}), {p['wins']} of {p['n']}"
+
+
+def fds(p):
+    """A paired difference for a sentence: +0.035 (-0.010 to +0.080)."""
+    return f"{sg(p['d'])} ({sg(p['lo'])} to {sg(p['hi'])})" if p else "&#8212;"
 
 
 # contact models of the plant and of a planner: (rows tag, label); the pads are the benchmark's plant
@@ -363,8 +372,8 @@ def fig_reversals(S, out):
         s = S.get(stem)
         if s:
             ax.plot(s["reversals_ps"], s["J"], "o", color="#555555" if stem == "hom_twist" else "#999999", ms=7)
-            ax.annotate(lab, (s["reversals_ps"], s["J"]), textcoords="offset points", xytext=(5, 4), fontsize=10,
-                        color="#555555")
+            ax.annotate(lab, (s["reversals_ps"], s["J"]), textcoords="offset points",
+                        xytext={"PS": (-22, -4), "MPPI": (6, -4)}.get(lab, (5, 4)), fontsize=10, color="#555555")
     base = S.get(stem_of("anneal", CFG_REV))
     col = {"sampling": "#3a6ea5", "cost": "#c06a1a", "both": "#7a3a8a", "&#8212;": "#1b3a63"}
     k = 0
@@ -393,21 +402,42 @@ def fig_reversals(S, out):
     return out
 
 
+def rt_rows(S, T):
+    """The configurations of the real-time table and figure that have rows and a timing: (method, config, stats, s)."""
+    out = []
+    for meth, cfg in RT_TABLE:
+        s, v = S.get(stem_of(meth, cfg)), one_hand_cfg(T, cfg)
+        if s and v is not None:
+            out.append((meth, cfg, s, v))
+    return out
+
+
 def fig_realtime(S, T, out):
     """Mean J against the GPU time per second of control of one hand, for predictive sampling and DIAL annealing."""
     plt = plt_setup()
     fig, ax = plt.subplots(figsize=(8.6, 5.0))
-    for meth, cfg in RT_TABLE:
-        s, v = S.get(stem_of(meth, cfg)), one_hand_cfg(T, cfg)
-        if not s or v is None:
-            continue
+    pts = []
+    for num, (meth, cfg, s, v) in enumerate(rt_rows(S, T), 1):
         g = v / (cfg[3] * PERIOD_S)
-        ax.errorbar([g], [s["J"]], yerr=[s["J_se"]], fmt="o" if meth == "anneal" else "s", capsize=2,
-                    color="#3a6ea5" if meth == "anneal" else "#c06a1a", ms=6)
-        it, h, k, r, dt, n = cfg
-        ax.annotate(f"{it}x{n}, {h * 10} ms" + (f", {1e3 * dt:g} ms step" if dt else "") + (", every 0.2 s" if r == 20
-                                                                                          else ""),
-                    (g, s["J"]), textcoords="offset points", xytext=(6, 4), fontsize=10)
+        col, mk = ("#3a6ea5", "o") if meth == "anneal" else ("#c06a1a", "s")
+        ax.errorbar([g], [s["J"]], yerr=[s["J_se"]], fmt=mk, capsize=2, color=col, ms=6)
+        pts.append((num, g, s["J"], col, mk))
+    box = (0.86, 1.09, 0.32, 0.45)                 # the cluster at the real-time line, drawn again in the inset
+    inside = [x for x in pts if box[0] <= x[1] <= box[1] and box[2] <= x[2] <= box[3]]
+    for num, g, j, col, _mk in pts:
+        if (num, g, j, col, _mk) not in inside:
+            ax.annotate(str(num), (g, j), textcoords="offset points", xytext=(5, 2), fontsize=11, color=col)
+    if len(inside) > 2:
+        ins = ax.inset_axes([0.42, 0.10, 0.34, 0.42])
+        for num, g, j, col, mk in inside:
+            ins.plot([g], [j], mk, color=col, ms=6)
+            ins.annotate(str(num), (g, j), textcoords="offset points", xytext=(5, 1), fontsize=11, color=col)
+        ins.axvline(1.0, color="#aa3333", lw=1.2)
+        ins.set_xlim(box[0], box[1])
+        ins.set_ylim(box[2], box[3])
+        ins.tick_params(labelsize=10)
+        ins.grid(alpha=0.3)
+        ax.indicate_inset_zoom(ins, edgecolor="#888888")
     hs = S.get("hom_twist")
     if hs:
         ax.axhline(hs["J"], color="#555555", ls="--", lw=1.2)
@@ -420,7 +450,7 @@ def fig_realtime(S, T, out):
     ax.set_ylabel("Mean J over 40 runs")
     ax.plot([], [], "s", color="#c06a1a", label="Predictive sampling")
     ax.plot([], [], "o", color="#3a6ea5", label="DIAL annealing")
-    ax.legend(frameon=False, loc="lower right")
+    ax.legend(frameon=False, loc="upper left")
     ax.grid(alpha=0.3, which="both")
     fig.tight_layout()
     fig.savefig(out, dpi=100)
@@ -711,21 +741,25 @@ annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and 
                    "plan with the pad model, dotted with the plant's own model, HOM in grey. Right: J with the pad model "
                    "minus J with the point-contact model on the same worlds, the mean over the 20 pairs with its 95 % "
                    "bootstrap interval; above zero the pad model planned better.")
-    # paired differences: the pad model against the point-contact model on each plant, and the plants against each other
+    # paired differences: the pad model against the point-contact model on each plant, and each plant against the pads
     rows_p, plan = [], []
+    others = [(p, lab_p) for p, lab_p in PLANTS if p != "pads"]
     for meth, cfg in (("ps", CFG_PSRT), ("anneal", rt), ("anneal", CFG_FULL)):
         if cfg is None:
             continue
         lab = f"{names[meth]}{' 4 &#215; 64' if cfg == CFG_FULL else (' real time' if meth == 'anneal' else '')}"
         plan.append((meth, cfg, lab))
-        for model in ("pads", "pt"):
-            d = paired(R.get(stem_of(meth, cfg, model=model), []), R.get(stem_of(meth, cfg, plant="pt", model=model),
-                                                                         []))
-            if d:
-                rows_p.append([f"{lab}, {'pad' if model == 'pads' else 'point-contact'} model", fd(d)])
-    dh = paired(R.get("hom_twist", []), R.get(hom_stem("pt"), []))
-    if dh:
-        rows_p.insert(0, ["HOM", fd(dh)])
+        for model in ("pads", "pt", "own"):
+            cells = []
+            for p, _l in others:
+                m_p = p if model == "own" else model
+                m_0 = "pads" if model == "own" else model
+                d = paired(R.get(stem_of(meth, cfg, plant=p, model=m_p), []), R.get(stem_of(meth, cfg, model=m_0), []))
+                cells.append(fd(d))
+            if any(c != "&#8212;" for c in cells):
+                ml = {"pads": "pad model", "pt": "point-contact model", "own": "the plant's own model"}[model]
+                rows_p.append([f"{lab}, {ml}"] + cells)
+    rows_p.insert(0, ["HOM"] + [fd(paired(R.get(hom_stem(p), []), R.get("hom_twist", []))) for p, _l in others])
     rows_m = [[lab_p] + [fd(paired(R.get(stem_of(m, c, plant=p), []), R.get(stem_of(m, c, plant=p, model="pt"), [])))
                          for m, c, _l in plan] for p, lab_p in PLANTS]
     rows_m = [r_ for r_ in rows_m if any(x != "&#8212;" for x in r_[1:])]
@@ -735,34 +769,66 @@ annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and 
                    "J with the pad model minus J with the point-contact model, on each plant: the mean over the 20 "
                    "pairs (seeds averaged within a pair), its 95 % bootstrap interval, and the pairs where the pad "
                    "model was higher.")
+    tp = P.TAB[0] + 1
     if rows_p:
-        t += table(["Controller", "J on the pads plant minus J on the point-contact plant"], rows_p,
-                   "The plant's effect on each controller, with the same statistics.")
-    t += sec_contact_text(S, R, rt, tj, tm_)
+        t += table(["Controller"] + [f"{lab_p}" for _p, lab_p in others], rows_p,
+                   "The plant's effect on each controller: J on the plant of the column minus J on the pads plant, with "
+                   "the same statistics. With the plant's own model the planner on the pads plant used the pad model.")
+    t += sec_contact_text(S, R, rt, tj, tm_, tp)
     return t
 
 
-def sec_contact_text(S, R, rt, tj, tm_):
+def sec_contact_text(S, R, rt, tj, tm_, tp):
     """Sentences on the contact runs from the numbers that exist."""
-    out = []
-    h0, h1 = S.get("hom_twist"), S.get(hom_stem("pt"))
-    if h0 and h1:
-        out.append(fill("HOM's mean J was <<a>> on the pads and <<b>> on point contact (Table <<tj>>).",
-                        a=f"{h0['J']:.3f}", b=f"{h1['J']:.3f}", tj=tj))
-        ht = [(PLANT_SHORT[p], S[hom_stem(p)]["J"]) for p in ("pt_t0.5", "pt_t1", "pt_t2") if S.get(hom_stem(p))]
-        if ht:
-            out.append("With torsion it was " + ", ".join(f"{j:.3f} at {lab}" for lab, j in ht) + ".")
-    for meth, cfg, lab in (("anneal", CFG_FULL, "DIAL annealing at 4 &#215; 64"), ("anneal", rt, "real-time DIAL"),
+    out, p1 = [], []
+    order = ["pads", "pt_t2", "pt_t1", "pt_t0.5", "pt"]
+    h = [S.get(hom_stem(p)) for p in order]
+    if all(h):
+        dh = paired(R.get(hom_stem("pt"), []), R.get("hom_twist", []))
+        p1.append(fill("HOM's mean J fell at each step from the pads to point contact (Table <<tj>>). It was <<a>> on "
+                       "the pads, <<b>>, <<c>> and <<d>> at $\\mu_t$ of 2, 1 and 0.5 mm, and <<e>> on point contact. On "
+                       "point contact it was <<dd>> below its J on the pads (Table <<tp>>).",
+                       **dict(zip("abcde", (f"{s['J']:.3f}" for s in h))), tj=tj, tp=tp,
+                       dd=f"{-dh['d']:.3f} ({-dh['hi']:.3f} to {-dh['lo']:.3f})" if dh else "&#8212;"))
+    o = [S.get(stem_of("anneal", rt, plant=p, model=p)) for p in order] if rt is not None else [None]
+    if all(o):
+        d = {p: paired(R.get(stem_of("anneal", rt, plant=p, model=p), []), R.get(stem_of("anneal", rt), []))
+             for p in order[1:]}
+        p1.append(fill("With the plant's own model the real-time DIAL reached <<j0>> on the pads, <<j1>>, <<j2>> and "
+                       "<<j3>> at 2, 1 and 0.5 mm, and <<j4>> on point contact. Down to 1 mm it was within <<k>> of its "
+                       "J on the pads. It lost <<a>> at 0.5 mm and <<b>> on point contact.",
+                       **{f"j{i}": f"{x['J']:.3f}" for i, x in enumerate(o)},
+                       k=f"{max(abs(d[p]['d']) for p in ('pt_t2', 'pt_t1')):.3f}",
+                       a=f"{-d['pt_t0.5']['d']:.3f}", b=f"{-d['pt']['d']:.3f}"))
+    fo, fp = S.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt")), S.get("anneal_twist")
+    if fo and fp:
+        dfo = paired(R.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt"), []), R.get("anneal_twist", []))
+        p1.append(fill("DIAL at 4 &#215; 64 with the point-contact model reached <<a>> on point contact, against <<b>> "
+                       "with the pad model on the pads, a paired difference of <<d>>.", a=f"{fo['J']:.3f}",
+                       b=f"{fp['J']:.3f}", d=fds(dfo)))
+    if p1:
+        out.append("<p>" + " ".join(p1) + "</p>")
+    sent = []
+    for meth, cfg, lab in (("anneal", CFG_FULL, "DIAL annealing at 4 &#215; 64"), ("anneal", rt, "the real-time DIAL"),
                            ("ps", CFG_PSRT, "real-time predictive sampling")):
         if cfg is None:
             continue
         a = paired(R.get(stem_of(meth, cfg), []), R.get(stem_of(meth, cfg, model="pt"), []))
-        b = paired(R.get(stem_of(meth, cfg, plant="pt"), []), R.get(stem_of(meth, cfg, plant="pt", model="pt"), []))
-        if a and b:
-            out.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<b>> on the "
-                            "point-contact plant (Table <<tm>>).", l=lab, a=f"{a['d']:+.3f}", b=f"{b['d']:+.3f}",
-                            tm=tm_))
-    return f"<p>{' '.join(out)}</p>" if out else ""
+        rest = [paired(R.get(stem_of(meth, cfg, plant=p), []), R.get(stem_of(meth, cfg, plant=p, model="pt"), []))
+                for p in order[1:]]
+        rest = [x for x in rest if x]
+        if not (a and rest):
+            continue
+        if len(rest) == 1:
+            sent.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<b>> on the "
+                             "point-contact plant.", l=lab, a=fds(a), b=fds(rest[0])))
+        else:
+            sent.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<lo>> to <<hi>> on "
+                             "the other four plants.", l=lab, a=fds(a), lo=f"{min(x['d'] for x in rest):+.3f}",
+                             hi=f"{max(x['d'] for x in rest):+.3f}"))
+    if sent:
+        out.append("<p>" + " ".join(sent) + fill(" Table <<tm>> gives each plant's difference.</p>", tm=tm_))
+    return "".join(out)
 
 
 def sec_realtime(S, T, R, rt, figs):
@@ -781,14 +847,10 @@ were run.</p>""",
              f=f2(full, 2), p16=f2(1e3 * v16 / 120 if v16 else None, 1), p64=f2(1e3 * full / 120 if full else None, 1),
              tn=P.TAB[0] + 1)
     rows = []
-    for meth, cfg in RT_TABLE:
-        s = S.get(stem_of(meth, cfg))
-        if not s:
-            continue
+    for num, (meth, cfg, s, v) in enumerate(rt_rows(S, T), 1):
         it, h, k, r, dt, n = cfg
-        v = one_hand_cfg(T, cfg)
-        g = v / (r * PERIOD_S) if v is not None else None
-        rows.append(["PS" if meth == "ps" else "DIAL", f"{it} &#215; {n}", f"{h * PERIOD_S:g}", str(k),
+        g = v / (r * PERIOD_S)
+        rows.append([f"{num}. " + ("PS" if meth == "ps" else "DIAL"), f"{it} &#215; {n}", f"{h * PERIOD_S:g}", str(k),
                      f"{r * PERIOD_S:g}", f"{1e3 * (dt or 0.001):g}", f2(v, 3), f2(g, 2), f2(s["J"], 3),
                      f"{100 * s['held']:.0f}", f2(s["reversals_ps"])])
     t += table(["Planner", "Iterations &#215; samples", "Horizon (s)", "Knots", "Replanning interval (s)",
@@ -799,8 +861,8 @@ were run.</p>""",
                "4070 Ti SUPER; a GPU time per second of control of 1 or less runs in real time.", num_from=1)
     if figs.get("realtime"):
         t += P.img(figs["realtime"], "Mean J against one hand's GPU time per second of control (log scale; bars: one "
-                   "standard error). Labels give iterations x samples, the horizon, the model's physics step if not 1 ms "
-                   "and the replanning interval if not 0.1 s.")
+                   "standard error). The numbers are the rows of the table above; left of the red line a configuration "
+                   "runs in real time.")
     ok = [(S[stem_of("anneal", c)]["J"], c) for c in RT_CANDS if S.get(stem_of("anneal", c))
           and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
     sf, sp = S.get("anneal_twist"), S.get(stem_of("ps", CFG_PSRT))
@@ -810,47 +872,60 @@ were run.</p>""",
                   "reached <<f>> and real-time predictive sampling <<p>>.</p>", c=cfg_text(bc), j=f"{bj:.3f}",
                   f=f"{sf['J']:.3f}", p=f"{sp['J']:.3f}" if sp else "&#8212;")
     if rt is not None:
-        lat = []
-        for meth, cfg, lab in (("ps", CFG_PSRT, "PS, real time"), ("anneal", rt, "DIAL, real time")):
+        lat, said = [], []
+        for meth, cfg, lab, slab in (("ps", CFG_PSRT, "PS, real time", "Real-time predictive sampling"),
+                                     ("anneal", rt, "DIAL, real time", "The real-time DIAL"),
+                                     ("anneal", CFG_FULL, "DIAL, 4 &#215; 64", "DIAL at 4 &#215; 64")):
             cells = [lab]
-            for dl in ("", "_d4n", "_d14n"):
-                s = S.get(stem_of(meth, cfg, delay=dl))
-                cells.append(f2(s["J"], 3) if s else "&#8212;")
+            ss = [S.get(stem_of(meth, cfg, delay=dl)) for dl in ("", "_d4n", "_d14n")]
+            for s in ss:
+                cells.append(f"{s['J']:.3f} ({100 * s['held']:.0f})" if s else "&#8212;")
             lat.append(cells)
+            if ss[0] and ss[1] and ss[2]:
+                said.append(fill("<<l>> reached <<a>> from the exact state, <<b>> from a 40 ms old state and <<c>> "
+                                 "from a 140 ms old state. From the latter the sphere fell in <<f>> of the 40 runs.",
+                                 l=slab,
+                                 a=f"{ss[0]['J']:.3f}", b=f"{ss[1]['J']:.3f}", c=f"{ss[2]['J']:.3f}",
+                                 f=round(40 * (1 - ss[2]["held"]))))
+            elif ss[0] and ss[1]:
+                said.append(fill("<<l>> reached <<a>> from the exact state and <<b>> from a 40 ms old state.", l=slab,
+                                 a=f"{ss[0]['J']:.3f}",
+                                 b=f"{ss[1]['J']:.3f}"))
         if any(c != "&#8212;" for r_ in lat for c in r_[2:]):
             t += r"""<p>On the bench the planner starts from the tag tracker's pose, 40 ms old with 0.5 mm and 1 deg of
 noise. Its plan also reaches the servos one replanning time after that pose. The runs below plan from the plant's
 state 4 or 14 periods earlier, with the tracker's noise on the sphere's pose. The plan is applied when it is computed,
 without a forward prediction of the state.</p>"""
             t += table(["Planner", "Exact state", "40 ms old, tracker noise", "140 ms old, tracker noise"], lat,
-                       "Mean J of the real-time planners from delayed, noisy states (<code>--plan-delay</code>, "
-                       "<code>--plan-noise</code>); 140 ms is the tracker's 40 ms and one replanning interval.",
-                       num_from=1)
+                       "Mean J of the planners from delayed, noisy states, with the share of held runs in % "
+                       "(<code>--plan-delay</code>, <code>--plan-noise</code>); 140 ms is the tracker's 40 ms and one "
+                       "replanning interval.", num_from=1)
+            if said:
+                t += "<p>" + " ".join(said) + "</p>"
     return t
 
 
-def sec_reversals(S, figs):
+def sec_reversals(S, R, figs):
     """Why the planners' targets reverse, and the sampling and cost options tested against it."""
     if not any(S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, _k in REV_RUNS if sh):
         return ""
     hs, sd, si = S.get("hom_twist"), S.get("anneal_twist"), S.get("icem_twist")
     t = fill(r"""<p>HOM's targets reversed <<h>> times per joint per second, DIAL annealing's <<d>> and iCEM's <<i>>.
 A planner's targets are linear between two replannings, so they can reverse only at a replanning, at most ten times
-per second. Across the planners the reversals rose with the tracking accuracy (Figure <<f>>). Two parts of the
-planners make the targets reverse more often than the task needs.</p>
-<p>The first is the temperature of the MPPI step of MPPI and DIAL annealing, which weights the samples by
-$\exp(-(c - c_{\min})/\lambda)$ with $\lambda = 0.03\,\mathrm{std}(c)$. For normally distributed costs that gives an
-effective sample size of 1.1, at 16 and at 64 samples. Each iteration then moves the plan by about 0.96 of one sample's
-noise. Finger motions that change the cost little, such as those that keep the grasp and the sphere's rotation, take a
-random direction at each replanning. At $\lambda = 1.0\,\mathrm{std}(c)$ the effective sample size is 7.8 at 16 samples
-and 27 at 64, and the step's noise falls to 0.37 and 0.20 of a sample's.</p>
+per second. Across the planners the reversals rose with the tracking accuracy (Figure <<f>>).</p>
+<p>Two parts of the planners were tested as causes. The first is the temperature of the MPPI step of MPPI and DIAL
+annealing, which weights the samples by $\exp(-(c - c_{\min})/\lambda)$ with $\lambda = 0.03\,\mathrm{std}(c)$. For
+normally distributed costs that gives an effective sample size of 1.1, at 16 and at 64 samples, and each iteration
+moves the plan by about 0.96 of one sample's noise. At $\lambda = 1.0\,\mathrm{std}(c)$ the effective sample size is
+7.8 at 16 samples and 27 at 64. A larger effective sample size was expected to average out the noise in finger motions
+that change the cost little.</p>
 <p>The second is the warm start. Before a replanning the plan is shifted by the replanning interval, and past its last
 knot it holds the last knot. When the horizon equals the interval, as in every real-time configuration with two knots,
-the shifted plan is a constant target. Each replanning then starts from a zero rate and rebuilds the rate from the
-samples. Continuing the last segment's slope past the horizon keeps the rate.</p>
+the shifted plan is a constant target, so each replanning starts from a zero rate. The option <code>--warm extrap</code>
+continues the last segment's slope past the horizon.</p>
 <p>The options in Table <<tn>> were run on DIAL annealing at 3 &#215; 16 samples with a 2 ms model step, which
-needs 0.101 s of GPU per 0.1 s for one hand; three were also run on real-time predictive sampling and the benchmark's
-DIAL. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
+needs 0.101 s of GPU per 0.1 s for one hand. Two were also run on the benchmark's DIAL and one on real-time predictive
+sampling. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
 $\dot u_{j,k}$ the plan's rate in its $k$-th knot gap and $\dot u_s = 20$ deg/s:</p>
 $$c_{\mathrm{acc}} = w_a \sum_j \sum_{k \ge 1} \Big(\frac{\dot u_{j,k} - \dot u_{j,k-1}}{\dot u_s}\Big)^2, \qquad
 c_{\mathrm{rev}} = w_r \sum_j \frac{\max(0, -\dot u_{j,1}\,\dot u_{j,0})}{\dot u_s^2}$$
@@ -863,6 +938,7 @@ error.</p>""", h=f2(hs["reversals_ps"]) if hs else "&#8212;", d=f2(sd["reversals
                                              "annealing at 3 x 16 samples, numbered as in the table, with arrows from "
                                              "the configuration without options."), 1)
     rows, k = [], 0
+    base_of = {CFG_REV: stem_of("anneal", CFG_REV), CFG_PSRT: stem_of("ps", CFG_PSRT), CFG_FULL: "anneal_twist"}
     for meth, cfg, sh, lab, kind in REV_RUNS:
         s = S.get(stem_of(meth, cfg, sh=sh))
         if not s:
@@ -871,15 +947,70 @@ error.</p>""", h=f2(hs["reversals_ps"]) if hs else "&#8212;", d=f2(sd["reversals
         if cfg == CFG_REV:
             k += 1
             num = f"{k}. "
-        rows.append([num + lab, kind, f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["err"], 1), f2(s["reversals_ps"]),
-                     f2(s["cmd_rate_dps"], 1), f2(s["grip_mean_N"], 1)])
-    t += table(["Option", "Changes the", "Mean J", "Held (%)", "Tracking error (deg)", "Target reversals (1/s)",
-                "Target rate (deg/s)", "Grip (N)"], rows,
+        d = paired(R.get(stem_of(meth, cfg, sh=sh), []), R.get(base_of[cfg], [])) if sh else None
+        rows.append([num + lab, kind, f2(s["J"], 3), fd(d) if d else "&#8212;", f"{100 * s['held']:.0f}",
+                     f2(s["err"], 1), f2(s["reversals_ps"]), f2(s["cmd_rate_dps"], 1), f2(s["grip_mean_N"], 1)])
+    t += table(["Option", "Changes the", "Mean J", "J minus J without the option", "Held (%)", "Tracking error (deg)",
+                "Target reversals (1/s)", "Target rate (deg/s)", "Grip (N)"], rows,
                "The reversal options, 40 runs each on the SCS0009 plant with the pad model (<code>inner_loop_mpc.py "
                "run</code> <code>--lam-rel</code>, <code>--warm extrap</code>, <code>--sigma</code>, <code>--rate-w"
                "</code>, <code>--acc-w</code>, <code>--rev-w</code>, <code>--err-db</code>). Temperature: $\\lambda$ "
-               "over the costs' standard deviation (0.03 without options).", num_from=2)
+               "over the costs' standard deviation (0.03 without options). The paired difference is taken against the "
+               "same planner without options.", num_from=2)
+    t += rev_text(S, R)
     return t
+
+
+def rev_text(S, R):
+    """The reversal options' outcomes, from the rows."""
+    def g(meth, cfg, sh=""):
+        return S.get(stem_of(meth, cfg, sh=sh))
+
+    def d(meth, cfg, sh, base):
+        p = paired(R.get(stem_of(meth, cfg, sh=sh), []), R.get(base, []))
+        return f"{p['d']:+.3f} ({p['lo']:+.3f} to {p['hi']:+.3f})" if p else "&#8212;"
+
+    b, l3, l1, ex, sg = (g("anneal", CFG_REV, x) for x in ("", "_lam0.3", "_lam1", "_extrap", "_sig0.04"))
+    a1, a4, rw, rv, db = (g("anneal", CFG_REV, x) for x in ("_acc1", "_acc4", "_rw4", "_rev10", "_db3"))
+    pe, ps_ = g("ps", CFG_PSRT, "_extrap"), g("ps", CFG_PSRT)
+    fl, fa, ff = S.get("anneal_twist_lam1"), S.get("anneal_twist_acc1"), S.get("anneal_twist")
+    if not all((b, l3, l1, ex, sg, a1, a4, rw, rv, db)):
+        return ""
+    base = stem_of("anneal", CFG_REV)
+    out = [fill(r"""<p>No sampling option lowered the reversals of the real-time DIAL. At temperatures 0.3 and 1.0 its
+targets reversed <<l3>> and <<l1>> times per joint per second, against <<b>> at 0.03. Steps of independent random sign
+would reverse at half the replannings, 5 times per second. With half the sampling noise the targets reversed <<sg>>
+times. The continued slope raised the target rate from <<rb>> to <<re>> deg/s, and the sphere fell in <<fe>> of the 40
+runs against <<fb>>. Its J changed by <<de>>.""", l3=f2(l3["reversals_ps"]), l1=f2(l1["reversals_ps"]),
+                b=f2(b["reversals_ps"]), sg=f2(sg["reversals_ps"]), rb=f2(b["cmd_rate_dps"], 1),
+                re=f2(ex["cmd_rate_dps"], 1), fe=round(40 * (1 - ex["held"])), fb=round(40 * (1 - b["held"])),
+                de=d("anneal", CFG_REV, "_extrap", base))]
+    if pe and ps_:
+        out.append(fill(" On real-time predictive sampling the continued slope lowered J from <<a>> to <<b>>, and the "
+                        "sphere fell in <<f>> of 40 runs.", a=f"{ps_['J']:.3f}", b=f"{pe['J']:.3f}",
+                        f=round(40 * (1 - pe["held"]))))
+    if fl and ff:
+        out.append(fill(" The benchmark's DIAL plans over 0.3 s, so its warm start keeps the previous plan's rates. On "
+                        "it, temperature 1.0 lowered the reversals from <<a>> to <<b>> and changed J by <<c>>.",
+                        a=f2(ff["reversals_ps"]), b=f2(fl["reversals_ps"]), c=d("anneal", CFG_FULL, "_lam1",
+                                                                                 "anneal_twist")))
+    out.append("</p>")
+    out.append(fill(r"""<p>Every cost option lowered the reversals. The rate-change cost at weight 1 lowered them from
+<<b>> to <<a1>>, and J changed by <<da1>>. The dead band of 3 deg lowered them to <<db>>, and J changed by <<ddb>>. The
+knot-rate weight 4, the rate-change weight 4 and the reversal cost lowered them to <<lo>> to <<hi>>, below HOM's, and
+lowered J by <<jlo>> to <<jhi>>. With the knot-rate weight 4 the tracking error rose from <<eb>> to <<erw>> deg.""",
+                    b=f2(b["reversals_ps"]), a1=f2(a1["reversals_ps"]), da1=d("anneal", CFG_REV, "_acc1", base),
+                    db=f2(db["reversals_ps"]), ddb=d("anneal", CFG_REV, "_db3", base),
+                    lo=f2(min(x["reversals_ps"] for x in (rw, a4, rv))),
+                    hi=f2(max(x["reversals_ps"] for x in (rw, a4, rv))),
+                    jlo=f"{min(b['J'] - x['J'] for x in (rw, a4, rv)):.3f}",
+                    jhi=f"{max(b['J'] - x['J'] for x in (rw, a4, rv)):.3f}", eb=f2(b["err"], 1), erw=f2(rw["err"], 1)))
+    if fa and ff:
+        out.append(fill(" On the benchmark's DIAL the rate-change cost at weight 1 lowered the reversals from <<a>> to "
+                        "<<b>>, and J changed by <<c>>.", a=f2(ff["reversals_ps"]), b=f2(fa["reversals_ps"]),
+                        c=d("anneal", CFG_FULL, "_acc1", "anneal_twist")))
+    out.append("</p>")
+    return "".join(out)
 
 
 def sec_pt(S):
@@ -1004,20 +1135,103 @@ corrected after the task's start: open loop. A 17 Hz tracker sends a frame every
                      "the same 40 runs at 50 Hz.")
 
 
-def sec_friction(S):
+# UHAS retrained on the SCS0009 plant (lane steps sv_uhas_*, logs/20261112-mpc/uhas_train_eval.sh): (rows tag, run, label)
+UHAS_SV = [("sv_published_s0", "20261113-2115_twist_s0", "UHAS, published reward"),
+           ("sv_limits_tau0.02_cap0_s0", "20261113-2347_twist_limits_tau0.02_cap0_s0", "UHAS with the limit terms")]
+
+
+def usability(run):
+    """HOM's and the policy's rows on the test split's worlds (inner_loop_usability.py), by controller."""
+    p = ROWS / f"usability_twist_{run}.jsonl"
+    rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()] if p.exists() else []
+    return {c: [r for r in rows if r["controller"] == c] for c in ("hom", "uhas")}
+
+
+def sec_uhas(S, R):
+    """UHAS trained on the SCS0009 plant: the test split's worlds beside HOM, and the 20 pairs."""
+    U = [(tag, run, lab, usability(run)) for tag, run, lab in UHAS_SV]
+    U = [u for u in U if u[3]["uhas"]]
+    if not U:
+        return ""
     rows = []
-    for stem, lab in (("hom_twist_mu0.4", "HOM"), ("ps_twist_mu0.4_r10h10k2i1", "Predictive sampling, real-time budget"),
-                      ("anneal_twist_mu0.4", "DIAL annealing"), ("spider_twist_mu0.4", "SPIDER"),
-                      ("spider_wc_twist_mu0.4", "SPIDER, worst case")):
+    hom_u = U[0][3]["hom"]
+    for lab, rs in [("HOM", hom_u)] + [(lab, u["uhas"]) for _t, _r, lab, u in U]:
+        s = stats(rs)
+        rows.append([lab, str(s["n"]), f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["err"], 1),
+                     f2(s["link_mean_N"]), f2(s["pad_share"]), f"{100 * s['sat_frac']:.0f}", f2(s["reversals_ps"], 1),
+                     f"{s['cmd_rate_dps']:,.0f}"])
+    t = fill(r"""<p>UHAS was retrained on the SCS0009 plant for 120 min with 2,048 worlds of the training split at seed 0
+(<code>uhas_sr2.py train --task twist</code>). One run used the published reward. The other added the limit terms of
+<code>uhas_sr2.py</code>. A hinge penalizes each servo's torque demand above 0.8 of its limit, here at weight 0.02 and
+without a cap. A second term penalizes a joint within 3 deg of its range limit, and a third, $0.04\,|a -
+a_{\mathrm{prev}}|^2$, the change of the action. HOM and each policy then drove the same <<n>> worlds of the test split at seed 0
+(<code>inner_loop_usability.py</code>, Table <<tn>>).</p>""", n=f"{len(hom_u):,}", tn=P.TAB[0] + 1)
+    t += table(["Controller", "Worlds", "Mean J", "Held (%)", "Tracking error (deg)", "Rigid-part force (N)",
+                "Pad share", "Saturation (%)", "Target reversals (1/s)", "Target rate (deg/s)"], rows,
+               "HOM and UHAS on the test split's worlds of the SCS0009 plant, seed 0 "
+               "(<code>rows/usability_twist_&lt;run&gt;.jsonl</code>). HOM's row is from the first policy's file; the "
+               "second file gives the same within 0.001 in J.", num_from=1)
+    sh, su = stats(hom_u), stats(U[0][3]["uhas"])
+    t += fill(r"""<p>On the test split UHAS with the published reward reached a mean J of <<ju>>, HOM <<jh>>. Its tracking
+error was <<eu>> deg against HOM's <<eh>> deg, and the force through the rigid parts <<lu>> N against <<lh>> N. Its
+targets moved at <<ru>> deg/s RMS, about <<step>> deg per 10 ms period, and reversed <<vu>> times per joint per second.
+The servos were at their torque limit in <<su>> % of the joint-periods.""", ju=f"{su['J']:.3f}", jh=f"{sh['J']:.3f}",
+              eu=f2(su["err"], 1), eh=f2(sh["err"], 1), lu=f2(su["link_mean_N"]), lh=f2(sh["link_mean_N"]),
+              ru=f"{su['cmd_rate_dps']:,.0f}", step=f"{su['cmd_rate_dps'] * PERIOD_S:.0f}",
+              vu=f2(su["reversals_ps"], 1), su=f"{100 * su['sat_frac']:.0f}")
+    if len(U) > 1:
+        sl = stats(U[1][3]["uhas"])
+        t += fill(" With the limit terms the saturation fell to <<sat>> %, the reversals rose to <<v>> per joint per "
+                  "second, and J fell to <<j>>.", sat=f"{100 * sl['sat_frac']:.0f}", v=f2(sl["reversals_ps"], 1),
+                  j=f"{sl['J']:.3f}")
+    t += "</p>"
+    pr = []
+    for tag, _run, lab, _u in U:
+        s0, s4 = S.get(f"uhas_twist_{tag}"), S.get(f"uhas_twist_mu0.4_{tag}")
+        d = paired(R.get(f"uhas_twist_{tag}", []), R.get("hom_twist", []))
+        if s0:
+            pr.append([lab, f2(s0["J"], 3), f"{100 * s0['held']:.0f}", fd(d), f2(s0["reversals_ps"], 1),
+                       f2(s4["J"], 3) if s4 else "&#8212;"])
+    if pr:
+        hs, h4 = S.get("hom_twist"), S.get("hom_twist_mu0.4")
+        pr.insert(0, ["HOM", f2(hs["J"], 3), f"{100 * hs['held']:.0f}", "&#8212;", f2(hs["reversals_ps"], 1),
+                      f2(h4["J"], 3) if h4 else "&#8212;"])
+        t += table(["Controller", "Mean J", "Held (%)", "J minus HOM's", "Target reversals (1/s)",
+                    "Mean J at plant friction 0.4"], pr,
+                   "The 20 pairs at seeds 0 and 1 on the SCS0009 plant. Ten of the pairs were chosen by the J of UHAS "
+                   "trained on the work plant.", num_from=1)
+    return t
+
+
+def sec_friction(S, R):
+    rows = []
+    runs = (("hom_twist_mu0.4", "HOM"), ("ps_twist_mu0.4_r10h10k2i1", "Predictive sampling, real-time budget"),
+            ("anneal_twist_mu0.4", "DIAL annealing"), ("spider_twist_mu0.4", "SPIDER"),
+            ("spider_wc_twist_mu0.4", "SPIDER, worst case")) + tuple(
+        (f"uhas_twist_mu0.4_{tag}", lab + ", trained at friction 1.0") for tag, _r, lab in UHAS_SV)
+    for stem, lab in runs:
         s = S.get(stem)
         if s:
-            rows.append([lab, f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["err"], 1), f2(s["grip_mean_N"], 1)])
+            d = paired(R.get(stem, []), R.get("hom_twist_mu0.4", [])) if stem != "hom_twist_mu0.4" else None
+            rows.append([lab, f2(s["J"], 3), fd(d), f"{100 * s['held']:.0f}", f2(s["err"], 1),
+                         f2(s["grip_mean_N"], 1)])
     if not rows:
         return ""
-    return (r"""<p>The plant's friction is set to 0.4, the value measured for TPU on bare PLA on the UR5. The planners
+    t = (r"""<p>The plant's friction is set to 0.4, the value measured for TPU on bare PLA on the UR5. The planners
 keep friction 1.0 in their model; the worst case of SPIDER samples 0.4, 0.7 and 1.0.</p>"""
-            + table(["Controller", "Mean J", "Held (%)", "Tracking error (deg)", "Grip (N)"], rows,
-                    "Plant friction 0.4, the same 40 runs."))
+         + table(["Controller", "Mean J", "J minus HOM's", "Held (%)", "Tracking error (deg)", "Grip (N)"], rows,
+                 "Plant friction 0.4, the same 40 runs."))
+    h4, w4 = S.get("hom_twist_mu0.4"), S.get("spider_wc_twist_mu0.4")
+    if h4 and w4:
+        dw = paired(R.get("spider_wc_twist_mu0.4", []), R.get("hom_twist_mu0.4", []))
+        rest = [paired(R.get(stem, []), R.get("hom_twist_mu0.4", [])) for stem, _l in runs
+                if stem not in ("hom_twist_mu0.4", "spider_wc_twist_mu0.4") and R.get(stem)]
+        only = dw and dw["d"] > 0 and all(x and x["d"] <= 0 for x in rest)
+        t += fill("<p>At friction 0.4 HOM kept the sphere in <<h>> % of the runs and reached <<j>>. The worst-case "
+                  "SPIDER<<o>> reached <<w>>, a paired difference with HOM of <<d>>.</p>",
+                  o=", the only controller above HOM," if only else "", h=f"{100 * h4['held']:.0f}",
+                  j=f"{h4['J']:.3f}", w=f"{w4['J']:.3f}", d=fds(dw))
+    return t
 
 
 def sec_work(SW):
@@ -1040,15 +1254,19 @@ the SCS0009 can press.</p>"""
 
 def sec_future():
     items = [
-        "UHAS retrained on the SCS0009 plant (published reward, and with the limit terms), 120 min each, then its "
-        "evaluation, usability and the 20 pairs (<code>scripts/hom/uhas_sr2.py train</code>; lane "
-        "<code>logs/20261112-mpc/lane.txt</code>).",
-        "The friction-0.4 block, MPPI, CEM and predictive sampling at the full budget on the SCS0009 plant (same lane).",
+        "The rate-change cost at weight 1 together with the 3 deg dead band, on the real-time pick of 2 &#215; 32 "
+        "samples at a 2 ms step (<code>inner_loop_mpc.py run --method anneal --iters 2 --horizon 10 --knots 2 --n 32 "
+        "--plan-dt 0.002 --acc-w 1 --err-db 3</code>). A second run sets the rate-change weight to 2. Reversals above "
+        "0.7 per joint per second, or a J more than 0.03 below the pick's, would show that the two do not combine.",
+        "UHAS with a target-rate term in its reward (<code>uhas_sr2.py train --limits</code>, "
+        "<code>REW_LIMITS['rate']</code> from -0.04 upwards). The term should bring its reversals to the planners' 1 to "
+        "3 per joint per second. A test-split J at or below HOM's 0.085 at that rate would show that UHAS's lead over "
+        "HOM needs the saturated targets.",
         "Planning from a state predicted over the latency, with the plan applied at the times it was computed for. The "
         "runs from a 140 ms old state apply the plan when it arrives, without that prediction "
         "(<code>measured</code> in <code>inner_loop_mpc.py</code>).",
-        "The pads' torsional friction coefficient measured in this scene: the torque about each tip's normal over its "
-        "normal force while the sphere spins, to place the pads on the torsion axis of the contact figure. The rig of "
+        "The pads' torsional friction coefficient measured in this scene, to place the pads on the torsion axis of the "
+        "contact figure. It is the torque about each tip's normal over its normal force while the sphere spins. The rig of "
         "1 October gives 1.4 to 1.8 mm; a value outside 1 to 2 mm in this scene would falsify that transfer to the v4b "
         "tip.",
     ]
@@ -1069,6 +1287,7 @@ def lede(S, T, R_=None):
     hs = S.get("hom_twist")
     if not hs:
         return "Results pending.", "Results pending."
+    R_ = R_ or {}
     parts = [fill("On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was <<h>> with <<g>> N of grip. "
                   "It needs 2.0 ms of one CPU core per 10 ms period.", h=f"{hs['J']:.3f}", g=f"{hs['grip_mean_N']:.1f}")]
     pl = [(S[stem]["J"], lab, S[stem]) for stem, lab in MAIN if S.get(stem) and stem not in
@@ -1076,44 +1295,36 @@ def lede(S, T, R_=None):
     v = one_hand(T, 64, 4, 30)
     if pl:
         bj, bl, bs = max(pl, key=lambda x: x[0])
-        parts.append(fill("The best sampling planner, <<bl>>, reached <<bj>> with <<g>> N of grip. Its targets "
-                          "reversed <<r>> times per joint per second, HOM's <<hr>> times.", bl=bl, bj=f"{bj:.3f}",
-                          g=f"{bs['grip_mean_N']:.1f}", r=f"{bs['reversals_ps']:.1f}", hr=f"{hs['reversals_ps']:.1f}"))
-        if v:
-            parts.append(fill("For one hand it needs <<v>> s of GPU per second of control.", v=f"{v / 0.1:.1f}"))
-    rt = S.get("ps_twist_r10h10k2i1")
-    if rt:
-        parts.append(fill("At a budget that runs in real time, predictive sampling reached <<r>>.", r=f"{rt['J']:.3f}"))
+        parts.append(fill("The best sampling planner, <<bl>>, reached <<bj>>"
+                          + (", with <<v>> s of GPU per second of control for one hand." if v else "."),
+                          bl=bl, bj=f"{bj:.3f}", v=f"{v / 0.1:.1f}" if v else ""))
     ok = [(S[stem_of("anneal", c)]["J"], c) for c in RT_CANDS if S.get(stem_of("anneal", c))
           and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
     if ok:
         bj, bc = max(ok)
-        parts.append(fill("DIAL annealing reached <<j>> in real time with <<c>>.", j=f"{bj:.3f}",
-                          c=cfg_text(bc).replace("&#215;", "x")))
-    h1 = S.get(hom_stem("pt"))
-    a = paired(R_.get("anneal_twist", []), R_.get("anneal_twist_pt", [])) if R_ else None
-    b = paired(R_.get(stem_of("anneal", CFG_FULL, plant="pt"), []),
-               R_.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt"), [])) if R_ else None
+        parts.append(fill("DIAL annealing at <<n>> samples<<st>> runs in real time and reached <<j>>.",
+                          n=f"{bc[0]} x {bc[5]}", j=f"{bj:.3f}",
+                          st=f" with a {1e3 * bc[4]:g} ms model step" if bc[4] else ""))
+    b, a1 = S.get(stem_of("anneal", CFG_REV)), S.get(stem_of("anneal", CFG_REV, sh="_acc1"))
+    samp = [S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, k in REV_RUNS if k == "sampling" and c == CFG_REV]
+    if b and a1:
+        d = paired(R_.get(stem_of("anneal", CFG_REV, sh="_acc1"), []), R_.get(stem_of("anneal", CFG_REV), []))
+        none = all(x and x["reversals_ps"] >= b["reversals_ps"] for x in samp)
+        parts.append(fill("A cost on the change of the target rate lowered the target reversals of the real-time DIAL "
+                          "at 3 x 16 samples from <<a>> to <<b>> per joint per second. Its J changed by <<d>>"
+                          + (", and no change to the sampling lowered the reversals." if none else "."),
+                          a=f2(b["reversals_ps"]), b=f2(a1["reversals_ps"]), d=f"{d['d']:+.3f}" if d else "&#8212;"))
+    h1, h2 = S.get(hom_stem("pt")), S.get(hom_stem("pt_t2"))
     if h1:
-        parts.append(fill("With point-contact fingertips in the plant HOM's J was <<b>>.", b=f"{h1['J']:.3f}"))
-    if a and b:
-        parts.append(fill("DIAL's J with the pad model minus its J with the point-contact model was <<a>> on the pads "
-                          "plant and <<b>> on the point-contact plant.", a=f"{a['d']:+.3f}", b=f"{b['d']:+.3f}"))
-    h2 = S.get("hs_anneal_twist")
-    if h2:
-        parts.append(fill("Sampling HOM's rolling and sliding rates in place of the servo targets gave <<j>> with <<r>> "
-                          "reversals per second.", j=f"{h2['J']:.3f}", r=f"{h2['reversals_ps']:.1f}"))
-    fb = [(S[f"hom_twist_att{g}"]["J"], g) for g in (1, 2, 4, 8) if S.get(f"hom_twist_att{g}")]
-    if fb:
-        bj, bg = max(fb)
-        parts.append(fill("Feedback on the measured angle lowered HOM's tracking error but also its three-pad share; "
-                          "its best J was <<j>> at <<g>>/s.", j=f"{bj:.3f}", g=f"{bg:g}"))
-    ft = [(S[f"hom_twist_ft{f:g}"]["J"], f) for f in (1.5, 2.0, 3.5) if S.get(f"hom_twist_ft{f:g}")]
-    if ft:
-        bj, bf = max(ft)
-        if bj > hs["J"]:
-            parts.append(fill("A commanded pad force of <<f>> N per finger in place of 2.5 N raised HOM's J to <<j>>.",
-                              f=f"{bf:g}", j=f"{bj:.3f}"))
+        parts.append(fill("With point contact in place of the pads HOM's J fell to <<b>>"
+                          + (", and torsional friction of 2 mm on the point contacts raised it to <<c>>." if h2 else "."),
+                          b=f"{h1['J']:.3f}", c=f"{h2['J']:.3f}" if h2 else ""))
+    U = usability(UHAS_SV[0][1])
+    if U["uhas"]:
+        su, sh_ = stats(U["uhas"]), stats(U["hom"])
+        parts.append(fill("UHAS retrained on this plant reached <<u>> on the test split, HOM <<h>>, with its servo "
+                          "targets reversing <<r>> times per joint per second.", u=f"{su['J']:.3f}",
+                          h=f"{sh_['J']:.3f}", r=f"{su['reversals_ps']:.0f}"))
     text = " ".join(parts)
     return text, re.sub(r"\s+", " ", text)
 
@@ -1125,7 +1336,7 @@ def main():
         "hom_twist_ft3.5", "anneal_twist_d4n", "ps_twist_d4n_r10h10k2i1"] + [f"hom_twist_{v}" for v, _d in VARIANTS] + [
         stem for stem, _l in PF_RUNS] + [
         "anneal_twist_pt", "hom_twist_mu0.4", "ps_twist_mu0.4_r10h10k2i1", "anneal_twist_mu0.4", "spider_twist_mu0.4",
-        "spider_wc_twist_mu0.4"]
+        "spider_wc_twist_mu0.4"] + [f"uhas_twist{mu}_{tag}" for tag, _r, _l in UHAS_SV for mu in ("", "_mu0.4")]
     for p, _ in PLANTS:                             # the contact runs: every plant, the pad, point and own models
         stems.append(hom_stem(p))
         for meth, cfg in [("ps", CFG_PSRT), ("anneal", CFG_FULL)] + [("anneal", c) for c in RT_CANDS]:
@@ -1164,15 +1375,16 @@ def main():
                 ("methods", "The controllers", sec_methods()),
                 ("results", "HOM and the planners on the SCS0009 plant", sec_results(S, figs)),
                 ("films", "Films", sec_films()),
+                ("uhas", "UHAS retrained on the SCS0009 plant", sec_uhas(S, R)),
                 ("feedback", "Two simple changes to HOM", sec_feedback(S)),
                 ("hs", "Sampling in HOM's space", sec_hs(S)),
                 ("compute", "Compute per second of control", sec_compute(T, S)),
                 ("realtime", "Annealed sampling at the real-time budget", sec_realtime(S, T, R, rt, figs)),
-                ("reversals", "Target reversals of the sampling planners", sec_reversals(S, figs)),
+                ("reversals", "Target reversals of the sampling planners", sec_reversals(S, R, figs)),
                 ("contact", "Fingertip contact model of the plant and of the planner", sec_contact(S, R, T, rt, figs)),
                 ("sensing", "Measured state in place of the simulator's", sec_sensing(S)),
                 ("filter", "A complementary filter on the sphere's pose", sec_filter(S)),
-                ("friction", "Plant friction 0.4", sec_friction(S)),
+                ("friction", "Plant friction 0.4", sec_friction(S, R)),
                 ("work", "The same runs on the work plant", sec_work(SW)),
                 ("future", "Future work", sec_future()),
                 ("refs", "References and files", '<ol class="refs">' + "".join(

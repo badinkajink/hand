@@ -1,0 +1,90 @@
+{
+ "pair": {
+  "x": 105.0,
+  "y": 70.0,
+  "grasp": 10,
+  "by": "hom",
+  "J_by": 0.756
+ },
+ "seed": 0,
+ "plant_mu": 1.0,
+ "plant_model": "pads",
+ "methods": [
+  "hom",
+  "anneal:pads",
+  "anneal:pt",
+  "ps_rt"
+ ],
+ "clips": {
+  "hom": {
+   "J": 0.7721689382466768,
+   "held": true,
+   "track_err_rms_deg": 13.54,
+   "contact_all_frac": 1.0,
+   "link_mean_N": 0.7632457613945007,
+   "link_max_N": 1.8586779832839966,
+   "link_frac_1N": 0.5431034564971924,
+   "pad_share": 0.897048830986023,
+   "grip_mean_N": 7.413665294647217,
+   "pad_max_N": 3.3745064735412598,
+   "sat_frac": 0.16226054728031158,
+   "limit_frac": 0.35172414779663086,
+   "cmd_rate_dps": 13.90236759185791,
+   "reversals_ps": 0.3646133244037628,
+   "replan_s_mean": null
+  },
+  "anneal:pads": {
+   "J": 0.6714756856806327,
+   "held": true,
+   "track_err_rms_deg": 6.08,
+   "contact_all_frac": 0.748,
+   "link_mean_N": 0.552901566028595,
+   "link_max_N": 1.8146873712539673,
+   "link_frac_1N": 0.26724138855934143,
+   "pad_share": 0.8794932961463928,
+   "grip_mean_N": 4.588138103485107,
+   "pad_max_N": 2.9692490100860596,
+   "sat_frac": 0.0044061304070055485,
+   "limit_frac": 0.0,
+   "cmd_rate_dps": 8.955955505371094,
+   "reversals_ps": 1.8038763999938965,
+   "replan_s_mean": 1.0727502033275007
+  },
+  "anneal:pt": {
+   "J": 0.6512081440349992,
+   "held": true,
+   "track_err_rms_deg": 8.17,
+   "contact_all_frac": 0.755,
+   "link_mean_N": 0.47296521067619324,
+   "link_max_N": 2.874051809310913,
+   "link_frac_1N": 0.22068965435028076,
+   "pad_share": 0.9135000109672546,
+   "grip_mean_N": 5.4678053855896,
+   "pad_max_N": 3.3537373542785645,
+   "sat_frac": 0.004022988490760326,
+   "limit_frac": 0.0,
+   "cmd_rate_dps": 9.937488555908203,
+   "reversals_ps": 2.3412013053894043,
+   "replan_s_mean": 1.0603214809831618
+  },
+  "ps_rt": {
+   "J": 0.22382231196365468,
+   "held": true,
+   "track_err_rms_deg": 33.45,
+   "contact_all_frac": 0.512,
+   "link_mean_N": 0.8619197010993958,
+   "link_max_N": 8.220641136169434,
+   "link_frac_1N": 0.3758620619773865,
+   "pad_share": 0.8124986886978149,
+   "grip_mean_N": 4.596874713897705,
+   "pad_max_N": 4.939328670501709,
+   "sat_frac": 0.08448275923728943,
+   "limit_frac": 0.0,
+   "cmd_rate_dps": 27.67262840270996,
+   "reversals_ps": 1.8614468574523926,
+   "replan_s_mean": 0.09188962268546738
+  }
+ },
+ "plant": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+ "scenes": "logs/20261102-hom_servo_plant/scenes"
+}
