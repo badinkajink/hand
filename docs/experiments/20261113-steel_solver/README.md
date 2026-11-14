@@ -88,7 +88,17 @@ the script is not edited while a line that runs it is queued. Lines of 2026-11-1
   per world), and every mesh but the hydroelastic tips as its convex hull, as MuJoCo collides it. Throughput at 16, 64,
   256 and 1024 worlds, one process per world count, against MuJoCo-Warp with the same object-only masks (16 to 2048
   worlds). A Newton build takes about 7 MB of host memory per world (1.10 GB at 4 worlds, 1.54 GB at 64, on the CPU),
-  so the line has a 12 GB scope; the steps run under `timeout --foreground`.
+  so the line has a 12 GB scope; the steps run under `timeout --foreground`. Ran 19:20-19:44. The hydroelastic
+  throughput rows at 256 and 1024 worlds overflowed the hydroelastic broad-phase buffer at (0.02, 40), about 1,390
+  pairs per world against 1,382, and dropped contacts.
+- `steel_stage3` (line 116, 19:56-20:00): `logs/20261113-steel/stage3.sh`, those six rows again at (0.02, 60), the
+  default of `speed` since then; every world held.
+- `steel_film` (line 118): `logs/20261113-steel/film.sh`, `scripts/contact/steel_hand_film.py --pairs 0 4`.
+
+## Result
+
+The page is `20261113-steel_solver_vs_sphere_pads.html` in this folder, built by `scripts/contact/steel_solver_page.py`.
+No Steel plant met the rule above, so stage 3 of the plan (press calibration of kh, pinch torque) was not run.
 
 ## CPU references (2026-11-13)
 

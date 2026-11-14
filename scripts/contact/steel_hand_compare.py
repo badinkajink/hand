@@ -737,8 +737,9 @@ def speed_newton(a, nw, scene, setup, mxy, snap):
     xml = pair_xml(scene, scene.body_mounts(mxy), setup["palm"])
     t0 = time.time()
     # the hydroelastic stage buffers at their default size take 13.8 GB at 128 worlds (2026-10-06); above 64 worlds the
-    # 2026-10-06 sizing (newton_hand_throughput.py: fraction 0.013, broad phase x40) with a margin
-    buf = (1.0, 1) if nw <= 64 else (0.02, 40)
+    # 2026-10-06 sizing (newton_hand_throughput.py: fraction 0.013, broad phase x40) with a margin. At (0.02, 40) the
+    # broad phase held 1,382 pairs per world and the grasp asked for about 1,390 (stage 2, 256 and 1024 worlds)
+    buf = (1.0, 1) if nw <= 64 else tuple(a.hydro_buf) if a.hydro_buf else (0.02, 60)
     B = NewtonBatch([xml] * nw, a.plant, steel_iters=a.iters, drive_mode=a.drive_mode, hydro_buf=buf, pairs=a.contact_pairs)
     build_s = time.time() - t0
     B.set_state_all(snap)
@@ -867,6 +868,8 @@ def main():
     s.add_argument("--nworld", type=int, nargs="+", default=[16, 256, 1024])
     s.add_argument("--sim-s", type=float, default=0.5)
     s.add_argument("--snap-from", default=None, help="the hom run (rows tag) whose state at 2.4 s starts the worlds")
+    s.add_argument("--hydro-buf", type=float, nargs=2, default=None, metavar=("FRACTION", "MULT_BROAD"),
+                   help="hydroelastic buffers above 64 worlds (default 0.02 60)")
     for q in (h, s):
         q.add_argument("--iters", type=int, default=None, help="Steel: PGS iterations (default per plant)")
         q.add_argument("--drive-mode", choices=["rows", "augmented"], default="rows")
