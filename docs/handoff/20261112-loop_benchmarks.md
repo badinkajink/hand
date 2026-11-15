@@ -1,4 +1,12 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-15 16:41: owner 16:0x: CB1 go (patch applied ~16:12 with git apply, backups ~/backups/20261115-stream_read_back/,
+  station restarted, unhomed, torque off since 16:38 for the tags); pin-push layout (75, 56.8) (plans rewritten and
+  verified, SIL 0.373/0.764/0.364/0.421); DIP-link tags 14 mm ids 24-26 (assets/tracking/20261115-dip_link_tags,
+  2edae956b) and the gantry travel tools (docs/experiments/20261115-gantry_travel: lab look/pose/sweep, fit checked on a
+  synthetic sweep); make_bench had no hold 14:15-16:22 (fixed 2edae956b). Owner's transfer concerns: pad-law refit on
+  the v3 IDs 1-3 presses (92964cd48, docs/experiments/20261115-pad_law_refit/data): linear law 1.58 -> 0.44 by level;
+  spring or softening laws flatten 1-5 N but do not transfer sphere <-> rod; rig compliance unmeasured. corvus at
+  001fd3b38. Lane: all_f2_roll done 16:05, pin-push and twist grids running.
 State 11-15 14:16: owner 13:0x "sure go ahead" (step 28: lane logs/20261115-followups, five placements done, iLQR pad
   term twist +0.113, DIAL grids ~22-23 h) and "make sure we are ready to start collecting data and calibrating from real
   trials of HOM" (step 29). Bench: runbook docs/experiments/20261115-hom_bench_trials/README.md; hom_server serve/sil/
