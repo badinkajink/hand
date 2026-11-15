@@ -19,6 +19,7 @@ point as (c + 0.5) s - 0.5; distortion unchanged).
 """
 from __future__ import annotations
 
+import collections
 import json
 import threading
 import time
@@ -27,7 +28,7 @@ from pathlib import Path
 
 import numpy as np
 
-from sr2hand.geometry.rotations import exp_so3, skew, tf, tf_from_ur, tf_inv, tf_to_pose
+from sr2hand.geometry.rotations import exp_so3, skew, tf, tf_from_ur, tf_interp, tf_inv, tf_to_pose
 
 from . import pose as tp
 from .stream import LOST, NO_ARM, SINGLE, PoseMsg, UdpSender
@@ -253,13 +254,31 @@ class CameraWorker(threading.Thread):
 
 
 class ArmPose(threading.Thread):
-    """The newest TCP pose of the UR5 (T_BE, mm) from read-only RTDE, polled at hz."""
+    """The TCP pose of the UR5 (T_BE, mm) from read-only RTDE, polled at hz: the newest (T_BE, t_ms) and the last
+    keep_s of them, so that a frame is placed with the arm's pose at its capture time (at()). During the trials' 40 mm
+    lift (peak 188 mm/s) the newest pose is up to 42 ms (one frame's age) ahead of the frame, about 8 mm."""
 
-    def __init__(self, host="192.168.0.4", hz=125.0):
+    def __init__(self, host="192.168.0.4", hz=125.0, keep_s=1.0):
         super().__init__(daemon=True, name="arm")
         self.host, self.hz = host, hz
         self.T_BE, self.t_ms, self.error = None, None, None
+        self.buf = collections.deque(maxlen=max(2, int(round(keep_s * hz))))
         self.stop_evt = threading.Event()
+
+    def at(self, t_ms: float):
+        """T_BE at host time t_ms: interpolated between the two polls around it, the oldest or newest kept pose outside
+        them, None before the first poll."""
+        b = list(self.buf)
+        if not b:
+            return None
+        if t_ms <= b[0][0]:
+            return b[0][1]
+        if t_ms >= b[-1][0]:
+            return b[-1][1]
+        ts = np.array([x[0] for x in b])
+        k = int(np.searchsorted(ts, t_ms))
+        (t0, T0), (t1, T1) = b[k - 1], b[k]
+        return tf_interp(T0, T1, (t_ms - t0) / max(t1 - t0, 1e-9))
 
     def run(self):
         try:
@@ -270,7 +289,9 @@ class ArmPose(threading.Thread):
             return
         try:
             while not self.stop_evt.is_set():
-                self.T_BE, self.t_ms = tf_from_ur(r.getActualTCPPose()), time.time() * 1000.0
+                T, t = tf_from_ur(r.getActualTCPPose()), time.time() * 1000.0
+                self.buf.append((t, T))
+                self.T_BE, self.t_ms = T, t
                 time.sleep(1.0 / self.hz)
         finally:
             r.disconnect()
@@ -385,8 +406,9 @@ class Tracker:
             msg.n_cams, msg.n_tags, msg.rms_px = info["n_cams"], info["n_corners"] // 4, info["rms_px"]
             if info["n_cams"] == 1:
                 msg.flags |= SINGLE
-            if self.arm is not None and self.arm.T_BE is not None and self.T_EP is not None:
-                T_PO = tf_inv(self.arm.T_BE @ self.T_EP) @ T
+            T_BE = self.arm.at(msg.t_capture_ms) if self.arm is not None else None   # the arm when the frame was taken
+            if T_BE is not None and self.T_EP is not None:
+                T_PO = tf_inv(T_BE @ self.T_EP) @ T
                 p, q = tf_to_pose(T_PO)
                 msg.p_PO, msg.q_PO = np.asarray(p, float), np.asarray(q, float)
             else:
