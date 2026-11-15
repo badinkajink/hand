@@ -298,7 +298,7 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `topic_overview_page.py` | Build the topic overviews, docs/overviews/<file> (names in docs_inventory.OVERVIEW): what a collaborator new to the project needs from one topic of the result pages, with every finding linked to the page that measured it |
 | `workshop_briefing_page.py` | Build the workshop briefing page: the record behind the SR2 Hand paper. |
 
-## fingertip/ (156)
+## fingertip/ (157)
 
 The printed fingertip: its geometry and prints, finite elements, magnets and the MLX90393 readout, the wrench model, and the calibration and crosstalk pages.
 
@@ -453,6 +453,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `v2_tip_fe_checks.py` | Finite-element checks of the 11/22 half-ellipsoid fingertip that the DIP-link v2 carries (2026-10-19 night). |
 | `v2_tip_fe_checks_page.py` | Result page of the 2026-10-19 night's checks of the v2 fingertips: finite elements of concept a's tip and concept b's pad against the calibrated 11/22 print, the grid check, under-extrusion, the G-code audit of the 85A p |
 | `v2_tip_resolved_check.py` | Resolved-bead check of the homogenized 11/22 fingertip model (2026-10-21; owner, 2026-10-20 23:40: "yes please run these next jobs", the item "FE of the 11/22 pad with its beads resolved" of the printed-fingertips overvi |
+| `v3_pad_law_refit.py` | Per-pad force laws of the sphere pads refitted to the UR5 presses of the v3 tips IDs 1-3 (owner, 2026-11-15: "the sphere packed models turn into a polynomial force-distance response due to the finite size of the spheres, |
 | `v3_tip_contact_model.py` | One modulus for the contact models of the four-magnet v3 fingertips, fitted to the forces of the UR5 presses (owner, 2026-10-30: "check if our calibration results on the v3 four n52 magnet fingertips enable a more consis |
 | `v3_tip_contact_model_figures.py` | Figures, film and numbers of the page on one contact-model modulus for the v3 fingertips (scripts/fingertip/v3_tip_contact_model.py writes the data; scripts/fingertip/v3_tip_contact_model_page.py builds the page). |
 | `v3_tip_contact_model_page.py` | Page on the contact models of the four-magnet v3 fingertips fitted to the UR5 presses (owner, 2026-10-30: "check if our calibration results on the v3 four n52 magnet fingertips enable a more consistent FE / sphere-packed |
