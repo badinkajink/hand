@@ -81,11 +81,14 @@ class HomBench:
     """HomController, its Mirror and the task schedule of hom_tasks.py for one task and object on one layout."""
 
     def __init__(self, task: str, d_mm: float, setup: dict, m_pt, q_open: dict, dt: float = DT_BENCH,
-                 prm: H.HomParams | None = None, p_pads: Path | None = None):
+                 prm: H.HomParams | None = None, p_pads: Path | None = None, task_prm: dict | None = None,
+                 hold_s: float = 0.0):
         _paths()
         import hom_tasks as T
         self.T = T
         self.task, self.d_mm, self.setup, self.p_pads = task, float(d_mm), setup, p_pads
+        self.task_prm = {**T.PRM, **(task_prm or {})}          # the schedule's forces, weights and command
+        self.hold_s = float(hold_s)                             # the plant holds the object this long (the seat)
         self.palm = np.asarray(setup["palm"], float)          # {P} origin in the model's world frame, no rotation
         fs, os_ = T.sr2_specs(setup)
         self.mirror = H.Mirror(m_pt, fs, os_)
@@ -118,11 +121,35 @@ class HomBench:
         return cls(task, d_mm, setup, m_pt, q_open, dt, p_pads=p_pads, **kw)
 
     @classmethod
+    def from_world(cls, task: str, d6, v, prm: dict | None = None, dt: float = DT_BENCH, plant=None, **kw):
+        """The GPU study's world of grasp v on layout d6 (six coordinates in mm of P) with HOM's forces and contact
+        modes prm (scripts/hom/hom_bench_world.bench_world); plant None takes the plant this process runs (the bench
+        server's, hom_server.configure)."""
+        _paths()
+        import hom_bench_world as BW
+        w = BW.bench_world(task, d6, v, prm, dt=dt, plant=plant)
+        return cls._of_world(w, **kw)
+
+    @classmethod
+    def _of_world(cls, w: dict, **kw):
+        return cls(w["task"], w["d_mm"], w["setup"], w["m_pt"], w["q_open"], w["dt"], prm=w["prm"], p_pads=w["p_pads"],
+                   task_prm=w["task_prm"], hold_s=w["hold_s"], **kw)
+
+    @classmethod
     def from_plan(cls, plan: str | Path | dict, task: str, d_mm: float, dt: float = DT_BENCH, tol_mm: float = 0.5,
                   **kw):
-        """A deploy plan (manta_hand.plan.HandPlan JSON): its mounts must be the CAD-hand layout of the design entry
-        within tol_mm; the plan's "open" pose, when it has one, replaces the computed open pose."""
+        """A deploy plan (manta_hand.plan.HandPlan JSON). A plan with meta.hom (scripts/hardware/hom_bench_plans.py,
+        mounts in the driver's coordinates) is rebuilt from its GPU world on the plant this process runs, and its task
+        must be this one. Otherwise its mounts must be the CAD-hand layout of the design entry within tol_mm, and its
+        "open" pose, when it has one, replaces the computed open pose."""
         raw = json.loads(Path(plan).read_text()) if not isinstance(plan, dict) else plan
+        h = raw.get("meta", {}).get("hom")
+        if h:
+            if h["task"] != task or abs(float(h["d_mm"]) - float(d_mm)) > 1e-9:
+                raise ValueError(f"the plan is for {h['task']} at {h['d_mm']} mm, not {task} at {d_mm} mm")
+            _paths()
+            import hom_bench_world as BW
+            return cls._of_world(BW.world_from_plan(raw, dt, plant=None), **kw)
         setup, m_pt, q_open, p_pads = cls._cell(task, d_mm, None)
         for f in FINGERS:
             want = 1e3 * np.asarray(setup["mounts"][f][:2], float)
@@ -138,7 +165,7 @@ class HomBench:
     # -------------------------------------------------------------------------------------------- control
     def reset(self):
         self.ctl = H.HomController(self.mirror, self.prm, healthy=self.q_open)
-        self.sch = self.T.Schedule(self.task, self.setup, self.T.PRM)
+        self.sch = self.T.Schedule(self.task, self.setup, self.task_prm)
 
     def measurement(self, joints: dict, obj_pos_mm, obj_quat, contacts: dict | None = None) -> H.Measurement:
         """Bench units -> the controller's Measurement (model world frame, m, rad)."""
@@ -186,6 +213,7 @@ def simulate(bench: HomBench, seed: int = 0, seconds: float | None = None, conta
     sample per period with the targets sent) and the hom_tasks.metrics of the run."""
     T = bench.T
     plant = T.Plant(bench.p_pads, bench.setup)
+    plant.hold_s = bench.hold_s
     plant.reset(bench.q_open, seed)
     bench.reset()
     dt = bench.prm.dt

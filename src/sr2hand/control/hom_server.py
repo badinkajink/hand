@@ -267,6 +267,7 @@ def loopback(HB, bench, seed: int):
     from . import link as L
     T = bench.T
     plant = T.Plant(bench.p_pads, bench.setup)
+    plant.hold_s = bench.hold_s
     plant.reset(bench.q_open, seed)
     bench.reset()
     dt, t_end = bench.prm.dt, bench.t_end
@@ -302,6 +303,7 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
     rx.settimeout(1.0)
     tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     plant = T.Plant(bench.p_pads, bench.setup)
+    plant.hold_s = bench.hold_s
     plant.reset(bench.q_open, a.seed)
     sch = T.Schedule(bench.task, bench.setup, T.PRM)                   # the references for the metrics' rows
     dt, t_end = bench.prm.dt, bench.t_end
@@ -348,6 +350,7 @@ def cmd_nominal(a):
     """The object's pose in P at the plant's start (seed 0) and the open pose, as JSON for hom_trial.py check."""
     HB, bench = _bench(a)
     plant = bench.T.Plant(bench.p_pads, bench.setup)
+    plant.hold_s = bench.hold_s
     plant.reset(bench.q_open, 0)
     s = plant.state()
     out = {"task": a.task, "d_mm": a.d, "plan": a.plan, "hand": os.environ["SCALE_HAND"],
@@ -386,10 +389,17 @@ def cmd_sil(a):
             proc.wait(timeout=30)
         except subprocess.TimeoutExpired:
             proc.kill()
-    res_lb, sent_lb = loopback(HB, bench, a.seed)
-    stream, res_in = HB.simulate(bench, a.seed)
-    tgt_in = np.array([[math.degrees(float(v)) for f in HB.FINGERS for v in HB.sim_from_servo(x["targets"])[f]]
-                       for x in stream])
+    try:
+        res_lb, sent_lb, err_lb = *loopback(HB, bench, a.seed), None
+    except Exception as e:                     # noqa: BLE001  the same failure as the server's, in process
+        res_lb, sent_lb, err_lb = {"held": None}, np.zeros((0, 9)), repr(e)
+    try:
+        stream, res_in = HB.simulate(bench, a.seed)
+        tgt_in = np.array([[math.degrees(float(v)) for f in HB.FINGERS for v in HB.sim_from_servo(x["targets"])[f]]
+                           for x in stream])
+        err_in = None
+    except Exception as e:                     # noqa: BLE001  a diverged float64 run (roll layout, cylinder tasks)
+        res_in, tgt_in, err_in = {"held": None}, np.zeros((0, 9)), repr(e)
 
     def cmp(x, y):
         n = min(len(x), len(y))
@@ -398,8 +408,9 @@ def cmd_sil(a):
                 "first_period_over_1e-3": int(np.argmax(d > 1e-3)) if n and d.max() > 1e-3 else None}
     out = {"task": a.task, "seed": a.seed, "plant": os.environ["HOS_PLANT"], "hand": os.environ["SCALE_HAND"],
            "periods": [len(sent), len(sent_lb), len(tgt_in)],
-           "J": {"udp": L_.track_score(a.task, res_link), "loopback": L_.track_score(a.task, res_lb),
-                 "float64": L_.track_score(a.task, res_in)},
+           "J": {"udp": L_.track_score(a.task, res_link) if res_link.get("held") is not None else None,
+                 "loopback": None if err_lb else L_.track_score(a.task, res_lb), "loopback_error": err_lb,
+                 "float64": None if err_in else L_.track_score(a.task, res_in)}, "float64_error": err_in,
            "held": [res_link.get("held"), res_lb.get("held"), res_in.get("held")],
            "targets_udp_vs_loopback": cmp(sent, sent_lb), "targets_udp_vs_float64": cmp(sent, tgt_in),
            "wall_s": round(wall, 1)}
