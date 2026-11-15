@@ -58,6 +58,12 @@ REFS = [
     'via Diffusion-Style Annealing" (DIAL-MPC), ICRA 2025.',
     '[5] C. Pan et al., "SPIDER: Scalable Physics-Informed Dexterous Retargeting", 2025; optimizer '
     'spider/optimizers/sampling.py.',
+    '[6] W. Li and E. Todorov, "Iterative Linear Quadratic Regulator Design for Nonlinear Biological Movement Systems", '
+    'ICINCO 2004.',
+    '[7] Y. Tassa, T. Erez and E. Todorov, "Synthesis and Stabilization of Complex Behaviors through Online Trajectory '
+    'Optimization", IROS 2012.',
+    '[8] C. Mastalli et al., "Crocoddyl: An Efficient and Versatile Framework for Multi-Contact Optimal Control" (FDDP), '
+    'ICRA 2020.',
 ]
 
 
@@ -1350,6 +1356,8 @@ TNAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Pres
 CFG_RT7 = (2, 20, 3, 20, 0.002, 48)
 CFG_RT30 = (2, 30, 3, 20, 0.002, 16)      # the best real-time DIAL setting on the four tasks' tuning pairs (11-14)
 CFG_FULL2 = (4, 30, 3, 10, 0.002, 64)
+CFG_IL2 = (2, 30, 3, 10, 0.002, 64)       # iLQR (inner_loop_ilqr.py): 2 iterations over 0.3 s, steps of 50 ms
+CFG_IL4 = (4, 30, 3, 10, 0.002, 64)       # the same at 4 iterations (the row tag of the default schedule: none)
 # the configurations run on the tuning pairs (logs/20261114-mpc_tasks/tune_rt.sh, tune_rt2.sh): (method, cfg, label)
 TUNE = [("hom", None, "HOM"),
         ("anneal", CFG_PICK, "DIAL 2 &#215; 32, 0.1 s ahead (the twist's real-time pick)"),
@@ -1369,7 +1377,16 @@ TUNE = [("hom", None, "HOM"),
         ("anneal", (2, 30, 3, 10, 0.002, 64), "DIAL 2 &#215; 64, 0.3 s ahead"),
         ("anneal", CFG_FULL2, "DIAL 4 &#215; 64, 0.3 s ahead, 2 ms step"),
         ("anneal", CFG_FULL, "DIAL 4 &#215; 64, 0.3 s ahead, 1 ms step (Section 4)"),
-        ("grad", CFG_FULL2, "Gradient descent 4 &#215; 64, 0.3 s ahead")]
+        ("grad", CFG_FULL2, "Gradient descent 4 &#215; 64, 0.3 s ahead"),
+        ("ilqr", CFG_IL2, "iLQR, 2 iterations, 0.3 s ahead"),
+        ("ilqr", CFG_IL4, "iLQR, 4 iterations, 0.3 s ahead")]
+
+
+def il_rt(R, c):
+    """One hand's replanning time of iLQR over the replanning interval, from its run at --chunk 1 on two twist tuning
+    pairs (rows ..._chunk1), or None."""
+    v = [r["replan_s_mean"] for r in R.get(tstem("ilqr", "twist", "_tune", c) + "_chunk1") or [] if r.get("replan_s_mean")]
+    return float(np.mean(v)) / (c[3] * PERIOD_S) if v else None
 
 
 def tstem(method, task, pairs, cfg=None, sh=""):
@@ -1411,6 +1428,43 @@ def half(rows, task, by):
     return [r for r in rows if key(r)[:3] in prs]
 
 
+def ilqr_text(R, j):
+    """iLQR on the tuning pairs (inner_loop_ilqr.py, rows mpc_ilqr_<task>_tune_pdt2_r10h30k3i2): the method and its J
+    against DIAL 2 x 64 over 0.3 s, the planner nearest its rollouts per replanning, and HOM; empty while rows are
+    missing."""
+    il = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL2)) for k in TASKS4}
+    il4 = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL4)) for k in TASKS4}
+    if not all(il.values()):
+        return ""
+    rows = [r for k in TASKS4 for r in il[k]]
+    st = [r["ilqr_stats"] for r in rows if r.get("ilqr_stats")]
+    rt = il_rt(R, CFG_IL2)
+    d64 = (2, 30, 3, 10, 0.002, 64)
+    return fill(r"""<p>iLQR [6] was run on the tuning pairs as well (<code>scripts/hom/inner_loop_ilqr.py</code>). Its
+plan is the nine targets, each held for 50 ms, over the 0.3 s horizon. Each iteration linearizes the planner's model about
+the plan by forward differences, as MJPC's iLQG does on the CPU. From each step's start one step is run with each of the 30
+state coordinates and each of the 9 targets perturbed, 40 one-step rollouts per step. The backward pass treats the cost's
+rotation and position terms as residuals (Gauss-Newton) and its rate term exactly, and regularizes $Q_{uu}$ as in [7]. The
+pad and drop terms have no gradient and are scored only in the line search. Eight step sizes are rolled out in parallel,
+$$u_t = \bar u_t + \alpha\, k_t + K_t\,(z_t \ominus \bar z_t), \qquad \alpha = 2^{-i},\ i = 0, \dots, 7,$$
+where $z_t$ is the state with the last target and $\ominus$ the difference in the tangent space. The cheapest under the
+full cost replaces the plan if it costs less. Two iterations take <<ro>> rollouts of the horizon per replanning, against
+128 for DIAL 2 &#215; 64 over 0.3 s. iLQR scored <<ij>> on the twist, the roll, the pin-push and the press. DIAL
+2 &#215; 64 scored <<dj>> and HOM <<hj>>. <<i4>> The line search lowered the plan's cost in <<acc>> % of the iterations and took
+the full step in <<fs>> %. <<rts>> FDDP [8] differs from iLQR in its treatment of gaps in an infeasible initial guess; the
+plan here starts from a rollout, which has none.</p>""",
+                ro=f"{np.mean([r['rollouts_per_replan'] for r in rows]):.0f}",
+                ij=", ".join(f"{mean_j(il[k]):.3f}" for k in TASKS4),
+                dj=", ".join(f2(j("anneal", k, d64), 3) for k in TASKS4),
+                hj=", ".join(f2(j("hom", k, None), 3) for k in TASKS4),
+                acc=f"{100 * np.mean([x['accept'] for x in st]):.0f}" if st else "&#8212;",
+                fs=f"{100 * np.mean([x['full_step'] for x in st]):.0f}" if st else "&#8212;",
+                rts=(f"One hand's replanning took {rt:.1f} times the replanning interval." if rt is not None else ""),
+                i4=(f"Four iterations, at {np.mean([r['rollouts_per_replan'] for k in TASKS4 for r in il4[k]]):.0f} "
+                    "rollouts per replanning, scored " + ", ".join(f"{mean_j(il4[k]):.3f}" for k in TASKS4) + "."
+                    if all(il4.values()) else ""))
+
+
 def tasks_text(R, T, tn0):
     """The four-task section's text from the tuning and ranking rows (tn0: the number of the table before it)."""
     j = (lambda m, t, c, ps="_tune": mean_j(R.get(tstem(m, t, ps, c))))
@@ -1438,6 +1492,7 @@ gradient planner, at the twist setting's budget, scored <<gr>> on the roll and <
              sr=f"{max(short_roll):.3f}" if short_roll else "&#8212;",
              rr=f2(j("anneal", "roll", CFG_RT30), 3), gr=f2(j("grad", "roll", CFG_PICK), 3),
              gp=f2(j("grad", "pinpush", CFG_PICK), 3))
+    t += ilqr_text(R, j)
     hom_r = {k: R.get(tstem("hom", k, "_rank")) for k in TASKS4}
     rt30 = {k: R.get(tstem("anneal", k, "_rank", CFG_RT30)) for k in TASKS4}
     full = {k: R.get(tstem("anneal", k, "_rank", CFG_FULL2)) for k in TASKS4}
@@ -1477,7 +1532,7 @@ def sec_tasks(R, T):
         js = [mean_j(tune[(m, c)][t]) for t in TASKS4]
         if all(j is None for j in js):
             continue
-        rr = rt_ratio(T, c)
+        rr = il_rt(R, c) if m == "ilqr" else rt_ratio(T, c)
         rows.append([lab, "0.20 (one CPU core)" if m == "hom" else f2(rr) if rr is not None else "&#8212;"]
                     + [f2(j, 3) if j is not None else "&#8212;" for j in js]
                     + [f2(np.mean(js), 3) if all(j is not None for j in js) else "&#8212;"])
@@ -1836,6 +1891,7 @@ def sec_future():
 def sec_files():
     items = ["<code>scripts/hom/inner_loop_mpc.py</code>: planners, HOM and UHAS on the pairs; <code>timing</code>; "
              "<code>film</code>",
+             "<code>scripts/hom/inner_loop_ilqr.py</code>: iLQR (method <code>ilqr</code> of the script above)",
              "<code>scripts/hom/inner_loop_plant.py</code>: the plant (SCS0009, 2.5 MPa scene cache)",
              "<code>scripts/hom/uhas_sr2.py</code>: <code>UBatch</code>, HOM's angle feedback (<code>ATT_GAIN</code>)",
              "<code>scripts/hom/inner_loop_mpc_page.py</code>: this page",
@@ -1911,6 +1967,7 @@ def main():
     stems += [stem_of(m, c, sh=sh) for m, c, sh, _l, _k in REV_RUNS] + [s_ for s_, _l in REV_REF]
     for t in TASKS4:
         stems += [tstem(m, t, "_tune", c) for m, c, _l in TUNE] + [tstem(m, t, "_rank", c) for m, c, _l in RANK_RUNS]
+    stems.append(tstem("ilqr", "twist", "_tune", CFG_IL2) + "_chunk1")
     stems = list(dict.fromkeys(stems))
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}

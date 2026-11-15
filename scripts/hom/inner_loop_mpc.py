@@ -39,6 +39,9 @@ and of SPIDER:
               derivatives): per pair of iterations, central differences of the cost at eps = 0.02 rad along each free
               knot coordinate and random unit directions, the gradient fitted by least squares, then a line search of n
               step sizes along it (0 and 0.002-0.3 rad, log-spaced), the cheapest kept
+    ilqr      iLQR with finite-difference linearization (owner, 2026-11-15: "did we also try ilqr/ddp/feasibleddp on top
+              of the gradient search?"): inner_loop_ilqr.Planner, targets held for --il-step periods, --iters
+              iterations of linearization, Gauss-Newton backward pass and a parallel line search per replanning
 The script also runs HOM through the task (method hom) and a trained UHAS policy (method uhas, --run), so that every
 controller is scored on the same plant, pairs and seeds.
 
@@ -761,7 +764,8 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
     plan_rec = {"walls": [], "iters": [], "rollouts": []}
     hs = method in HS_METHODS
     res = method in RES_METHODS
-    if method in METHODS or hs or res:
+    il = method == "ilqr"
+    if method in METHODS or hs or res or il:
         R.begin(chunk)
         r = R.G * R.n
         palm = vw["mocap_pos"][:, B.mo_palm].float().clone()
@@ -778,6 +782,9 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
             mpc = MPC(method[4:], P, -bd, bd, R.n, R.G, seed, D=9, sigma=PLAN_RES["sigma"],
                       rate_scale=math.radians(PLAN_RES["rate_dps"]))
             u = torch.zeros((P, 9), device="cuda")
+        elif il:
+            mpc = R
+            u = vw["ctrl"][:, B.act_t].float().clone()
         else:
             mpc = MPC(method, P, R.lim.lo, R.lim.hi, R.n, R.G, seed)
             u = vw["ctrl"][:, B.act_t].float().clone()
@@ -817,14 +824,14 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
                     ctx = dict(ctx0, **{k_: v[i].transpose(0, 1).repeat_interleave(r, 0) for k_, v in refs.items()})
                     st = (dict(B.state(), plant=B) if hs or res else measured(hist, B, gen_m) if hist else B.state())
                     knots, inf = mpc.plan(R, st, u, ctx)
-                    seg = torch.einsum("hk,pkj->phj", W_EXEC, knots)
+                    seg = knots if il else torch.einsum("hk,pkj->phj", W_EXEC, knots)
                     if REPLAN > 1:
                         mpc.r_prev = (seg[:, -1] - seg[:, -2]) / T.DT_C
                     torch.cuda.synchronize()
                     plan_rec["walls"].append(time.perf_counter() - t0)
                     plan_rec["iters"].append(inf["iters"])
                     plan_rec["rollouts"].append(inf["rollouts"])
-                u = seg[:, tau % REPLAN]
+                u = mpc.control(B, tau % REPLAN) if il else seg[:, tau % REPLAN]
                 if hs:
                     B.v_add = hs_add(u)
                     B.tick(None)
@@ -839,7 +846,8 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
             tau += 1
     B.v_add = B.q_add = None
     out = B.finish()
-    M = IU.metrics(B, k0, torch.stack(Q), torch.stack(Cm), torch.stack(A), IU.Limits(B), B.prm.dt)
+    M = IU.metrics(B, k0, torch.stack(Q), torch.stack(Cm), torch.stack(A), IU.Limits(B), B.prm.dt,
+                   stride=R.S if method == "ilqr" else 1)       # iLQR holds its targets for R.S periods
     return out, M, plan_rec
 
 
@@ -871,6 +879,15 @@ def cmd_run(a):
     a.tag = sh + a.tag
     if a.model != "pads":
         a.tag = f"_{a.model}" + a.tag
+    ILQ = None
+    if a.method == "ilqr":
+        import inner_loop_ilqr as ILQ
+        if a.il_step is not None:
+            ILQ.IL["step"] = a.il_step
+            a.tag = f"_st{a.il_step}" + a.tag
+        if a.il_fb:
+            ILQ.IL["fb"] = True
+            a.tag = "_fb" + a.tag
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
     UH.ATT_AXIS = bool(a.att_axis)
     if UH.ATT_GAIN > 0:
@@ -946,6 +963,8 @@ def cmd_run(a):
             elif a.method in HS_METHODS + RES_METHODS:
                 R = HomRollouts(model_scene(scene, a.model), pad, a.n)
                 R.mode = "res" if a.method in RES_METHODS else "hs"
+            elif a.method == "ilqr":
+                R = ILQ.Planner(sys.modules[__name__], model_scene(scene, a.model), pad, PLAN["iters"])
             elif a.method == "uhas":
                 F = U.Fingers(B.m, "cuda")
                 policy, ckpt = UH.load_policy(UH.RUNS / a.run)
@@ -970,6 +989,10 @@ def cmd_run(a):
                         "pose_filter": HG.POSE_FILTER,
                         "space": "hom" if a.method in HS_METHODS else "residual" if a.method in RES_METHODS else "joint",
                         "preview_s": a.preview, "hom_param": hp, "prm": prm})
+            if ILQ is not None:
+                row["ilqr"] = dict(ILQ.IL)
+                row["ilqr_stats"] = R.stats(i)
+                row["metric_stride"] = ILQ.IL["step"]
             row.update({"chunk_wall_s": round(wall, 2), "chunk_worlds": Wc, "run": a.run if a.method == "uhas" else None,
                         "checkpoint": Path(ckpt).name if ckpt else None})
             if pr["walls"]:
@@ -1194,7 +1217,9 @@ def main():
     p.add_argument("--chunk", type=int, default=16)
     p.add_argument("--n", type=int, nargs="+", default=[128])
     p = sub.add_parser("run")
-    p.add_argument("--method", required=True, choices=("hom", "uhas") + METHODS + HS_METHODS + RES_METHODS)
+    p.add_argument("--method", required=True, choices=("hom", "uhas", "ilqr") + METHODS + HS_METHODS + RES_METHODS)
+    p.add_argument("--il-step", type=int, default=None, help="method ilqr: periods per step (inner_loop_ilqr.IL step, 5)")
+    p.add_argument("--il-fb", action="store_true", help="method ilqr: the plant applies the gains too (IL fb)")
     p.add_argument("--preview", type=float, default=0.0, help="HOM's command read this many s ahead in the schedule "
                    "(uhas_sr2.PREVIEW_S; methods that run HOM)")
     p.add_argument("--prm", default=None, help="HOM's forces and contact-mode weights for every world, JSON "

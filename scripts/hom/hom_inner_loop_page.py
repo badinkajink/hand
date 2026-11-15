@@ -262,6 +262,8 @@ LNAME = {"_pv50": "a 50 ms preview of the command", "_pv100": "a 100 ms preview 
 NUMW = dict(enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen".split()))
 FUSION = [("res_anneal", "DIAL residual on HOM's servo targets, 2 &#215; 32"),
           ("hs_anneal", "DIAL in HOM's space, 2 &#215; 32")]
+CFG_IL2, CFG_IL4 = MP.CFG_IL2, MP.CFG_IL4          # iLQR at 2 and 4 iterations over 0.3 s (inner_loop_ilqr.py)
+CFG_D64 = (2, 30, 3, 10, 0.002, 64)                # DIAL 2 x 64 over 0.3 s, the sampling planner nearest iLQR's budget
 
 
 def cap(s):
@@ -298,6 +300,10 @@ def sec_terms():
          "the commanded axis), $e_{\\mathrm{ref}}$ the RMS commanded rotation and $c$ the three-pad share; 0 when the "
          "object fell", "0 to 1; 1 follows the command on three pads"],
         ["Tracking factor", "$\\max(0, 1 - e/e_{\\mathrm{ref}})$, the first factor of J", "0 to 1"],
+        ["Unclipped tracking ratio", "$1 - e/e_{\\mathrm{ref}}$ of a run that held the object, without the floor at 0; "
+         "a run that dropped it ranks below every held run", "below 1"],
+        ["Power", "the probability that the 95 % interval of a paired difference excludes zero when the true difference "
+         "is 0.05, at the spread of the measured differences", "0 to 1"],
         ["Three-pad share $c$", "share of the task with all three pads above 0.05 N", "0 to 1"],
         ["Pair", "a finger layout (thumb-to-pair distance $x_{\\mathrm{sep}}$, pair spacing $y_{\\mathrm{sep}}$) with one "
          "grasp of its set; HOM's best grasp on the layout's grid row", "&#8212;"],
@@ -655,6 +661,40 @@ def metric_agreement(R, task):
             "means": {"hom": {m: float(np.nanmean(H[m])) for m in H}, "dial": {m: float(np.nanmean(Dm[m])) for m in Dm}}}
 
 
+def power_numbers(R, task):
+    """J's floor at 0 and the power of the 100-pair comparison of full DIAL with HOM on a task: runs at J = 0 per
+    controller (dropped; held with e >= e_ref; held, closer, but never with three pads in contact; all runs), the order
+    agreement under J and under the unclipped tracking ratio, the
+    95 % half-width of the paired difference and the pairs that detect 0.05 with 80 % power."""
+    st, _lab = MP.rank_ref(R, task)
+    h = hom_rank(R, task)
+    if not st or not h:
+        return None
+    d = rows_of(R, st)
+    e_ref = e_ref_of(h + d)
+
+    def unc(r):
+        return 1.0 - r["track_err_rms_deg"] / e_ref if r.get("held") and r.get("track_err_rms_deg") is not None \
+            else -3.0
+    zero = {nm: (sum(r["J"] == 0 for r in rows), sum(r["J"] == 0 and not r.get("held") for r in rows),
+                 sum(r["J"] == 0 and bool(r.get("held")) and r["track_err_rms_deg"] >= e_ref for r in rows),
+                 sum(r["J"] == 0 and bool(r.get("held")) and r["track_err_rms_deg"] < e_ref for r in rows), len(rows))
+            for nm, rows in (("hom", h), ("dial", d))}
+    keys = sorted({key(r)[:3] for r in h} & {key(r)[:3] for r in d})
+
+    def per_pair(rows, f):
+        v = {}
+        for r in rows:
+            v.setdefault(key(r)[:3], []).append(f(r))
+        return np.array([np.mean(v[k]) for k in keys])
+    jh, jd = per_pair(h, lambda r: r["J"]), per_pair(d, lambda r: r["J"])
+    dd = jd - jh
+    sd = float(dd.std(ddof=1))
+    return {"e_ref": e_ref, "zero": zero, "rho_J": spearman(jh, jd),
+            "rho_unc": spearman(per_pair(h, unc), per_pair(d, unc)), "diff": float(dd.mean()),
+            "half": 1.96 * sd / np.sqrt(len(dd)), "n80": (1.959964 + 0.841621) ** 2 * sd ** 2 / 0.05 ** 2, "n": len(dd)}
+
+
 def sec_metrics(R):
     rows, A = [], {}
     for t in TASKS:
@@ -683,10 +723,39 @@ Its three-pad share was higher on the <<hc>><<lc>>.</p>""",
                    lc=("" if not lo_c else "; on the " + lst([TN[t].lower() for t in lo_c]) + " it was "
                        + ", ".join(f"{A[t]['means']['dial']['c']:.2f}" for t in lo_c) + " against HOM's "
                        + ", ".join(f"{A[t]['means']['hom']['c']:.2f}" for t in lo_c)))
-    return txt + table(["Task", "Pairs", "&#961; HOM/DIAL, J", "&#961;, tracking factor", "&#961;, three-pad share",
+    txt += table(["Task", "Pairs", "&#961; HOM/DIAL, J", "&#961;, tracking factor", "&#961;, three-pad share",
                   "Mean tracking factor, HOM / DIAL", "Mean three-pad share, HOM / DIAL"], rows,
                  "The order of each task's 100 pairs under HOM and under full DIAL, by J and by each of its two factors, "
                  "seeds averaged; and each factor's mean under the two controllers.", num_from=1)
+    W = {t: power_numbers(R, t) for t in TASKS}
+    if not all(W.values()):
+        return txt
+    zh = {t: W[t]["zero"]["hom"] for t in TASKS}
+    zd = {t: W[t]["zero"]["dial"] for t in TASKS}
+    pct = (lambda z: 100.0 * z[0] / z[4])
+    txt += fill(r"""<p>J is 0 for a run that dropped the object, that tracked worse than holding it still
+($e \ge e_{\mathrm{ref}}$), or that never had all three pads in contact. Such runs were <<zh0>> to <<zh1>> % of HOM's and
+<<zd0>> to <<zd1>> % of full DIAL's (Table <<tn>>). On the roll, whose commanded rotation has an RMS of <<er>> deg, <<rh>> of HOM's <<rn>> runs held the sphere with
+$e \ge e_{\mathrm{ref}}$. With the tracking ratio left unclipped, the two controllers' orders of the pairs agreed with
+$\rho$ = <<ru>>, against <<rj>> under J. Over 100 pairs the paired difference of full DIAL and HOM had a 95 % half-width of
+<<h0>> to <<h1>>. At the measured spread, <<n0>> to <<n1>> pairs detect a difference of 0.05 with a power of 0.8.</p>""",
+                tn=P.TAB[0] + 1, zh0=f"{min(pct(z) for z in zh.values()):.0f}", zh1=f"{max(pct(z) for z in zh.values()):.0f}",
+                zd0=f"{min(pct(z) for z in zd.values()):.0f}", zd1=f"{max(pct(z) for z in zd.values()):.0f}",
+                er=f"{W['roll']['e_ref']:.1f}", rh=zh["roll"][2], rn=zh["roll"][4],
+                ru=al([f2(W[t]["rho_unc"]) for t in TASKS]), rj=al([f2(W[t]["rho_J"]) for t in TASKS]),
+                h0=f"{min(W[t]['half'] for t in TASKS):.3f}", h1=f"{max(W[t]['half'] for t in TASKS):.3f}",
+                n0=f"{min(W[t]['n80'] for t in TASKS):.0f}", n1=f"{max(W[t]['n80'] for t in TASKS):.0f}")
+    prow = [[TN[t], f"{zh[t][0]} ({zh[t][1]}, {zh[t][2]}, {zh[t][3]})", f"{zd[t][0]} ({zd[t][1]}, {zd[t][2]}, {zd[t][3]})",
+             f2(W[t]["rho_J"]), f2(W[t]["rho_unc"]), f"{W[t]['diff']:+.3f} &#177; {W[t]['half']:.3f}",
+             f"{W[t]['n80']:.0f}"] for t in TASKS]
+    return txt + table(["Task", "Runs at J = 0, HOM", "Runs at J = 0, full DIAL",
+                        "&#961; HOM/DIAL, J", "&#961;, unclipped tracking ratio", "Full DIAL &#8722; HOM, 95 % interval",
+                        "Pairs for power 0.8 at 0.05"], prow,
+                       "J's floor at 0 and the power of the comparison on each task's 100 pairs, seeds 0 and 1 (200 runs "
+                       "per controller). Runs at J = 0 with, in brackets, those that dropped the object, those that held "
+                       "it with e &#8805; e_ref and those that held it closer but never had three pads in contact. Pairs "
+                       "for power 0.8: (1.96 + 0.84)&#178; s&#178; / 0.05&#178;, s the standard deviation of the pairs' "
+                       "differences.", num_from=1)
 
 
 def screen_numbers(R, task):
@@ -864,6 +933,219 @@ On the pin-push <<wide_pp>> of HOM's ten best lie at $y_{\mathrm{sep}}$ of 150 m
     return t_
 
 
+def press_grid_numbers(R):
+    """HOM and full DIAL on every layout of the press's grid, each with HOM's best grasp by the grid (pairs _all, seeds 0
+    and 1), and each controller's ten best of it at seeds 10 and 11 (pairs _alltop): the agreement of the two orders,
+    the planner's ten best against HOM's 50 best, the best full-DIAL J after k layouts in the grid's order and in random
+    orders, the fresh-seed scores and the repeat of the 100 ranking pairs inside the grid. None while rows are missing."""
+    pf = MP.ROWS / "mpc_pairs_press_all.json"
+    if not pf.exists():
+        return None
+    prs = json.loads(pf.read_text())["pairs"]
+    keys = [(p["x"], p["y"], p["grasp"]) for p in prs]
+    hr, dr = rows_of(R, "hom_press_all"), rows_of(R, MP.tstem("anneal", "press", "_all", CFG_FULL2))
+    H, D = MP.pair_j(hr), MP.pair_j(dr)
+    if any(k not in H or k not in D for k in keys) or len(dr) < 2 * len(keys):
+        return None
+    h, d = np.array([H[k] for k in keys]), np.array([D[k] for k in keys])
+    jby = np.array([p["J_by"] for p in prs])
+    order = sorted(range(len(keys)), key=lambda i: (-jby[i], keys[i][:2]))          # the grid's order (rank_pairs)
+    best50 = {(p["x"], p["y"], p["grasp"]) for p in json.loads((MP.ROWS / "mpc_pairs_press_rank.json").read_text())[
+        "pairs"] if p["by"] == "hom_best"}
+    top_d, top_g = [int(i) for i in np.argsort(-d, kind="stable")[:10]], order[:10]
+    scr = np.maximum.accumulate(d[order])
+    rng = np.random.default_rng(0)
+    perm = np.array([np.maximum.accumulate(d[rng.permutation(len(d))]) for _ in range(20000)])
+    reach = (perm >= d.max() - 1e-12).argmax(1) + 1
+    seed_rho = {nm: spearman([MP.pair_j(rr, 0)[k] for k in keys], [MP.pair_j(rr, 1)[k] for k in keys])
+                for nm, rr in (("hom", hr), ("dial", dr))}
+    rep = {}
+    for nm, a_, b_ in (("hom", hr, hom_rank(R, "press")), ("dial", dr, rows_of(R, MP.tstem("anneal", "press", "_rank",
+                                                                                          CFG_FULL2)))):
+        A_, B_ = {key(r): r["J"] for r in a_}, {key(r): r["J"] for r in b_}
+        ks = sorted(set(A_) & set(B_))
+        rep[nm] = (float(np.mean([abs(A_[k] - B_[k]) for k in ks])), len(ks))
+    out = {"n": len(keys), "keys": keys, "h": h.tolist(), "d": d.tolist(), "jby": jby.tolist(), "order": order,
+           "top_d": top_d, "top_g": top_g, "rho_hd": spearman(h, d), "rho_gd": spearman(jby, d),
+           "seed_rho": seed_rho, "out50": sum(keys[i] not in best50 for i in top_d),
+           "in10": len(set(top_d) & set(top_g)), "scr": scr.tolist(), "rnd": perm.mean(0).tolist(),
+           "lo": np.quantile(perm, 0.1, 0).tolist(), "hi": np.quantile(perm, 0.9, 0).tolist(), "d_max": float(d.max()),
+           "k_reach": int(np.argmax(scr >= d.max() - 1e-12)) + 1, "k_reach_rnd": float(reach.mean()),
+           "med": {w: np.median(np.array([keys[i][:2] for i in ix]), 0).tolist() for w, ix in (("d", top_d),
+                                                                                                ("g", top_g))},
+           "mean_h": float(h.mean()), "mean_d": float(d.mean()), "rep": rep, "first_g_rank": int((d > d[order[0]]).sum()) + 1}
+    gr = sorted(order.index(i) + 1 for i in top_d)               # the grid's ranks of the planner's ten
+    out["in100"] = [r for r in gr if r <= 100]
+    tp = MP.ROWS / "mpc_pairs_press_alltop.json"
+    hf_r, df_r = rows_of(R, "hom_press_alltop"), rows_of(R, MP.tstem("anneal", "press", "_alltop", CFG_FULL2))
+    if tp.exists() and hf_r and df_r:
+        T_ = json.loads(tp.read_text())["pairs"]
+        Hf, Df = MP.pair_j(hf_r), MP.pair_j(df_r)
+        sets = {"d": [keys[i] for i in top_d], "g": [keys[i] for i in top_g]}
+        if all(k in Hf and k in Df for s_ in sets.values() for k in s_) and len(df_r) >= 2 * len(T_):
+            drop_h = {w: (sum(1 for r in hf_r if (r["x_sep"], r["y_sep"], r["grasp"]) in set(s_) and not r.get("held")),
+                          2 * len(s_)) for w, s_ in sets.items()}
+            df = {w: np.array([Df[k] for k in s_]) for w, s_ in sets.items()}
+            bs = [rng.choice(df["d"], 10).mean() - rng.choice(df["g"], 10).mean() for _ in range(4000)]
+            fused = max(sets["g"], key=lambda k: D[k])                # the planner's best of the grid's ten, seeds 0-1
+            first = keys[top_d[0]]
+            cf = {(nm, w): float(np.mean([r["contact_all_frac"] for r in rr if (r["x_sep"], r["y_sep"], r["grasp"])
+                                          in set(s_)])) for nm, rr in (("hom", hf_r), ("dial", df_r))
+                  for w, s_ in sets.items()}
+            out["fresh"] = {"contact": cf, "s01": {w: float(np.mean([D[k] for k in s_])) for w, s_ in sets.items()},
+                            "dial": {w: float(v.mean()) for w, v in df.items()},
+                            "hom": {w: float(np.mean([Hf[k] for k in s_])) for w, s_ in sets.items()},
+                            "drop_h": drop_h, "diff": (float(df["d"].mean() - df["g"].mean()),
+                                                       float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))),
+                            "fused": fused, "fused_dial": Df[fused], "first": first, "first_dial": Df[first],
+                            "fused_is_first": fused == first}
+    return out
+
+
+def fig_press_grid(N, out):
+    """(a, b) The press's grid in the layout plane coloured by J under HOM and under full DIAL, HOM's grid's ten best
+    and the planner's ten best marked; (c) the layouts' J under full DIAL against HOM's; (d) the best J under full DIAL
+    after k layouts in the grid's order and in random orders."""
+    plt = MP.plt_setup()
+    xy = np.array([k[:2] for k in N["keys"]])
+    h, d = np.array(N["h"]), np.array(N["d"])
+    vmax = float(max(h.max(), d.max()))
+    fig, ax = plt.subplots(2, 2, figsize=(9.5, 9.2))
+    for a, v, ttl in ((ax[0, 0], h, "(a) J under HOM"), (ax[0, 1], d, "(b) J under full DIAL")):
+        sc = a.scatter(xy[:, 0], xy[:, 1], c=v, cmap="viridis", vmin=0, vmax=vmax, s=46, marker="s", lw=0)
+        a.scatter(xy[N["top_g"], 0], xy[N["top_g"], 1], s=120, facecolors="none", edgecolors="#2563eb", lw=2.0,
+                  label="HOM's grid, ten best")
+        a.scatter(xy[N["top_d"], 0], xy[N["top_d"], 1], s=60, marker="^", color="#f97316", edgecolors="black",
+                  lw=0.6, label="full DIAL, ten best")
+        a.set_title(ttl, loc="left")
+        a.set_xlabel("x_sep (mm)")
+        a.set_ylabel("y_sep (mm)")
+        cb = fig.colorbar(sc, ax=a, fraction=0.05, pad=0.02)
+        cb.set_label("J, seeds 0 and 1")
+    a = ax[1, 0]
+    a.scatter(h, d, s=16, color="#6b7280", lw=0)
+    a.plot([0, vmax], [0, vmax], color="black", lw=0.8, ls=(0, (3, 3)))
+    a.set_xlabel("J under HOM")
+    a.set_ylabel("J under full DIAL")
+    a.set_title(f"(c) The layouts, $\\rho$ = {N['rho_hd']:.2f}", loc="left")
+    a = ax[1, 1]
+    k = np.arange(1, N["n"] + 1)
+    a.fill_between(k, N["lo"], N["hi"], color="#d1d5db", lw=0, label="random order, 10-90 %")
+    a.plot(k, N["rnd"], color="#6b7280", lw=2.0, label="random order, mean")
+    a.step(k, N["scr"], where="post", color="#2563eb", lw=2.4, label="HOM's grid order")
+    a.axhline(N["d_max"], color="#f97316", lw=1.2, ls=(0, (4, 3)), label="best of the grid")
+    a.set_xscale("log")
+    a.set_xlim(1, N["n"])
+    a.set_ylim(0, 1.0)
+    a.set_xlabel("Layouts run under full DIAL")
+    a.set_ylabel("Best J under full DIAL so far")
+    a.set_title("(d) Search of the grid", loc="left")
+    a.legend(frameon=False, fontsize=12, loc="lower right")
+    for a in ax.flat:
+        for sp in ("top", "right"):
+            a.spines[sp].set_visible(False)
+    h_, l_ = ax[0, 0].get_legend_handles_labels()
+    fig.legend(h_, l_, frameon=False, loc="upper center", ncol=2, fontsize=12)
+    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.savefig(out, dpi=110)
+    plt.close(fig)
+    return out
+
+
+def press_films(N):
+    """The films of HOM and full DIAL at seed 10 on full DIAL's first choice of the press grid and on the grid's first
+    choice (logs/20261115-press_grid/films.sh): [(path, caption)]."""
+    first_d, first_g = tuple(N["keys"][N["top_d"][0]]), tuple(N["keys"][N["order"][0]])
+    out = []
+    for p in sorted(MP.MEDIA.glob("20261115-film_mpc_press_alltop_p*_s10.mp4")):
+        info_p = MP.ROWS / (p.stem.replace("20261115-", "") + ".json")
+        if not info_p.exists():
+            continue
+        info = json.loads(info_p.read_text())
+        pr = info["pair"]
+        k_ = (pr["x"], pr["y"], pr["grasp"])
+        who = ("full DIAL's first choice of the grid at seeds 0 and 1" if k_ == first_d else
+               "the grid's first choice, by HOM's J over seeds 0-2" if k_ == first_g else
+               {"planner_top": "one of full DIAL's ten best of the grid", "hom_top": "one of HOM's ten best of the grid",
+                "both": "among both controllers' ten best", "grid_top": "one of the grid's ten best"}.get(pr.get("by"),
+                                                                                                         ""))
+        parts = []
+        for spec, c in info["clips"].items():
+            nm = MP.FILM_SPEC.get(spec, esc(spec))
+            parts.append(f"{cap(nm)}: J {c['J']:.2f}, grip {c['grip_mean_N']:.1f} N" + ("" if c.get("held") else ", dropped"))
+        out.append((p, f"Press: layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}; {who}. "
+                       "The task phase from 2.4 s. " + ". ".join(parts) + ". A planner's run in the film draws other "
+                       "samples than its runs in the tables. Each frame gives each finger's pad force and the force "
+                       "through its rigid parts (N); the links are drawn see-through."))
+    return out
+
+
+def sec_press_grid(R):
+    N = press_grid_numbers(R)
+    if not N:
+        return ""
+    sr = N["seed_rho"]
+    miss = N["out50"] > 5
+    txt = fill(r"""<p>Full DIAL and HOM ran on all <<n>> layouts of the press's grid, each with HOM's best grasp by the
+grid, at seeds 0 and 1 (Figure <<fn>>). Over the grid the two controllers' J agreed with $\rho$ = <<rhd>>. The grid's own
+order, by HOM's J over seeds 0-2, agreed with full DIAL's with $\rho$ = <<rgd>>. Full DIAL's J agreed between seeds 0 and
+1 with $\rho$ = <<srd>>, HOM's with <<srh>>. Full DIAL's mean J over the grid was <<md>>, HOM's <<mh>>.</p>
+<p>The criterion was set before the run: HOM's grid misses the planner's best press layouts if more than five of the
+planner's ten best lie outside HOM's 50 best. <<o50>> of the ten lay outside HOM's 50 best, and <<i10>> among the
+grid's ten best. <<verdict>> <<i100>> of the ten lay among the grid's 100 best, at ranks <<r1>> to <<r2>>. The planner's
+ten best lie at a median of (<<mdx>>, <<mdy>>) mm in ($x_{\mathrm{sep}}$,
+$y_{\mathrm{sep}}$), the grid's ten at (<<mgx>>, <<mgy>>) mm. The grid's first layout ranked <<fgr>> of <<n>> under full
+DIAL. In the grid's order the planner reached its best J of the grid, <<dmax>>, after <<kr>> layouts. In random orders
+that took <<krr>> layouts on average. After the grid's first ten layouts the best J under full DIAL was <<s10>>, against
+<<r10>> after ten random ones.</p>""",
+               n=N["n"], fn=P.FIG[0] + 1, rhd=f2(N["rho_hd"]), rgd=f2(N["rho_gd"]), srd=f2(sr["dial"]), srh=f2(sr["hom"]),
+               md=f"{N['mean_d']:.3f}", mh=f"{N['mean_h']:.3f}", o50=cap(NUMW[N["out50"]]),
+               i10="none was" if N["in10"] == 0 else f"{NUMW[N['in10']]} " + ("was" if N["in10"] == 1 else "were"),
+               verdict=("By that criterion the grid misses them." if miss else "By that criterion the grid does not miss "
+                        "them."),
+               mdx=f"{N['med']['d'][0]:g}", mdy=f"{N['med']['d'][1]:g}", mgx=f"{N['med']['g'][0]:g}",
+               mgy=f"{N['med']['g'][1]:g}", fgr=N["first_g_rank"], dmax=f"{N['d_max']:.3f}", kr=N["k_reach"],
+               krr=f"{N['k_reach_rnd']:.0f}", s10=f"{N['scr'][9]:.3f}", r10=f"{N['rnd'][9]:.3f}",
+               i100=cap(NUMW[len(N["in100"])]), r1=min(N["in100"], default=0), r2=max(N["in100"], default=0))
+    F = N.get("fresh")
+    if F:
+        dh = F["drop_h"]
+        fu, fi = F["fused"], F["first"]
+        txt += fill(r"""<p>Full DIAL's ten best layouts at seeds 0 and 1 and the grid's ten best ran again at seeds 10 and 11.
+Under full DIAL the planner's ten scored <<pd>>, against <<p01>> at seeds 0 and 1. The grid's ten scored <<gd>>, against
+<<g01>>. At seeds 10 and 11 the planner's ten scored <<df>> than the grid's ten (95 % interval <<dlo>> to <<dhi>>).
+At seeds 0 and 1 the difference had been <<d01>>. <<fz>> Under HOM at seeds 10 and 11 the planner's ten scored <<ph>>
+and dropped the cylinder in <<pdr>> of <<pn>> runs. The grid's ten scored <<gh>> under HOM and dropped it in
+<<gdr>>. HOM kept all three pads in contact for <<chd>> % of the task on the planner's ten and <<chg>> % on the grid's
+ten. Full DIAL kept them in contact for <<cdd>> % and <<cdg>> %.</p>""",
+                    pd=f"{F['dial']['d']:.3f}", p01=f"{F['s01']['d']:.3f}", gd=f"{F['dial']['g']:.3f}",
+                    g01=f"{F['s01']['g']:.3f}", df=f"{abs(F['diff'][0]):.3f} " + ("more" if F["diff"][0] >= 0 else "less"),
+                    dlo=f"{F['diff'][1]:+.3f}",
+                    dhi=f"{F['diff'][2]:+.3f}", d01=f"{F['s01']['d'] - F['s01']['g']:+.3f}",
+                    fz=("The planner's best of the grid's ten at seeds 0 and 1 was its own first choice of the grid."
+                        if F["fused_is_first"] else
+                        f"The planner's best of the grid's ten at seeds 0 and 1, layout ({fu[0]:g}, {fu[1]:g}) mm, scored "
+                        f"{F['fused_dial']:.3f} at seeds 10 and 11. Its own first choice of the grid, ({fi[0]:g}, "
+                        f"{fi[1]:g}) mm, scored {F['first_dial']:.3f}."),
+                    ph=f"{F['hom']['d']:.3f}", pdr=dh["d"][0], pn=dh["d"][1], gh=f"{F['hom']['g']:.3f}", gdr=dh["g"][0],
+                    chd=f"{100 * F['contact'][('hom', 'd')]:.0f}", chg=f"{100 * F['contact'][('hom', 'g')]:.0f}",
+                    cdd=f"{100 * F['contact'][('dial', 'd')]:.0f}", cdg=f"{100 * F['contact'][('dial', 'g')]:.0f}")
+    txt += fill(r"""<p>The 100 pairs of Section SCREENSEC are part of the grid, and their runs at seeds 0 and 1 were repeated
+in it. Between the two runs a pair's J at the same seed differed by a mean of <<rh>> under HOM and <<rd>> under full
+DIAL.</p>""", rh=f"{N['rep']['hom'][0]:.3f}", rd=f"{N['rep']['dial'][0]:.3f}")
+    txt += P.img(fig_press_grid(N, MEDIA / "20261115-hom_press_grid.png"),
+                 f"HOM and full DIAL on the {N['n']} layouts of the press's grid, each with HOM's best grasp by the grid, "
+                 "seeds 0 and 1. (a, b) J of each layout under HOM and under full DIAL. Circles: the grid's ten best "
+                 "by HOM's J over seeds 0-2; triangles: full DIAL's ten best. (c) Full DIAL's J against HOM's, one point "
+                 "per layout; dotted: equal J. (d) The best J under full DIAL after running the planner on k layouts: in "
+                 "the grid's order "
+                 "(blue) and in 20,000 random orders (grey, the mean and the 10-90 % band); dashed: the best of the "
+                 "grid.")
+    for p, c in press_films(N):
+        txt += P.film(p, c)
+    return txt
+
+
 def variant_effects(R):
     """Each variant's paired difference from HOM's defaults on its tasks' 20 pairs: [(tag, label, tasks, {task:
     paired})], or None while a variant's rows are missing."""
@@ -1022,6 +1304,14 @@ They ran on the 20 pairs of each task at seeds 0 and 1 (Table <<tn>>). By the 95
         if all(gr):
             s.append(f"Per twist rollout the residual took {gr[0]:.0f} times HOM's GPU time, DIAL 2 &#215; 32 alone "
                      f"{gr[1]:.0f} times and full DIAL {gr[2]:.0f} times.")
+        one = one_hand_replan(R)
+        if one:
+            rt = one["res"] <= one["budget"]
+            s.append(f"For one hand alone, a replanning of the residual took {one['res']:.3f} s and one of DIAL 2 &#215; "
+                     f"32 alone {one['alone']:.3f} s, against the replanning interval of {one['budget']:.1f} s"
+                     f" (twist, {one['n']} replannings each)."
+                     + (" The residual is therefore a real-time controller." if rt else
+                        f" The residual therefore runs at {one['res'] / one['budget']:.1f} times real time."))
         txt += "<p>" + " ".join(s) + "</p>"
 
     def cell(v, h):
@@ -1052,6 +1342,103 @@ They ran on the 20 pairs of each task at seeds 0 and 1 (Table <<tn>>). By the 95
                  "Planners fused with HOM on each task's 20 pairs at seeds 0 and 1, with HOM, DIAL 2 &#215; 32 alone and "
                  "full DIAL on the same pairs and seeds: mean J; the paired difference from HOM; the replanning time "
                  "for 16 hands planned together.", num_from=1)
+
+
+def ilqr_numbers(R):
+    """iLQR (inner_loop_ilqr.py) on the 20 pairs of each task at seeds 0 and 1 and on the tuning pairs at 2 and 4
+    iterations: mean J against HOM, full DIAL and the DIAL residual on the same pairs, the paired differences, the line
+    search's record, the targets' rate and reversals at the 50 ms step, the repeat of the tuning runs (rows _first), the
+    GPU time; None while the 20-pair rows are missing."""
+    r20 = {t: rows_of(R, MP.tstem("ilqr", t, "_rank20", CFG_IL2)) for t in TASKS}
+    tune = {c: {t: rows_of(R, MP.tstem("ilqr", t, "_tune", c)) for t in TASKS} for c in (CFG_IL2, CFG_IL4)}
+    if not all(len(v) >= 40 for v in r20.values()) or not all(tune[CFG_IL2].values()):
+        return None
+    h20 = {t: sub20(R, t, hom_rank(R, t)) for t in TASKS}
+    f20 = {t: sub20(R, t, rows_of(R, MP.tstem("anneal", t, "_rank", CFG_FULL2))) for t in TASKS}
+    s20 = {t: rows_of(R, MP.tstem("res_anneal", t, "_rank20", CFG_PICK)) for t in TASKS}
+    ref = {nm: {t: MP.mean_j(rows_of(R, MP.tstem(m, t, "_tune", c))) for t in TASKS}
+           for nm, m, c in (("hom", "hom", None), ("d64", "anneal", CFG_D64), ("full", "anneal", CFG_FULL2))}
+    rows20, full20 = [r for t in TASKS for r in r20[t]], [r for t in TASKS for r in f20[t]]
+    st = [r["ilqr_stats"] for r in rows20 if r.get("ilqr_stats")]
+    rep = []
+    for t in TASKS:
+        a_ = {key(r): r["J"] for r in tune[CFG_IL2][t]}
+        b_ = {key(r): r["J"] for r in rows_of(R, MP.tstem("ilqr", t, "_tune", CFG_IL2) + "_first")}
+        rep += [abs(a_[k] - b_[k]) for k in set(a_) & set(b_)]
+    one = [r["replan_s_mean"] for r in rows_of(R, MP.tstem("ilqr", "twist", "_tune", CFG_IL2) + "_chunk1")
+           if r.get("replan_s_mean")]
+    return {"j20": {t: MP.mean_j(r20[t]) for t in TASKS}, "h20": {t: MP.mean_j(h20[t]) for t in TASKS},
+            "f20": {t: MP.mean_j(f20[t]) for t in TASKS}, "s20": {t: MP.mean_j(s20[t]) for t in TASKS},
+            "vs_hom": {t: paired(r20[t], h20[t]) for t in TASKS}, "vs_full": {t: paired(r20[t], f20[t]) for t in TASKS},
+            "vs_res": {t: paired(r20[t], s20[t]) for t in TASKS},
+            "tune": {c: {t: MP.mean_j(v) for t, v in d.items()} for c, d in tune.items()}, "ref": ref,
+            "ro": {c: float(np.mean([r["rollouts_per_replan"] for t in TASKS for r in d[t]])) if all(d.values())
+                   else None for c, d in tune.items()},
+            "accept": float(np.mean([x["accept"] for x in st])), "full_step": float(np.mean([x["full_step"] for x in st])),
+            "rate": float(np.mean([r["cmd_rate_dps"] for r in rows20])),
+            "rev": float(np.mean([r["reversals_ps"] for r in rows20])),
+            "rate_full": float(np.mean([r["cmd_rate_dps"] for r in full20])),
+            "rev_full": float(np.mean([r["reversals_ps"] for r in full20])),
+            "drop": (sum(not r.get("held") for r in rows20), len(rows20)),
+            "drop_full": (sum(not r.get("held") for r in full20), len(full20)),
+            "gpu": gpu_ratio(R, MP.tstem("ilqr", "twist", "_rank20", CFG_IL2)),
+            "gpu_res": gpu_ratio(R, MP.tstem("res_anneal", "twist", "_rank20", CFG_PICK)),
+            "gpu_full": gpu_ratio(R, MP.tstem("anneal", "twist", "_rank", CFG_FULL2)),
+            "one": float(np.mean(one)) if one else None,
+            "rep": (float(np.mean(rep)), float(np.max(rep)), len(rep)) if rep else None}
+
+
+def sec_ilqr(R):
+    N = ilqr_numbers(R)
+    if not N:
+        return ""
+    m4 = (lambda d: float(np.mean([d[t] for t in TASKS])))
+    lst = (lambda d: al([f"{d[t]:.3f}" for t in TASKS]))
+
+    def where(pd, sign):
+        ts = [t for t in TASKS if (pd[t]["lo"] > 0 if sign > 0 else pd[t]["hi"] < 0)]
+        return MP.tasks_list(ts) if ts else "no task"
+    t4 = N["tune"][CFG_IL4]
+    txt = fill(r"""<p>iLQR [<<ref>>] scored <<j>> on the 20 pairs of the twist, the roll, the pin-push and the press at seeds 0
+and 1, a mean of <<jm>> (Table <<tn>>). HOM scored <<h>> on the same pairs (mean <<hm>>) and full DIAL <<f>> (mean <<fm>>).
+By the 95 % interval of the paired difference, iLQR scored above HOM on <<ah>> and below it on <<bh>>. It scored below full
+DIAL on <<bf>> and above it on <<af>>. It dropped the object in <<dr>> of <<dn>> runs, full DIAL in <<drf>>. Per twist
+rollout iLQR took <<g>> times HOM's GPU time at 16 hands per batch, the DIAL residual on HOM <<gr>> times and full DIAL
+<<gf>> times.</p>
+<p>The plan is the nine servo targets, each held for 50 ms, over the 0.3 s horizon (<code>scripts/hom/inner_loop_ilqr.py</code>;
+the method is set out on the <a href="<<mp>>">sampling MPC page</a>). Each iteration linearizes the planner's MuJoCo-Warp
+model about the plan by forward differences, 40 one-step rollouts per step, and takes a Gauss-Newton backward pass.
+Eight step sizes are then rolled out in parallel and scored with the full cost, and the cheapest is kept if it costs less
+than the plan. Two iterations take <<ro2>> rollouts of the horizon per replanning; full DIAL takes 256. DDP adds the
+dynamics' second derivatives to the backward pass. FDDP [<<ref2>>] treats an infeasible initial guess, and each plan here
+starts from a rollout of the shifted plan.</p>
+<p>On the six tuning pairs of each task, two iterations scored <<t2>> and four iterations <<t4>>. DIAL 2 &#215; 64 over
+0.3 s, at 128 rollouts per replanning, scored <<d64>> there, and full DIAL <<tf>>. The line search lowered the plan's cost
+in <<acc>> % of the iterations and took the full step in <<fs>> %. iLQR draws no random numbers. Run twice on the tuning
+pairs, a pair's J differed by a mean of <<rp>>, at most <<rpx>>. For one hand alone a replanning took <<one>> s against
+the 0.1 s interval. At the 50 ms step iLQR's targets moved at <<rt>> deg/s RMS and reversed <<rv>> times per joint per
+second. Full DIAL's targets, counted per 10 ms period, moved at <<rtf>> deg/s and reversed <<rvf>> times on the same
+pairs.</p>""",
+               ref=REF_ILQR, ref2=REF_FDDP, j=lst(N["j20"]), jm=f"{m4(N['j20']):.3f}", tn=P.TAB[0] + 1,
+               h=lst(N["h20"]), hm=f"{m4(N['h20']):.3f}", f=lst(N["f20"]), fm=f"{m4(N['f20']):.3f}",
+               ah=where(N["vs_hom"], 1), bh=where(N["vs_hom"], -1), bf=where(N["vs_full"], -1),
+               af=where(N["vs_full"], 1), dr=N["drop"][0], dn=N["drop"][1], drf=N["drop_full"][0],
+               g=f"{N['gpu']:.0f}" if N["gpu"] else "&#8212;", gr=f"{N['gpu_res']:.0f}" if N["gpu_res"] else "&#8212;",
+               gf=f"{N['gpu_full']:.0f}" if N["gpu_full"] else "&#8212;", mp=MPC_PAGE,
+               ro2=f"{N['ro'][CFG_IL2]:.0f}", t2=lst(N["tune"][CFG_IL2]),
+               t4=lst(t4) if all(v is not None for v in t4.values()) else "&#8212;",
+               d64=lst(N["ref"]["d64"]), tf=lst(N["ref"]["full"]), acc=f"{100 * N['accept']:.0f}",
+               fs=f"{100 * N['full_step']:.0f}", rp=f"{N['rep'][0]:.3f}" if N["rep"] else "&#8212;",
+               rpx=f"{N['rep'][1]:.3f}" if N["rep"] else "&#8212;",
+               one=f"{N['one']:.2f}" if N["one"] else "&#8212;", rt=f"{N['rate']:.1f}", rv=f"{N['rev']:.2f}",
+               rtf=f"{N['rate_full']:.1f}", rvf=f"{N['rev_full']:.2f}")
+    rows = [[TN[t], f"{N['j20'][t]:.3f}", fd(N["vs_hom"][t]), fd(N["vs_full"][t]), fd(N["vs_res"][t])] for t in TASKS]
+    return txt + table(["Task", "iLQR, mean J", "iLQR &#8722; HOM", "iLQR &#8722; full DIAL",
+                        "iLQR &#8722; DIAL residual on HOM"], rows,
+                       "iLQR at two iterations over 0.3 s on each task's 20 pairs, seeds 0 and 1: mean J and the paired "
+                       "difference from HOM, full DIAL (4 &#215; 64) and the DIAL residual on HOM's servo targets "
+                       "(2 &#215; 32) on the same pairs and seeds, with its 95 % interval and the number of pairs where "
+                       "iLQR was higher.", num_from=1)
 
 
 def sec_trends(PK, figs):
@@ -1105,27 +1492,64 @@ def sg_(x):
     return f"{x:+.3f}"
 
 
-def sec_future():
-    items = [
+def one_hand_replan(R):
+    """The replanning time of the DIAL residual and of DIAL 2 x 32 alone for one hand (runs at --chunk 1 on two twist
+    pairs, rows ..._chunk1): mean s, or None while either is missing."""
+    v = {nm: [r["replan_s_mean"] for r in rows_of(R, MP.tstem(m, "twist", "_rank20", CFG_PICK) + "_chunk1")
+              if r.get("replan_s_mean")] for nm, m in (("res", "res_anneal"), ("alone", "anneal"))}
+    if not all(v.values()):
+        return None
+    n = {nm: sum(r.get("replans", 0) for r in rows_of(R, MP.tstem(m, "twist", "_rank20", CFG_PICK) + "_chunk1"))
+         for nm, m in (("res", "res_anneal"), ("alone", "anneal"))}
+    return {"res": float(np.mean(v["res"])), "alone": float(np.mean(v["alone"])), "budget": 10 * MP.PERIOD_S,
+            "n": min(n.values())}
+
+
+def sec_future(R):
+    items = [] if press_grid_numbers(R) else [
         "Full DIAL on every layout of the press's grid with HOM's best grasp, at seeds 0 and 1: 369 layouts at about "
         "7.8 s of GPU per rollout, 1.6 hours. If more than five of the planner's ten best layouts lie outside HOM's 50 "
         "best, the planner's best press layouts are missed by HOM's grid. The press would then need a planner in the "
-        "search.",
+        "search."]
+    one = one_hand_replan(R)
+    if one is None:
+        items.append(
+            "The DIAL residual on HOM's servo targets for one hand alone: <code>inner_loop_mpc.py run --method "
+            "res_anneal --chunk 1</code>. If one hand's replanning at 2 &#215; 32 samples takes 0.1 s or less, the "
+            "residual is a real-time controller that scored above HOM on three tasks. If it takes longer, the residual "
+            "at 2 &#215; 16 samples would be timed and run on the 20 pairs of each task.")
+    elif one["res"] <= one["budget"]:
+        items.append(
+            "The DIAL residual on HOM's servo targets on the 100 pairs of each task at seeds 10 and 11 "
+            "(<code>inner_loop_mpc.py run --method res_anneal --pairs _rank --seeds 10 11 --iters 2 --horizon 10 "
+            "--knots 2 --n 32 --plan-dt 0.002</code>). If it stays above HOM by its 95 % interval on three tasks, it is "
+            "the real-time controller for the bench.")
+    else:
+        items.append(
+            f"The DIAL residual at 2 &#215; 16 samples: one hand's replanning at 2 &#215; 32 took {one['res']:.2f} s "
+            "against the 0.1 s interval. The smaller residual would be timed at <code>--chunk 1</code> and run on the "
+            "20 pairs of each task; if it keeps J above HOM on three tasks in real time, it is the bench's controller.")
+    if press_grid_numbers(R):
+        items.append(
+            "Full DIAL on every layout of the twist's, the roll's and the pin-push's grids, as on the press "
+            "(<code>inner_loop_mpc.py pairs --rule all</code>, then <code>run --pairs _all</code>): 527, 527 and 437 "
+            "layouts at seeds 0 and 1, about 2.2, 2.2 and 1.8 GPU hours. On a task where the planner's ten best then "
+            "score more than 0.05 above the grid's ten at seeds 10 and 11, the search would re-score HOM's 100 best "
+            "layouts with the planner.")
+    items += [
         "Grasps chosen at five placements (seeds 0-4) in place of three (<code>hom_gpu.py run --seeds 0 1 2 3 4</code> "
         "on the grid). HOM would then run at seeds 10 and 11 on the 100 pairs of the pin-push and the press. A drop rate "
-        "above 20 % there would show that the cylinder grasps fail at new placements however they are chosen.",
-        "The DIAL residual on HOM's servo targets for one hand alone: <code>inner_loop_mpc.py timing</code> extended to "
-        "<code>res_anneal</code> at <code>--chunk 1</code>. If one hand's replanning at 2 &#215; 32 samples takes 0.1 s "
-        "or less, the residual is a real-time controller that scored above HOM on three tasks. If it takes longer, the "
-        "residual at 2 &#215; 16 samples would be timed and run on the 20 pairs of each task.",
-    ]
+        "above 20 % there would show that the cylinder grasps fail at new placements however they are chosen."]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
 def sec_files():
     items = ["<code>scripts/hom/inner_loop_mpc.py</code>: HOM, its variants (<code>--preview</code>, "
              "<code>--prm-shared</code>, <code>--hom-param</code>), the planners, the fused planners (<code>res_*</code>, "
-             "<code>hs_*</code>) and the gradient planner (<code>grad</code>) on any task's pair set",
+             "<code>hs_*</code>), the gradient planner (<code>grad</code>) and iLQR (<code>ilqr</code>) on any task's "
+             "pair set; <code>pairs --rule all</code> and <code>--rule top --src _all</code> for the press grid",
+             "<code>scripts/hom/inner_loop_ilqr.py</code>: iLQR, its finite-difference linearization in batch, the "
+             "Joseph-form backward pass and the parallel line search",
              "<code>scripts/hom/uhas_sr2.py</code>: <code>UBatch</code>, <code>PREVIEW_S</code>, the residual "
              "<code>q_add</code>",
              "<code>scripts/hom/hom_inner_loop_page.py</code>: this page",
@@ -1139,7 +1563,12 @@ def sec_files():
 REFS = ["[1] Xue, Pan, Yi, Qu and Shi, Full-order sampling-based MPC for torque-level locomotion control via diffusion-"
         "style annealing (DIAL-MPC), ICRA 2025.",
         "[2] Howell, Gileadi, Tunyasuvunakool, Zakka, Erez and Tassa, Predictive sampling: real-time behaviour "
-        "synthesis with MuJoCo, arXiv 2212.00541, 2022."]
+        "synthesis with MuJoCo, arXiv 2212.00541, 2022.",
+        "[3] Li and Todorov, Iterative linear quadratic regulator design for nonlinear biological movement systems, "
+        "ICINCO 2004.",
+        "[4] Mastalli et al., Crocoddyl: an efficient and versatile framework for multi-contact optimal control (FDDP), "
+        "ICRA 2020."]
+REF_ILQR, REF_FDDP = 3, 4
 
 
 def lede(R, PK, GS):
@@ -1177,6 +1606,15 @@ def lede(R, PK, GS):
         parts.append(f"At those seeds HOM dropped the press's cylinder in {pr['drop_hom'][0]} of {pr['drop_hom'][1]} runs, "
                      f"against {pr['drop_hom_s01'][0]} at seeds 0 and 1; full DIAL dropped it in "
                      + ("none." if pr["drop_dial"][0] == 0 else f"{pr['drop_dial'][0]}."))
+    PG = press_grid_numbers(R)
+    if PG:
+        parts.append(f"On all {PG['n']} layouts of the press's grid the two controllers' J agreed with &#961; = "
+                     f"{PG['rho_hd']:.2f}, and {NUMW[PG['out50']]} of full DIAL's ten best lay outside HOM's 50 best.")
+        F = PG.get("fresh")
+        if F:
+            dd, dh_ = F["diff"][0], F["hom"]["d"] - F["hom"]["g"]
+            parts.append(f"At fresh seeds those ten scored {abs(dd):.3f} {'more' if dd >= 0 else 'less'} than the grid's "
+                         f"ten under full DIAL and {abs(dh_):.3f} {'more' if dh_ >= 0 else 'less'} under HOM.")
     Q = {t: repeat_numbers(R, t) for t in PATCH_TASKS}
     if all(Q.values()):
         parts.append(f"Run twice at the same seeds, a layout's J differed by a mean of "
@@ -1202,6 +1640,12 @@ def lede(R, PK, GS):
         if up_t:
             second.append(f"A DIAL residual on HOM's servo targets, at {grr:.0f} times HOM's GPU time per rollout, "
                           f"raised J by {al([f'{dr[t]['d']:.3f}' for t in up_t])} on {MP.tasks_list(up_t)}.")
+    IL_ = ilqr_numbers(R)
+    if IL_:
+        m4 = (lambda d: float(np.mean([d[t] for t in TASKS])))
+        second.append(f"iLQR with finite-difference linearization scored {m4(IL_['j20']):.3f} on the 20 pairs of each "
+                      f"task, against HOM's {m4(IL_['h20']):.3f} and full DIAL's {m4(IL_['f20']):.3f}"
+                      + (f", at {IL_['gpu']:.0f} times HOM's GPU time per rollout." if IL_["gpu"] else "."))
     TRN = trend_numbers(PK)
     second.append(f"The forces picked for HOM by CEM were below its defaults on every task: a median "
                   f"{TRN[('twist', 'f_tripod')]['med']:.2f} N against 2.5 N on the twist.")
@@ -1225,13 +1669,15 @@ def main():
                 ("setup", "Plant, tasks and controllers", sec_setup()),
                 ("tasks", "HOM and the planners on four tasks", sec_tasks(R, T)),
                 ("screen", "HOM's best layouts under full DIAL", sec_screen(R)),
+                ("pressgrid", "Full DIAL on every layout of the press grid", sec_press_grid(R)),
                 ("stability", "Stability of HOM's scores across seeds, layouts and controllers", sec_stability(R, GS)),
                 ("patch", "Score landscapes of HOM and full DIAL around HOM's best layouts", sec_patch(R)),
                 ("metrics", "Where HOM loses J against the planner", sec_metrics(R)),
                 ("variants", "Variants of HOM", sec_variants(R)),
                 ("trends", "Forces and contact modes picked for HOM per layout", sec_trends(PK, figs)),
                 ("fusion", "Planners fused with HOM", sec_fusion(R)),
-                ("future", "Future work", sec_future()),
+                ("ilqr", "iLQR with finite-difference linearization on the four tasks", sec_ilqr(R)),
+                ("future", "Future work", sec_future(R)),
                 ("refs", "References and files", '<ol class="refs">' + "".join(
                     f"<li>{r[r.index(']') + 2:]}</li>" for r in REFS) + "</ol>" + sec_files())]
     sections = [x for x in sections if x[2]]

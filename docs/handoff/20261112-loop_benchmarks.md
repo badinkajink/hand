@@ -1,4 +1,21 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-15 11:57: press grid done (lane logs/20261115-press_grid, rows c93a1a9c0): HOM vs full DIAL rho 0.65 over 369
+  layouts; criterion met (9 of full DIAL's ten best outside HOM's 50 best; 7 of ten within the grid's 100 best); at
+  seeds 10-11 full DIAL's ten +0.067 (+0.017 to +0.115) over the grid's ten under DIAL, 0.384 below under HOM (pads all
+  in contact 52 vs 97 % of the task). One hand: residual 0.25 s, DIAL 2x32 0.08 s per 0.1 s replanning. HOM page
+  builder updated (press grid, fresh seeds, films p3/p10, J = 0 causes); built once, not committed. iLQR (step 27):
+  patch applied 11:49; Joseph-form backward pass fixed NaN gains (first smoke J 0, then 0.317/0.136); lane
+  logs/20261115-ilqr (il2_<task> on _tune, one_il2_twist --chunk 1) from 11:54; twist 0.276 (HOM 0.253, DIAL 2x64
+  0.387). MPC page builder: iLQR row in TUNE, ilqr_text paragraph, refs [6]-[8]. Next: results, both pages, commit,
+  push, republish HOM v4 and MPC v9.
+State 11-15 10:20: owner 09:4x "sure go ahead" (full DIAL on all 369 press layouts). Lane logs/20261115-press_grid
+  (lane.txt; 09:49): all_hom_press done 09:54; all_f2_press (738 worlds, ends about 11:35); then alltop (each
+  controller's ten best and the grid's ten at seeds 10-11), one_res/one_c1 (--chunk 1 replanning), films_press (HOM and
+  full DIAL at seed 10), finish.sh (commits the rows). inner_loop_mpc.py gained pairs --rule all and top --src (atomic,
+  09:50). HOM page builder (not yet built): sections pressgrid and the J-floor/power table in metrics (owner 10:0x: "the
+  scores are very low, so statistical power is also lower"), one-hand timing in fusion, conditional future work. Owner
+  10:0x on iLQR/DDP/FDDP: scripts/hom/inner_loop_ilqr.py written and CPU-checked; apply logs/20261115-press_grid/
+  patch_ilqr.py to inner_loop_mpc.py after the lane's last import, then smoke-test on _tune (step 27).
 State 11-15 06:40: lane done 06:24 (var_*, fu_*, tm_* rc 0; lane.sh idle, polling lane.txt; "END" stops it). Step 25:
   HOM page text for the variants (2 of 13 raised J: the shared pick's forces +0.214 on the press, a 50 ms preview +0.013
   on the roll; lead 0.15 rad and the force loop lowered J on every task run) and the fusion (DIAL residual res_anneal
@@ -158,6 +175,8 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 23. Evidence for HOM beyond throughput: seed reproducibility, one parameter set across tasks vs per-task planner … Done 11-15 03:22: Done 11-15 03:30: HOM page sections 'HOM's best layouts under full DIAL' (search curves, layout map), stability (seed rho, drop rates at new placements), the two factors of J; the patch smoothness comparison is step 25
 - [x] 24. Talk v2 deck and guide v2 (contact repo talks/20261117-hand_design): speed chart with Steel measured (3.3x pa… Done 11-15 03:22: Done 11-15 03:30: contact ea6a5fa (pushed): slide hom-mpc from the controller chart (cost per planner, best of HOM's ten under full DIAL), guide answer 'Why HOM and not sampling MPC?', speed charts with Steel 43 h and full DIAL 112 days at the 2 ms step (209x)
 - [x] 25. When the lane's top_*, patch_*, var_*, fu_* and tm_* lines are done (logs/20261114-mpc_tasks/queue.log): MPC … Done 11-15 06:38: Done 11-15 06:45: MPC page v8 (HOM's first choice vs DIAL's at seeds 10-11; tuning table's GPU column from tm_full), HOM page v3 (variants grouped by effect: 2 of 13 raised J; DIAL residual on HOM's servo targets +0.065/+0.133/+0.114 on twist/roll/press, within full DIAL's interval on pin-push/press, 46x HOM's GPU; fresh-seed fusion), four task films checked; hand d71ffe3b7, contact bdafd32 (residual sentence in slide notes and guide)
+- [ ] 26. Owner 11-15 09:4x 'sure go ahead': full DIAL (anneal 4x64, --plan-dt 0.002) and HOM on every press layout (369, rows/mpc_pairs_press_all.json, seeds 0-1), each controller's ten best of that grid at seeds 10-11 (_alltop), one-hand replanning of the DIAL residual and of DIAL 2x32 (--chunk 1, tag _chunk1); lane logs/20261115-press_grid (finish.sh commits the rows). Then the HOM page's press-grid paragraphs and figure, rebuild, commit, push, republish v4, report.
+- [ ] 27. Owner 11-15 10:0x: 'did we also try ilqr/ddp/feasibleddp on top of the gradient search?' (no: only the FD gradient planner). scripts/hom/inner_loop_ilqr.py (iLQR, FD linearization in batch, 50 ms zero-order-hold steps, Gauss-Newton backward pass, parallel line search; CPU math checks pass); hook inner_loop_mpc.py with logs/20261115-press_grid/patch_ilqr.py after the lane's last import, smoke test on _tune (--chunk 3), then the _tune pairs of four tasks against HOM and DIAL and, if it is competitive, _rank20; HOM page text and the MPC page tuning table.
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J

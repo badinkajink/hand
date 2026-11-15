@@ -17,6 +17,9 @@ torques. Per rollout, over the task phase:
     limit_frac     share of the periods with a finger joint within 1 deg of its range limit
     cmd_rate_dps   RMS rate of the servo targets over the joints and periods (deg/s)
     reversals_ps   sign changes of a servo target's rate, counted where the rate exceeds 1 deg/s, per joint per second
+For a controller that holds its targets for several periods (inner_loop_ilqr, 5 periods), both are taken from every
+stride-th target at the stride's interval: per period, a held target's rate is zero between its jumps, so no reversal
+could be counted, and its RMS rate would be sqrt(stride) times that of a ramp to the same targets.
 with the rows' J (hom_landscape.track_score), held, drift and tracking error.
 
     .venv/bin/python scripts/hom/inner_loop_usability.py --run results/uhas_sr2/<run> [--split test] [--seeds 0]
@@ -89,9 +92,10 @@ def targets(B):
     return B.vw["ctrl"][:, B.act_t].float()
 
 
-def metrics(B, k0, Q, C, A, lim, dt):
+def metrics(B, k0, Q, C, A, lim, dt, stride=1):
     """The usability metrics of every world over the task phase (periods k0 on): Q, C, A are the joint angles, servo
-    targets and actuator torques after each period, (n, W, 9)."""
+    targets and actuator torques after each period, (n, W, 9); stride: the periods a target is held (the target rate and
+    its reversals from every stride-th target)."""
     ft = B.rec["ft"][k0:].float()
     fl = (B.rec["fo"][k0:].float() - ft).clamp_min(0.0)
     link = fl.sum(-1)                                                      # (n, W)
@@ -103,11 +107,11 @@ def metrics(B, k0, Q, C, A, lim, dt):
     tol = math.radians(1.0)
     near = ((Q - lim.lo).abs() < tol) | ((lim.hi - Q).abs() < tol)
     out["limit_frac"] = (near & lim.limited).any(-1).float().mean(0)
-    rate = torch.diff(C, dim=0) / dt                                       # (n-1, W, 9) rad/s
+    rate = torch.diff(C[::stride], dim=0) / (dt * stride)                  # (n-1, W, 9) rad/s
     out["cmd_rate_dps"] = torch.rad2deg(rate.pow(2).mean((0, 2)).sqrt())
     s = torch.sign(rate) * (rate.abs() > math.radians(1.0))
     flips = ((s[1:] * s[:-1]) < 0).float().sum(0)                          # (W, 9)
-    out["reversals_ps"] = flips.mean(-1) / (rate.shape[0] * dt)
+    out["reversals_ps"] = flips.mean(-1) / (rate.shape[0] * dt * stride)
     return {k: v.cpu().numpy() for k, v in out.items()}
 
 
