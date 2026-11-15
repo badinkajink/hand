@@ -1,4 +1,11 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-14 20:00: lane lines 124-126 done (10:57-11:02). On the 2x32 pick: rate-change cost w1 1.06 -> 0.52
+  reversals at J -0.021 (-0.055 to +0.012); with the 3 deg dead band 0.45 at -0.027; w2 with the dead band 0.42 at -0.057
+  (-0.107 to -0.012). Pick + w1 J 0.390, HOM 0.388 (+0.002). New page section "Mean J and ranking of the pairs under HOM
+  and the planners": real-time pick vs HOM +0.024 (-0.044 to +0.087), DIAL 4x64 +0.074 (+0.019 to +0.138) at 11.7 s of
+  GPU per s; Spearman rho over the 20 pairs HOM vs DIAL 4x64 0.89 (pick vs DIAL 0.89, iCEM 0.87; seed 0 vs 1: HOM 0.99,
+  DIAL 0.97). Under the tag tracker (40 ms, noise) HOM reverses 9.6/s (1.96 with the pose filter), the pick 1.25/s; at
+  friction 0.4 HOM 0.081 vs DIAL 0.035. Owner 11-14 19:4x: "no point to using HOM besides throughput". Page version 5.
 State 11-14 10:55: lane done (123 lines, 02:18). MPC page rebuilt and republished, version 4 of
   https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f (commit 2a37d966f): contact over five plants (HOM 0.388 -> 0.275 from
   pads to point contact, monotone in torsion), real-time pick 2x32 at 2 ms J 0.411, latency, reversal options (no
@@ -96,6 +103,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [ ] 15. Owner 11-13 13:2x: (a) measure HOM's controller time and the two-camera tag tracker (fps, CPU) on corvus after the owner's camera calibration; (b) a UDP streamer, corvus sends joint angles, tag poses and fingertip readings, the workstation returns servo targets with sequence numbers, corvus holds the last target and stops after ~3 missed periods; (c) filter the fingertip CoP as the pose is filtered (7.4 reversals/s remain with the tip model at tau 0.2), then rerun sv_pf_tip
 - [x] 16. Owner 11-13 14:2x: contact-model ablation and real-time DIAL. When the lane's sv_plpt_*, sv_rt_*, sv_pltor*, … Done 11-14 10:54: Done 11-14 10:54: page rebuilt and republished (2a37d966f, artifact version 4). HOM J 0.388/0.351/0.335/0.308/0.275 from pads to point contact over torsion 2/1/0.5 mm; real-time DIAL own model 0.411/0.415/0.416/0.393/0.342; DIAL 4x64 pt model on pt plant 0.442. Real-time pick 2x32 at 2 ms (0.082 s per 0.1 s) J 0.411; 140 ms old noisy state 0.219.
 - [x] 17. Owner 11-13 15:5x, target reversals: when the lane's sv_revA_*, sv_revC_*, sv_revX_*, sv_revP_ext, sv_revF_* … Done 11-14 10:54: Done 11-14 10:54: no sampling option lowered the real-time DIAL's reversals (temperature 1.0: 3.86 vs 1.30; continued slope J -0.172, 10 of 40 dropped); rate-change cost w1: 0.71 at J -0.023 (-0.068 to +0.019); dead band 3 deg: 1.02 at -0.002; full DIAL acc1 2.02 -> 1.54 at -0.002. Page section 11.
+- [x] 18. Owner 11-14 10:3x 'update?': lane lines 124-126 (sv_revR_acc1, sv_revR_acc1_db3, sv_revR_acc2_db3: rate-chang… Done 11-14 19:50: Done 11-14 20:00: on the 2x32 pick the rate-change cost w1 gave 1.06 -> 0.52 reversals at J -0.021 (-0.055 to +0.012), with the 3 deg dead band 0.45 at -0.027 (-0.063 to +0.008), w2 + dead band 0.42 at -0.057 (-0.107 to -0.012); pick + w1 J 0.390 vs HOM 0.388 (+0.002). Page: reversal table rows 13-16, new section on mean J and ranking (Spearman rho HOM vs DIAL 4x64 0.89).
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J

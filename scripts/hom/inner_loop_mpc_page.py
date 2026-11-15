@@ -28,6 +28,7 @@ import docs_index  # noqa: E402
 import fp_review_page as P  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
+from sr2hand.numerics.stats import spearman  # noqa: E402
 
 D = ROOT / "docs/experiments/20261112-inner_loop_benchmark"
 MEDIA, ROWS = D / "media", D / "rows"
@@ -342,6 +343,7 @@ def fig_contact(S, R, rt, out):
 
 # the reversal options (owner, 2026-11-13): (method, configuration, option tag, label, kind)
 CFG_REV = (3, 10, 2, 10, 0.002, 16)
+CFG_PICK = (2, 10, 2, 10, 0.002, 32)     # the real-time pick of logs/20261112-mpc/pick_rt.py
 REV_RUNS = [("anneal", CFG_REV, "", "None (3 &#215; 16, 2 ms step)", "&#8212;"),
             ("anneal", CFG_REV, "_lam0.3", "Temperature 0.3", "sampling"),
             ("anneal", CFG_REV, "_lam1", "Temperature 1.0", "sampling"),
@@ -354,6 +356,10 @@ REV_RUNS = [("anneal", CFG_REV, "", "None (3 &#215; 16, 2 ms step)", "&#8212;"),
             ("anneal", CFG_REV, "_rev10", "Reversal cost, weight 10", "cost"),
             ("anneal", CFG_REV, "_db3", "Dead band of 3 deg on the error", "cost"),
             ("anneal", CFG_REV, "_extrap_lam1_acc1", "Slope continued, temperature 1.0, rate-change cost 1", "both"),
+            ("anneal", CFG_PICK, "", "Real-time pick, 2 &#215; 32: none", "&#8212;"),
+            ("anneal", CFG_PICK, "_acc1", "Real-time pick: rate-change cost 1", "cost"),
+            ("anneal", CFG_PICK, "_acc1_db3", "Real-time pick: rate-change cost 1, dead band 3 deg", "cost"),
+            ("anneal", CFG_PICK, "_acc2_db3", "Real-time pick: rate-change cost 2, dead band 3 deg", "cost"),
             ("ps", CFG_PSRT, "", "PS real time: none", "&#8212;"),
             ("ps", CFG_PSRT, "_extrap", "PS real time: slope continued", "sampling"),
             ("anneal", CFG_FULL, "", "DIAL 4 &#215; 64: none", "&#8212;"),
@@ -362,6 +368,7 @@ REV_RUNS = [("anneal", CFG_REV, "", "None (3 &#215; 16, 2 ms step)", "&#8212;"),
 REV_REF = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "PS, real time"), ("anneal_twist", "DIAL"),
            ("icem_twist", "iCEM"), ("spider_twist", "SPIDER"), ("mppi_twist", "MPPI"), ("cem_twist", "CEM"),
            ("ps_twist", "PS")]
+REV_LABEL_AT = {14: (-4, 7)}      # option number -> label offset (points) where a label would cover a marker
 
 
 def fig_reversals(S, out):
@@ -374,18 +381,19 @@ def fig_reversals(S, out):
             ax.plot(s["reversals_ps"], s["J"], "o", color="#555555" if stem == "hom_twist" else "#999999", ms=7)
             ax.annotate(lab, (s["reversals_ps"], s["J"]), textcoords="offset points",
                         xytext={"PS": (-22, -4), "MPPI": (6, -4)}.get(lab, (5, 4)), fontsize=10, color="#555555")
-    base = S.get(stem_of("anneal", CFG_REV))
+    bases = {c: S.get(stem_of("anneal", c)) for c in (CFG_REV, CFG_PICK)}
     col = {"sampling": "#3a6ea5", "cost": "#c06a1a", "both": "#7a3a8a", "&#8212;": "#1b3a63"}
     k = 0
     for meth, cfg, sh, lab, kind in REV_RUNS:
         s = S.get(stem_of(meth, cfg, sh=sh))
-        if not s or cfg != CFG_REV:
+        if not s or cfg not in bases:
             continue
         k += 1
         ax.plot(s["reversals_ps"], s["J"], "s" if kind == "cost" else "D" if kind == "both" else "^", color=col[kind],
-                ms=7)
-        ax.annotate(str(k), (s["reversals_ps"], s["J"]), textcoords="offset points", xytext=(5, -10), fontsize=10,
-                    color=col[kind])
+                ms=7, mfc="white" if cfg == CFG_PICK else col[kind], mew=1.5)
+        ax.annotate(str(k), (s["reversals_ps"], s["J"]), textcoords="offset points",
+                    xytext=REV_LABEL_AT.get(k, (5, -10)), fontsize=10, color=col[kind])
+        base = bases[cfg]
         if base and sh:
             ax.annotate("", (s["reversals_ps"], s["J"]), (base["reversals_ps"], base["J"]),
                         arrowprops=dict(arrowstyle="->", color=col[kind], alpha=0.35, lw=1))
@@ -394,6 +402,7 @@ def fig_reversals(S, out):
     ax.plot([], [], "^", color=col["sampling"], label="sampling options")
     ax.plot([], [], "s", color=col["cost"], label="cost options")
     ax.plot([], [], "D", color=col["both"], label="both")
+    ax.plot([], [], "s", color="#555555", mfc="white", mew=1.5, label="open: on the 2 × 32 pick")
     ax.legend(frameon=False, loc="lower right")
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -487,6 +496,8 @@ def sec_terms():
          "normal force (MuJoCo's condim 4)", "mm"],
         ["Paired difference", "J of one controller minus J of another on the same worlds, seeds averaged within a pair; "
          "the mean over the 20 pairs with its 95 % interval from 4,000 bootstrap resamples of the pairs", "J"],
+        ["Rank correlation $\\rho$", "Spearman's rank correlation between two controllers' J on the 20 pairs, seeds "
+         "averaged within a pair (<code>sr2hand.numerics.stats.spearman</code>)", "-1 to 1; 1 is the same order"],
     ]
     return table(["Term", "Definition", "Unit or range"], rows, "Terms and metrics. Every metric is computed on the task "
                  "phase, from HOM's handover at 2.4 s to the end of the schedule.", num_from=9)
@@ -574,6 +585,69 @@ metrics are taken over the held runs.</p>""", h=f"{hs['J']:.3f}", hh=f"{100 * hs
         t += P.img(figs["pairs"], "J of each run under HOM and under DIAL annealing on the same pair and seed. Above "
                    "the diagonal the planner tracked better.")
     return t
+
+
+def pair_j(rows, seed=None):
+    """J per pair (layout, grasp): the mean over its seeds, or one seed's."""
+    d = {}
+    for r in rows:
+        if seed is None or r["seed"] == seed:
+            d.setdefault(key(r)[:3], []).append(r["J"])
+    return {k: float(np.mean(v)) for k, v in d.items()}
+
+
+def sec_rank(S, R, T):
+    """HOM against the planners on mean J and on the order of the pairs."""
+    runs = [("hom_twist", "HOM", None), ("ps_twist_r10h10k2i1", "Predictive sampling, real time", CFG_PSRT),
+            (stem_of("anneal", CFG_PICK), "DIAL, real-time pick (2 &#215; 32)", CFG_PICK),
+            (stem_of("anneal", CFG_PICK, sh="_acc1"), "DIAL, real-time pick, rate-change cost 1", CFG_PICK),
+            ("anneal_twist", "DIAL, 4 &#215; 64", CFG_FULL), ("icem_twist", "iCEM", CFG_FULL),
+            ("hs_anneal_twist", "DIAL in HOM's space", None)]
+    if not all(R.get(stem) for stem in ("hom_twist", "anneal_twist", stem_of("anneal", CFG_PICK), "icem_twist")):
+        return ""
+    keys = sorted(pair_j(R["hom_twist"]))
+    vec = (lambda stem, seed=None: [pair_j(R[stem], seed).get(k, np.nan) for k in keys])
+    rho = (lambda a, b: spearman(vec(a), vec(b)))
+    rows, dd = [], {}
+    for stem, lab, cfg in runs:
+        s = S.get(stem)
+        if not s:
+            continue
+        dd[stem] = paired(R[stem], R["hom_twist"]) if stem != "hom_twist" else None
+        v = one_hand_cfg(T, cfg) if cfg else None
+        rows.append([lab, f2(s["J"], 3), fd(dd[stem]) if dd[stem] else "&#8212;",
+                     "&#8212;" if stem == "hom_twist" else f2(rho(stem, "hom_twist")),
+                     "&#8212;" if stem == "anneal_twist" else f2(rho(stem, "anneal_twist")),
+                     f2(spearman(vec(stem, 0), vec(stem, 1))),
+                     "0.20, one CPU core" if stem == "hom_twist" else "&#8212;" if not v else
+                     f2(v / (cfg[3] * PERIOD_S), 2 if v < cfg[3] * PERIOD_S * 10 else 1)])
+    h, dl = np.array(vec("hom_twist")), np.array(vec("anneal_twist"))
+    top_h, top_d = set(np.argsort(-h)[:5]), set(np.argsort(-dl)[:5])
+    t = fill(r"""<p>On mean J the planners that run in real time were within the noise of HOM. Against HOM, the paired
+difference was <<dp>> for the real-time pick. It was <<dps>> for real-time predictive sampling. Planning one hand with
+DIAL at 4 &#215; 64 samples or with iCEM takes <<v>> s of GPU per second of control. Their J was above HOM's by <<dd>>
+and <<di>>.</p>
+<p>In the design search a controller scores each layout and grasp, so the order it gives the pairs matters there as
+much as its mean J. The 20 pairs were ranked under HOM nearly as under DIAL at 4 &#215; 64, with $\rho$ = <<rd>>
+(Table <<tn>>). DIAL's order was followed as closely by the real-time pick, at <<rp>>, and by iCEM, at <<ri>>. The
+order changed little between seeds: $\rho$ between seeds 0 and 1 was <<sh>> for HOM and <<sd>> for DIAL. DIAL's five
+best pairs included <<ov>> of HOM's five best. On HOM's best pair DIAL reached <<jhb>>. DIAL's own best pair scored
+<<jdb>> under DIAL and <<jhd>> under HOM.</p>
+<p>The 20 pairs are the ten test layouts with HOM's best J and the ten with UHAS's best J (Section 2). Under DIAL at
+4 &#215; 64 their J spans <<lo>> to <<hi>>.</p>""",
+             dp=fds(dd[stem_of("anneal", CFG_PICK)]), dps=fds(dd.get("ps_twist_r10h10k2i1")),
+             v=f"{one_hand_cfg(T, CFG_FULL) / (CFG_FULL[3] * PERIOD_S):.1f}", dd=fds(dd["anneal_twist"]),
+             di=fds(dd["icem_twist"]), rd=f2(rho("hom_twist", "anneal_twist")), tn=P.TAB[0] + 1,
+             rp=f2(rho(stem_of("anneal", CFG_PICK), "anneal_twist")), ri=f2(rho("icem_twist", "anneal_twist")),
+             sh=f2(spearman(vec("hom_twist", 0), vec("hom_twist", 1))),
+             sd=f2(spearman(vec("anneal_twist", 0), vec("anneal_twist", 1))),
+             ov=("none", "one", "two", "three", "four", "all five")[len(top_h & top_d)],
+             jhb=f"{dl[np.argmax(h)]:.3f}", jdb=f"{dl.max():.3f}", jhd=f"{h[np.argmax(dl)]:.3f}",
+             lo=f"{dl.min():.2f}", hi=f"{dl.max():.2f}")
+    return t + table(["Controller", "Mean J", "J minus HOM's", "&#961; with HOM", "&#961; with DIAL 4 &#215; 64",
+                      "&#961; between seeds 0 and 1", "Compute per second of control (s/s)"], rows,
+                     "Mean J and the order of the 20 pairs under each controller, seeds 0 and 1 on the SCS0009 plant. "
+                     "Compute: GPU time for one hand alone, for HOM the time of one CPU core.", num_from=1)
 
 
 FILM_NAME = {"hom": "HOM", "ps_rt": "predictive sampling at the real-time budget", "anneal": "DIAL annealing",
@@ -925,7 +999,8 @@ the shifted plan is a constant target, so each replanning starts from a zero rat
 continues the last segment's slope past the horizon.</p>
 <p>The options in Table <<tn>> were run on DIAL annealing at 3 &#215; 16 samples with a 2 ms model step, which
 needs 0.101 s of GPU per 0.1 s for one hand. Two were also run on the benchmark's DIAL and one on real-time predictive
-sampling. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
+sampling. The rate-change cost and the dead band were then run on the real-time pick of 2 &#215; 32 samples, which
+needs 0.082 s. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
 $\dot u_{j,k}$ the plan's rate in its $k$-th knot gap and $\dot u_s = 20$ deg/s:</p>
 $$c_{\mathrm{acc}} = w_a \sum_j \sum_{k \ge 1} \Big(\frac{\dot u_{j,k} - \dot u_{j,k-1}}{\dot u_s}\Big)^2, \qquad
 c_{\mathrm{rev}} = w_r \sum_j \frac{\max(0, -\dot u_{j,1}\,\dot u_{j,0})}{\dot u_s^2}$$
@@ -935,16 +1010,18 @@ error.</p>""", h=f2(hs["reversals_ps"]) if hs else "&#8212;", d=f2(sd["reversals
     if figs.get("reversals"):
         t = t.replace("</p>", "</p>" + P.img(figs["reversals"], "Mean J against target reversals per joint per second. "
                                              "Grey: the benchmark's controllers. Coloured: the options on DIAL "
-                                             "annealing at 3 x 16 samples, numbered as in the table, with arrows from "
-                                             "the configuration without options."), 1)
+                                             "annealing at 3 x 16 samples (filled) and on the real-time pick of 2 x 32 "
+                                             "samples (open). They are numbered as in the table; each arrow starts at "
+                                             "the same configuration without options."), 1)
     rows, k = [], 0
-    base_of = {CFG_REV: stem_of("anneal", CFG_REV), CFG_PSRT: stem_of("ps", CFG_PSRT), CFG_FULL: "anneal_twist"}
+    base_of = {CFG_REV: stem_of("anneal", CFG_REV), CFG_PICK: stem_of("anneal", CFG_PICK),
+               CFG_PSRT: stem_of("ps", CFG_PSRT), CFG_FULL: "anneal_twist"}
     for meth, cfg, sh, lab, kind in REV_RUNS:
         s = S.get(stem_of(meth, cfg, sh=sh))
         if not s:
             continue
         num = ""
-        if cfg == CFG_REV:
+        if cfg in (CFG_REV, CFG_PICK):
             k += 1
             num = f"{k}. "
         d = paired(R.get(stem_of(meth, cfg, sh=sh), []), R.get(base_of[cfg], [])) if sh else None
@@ -1010,6 +1087,19 @@ lowered J by <<jlo>> to <<jhi>>. With the knot-rate weight 4 the tracking error 
                         "<<b>>, and J changed by <<c>>.", a=f2(ff["reversals_ps"]), b=f2(fa["reversals_ps"]),
                         c=d("anneal", CFG_FULL, "_acc1", "anneal_twist")))
     out.append("</p>")
+    pb, pa, pd, p2 = (g("anneal", CFG_PICK, x) for x in ("", "_acc1", "_acc1_db3", "_acc2_db3"))
+    hs = S.get("hom_twist")
+    if pb and pa and pd and p2 and hs:
+        pbase = stem_of("anneal", CFG_PICK)
+        out.append(fill(r"""<p>On the real-time pick of 2 &#215; 32 samples, the rate-change cost at weight 1 lowered
+the reversals from <<b>> to <<a>>. HOM's were <<h>>. J changed by <<da>>. With the dead band added they fell to <<ad>>, and J
+changed by <<dd>>. At weight 2 with the dead band they fell to <<a2>>, and J changed by <<d2>>. With the rate-change cost
+at weight 1 the pick reached J <<j>>. HOM reached <<jh>> on the same runs, a paired difference of <<dh>>.</p>""",
+                        b=f2(pb["reversals_ps"]), a=f2(pa["reversals_ps"]), h=f2(hs["reversals_ps"]),
+                        da=d("anneal", CFG_PICK, "_acc1", pbase), ad=f2(pd["reversals_ps"]),
+                        dd=d("anneal", CFG_PICK, "_acc1_db3", pbase), a2=f2(p2["reversals_ps"]),
+                        d2=d("anneal", CFG_PICK, "_acc2_db3", pbase), j=f"{pa['J']:.3f}", jh=f"{hs['J']:.3f}",
+                        dh=d("anneal", CFG_PICK, "_acc1", "hom_twist")))
     return "".join(out)
 
 
@@ -1254,10 +1344,13 @@ the SCS0009 can press.</p>"""
 
 def sec_future():
     items = [
-        "The rate-change cost at weight 1 together with the 3 deg dead band, on the real-time pick of 2 &#215; 32 "
-        "samples at a 2 ms step (<code>inner_loop_mpc.py run --method anneal --iters 2 --horizon 10 --knots 2 --n 32 "
-        "--plan-dt 0.002 --acc-w 1 --err-db 3</code>). A second run sets the rate-change weight to 2. Reversals above "
-        "0.7 per joint per second, or a J more than 0.03 below the pick's, would show that the two do not combine.",
+        "The order of HOM's best pairs under the real-time pick with the rate-change cost. The set is the 50 pairs of "
+        "a layout and a grasp with HOM's best J on the test split and 50 drawn at random from the rest, at seeds 0 "
+        "and 1. "
+        "<code>inner_loop_mpc.py run</code> needs an option that reads the pairs from a file (its <code>pairs()</code> "
+        "takes the ten best of HOM and of UHAS). Two outcomes would show that HOM cannot stand in for the planner in "
+        "the design search. One is a $\\rho$ below 0.6 over the 50 best. The other is HOM's first choice more than "
+        "0.1 below the planner's best, in the planner's J.",
         "UHAS with a target-rate term in its reward (<code>uhas_sr2.py train --limits</code>, "
         "<code>REW_LIMITS['rate']</code> from -0.04 upwards). The term should bring its reversals to the planners' 1 to "
         "3 per joint per second. A test-split J at or below HOM's 0.085 at that rate would show that UHAS's lead over "
@@ -1288,8 +1381,8 @@ def lede(S, T, R_=None):
     if not hs:
         return "Results pending.", "Results pending."
     R_ = R_ or {}
-    parts = [fill("On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was <<h>> with <<g>> N of grip. "
-                  "It needs 2.0 ms of one CPU core per 10 ms period.", h=f"{hs['J']:.3f}", g=f"{hs['grip_mean_N']:.1f}")]
+    parts = [fill("On the SCS0009 plant, HOM's mean J over 40 runs of the sphere twist was <<h>>. It needs 2.0 ms of "
+                  "one CPU core per 10 ms period.", h=f"{hs['J']:.3f}")]
     pl = [(S[stem]["J"], lab, S[stem]) for stem, lab in MAIN if S.get(stem) and stem not in
           ("hom_twist", "ps_twist_r10h10k2i1")]
     v = one_hand(T, 64, 4, 30)
@@ -1302,18 +1395,25 @@ def lede(S, T, R_=None):
           and (one_hand_cfg(T, c) or 1e9) <= c[3] * PERIOD_S]
     if ok:
         bj, bc = max(ok)
-        parts.append(fill("DIAL annealing at <<n>> samples<<st>> runs in real time and reached <<j>>.",
-                          n=f"{bc[0]} x {bc[5]}", j=f"{bj:.3f}",
+        dh = paired(R_.get(stem_of("anneal", bc), []), R_.get("hom_twist", []))
+        parts.append(fill("DIAL annealing at <<n>> samples<<st>> runs in real time. It reached <<j>>, and the "
+                          "paired difference from HOM was <<d>>.", n=f"{bc[0]} x {bc[5]}", j=f"{bj:.3f}", d=fds(dh),
                           st=f" with a {1e3 * bc[4]:g} ms model step" if bc[4] else ""))
-    b, a1 = S.get(stem_of("anneal", CFG_REV)), S.get(stem_of("anneal", CFG_REV, sh="_acc1"))
-    samp = [S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, k in REV_RUNS if k == "sampling" and c == CFG_REV]
-    if b and a1:
-        d = paired(R_.get(stem_of("anneal", CFG_REV, sh="_acc1"), []), R_.get(stem_of("anneal", CFG_REV), []))
-        none = all(x and x["reversals_ps"] >= b["reversals_ps"] for x in samp)
-        parts.append(fill("A cost on the change of the target rate lowered the target reversals of the real-time DIAL "
-                          "at 3 x 16 samples from <<a>> to <<b>> per joint per second. Its J changed by <<d>>"
-                          + (", and no change to the sampling lowered the reversals." if none else "."),
-                          a=f2(b["reversals_ps"]), b=f2(a1["reversals_ps"]), d=f"{d['d']:+.3f}" if d else "&#8212;"))
+        b, a1 = S.get(stem_of("anneal", bc)), S.get(stem_of("anneal", bc, sh="_acc1"))
+        samp = [S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, k in REV_RUNS if k == "sampling" and c == CFG_REV]
+        b16 = S.get(stem_of("anneal", CFG_REV))
+        if b and a1:
+            none = b16 and all(x and x["reversals_ps"] >= b16["reversals_ps"] for x in samp)
+            parts.append(fill("With a cost on the change of the target rate its targets reversed <<a>> times per joint "
+                              "per second, fewer than HOM's <<h>>, at J <<j>>."
+                              + (" No change to the sampling lowered the reversals." if none else ""),
+                              a=f2(a1["reversals_ps"]), h=f2(hs["reversals_ps"]), j=f"{a1['J']:.3f}"))
+    if R_.get("anneal_twist"):
+        keys = sorted(pair_j(R_["hom_twist"]))
+        ph, pd = pair_j(R_["hom_twist"]), pair_j(R_["anneal_twist"])
+        parts.append(fill("Under HOM the 20 pairs were ranked nearly as under DIAL at 4 x 64 samples, with Spearman's "
+                          "rho <<r>>.",
+                          r=f2(spearman([ph[k] for k in keys], [pd.get(k, np.nan) for k in keys]))))
     h1, h2 = S.get(hom_stem("pt")), S.get(hom_stem("pt_t2"))
     if h1:
         parts.append(fill("With point contact in place of the pads HOM's J fell to <<b>>"
@@ -1374,6 +1474,7 @@ def main():
                 ("setup", "Plant, task and pairs", sec_setup(S)),
                 ("methods", "The controllers", sec_methods()),
                 ("results", "HOM and the planners on the SCS0009 plant", sec_results(S, figs)),
+                ("rank", "Mean J and ranking of the pairs under HOM and the planners", sec_rank(S, R, T)),
                 ("films", "Films", sec_films()),
                 ("uhas", "UHAS retrained on the SCS0009 plant", sec_uhas(S, R)),
                 ("feedback", "Two simple changes to HOM", sec_feedback(S)),
