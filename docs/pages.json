@@ -7,7 +7,7 @@
   "topic": "design",
   "summary": "Over 100 layout-grasp pairs on each of the SR2 hand's four tasks, HOM's mean J was 0.264. Full DIAL at 4 x 64 samples scored 0.400, at 209 times HOM's GPU time per rollout. In real time, at 26 to 28 times HOM's GPU time, DIAL and a finite-difference gradient planner scored 0.151 to 0.225.",
   "builder": "scripts/hom/hom_inner_loop_page.py",
-  "artifact": null,
+  "artifact": "https://claude.ai/artifact/83AjHSqqWZXRuif4nTFjCa",
   "status": "current",
   "mb": 1.4
  },
