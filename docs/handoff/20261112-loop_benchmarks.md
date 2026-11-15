@@ -5,7 +5,7 @@ State 11-15 12:52: iLQR done (lane logs/20261115-ilqr, ended 12:50): 20 pairs pe
   replanning; 4 iterations no better on _tune; repeat |dJ| 0.006-0.091. Cylinder runs need one 6-hand batch per process
   (each new batch adds a 3.2 GB collision buffer; 16 hands OOM). Pages built (HOM 265, MPC 294 flags per 1000);
   figures.json controllers_track has press_grid and ilqr; contact build_talk.py has grid_note/ilqr_note (not built).
-  12:57: hand 6ccfed345 pushed; HOM page v4 https://claude.ai/artifact/83AjHSqqWZXRuif4nTFjCa, MPC page v9
+  12:54: hand 6ccfed345 pushed; HOM page v4 https://claude.ai/artifact/83AjHSqqWZXRuif4nTFjCa, MPC page v9
   https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f; contact 0efd93e (guide and notes: press grid, iLQR) pushed;
   ledger 26 and 27 done. Open: steps 2-7, 15 (older); future work on the HOM page (pad residual in iLQR, full DIAL on
   the other three grids, five grasp placements) waits on the owner.
