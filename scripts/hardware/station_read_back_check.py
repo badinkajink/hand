@@ -5,10 +5,17 @@ then a policy stream whose frames ask for the nine servo positions after each wr
 stream). Prints each frame's handling time and the read-back against the servo pose that was written.
 
     .venv/bin/python scripts/hardware/station_read_back_check.py [--plan docs/experiments/20260829-real_v1_deploy/deploy/g12_plan.json]
+
+Without numpy, so that it also runs on the CB1's patched files (its venv has none):
+
+    PYTHONPATH=~/hand/src/morphohand/driver/manta/host ~/hand/src/morphohand/driver/manta/host/.venv/bin/python \
+        /tmp/rbc/a/b/station_read_back_check.py --plan ~/hand/docs/experiments/20260829-real_v1_deploy/deploy/g12_plan.json
 """
 from __future__ import annotations
 
 import argparse
+import math
+import statistics
 import sys
 import tempfile
 import time
@@ -16,8 +23,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src/sr2hand/driver/manta/host"))
-
-import numpy as np  # noqa: E402
 
 from manta_hand import plan as plan_module  # noqa: E402
 from manta_hand import runtime as RT  # noqa: E402
@@ -58,7 +63,7 @@ def main() -> int:
                 "middle": {"yaw": 0.0, "mcp": 20.0, "pip": 20.0}}
         ms, err = [], []
         for k in range(a.frames):
-            pose = {f: {j: v + (5.0 * np.sin(2 * np.pi * k / 25.0) if j == "mcp" else 0.0) for j, v in d.items()}
+            pose = {f: {j: v + (5.0 * math.sin(2 * math.pi * k / 25.0) if j == "mcp" else 0.0) for j, v in d.items()}
                     for f, d in base.items()}
             t0 = time.perf_counter()
             res = rt.stream_frame(token, pose, read_back=True)
@@ -74,9 +79,9 @@ def main() -> int:
             plain.append(1e3 * (time.perf_counter() - t0))
         rt.end_stream(token)
         tel = rt.state().get("telemetry", {})
-        print(f"{a.frames} frames with read-back: handling {np.median(ms):.2f} ms median, {max(ms):.2f} ms max; "
+        print(f"{a.frames} frames with read-back: handling {statistics.median(ms):.2f} ms median, {max(ms):.2f} ms max; "
               f"read-back minus written servo pose at most {max(err):.4f} deg; without read-back "
-              f"{np.median(plain):.2f} ms; telemetry servo_age_s after the stream {tel.get('servo_age_s')}")
+              f"{statistics.median(plain):.2f} ms; telemetry servo_age_s after the stream {tel.get('servo_age_s')}")
     finally:
         rt.close() if hasattr(rt, "close") else None
         dev.close()

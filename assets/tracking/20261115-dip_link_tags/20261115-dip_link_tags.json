@@ -1,0 +1,248 @@
+{
+ "what": "AprilTag stickers for the back of the DIP link b v4 (tongue's back), Letter PDF at actual size",
+ "script": "scripts/hardware/dip_tag_print.py",
+ "pdf": "assets/tracking/20261115-dip_link_tags/20261115-dip_link_tags_letter.pdf",
+ "page_mm": [
+  215.9,
+  279.4
+ ],
+ "family": "tag36h11",
+ "tag_mm": 13.0,
+ "ids": {
+  "thumb": 24,
+  "index": 25,
+  "middle": 26
+ },
+ "copies": 4,
+ "face_mm": [
+  21.0,
+  21.41
+ ],
+ "face_z_L_mm": [
+  -46.91,
+  -25.5
+ ],
+ "face_x_L_mm": 8.0,
+ "holes_yz_L_mm": [
+  [
+   -8.0,
+   -44.26
+  ],
+  [
+   -8.0,
+   -28.26
+  ],
+  [
+   8.0,
+   -44.26
+  ],
+  [
+   8.0,
+   -28.26
+  ]
+ ],
+ "hole_r_mm": 0.95,
+ "cut_mm": [
+  20.5,
+  20.91
+ ],
+ "sticker_t_mm": 0.1,
+ "frame_L": "the cad_v2 mesh v4b_dip_link.stl's frame = <finger>_pip_frame in assets/mjcf/experimental/20261104-cad_v3/ur5_full_k0.xml (thumb's mesh turned 180 deg about z there): origin on the PIP axis, y_L along it, x_L dorsal, z_L toward the PIP axis; x_L = -x_D, y_L = y_D, z_L = -z_D",
+ "maps_L": {
+  "thumb": {
+   "family": "tag36h11",
+   "size_mm": 13.0,
+   "corners_mm": {
+    "24": [
+     [
+      8.1,
+      6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -42.705
+     ],
+     [
+      8.1,
+      6.5,
+      -42.705
+     ]
+    ]
+   }
+  },
+  "index": {
+   "family": "tag36h11",
+   "size_mm": 13.0,
+   "corners_mm": {
+    "25": [
+     [
+      8.1,
+      6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -42.705
+     ],
+     [
+      8.1,
+      6.5,
+      -42.705
+     ]
+    ]
+   }
+  },
+  "middle": {
+   "family": "tag36h11",
+   "size_mm": 13.0,
+   "corners_mm": {
+    "26": [
+     [
+      8.1,
+      6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -29.705
+     ],
+     [
+      8.1,
+      -6.5,
+      -42.705
+     ],
+     [
+      8.1,
+      6.5,
+      -42.705
+     ]
+    ]
+   }
+  }
+ },
+ "stickers_page_mm": [
+  {
+   "finger": "thumb",
+   "id": 24,
+   "centre": [
+    28.25,
+    50.455
+   ]
+  },
+  {
+   "finger": "thumb",
+   "id": 24,
+   "centre": [
+    28.25,
+    80.365
+   ]
+  },
+  {
+   "finger": "thumb",
+   "id": 24,
+   "centre": [
+    28.25,
+    110.275
+   ]
+  },
+  {
+   "finger": "thumb",
+   "id": 24,
+   "centre": [
+    28.25,
+    140.185
+   ]
+  },
+  {
+   "finger": "index",
+   "id": 25,
+   "centre": [
+    57.75,
+    50.455
+   ]
+  },
+  {
+   "finger": "index",
+   "id": 25,
+   "centre": [
+    57.75,
+    80.365
+   ]
+  },
+  {
+   "finger": "index",
+   "id": 25,
+   "centre": [
+    57.75,
+    110.275
+   ]
+  },
+  {
+   "finger": "index",
+   "id": 25,
+   "centre": [
+    57.75,
+    140.185
+   ]
+  },
+  {
+   "finger": "middle",
+   "id": 26,
+   "centre": [
+    87.25,
+    50.455
+   ]
+  },
+  {
+   "finger": "middle",
+   "id": 26,
+   "centre": [
+    87.25,
+    80.365
+   ]
+  },
+  {
+   "finger": "middle",
+   "id": 26,
+   "centre": [
+    87.25,
+    110.275
+   ]
+  },
+  {
+   "finger": "middle",
+   "id": 26,
+   "centre": [
+    87.25,
+    140.185
+   ]
+  }
+ ],
+ "check": {
+  "dpi": 600,
+  "detected": 12,
+  "stickers": 12,
+  "ids_ok": true,
+  "edge_mm": [
+   12.9859,
+   13.0231
+  ],
+  "centre_err_mm_max": 0.0088,
+  "upright": true,
+  "ok": true
+ }
+}
