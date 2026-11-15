@@ -50,7 +50,11 @@ from sr2hand.rl.math import quat_conj, quat_from_axis_angle, quat_mul, quat_rota
 # steps (joint and object angles rad, object position m, joint and angular velocities rad/s, object velocity m/s, targets
 # rad); fb: the gains also in the plant; knot_gap_s: the knot planners' gap that the rate cost is matched to
 IL = dict(step=5, na=8, mu0=1.0, mu_min=1e-4, mu_max=1e6, eps_q=1e-3, eps_p=2e-4, eps_w=1e-2, eps_v=2e-3, eps_u=1e-3,
-          fb=False, knot_gap_s=0.15)
+          fb=False, knot_gap_s=0.15, pad=False, pad_ref=0.25)
+# pad (owner, 2026-11-15 "sure go ahead" on the HOM page's future work): a smooth pad term in the model, each finger's
+# pad force F at a step's end as the residual sqrt(w) max(0, (pad_ref - F) / pad_ref), w = COST pad x STEP (the cost's
+# 2 per pad under 0.05 N and period, at F = 0), its Jacobian in (x_t, u_t) from the linearization's own worlds. A pad
+# with no force in the nominal and in every perturbed world gets no gradient.
 
 
 class TangentMap:
@@ -98,12 +102,13 @@ class TangentMap:
         return self.plus_q(q0, d), v0 + d[..., self.nv:]
 
 
-def riccati(A, B, lx, lxx, du, gu, w, mu):
+def riccati(A, B, lx, lxx, du, gu, w, mu, pad=None):
     """The backward pass of Gauss-Newton iLQR on the state z = (x, u_prev), for P problems of N steps:
     x_{t+1} = A_t x_t + B_t u_t in the tangent space, cost sum_{t>=1} l(x_t) + sum_t w |u_t - u_{t-1}|^2 + g(u_t).
     A (P, N, nx, nx), B (P, N, nx, nu); lx (P, N, nx) and lxx (P, N, nx, nx): l's gradient and Gauss-Newton Hessian at
     x_1..x_N; du (P, N, nu): the nominal's u_t - u_{t-1}; gu (P, N, nu): g's gradient; w: the rate weight; mu (P,): the
-    regularization on Q_uu. The value function is updated in Joseph form. Returns k (P, N, nu), K (P, N, nu, nz) and a
+    regularization on Q_uu. The value function is updated in Joseph form. pad: the stage terms of a cost in (x_t, u_t),
+    (gx (P, N, nx), gu (P, N, nu), Hxx, Huu, Hux), added to step t's. Returns k (P, N, nu), K (P, N, nu, nz) and a
     (P,) mask of the problems whose gains were not finite (set to zero)."""
     P, N, nx, nu = B.shape
     nz = nx + nu
@@ -131,10 +136,19 @@ def riccati(A, B, lx, lxx, du, gu, w, mu):
         lzz[:, nx:, nx:] = 2.0 * w * Iu
         lu = 2.0 * w * du[:, t] + gu[:, t]
         BzT = Bz.transpose(1, 2)
-        luu = 2.0 * w * Iu
+        luu = (2.0 * w * Iu).expand(P, nu, nu)
+        luz_t = luz
+        if pad is not None:
+            pgx, pgu, pHxx, pHuu, pHux = pad
+            lz[:, :nx] += pgx[:, t]
+            lzz[:, :nx, :nx] += pHxx[:, t]
+            lu = lu + pgu[:, t]
+            luu = luu + pHuu[:, t]
+            luz_t = luz.clone()
+            luz_t[:, :, :nx] = pHux[:, t]
         Qu = lu + (BzT @ Vz[..., None])[..., 0]
         Quu = luu + BzT @ Vzz @ Bz
-        Quz = luz + BzT @ Vzz @ Az
+        Quz = luz_t + BzT @ Vzz @ Az
         Quu = 0.5 * (Quu + Quu.transpose(1, 2))
         L, info = torch.linalg.cholesky_ex(Quu + mu[:, None, None] * Iu)
         kt = -torch.cholesky_solve(Qu[..., None], L)[..., 0]
@@ -144,12 +158,12 @@ def riccati(A, B, lx, lxx, du, gu, w, mu):
         kt = torch.where(ok[:, None], kt, torch.zeros_like(kt))
         Kt = torch.where(ok[:, None, None], Kt, torch.zeros_like(Kt))
         # Joseph form: V_zz = [I; K]^T H [I; K] + (A + B K)^T V'_zz (A + B K), H the stage Hessian in (z, u)
-        KtT, luzT = Kt.transpose(1, 2), luz.transpose(1, 2)
+        KtT, luzT = Kt.transpose(1, 2), luz_t.transpose(1, 2)
         Acl = Az + Bz @ Kt
         AclT = Acl.transpose(1, 2)
         Vz_n = (lz + (KtT @ lu[..., None])[..., 0] + (luzT @ kt[..., None])[..., 0] + (KtT @ (luu @ kt[..., None]))[..., 0]
                 + (AclT @ (Vz + (Vzz @ (Bz @ kt[..., None]))[..., 0])[..., None])[..., 0])
-        Vzz = lzz + luzT @ Kt + KtT @ luz + KtT @ luu @ Kt + AclT @ Vzz @ Acl
+        Vzz = lzz + luzT @ Kt + KtT @ luz_t + KtT @ luu @ Kt + AclT @ Vzz @ Acl
         Vzz = 0.5 * (Vzz + Vzz.transpose(1, 2))
         Vz = Vz_n
         k[:, t], K[:, t] = kt, Kt
@@ -282,7 +296,23 @@ class Planner:
         d = self.tm.diff(q1, v1, q1[:, :, :1].expand_as(q1), v1[:, :, :1].expand_as(v1)).double()
         A = (d[:, :, 1:1 + nx] / self.eps[None, None, :, None]).transpose(2, 3)
         Bm = (d[:, :, 1 + nx:] / IL["eps_u"]).transpose(2, 3)
+        if IL["pad"]:                                    # each finger's pad force at the step's end and its Jacobians
+            F = B.ft_t.reshape(P, N, Mf, 3).double()
+            dF = F - F[:, :, :1]
+            self.pad_lin = (F[:, :, 0], (dF[:, :, 1:1 + nx] / self.eps[None, None, :, None]).transpose(2, 3),
+                            (dF[:, :, 1 + nx:] / IL["eps_u"]).transpose(2, 3))
         return A, Bm
+
+    def pad_terms(self):
+        """The smooth pad term's gradient and Gauss-Newton Hessian in (x_t, u_t) from the last linearization."""
+        F, Fx, Fu = self.pad_lin                         # (P, N, 3), (P, N, 3, nx), (P, N, 3, 9)
+        sw, ref = math.sqrt(self.M.COST["pad"] * self.S), IL["pad_ref"]
+        r = sw * ((ref - F) / ref).clamp(min=0.0)
+        on = (F < ref).double()[..., None]
+        Jx, Ju = -sw / ref * on * Fx, -sw / ref * on * Fu
+        JxT, JuT = Jx.transpose(-1, -2), Ju.transpose(-1, -2)
+        return (2.0 * (JxT @ r[..., None])[..., 0], 2.0 * (JuT @ r[..., None])[..., 0], 2.0 * JxT @ Jx, 2.0 * JuT @ Ju,
+                2.0 * JuT @ Jx)
 
     # ------------------------------------------------------------------------------------------- cost model
     def residuals(self, q, ctx):
@@ -358,7 +388,7 @@ class Planner:
             lxx = 2.0 * S * JrT @ Jr
             du = (self.ubar - torch.cat([self.u0[:, None], self.ubar[:, :-1]], 1)).double()
             gu = self.demand_grad(self.ubar, self.xq[:, 1:])
-            k, K, bad = riccati(A, Bm, lx, lxx, du, gu, self.w, self.mu)
+            k, K, bad = riccati(A, Bm, lx, lxx, du, gu, self.w, self.mu, self.pad_terms() if IL["pad"] else None)
             self.cnt[:, 5] += bad.double()
             c, Xq, Xv, Xw, U = self.rollout(st, cx, k, K)
             n_ls += 1

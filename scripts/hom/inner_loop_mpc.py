@@ -218,6 +218,35 @@ def rank_pairs(n_best=50, n_rand=50, seed=0):
             for by, ks in (("hom_best", order[:n_best]), ("random", pick)) for k in ks]
 
 
+def rank5_pairs(extra="grid2dff_v4b_sv25r_s34"):
+    """The ranking test's 100 layouts (rows/mpc_pairs_<task>_rank.json), each with its best grasp by HOM's J over seeds
+    0-4: the grid's seeds 0-2 and seeds 3 and 4 run into the grid rows folder `extra` (owner, 2026-11-15: grasps chosen
+    at five placements in place of three). A grasp counts only with all five seeds; the old grasp and J are kept as
+    grasp_s3 and J_s3."""
+    import hom_landscape as L
+    import hom_rows
+    import inner_loop_benchmark_page as BP
+    J = {k: [a for a, _h in v] for k, v in BP.j_rows(TASK, UH.D_MM[TASK]).items()}
+    for x in (BP.GRID.parent / extra / f"{TASK}_d{UH.D_MM[TASK]:g}.jsonl").read_text().splitlines():
+        r = hom_rows.rescale_metrics(json.loads(x))
+        if r.get("status", "ok") != "ok":
+            continue
+        d = r["d"]
+        J.setdefault((round(d[2] - d[0], 3), round(d[3] - d[5], 3), int(r.get("grasp", 0))), []).append(
+            L.track_score(TASK, r))
+    by_xy = {}
+    for (x, y, g), v in J.items():
+        if len(v) == 5:
+            by_xy.setdefault((x, y), {})[g] = float(np.mean(v))
+    out = []
+    for q in json.loads(pairs_path("_rank").read_text())["pairs"]:
+        cand = by_xy.get((q["x"], q["y"]), {})
+        g = max(cand, key=lambda g_: (cand[g_], -g_)) if cand else q["grasp"]
+        out.append({"x": q["x"], "y": q["y"], "grasp": int(g), "by": q["by"],
+                    "J_by": round(cand.get(g, float("nan")), 4), "grasp_s3": q["grasp"], "J_s3": q["J_by"]})
+    return out
+
+
 def grid_best():
     """Each layout (x_sep, y_sep) of the task's grid: (its best grasp by HOM's J, that J), J the mean over seeds 0-2."""
     import inner_loop_benchmark_page as BP
@@ -888,6 +917,9 @@ def cmd_run(a):
         if a.il_fb:
             ILQ.IL["fb"] = True
             a.tag = "_fb" + a.tag
+        if a.il_pad:
+            ILQ.IL["pad"] = True
+            a.tag = "_pad" + a.tag
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
     UH.ATT_AXIS = bool(a.att_axis)
     if UH.ATT_GAIN > 0:
@@ -1043,6 +1075,12 @@ def cmd_pairs(a):
         pairs_path(name).write_text(json.dumps({"task": TASK, "pairs": prs, "src": a.src, "rule": top_pairs.__doc__},
                                                indent=1))
         print(f"{len(prs)} pairs -> {pairs_path(name).relative_to(ROOT)}")
+        return 0
+    if a.rule == "rank5":
+        prs = rank5_pairs()
+        pairs_path("_rank5").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": rank5_pairs.__doc__}, indent=1))
+        print(f"{len(prs)} pairs, {sum(p['grasp'] != p['grasp_s3'] for p in prs)} with another grasp -> "
+              f"{pairs_path('_rank5').relative_to(ROOT)}")
         return 0
     if a.rule == "all":
         prs = all_pairs()
@@ -1205,7 +1243,7 @@ def main():
     p = sub.add_parser("pairs")
     p.add_argument("--run", default=RUN)
     p.add_argument("--top", type=int, default=10)
-    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top", "patch", "all"),
+    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "rank5", "tune", "top", "patch", "all"),
                    help="benchmark: HOM's "
                    "and UHAS's ten best test layouts (the twist); rank: HOM's 50 best layouts and 50 at random "
                    "(rank_pairs); tune: six others for choosing a configuration (tune_pairs); top: the ten best of the "
@@ -1220,6 +1258,7 @@ def main():
     p.add_argument("--method", required=True, choices=("hom", "uhas", "ilqr") + METHODS + HS_METHODS + RES_METHODS)
     p.add_argument("--il-step", type=int, default=None, help="method ilqr: periods per step (inner_loop_ilqr.IL step, 5)")
     p.add_argument("--il-fb", action="store_true", help="method ilqr: the plant applies the gains too (IL fb)")
+    p.add_argument("--il-pad", action="store_true", help="method ilqr: the smooth pad term in the model (IL pad)")
     p.add_argument("--preview", type=float, default=0.0, help="HOM's command read this many s ahead in the schedule "
                    "(uhas_sr2.PREVIEW_S; methods that run HOM)")
     p.add_argument("--prm", default=None, help="HOM's forces and contact-mode weights for every world, JSON "
