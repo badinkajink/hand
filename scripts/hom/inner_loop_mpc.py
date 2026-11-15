@@ -47,6 +47,8 @@ controller is scored on the same plant, pairs and seeds.
     .venv/bin/python scripts/hom/inner_loop_mpc.py run --method anneal [--seeds 0 1] [--plant-mu 1.0] [--chunk 16]
     .venv/bin/python scripts/hom/inner_loop_mpc.py pairs --task roll --rule rank      # rows/mpc_pairs_roll_rank.json
     .venv/bin/python scripts/hom/inner_loop_mpc.py run --task roll --pairs _rank --method hom
+    .venv/bin/python scripts/hom/inner_loop_mpc.py pairs --task press --rule all      # every layout of the grid
+    .venv/bin/python scripts/hom/inner_loop_mpc.py pairs --task press --rule top --src _all   # mpc_pairs_press_alltop
 Pairs: rows/mpc_pairs_twist.json, the ten test layouts with HOM's best J and the ten with UHAS's best J, each with that
 controller's best grasp. Rows: docs/experiments/20261112-inner_loop_benchmark/rows/mpc_<method>_twist[_mu<mu>].jsonl,
 one per world, appended and fsynced per chunk; a rerun skips the worlds already written.
@@ -213,17 +215,38 @@ def rank_pairs(n_best=50, n_rand=50, seed=0):
             for by, ks in (("hom_best", order[:n_best]), ("random", pick)) for k in ks]
 
 
-def top_pairs(n=10, ref="anneal", ref_tag="_pdt2"):
-    """The ranking test's confirmation pairs: the n best of the task's _rank pairs under HOM and the n best under the
-    planner (rows mpc_hom_<task>_rank.jsonl and mpc_<ref>_<task>_rank<ref_tag>.jsonl, J averaged over seeds 0 and 1),
-    to run again at fresh seeds, so that neither controller's first choice is scored at the seeds it was chosen at."""
+def grid_best():
+    """Each layout (x_sep, y_sep) of the task's grid: (its best grasp by HOM's J, that J), J the mean over seeds 0-2."""
+    import inner_loop_benchmark_page as BP
+    best = {}
+    for (x, y, g), v in BP.j_rows(TASK, UH.D_MM[TASK]).items():
+        j = float(np.mean([a for a, _h in v]))
+        if (x, y) not in best or j > best[(x, y)][1]:
+            best[(x, y)] = (g, j)
+    return best
+
+
+def all_pairs():
+    """Every layout of the task's grid, each with its best grasp by HOM's J (mean over seeds 0-2): full DIAL's landscape
+    over the whole grid (owner, 2026-11-15, the go for full DIAL on every press layout)."""
+    best = grid_best()
+    return [{"x": k[0], "y": k[1], "grasp": int(best[k][0]), "by": "all", "J_by": round(best[k][1], 4)}
+            for k in sorted(best)]
+
+
+def top_pairs(n=10, ref="anneal", ref_tag="_pdt2", src="_rank"):
+    """The ranking test's confirmation pairs: the n best of the task's src pairs under HOM and the n best under the
+    planner (rows mpc_hom_<task><src>.jsonl and mpc_<ref>_<task><src><ref_tag>.jsonl, J averaged over seeds 0 and 1),
+    to run again at fresh seeds, so that neither controller's first choice is scored at the seeds it was chosen at. For
+    src _all also the n best layouts of HOM's grid (J over seeds 0-2, the order of rank_pairs), the ten the search would
+    hand to a planner; grid_top marks them."""
     def means(stem):
         d = {}
         for x in (ROWS / f"mpc_{stem}.jsonl").read_text().splitlines():
             r = json.loads(x)
             d.setdefault((r["x_sep"], r["y_sep"], r["grasp"]), []).append(r["J"])
         return {k: float(np.mean(v)) for k, v in d.items()}
-    h, d = means(f"hom_{TASK}_rank"), means(f"{ref}_{TASK}_rank{ref_tag}")
+    h, d = means(f"hom_{TASK}{src}"), means(f"{ref}_{TASK}{src}{ref_tag}")
     th = sorted(h, key=lambda k: -h[k])[:n]
     td = sorted(d, key=lambda k: -d[k])[:n]
     out = []
@@ -231,6 +254,15 @@ def top_pairs(n=10, ref="anneal", ref_tag="_pdt2"):
         by = "both" if k in th and k in td else "hom_top" if k in th else "planner_top"
         out.append({"x": k[0], "y": k[1], "grasp": int(k[2]), "by": by, "J_hom": round(h.get(k, float("nan")), 4),
                     "J_planner": round(d.get(k, float("nan")), 4)})
+    if src == "_all":
+        best = grid_best()
+        tg = [(k[0], k[1], int(best[k][0])) for k in sorted(best, key=lambda k_: (-best[k_][1], k_))[:n]]
+        have = {(o["x"], o["y"], o["grasp"]) for o in out}
+        for o in out:
+            o["grid_top"] = (o["x"], o["y"], o["grasp"]) in tg
+        out += [{"x": k[0], "y": k[1], "grasp": k[2], "by": "grid_top", "grid_top": True,
+                 "J_hom": round(h.get(k, float("nan")), 4), "J_planner": round(d.get(k, float("nan")), 4)}
+                for k in tg if k not in have]
     return out
 
 
@@ -983,9 +1015,16 @@ def cmd_pairs(a):
         print(f"{len(prs)} pairs -> {pairs_path('_patch').relative_to(ROOT)}")
         return 0
     if a.rule == "top":
-        prs = top_pairs()
-        pairs_path("_top").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": top_pairs.__doc__}, indent=1))
-        print(f"{len(prs)} pairs -> {pairs_path('_top').relative_to(ROOT)}")
+        prs = top_pairs(src=a.src)
+        name = "_top" if a.src == "_rank" else a.src + "top"
+        pairs_path(name).write_text(json.dumps({"task": TASK, "pairs": prs, "src": a.src, "rule": top_pairs.__doc__},
+                                               indent=1))
+        print(f"{len(prs)} pairs -> {pairs_path(name).relative_to(ROOT)}")
+        return 0
+    if a.rule == "all":
+        prs = all_pairs()
+        pairs_path("_all").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": all_pairs.__doc__}, indent=1))
+        print(f"{len(prs)} pairs -> {pairs_path('_all').relative_to(ROOT)}")
         return 0
     if a.rule == "tune":
         prs = tune_pairs()
@@ -1143,11 +1182,14 @@ def main():
     p = sub.add_parser("pairs")
     p.add_argument("--run", default=RUN)
     p.add_argument("--top", type=int, default=10)
-    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top", "patch"), help="benchmark: HOM's "
+    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top", "patch", "all"),
+                   help="benchmark: HOM's "
                    "and UHAS's ten best test layouts (the twist); rank: HOM's 50 best layouts and 50 at random "
                    "(rank_pairs); tune: six others for choosing a configuration (tune_pairs); top: the ten best of the "
-                   "rank pairs under HOM and under full DIAL, to rerun at fresh seeds (top_pairs); patch: the layouts "
-                   "within 15 mm of HOM's best (patch_pairs)")
+                   "--src pairs under HOM and under full DIAL, to rerun at fresh seeds (top_pairs; _top, or <src>top); "
+                   "patch: the layouts within 15 mm of HOM's best (patch_pairs); all: every layout of the grid "
+                   "(all_pairs)")
+    p.add_argument("--src", default="_rank", help="rule top: the pair set whose rows choose the ten best (_rank, _all)")
     p = sub.add_parser("timing")
     p.add_argument("--chunk", type=int, default=16)
     p.add_argument("--n", type=int, nargs="+", default=[128])
