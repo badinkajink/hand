@@ -234,6 +234,21 @@ def top_pairs(n=10, ref="anneal", ref_tag="_pdt2"):
     return out
 
 
+def patch_pairs(half=15.0):
+    """The lattice neighbourhood of HOM's best layout of the task's grid: every reached layout within half (mm) of it in
+    x_sep and in y_sep, each with its best grasp by HOM's J (mean over seeds 0-2), for both controllers' smoothness on
+    the same layouts (owner, 2026-11-14: "stability across metrics, tasks, solutions? ... explore this")."""
+    import inner_loop_benchmark_page as BP
+    best = {}
+    for (x, y, g), v in BP.j_rows(TASK, UH.D_MM[TASK]).items():
+        j = float(np.mean([a for a, _h in v]))
+        if (x, y) not in best or j > best[(x, y)][1]:
+            best[(x, y)] = (g, j)
+    x0, y0 = max(best, key=lambda k: (best[k][1], k))
+    ks = sorted(k for k in best if abs(k[0] - x0) <= half and abs(k[1] - y0) <= half)
+    return [{"x": k[0], "y": k[1], "grasp": int(best[k][0]), "by": "patch", "J_by": round(best[k][1], 4)} for k in ks]
+
+
 def tune_pairs(n=6, j_min=0.05, seed=1):
     """Pairs for choosing a planner's configuration, apart from the ranking test's: n layouts outside rank_pairs with
     HOM's best J above j_min, drawn at random, each with its best grasp."""
@@ -962,6 +977,11 @@ def cmd_pairs(a):
                                                    indent=1))
             print(f"{len(sub)} pairs -> {pairs_path(name).relative_to(ROOT)}")
         return 0
+    if a.rule == "patch":
+        prs = patch_pairs()
+        pairs_path("_patch").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": patch_pairs.__doc__}, indent=1))
+        print(f"{len(prs)} pairs -> {pairs_path('_patch').relative_to(ROOT)}")
+        return 0
     if a.rule == "top":
         prs = top_pairs()
         pairs_path("_top").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": top_pairs.__doc__}, indent=1))
@@ -1123,10 +1143,11 @@ def main():
     p = sub.add_parser("pairs")
     p.add_argument("--run", default=RUN)
     p.add_argument("--top", type=int, default=10)
-    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top"), help="benchmark: HOM's "
+    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top", "patch"), help="benchmark: HOM's "
                    "and UHAS's ten best test layouts (the twist); rank: HOM's 50 best layouts and 50 at random "
                    "(rank_pairs); tune: six others for choosing a configuration (tune_pairs); top: the ten best of the "
-                   "rank pairs under HOM and under full DIAL, to rerun at fresh seeds (top_pairs)")
+                   "rank pairs under HOM and under full DIAL, to rerun at fresh seeds (top_pairs); patch: the layouts "
+                   "within 15 mm of HOM's best (patch_pairs)")
     p = sub.add_parser("timing")
     p.add_argument("--chunk", type=int, default=16)
     p.add_argument("--n", type=int, nargs="+", default=[128])

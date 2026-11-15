@@ -460,6 +460,17 @@ was <<jn>>, against <<jo>>.</p>""",
                    ppo=pc(FR["pinpush"]["s01"]["drop"]), ppn=pc(FR["pinpush"]["s1011"]["drop"]),
                    jn=al([f"{FR[t]['s1011']['J']:.3f}" for t in TASKS]),
                    jo=al([f"{FR[t]['s01']['J']:.3f}" for t in TASKS]))
+    C = {t: MP.confirm_numbers(t) for t in TASKS}
+    if all(C.values()):
+        fh = [c["dial_on_hom_s01"] - c["dial_on_hom"] for c in C.values()]
+        fd = {t: c["dial_on_dial_s01"] - c["dial_on_dial"] for t, c in C.items()}
+        txt += fill(r"""<p>Each controller's ten best of the 100 pairs, by its J at seeds 0 and 1, were also run under both
+controllers at seeds 10 and 11 (<a href="<<href>>">the ranking test of the sampling MPC page</a>). Under full DIAL, HOM's
+ten lost <<lo>> to <<hi>> of their mean J at the new seeds. The planner's own ten lost up to <<fd>>, on the <<tw>>, since
+they had been chosen on the planner's J at seeds 0 and 1.</p>""",
+                    href="../20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#rank100",
+                    lo=f"{min(fh):.3f}", hi=f"{max(fh):.3f}", fd=f"{max(fd.values()):.3f}",
+                    tw=TN[max(fd, key=fd.get)].lower())
     rows = []
     for t in TASKS:
         g = GS[t]
@@ -473,6 +484,124 @@ was <<jn>>, against <<jo>>.</p>""",
                "pairs: the ranking test's pairs of the task. Smoothness ratio: mean |J difference| between lattice "
                "neighbours over that between random pairs of layouts.", num_from=1)
     return txt + t_
+
+
+PATCH_TASKS = ("twist", "press")
+
+
+def patch_numbers(R, task):
+    """HOM and full DIAL on the neighbourhood of HOM's best layout (inner_loop_mpc.py pairs --rule patch: every layout
+    within 15 mm in x_sep and y_sep, each with HOM's best grasp), seeds 0 and 1: per controller the layouts' J (seeds
+    averaged), the mean |J difference| between lattice neighbours 5 mm apart and between all pairs of the patch's
+    layouts, their ratio, the seed agreement and the best layout; and the two controllers' rho over the patch."""
+    pf = MP.ROWS / f"mpc_pairs_{task}_patch.json"
+    if not pf.exists():
+        return None
+    keys = [(p_["x"], p_["y"], p_["grasp"]) for p_ in json.loads(pf.read_text())["pairs"]]
+    out = {"keys": keys}
+    for name, stem in (("hom", MP.tstem("hom", task, "_patch")), ("full", MP.tstem("anneal", task, "_patch", CFG_FULL2))):
+        rows = rows_of(R, stem)
+        if len(rows) < 2 * len(keys):
+            return None
+        J, J0, J1 = MP.pair_j(rows), MP.pair_j(rows, 0), MP.pair_j(rows, 1)
+        v = np.array([J[k] for k in keys])
+        idx = {k[:2]: i for i, k in enumerate(keys)}
+        nb = [abs(v[i] - v[idx[(x + dx, y + dy)]]) for (x, y), i in idx.items() for dx, dy in ((5, 0), (0, 5))
+              if (x + dx, y + dy) in idx]
+        rp = [abs(v[i] - v[j]) for i in range(len(v)) for j in range(i + 1, len(v))]
+        out[name] = {"J": v.tolist(), "mean": float(v.mean()), "nb": float(np.mean(nb)), "rand": float(np.mean(rp)),
+                     "ratio": float(np.mean(nb) / np.mean(rp)) if np.mean(rp) > 0 else None,
+                     "seed_rho": spearman([J0[k] for k in keys], [J1[k] for k in keys]),
+                     "best": keys[int(np.argmax(v))], "best_j": float(v.max())}
+    out["rho"] = spearman(out["hom"]["J"], out["full"]["J"])
+    out["centre"] = max(keys, key=lambda k: next(p_["J_by"] for p_ in json.loads(pf.read_text())["pairs"]
+                                                 if (p_["x"], p_["y"], p_["grasp"]) == k))
+    return out
+
+
+def fig_patch(N, out):
+    """J of each layout of the two patches under HOM and under full DIAL, one colour scale per task."""
+    plt = MP.plt_setup()
+    fig, ax = plt.subplots(len(N), 2, figsize=(9.5, 4.5 * len(N)), squeeze=False)
+    for r, (t, n) in enumerate(N.items()):
+        xs = sorted({k[0] for k in n["keys"]})
+        ys = sorted({k[1] for k in n["keys"]})
+        vmax = max(max(n["hom"]["J"]), max(n["full"]["J"]), 0.05)
+        for c, (name, lab) in enumerate((("hom", "HOM"), ("full", "Full DIAL"))):
+            G = np.full((len(ys), len(xs)), np.nan)
+            for k, v in zip(n["keys"], n[name]["J"]):
+                G[ys.index(k[1]), xs.index(k[0])] = v
+            a = ax[r][c]
+            im = a.imshow(G, origin="lower", cmap="viridis", vmin=0, vmax=vmax,
+                          extent=[xs[0] - 2.5, xs[-1] + 2.5, ys[0] - 2.5, ys[-1] + 2.5])
+            a.plot(*n["centre"][:2], marker="x", color="white", ms=12, mew=2.5)
+            a.plot(*n[name]["best"][:2], marker="o", mfc="none", mec="#dc2626", ms=16, mew=2.5)
+            a.set_title(f"{lab}: smoothness {f2(n[name]['ratio'])}", loc="left")
+            a.set_xlabel("x_sep (mm)")
+            if c == 0:
+                a.set_ylabel(f"{TN[t]}: y_sep (mm)")
+        fig.colorbar(im, ax=list(ax[r]), shrink=0.85, label="J, seeds 0 and 1")
+    fig.savefig(out, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def repeat_numbers(R, task):
+    """The same layout, grasp and seed run twice, in the patch's batches and in the ranking test's: per controller the
+    number of layouts and the mean and largest |J difference| between the two runs. HOM draws no random numbers; the
+    planner draws its samples from one generator per batch (inner_loop_mpc.MPC, seeded by the batch's first seed and its
+    position), so a layout's samples change with the batch it runs in."""
+    out = {}
+    for name, a_, b_ in (("hom", MP.tstem("hom", task, "_patch"), MP.tstem("hom", task, "_rank")),
+                         ("full", MP.tstem("anneal", task, "_patch", CFG_FULL2),
+                          MP.tstem("anneal", task, "_rank", CFG_FULL2))):
+        A, B = ({(r["x_sep"], r["y_sep"], r["grasp"], r["seed"]): r["J"] for r in rows_of(R, st)} for st in (a_, b_))
+        ks = sorted(set(A) & set(B))
+        if not ks:
+            return None
+        d = np.array([abs(A[k] - B[k]) for k in ks])
+        out[name] = {"n": len({k[:3] for k in ks}), "runs": len(ks), "mean": float(d.mean()), "max": float(d.max())}
+    return out
+
+
+def sec_patch(R):
+    N = {t: patch_numbers(R, t) for t in PATCH_TASKS}
+    if not all(N.values()):
+        return ""
+    tw, pr = N["twist"], N["press"]
+    dist = (lambda n: float(np.hypot(n["full"]["best"][0] - n["centre"][0], n["full"]["best"][1] - n["centre"][1])))
+    t_ = fill(r"""<p>Both controllers ran every layout of the grid within 15 mm of HOM's best twist and press layouts in
+$x_{\mathrm{sep}}$ and in $y_{\mathrm{sep}}$, <<n_t>> on the twist and <<n_p>> on the press, each with HOM's best grasp,
+at seeds 0 and 1 (Figure <<fn>>). Smoothness is measured by the mean |J difference| between lattice neighbours 5 mm
+apart, divided by the mean |J difference| between all pairs of the patch's layouts. A ratio of 1 means that a
+neighbour's J predicts a layout's J no better than any other layout's J does. On the twist the ratio was <<rh_t>> under
+HOM and <<rd_t>> under full DIAL. On the press it was <<rh_p>> and <<rd_p>>.</p>
+<p>Within the patches the two controllers ordered the layouts with $\rho$ = <<rho_t>> on the twist and <<rho_p>> on the
+press. HOM's best layout of each patch was its grid best. Full DIAL's best lay <<dd_t>> mm from it on the twist, at J
+<<bj_t>>, and <<dd_p>> mm on the press, at J <<bj_p>>.</p>""",
+              n_t=len(tw["keys"]), n_p=len(pr["keys"]), fn=P.FIG[0] + 1, rh_t=f2(tw["hom"]["ratio"]),
+              rd_t=f2(tw["full"]["ratio"]), rh_p=f2(pr["hom"]["ratio"]), rd_p=f2(pr["full"]["ratio"]),
+              rho_t=f2(tw["rho"]), rho_p=f2(pr["rho"]), dd_t=f"{dist(tw):.0f}", dd_p=f"{dist(pr):.0f}",
+              bj_t=f"{tw['full']['best_j']:.3f}", bj_p=f"{pr['full']['best_j']:.3f}")
+    assert all(n["hom"]["best"] == n["centre"] for n in N.values())
+    Q = {t: repeat_numbers(R, t) for t in PATCH_TASKS}
+    if all(Q.values()):
+        qt, qp = Q["twist"], Q["press"]
+        t_ += fill(r"""<p>Of the patches' layouts, <<n_t>> on the twist and <<n_p>> on the press had also run in the ranking
+test, at the same seeds and grasps but in other batches. Between the two runs of a layout and seed, HOM's J differed by a
+mean of <<h_t>> on the twist and <<h_p>> on the press. Full DIAL's differed by <<d_t>> and <<d_p>>, and by up to
+<<dm>>. HOM draws no random numbers. The planner draws its samples from one random generator per batch, so a layout's
+samples change with the batch it runs in.</p>""",
+                   n_t=qt["hom"]["n"], n_p=qp["hom"]["n"], h_t=f"{qt['hom']['mean']:.4f}", h_p=f"{qp['hom']['mean']:.4f}",
+                   d_t=f"{qt['full']['mean']:.3f}", d_p=f"{qp['full']['mean']:.3f}",
+                   dm=f"{max(qt['full']['max'], qp['full']['max']):.2f}")
+    t_ += P.img(fig_patch(N, MEDIA / "20261115-hom_dial_patch.png"),
+                "J of every layout within 15 mm of HOM's best twist and press layouts (white cross), under HOM (left) "
+                "and under full DIAL (right), each with HOM's best grasp, seeds 0 and 1 averaged; one colour scale per "
+                "task. Red circle: the controller's best layout of the patch. White: no layout of the grid. "
+                "Smoothness: the mean |J difference| between neighbours 5 mm apart over that between all pairs of the "
+                "patch's layouts.")
+    return t_
 
 
 def e_ref_of(rows):
@@ -739,7 +868,30 @@ def sec_variants(R):
         return ""
     base = ["HOM, defaults"] + [f"{MP.mean_j(sub20(R, t, hom_rank(R, t))):.3f}" if hom_rank(R, t) else "&#8212;"
                                 for t in TASKS]
-    return table(["HOM variant"] + [TN[t] for t in TASKS], [base] + rows,
+    txt = fill(r"""<p>HOM solves Eq. (2) for the finger joints' rates: a least-squares problem with a damping term and a
+bound on each joint's rate. It is solved exactly. For each finger the 27 patterns of its three joints at the lower bound,
+free or at the upper bound are enumerated (<code>hom_gpu.py</code>). Another solver of the same problem returns the same
+rates, so the variants change the problem: its damping, its rate bound, the reference's lead, a preview of the command,
+the commanded forces and contact modes, a force loop and feedback on the object's orientation. Each was run on the 20
+pairs of each task at seeds 0 and 1 (Table <<tn>>).</p>""", tn=P.TAB[0] + 1)
+    eff = []
+    for tag, lab, tasks in VARIANTS:
+        d = {t: paired(rows_of(R, f"hom_{t}_rank20{tag}"), hom_rank(R, t)) for t in tasks}
+        if all(d.values()):
+            eff.append((lab, tasks, d))
+    if len(eff) == len(VARIANTS):
+        up = [(lab, t, d[t]) for lab, tasks, d in eff for t in tasks if d[t]["lo"] > 0]
+        down = [(lab, t, d[t]) for lab, tasks, d in eff for t in tasks if d[t]["hi"] < 0]
+        lab_ = (lambda x: x[0].lower() + x[1:])
+        best = max(eff, key=lambda e: np.mean([e[2][t]["d"] for t in e[1]]))
+        txt += "<p>" + (
+            "By the 95 % interval of the paired difference, J rose with " + al(
+                [f"{lab_(lab)} on the {TN[t].lower()} ({x['d']:+.3f})" for lab, t, x in up]) + "." if up else
+            "No variant raised J on any task by the 95 % interval of the paired difference.") + (
+            " J fell with " + al([f"{lab_(lab)} on the {TN[t].lower()} ({x['d']:+.3f})" for lab, t, x in down]) + "."
+            if down else "") + (f" The largest mean change over its tasks was {np.mean([best[2][t]['d'] for t in best[1]]):+.3f}, "
+                                f"with {lab_(best[0])}.") + "</p>"
+    return txt + table(["HOM variant"] + [TN[t] for t in TASKS], [base] + rows,
                  "HOM's variants on each task's 20 pairs at seeds 0 and 1: mean J, and below it the paired difference "
                  "from HOM's defaults on the same pairs and seeds.", num_from=1)
 
@@ -768,6 +920,18 @@ HOM's time.</p>""", sn="SCREENSEC", gp=al([f"{gap[t]:.3f}" for t in TASKS]), hh=
 def sec_fusion(R):
     rows, any_ = [], False
     txt = search_fusion(R)
+    dd = {m: {t: paired(rows_of(R, MP.tstem(m, t, "_rank20", CFG_PICK)), hom_rank(R, t)) for t in TASKS} for m, _l in FUSION}
+    if all(all(v.values()) for v in dd.values()):
+        def says(m, name):
+            up = [f"the {TN[t].lower()} ({dd[m][t]['d']:+.3f})" for t in TASKS if dd[m][t]["lo"] > 0]
+            dn = [f"the {TN[t].lower()} ({dd[m][t]['d']:+.3f})" for t in TASKS if dd[m][t]["hi"] < 0]
+            return (f"{name} scored above HOM on {al(up) if up else 'no task'}"
+                    + (f" and below it on {al(dn)}" if dn else "") + ".")
+        txt += fill(r"""<p>Two planners were fused with HOM at the real-time budget, 2 &#215; 32 samples over 0.1 s, on the 20
+pairs of each task at seeds 0 and 1 (Table <<tn>>). By the 95 % interval of the paired difference, <<a>>
+<<b>></p>""", tn=P.TAB[0] + 1,
+                    a=says("res_anneal", "DIAL with a joint-space residual on HOM's targets"),
+                    b=says("hs_anneal", "DIAL over Eq. (2)'s reference"))
     for m, lab in FUSION:
         row = [lab]
         for t in TASKS:
@@ -897,16 +1061,24 @@ def lede(R, PK, GS):
     N = {t: screen_numbers(R, t) for t in TASKS}
     if all(N.values()):
         g = [N[t]["halves"]["DIAL 4 &#215; 64"][0] - N[t]["halves"]["DIAL 4 &#215; 64"][1] for t in TASKS]
-        gap = {t: N[t]["d_max"] - N[t]["scr"][9] for t in TASKS}
-        ok = [TN[t].lower() for t in TASKS if gap[t] <= 0.05]
-        bad = [t for t in TASKS if gap[t] > 0.05]
         parts.append(f"Under full DIAL, HOM's 50 best layouts scored {min(g):.2f} to {max(g):.2f} higher than 50 random "
                      "ones.")
-        parts.append(f"Run on HOM's ten best layouts, the planner came within {max(gap[t] for t in TASKS if t not in bad):.3f}"
-                     f" of its best of the 100 on the {al(ok)}."
-                     + ("" if not bad else " On the " + " and ".join(TN[t].lower() for t in bad) + " it fell short by "
-                        + " and ".join(f"{gap[t]:.3f}" for t in bad) + ", and the two controllers' best layouts lie "
-                        "apart."))
+    C = {t: MP.confirm_numbers(t) for t in TASKS}
+    if all(C.values()):
+        fh = max(c["dial_on_hom_s01"] - c["dial_on_hom"] for c in C.values())
+        fd = max(c["dial_on_dial_s01"] - c["dial_on_dial"] for c in C.values())
+        pr = C["press"]
+        parts.append(f"At two fresh seeds, HOM's ten best pairs lost at most {fh:.3f} of their J under full DIAL, and the "
+                     f"planner's own ten up to {fd:.3f}.")
+        parts.append(f"At those seeds HOM dropped the press's cylinder in {pr['drop_hom'][0]} of {pr['drop_hom'][1]} runs, "
+                     f"against {pr['drop_hom_s01'][0]} at seeds 0 and 1; full DIAL dropped it in "
+                     + ("none." if pr["drop_dial"][0] == 0 else f"{pr['drop_dial'][0]}."))
+    Q = {t: repeat_numbers(R, t) for t in PATCH_TASKS}
+    if all(Q.values()):
+        parts.append(f"Run twice at the same seeds, a layout's J differed by a mean of "
+                     f"{max(q['hom']['mean'] for q in Q.values()):.3f} or less under HOM and by "
+                     f"{min(q['full']['mean'] for q in Q.values()):.2f} to {max(q['full']['mean'] for q in Q.values()):.2f} "
+                     "under full DIAL.")
     best = None
     for tag, lab, tasks in VARIANTS:
         d = [paired(rows_of(R, f"hom_{t}_rank20{tag}"), hom_rank(R, t)) for t in tasks if hom_rank(R, t)]
@@ -940,6 +1112,7 @@ def main():
                 ("tasks", "HOM and the planners on four tasks", sec_tasks(R, T)),
                 ("screen", "HOM's best layouts under full DIAL", sec_screen(R)),
                 ("stability", "Stability of HOM's scores across seeds, layouts and controllers", sec_stability(R, GS)),
+                ("patch", "Score landscapes of HOM and full DIAL around HOM's best layouts", sec_patch(R)),
                 ("metrics", "Where HOM loses J against the planner", sec_metrics(R)),
                 ("variants", "Variants of HOM", sec_variants(R)),
                 ("trends", "Forces and contact modes picked for HOM per layout", sec_trends(PK, figs)),

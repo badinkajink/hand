@@ -1637,18 +1637,22 @@ def fig_rank100(N, out):
 
 
 def confirm_numbers(task):
-    """The fresh-seed check of the ranking test (seeds 10 and 11 on each controller's ten best _rank pairs): under the
-    planner and under HOM, the mean J of HOM's ten and of the planner's ten, the paired difference of the two sets'
-    means by bootstrap over pairs, and each first choice's J; HOM's ten at seeds 0-1 against 10-11."""
+    """The fresh-seed check of the ranking test (seeds 10 and 11 on each controller's ten best _rank pairs by its J at
+    seeds 0 and 1): each set's mean J under both controllers at seeds 0-1 (the _rank rows) and 10-11, the difference of
+    the two sets' means by bootstrap over pairs, the episodes that held the object, and full DIAL's J at 10-11 on HOM's
+    first choice, on DIAL's own first choice and on the fused choice (DIAL's best of HOM's ten at seeds 0-1)."""
     pf = ROWS / f"mpc_pairs_{task}_top.json"
     hr, dr = load(tstem("hom", task, "_top")), load(tstem("anneal", task, "_top", CFG_FULL2))
     if not pf.exists() or len(hr) < 20 or len(dr) < 20:
         return None
     prs = json.loads(pf.read_text())["pairs"]
-    kh = [(p["x"], p["y"], p["grasp"]) for p in prs if p["by"] in ("hom_top", "both")]
-    kd = [(p["x"], p["y"], p["grasp"]) for p in prs if p["by"] in ("planner_top", "both")]
-    first_h = max(prs, key=lambda p: p["J_hom"] if p["J_hom"] == p["J_hom"] else -1)
-    first_d = max(prs, key=lambda p: p["J_planner"] if p["J_planner"] == p["J_planner"] else -1)
+    fk = (lambda p: (p["x"], p["y"], p["grasp"]))
+    ph = [p for p in prs if p["by"] in ("hom_top", "both")]
+    pd = [p for p in prs if p["by"] in ("planner_top", "both")]
+    kh, kd = [fk(p) for p in ph], [fk(p) for p in pd]
+    first_h = max(ph, key=lambda p: p["J_hom"])
+    first_d = max(pd, key=lambda p: p["J_planner"])
+    fused = max(ph, key=lambda p: p["J_planner"])
     H, Dp = pair_j(hr), pair_j(dr)
     rng = np.random.default_rng(0)
 
@@ -1656,14 +1660,23 @@ def confirm_numbers(task):
         a, b = np.array([M[k] for k in kh if k in M]), np.array([M[k] for k in kd if k in M])
         bs = [rng.choice(a, len(a)).mean() - rng.choice(b, len(b)).mean() for _ in range(4000)]
         return {"d": float(a.mean() - b.mean()), "lo": float(np.percentile(bs, 2.5)), "hi": float(np.percentile(bs, 97.5))}
-    fk = (lambda p: (p["x"], p["y"], p["grasp"]))
+
+    def held(rows, ks):
+        h = [bool(r["held"]) for r in rows if (r["x_sep"], r["y_sep"], r["grasp"]) in ks]
+        return len(h) - sum(h), len(h)
+    ks = set(kh) | set(kd)
+    m = (lambda xs: float(np.mean(xs)))
     return {"n_h": len(kh), "n_d": len(kd), "both": sum(p["by"] == "both" for p in prs),
-            "dial_on_hom": float(np.mean([Dp[k] for k in kh if k in Dp])), "dial_on_dial": float(np.mean([Dp[k] for k in kd if k in Dp])),
-            "hom_on_hom": float(np.mean([H[k] for k in kh if k in H])), "hom_on_dial": float(np.mean([H[k] for k in kd if k in H])),
-            "d_dial": diff(Dp), "d_hom": diff(H), "hom_on_hom_s01": float(np.mean([p["J_hom"] for p in prs if p["by"] in ("hom_top", "both")])),
-            "dial_on_dial_s01": float(np.mean([p["J_planner"] for p in prs if p["by"] in ("planner_top", "both")])),
-            "first_h_dial": Dp.get(fk(first_h)), "first_d_dial": Dp.get(fk(first_d)),
-            "first_h_hom": H.get(fk(first_h)), "first_d_hom": H.get(fk(first_d))}
+            "dial_on_hom": m([Dp[k] for k in kh]), "dial_on_dial": m([Dp[k] for k in kd]),
+            "hom_on_hom": m([H[k] for k in kh]), "hom_on_dial": m([H[k] for k in kd]),
+            "dial_on_hom_s01": m([p["J_planner"] for p in ph]), "dial_on_dial_s01": m([p["J_planner"] for p in pd]),
+            "hom_on_hom_s01": m([p["J_hom"] for p in ph]), "hom_on_dial_s01": m([p["J_hom"] for p in pd]),
+            "d_dial": diff(Dp), "d_hom": diff(H),
+            "drop_hom_s01": held(load(tstem("hom", task, "_rank")), ks), "drop_hom": held(hr, ks),
+            "drop_dial_s01": held(load(tstem("anneal", task, "_rank", CFG_FULL2)), ks), "drop_dial": held(dr, ks),
+            "first_h_dial": Dp[fk(first_h)], "first_d_dial": Dp[fk(first_d)], "fused_dial": Dp[fk(fused)],
+            "fused_dial_s01": fused["J_planner"], "fused_is": ("planner" if fk(fused) == fk(first_d) else
+                                                               "hom" if fk(fused) == fk(first_h) else "other")}
 
 
 def sec_confirm():
@@ -1671,28 +1684,62 @@ def sec_confirm():
     C = {t: c for t, c in C.items() if c}
     if not C:
         return ""
+    ar = (lambda a, b: f"{a:.3f} &#8594; {b:.3f}")
     rows = [[TNAME[t], f"{c['n_h']} / {c['n_d']} ({c['both']} shared)",
-             f"{c['dial_on_hom']:.3f}", f"{c['dial_on_dial']:.3f}", fds(c["d_dial"]),
-             f"{c['hom_on_hom']:.3f}", f"{c['hom_on_dial']:.3f}",
-             f"{c['hom_on_hom_s01']:.3f} &#8594; {c['hom_on_hom']:.3f}",
-             f"{c['dial_on_dial_s01']:.3f} &#8594; {c['dial_on_dial']:.3f}",
-             f2(c["first_h_dial"], 3) + " / " + f2(c["first_d_dial"], 3)] for t, c in C.items()]
+             ar(c["dial_on_hom_s01"], c["dial_on_hom"]), ar(c["dial_on_dial_s01"], c["dial_on_dial"]), fds(c["d_dial"]),
+             ar(c["hom_on_hom_s01"], c["hom_on_hom"]), ar(c["hom_on_dial_s01"], c["hom_on_dial"]),
+             f"{c['first_h_dial']:.3f} / {c['fused_dial']:.3f} / {c['first_d_dial']:.3f}"] for t, c in C.items()]
     tn = P.TAB[0] + 1
-    lst = (lambda k: ", ".join(f"{c[k]:.3f}" for c in C.values()))
-    text = fill(r"""<p>Each controller's ten best pairs were run again with both controllers at seeds 10 and 11, which chose
-nothing (Table <<tn>>). Under DIAL at 4 &#215; 64 samples, HOM's ten scored <<dh>> and DIAL's own ten <<dd>>, on the
-<<tl>>; the difference of the two sets was <<df>>. At the fresh seeds each set lost what its choice had taken from the
-seeds: HOM's ten under HOM fell from <<h01>> to <<h1011>>, DIAL's ten under DIAL from <<d01>> to <<d1011>>.</p>""",
-                tn=tn, dh=lst("dial_on_hom"), dd=lst("dial_on_dial"), tl=", ".join(TNAME[t].lower() for t in C),
-                df="; ".join(fds(c["d_dial"]) for c in C.values()),
-                h01=lst("hom_on_hom_s01"), h1011=lst("hom_on_hom"), d01=lst("dial_on_dial_s01"), d1011=lst("dial_on_dial"))
-    return text + table(["Task", "Pairs, HOM's / DIAL's ten", "DIAL's J on HOM's ten", "DIAL's J on DIAL's ten",
-                         "Difference (95 % interval)", "HOM's J on HOM's ten", "HOM's J on DIAL's ten",
-                         "HOM's ten under HOM, seeds 0-1 &#8594; 10-11", "DIAL's ten under DIAL, seeds 0-1 &#8594; 10-11",
-                         "DIAL's J on HOM's / DIAL's first choice"], rows,
-                        "The ranking test at fresh seeds: each controller's ten best of the 100 pairs (by J at seeds 0 "
-                        "and 1) run again under both controllers at seeds 10 and 11. Interval: 4,000 bootstrap resamples "
-                        "of each set's pairs.", num_from=1)
+    fall_h = {t: c["dial_on_hom_s01"] - c["dial_on_hom"] for t, c in C.items()}
+    fall_d = {t: c["dial_on_dial_s01"] - c["dial_on_dial"] for t, c in C.items()}
+    tw = max(fall_d, key=fall_d.get)
+    zero = [t for t, c in C.items() if c["d_dial"]["lo"] <= 0 <= c["d_dial"]["hi"]]
+    low = [t for t, c in C.items() if c["d_dial"]["hi"] < 0]
+    high = [t for t, c in C.items() if c["d_dial"]["lo"] > 0]
+    s_ = []
+    if zero:
+        s_.append(f"On {tasks_list(zero)} the 95 % interval of the difference between the two sets included zero.")
+    for t in low + high:
+        s_.append(f"On the {TNAME[t].lower()} the difference was {fds(C[t]['d_dial'])}.")
+    hl = [t for t, c in C.items() if c["d_hom"]["lo"] > 0]
+    own = (f" HOM's ten still scored above DIAL's ten under HOM on {tasks_list(hl)}, by "
+           + and_list([fds(C[t]["d_hom"]) for t in hl]) + "." if hl else "")
+    cyl = [t for t in ("pinpush", "press") if t in C]
+    drops = " ".join(
+        f"On the {TNAME[t].lower()} HOM dropped the cylinder in {C[t]['drop_hom'][0]} of the {C[t]['drop_hom'][1]} runs "
+        f"at seeds 10 and 11 and in {C[t]['drop_hom_s01'][0]} at seeds 0 and 1. Full DIAL dropped it in "
+        + ("none of the same runs." if C[t]["drop_dial"][0] == C[t]["drop_dial_s01"][0] == 0 else
+           f"{C[t]['drop_dial'][0]} and {C[t]['drop_dial_s01'][0]} of the same runs.") for t in cyl)
+    gap = {t: c["first_d_dial"] - c["first_h_dial"] for t, c in C.items()}
+    crit = (f"At seeds 10 and 11 HOM's first choice scored " + and_list([f"{gap[t]:.3f}" for t in C])
+            + f" below DIAL's first choice under full DIAL, on the {and_list([TNAME[t].lower() for t in C])}. The second "
+            f"outcome set in advance, a shortfall of more than 0.1, held on {tasks_list([t for t in C if gap[t] > 0.1])}.")
+    same = [t for t, c in C.items() if c["fused_is"] == "planner"]
+    other = [t for t in C if t not in same]
+    fu = (f"Among HOM's ten, full DIAL's best pair at seeds 0 and 1 was its own first choice of the 100 on "
+          f"{tasks_list(same)}. " if same else "")
+    fu += " ".join(f"On the {TNAME[t].lower()} that pair scored {C[t]['fused_dial']:.3f} at the new seeds, and DIAL's "
+                   f"own first choice {C[t]['first_d_dial']:.3f}." for t in other)
+    text = fill(r"""<p>Each controller's ten best of the 100 pairs, by its J at seeds 0 and 1, were run again with both
+controllers at seeds 10 and 11 (Table <<tn>>). These seeds chose no pair. Under full DIAL, HOM's ten lost
+<<fh_lo>> to <<fh_hi>> of their mean J at the new seeds. DIAL's own ten lost up to <<fd_hi>>, on the <<tw>>; they had
+been chosen on DIAL's J at seeds 0 and 1. <<cmp>></p>
+<p>Under HOM both sets lost J at the new seeds, most on the cylinder tasks. <<drops>><<own>></p>
+<p><<crit>> In the search of the <a href="../20261114-hom_inner_loop/20261114-hom_inner_loop_stability_variants_fusion.html">HOM
+page</a>, full DIAL re-scores HOM's best layouts and chooses among them. <<fu>></p>""",
+                tn=tn, fh_lo=f"{min(fall_h.values()):.3f}", fh_hi=f"{max(fall_h.values()):.3f}",
+                fd_hi=f"{fall_d[tw]:.3f}", tw=TNAME[tw].lower(), cmp=" ".join(s_), drops=drops, own=own, fu=fu,
+                crit=crit)
+    return text + table(["Task", "Pairs, HOM's / DIAL's ten", "HOM's ten under full DIAL, seeds 0-1 &#8594; 10-11",
+                         "DIAL's ten under full DIAL, seeds 0-1 &#8594; 10-11", "Difference at seeds 10-11 (95 % interval)",
+                         "HOM's ten under HOM, seeds 0-1 &#8594; 10-11", "DIAL's ten under HOM, seeds 0-1 &#8594; 10-11",
+                         "Full DIAL's J at seeds 10-11 on HOM's first choice / the fused choice / DIAL's first choice"],
+                        rows,
+                        "The ranking test at fresh seeds: each controller's ten best of the 100 pairs (by its J at seeds 0 "
+                        "and 1) run again under both controllers at seeds 10 and 11; mean J of each set. Difference: "
+                        "HOM's ten minus DIAL's ten under full DIAL, with the 95 % interval of 4,000 bootstrap resamples of "
+                        "each set's pairs. Fused choice: the pair of HOM's ten with full DIAL's best J at seeds 0 and 1.",
+                        num_from=1)
 
 
 def and_list(xs):

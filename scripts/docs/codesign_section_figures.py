@@ -582,6 +582,12 @@ def controllers():
                                       "halves_full": sc["halves"].get("DIAL 4 &#215; 64"),
                                       **{f"{a}_med_{w}": float(np.median([sc["keys"][i][j] for i in sc[f"top_{w[0]}"]]))
                                          for j, a in enumerate(("xsep", "ysep")) for w in ("hom", "dial")}} if sc else None)
+        c = MP.confirm_numbers(t)          # each controller's ten best again at seeds 10 and 11
+        out["tasks"][t]["confirm"] = ({k: c[k] for k in (
+            "dial_on_hom_s01", "dial_on_hom", "dial_on_dial_s01", "dial_on_dial", "hom_on_hom_s01", "hom_on_hom",
+            "hom_on_dial_s01", "hom_on_dial", "d_dial", "first_h_dial", "first_d_dial", "fused_dial", "drop_hom_s01",
+            "drop_hom", "drop_dial_s01", "drop_dial")} if c else None)
+        out["tasks"][t]["repeat"] = HP.repeat_numbers(R, t) if t in HP.PATCH_TASKS else None
     x = np.arange(len(tasks))
     S_ = [out["tasks"][t]["screen"] or {} for t in tasks]
     g = (lambda k: np.array([s_.get(k, np.nan) for s_ in S_]))
