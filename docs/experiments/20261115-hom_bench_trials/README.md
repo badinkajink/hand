@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 14:00
+## State on 2026-11-15 14:30
 
 Built and checked without hardware:
 
@@ -18,6 +18,15 @@ Built and checked without hardware:
   Before, a frame 42 ms old was placed with the newest pose, up to about 8 mm off during the lift.
 - The station's servo readings are stamped with their own age (`servo_age_s`), so stale readings during a stream show
   as stale.
+- Plans of the first series (`plans/`, 14 files; `scripts/hardware/hom_bench_plans.py`): the five layouts of the
+  task-conflict study with each task's S3 grasp, forces and contact-mode weights, mounts in the driver's coordinates
+  (`sr2hand.robot.sr2_layouts`: driver = P - o, o = (-6.18, -2.40) mm for the thumb, (6.18, 3.40) for the index and
+  (6.18, -3.40) for the middle). The sphere tasks run only at the generalist and pin-push layouts (the seating plan's
+  decision 2). HomBench builds each plan's GPU world on the CPU (`HomBench.from_plan`, `scripts/hom/hom_bench_world.py`).
+- `hom_server nominal --plan PLAN --task T --d D --out NOMINAL.json` gives the object's start pose in P for that
+  grasp, and `hom_trial.py check --nominal NOMINAL.json` the tracked pose's distance from it.
+- `scripts/hardware/object_tag_map.py` moves a block's fitted tag map into the object's frame (the 11-07 test block:
+  0.33 mm RMS against the CAD).
 
 Measured on corvus on 2026-11-13 (`docs/experiments/20261113-tag_tracking_throughput/`): tracker 29.9 Hz with 42 ms frame
 age; link round trip 3.4 ms median to the workstation; HOM 4.0 ms per step on corvus's CPU.
@@ -45,14 +54,28 @@ Blocking a real trial:
 
    then `~/run_control_station.sh start` on the CB1. An unpatched station ignores `read_back` and answers without the
    positions.
-2. The hand model for the five layouts. HomBench's CPU path (`hom_tasks.build`) has the cad_v1 hand and the 10-22
-   grasps only; the five layouts of the series and their grasps are in the GPU study's worlds. A builder that makes
-   HomBench from such a world is being written (`plans/`, see below).
+2. The pin-push specialist layout (75, 55) does not fit the hand: its index and middle sit 0.90 mm past their travel
+   boxes (60.90 mm of the steppers' 60 mm). The nearest layout that fits is (75, 56.8), where the S3 picks score 0.916,
+   0.875, 0.583 and 0.619 (pin-push, press, roll, twist; CPU, seeds 20-24) against 0.917, 0.874, 0.590 and 0.641; its
+   twist grasp fails the pose toy's constraints. The owner chooses that layout or more travel in the driver.
 3. Tag maps of the printed objects' blocks. Each block needs about 40 two-camera views and a bundle adjustment
    (`sr2hand.tracking.pose.bundle_adjust_multi`, as for the test block on 2026-11-13), then the map moved into the
    object's frame against the CAD map (`object_tracking_mjcf.object_map`).
-4. The seat and the open pose: the flat seat, its height for the arm's pose, and the station's plan for the layout with
-   its open pose.
+4. The seat: the object rests on its block on a flat surface, and the arm brings the hand to it (`check --nominal`).
+
+The plans in the simulated loop (`hom_server sil --plan`, the cad_v2 hand, the measured SCS0009 at 0.55 N m/rad, seed
+20; UDP run equal to the in-process loop on each). J is the score of `hom_landscape.track_score`:
+
+| Layout (x_sep, y_sep mm) | Pin-push | Press | Roll | Twist |
+|---|---|---|---|---|
+| Generalist (70, 110) | 0.277 | 0.935 | 0.404 | 0.439 |
+| Pin-push (75, 55) | 0.372 | 0.764 | 0.393 | 0.408 |
+| Press (70, 150) | 0.008 | 0.566 | | |
+| Twist (100, 70) | 0.286 | 0.487 | | |
+| Roll (85, 170) | failed | 0 (dropped) | | |
+
+At the roll layout HOM's Eq. (2) least-squares solve failed on the cylinder's diverged state (pin-push at 6.34 s); the
+server then holds its last targets and stops the trial.
 
 ## Before a session
 
@@ -65,15 +88,21 @@ Blocking a real trial:
 
 ## A trial
 
-1. Workstation, the HOM server for the task (plant `measured`: the SCS0009 at 0.55 N m/rad; `servo`: 0.72):
+1. Workstation, the HOM server for the task and layout (plant `measured`: the SCS0009 at 0.55 N m/rad; `servo`: 0.72):
 
        .venv/bin/python -m sr2hand.control.hom_server serve --task press --d 25 --plant measured \
+           --plan docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_press_plan.json \
            --listen 47002 --reply CORVUS_TAILSCALE_IP:47001 \
            --log-dir docs/experiments/20261115-hom_bench_trials/runs
 
+   The station loads the same plan file (its mounts are the driver's), so the gantries and the controller agree.
+
 2. corvus, the object on the seat and the hand over it:
 
-       /usr/bin/python3 docs/experiments/20261115-hom_bench_trials/lab/hom_trial.py check --object cylinder --map MAP.json
+       .venv/bin/python -m sr2hand.control.hom_server nominal --task press --d 25 --plant measured \
+           --plan .../20261115-generalist_press_plan.json --out NOMINAL.json        # on the workstation, once per plan
+       /usr/bin/python3 docs/experiments/20261115-hom_bench_trials/lab/hom_trial.py check --object cylinder \
+           --map MAP.json --nominal NOMINAL.json
 
    The object's pose in P should be within 1 mm and 2 deg of the grasp's nominal pose.
 3. corvus, a dry run through the real tracker (nothing moves; the server answers, the record is written):
