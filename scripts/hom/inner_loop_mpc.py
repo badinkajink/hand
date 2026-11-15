@@ -213,6 +213,27 @@ def rank_pairs(n_best=50, n_rand=50, seed=0):
             for by, ks in (("hom_best", order[:n_best]), ("random", pick)) for k in ks]
 
 
+def top_pairs(n=10, ref="anneal", ref_tag="_pdt2"):
+    """The ranking test's confirmation pairs: the n best of the task's _rank pairs under HOM and the n best under the
+    planner (rows mpc_hom_<task>_rank.jsonl and mpc_<ref>_<task>_rank<ref_tag>.jsonl, J averaged over seeds 0 and 1),
+    to run again at fresh seeds, so that neither controller's first choice is scored at the seeds it was chosen at."""
+    def means(stem):
+        d = {}
+        for x in (ROWS / f"mpc_{stem}.jsonl").read_text().splitlines():
+            r = json.loads(x)
+            d.setdefault((r["x_sep"], r["y_sep"], r["grasp"]), []).append(r["J"])
+        return {k: float(np.mean(v)) for k, v in d.items()}
+    h, d = means(f"hom_{TASK}_rank"), means(f"{ref}_{TASK}_rank{ref_tag}")
+    th = sorted(h, key=lambda k: -h[k])[:n]
+    td = sorted(d, key=lambda k: -d[k])[:n]
+    out = []
+    for k in dict.fromkeys(th + td):
+        by = "both" if k in th and k in td else "hom_top" if k in th else "planner_top"
+        out.append({"x": k[0], "y": k[1], "grasp": int(k[2]), "by": by, "J_hom": round(h.get(k, float("nan")), 4),
+                    "J_planner": round(d.get(k, float("nan")), 4)})
+    return out
+
+
 def tune_pairs(n=6, j_min=0.05, seed=1):
     """Pairs for choosing a planner's configuration, apart from the ranking test's: n layouts outside rank_pairs with
     HOM's best J above j_min, drawn at random, each with its best grasp."""
@@ -804,8 +825,9 @@ def cmd_run(a):
     if a.model != "pads":
         a.tag = f"_{a.model}" + a.tag
     UH.ATT_GAIN = a.att_gain if a.method == "hom" else 0.0
+    UH.ATT_AXIS = bool(a.att_axis)
     if UH.ATT_GAIN > 0:
-        a.tag = f"_att{a.att_gain:g}" + a.tag
+        a.tag = f"_att{a.att_gain:g}" + ("ax" if a.att_axis else "") + a.tag
     if a.hs_sigma is not None:
         PLAN_HS["sigma"] = a.hs_sigma
         a.tag = f"_hs{a.hs_sigma:g}" + a.tag
@@ -939,6 +961,11 @@ def cmd_pairs(a):
                                                     "every fifth pair of each half of " + pairs_path("_rank").name},
                                                    indent=1))
             print(f"{len(sub)} pairs -> {pairs_path(name).relative_to(ROOT)}")
+        return 0
+    if a.rule == "top":
+        prs = top_pairs()
+        pairs_path("_top").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": top_pairs.__doc__}, indent=1))
+        print(f"{len(prs)} pairs -> {pairs_path('_top').relative_to(ROOT)}")
         return 0
     if a.rule == "tune":
         prs = tune_pairs()
@@ -1096,9 +1123,10 @@ def main():
     p = sub.add_parser("pairs")
     p.add_argument("--run", default=RUN)
     p.add_argument("--top", type=int, default=10)
-    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune"), help="benchmark: HOM's and "
-                   "UHAS's ten best test layouts (the twist); rank: HOM's 50 best layouts and 50 at random (rank_pairs); "
-                   "tune: six others for choosing a configuration (tune_pairs)")
+    p.add_argument("--rule", default="benchmark", choices=("benchmark", "rank", "tune", "top"), help="benchmark: HOM's "
+                   "and UHAS's ten best test layouts (the twist); rank: HOM's 50 best layouts and 50 at random "
+                   "(rank_pairs); tune: six others for choosing a configuration (tune_pairs); top: the ten best of the "
+                   "rank pairs under HOM and under full DIAL, to rerun at fresh seeds (top_pairs)")
     p = sub.add_parser("timing")
     p.add_argument("--chunk", type=int, default=16)
     p.add_argument("--n", type=int, nargs="+", default=[128])
@@ -1135,6 +1163,8 @@ def main():
                    "(hom_tasks.VARIANTS; sense and tip run at 50 Hz); default the task's (uhas_sr2.VARIANT)")
     p.add_argument("--att-gain", type=float, default=0.0, help="method hom: feedback on the measured orientation, 1/s "
                    "(uhas_sr2.ATT_GAIN)")
+    p.add_argument("--att-axis", action="store_true", help="method hom: that feedback only about the task's commanded "
+                   "axis (uhas_sr2.ATT_AXIS)")
     for q in (sub.choices["timing"], sub.choices["run"]):
         q.add_argument("--model", default="pads", type=contact_model, help="the planner's contact model: pads, pt "
                        "(point contact) or pt_t<mm> (point contact with torsional friction; torsion_scene)")

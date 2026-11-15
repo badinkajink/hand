@@ -1129,8 +1129,8 @@
    "MuJoCo, 1 mm sphere pads,": 2624428,
    "Steel hydroelastic (Newton), one GPU": 153481,
    "MuJoCo-Warp, 1 mm sphere pads,": 46201,
-   "Sampling MPC, DIAL 2 \u00d7 32 samples,": 1325969,
-   "Sampling MPC, DIAL 4 \u00d7 64 samples,": 18540461,
+   "Sampling MPC, DIAL 2 \u00d7 32 samples,": 1284388,
+   "Sampling MPC, DIAL 4 \u00d7 64 samples,": 9665249,
    "RL: a policy per layout, 36 min each": 3048066,
    "RL: a policy per layout,": 853800
   },
@@ -1145,15 +1145,15 @@
   "drake_ratio": 19.64,
   "mpc": {
    "rt": {
-    "s_per_rollout": 1.481,
-    "ratio": 28.7,
-    "stem": "mpc_anneal_twist_pdt2_n32_r10h10k2i2",
+    "s_per_rollout": 1.435,
+    "ratio": 27.8,
+    "stem": "mpc_anneal_twist_rank_pdt2_n32_r10h10k2i2",
     "hands_per_batch": 16
    },
    "full": {
-    "s_per_rollout": 20.709,
-    "ratio": 401.3,
-    "stem": "mpc_anneal_twist",
+    "s_per_rollout": 10.794,
+    "ratio": 209.2,
+    "stem": "mpc_anneal_twist_rank_pdt2",
     "hands_per_batch": 16
    }
   }
@@ -1684,5 +1684,221 @@
     ]
    ]
   }
+ },
+ "controllers_track": {
+  "tasks": {
+   "twist": {
+    "HOM": {
+     "J": 0.370456687699815,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 32, real time": {
+     "J": 0.4221175887598856,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 16, 0.3 s ahead, real time": {
+     "J": 0.3430404501093724,
+     "pairs": 100
+    },
+    "Gradient 2 \u00d7 32, real time": {
+     "J": 0.3871245835436648,
+     "pairs": 100
+    },
+    "DIAL 4 \u00d7 64, 6.3\u00d7 real time": {
+     "J": 0.49140687026754165,
+     "pairs": 100
+    },
+    "rank": {
+     "rho": 0.8065497665479867,
+     "rho_best": 0.3835294117647059,
+     "rho_rand": 0.8540397909894704,
+     "top10": 5,
+     "first_d": 0.8630247349823321,
+     "first_rank": 9,
+     "best_d": 0.9368086824835942,
+     "seed_hom": 0.8068236496140178,
+     "seed_ref": 0.7528460307676329
+    },
+    "screen": {
+     "d_max": 0.9368086824835942,
+     "hom10": 0.9368086824835942,
+     "rand10": 0.6678438944851346,
+     "rand10_lo": 0.5419625609961299,
+     "rand10_hi": 0.8460138818778395,
+     "shared10": 5,
+     "halves_full": [
+      0.6541767676257783,
+      0.3286369729093051,
+      0.2571781618290425,
+      0.39386155990240607
+     ],
+     "xsep_med_hom": 100.0,
+     "xsep_med_dial": 90.0,
+     "ysep_med_hom": 67.5,
+     "ysep_med_dial": 70.0
+    }
+   },
+   "roll": {
+    "HOM": {
+     "J": 0.11871173437499997,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 32, real time": {
+     "J": 0.03717264062499999,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 16, 0.3 s ahead, real time": {
+     "J": 0.08511927604166665,
+     "pairs": 100
+    },
+    "Gradient 2 \u00d7 32, real time": {
+     "J": 0.12242125520833332,
+     "pairs": 100
+    },
+    "DIAL 4 \u00d7 64, 6.3\u00d7 real time": {
+     "J": 0.3476170885416666,
+     "pairs": 100
+    },
+    "rank": {
+     "rho": 0.3788763466989373,
+     "rho_best": 0.10088835534213686,
+     "rho_rand": 0.28660652525211866,
+     "top10": 2,
+     "first_d": 0.7291666666666666,
+     "first_rank": 6,
+     "best_d": 0.7640625,
+     "seed_hom": 0.8363276921826,
+     "seed_ref": 0.890269042733967
+    },
+    "screen": {
+     "d_max": 0.7640625,
+     "hom10": 0.7291666666666666,
+     "rand10": 0.671056247005217,
+     "rand10_lo": 0.609375,
+     "rand10_hi": 0.7552083333333333,
+     "shared10": 2,
+     "halves_full": [
+      0.4233141041666667,
+      0.2719200729166667,
+      0.056441595833333344,
+      0.24361248932291674
+     ],
+     "xsep_med_hom": 85.0,
+     "xsep_med_dial": 112.5,
+     "ysep_med_hom": 70.0,
+     "ysep_med_dial": 62.5
+    }
+   },
+   "pinpush": {
+    "HOM": {
+     "J": 0.24381796817625456,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 32, real time": {
+     "J": 0.027690685434516516,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 16, 0.3 s ahead, real time": {
+     "J": 0.12031685434516526,
+     "pairs": 100
+    },
+    "Gradient 2 \u00d7 32, real time": {
+     "J": 0.10909676254589963,
+     "pairs": 100
+    },
+    "DIAL 4 \u00d7 64, 6.3\u00d7 real time": {
+     "J": 0.2811283720930232,
+     "pairs": 100
+    },
+    "rank": {
+     "rho": 0.4962096147939296,
+     "rho_best": 0.0674734671507788,
+     "rho_rand": 0.5172117129320823,
+     "top10": 1,
+     "first_d": 0.1040391676866585,
+     "first_rank": 81,
+     "best_d": 0.5844553243574051,
+     "seed_hom": 0.8284303435317094,
+     "seed_ref": 0.6445939911829898
+    },
+    "screen": {
+     "d_max": 0.5844553243574051,
+     "hom10": 0.5844553243574051,
+     "rand10": 0.48175342827417716,
+     "rand10_lo": 0.37331701346389223,
+     "rand10_hi": 0.5611034271725825,
+     "shared10": 1,
+     "halves_full": [
+      0.3606164259485924,
+      0.2016403182374541,
+      0.09597143727050175,
+      0.219123146878825
+     ],
+     "xsep_med_hom": 70.0,
+     "xsep_med_dial": 85.0,
+     "ysep_med_hom": 130.0,
+     "ysep_med_dial": 70.0
+    }
+   },
+   "press": {
+    "HOM": {
+     "J": 0.32398340579710144,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 32, real time": {
+     "J": 0.11527156521739135,
+     "pairs": 100
+    },
+    "DIAL 2 \u00d7 16, 0.3 s ahead, real time": {
+     "J": 0.2409309710144928,
+     "pairs": 100
+    },
+    "Gradient 2 \u00d7 32, real time": {
+     "J": 0.28060421376811595,
+     "pairs": 100
+    },
+    "DIAL 4 \u00d7 64, 6.3\u00d7 real time": {
+     "J": 0.4808850000000001,
+     "pairs": 100
+    },
+    "rank": {
+     "rho": 0.603261865005191,
+     "rho_best": 0.29815126050420165,
+     "rho_rand": 0.6369996807996757,
+     "top10": 3,
+     "first_d": 0.7336956521739131,
+     "first_rank": 3,
+     "best_d": 0.7629065217391304,
+     "seed_hom": 0.528436442982571,
+     "seed_ref": 0.5933095230392087
+    },
+    "screen": {
+     "d_max": 0.7629065217391304,
+     "hom10": 0.6290623188405797,
+     "rand10": 0.6762817234600766,
+     "rand10_lo": 0.6120920289855072,
+     "rand10_hi": 0.7629065217391304,
+     "shared10": 0,
+     "halves_full": [
+      0.5665529130434783,
+      0.3952170869565218,
+      0.11104103442029001,
+      0.2342820114130435
+     ],
+     "xsep_med_hom": 70.0,
+     "xsep_med_dial": 90.0,
+     "ysep_med_hom": 65.0,
+     "ysep_med_dial": 105.0
+    }
+   }
+  },
+  "cost": {
+   "HOM": 1.0,
+   "DIAL 2 \u00d7 32, real time": 27.808624031007753,
+   "DIAL 2 \u00d7 16, 0.3 s ahead, real time": 28.227713178294575,
+   "Gradient 2 \u00d7 32, real time": 25.829457364341085,
+   "DIAL 4 \u00d7 64, 6.3\u00d7 real time": 209.17829457364343
+  },
+  "image": "docs/experiments/20261110-codesign_formulation/media/20261114-slide_controllers_track.png"
  }
 }

@@ -89,6 +89,7 @@ LIMITS = False
 # schedule's plus ATT_GAIN (1/s) times the rotation vector from the measured orientation to the commanded one (the
 # schedule's angular velocity integrated from the task's start, as J's reference), at most ATT_MAX rad/s. 0: off.
 ATT_GAIN, ATT_MAX = 0.0, 1.0
+ATT_AXIS = False        # the feedback only about the task's commanded axis (2026-11-14)
 # HOM's command read PREVIEW_S ahead in the schedule during the task phase (owner, 2026-11-14: "if theres anything else you
 # can think of to improve it, feel free to try"; the planners see their horizon of the reference, HOM only the present).
 # J's reference and the rows keep the schedule's present command. 0: off.
@@ -223,6 +224,10 @@ class UBatch(HG.Batch):
                 if self.q_cmd is None:
                     self.q_cmd = qm.clone()
                 w_fb = ATT_GAIN * quat_to_rotvec(quat_mul(self.q_cmd, quat_conj(qm)))
+                if ATT_AXIS:                                  # only about the task's commanded axis (world z or y)
+                    ax_ = th.zeros(3, dtype=w_fb.dtype, device=self.dev)
+                    ax_[2 if self.task == "twist" else 1] = 1.0
+                    w_fb = (w_fb @ ax_)[:, None] * ax_
                 w_cmd = w_cmd + w_fb * (ATT_MAX / w_fb.norm(dim=-1, keepdim=True).clamp_min(ATT_MAX))
                 ang = w_ref_t.norm()
                 if float(ang) > 0:
