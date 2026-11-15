@@ -7,6 +7,8 @@ trials of HOM").
               from the plant, the answer's targets applied before the plant advances
     sil       both on this host over UDP, then hom_bench.simulate in process on the same layout and seed; prints both
               runs' J and the largest difference of their targets
+    nominal   the object's start pose in P (mm, wxyz) for the task's grasp, as the plant starts it: the pose the operator
+              aligns the hand to before a trial (hom_trial.py check --nominal)
 
 The hand model and the plant that HOM inverts are set before hom_tasks is imported. The hand is cad_v2, the v4b fingertip
 calibrated on the UR5 (SCALE_HAND), with pads at 2.5 MPa from the scene cache of 2026-11-02 (HOS_SCENES). The plant
@@ -342,6 +344,23 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
     return T.metrics(bench.task, bench.setup, rows, s0, plant.state()), np.array(sent)
 
 
+def cmd_nominal(a):
+    """The object's pose in P at the plant's start (seed 0) and the open pose, as JSON for hom_trial.py check."""
+    HB, bench = _bench(a)
+    plant = bench.T.Plant(bench.p_pads, bench.setup)
+    plant.reset(bench.q_open, 0)
+    s = plant.state()
+    out = {"task": a.task, "d_mm": a.d, "plan": a.plan, "hand": os.environ["SCALE_HAND"],
+           "p_PO_mm": (1e3 * (np.asarray(s["pos"], float) - bench.palm)).round(4).tolist(),
+           "q_PO": np.asarray(s["quat"], float).round(6).tolist(),
+           "q_open_servo_deg": HB.servo_from_sim(bench.q_open), "design": bench.setup.get("design")}
+    text = json.dumps(out, indent=1, default=_jsonable)
+    if a.out:
+        Path(a.out).write_text(text + "\n")
+    print(text)
+    return 0
+
+
 def cmd_sim_hand(a):
     HB, bench = _bench(a)
     res, _sent = sim_hand(a, HB, bench, a.port_out, a.port_in)
@@ -391,7 +410,7 @@ def cmd_sil(a):
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("serve", "sim-hand", "sil"):
+    for name in ("serve", "sim-hand", "sil", "nominal"):
         p = sub.add_parser(name)
         p.add_argument("--task", required=True, choices=["pinpush", "press", "roll", "twist"])
         p.add_argument("--d", type=float, required=True, help="object diameter, mm")
@@ -401,6 +420,8 @@ def main() -> int:
         p.add_argument("--dt", type=float, default=0.02)
         if name in ("serve", "sil"):
             p.add_argument("--log-dir", required=True)
+        if name == "nominal":
+            p.add_argument("--out", default=None)
         if name == "serve":
             p.add_argument("--listen", type=int, default=47002)
             p.add_argument("--reply", required=True, help="corvus's HOST:PORT (hand_link --listen)")
@@ -411,7 +432,7 @@ def main() -> int:
             p.add_argument("--gap-s", type=float, default=1.0, help="a trial ends after this long without a state")
             p.add_argument("--tail-s", type=float, default=0.5, help="periods past the schedule's end before STOP")
             p.add_argument("--once", action="store_true", help="exit after one trial")
-        else:
+        elif name != "nominal":
             p.add_argument("--seed", type=int, default=0)
             p.add_argument("--port-out", type=int, default=47102)
             p.add_argument("--port-in", type=int, default=47101)
@@ -420,6 +441,8 @@ def main() -> int:
     a = ap.parse_args()
     if a.cmd == "serve":
         return cmd_serve(a)
+    if a.cmd == "nominal":
+        return cmd_nominal(a)
     return cmd_sim_hand(a) if a.cmd == "sim-hand" else cmd_sil(a)
 
 

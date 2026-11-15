@@ -250,8 +250,18 @@ def start_tracker(a, on_sample):
     return arm, tracker
 
 
+def pose_error(p_mm, q, nominal):
+    """(distance mm, angle deg) of the tracked pose in P from the grasp's nominal one (hom_server nominal)."""
+    from sr2hand.geometry.rotations import quat_angle
+    dp = float(np.linalg.norm(np.asarray(p_mm, float) - np.asarray(nominal["p_PO_mm"], float)))
+    return dp, float(np.degrees(quat_angle(np.asarray(q, float), np.asarray(nominal["q_PO"], float))))
+
+
 def cmd_check(a):
-    """The arm's pose, the tracked object in P and the station's state for a few seconds; no motion."""
+    """The arm's pose, the tracked object in P and the station's state for a few seconds; no motion. With --nominal
+    (hom_server nominal --out) the tracked pose's distance and angle from the grasp's start pose: a trial starts within
+    1 mm and 2 deg."""
+    nominal = json.loads(Path(a.nominal).read_text()) if a.nominal else None
     latest = {"msg": None}
     arm, tracker = start_tracker(a, lambda s: latest.__setitem__("msg", s.msg))
     station = None
@@ -266,7 +276,9 @@ def cmd_check(a):
             T = arm.T_BE
             print(f"{time.time() - t0:5.1f} s  arm {ur_pose(T) if T is not None else arm.error}  object "
                   + ("none" if m is None else f"p_PO {np.round(m.p_PO, 2).tolist()} mm q_PO {np.round(m.q_PO, 4).tolist()} "
-                     f"tags {m.n_tags} flags {m.flags} age {time.time() * 1000.0 - m.t_capture_ms:.0f} ms")
+                     f"tags {m.n_tags} flags {m.flags} age {time.time() * 1000.0 - m.t_capture_ms:.0f} ms"
+                     + ("" if nominal is None or not np.all(np.isfinite(m.p_PO)) else
+                        "  from nominal %.2f mm %.2f deg" % pose_error(m.p_PO, m.q_PO, nominal)))
                   + ("" if station is None else f"  station joints {None if station.joints is None else np.round(station.joints, 1).tolist()} "
                      f"error {station.error}"), flush=True)
     finally:
@@ -459,6 +471,7 @@ def main():
     pc.add_argument("--station", default=None)
     pc.add_argument("--token-file", default=str(Path.home() / ".sr2_station_token"))
     pc.add_argument("--seconds", type=float, default=5.0)
+    pc.add_argument("--nominal", default=None, help="the grasp's start pose (hom_server nominal --out)")
     pt = sub.add_parser("trial")
     pt.add_argument("--task", required=True, choices=("pinpush", "press", "roll", "twist"))
     pt.add_argument("--controller", required=True, help="the HOM server's HOST:PORT")
