@@ -1,0 +1,1428 @@
+{
+ "written": "2026-11-15 14:08",
+ "seed": 20,
+ "dry_seconds": 1.0,
+ "env": {
+  "SCALE_HAND": "cad_v2",
+  "HOS_PLANT": "servo",
+  "HOS_SCENES": "logs/20261102-hom_servo_plant/scenes",
+  "HOM_ROWS_TAG": "_sv25r"
+ },
+ "all_checks_ok": true,
+ "plans": [
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_pinpush_plan.json",
+   "task": "pinpush",
+   "role": "generalist",
+   "call": 162,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0101,
+      "index": -0.0082,
+      "middle": -0.0049
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.476,
+      "index": 0.586,
+      "middle": 0.586
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 6.9908,
+      "index": 5.1345,
+      "middle": 1.8957
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 650,
+    "wall_s": 4.54,
+    "score": 0.7273,
+    "held": true,
+    "gpu_score": 0.7307,
+    "cpu_20261105_score": 0.7273,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 8.4
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_press_plan.json",
+   "task": "press",
+   "role": "generalist",
+   "call": 162,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0126,
+      "index": 0.0246,
+      "middle": -0.0075
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.932,
+      "index": 0.329,
+      "middle": 1.055
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.1324,
+      "index": 1.8747,
+      "middle": 0.3712
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 550,
+    "wall_s": 3.37,
+    "score": 0.953,
+    "held": true,
+    "gpu_score": 0.9555,
+    "cpu_20261105_score": 0.953,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 6.7
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_roll_plan.json",
+   "task": "roll",
+   "role": "generalist",
+   "call": 162,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": 0.0349,
+      "index": 0.0035,
+      "middle": 0.0122
+     },
+     "from_grasp_point_mm": {
+      "thumb": 1.832,
+      "index": 2.044,
+      "middle": 2.068
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.7854,
+      "index": 2.7854,
+      "middle": 2.7854
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.0,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 490,
+    "wall_s": 3.39,
+    "score": 0.5963,
+    "held": true,
+    "gpu_score": 0.5999,
+    "cpu_20261105_score": 0.5963,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 7.0
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_twist_plan.json",
+   "task": "twist",
+   "role": "generalist",
+   "call": 162,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": 0.0015,
+      "index": 0.0,
+      "middle": 0.0036
+     },
+     "from_grasp_point_mm": {
+      "thumb": 1.428,
+      "index": 1.295,
+      "middle": 2.173
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 4.031,
+      "index": 4.031,
+      "middle": 4.031
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.0,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 780,
+    "wall_s": 5.16,
+    "score": 0.9053,
+    "held": true,
+    "gpu_score": 1.0,
+    "cpu_20261105_score": 0.9053,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 8.9
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_pinpush_plan.json",
+   "task": "pinpush",
+   "role": "pinpush",
+   "call": 176,
+   "schema_errors": [],
+   "driver_violations": [
+    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
+    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
+   ],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0129,
+      "index": -0.0067,
+      "middle": -0.0127
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.887,
+      "index": 0.381,
+      "middle": 0.837
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.7354,
+      "index": 1.5384,
+      "middle": 1.4405
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 650,
+    "wall_s": 4.21,
+    "score": 0.914,
+    "held": true,
+    "gpu_score": 0.9273,
+    "cpu_20261105_score": 0.914,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "nearest_fit": {
+    "d6_P_mm": [
+     -37.5,
+     0.0,
+     37.5,
+     28.4,
+     37.5,
+     -28.4
+    ],
+    "xy_mm": [
+     75.0,
+     56.8
+    ],
+    "toy_feasible": true,
+    "seeds": [
+     20,
+     21,
+     22,
+     23,
+     24
+    ],
+    "cpu_scores_study_layout": [
+     0.914,
+     0.9173,
+     0.9147,
+     0.922,
+     0.916
+    ],
+    "cpu_scores_fit_layout": [
+     0.9393,
+     0.868,
+     0.9353,
+     0.93,
+     0.9067
+    ],
+    "mean_study": 0.9168,
+    "mean_fit": 0.9159,
+    "check_world_ok": true
+   },
+   "wall_s": 52.1
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_press_plan.json",
+   "task": "press",
+   "role": "pinpush",
+   "call": 176,
+   "schema_errors": [],
+   "driver_violations": [
+    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
+    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
+   ],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0019,
+      "index": -0.0104,
+      "middle": -0.0145
+     },
+     "from_grasp_point_mm": {
+      "thumb": 1.008,
+      "index": 0.712,
+      "middle": 0.404
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.3438,
+      "index": 2.0248,
+      "middle": 0.5136
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 550,
+    "wall_s": 3.54,
+    "score": 0.8655,
+    "held": true,
+    "gpu_score": 0.867,
+    "cpu_20261105_score": 0.8655,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "nearest_fit": {
+    "d6_P_mm": [
+     -37.5,
+     0.0,
+     37.5,
+     28.4,
+     37.5,
+     -28.4
+    ],
+    "xy_mm": [
+     75.0,
+     56.8
+    ],
+    "toy_feasible": true,
+    "seeds": [
+     20,
+     21,
+     22,
+     23,
+     24
+    ],
+    "cpu_scores_study_layout": [
+     0.8655,
+     0.8865,
+     0.863,
+     0.8735,
+     0.882
+    ],
+    "cpu_scores_fit_layout": [
+     0.8665,
+     0.887,
+     0.8635,
+     0.874,
+     0.8825
+    ],
+    "mean_study": 0.8741,
+    "mean_fit": 0.8747,
+    "check_world_ok": true
+   },
+   "wall_s": 43.4
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_roll_plan.json",
+   "task": "roll",
+   "role": "pinpush",
+   "call": 176,
+   "schema_errors": [],
+   "driver_violations": [
+    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
+    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
+   ],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0255,
+      "index": 0.007,
+      "middle": -0.0005
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.857,
+      "index": 1.928,
+      "middle": 2.076
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 1.8683,
+      "index": 1.8683,
+      "middle": 1.8683
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.0,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 490,
+    "wall_s": 3.28,
+    "score": 0.5938,
+    "held": true,
+    "gpu_score": 0.5942,
+    "cpu_20261105_score": 0.5938,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "nearest_fit": {
+    "d6_P_mm": [
+     -37.5,
+     0.0,
+     37.5,
+     28.4,
+     37.5,
+     -28.4
+    ],
+    "xy_mm": [
+     75.0,
+     56.8
+    ],
+    "toy_feasible": true,
+    "seeds": [
+     20,
+     21,
+     22,
+     23,
+     24
+    ],
+    "cpu_scores_study_layout": [
+     0.5938,
+     0.5855,
+     0.5928,
+     0.5838,
+     0.5935
+    ],
+    "cpu_scores_fit_layout": [
+     0.5886,
+     0.5754,
+     0.5872,
+     0.5744,
+     0.5893
+    ],
+    "mean_study": 0.5899,
+    "mean_fit": 0.583,
+    "check_world_ok": true
+   },
+   "wall_s": 42.3
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_twist_plan.json",
+   "task": "twist",
+   "role": "pinpush",
+   "call": 176,
+   "schema_errors": [],
+   "driver_violations": [
+    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
+    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
+   ],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0261,
+      "index": -0.0,
+      "middle": 0.0204
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.551,
+      "index": 1.682,
+      "middle": 1.954
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.5747,
+      "index": 2.5747,
+      "middle": 2.5747
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.0,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 780,
+    "wall_s": 4.86,
+    "score": 0.6453,
+    "held": true,
+    "gpu_score": 0.6444,
+    "cpu_20261105_score": 0.6453,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "nearest_fit": {
+    "d6_P_mm": [
+     -37.5,
+     0.0,
+     37.5,
+     28.4,
+     37.5,
+     -28.4
+    ],
+    "xy_mm": [
+     75.0,
+     56.8
+    ],
+    "toy_feasible": false,
+    "seeds": [
+     20,
+     21,
+     22,
+     23,
+     24
+    ],
+    "cpu_scores_study_layout": [
+     0.6453,
+     0.6334,
+     0.6388,
+     0.6406,
+     0.6491
+    ],
+    "cpu_scores_fit_layout": [
+     0.6317,
+     0.5999,
+     0.6222,
+     0.6084,
+     0.6344
+    ],
+    "mean_study": 0.6414,
+    "mean_fit": 0.6193,
+    "check_world_ok": true
+   },
+   "wall_s": 57.5
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-press_pinpush_plan.json",
+   "task": "pinpush",
+   "role": "press",
+   "call": 170,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0078,
+      "index": -0.0095,
+      "middle": -0.0089
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.565,
+      "index": 0.592,
+      "middle": 0.325
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 4.452,
+      "index": 2.1875,
+      "middle": 2.4182
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 650,
+    "wall_s": 4.26,
+    "score": 0.2107,
+    "held": true,
+    "gpu_score": 0.1247,
+    "cpu_20261105_score": 0.1933,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 8.2
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-press_press_plan.json",
+   "task": "press",
+   "role": "press",
+   "call": 170,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0123,
+      "index": 0.0029,
+      "middle": -0.0088
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.895,
+      "index": 1.033,
+      "middle": 1.311
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 1.7347,
+      "index": 1.5,
+      "middle": 0.3471
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 550,
+    "wall_s": 3.23,
+    "score": 0.9215,
+    "held": true,
+    "gpu_score": 0.93,
+    "cpu_20261105_score": 0.9215,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 6.5
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-roll_pinpush_plan.json",
+   "task": "pinpush",
+   "role": "roll",
+   "call": 249,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": 0.0055,
+      "index": -0.0098,
+      "middle": -0.0017
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.335,
+      "index": 0.448,
+      "middle": 0.666
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 3.0103,
+      "index": 1.6244,
+      "middle": 1.6371
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 650,
+    "wall_s": 4.53,
+    "score": 0.7347,
+    "held": true,
+    "gpu_score": 0.7253,
+    "cpu_20261105_score": 0.7353,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 8.4
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-roll_press_plan.json",
+   "task": "press",
+   "role": "roll",
+   "call": 249,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.008,
+      "index": -0.0064,
+      "middle": -0.0025
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.572,
+      "index": 0.294,
+      "middle": 1.368
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.8143,
+      "index": 2.477,
+      "middle": 0.5283
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 550,
+    "wall_s": 3.43,
+    "score": 0.0,
+    "held": false,
+    "gpu_score": 0.0,
+    "cpu_20261105_score": 0.0,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 6.7
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-twist_pinpush_plan.json",
+   "task": "pinpush",
+   "role": "twist",
+   "call": 304,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": 0.0069,
+      "index": -0.0088,
+      "middle": -0.0104
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.851,
+      "index": 0.436,
+      "middle": 0.74
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 3.6292,
+      "index": 2.429,
+      "middle": 1.51
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 650,
+    "wall_s": 4.34,
+    "score": 0.774,
+    "held": true,
+    "gpu_score": 0.78,
+    "cpu_20261105_score": 0.774,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 7.6
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-twist_press_plan.json",
+   "task": "press",
+   "role": "twist",
+   "call": 304,
+   "schema_errors": [],
+   "driver_violations": [],
+   "stored_numbers": "rebuilt within 1e-9",
+   "check_world": {
+    "mounts": {
+     "setup_vs_d6_mm": 0.0,
+     "bodies_vs_base_m": 0.0,
+     "m_pt_vs_world_m": 0.0,
+     "m_pt_palm_vs_setup_m": 0.0,
+     "baked_vs_world_m": 0.0,
+     "ok": true
+    },
+    "plant": {
+     "field_max_diff": 0.0,
+     "fields_same_shape": true,
+     "option_same": true,
+     "nbody": 22,
+     "ngeom": 4429,
+     "qpos_50ms_max_diff": 0.0,
+     "ok": true
+    },
+    "open_pose": {
+     "max_diff_rad": 0.0,
+     "ok": true
+    },
+    "contacts": {
+     "gap_mm": {
+      "thumb": -0.0099,
+      "index": -0.0016,
+      "middle": -0.0007
+     },
+     "from_grasp_point_mm": {
+      "thumb": 0.83,
+      "index": 0.791,
+      "middle": 0.234
+     },
+     "ok": true
+    },
+    "schedule": {
+     "weights_max_diff": 0.0,
+     "force_max_diff_N": 0.0,
+     "ok": true,
+     "forces_N": {
+      "thumb": 2.0331,
+      "index": 1.7696,
+      "middle": 0.4096
+     }
+    },
+    "homparams": {
+     "dt": 0.01,
+     "differ_from_defaults": [],
+     "ok": true
+    },
+    "hold": {
+     "hold_s": 0.8,
+     "ok": true
+    },
+    "ok": true
+   },
+   "full": {
+    "dt_s": 0.01,
+    "seed": 20,
+    "samples": 550,
+    "wall_s": 3.46,
+    "score": 0.6655,
+    "held": true,
+    "gpu_score": 0.6585,
+    "cpu_20261105_score": 0.6655,
+    "clipped_samples": 0,
+    "clipped": []
+   },
+   "dry": {
+    "dt_s": 0.02,
+    "seconds": 1.0,
+    "samples": 50,
+    "phases": [
+     "close",
+     "open",
+     "squeeze"
+    ],
+    "clipped": []
+   },
+   "wall_s": 6.8
+  }
+ ]
+}

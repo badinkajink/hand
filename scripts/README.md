@@ -461,7 +461,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (58)
+## hardware/ (61)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -480,7 +480,9 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
 | `handeye_rotation_sim.py` | Hand-eye calibration of a table-fixed camera with the board screwed to the hand at an unmeasured place: how the error of the camera's pose depends on how far the hand turns between poses (owner, 2026-11-13: "it will be o |
+| `hom_bench_plans.py` | Deploy plans of the first real-trial series (docs/notes/20261105-object_seating_and_tracking/ 20261105-object_seating_and_tracking_plan.md, section "Reproduction of the simulated experiments"), one per layout and task, i |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
+| `object_tag_map.py` | The tag map of a printed object in the object's HOM frame O, for the tracker of the HOM trials (docs/experiments/20261115-hom_bench_trials/lab/hom_trial.py --map; owner, 2026-11-15: "make sure we are ready to start colle |
 | `object_tracking_mjcf.py` | MJCF pieces and tag layouts of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), shared by scripts/hardware/object_tracking_rollouts.py (physics, the repository's .venv), scripts/ha |
 | `object_tracking_print.py` | Print files of steps 1 and 3 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/): the tag test plate and the hexagonal tag block. |
 | `object_tracking_rollouts.py` | Step 2 of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/), the physics: the HOM tasks of the five layouts of the task-conflict study (generalist (70,110); specialists twist (100,70 |
@@ -520,13 +522,14 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |
+| `station_read_back_check.py` | The station's stream with read-back on the fake hardware of `manta_hand.web --fake`: plan, homing, morphology, torque, then a policy stream whose frames ask for the nine servo positions after each write (runtime.stream_f |
 | `tag_tracking_throughput_page.py` | Result page of 2026-11-13: throughput of the two-camera tag tracker on corvus and the controller link for sim2real control (owner, 16:2x: "see how much throughput we can get on tag tracking ... |
 | `tag_tracking_throughput_page_text.py` | Text of the throughput page (scripts/hardware/tag_tracking_throughput_page.py page): every number from its data file. |
 | `tracking_objects_print.py` | Print files of the tracked objects of the object seating and tracking plan (docs/notes/20261105-object_seating_and_ tracking/): the 25 mm x 100 mm cylinder and the 40 mm sphere of the HOM tasks, each with its hexagonal t |
 | `tracking_prints_media.py` | Figures and viewer models of the page on the printed tracking objects and the calibration board (docs/experiments/20261113-tracking_prints/, built by scripts/hardware/tracking_prints_page.py). |
 | `tracking_prints_page.py` | Builds docs/experiments/20261113-tracking_prints/20261113-tracking_prints_and_calibration_board.html: the print files of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) with render |
 
-## hom/ (101)
+## hom/ (104)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -554,6 +557,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hand_object_scale_sim.py` | Grasp robustness and in-hand reorientation over the (layout, object) cells of the hand-object scale study, in CPU MuJoCo on the bench-calibrated servo plant with the printed TPU fingertip as 1 mm sphere pads. |
 | `hom_abstract_film.py` | A HOM rollout drawn on the abstract SR2 hand of the talk's diagrams (owner, 2026-11-11: "can we do one that's just an abstracted form of the sr 2 hand, like the ones we've been using in the slide decks?"). |
 | `hom_adjoint_widget.py` | An explorable version of the adjoint figure of the HOM review page (scripts/hom/hom_eq1_figures.py adjoint): a planar rigid body with frames {B} and {A}; the reader drags {A}, turns it, and sets the twist (w, v_B) of the |
+| `hom_bench_world.py` | The HOM controller of the bench (src/sr2hand/control/hom_bench.py) on one world of the GPU studies: a layout, a grasp and HOM's commanded forces and contact modes, built by the calls that hom_grasp_refine.evaluate makes  |
 | `hom_chain.py` | The screwdriver load-and-insert chain under relative contact-velocity control on the real_v1 (SR2) hand, in MuJoCo and Drake. |
 | `hom_chain_figures.py` | Theory figures for docs/experiments/20261002-hom_chain: Drake's hydroelastic pressure field on the real_v1 fingertip against MuJoCo's sphere-packed pad, both pressed onto the screwdriver at the same pinch force, from the |
 | `hom_chain_page.py` | Build docs/experiments/20261002-hom_chain/20261002-hom_screwdriver_chain.html from the study's jsonl files. |
@@ -584,6 +588,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_hand_brake.py` | The pinch brake of arXiv 2609.25619 on the real_v1 (SR2) hand, in MuJoCo and Drake. |
 | `hom_hand_brake_page.py` | Build docs/experiments/20261001-hom_hand_brake/20261001-hom_hand_brake.html from hand_brake.jsonl. |
 | `hom_hand_drake.py` | Drake side of scripts/hom/hom_hand_brake.py: the same D8 hand and tool, Drake 1.57 SAP. |
+| `hom_inner_loop_page.py` | Builds docs/experiments/20261114-hom_inner_loop/20261114-hom_inner_loop_stability_variants_fusion.html: HOM as the inner-loop controller of the SR2 hand search, against sampling MPC (owner, 2026-11-14: "i would not like  |
 | `hom_landscape.py` | Landscapes of HOM task scores over the SR2 hand's layouts and object sizes: the size study of the design page (docs/experiments/20261029-foundational_pose_review), from the rows of scripts/hom/hom_gpu.py run on --layouts |
 | `hom_modulus_scenes.py` | HOM reference scenes at another pad modulus (2026-11-02; owner: "seems like we need to queue up modulus studies across a range as well. |
 | `hom_mpc_gpu.py` | Sampling MPC over the HOM controller's commands on MuJoCo-Warp, 2026-10-30. |
@@ -623,6 +628,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `hom_turn3_films.py` | Films of the three-finger turn on the fitted plant: the deployed open-loop plan, the relative contact-velocity (HOM) controller with its governor, and without it. |
 | `hom_turn_rl_contact_page.py` | Build docs/experiments/20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html. |
 | `inner_loop_benchmark_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html: published inner-loop evaluators against HOM on the SR2 layout lattice, each judged by the J of the hand it would pick and by its w |
+| `inner_loop_ilqr.py` | iLQR on the SR2 hand in MuJoCo-Warp, method ilqr of inner_loop_mpc.py (owner, 2026-11-15: "did we also try ilqr/ddp/feasibleddp on top of the gradient search?"). |
 | `inner_loop_mpc.py` | Sampling MPC on the SR2 hand in MuJoCo-Warp: the training-free baselines of the inner-loop benchmark (owner, 2026-11-12: "let's try MPC. |
 | `inner_loop_mpc_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html: sampling MPC (predictive sampling, MPPI, CEM, iCEM, DIAL-MPC's annealing, SPIDER and its worst case) against HOM on the inner-loop  |
 | `inner_loop_plant.py` | The inner-loop benchmark's plant: the hand-design talk's, as its grid grid2dff_v4b_sv25r was run (the SCS0009 servo plant, 0.72 N m/rad and 0.18 N m, and the 2.5 MPa pads of the scene cache logs/20261102-hom_servo_plant/ |
