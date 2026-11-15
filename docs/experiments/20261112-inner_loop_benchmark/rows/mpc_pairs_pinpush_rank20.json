@@ -1,0 +1,146 @@
+{
+ "task": "pinpush",
+ "pairs": [
+  {
+   "x": 75.0,
+   "y": 80.0,
+   "grasp": 13,
+   "by": "hom_best",
+   "J_by": 0.4162
+  },
+  {
+   "x": 55.0,
+   "y": 165.0,
+   "grasp": 15,
+   "by": "hom_best",
+   "J_by": 0.382
+  },
+  {
+   "x": 65.0,
+   "y": 140.0,
+   "grasp": 7,
+   "by": "hom_best",
+   "J_by": 0.368
+  },
+  {
+   "x": 75.0,
+   "y": 120.0,
+   "grasp": 12,
+   "by": "hom_best",
+   "J_by": 0.3541
+  },
+  {
+   "x": 60.0,
+   "y": 140.0,
+   "grasp": 6,
+   "by": "hom_best",
+   "J_by": 0.3462
+  },
+  {
+   "x": 70.0,
+   "y": 110.0,
+   "grasp": 15,
+   "by": "hom_best",
+   "J_by": 0.3362
+  },
+  {
+   "x": 75.0,
+   "y": 100.0,
+   "grasp": 3,
+   "by": "hom_best",
+   "J_by": 0.3268
+  },
+  {
+   "x": 75.0,
+   "y": 90.0,
+   "grasp": 3,
+   "by": "hom_best",
+   "J_by": 0.3191
+  },
+  {
+   "x": 60.0,
+   "y": 110.0,
+   "grasp": 5,
+   "by": "hom_best",
+   "J_by": 0.3072
+  },
+  {
+   "x": 65.0,
+   "y": 120.0,
+   "grasp": 3,
+   "by": "hom_best",
+   "J_by": 0.2925
+  },
+  {
+   "x": 70.0,
+   "y": 85.0,
+   "grasp": 8,
+   "by": "random",
+   "J_by": 0.2856
+  },
+  {
+   "x": 65.0,
+   "y": 55.0,
+   "grasp": 5,
+   "by": "random",
+   "J_by": 0.2762
+  },
+  {
+   "x": 85.0,
+   "y": 55.0,
+   "grasp": 5,
+   "by": "random",
+   "J_by": 0.253
+  },
+  {
+   "x": 55.0,
+   "y": 70.0,
+   "grasp": 9,
+   "by": "random",
+   "J_by": 0.1677
+  },
+  {
+   "x": 85.0,
+   "y": 85.0,
+   "grasp": 2,
+   "by": "random",
+   "J_by": 0.1088
+  },
+  {
+   "x": 125.0,
+   "y": 85.0,
+   "grasp": 7,
+   "by": "random",
+   "J_by": 0.0659
+  },
+  {
+   "x": 100.0,
+   "y": 55.0,
+   "grasp": 2,
+   "by": "random",
+   "J_by": 0.0248
+  },
+  {
+   "x": 130.0,
+   "y": 115.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0002
+  },
+  {
+   "x": 100.0,
+   "y": 135.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 115.0,
+   "y": 165.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  }
+ ],
+ "rule": "every fifth pair of each half of mpc_pairs_pinpush_rank.json"
+}

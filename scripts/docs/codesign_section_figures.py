@@ -316,6 +316,29 @@ def rl_run_times():
             "source": "results/rl/*/tensorboard event files, 0.5 min to 24 h"}
 
 
+STEEL = ROOT / "docs/experiments/20261113-steel_solver/data/20261113-steel_solver.json"
+MPC_ROWS = ROOT / "docs/experiments/20261112-inner_loop_benchmark/rows"
+
+
+def planner_cost(rec):
+    """GPU time of one twist rollout under sampling MPC over HOM's in the CEM workload (owner, 2026-11-14: "the updated
+    timing charts should elucidate why we stick to HOM"): the planner's batch runs of the inner-loop benchmark
+    (scripts/hom/inner_loop_mpc.py, 16 hands per batch, each hand's samples as worlds), wall time of a batch over its
+    hands, against HOM's GPU time per twist rollout in the compute chart (rec cem ms_per_rollout). DIAL 2 x 32 is the
+    real-time pick (0.082 s of GPU per 0.1 s for one hand), DIAL 4 x 64 the full budget."""
+    out = {}
+    hom_s = rec["cem"]["ms_per_rollout"]["twist"] / 1e3
+    for k, stem in (("rt", "mpc_anneal_twist_pdt2_n32_r10h10k2i2"), ("full", "mpc_anneal_twist")):
+        p = MPC_ROWS / f"{stem}.jsonl"
+        if not p.exists():
+            continue
+        rows = [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+        per = float(np.mean([r["chunk_wall_s"] / r["chunk_worlds"] for r in rows]))
+        out[k] = {"s_per_rollout": round(per, 3), "ratio": round(per / hom_s, 1), "stem": stem,
+                  "hands_per_batch": int(rows[0]["chunk_worlds"])}
+    return out
+
+
 def cost_of_search():
     """The time to CEM-refine grasp and HOM on every layout of the twist, the roll and the press (1,423 layouts x 768
     rollouts, the workload of the compute chart, codesign_formulation_figures.py compute) on four simulators, and the time
@@ -338,42 +361,47 @@ def cost_of_search():
     cpu_roll = {t: float(thr["cpu"][t]["plant_p1"]["wall_s"]) for t in lay}
     cpu = sum(lay[t] * 768 * cpu_roll[t] for t in lay)
     mjw = float(rec["cem"]["s"])
-    import contact_overview_page as CO
-    load = (lambda name: [json.loads(x) for x in (Path(CO.GPU) / name).read_text().splitlines() if x.strip()])
-    curves = CO.gpu_curves(load("gpu_scaling.jsonl"), load("newton_scaling.jsonl"))
-    ratio = curves["mjw_pads1"][4096] / curves["newton_hydro_mc"][4096]
+    sp = json.loads(STEEL.read_text())["speed"]
+    ratio = sp["steel_hydro"]["1024"]["us_per_world_step"] / sp["mjw_pads"]["1024"]["us_per_world_step"]
+    mpc = planner_cost(rec)
     rows = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", cpu * 2082.0 / 106.0, "#6b7280"),
             ("MuJoCo, 1 mm sphere pads,\none CPU core", cpu, "#f59e0b"),
-            ("Newton hydroelastic (SDF), one GPU\n(estimated from its throughput)", mjw * ratio, "#7a4fa6"),
-            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU", mjw, "#d97706"),
-            (f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
-             n_lay * 60.0 * rl["min_median"], "#0f766e"),
-            (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
-             "#14b8a6")]
+            ("Steel hydroelastic (Newton), one GPU\n(its step cost on the twist, 1,024 worlds)", mjw * ratio, "#7a4fa6"),
+            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU, with HOM", mjw, "#d97706")]
+    n_sim = len(rows)
+    for lab, k, col in (("Sampling MPC, DIAL 2 \u00d7 32 samples,\nin place of HOM (real time)", "rt", "#be185d"),
+                        ("Sampling MPC, DIAL 4 \u00d7 64 samples,\nin place of HOM", "full", "#9d174d")):
+        if mpc.get(k):
+            rows.append((lab, mjw * mpc[k]["ratio"], col))
+    rows += [(f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
+              n_lay * 60.0 * rl["min_median"], "#0f766e"),
+             (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
+              "#14b8a6")]
 
     def human(sec):
         return (f"{sec / 86400 / 365:.1f} years" if sec > 400 * 86400 else f"{sec / 86400:.0f} days" if sec > 3 * 86400
                 else f"{sec / 3600:.0f} hours" if sec > 3 * 3600 else f"{sec / 60:.0f} minutes")
     out = {}
     for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", len(rows))):
-        fig, ax = plt.subplots(figsize=(13.0, 6.4))
+        fig, ax = plt.subplots(figsize=(13.0, 6.4 + 0.55 * (len(rows) - 6)))
         for k, (lab, sec, col) in enumerate(rows):
-            y = len(rows) - 1 - k + (0.0 if k < 4 else -0.35)
+            y = len(rows) - 1 - k + (0.0 if k < n_sim else -0.35)
             vis = k < show
             ax.barh(y, sec, color=col if vis else "none", height=0.58)
             ax.text(sec * 1.25, y, human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
             out[lab.split("\n")[0]] = round(sec)
-        ys = [len(rows) - 1 - k + (0.0 if k < 4 else -0.35) for k in range(len(rows))]
+        ys = [len(rows) - 1 - k + (0.0 if k < n_sim else -0.35) for k in range(len(rows))]
         ax.set_yticks(ys)
         ax.set_yticklabels([r[0] for r in rows], fontsize=14.5)
-        ax.axhline(1.33, color=LINE, lw=1.0, ls=(0, (4, 3)))
+        ax.axhline(0.5 * (ys[n_sim - 1] + ys[n_sim]), color=LINE, lw=1.0, ls=(0, (4, 3)))
         ax.set_xscale("log")
         ax.set_xticks([3600, 86400, 30 * 86400, 365 * 86400])
         ax.set_xticklabels(["1 hour", "1 day", "30 days", "1 year"], fontsize=14)
         ax.set_xlim(3000, 5e8)
         ax.set_ylim(-1.0, len(rows) - 0.45)
         ax.set_title(f"Every layout of three tasks: {n_lay:,} layouts \u00d7 768 rollouts = {n_roll / 1e6:.2f} M "
-                     "rollouts,\nor one trained policy per layout", loc="left", fontsize=17)
+                     "rollouts,\nunder HOM or a sampling planner, or one trained policy per layout", loc="left", fontsize=17)
+        ax.set_xlim(3000, 5e8 if max(r[1] for r in rows) < 4e8 else 3e9)
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
         for sp in ("left", "bottom"):
@@ -381,7 +409,7 @@ def cost_of_search():
         ax.grid(axis="x", color="#eef0f3")
         save(fig, name)
     res = {"rows_s": out, "layouts": n_lay, "rollouts": n_roll, "cpu_s_per_rollout": cpu_roll,
-           "newton_ratio": round(float(ratio), 3), "drake_ratio": round(2082.0 / 106.0, 2)}
+           "steel_ratio": round(float(ratio), 3), "drake_ratio": round(2082.0 / 106.0, 2), "mpc": mpc}
     fi["cost_search" + ("_track" if VARIANT == "track" else "")] = res
     path.write_text(json.dumps(fi, indent=1, default=float))
     return res

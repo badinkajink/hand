@@ -89,6 +89,10 @@ LIMITS = False
 # schedule's plus ATT_GAIN (1/s) times the rotation vector from the measured orientation to the commanded one (the
 # schedule's angular velocity integrated from the task's start, as J's reference), at most ATT_MAX rad/s. 0: off.
 ATT_GAIN, ATT_MAX = 0.0, 1.0
+# HOM's command read PREVIEW_S ahead in the schedule during the task phase (owner, 2026-11-14: "if theres anything else you
+# can think of to improve it, feel free to try"; the planners see their horizon of the reference, HOM only the present).
+# J's reference and the rows keep the schedule's present command. 0: off.
+PREVIEW_S = 0.0
 PPO_CFG = {
     "num_steps_per_env": 16, "save_interval": 50, "obs_groups": {"actor": ["policy"], "critic": ["critic"]},
     "logger": "tensorboard",
@@ -224,8 +228,17 @@ class UBatch(HG.Batch):
                 if float(ang) > 0:
                     dq = quat_from_axis_angle(w_ref_t / ang, ang * self.prm.dt).expand(W, 4)
                     self.q_cmd = quat_mul(dq, self.q_cmd)
-            V = th.cat([th.einsum("wij,wj->wi", RdT, w_cmd), th.einsum("wij,wj->wi", RdT, v_ref)], -1)
-            ctrl = self.control(t, meas, mv, V, s_push) - self.cal_q
+            v_cmd, s_cmd = v_ref, s_push
+            if PREVIEW_S > 0 and t >= self.t_task - 1e-9:
+                w_p, s_cmd, _th, _ph = self.schedule(t + PREVIEW_S)
+                w_p = th.tensor(w_p, dtype=self.f64, device=self.dev)
+                w_cmd = w_cmd + (w_p - w_ref_t).expand(W, 3)
+                if self.task == "roll":
+                    v_cmd = th.cross(w_p.expand(W, 3), -self.scene.r * self.n_out[:, 0], dim=-1)
+            V = th.cat([th.einsum("wij,wj->wi", RdT, w_cmd), th.einsum("wij,wj->wi", RdT, v_cmd)], -1)
+            ctrl = self.control(t, meas, mv, V, s_cmd) - self.cal_q
+            if getattr(self, "q_add", None) is not None:          # inner_loop_mpc.py's residual planners on HOM
+                ctrl = ctrl + self.q_add.reshape(W, 3, 3).to(self.f64)
         else:
             ctrl = q_policy.to(self.f64)
         if HG.DEADBAND > 0:

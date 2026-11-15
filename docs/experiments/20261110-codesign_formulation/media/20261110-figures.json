@@ -1127,8 +1127,10 @@
   "rows_s": {
    "Drake hydroelastic, one CPU core": 51547728,
    "MuJoCo, 1 mm sphere pads,": 2624428,
-   "Newton hydroelastic (SDF), one GPU": 78979,
+   "Steel hydroelastic (Newton), one GPU": 153481,
    "MuJoCo-Warp, 1 mm sphere pads,": 46201,
+   "Sampling MPC, DIAL 2 \u00d7 32 samples,": 1325969,
+   "Sampling MPC, DIAL 4 \u00d7 64 samples,": 18540461,
    "RL: a policy per layout, 36 min each": 3048066,
    "RL: a policy per layout,": 853800
   },
@@ -1139,8 +1141,22 @@
    "roll": 1.717,
    "press": 2.087
   },
-  "newton_ratio": 1.709,
-  "drake_ratio": 19.64
+  "steel_ratio": 3.322,
+  "drake_ratio": 19.64,
+  "mpc": {
+   "rt": {
+    "s_per_rollout": 1.481,
+    "ratio": 28.7,
+    "stem": "mpc_anneal_twist_pdt2_n32_r10h10k2i2",
+    "hands_per_batch": 16
+   },
+   "full": {
+    "s_per_rollout": 20.709,
+    "ratio": 401.3,
+    "stem": "mpc_anneal_twist",
+    "hands_per_batch": 16
+   }
+  }
  },
  "pinch_film": {
   "frames": 140,

@@ -99,10 +99,11 @@ def stats(rows, hom=None):
 
 
 def timing_rows():
-    p = ROWS / "mpc_timing_twist.jsonl"
-    if not p.exists():
-        return []
-    return [r for r in (json.loads(x) for x in p.read_text().splitlines() if x.strip()) if r.get("plant") == SERVO]
+    """The timing rows of every task (mpc_timing_<task>.jsonl) on the SCS0009 plant."""
+    out = []
+    for p in sorted(ROWS.glob("mpc_timing_*.jsonl")):
+        out += [r for r in (json.loads(x) for x in p.read_text().splitlines() if x.strip()) if r.get("plant") == SERVO]
+    return out
 
 
 def one_hand(T, n, iters, H, model="pads"):
@@ -1342,6 +1343,196 @@ the SCS0009 can press.</p>"""
                      "2026-11-13 09:42).")
 
 
+# ------------------------------------------------------------------------------------------------ four tasks, 11-14
+TASKS4 = ("twist", "roll", "pinpush", "press")
+TNAME = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
+CFG_RT7 = (2, 20, 3, 20, 0.002, 48)
+CFG_FULL2 = (4, 30, 3, 10, 0.002, 64)
+# the configurations run on the tuning pairs (logs/20261114-mpc_tasks/tune_rt.sh, tune_rt2.sh): (method, cfg, label)
+TUNE = [("hom", None, "HOM"),
+        ("anneal", CFG_PICK, "DIAL 2 &#215; 32, 0.1 s ahead (the twist's real-time pick)"),
+        ("anneal", (1, 20, 3, 10, 0.002, 32), "DIAL 1 &#215; 32, 0.2 s ahead"),
+        ("anneal", (1, 20, 3, 10, 0.002, 48), "DIAL 1 &#215; 48, 0.2 s ahead"),
+        ("anneal", (2, 20, 3, 20, 0.002, 32), "DIAL 2 &#215; 32, 0.2 s ahead, every 0.2 s"),
+        ("anneal", CFG_RT7, "DIAL 2 &#215; 48, 0.2 s ahead, every 0.2 s"),
+        ("grad", CFG_PICK, "Gradient descent 2 &#215; 32, 0.1 s ahead"),
+        ("anneal", (1, 30, 3, 10, 0.002, 16), "DIAL 1 &#215; 16, 0.3 s ahead"),
+        ("anneal", (2, 30, 3, 20, 0.002, 16), "DIAL 2 &#215; 16, 0.3 s ahead, every 0.2 s"),
+        ("anneal", (2, 30, 3, 20, 0.002, 24), "DIAL 2 &#215; 24, 0.3 s ahead, every 0.2 s"),
+        ("anneal", (1, 30, 3, 15, 0.002, 32), "DIAL 1 &#215; 32, 0.3 s ahead, every 0.15 s"),
+        ("anneal", (2, 30, 3, 30, 0.002, 32), "DIAL 2 &#215; 32, 0.3 s ahead, every 0.3 s"),
+        ("anneal", (3, 20, 3, 10, 0.002, 32), "DIAL 3 &#215; 32, 0.2 s ahead"),
+        ("anneal", (4, 30, 3, 10, 0.002, 16), "DIAL 4 &#215; 16, 0.3 s ahead"),
+        ("anneal", (4, 30, 3, 10, 0.002, 32), "DIAL 4 &#215; 32, 0.3 s ahead"),
+        ("anneal", (2, 30, 3, 10, 0.002, 64), "DIAL 2 &#215; 64, 0.3 s ahead"),
+        ("anneal", CFG_FULL2, "DIAL 4 &#215; 64, 0.3 s ahead, 2 ms step"),
+        ("anneal", CFG_FULL, "DIAL 4 &#215; 64, 0.3 s ahead, 1 ms step (Section 4)"),
+        ("grad", CFG_FULL2, "Gradient descent 4 &#215; 64, 0.3 s ahead")]
+
+
+def tstem(method, task, pairs, cfg=None, sh=""):
+    """inner_loop_mpc.py's rows stem of a task and a pair set: mpc_<method>_<task><pairs>[<options>]<cfg_tag>."""
+    return f"{method}_{task}{pairs}{sh}" + (cfg_tag(cfg) if cfg else "")
+
+
+def mean_j(rows):
+    return float(np.mean([r["J"] for r in rows])) if rows else None
+
+
+def rt_ratio(T, c):
+    """GPU time of one hand's replanning over the replanning interval, or None when it was not timed."""
+    v = one_hand_cfg(T, c) if c else None
+    return None if v is None else v / (c[3] * PERIOD_S)
+
+
+def rank_ref(R, task):
+    """The planner that the ranking test compares HOM with on a task: full DIAL on the 100 pairs when its rows exist,
+    else the real-time pick. (stem, label)."""
+    for c, lab in ((CFG_FULL2, "DIAL 4 &#215; 64"), (CFG_FULL, "DIAL 4 &#215; 64"),
+                   (CFG_PICK, "DIAL 2 &#215; 32 (real time)")):
+        st = tstem("anneal", task, "_rank", c)
+        if len(R.get(st, [])) >= 100:
+            return st, lab
+    return None, None
+
+
+RANK_RUNS = [("hom", None, "HOM"), ("anneal", CFG_PICK, "DIAL 2 &#215; 32, real time"),
+             ("anneal", CFG_RT7, "DIAL 2 &#215; 48 every 0.2 s, real time"),
+             ("grad", CFG_PICK, "Gradient descent 2 &#215; 32, real time"),
+             ("anneal", CFG_FULL2, "DIAL 4 &#215; 64, 2 ms step")]
+
+
+def sec_tasks(R, T):
+    """HOM and the planners on the twist, the roll, the pin-push and the press: the configuration sweep on the tuning
+    pairs, then mean J and the paired difference from HOM on the 100 pairs of each task."""
+    tune = {(m, c): {t: R.get(tstem(m, t, "_tune", c)) for t in TASKS4} for m, c, _l in TUNE}
+    if not any(v for d in tune.values() for v in d.values()):
+        return ""
+    rows = []
+    for m, c, lab in TUNE:
+        js = [mean_j(tune[(m, c)][t]) for t in TASKS4]
+        if all(j is None for j in js):
+            continue
+        rr = rt_ratio(T, c)
+        rows.append([lab, "0.20 (one CPU core)" if m == "hom" else f2(rr) if rr is not None else "&#8212;"]
+                    + [f2(j, 3) if j is not None else "&#8212;" for j in js]
+                    + [f2(np.mean(js), 3) if all(j is not None for j in js) else "&#8212;"])
+    t1 = table(["Controller", "Time per second of control (s/s)"] + [TNAME[t] for t in TASKS4] + ["Mean"], rows,
+               "Mean J on the tuning pairs: six layouts per task outside the ranking test's pairs, with HOM's J above "
+               "0.05, each with its best grasp under HOM, seed 0. Time: GPU seconds of one hand's replanning per second "
+               "of control, measured alone; at 1 or less the planner runs in real time. HOM's is one CPU core's.",
+               num_from=1)
+    rows, rowsd, have = [], [], False
+    hom_r = {t: R.get(tstem("hom", t, "_rank")) for t in TASKS4}
+    for m, c, lab in RANK_RUNS:
+        cells, cellsd, any_ = [], [], False
+        for t in TASKS4:
+            rr = R.get(tstem(m, t, "_rank", c))
+            if not rr:
+                cells.append("&#8212;")
+                cellsd.append("&#8212;")
+                continue
+            any_ = True
+            cells.append(f"{mean_j(rr):.3f} ({len(rr)})")
+            cellsd.append("&#8212;" if m == "hom" or not hom_r[t] else fd(paired(rr, hom_r[t])))
+        if any_:
+            have = True
+            rows.append([lab] + cells)
+            if m != "hom":
+                rowsd.append([lab] + cellsd)
+    out = t1
+    if have:
+        out += table(["Controller"] + [TNAME[t] for t in TASKS4], rows,
+                     "Mean J on each task's 100 pairs (HOM's 50 best layouts and 50 drawn at random, each with HOM's best "
+                     "grasp), seeds 0 and 1; in brackets the number of runs.", num_from=1)
+        if rowsd:
+            out += table(["Controller"] + [TNAME[t] for t in TASKS4], rowsd,
+                         "J minus HOM's on the same pairs and seeds: the mean over the pairs, its 95 % bootstrap interval "
+                         "and the number of pairs where the planner was higher.", num_from=1)
+    return out
+
+
+def rank_numbers(R, task, ref):
+    """HOM's order of a task's 100 pairs against the reference planner's: Spearman's rho over all pairs, over HOM's 50
+    best and over the 50 random ones, the overlap of the ten best, HOM's first choice under the planner, and each
+    controller's agreement between seeds 0 and 1."""
+    h_rows = R.get(tstem("hom", task, "_rank"))
+    if not h_rows or not R.get(ref):
+        return None
+    prs = {(p["x"], p["y"], p["grasp"]): p["by"] for p in json.loads(
+        (ROWS / f"mpc_pairs_{task}_rank.json").read_text())["pairs"]}
+    H, Dp = pair_j(h_rows), pair_j(R[ref])
+    keys = [k for k in prs if k in H and k in Dp]
+    h, d = np.array([H[k] for k in keys]), np.array([Dp[k] for k in keys])
+    best = np.array([prs[k] == "hom_best" for k in keys])
+    top_h, top_d = set(np.argsort(-h)[:10]), set(np.argsort(-d)[:10])
+    i_h = int(np.argmax(h))
+    seeds = {}
+    for name, rows in (("hom", h_rows), ("ref", R[ref])):
+        a, b = pair_j(rows, 0), pair_j(rows, 1)
+        kk = [k for k in keys if k in a and k in b]
+        seeds[name] = spearman([a[k] for k in kk], [b[k] for k in kk]) if len(kk) > 5 else None
+    return {"n": len(keys), "rho": spearman(h, d), "rho_best": spearman(h[best], d[best]),
+            "rho_rand": spearman(h[~best], d[~best]), "top10": len(top_h & top_d),
+            "first_d": float(d[i_h]), "first_rank": int((d > d[i_h]).sum()) + 1, "best_d": float(d.max()),
+            "mean_h_best": float(h[best].mean()), "mean_d_best": float(d[best].mean()),
+            "mean_h_rand": float(h[~best].mean()), "mean_d_rand": float(d[~best].mean()),
+            "seed_hom": seeds["hom"], "seed_ref": seeds["ref"], "h": h.tolist(), "d": d.tolist(), "best": best.tolist()}
+
+
+def fig_rank100(N, out):
+    plt = plt_setup()
+    tasks = [t for t in TASKS4 if N.get(t)]
+    fig, ax = plt.subplots(1, len(tasks), figsize=(4.2 * len(tasks), 4.4), squeeze=False)
+    for a, t in zip(ax[0], tasks):
+        n = N[t]
+        h, d, b = np.array(n["h"]), np.array(n["d"]), np.array(n["best"])
+        a.scatter(h[~b], d[~b], s=20, color="#9ca3af", label="50 at random", lw=0)
+        a.scatter(h[b], d[b], s=24, color="#2563eb", label="HOM's 50 best", lw=0)
+        m = max(h.max(), d.max(), 0.05) * 1.05
+        a.plot([0, m], [0, m], color="#6b7280", lw=1.0, ls=(0, (4, 3)))
+        a.set_xlim(-0.02, m)
+        a.set_ylim(-0.02, m)
+        a.set_xlabel("J under HOM")
+        a.set_title(f"{TNAME[t]}: rho {n['rho']:.2f}", loc="left")
+        for sp in ("top", "right"):
+            a.spines[sp].set_visible(False)
+    ax[0][0].set_ylabel("J under the planner")
+    ax[0][0].legend(frameon=False, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(out, dpi=110)
+    plt.close(fig)
+    return out
+
+
+def sec_rank100(R):
+    """The ranking test of 2026-11-14 (owner: "you can run the further test on running realtime DIAL"): HOM's order of
+    each task's 100 pairs against a planner's; the figure is drawn here."""
+    N, refs = {}, {}
+    for t in TASKS4:
+        st, lab = rank_ref(R, t)
+        if st:
+            N[t] = rank_numbers(R, t, st)
+            refs[t] = lab
+    N = {t: v for t, v in N.items() if v}
+    if not N:
+        return ""
+    fig = fig_rank100(N, MEDIA / "20261114-mpc_rank100.png")
+    rows = [[TNAME[t], refs[t], str(n["n"]), f2(n["rho"]), f2(n["rho_best"]), f2(n["rho_rand"]), f"{n['top10']} of 10",
+             f"{n['first_d']:.3f} (rank {n['first_rank']})", f"{n['best_d']:.3f}", f2(n["seed_hom"]), f2(n["seed_ref"])]
+            for t, n in N.items()]
+    out = table(["Task", "Planner", "Pairs", "&#961;, all", "&#961;, HOM's 50 best", "&#961;, 50 random",
+                 "Ten best shared", "HOM's first choice under the planner", "Planner's best",
+                 "&#961; seeds 0/1, HOM", "&#961; seeds 0/1, planner"], rows,
+                "The order of each task's 100 pairs under HOM and under the planner: Spearman's &#961; over the pairs' J "
+                "(seeds averaged within a pair), over all pairs and over each half; how many of HOM's ten best pairs are "
+                "among the planner's ten best; the planner's J on HOM's best pair and its rank among the planner's J; "
+                "and each controller's &#961; between seeds 0 and 1.", num_from=1)
+    out += P.img(fig, "Each task's 100 pairs: J under HOM (x) against J under the planner of Table "
+                 f"{P.TAB[0]} (y), seeds averaged. Blue: HOM's 50 best layouts; grey: 50 drawn at random. Dashed: equal J.")
+    return out
+
+
 def sec_future():
     items = [
         "The order of HOM's best pairs under the real-time pick with the rate-change cost. The set is the 50 pairs of "
@@ -1444,6 +1635,8 @@ def main():
     for meth, cfg in RT_TABLE:                      # the real-time configurations, and from delayed noisy states
         stems += [stem_of(meth, cfg, delay=dl) for dl in ("", "_d4n", "_d14n")]
     stems += [stem_of(m, c, sh=sh) for m, c, sh, _l, _k in REV_RUNS] + [s_ for s_, _l in REV_REF]
+    for t in TASKS4:
+        stems += [tstem(m, t, "_tune", c) for m, c, _l in TUNE] + [tstem(m, t, "_rank", c) for m, c, _l in RANK_RUNS]
     stems = list(dict.fromkeys(stems))
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}
@@ -1475,6 +1668,8 @@ def main():
                 ("methods", "The controllers", sec_methods()),
                 ("results", "HOM and the planners on the SCS0009 plant", sec_results(S, figs)),
                 ("rank", "Mean J and ranking of the pairs under HOM and the planners", sec_rank(S, R, T)),
+                ("tasks", "HOM and the planners on four tasks", sec_tasks(R, T)),
+                ("rank100", "Ranking of 100 pairs per task under HOM and a planner", sec_rank100(R)),
                 ("films", "Films", sec_films()),
                 ("uhas", "UHAS retrained on the SCS0009 plant", sec_uhas(S, R)),
                 ("feedback", "Two simple changes to HOM", sec_feedback(S)),

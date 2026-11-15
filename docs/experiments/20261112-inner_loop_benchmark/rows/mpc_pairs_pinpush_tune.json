@@ -1,0 +1,48 @@
+{
+ "task": "pinpush",
+ "pairs": [
+  {
+   "x": 40.0,
+   "y": 95.0,
+   "grasp": 10,
+   "by": "tune",
+   "J_by": 0.1391
+  },
+  {
+   "x": 45.0,
+   "y": 90.0,
+   "grasp": 11,
+   "by": "tune",
+   "J_by": 0.1228
+  },
+  {
+   "x": 60.0,
+   "y": 90.0,
+   "grasp": 5,
+   "by": "tune",
+   "J_by": 0.2456
+  },
+  {
+   "x": 65.0,
+   "y": 70.0,
+   "grasp": 4,
+   "by": "tune",
+   "J_by": 0.1869
+  },
+  {
+   "x": 85.0,
+   "y": 95.0,
+   "grasp": 15,
+   "by": "tune",
+   "J_by": 0.2129
+  },
+  {
+   "x": 105.0,
+   "y": 90.0,
+   "grasp": 9,
+   "by": "tune",
+   "J_by": 0.0996
+  }
+ ],
+ "rule": "Pairs for choosing a planner's configuration, apart from the ranking test's: n layouts outside rank_pairs with\n    HOM's best J above j_min, drawn at random, each with its best grasp."
+}
