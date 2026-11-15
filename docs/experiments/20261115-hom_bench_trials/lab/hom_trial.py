@@ -6,6 +6,8 @@ with what a trial adds: the arm's lift at --lift-at s of the link's clock, a rec
 HOM controller (python -m sr2hand.control.hom_server serve, on the workstation or here) answers each state; its first
 state is the trial's t = 0, the time the controller's schedule and this script's lift both count from.
 
+    plan     load a plan of plans/ into the station from this clone (POST /api/v1/plans/load with the plan inline, so the
+             plan need not be copied to the CB1); nothing moves until the station's morphology is applied
     check    the arm's pose, the tracker's object pose and the station, without motion: what a trial would start from
     trial    the link loop; with --arm the lift (moveL up --lift-mm in the base frame at --lift-v and --lift-a, the
              HEX-E's force change past --stop-N or a protective stop ends it with stopL); with --live the targets go to
@@ -19,6 +21,7 @@ time, the object's pose in P with its capture time, flags and tag count), the ar
 the HEX-E's wrench at that time, the target applied (sim degrees, its sequence, age and round trip), the station's
 status and the lift's phase. The controller's own record (hom_server) holds the same periods by sequence number.
 
+    /usr/bin/python3 hom_trial.py plan --plan ../plans/20261115-generalist_press_plan.json
     /usr/bin/python3 hom_trial.py check --object cylinder --map MAP.json
     /usr/bin/python3 hom_trial.py trial --task press --controller 100.x.y.z:47002 --object cylinder --map MAP.json
         [--station http://10.99.99.2:8765 --live] [--arm] [--ft] --out-dir OUT
@@ -462,9 +465,29 @@ def cmd_return(a):
     return 0
 
 
+def cmd_plan(a):
+    """POST the plan inline to the station's plans/load; print what the station loaded."""
+    raw = json.loads(Path(a.plan).read_text())
+    raw.setdefault("meta", {})["plan_file"] = Path(a.plan).name
+    st = Station(a.station, a.token_file, True)
+    c = st._conn()
+    c.timeout = 10.0
+    res = st._post(c, "/api/v1/plans/load", {"plan": {k: raw[k] for k in ("design", "mounts_palm_mm", "poses", "meta")}})
+    s = json.loads((c.request("GET", "/api/v1/state"), c.getresponse().read())[1])
+    pl = s.get("plan") or {}
+    print(json.dumps({"loaded": res if len(json.dumps(res)) < 2000 else sorted(res),
+                      "station_plan": {k: pl.get(k) for k in ("design", "mounts_palm_mm", "violations") if k in pl},
+                      "homed": s.get("homed")}, indent=1))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
+    pp = sub.add_parser("plan")
+    pp.add_argument("--plan", required=True)
+    pp.add_argument("--station", default="http://10.99.99.2:8765")
+    pp.add_argument("--token-file", default=str(Path.home() / ".sr2_station_token"))
     pc = sub.add_parser("check")
     pc.add_argument("--object", choices=("cylinder", "sphere"), required=True)
     pc.add_argument("--map", required=True, help="the tag map of the object's block in the object's frame")
@@ -505,6 +528,8 @@ def main():
         if not a.no_tracker and not a.map:
             sys.exit("--map is needed with the tracker")
         return cmd_trial(a)
+    if a.cmd == "plan":
+        return cmd_plan(a)
     return cmd_check(a) if a.cmd == "check" else cmd_return(a)
 
 

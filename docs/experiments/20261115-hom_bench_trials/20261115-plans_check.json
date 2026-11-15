@@ -1,5 +1,5 @@
 {
- "written": "2026-11-15 14:08",
+ "written": "2026-11-15 16:26",
  "seed": 20,
  "dry_seconds": 1.0,
  "env": {
@@ -78,7 +78,7 @@
     "dt_s": 0.01,
     "seed": 20,
     "samples": 650,
-    "wall_s": 4.54,
+    "wall_s": 4.5,
     "score": 0.7273,
     "held": true,
     "gpu_score": 0.7307,
@@ -372,10 +372,7 @@
    "role": "pinpush",
    "call": 176,
    "schema_errors": [],
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "driver_violations": [],
    "stored_numbers": "rebuilt within 1e-9",
    "check_world": {
     "mounts": {
@@ -402,13 +399,13 @@
     "contacts": {
      "gap_mm": {
       "thumb": -0.0129,
-      "index": -0.0067,
-      "middle": -0.0127
+      "index": -0.006,
+      "middle": -0.0131
      },
      "from_grasp_point_mm": {
       "thumb": 0.887,
-      "index": 0.381,
-      "middle": 0.837
+      "index": 0.339,
+      "middle": 0.866
      },
      "ok": true
     },
@@ -437,8 +434,8 @@
     "dt_s": 0.01,
     "seed": 20,
     "samples": 650,
-    "wall_s": 4.21,
-    "score": 0.914,
+    "wall_s": 4.4,
+    "score": 0.9393,
     "held": true,
     "gpu_score": 0.9273,
     "cpu_20261105_score": 0.914,
@@ -495,7 +492,7 @@
     "mean_fit": 0.9159,
     "check_world_ok": true
    },
-   "wall_s": 52.1
+   "wall_s": 53.4
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_press_plan.json",
@@ -503,10 +500,7 @@
    "role": "pinpush",
    "call": 176,
    "schema_errors": [],
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "driver_violations": [],
    "stored_numbers": "rebuilt within 1e-9",
    "check_world": {
     "mounts": {
@@ -533,13 +527,13 @@
     "contacts": {
      "gap_mm": {
       "thumb": -0.0019,
-      "index": -0.0104,
-      "middle": -0.0145
+      "index": -0.01,
+      "middle": -0.0003
      },
      "from_grasp_point_mm": {
       "thumb": 1.008,
-      "index": 0.712,
-      "middle": 0.404
+      "index": 0.731,
+      "middle": 0.305
      },
      "ok": true
     },
@@ -568,8 +562,8 @@
     "dt_s": 0.01,
     "seed": 20,
     "samples": 550,
-    "wall_s": 3.54,
-    "score": 0.8655,
+    "wall_s": 3.5,
+    "score": 0.8665,
     "held": true,
     "gpu_score": 0.867,
     "cpu_20261105_score": 0.8655,
@@ -626,7 +620,7 @@
     "mean_fit": 0.8747,
     "check_world_ok": true
    },
-   "wall_s": 43.4
+   "wall_s": 43.3
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_roll_plan.json",
@@ -634,10 +628,7 @@
    "role": "pinpush",
    "call": 176,
    "schema_errors": [],
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "driver_violations": [],
    "stored_numbers": "rebuilt within 1e-9",
    "check_world": {
     "mounts": {
@@ -664,13 +655,13 @@
     "contacts": {
      "gap_mm": {
       "thumb": -0.0255,
-      "index": 0.007,
-      "middle": -0.0005
+      "index": 0.0073,
+      "middle": -0.0002
      },
      "from_grasp_point_mm": {
       "thumb": 0.857,
-      "index": 1.928,
-      "middle": 2.076
+      "index": 1.997,
+      "middle": 1.987
      },
      "ok": true
     },
@@ -700,7 +691,7 @@
     "seed": 20,
     "samples": 490,
     "wall_s": 3.28,
-    "score": 0.5938,
+    "score": 0.5886,
     "held": true,
     "gpu_score": 0.5942,
     "cpu_20261105_score": 0.5938,
@@ -757,7 +748,7 @@
     "mean_fit": 0.583,
     "check_world_ok": true
    },
-   "wall_s": 42.3
+   "wall_s": 41.3
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-pinpush_twist_plan.json",
@@ -765,10 +756,7 @@
    "role": "pinpush",
    "call": 176,
    "schema_errors": [],
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "driver_violations": [],
    "stored_numbers": "rebuilt within 1e-9",
    "check_world": {
     "mounts": {
@@ -795,13 +783,13 @@
     "contacts": {
      "gap_mm": {
       "thumb": -0.0261,
-      "index": -0.0,
-      "middle": 0.0204
+      "index": 0.0002,
+      "middle": 0.0269
      },
      "from_grasp_point_mm": {
       "thumb": 0.551,
-      "index": 1.682,
-      "middle": 1.954
+      "index": 1.788,
+      "middle": 1.927
      },
      "ok": true
     },
@@ -830,8 +818,8 @@
     "dt_s": 0.01,
     "seed": 20,
     "samples": 780,
-    "wall_s": 4.86,
-    "score": 0.6453,
+    "wall_s": 4.82,
+    "score": 0.6317,
     "held": true,
     "gpu_score": 0.6444,
     "cpu_20261105_score": 0.6453,
@@ -888,7 +876,7 @@
     "mean_fit": 0.6193,
     "check_world_ok": true
    },
-   "wall_s": 57.5
+   "wall_s": 57.6
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-press_pinpush_plan.json",

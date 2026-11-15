@@ -1,10 +1,14 @@
 {
- "written": "2026-11-15 13:58",
+ "written": "2026-11-15 16:19",
  "plans": [
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-generalist_pinpush_plan.json",
    "role": "generalist",
    "xy_mm": [
+    70.0,
+    110.0
+   ],
+   "study_xy_mm": [
     70.0,
     110.0
    ],
@@ -46,6 +50,10 @@
     70.0,
     110.0
    ],
+   "study_xy_mm": [
+    70.0,
+    110.0
+   ],
    "call": 162,
    "task": "press",
    "mounts_palm_mm": {
@@ -84,6 +92,10 @@
     70.0,
     110.0
    ],
+   "study_xy_mm": [
+    70.0,
+    110.0
+   ],
    "call": 162,
    "task": "roll",
    "mounts_palm_mm": {
@@ -118,6 +130,10 @@
     70.0,
     110.0
    ],
+   "study_xy_mm": [
+    70.0,
+    110.0
+   ],
    "call": 162,
    "task": "twist",
    "mounts_palm_mm": {
@@ -149,6 +165,10 @@
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-twist_pinpush_plan.json",
    "role": "twist",
    "xy_mm": [
+    100.0,
+    70.0
+   ],
+   "study_xy_mm": [
     100.0,
     70.0
    ],
@@ -190,6 +210,10 @@
     100.0,
     70.0
    ],
+   "study_xy_mm": [
+    100.0,
+    70.0
+   ],
    "call": 304,
    "task": "press",
    "mounts_palm_mm": {
@@ -225,6 +249,10 @@
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-roll_pinpush_plan.json",
    "role": "roll",
    "xy_mm": [
+    85.0,
+    170.0
+   ],
+   "study_xy_mm": [
     85.0,
     170.0
    ],
@@ -266,6 +294,10 @@
     85.0,
     170.0
    ],
+   "study_xy_mm": [
+    85.0,
+    170.0
+   ],
    "call": 249,
    "task": "press",
    "mounts_palm_mm": {
@@ -302,6 +334,10 @@
    "role": "pinpush",
    "xy_mm": [
     75.0,
+    56.8
+   ],
+   "study_xy_mm": [
+    75.0,
     55.0
    ],
    "call": 176,
@@ -313,19 +349,16 @@
     ],
     "index": [
      31.318800000000003,
-     24.100299999999997
+     25.000299999999996
     ],
     "middle": [
      31.3187,
-     -24.1002
+     -25.0002
     ]
    },
-   "fits_travel": false,
-   "min_margin_mm": -0.8998,
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "fits_travel": true,
+   "min_margin_mm": 0.0002,
+   "driver_violations": [],
    "prm": {
     "f_pinch": 1.5384,
     "f_drive": 1.4405,
@@ -343,6 +376,10 @@
    "role": "pinpush",
    "xy_mm": [
     75.0,
+    56.8
+   ],
+   "study_xy_mm": [
+    75.0,
     55.0
    ],
    "call": 176,
@@ -354,19 +391,16 @@
     ],
     "index": [
      31.318800000000003,
-     24.100299999999997
+     25.000299999999996
     ],
     "middle": [
      31.3187,
-     -24.1002
+     -25.0002
     ]
    },
-   "fits_travel": false,
-   "min_margin_mm": -0.8998,
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "fits_travel": true,
+   "min_margin_mm": 0.0002,
+   "driver_violations": [],
    "prm": {
     "f_pinch": 2.0248,
     "f_press": 0.5136,
@@ -384,6 +418,10 @@
    "role": "pinpush",
    "xy_mm": [
     75.0,
+    56.8
+   ],
+   "study_xy_mm": [
+    75.0,
     55.0
    ],
    "call": 176,
@@ -395,19 +433,16 @@
     ],
     "index": [
      31.318800000000003,
-     24.100299999999997
+     25.000299999999996
     ],
     "middle": [
      31.3187,
-     -24.1002
+     -25.0002
     ]
    },
-   "fits_travel": false,
-   "min_margin_mm": -0.8998,
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "fits_travel": true,
+   "min_margin_mm": 0.0002,
+   "driver_violations": [],
    "prm": {
     "f_tripod": 1.8683,
     "w_spin_tripod": 0.78,
@@ -421,6 +456,10 @@
    "role": "pinpush",
    "xy_mm": [
     75.0,
+    56.8
+   ],
+   "study_xy_mm": [
+    75.0,
     55.0
    ],
    "call": 176,
@@ -432,19 +471,16 @@
     ],
     "index": [
      31.318800000000003,
-     24.100299999999997
+     25.000299999999996
     ],
     "middle": [
      31.3187,
-     -24.1002
+     -25.0002
     ]
    },
-   "fits_travel": false,
-   "min_margin_mm": -0.8998,
-   "driver_violations": [
-    "index_y -30.90mm outside [-30.00, 30.00] -- short by 0.90mm",
-    "middle_y +30.90mm outside [-30.00, 30.00] -- short by 0.90mm"
-   ],
+   "fits_travel": true,
+   "min_margin_mm": 0.0002,
+   "driver_violations": [],
    "prm": {
     "f_tripod": 2.5747,
     "w_spin_tripod": 1.0,
@@ -457,6 +493,10 @@
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-press_pinpush_plan.json",
    "role": "press",
    "xy_mm": [
+    70.0,
+    150.0
+   ],
+   "study_xy_mm": [
     70.0,
     150.0
    ],
@@ -495,6 +535,10 @@
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261115-press_press_plan.json",
    "role": "press",
    "xy_mm": [
+    70.0,
+    150.0
+   ],
+   "study_xy_mm": [
     70.0,
     150.0
    ],

@@ -11,6 +11,11 @@ layouts. The sphere tasks (roll, twist) run at the generalist (70,110) and the p
 because at the other three layouts the sphere's stem touches a finger (the plan's decision 2, 2026-11-12). That makes
 14 plans; --all adds the other six.
 
+A layout outside the gantries' travel boxes is moved to the nearest layout inside them (sr2_layouts.nearest_fit) with the
+study's pick unchanged; meta.hom keeps the study's layout as study_xy_mm and study_d6_P_mm. Only the pin-push specialist
+(75, 55) is outside: its index and middle sit 0.90 mm past their boxes, and the owner chose (75, 56.8) on 2026-11-15
+("sure we can use that layout"). There the pick's twist grasp fails the pose toy's constraints (meta.hom.toy_feasible).
+
 Each plan has
   mounts_palm_mm  the layout in the driver's palm coordinates: P less each travel box's offset from the driver's origin,
                   (-6.18, -2.40) mm on the thumb, (6.18, 3.40) on the index, (6.18, -3.40) on the middle
@@ -101,8 +106,8 @@ def _driver():
     return PL
 
 
-def build_plan(role, xy, call, task):
-    """The plan dict of one layout and task."""
+def build_plan(role, xy, call, task, fit=True):
+    """The plan dict of one layout and task; with fit, at the nearest layout inside the travel boxes."""
     import hom_bench_world as W
     from sr2hand.robot import sr2_layouts as SL
     PL = _driver()
@@ -112,11 +117,16 @@ def build_plan(role, xy, call, task):
     p = W.study_pick(task, xy, "S3")
     if p["call"] != call or np.abs(np.asarray(p["d6"]) - d6).max() > 1e-9:
         raise RuntimeError(f"{role} {task}: the study's call {p['call']} d {p['d6']} is not {call} {d6.tolist()}")
+    study_xy, study_d6 = tuple(map(float, xy)), d6
+    if fit and not SL.layout_report(d6)["fits"]:
+        d6 = SL.nearest_fit(d6)
+        xy = tuple(float(v) for v in SL.seps(d6))
     w = W.bench_world(task, d6, p["v"], p["prm"], variant=p["variant"])
     q_open, q_touch = T.open_pose(w["setup"], w["m_pt"])
     if max(float(np.abs(np.asarray(q_open[f]) - w["q_open"][f]).max()) for f in q_open) > 0.0:
         raise RuntimeError(f"{role} {task}: open_pose on the bench's model differs from the world's open pose")
     rep = SL.layout_report(d6)
+    moved = np.abs(np.asarray(d6) - study_d6).max() > 1e-9
     st = w["setup"]
     shape = st["shape"]
     obj = ("sphere, 40 mm" if shape == "sphere" else
@@ -130,6 +140,10 @@ def build_plan(role, xy, call, task):
            "scores": {"search_mean_seeds_0_2": p["search_mean"], "val_seeds": p["val_seeds"],
                       "val_scores": p["val_scores"], "val_mean": p["val_mean"], "score": "hom_landscape.rollout_score"},
            "rows": p["rows"],
+           **({"study_xy_mm": list(study_xy), "study_d6_P_mm": _lst(study_d6),
+               "moved": "to the nearest layout inside the travel boxes (sr2_layouts.nearest_fit); the owner's choice "
+                        "of 2026-11-15; scores are the study's, at its layout",
+               "toy_feasible": _toy_feasible(task, d6, p["v"])} if moved else {}),
            "setup": {"palm_m": _lst(st["palm"]), "quat": _lst(st["quat"]), "r_m": float(st["r"]), "hl_m": float(st["hl"]),
                      "psi_rad": float(st.get("psi", 0.0)),
                      "mounts_m": {f: _lst(st["mounts"][f]) for f in st["mounts"]},
@@ -159,18 +173,24 @@ def build_plan(role, xy, call, task):
     return plan
 
 
+def _toy_feasible(task, d6, v):
+    import hom_grasp_refine as R
+    return bool(R.feasible(task, np.asarray(d6, float), np.asarray(v, float)))
+
+
 def cmd_write(a) -> int:
     PLANS.mkdir(parents=True, exist_ok=True)
     index = []
     for role, xy, call, task in series(a.all):
         t0 = time.time()
-        plan = build_plan(role, xy, call, task)
+        plan = build_plan(role, xy, call, task, fit=not a.study_layout)
         path = plan_path(role, task)
         tmp = path.with_name(path.name + f".{os.getpid()}.tmp")
         tmp.write_text(json.dumps(plan, indent=1) + "\n")
         os.replace(tmp, path)
         h, m = plan["meta"]["hom"], plan["meta"]["mounts"]
-        index.append({"plan": str(path.relative_to(ROOT)), "role": role, "xy_mm": list(xy), "call": call, "task": task,
+        index.append({"plan": str(path.relative_to(ROOT)), "role": role, "xy_mm": plan["meta"]["hom"]["xy_mm"],
+                      "study_xy_mm": plan["meta"]["hom"].get("study_xy_mm", list(xy)), "call": call, "task": task,
                       "mounts_palm_mm": plan["mounts_palm_mm"], "fits_travel": m["fits"],
                       "min_margin_mm": m["min_margin_mm"], "driver_violations": plan["meta"]["driver"]["violations"],
                       "prm": h["prm"], "val_mean": h["scores"]["val_mean"]})
@@ -232,10 +252,12 @@ def cmd_verify(a) -> int:
         rec["dry"] = {"dt_s": b2.prm.dt, "seconds": a.seconds, "samples": len(s2),
                       "phases": sorted(set(s["phase"] for s in s2)),
                       "clipped": sorted({c for s in s2 for c in s["clipped"]})}
-        if not raw["meta"]["mounts"]["fits"]:
-            d6 = np.asarray(h["d6_P_mm"], float)
+        if not raw["meta"]["mounts"]["fits"] or "study_d6_P_mm" in h:
+            d6 = np.asarray(h.get("study_d6_P_mm", h["d6_P_mm"]), float)
             fit = SL.nearest_fit(d6)
             import hom_grasp_refine as R
+            if "study_d6_P_mm" in h:
+                w = W.bench_world(task, d6, h["v"], h["prm"], variant=h["variant"])
             wf = W.bench_world(task, fit, h["v"], h["prm"], variant=h["variant"])
             sc = {"study": [], "fit": []}
             for sd in VAL_SEEDS:
@@ -273,6 +295,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     w = sub.add_parser("write")
     w.add_argument("--all", action="store_true", help="also the sphere tasks at the twist, roll and press specialists")
+    w.add_argument("--study-layout", action="store_true",
+                   help="keep a layout outside the travel boxes at the study's numbers instead of its nearest fit")
     v = sub.add_parser("verify")
     v.add_argument("--plans", default="*_plan.json", help="glob of plan files in the plans folder")
     v.add_argument("--seed", type=int, default=20, help="seed of the full run (a validation seed of the study)")

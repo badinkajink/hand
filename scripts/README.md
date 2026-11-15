@@ -461,7 +461,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (61)
+## hardware/ (64)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -478,7 +478,9 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `camera_arm_calibration_page.py` | Result page of 2026-11-13: lens and arm calibration of the two D435 tracking cameras on the UR5, with the owner jogging the arm (owner: "sure, build it here, something that we can ideally store, replay, (render a nice mu |
 | `charuco_board_mount_print.py` | The mount that holds the ChArUco board of scripts/hardware/charuco_board_print.py on the SR2 hand for the hand-eye poses (owner, 2026-11-12: at the camera arm's fork). |
 | `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
+| `dip_tag_print.py` | AprilTag stickers for the back of the DIP link b v4, to track the fingers' gantries with the two D435s of the HOM trials (owner, 2026-11-15: "please design a pdf of apriltags to print on the back of the dip link. |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
+| `gantry_travel_fit.py` | The gantries' travel from a sweep of a DIP-link tag (docs/experiments/20261115-gantry_travel/lab/gantry_travel.py sweep; owner, 2026-11-15: "we theoretically should be able to track travel"). |
 | `handeye_rotation_sim.py` | Hand-eye calibration of a table-fixed camera with the board screwed to the hand at an unmeasured place: how the error of the camera's pose depends on how far the hand turns between poses (owner, 2026-11-13: "it will be o |
 | `hom_bench_plans.py` | Deploy plans of the first real-trial series (docs/notes/20261105-object_seating_and_tracking/ 20261105-object_seating_and_tracking_plan.md, section "Reproduction of the simulated experiments"), one per layout and task, i |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
@@ -519,6 +521,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `replay_real_v1_hardware_log.py` | Replay a real_v1 hardware command log in MuJoCo and emit an analysis-friendly NPZ. |
 | `run_tracker_service.sh` | Workstation companion launcher: the counterpart to ~/run_control_station.sh on the CB1. |
 | `servo_identification_protocol_page.py` | Page: identification protocol for the SR2 hand's serial-bus servos (draft, 2026-10-13). |
+| `sr2_hom_replay.py` | Open-loop replay of recorded HOM trials of the SR2 hand in the CPU MuJoCo plant of scripts/hom/hom_tasks.py, and a fit of that plant's parameters to the recorded joint angles and object poses. |
 | `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
 | `sr2_servo_sysid_page.py` | Builds docs/experiments/20261106-sr2_servo_sysid/20261106-sr2_servo_identification.html: the free-space identification of the SR2 hand's nine SCS0009 servos on 2026-11-06 (QUEUE R36; the owner: "i put the ur5 computer in |

@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 14:15
+## State on 2026-11-15 16:30
 
 Built and checked without hardware:
 
@@ -31,9 +31,27 @@ Built and checked without hardware:
 Measured on corvus on 2026-11-13 (`docs/experiments/20261113-tag_tracking_throughput/`): tracker 29.9 Hz with 42 ms frame
 age; link round trip 3.4 ms median to the workstation; HOM 4.0 ms per step on corvus's CPU.
 
+Done since 14:15:
+
+- The CB1 runs the read-back patch (owner's go, 2026-11-15: "go ahead on the CB1 patch and restart"). It was applied with
+  `git apply -p0` (the CB1 has no `patch`), the originals kept in `~/backups/20261115-stream_read_back/` on the CB1, and
+  the station restarted at about 16:12. On the CB1's own patched files with fake hardware
+  (`scripts/hardware/station_read_back_check.py`, now without numpy): 50 frames, read-back equal to the written pose,
+  2.96 ms per frame. The restarted station reads the nine servos (servo age 2 ms); it is unhomed with no plan loaded.
+- The pin-push specialist runs at (75, 56.8), the owner's choice ("sure we can use that layout"): its four plans were
+  rewritten there at about 16:18 with the study's pick (`hom_bench_plans.py write`; meta.hom keeps the study's layout).
+  Its index and middle gantries sit at the end of their 60 mm travel (margin 0.00 mm). The twist grasp fails the pose
+  toy's constraints there (meta.hom.toy_feasible false) and scores 0.619 against 0.641 at the study's layout (CPU, seeds
+  20-24).
+- From 14:15 to 16:22 `hom_bench_world.make_bench` ran without the plant's hold of the object (HomBench's own hold, 0,
+  replaced the world's). The server and the SIL runs build HomBench from the plan and were not affected; the plans'
+  check runs on make_bench again from 16:22 (the generalist pin-push plan gives 0.7273 again).
+- Stickers for the backs of the DIP links (`assets/tracking/20261115-dip_link_tags/`) and the gantry travel measurement
+  (`docs/experiments/20261115-gantry_travel/`): the stage scale, axis direction, backlash and travel ends from the tags.
+
 Blocking a real trial:
 
-1. Joint angles during a stream. The station does not read the servos while a policy stream runs
+1. Joint angles during a stream (resolved at 16:12: the CB1 is patched). The station does not read the servos while a policy stream runs
    (`manta_hand/runtime.py`, `_telemetry_loop`). Without measured angles HOM fails: in the simulated loop on the cad_v1
    hand it dropped the sphere on the twist and the roll (J 0 against 0.352 and 0.315 with the angles), whether its
    reference or its targets stood in for them. Change on the CB1 (needs the owner's go; the CB1's working copy runs
@@ -54,10 +72,10 @@ Blocking a real trial:
 
    then `~/run_control_station.sh start` on the CB1. An unpatched station ignores `read_back` and answers without the
    positions.
-2. The pin-push specialist layout (75, 55) does not fit the hand: its index and middle sit 0.90 mm past their travel
-   boxes (60.90 mm of the steppers' 60 mm). The nearest layout that fits is (75, 56.8), where the S3 picks score 0.916,
-   0.875, 0.583 and 0.619 (pin-push, press, roll, twist; CPU, seeds 20-24) against 0.917, 0.874, 0.590 and 0.641; its
-   twist grasp fails the pose toy's constraints. The owner chooses that layout or more travel in the driver.
+2. The pin-push specialist layout (resolved: (75, 56.8)). (75, 55) does not fit the hand: its index and middle sit
+   0.90 mm past their travel boxes (60.90 mm of the steppers' 60 mm). At (75, 56.8) the S3 picks score 0.916, 0.875,
+   0.583 and 0.619 (pin-push, press, roll, twist; CPU, seeds 20-24) against 0.917, 0.874, 0.590 and 0.641; its twist
+   grasp fails the pose toy's constraints.
 3. Tag maps of the printed objects' blocks. Each block needs about 40 two-camera views and a bundle adjustment
    (`sr2hand.tracking.pose.bundle_adjust_multi`, as for the test block on 2026-11-13), then the map moved into the
    object's frame against the CAD map (`object_tracking_mjcf.object_map`).
@@ -69,12 +87,13 @@ The plans in the simulated loop (`hom_server sil --plan`, the cad_v2 hand, the m
 | Layout (x_sep, y_sep mm) | Pin-push | Press | Roll | Twist |
 |---|---|---|---|---|
 | Generalist (70, 110) | 0.277 | 0.935 | 0.404 | 0.439 |
-| Pin-push (75, 55) | 0.372 | 0.764 | 0.393 | 0.408 |
+| Pin-push (75, 56.8) | 0.373 | 0.764 | 0.364 | 0.421 |
 | Press (70, 150) | 0.008 | 0.566 | | |
 | Twist (100, 70) | 0.286 | 0.487 | | |
 | Roll (85, 170) | failed | 0 (dropped) | | |
 
-At the roll layout HOM's Eq. (2) least-squares solve failed on the cylinder's diverged state (pin-push at 6.34 s); the
+The pin-push row is at (75, 56.8) since 16:29 (at the study's (75, 55): 0.372, 0.764, 0.393 and 0.408;
+`logs/20261115-hom_server_sil/sil_v3_pinpush_*.log`). At the roll layout HOM's Eq. (2) least-squares solve failed on the cylinder's diverged state (pin-push at 6.34 s); the
 server then holds its last targets and stops the trial.
 
 ## Before a session
