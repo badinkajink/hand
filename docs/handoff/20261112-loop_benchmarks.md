@@ -1,4 +1,40 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-15 06:40: lane done 06:24 (var_*, fu_*, tm_* rc 0; lane.sh idle, polling lane.txt; "END" stops it). Step 25:
+  HOM page text for the variants (2 of 13 raised J: the shared pick's forces +0.214 on the press, a 50 ms preview +0.013
+  on the roll; lead 0.15 rad and the force loop lowered J on every task run) and the fusion (DIAL residual res_anneal
+  2x32: +0.065/+0.133/+0.114 over HOM on twist/roll/press, within full DIAL's interval on pin-push and press, 46x HOM's
+  GPU per twist rollout against 28x for DIAL 2x32 alone and 209x for full DIAL); four task films checked. tm_full rows
+  fill the MPC tuning table's GPU column (2.37-4.64 s/s); tm_chunk16/64 rows are batch-throughput checks no page reads.
+  figures.json controllers_track gains per-task residual numbers and residual_cost; talk v2 notes and guide get one
+  residual sentence (about 24 days as the search's inner loop). Waiting on owner: f2 on the full press grid (1.6 GPU h).
+State 11-15 05:05: top_* and patch_* done (04:45). Fresh seeds 10-11 on each controller's ten best (rank-run J at
+  seeds 0-1): under f2 HOM's ten lost 0.010-0.036, f2's own ten up to 0.129 (press); sets then within the bootstrap
+  interval on twist/pin-push/press (+0.021 press), -0.291 on the roll. HOM dropped the press cylinder 11/34 at 10-11 vs
+  2/34 (f2 none). Fused pick (f2's best of HOM's ten) = f2's own first choice on twist and pin-push; -0.040 roll, -0.177
+  press. Repeat test (patch vs rank runs, same layout and seed): HOM |dJ| 0.0009/0.0041, f2 0.082/0.071 (one sampling
+  generator per batch). Patch smoothness HOM 0.82/0.66, f2 1.03/0.70. Hand 58eecfc99 (pushed); MPC page v7, HOM page v2;
+  contact 1b5256f (deck notes + guide, pushed). Lane on var_* (from 04:46), then fu_*, tm_*, finish_end ~07:30; then step
+  25's variants/fusion text check and republish.
+State 11-15 03:30: ranking runs done on the four tasks (HOM; c1 = twist pick DIAL 2x32 H10; rt30 = DIAL 2x16 H30
+  every 0.2 s; g1 = gradient 2x32; f2 = DIAL 4x64 at a 2 ms step; HOM at seeds 10-11). Mean J: HOM 0.264, f2 0.400 at 209x
+  HOM's GPU per rollout, real-time planners 0.151-0.225 at 26-28x. HOM vs f2 rho 0.81/0.38/0.50/0.60; under f2 HOM's 50
+  best layouts score 0.15-0.33 above 50 random; best of HOM's ten within 0.035 of f2's best on twist/roll/pin-push, 0.134
+  short on the press (f2's press best at y_sep ~105 mm vs HOM's 65, where HOM drops at new seeds; HOM's drop rate at
+  seeds 10-11 17 % vs 8 %, press 31 vs 10 %). Commits 637be87ea, 1ca6479f3 (pushed); contact ea6a5fa (deck v2 + guide,
+  pushed). MPC page v6 https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f; HOM page v1
+  https://claude.ai/artifact/83AjHSqqWZXRuif4nTFjCa (docs/experiments/20261114-hom_inner_loop/). Lane (lane.txt): films,
+  top_* (fresh-seed confirmation), finish_mid, patch_* (7x7 neighbourhood of HOM's best twist/press layout, HOM and f2),
+  var_*, fu_*, tm_*, finish_end, about 07:30. finish.sh never adds docs/overviews/printed_fingertips.html (poller's).
+State 11-14 22:55: commit ca590f710 (not pushed). Sweeps logs/20261114-mpc_tasks/tune_rt.sh (done) and tune_rt2.sh
+  (larger budgets, ends ~23:35); then lane logs/20261114-mpc_tasks/lane.sh (93 lines, lane.txt): 0.3 s-horizon timing
+  and tuning, the _rank runs (hom, c1 = twist pick, c7, f2 = DIAL 4x64 at 2 ms, g1 = gradient 2x32), films per task,
+  HOM variants on _rank20 (preview, shared picks, Eq. (2) damping, u_max, lead, force loop, axis feedback), fused
+  planners (res_anneal, hs_anneal), throughput timing at 16 and 64 hands; ~6 h. Builders: inner_loop_mpc_page.py
+  (sections tasks, rank100), new scripts/hom/hom_inner_loop_page.py (draft built), codesign_section_figures.py cost
+  --track (Steel measured 3.32x; DIAL rows 28.7x and 401x HOM per twist rollout: 15 and 215 days) and controllers
+  (v2 deck figure, after the rank runs). Contact repo build_talk.py: d-speed notes and lead updated (not committed).
+  Tuning-pair results: the roll needs a 0.3 s horizon (DIAL 4x16..4x64 at H30: 0.18-0.26; H<=20: <=0.011; HOM 0.096);
+  gradient 2x32: roll 0.089, pin-push 0.077; HOM's grid seed rho 0.78/0.65/0.65/0.33 (twist/roll/pinpush/press).
 State 11-14 22:40: owner 22:0x: "is this objective score across multiple tasks? we should run them if not"; may
   improve HOM (better than DLS? fuse methods? gradient-based?); "emergent trends in the hyperparameters such as impedance
   forces, twist weights"; run the ranking test on real-time DIAL; "keep things clean, video documented, and actually
@@ -116,11 +152,12 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 17. Owner 11-13 15:5x, target reversals: when the lane's sv_revA_*, sv_revC_*, sv_revX_*, sv_revP_ext, sv_revF_* … Done 11-14 10:54: Done 11-14 10:54: no sampling option lowered the real-time DIAL's reversals (temperature 1.0: 3.86 vs 1.30; continued slope J -0.172, 10 of 40 dropped); rate-change cost w1: 0.71 at J -0.023 (-0.068 to +0.019); dead band 3 deg: 1.02 at -0.002; full DIAL acc1 2.02 -> 1.54 at -0.002. Page section 11.
 - [x] 18. Owner 11-14 10:3x 'update?': lane lines 124-126 (sv_revR_acc1, sv_revR_acc1_db3, sv_revR_acc2_db3: rate-chang… Done 11-14 19:50: Done 11-14 20:00: on the 2x32 pick the rate-change cost w1 gave 1.06 -> 0.52 reversals at J -0.021 (-0.055 to +0.012), with the 3 deg dead band 0.45 at -0.027 (-0.063 to +0.008), w2 + dead band 0.42 at -0.057 (-0.107 to -0.012); pick + w1 J 0.390 vs HOM 0.388 (+0.002). Page: reversal table rows 13-16, new section on mean J and ranking (Spearman rho HOM vs DIAL 4x64 0.89).
 - [ ] 19. Tasks and ranking: pick a real-time planner config on the _tune pairs of the four tasks (logs/20261114-mpc_tasks/tune_rt*.sh); run HOM, that config (+ acc-w 1), the twist pick and full DIAL (_rank20) on the _rank pairs of twist, roll, pinpush, press; MPC page sections on tasks and the ranking test (rho, top-k, HOM's first choice), films per task
-- [ ] 20. Gradient planner (method grad, FD + line search) at the pick's and the full budget on the _tune pairs and the _rank20 pairs; MPC page subsection
+- [x] 20. Gradient planner (method grad, FD + line search) at the pick's and the full budget on the _tune pairs and the… Done 11-15 03:22: Done 11-15 03:30: grad (FD central differences + line search) at 2x32 real time on the 100 pairs per task: mean J 0.225 over the four tasks (HOM 0.264), seed rho 0.82/0.80/0.50/0.62; on the MPC page's tasks table and the HOM page (637be87ea)
 - [ ] 21. HOM improvements page (new, docs/experiments/20261114-hom_improvements/): diagnosis of where HOM loses J (traces vs DIAL), retuned forces/modes (11-11 shared picks), command gain or preview, fusion at real time (hs_anneal, residual planner on HOM), Eq. (2) damping sweep; films
-- [ ] 22. Parameter trends of HOM's refined forces and contact modes (11-11 level-hom picks, rows/sv25_track): figure of picks vs layout coordinates and default J, on the HOM improvements page
-- [ ] 23. Evidence for HOM beyond throughput: seed reproducibility, one parameter set across tasks vs per-task planner configs, ranking agreement, landscape smoothness on a neighbourhood patch (HOM vs real-time planner), robustness at friction 0.4; on the MPC page or the HOM improvements page
-- [ ] 24. Talk v2 deck and guide v2 (contact repo talks/20261117-hand_design): speed chart with Steel measured (3.3x pads) and inner-loop rows (HOM, real-time DIAL, DIAL 4x64, RL), a slide comparing HOM with MPC and UHAS, guide discussion and likely question; rebuild, check figures, commit and push both repos
+- [x] 22. Parameter trends of HOM's refined forces and contact modes (11-11 level-hom picks, rows/sv25_track): figure o… Done 11-15 03:22: Done 11-15 03:30: section 'Forces and contact modes picked for HOM per layout' on docs/experiments/20261114-hom_inner_loop/20261114-hom_inner_loop_stability_variants_fusion.html (figure 20261114-hom_picks_trends.png, 2x2 since 11-15)
+- [x] 23. Evidence for HOM beyond throughput: seed reproducibility, one parameter set across tasks vs per-task planner … Done 11-15 03:22: Done 11-15 03:30: HOM page sections 'HOM's best layouts under full DIAL' (search curves, layout map), stability (seed rho, drop rates at new placements), the two factors of J; the patch smoothness comparison is step 25
+- [x] 24. Talk v2 deck and guide v2 (contact repo talks/20261117-hand_design): speed chart with Steel measured (3.3x pa… Done 11-15 03:22: Done 11-15 03:30: contact ea6a5fa (pushed): slide hom-mpc from the controller chart (cost per planner, best of HOM's ten under full DIAL), guide answer 'Why HOM and not sampling MPC?', speed charts with Steel 43 h and full DIAL 112 days at the 2 ms step (209x)
+- [ ] 25. When the lane's top_*, patch_*, var_*, fu_* and tm_* lines are done (logs/20261114-mpc_tasks/queue.log): MPC page sec_confirm (fresh-seed top-10 under HOM and f2); HOM page: smoothness of HOM and f2 on the patch pairs (rows mpc_{hom,anneal}_{twist,press}_patch*.jsonl, neighbour/random |dJ| within the patch), text for variants and fusion, films of the four tasks checked; rebuild both pages, commit, push, republish both URLs; update the deck (build_talk.py --v2) if its numbers moved
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J

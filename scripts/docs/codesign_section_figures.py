@@ -588,6 +588,10 @@ def controllers():
             "hom_on_dial_s01", "hom_on_dial", "d_dial", "first_h_dial", "first_d_dial", "fused_dial", "drop_hom_s01",
             "drop_hom", "drop_dial_s01", "drop_dial")} if c else None)
         out["tasks"][t]["repeat"] = HP.repeat_numbers(R, t) if t in HP.PATCH_TASKS else None
+        rr = HP.rows_of(R, MP.tstem("res_anneal", t, "_rank20", MP.CFG_PICK))     # DIAL's residual on HOM's targets
+        p_ = MP.paired(rr, HP.hom_rank(R, t)) if rr else None
+        out["tasks"][t]["residual"] = ({"J": MP.mean_j(rr), **{k: p_[k] for k in ("d", "lo", "hi")}} if p_ else None)
+    out["residual_cost"] = HP.gpu_ratio(R, MP.tstem("res_anneal", "twist", "_rank20", MP.CFG_PICK))
     x = np.arange(len(tasks))
     S_ = [out["tasks"][t]["screen"] or {} for t in tasks]
     g = (lambda k: np.array([s_.get(k, np.nan) for s_ in S_]))

@@ -251,8 +251,21 @@ VARIANTS = [("_pv50", "Command read 50 ms ahead", TASKS), ("_pv100", "Command re
             ("_att2", "Orientation feedback on all three axes, 2/s", ("twist", "roll")),
             ("_att1ax", "Orientation feedback about the commanded axis, 1/s", ("twist", "roll")),
             ("_att4ax", "Orientation feedback about the commanded axis, 4/s", ("twist", "roll"))]
-FUSION = [("res_anneal", "HOM with a DIAL residual in joint space, 2 &#215; 32"),
+# the variants in a sentence (lower case; cap() at a sentence's start)
+LNAME = {"_pv50": "a 50 ms preview of the command", "_pv100": "a 100 ms preview of the command",
+         "_prmsh": "forces and contact modes picked by CEM for the task",
+         "_hpwdamp0.0001": "a damping of 0.0001", "_hpwdamp0.01": "a damping of 0.01", "_hpwdamp0.1": "a damping of 0.1",
+         "_hpumax1": "a rate bound of 1 rad/s", "_hpumax4": "a rate bound of 4 rad/s",
+         "_hplead0.15": "a reference lead of 0.15 rad", "_floop": "a force loop on the separation",
+         "_att2": "orientation feedback on all three axes", "_att1ax": "orientation feedback at 1/s about the commanded axis",
+         "_att4ax": "orientation feedback at 4/s about the commanded axis"}
+NUMW = dict(enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen".split()))
+FUSION = [("res_anneal", "DIAL residual on HOM's servo targets, 2 &#215; 32"),
           ("hs_anneal", "DIAL in HOM's space, 2 &#215; 32")]
+
+
+def cap(s):
+    return s[:1].upper() + s[1:]
 
 
 def rows_of(R, stem):
@@ -322,9 +335,10 @@ batch of samples per hand. Its plan is the nine servo targets at two or three kn
 gradient planner (method <code>grad</code>) the same rollouts are spent on finite differences. A least-squares gradient
 is fitted to central differences at 0.02 rad, along each free knot coordinate and along random directions. Then as many
 step sizes are tried in a line search. The scheme is MJPC's gradient planner [2]; MuJoCo-Warp 3.6 has no derivatives. In the fused planners
-HOM runs in every rollout and in the plant. A joint-space offset is added to HOM's servo targets in
-<code>res_anneal</code>, and rolls and slides are added to Eq. (2)'s reference in <code>hs_anneal</code>. The zero
-plan of both is HOM.</p>""",
+HOM runs in every rollout and in the plant. In the DIAL residual on HOM's servo targets (<code>res_anneal</code>) a
+joint-space plan from DIAL is added to HOM's targets. In DIAL in HOM's space (<code>hs_anneal</code>) rolling and
+sliding rates from DIAL are added to the rows of Eq. (2) (sampling MPC page, Section on HOM's space). The zero plan of
+both is HOM.</p>""",
                 mp=MPC_PAGE)
 
 
@@ -464,8 +478,8 @@ was <<jn>>, against <<jo>>.</p>""",
     if all(C.values()):
         fh = [c["dial_on_hom_s01"] - c["dial_on_hom"] for c in C.values()]
         fd = {t: c["dial_on_dial_s01"] - c["dial_on_dial"] for t, c in C.items()}
-        txt += fill(r"""<p>Each controller's ten best of the 100 pairs, by its J at seeds 0 and 1, were also run under both
-controllers at seeds 10 and 11 (<a href="<<href>>">the ranking test of the sampling MPC page</a>). Under full DIAL, HOM's
+        txt += fill(r"""<p>In the <a href="<<href>>">ranking test of the sampling MPC page</a>, each controller's ten best pairs were
+chosen by its J at seeds 0 and 1. Both sets were run again under both controllers at seeds 10 and 11. Under full DIAL, HOM's
 ten lost <<lo>> to <<hi>> of their mean J at the new seeds. The planner's own ten lost up to <<fd>>, on the <<tw>>, since
 they had been chosen on the planner's J at seeds 0 and 1.</p>""",
                     href="../20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#rank100",
@@ -850,6 +864,18 @@ On the pin-push <<wide_pp>> of HOM's ten best lie at $y_{\mathrm{sep}}$ of 150 m
     return t_
 
 
+def variant_effects(R):
+    """Each variant's paired difference from HOM's defaults on its tasks' 20 pairs: [(tag, label, tasks, {task:
+    paired})], or None while a variant's rows are missing."""
+    eff = []
+    for tag, lab, tasks in VARIANTS:
+        d = {t: paired(rows_of(R, f"hom_{t}_rank20{tag}"), hom_rank(R, t)) for t in tasks if hom_rank(R, t)}
+        if len(d) < len(tasks) or not all(d.values()):
+            return None
+        eff.append((tag, lab, tasks, d))
+    return eff
+
+
 def sec_variants(R):
     rows, any_ = [], False
     for tag, lab, tasks in VARIANTS:
@@ -871,26 +897,35 @@ def sec_variants(R):
     txt = fill(r"""<p>HOM solves Eq. (2) for the finger joints' rates: a least-squares problem with a damping term and a
 bound on each joint's rate. It is solved exactly. For each finger the 27 patterns of its three joints at the lower bound,
 free or at the upper bound are enumerated (<code>hom_gpu.py</code>). Another solver of the same problem returns the same
-rates, so the variants change the problem: its damping, its rate bound, the reference's lead, a preview of the command,
-the commanded forces and contact modes, a force loop and feedback on the object's orientation. Each was run on the 20
+rates, so the variants change the problem. They change Eq. (2)'s damping, rate bound or reference lead. They add a
+preview of the command, other forces and contact modes, a force loop or feedback on the object's orientation. Each was
+run on the 20
 pairs of each task at seeds 0 and 1 (Table <<tn>>).</p>""", tn=P.TAB[0] + 1)
-    eff = []
-    for tag, lab, tasks in VARIANTS:
-        d = {t: paired(rows_of(R, f"hom_{t}_rank20{tag}"), hom_rank(R, t)) for t in tasks}
-        if all(d.values()):
-            eff.append((lab, tasks, d))
-    if len(eff) == len(VARIANTS):
-        up = [(lab, t, d[t]) for lab, tasks, d in eff for t in tasks if d[t]["lo"] > 0]
-        down = [(lab, t, d[t]) for lab, tasks, d in eff for t in tasks if d[t]["hi"] < 0]
-        lab_ = (lambda x: x[0].lower() + x[1:])
-        best = max(eff, key=lambda e: np.mean([e[2][t]["d"] for t in e[1]]))
-        txt += "<p>" + (
-            "By the 95 % interval of the paired difference, J rose with " + al(
-                [f"{lab_(lab)} on the {TN[t].lower()} ({x['d']:+.3f})" for lab, t, x in up]) + "." if up else
-            "No variant raised J on any task by the 95 % interval of the paired difference.") + (
-            " J fell with " + al([f"{lab_(lab)} on the {TN[t].lower()} ({x['d']:+.3f})" for lab, t, x in down]) + "."
-            if down else "") + (f" The largest mean change over its tasks was {np.mean([best[2][t]['d'] for t in best[1]]):+.3f}, "
-                                f"with {lab_(best[0])}.") + "</p>"
+    eff = variant_effects(R)
+    if eff:
+        ups = sorted([e for e in eff if any(e[3][t]["lo"] > 0 for t in e[2])],
+                     key=lambda e: -max(e[3][t]["d"] for t in e[2] if e[3][t]["lo"] > 0))
+        downs = [e for e in eff if e not in ups and all(e[3][t]["hi"] < 0 for t in e[2])]
+        rest = [e for e in eff if e not in ups and e not in downs]
+        s = ["A rise or fall below is one whose 95 % interval of the paired difference excludes zero."]
+        if not ups:
+            s.append("No variant raised J on any task.")
+        for tag, lab, tasks, d in ups:
+            up_t = [t for t in tasks if d[t]["lo"] > 0]
+            oth = [d[t]["d"] for t in tasks if t not in up_t]
+            s.append(f"{cap(LNAME[tag])} raised J by {al([f'{d[t]['d']:.3f}' for t in up_t])} on "
+                     f"{MP.tasks_list(up_t)}.")
+            if oth:
+                s.append(f"On the other {NUMW[len(oth)]} tasks the change was {min(oth):+.3f} to {max(oth):+.3f}."
+                         if len(oth) > 1 else f"On the other task the change was {oth[0]:+.3f}.")
+        for tag, lab, tasks, d in downs:
+            v = [-d[t]["d"] for t in tasks]
+            s.append(f"{cap(LNAME[tag])} lowered J on {'every task' if len(tasks) == len(TASKS) else MP.tasks_list(tasks)}, "
+                     f"by {min(v):.3f} to {max(v):.3f}.")
+        if rest:
+            s.append(f"The other {NUMW[len(rest)]} variants changed J by "
+                     f"{max(abs(d[t]['d']) for _t, _l, tasks, d in rest for t in tasks):.3f} or less on every task.")
+        txt += "<p>" + " ".join(s) + "</p>"
     return txt + table(["HOM variant"] + [TN[t] for t in TASKS], [base] + rows,
                  "HOM's variants on each task's 20 pairs at seeds 0 and 1: mean J, and below it the paired difference "
                  "from HOM's defaults on the same pairs and seeds.", num_from=1)
@@ -908,13 +943,42 @@ def search_fusion(R):
     per = float(np.mean([r["chunk_wall_s"] / r["chunk_worlds"] for r in rows_of(R, st) if r.get("chunk_wall_s")]))
     extra = 3 * 10 * 2 * per
     gap = {t: N[t]["d_max"] - N[t]["scr"][9] for t in TASKS}
-    return fill(r"""<p>The methods can also be fused at the level of the search. HOM scores every layout of the grid,
-and a planner re-scores HOM's ten best layouts of each task. On the 100 pairs of Section <<sn>>, the planner's best J
-on HOM's ten was compared with its best on all 100. It fell short by <<gp>> on the twist, roll, pin-push and press. On the
-search of the talk's cost chart, 1,423 layouts of the twist, the roll and the press, HOM takes <<hh>> hours of GPU
-time. Re-scoring ten layouts per task at seeds 0 and 1 under full DIAL takes <<em>> minutes more, <<pc>> % of
-HOM's time.</p>""", sn="SCREENSEC", gp=al([f"{gap[t]:.3f}" for t in TASKS]), hh=f"{hom_s / 3600:.1f}",
-                em=f"{extra / 60:.0f}", pc=f"{100 * extra / hom_s:.1f}")
+    eq = [t for t in TASKS if gap[t] < 5e-4]
+    lo = [t for t in TASKS if t not in eq]
+    gp = "On the 100 pairs of Section SCREENSEC, the planner's best J on HOM's ten "
+    if eq:
+        gp += f"equalled its best on all 100 on {MP.tasks_list(eq)}."
+        if lo:
+            gp += f" On {MP.tasks_list(lo)} it was {al([f'{gap[t]:.3f}' for t in lo])} lower."
+    else:
+        gp += f"was {al([f'{gap[t]:.3f}' for t in lo])} below its best on all 100 on {MP.tasks_list(lo)}."
+    txt = fill(r"""<p>The methods can also be fused at the level of the search. HOM scores every layout of the grid,
+and a planner re-scores HOM's ten best layouts of each task. <<gp>> On the search of the talk's cost chart, 1,423
+layouts of the twist, the roll and the press, HOM takes <<hh>> hours of GPU time. Re-scoring ten layouts per task at
+seeds 0 and 1 under full DIAL takes <<em>> minutes more, <<pc>> % of HOM's time.</p>""", gp=gp, hh=f"{hom_s / 3600:.1f}",
+               em=f"{extra / 60:.0f}", pc=f"{100 * extra / hom_s:.1f}")
+    C = {t: MP.confirm_numbers(t) for t in TASKS}
+    if all(C.values()):
+        prs = {t: json.loads((MP.ROWS / f"mpc_pairs_{t}_rank.json").read_text())["pairs"] for t in TASKS}
+        g10 = {t: {(p_["x"], p_["y"], p_["grasp"]) for p_ in sorted(prs[t], key=lambda p_: -p_["J_by"])[:10]} for t in TASKS}
+        r10 = {t: {(p_["x"], p_["y"], p_["grasp"]) for p_ in json.loads((MP.ROWS / f"mpc_pairs_{t}_top.json").read_text())[
+            "pairs"] if p_["by"] in ("hom_top", "both")} for t in TASKS}
+        same = [t for t in TASKS if C[t]["fused_is"] == "planner"]
+        other = [t for t in TASKS if t not in same]
+        oth = ""
+        if other:
+            oth = (f" On {MP.tasks_list(other)} it was another layout, which scored "
+                   f"{al([f'{C[t]['first_d_dial'] - C[t]['fused_dial']:.3f}' for t in other])} below the planner's first "
+                   "choice at seeds 10 and 11.")
+            oth += "".join(f" On the {TN[t].lower()} HOM's own first choice scored "
+                           f"{C[t]['first_h_dial'] - C[t]['fused_dial']:.3f} more than that layout."
+                           for t in other if C[t]["first_h_dial"] - C[t]["fused_dial"] > 0.005)
+        txt += fill(r"""<p>The fresh-seed check of the <a href="<<href>>">ranking test</a> chose HOM's ten by HOM's own
+runs at seeds 0 and 1. They share <<sh>> layouts with the grid's ten on the twist, roll, pin-push and press. Among them
+the planner's best at seeds 0 and 1 was its own first choice of the 100 on <<same>>.<<oth>></p>""",
+                    href="../20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#rank100",
+                    sh=al([str(len(g10[t] & r10[t])) for t in TASKS]), same=MP.tasks_list(same), oth=oth)
+    return txt
 
 
 def sec_fusion(R):
@@ -927,28 +991,67 @@ def sec_fusion(R):
             dn = [f"the {TN[t].lower()} ({dd[m][t]['d']:+.3f})" for t in TASKS if dd[m][t]["hi"] < 0]
             return (f"{name} scored above HOM on {al(up) if up else 'no task'}"
                     + (f" and below it on {al(dn)}" if dn else "") + ".")
-        txt += fill(r"""<p>Two planners were fused with HOM at the real-time budget, 2 &#215; 32 samples over 0.1 s, on the 20
-pairs of each task at seeds 0 and 1 (Table <<tn>>). By the 95 % interval of the paired difference, <<a>>
+        txt += fill(r"""<p>Two planners were fused with HOM at the real-time pick's budget, 2 &#215; 32 samples over 0.1 s.
+They ran on the 20 pairs of each task at seeds 0 and 1 (Table <<tn>>). By the 95 % interval of the paired difference, <<a>>
 <<b>></p>""", tn=P.TAB[0] + 1,
-                    a=says("res_anneal", "DIAL with a joint-space residual on HOM's targets"),
-                    b=says("hs_anneal", "DIAL over Eq. (2)'s reference"))
-    for m, lab in FUSION:
+                    a=says("res_anneal", "the DIAL residual on HOM's servo targets"),
+                    b=says("hs_anneal", "DIAL in HOM's space"))
+    # the residual against DIAL 2 x 32 alone and full DIAL on the same 20 pairs, and the GPU time per twist rollout
+    alone = {t: sub20(R, t, rows_of(R, MP.tstem("anneal", t, "_rank", CFG_PICK))) for t in TASKS}
+    full = {t: sub20(R, t, rows_of(R, MP.tstem("anneal", t, "_rank", CFG_FULL2))) for t in TASKS}
+    res = {t: rows_of(R, MP.tstem("res_anneal", t, "_rank20", CFG_PICK)) for t in TASKS}
+    if all(alone[t] and full[t] and res[t] for t in TASKS):
+        pf = {t: paired(res[t], full[t]) for t in TASKS}
+        pc = {t: paired(res[t], alone[t]) for t in TASKS}
+        below = [t for t in TASKS if pf[t]["hi"] < 0]
+        zero = [t for t in TASKS if t not in below and pf[t]["lo"] <= 0]
+        hi_c = [t for t in TASKS if pc[t]["lo"] > 0]
+        s = []
+        if below:
+            s.append("Against full DIAL on the same pairs, the residual scored "
+                     + al([f"{-pf[t]['d']:.3f} lower on the {TN[t].lower()}" for t in below]) + ".")
+        if zero:
+            s.append(f"On {MP.tasks_list(zero)} the interval of that difference included zero "
+                     f"({al([f'{pf[t]['d']:+.3f}' for t in zero])}).")
+        if hi_c:
+            v = [pc[t]["d"] for t in hi_c]
+            s.append(f"Against DIAL 2 &#215; 32 alone it scored {min(v):.3f} to {max(v):.3f} higher on "
+                     f"{MP.tasks_list(hi_c)}.")
+        gr = [gpu_ratio(R, MP.tstem(m, "twist", ps, c)) for m, ps, c in (
+            ("res_anneal", "_rank20", CFG_PICK), ("anneal", "_rank", CFG_PICK), ("anneal", "_rank", CFG_FULL2))]
+        if all(gr):
+            s.append(f"Per twist rollout the residual took {gr[0]:.0f} times HOM's GPU time, DIAL 2 &#215; 32 alone "
+                     f"{gr[1]:.0f} times and full DIAL {gr[2]:.0f} times.")
+        txt += "<p>" + " ".join(s) + "</p>"
+
+    def cell(v, h):
+        rs = [r["replan_s_mean"] for r in v if r.get("replan_s_mean")]
+        return f"{MP.mean_j(v):.3f}<br>{fd(paired(v, h))}" + (f"<br>{np.mean(rs):.2f} s" if rs else "")
+    lines = ([("HOM", None), ("DIAL 2 &#215; 32 alone, real time", ("anneal", "_rank", CFG_PICK))]
+             + [(lab, (m, "_rank20", CFG_PICK)) for m, lab in FUSION]
+             + [("Full DIAL 4 &#215; 64, 6.3 times real time", ("anneal", "_rank", CFG_FULL2))])
+    for lab, spec in lines:
         row = [lab]
         for t in TASKS:
-            v = rows_of(R, MP.tstem(m, t, "_rank20", CFG_PICK))
             h = hom_rank(R, t)
+            if spec is None:
+                row.append(f"{MP.mean_j(sub20(R, t, h)):.3f}" if h else "&#8212;")
+                continue
+            m, ps, c = spec
+            v = rows_of(R, MP.tstem(m, t, ps, c))
+            v = sub20(R, t, v) if ps == "_rank" and v else v
             if v and h:
-                any_ = True
-                p_ = paired(v, h)
-                row.append(f"{MP.mean_j(v):.3f}<br>{fd(p_)}<br>{np.mean([r['replan_s_mean'] for r in v]):.2f} s")
+                any_ = any_ or m != "anneal"
+                row.append(cell(v, h))
             else:
                 row.append("&#8212;")
         rows.append(row)
     if not any_:
         return txt
-    return txt + table(["Fused planner"] + [TN[t] for t in TASKS], rows,
-                 "Planners fused with HOM on each task's 20 pairs at seeds 0 and 1: mean J; the paired difference from "
-                 "HOM; the replanning time for 16 hands planned together.", num_from=1)
+    return txt + table(["Controller"] + [TN[t] for t in TASKS], rows,
+                 "Planners fused with HOM on each task's 20 pairs at seeds 0 and 1, with HOM, DIAL 2 &#215; 32 alone and "
+                 "full DIAL on the same pairs and seeds: mean J; the paired difference from HOM; the replanning time "
+                 "for 16 hands planned together.", num_from=1)
 
 
 def sec_trends(PK, figs):
@@ -1011,9 +1114,10 @@ def sec_future():
         "Grasps chosen at five placements (seeds 0-4) in place of three (<code>hom_gpu.py run --seeds 0 1 2 3 4</code> "
         "on the grid). HOM would then run at seeds 10 and 11 on the 100 pairs of the pin-push and the press. A drop rate "
         "above 20 % there would show that the cylinder grasps fail at new placements however they are chosen.",
-        "The planner's landscape on a patch of the lattice. The 49 layouts within 15 mm of the twist's best would be run "
-        "under full DIAL at seeds 0 and 1, for a smoothness ratio to set against HOM's 0.39. A ratio above 0.6 would "
-        "mean that the planner's scores are less ordered in space than HOM's.",
+        "The DIAL residual on HOM's servo targets for one hand alone: <code>inner_loop_mpc.py timing</code> extended to "
+        "<code>res_anneal</code> at <code>--chunk 1</code>. If one hand's replanning at 2 &#215; 32 samples takes 0.1 s "
+        "or less, the residual is a real-time controller that scored above HOM on three tasks. If it takes longer, the "
+        "residual at 2 &#215; 16 samples would be timed and run on the 20 pairs of each task.",
     ]
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
@@ -1079,21 +1183,31 @@ def lede(R, PK, GS):
                      f"{max(q['hom']['mean'] for q in Q.values()):.3f} or less under HOM and by "
                      f"{min(q['full']['mean'] for q in Q.values()):.2f} to {max(q['full']['mean'] for q in Q.values()):.2f} "
                      "under full DIAL.")
-    best = None
-    for tag, lab, tasks in VARIANTS:
-        d = [paired(rows_of(R, f"hom_{t}_rank20{tag}"), hom_rank(R, t)) for t in tasks if hom_rank(R, t)]
-        d = [x for x in d if x]
-        if len(d) == len(tasks) and (best is None or np.mean([x["d"] for x in d]) > best[0]):
-            best = (float(np.mean([x["d"] for x in d])), lab, d)
-    if best:
-        parts.append(f"Of HOM's variants, the best on average was {best[1][0].lower() + best[1][1:]}, at "
-                     f"{best[0]:+.3f} in J over the defaults.")
+    second = []
+    eff = variant_effects(R)
+    if eff:
+        up = sorted(((d[t]["d"], tag, t) for tag, _l, tasks, d in eff for t in tasks if d[t]["lo"] > 0), reverse=True)
+        if up:
+            second.append(f"Of {len(eff)} variants of HOM, {NUMW[len({u[1] for u in up})]} raised J on a task with a "
+                          "95 % interval above zero.")
+            more = [f"{LNAME[tag]} by {x:.3f} on the {TN[t].lower()}" for x, tag, t in up[1:]]
+            second.append(f"{cap(LNAME[up[0][1]])} raised it by {up[0][0]:.3f} on the {TN[up[0][2]].lower()}"
+                          + (", and " + al(more) if more else "") + ".")
+        else:
+            second.append(f"None of {len(eff)} variants of HOM raised J on a task with a 95 % interval above zero.")
+    dr = {t: paired(rows_of(R, MP.tstem("res_anneal", t, "_rank20", CFG_PICK)), hom_rank(R, t)) for t in TASKS}
+    grr = gpu_ratio(R, MP.tstem("res_anneal", "twist", "_rank20", CFG_PICK))
+    if all(dr.values()) and grr:
+        up_t = [t for t in TASKS if dr[t]["lo"] > 0]
+        if up_t:
+            second.append(f"A DIAL residual on HOM's servo targets, at {grr:.0f} times HOM's GPU time per rollout, "
+                          f"raised J by {al([f'{dr[t]['d']:.3f}' for t in up_t])} on {MP.tasks_list(up_t)}.")
     TRN = trend_numbers(PK)
-    parts.append(f"The forces picked for HOM by CEM were below its defaults on every task: a median "
-                 f"{TRN[('twist', 'f_tripod')]['med']:.2f} N against 2.5 N on the twist.")
+    second.append(f"The forces picked for HOM by CEM were below its defaults on every task: a median "
+                  f"{TRN[('twist', 'f_tripod')]['med']:.2f} N against 2.5 N on the twist.")
     if not parts:
         parts.append("HOM against sampling MPC on the SR2 hand's four tasks; the planner runs are under way.")
-    lede_t = "<p>" + " ".join(parts) + "</p>"
+    lede_t = "<p>" + " ".join(parts) + "</p>" + "<p>" + " ".join(second) + "</p>"
     return lede_t, re.sub(r"<[^>]+>", "", " ".join(parts[:2])).replace("&#215;", "x").replace("&#961;", "rho")
 
 
