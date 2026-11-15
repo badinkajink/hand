@@ -25,6 +25,12 @@ feedback K_t dz_t at each step's start from the plant's state (IL fb).
 
 The rate cost is matched to the knot planners' (inner_loop_mpc.MPC.rate_cost with three knots over 0.3 s): a constant
 target rate costs the same under both.
+
+Memory (11-15, RTX 4070 Ti SUPER, 16 GB): 6 hands per batch take 2.1 GB on the spheres and about 10 GB on the cylinders,
+whose convex narrowphase sizes its buffers by the linearization batch (6 x 240 worlds). 16 hands fit on the spheres; on
+the cylinders the first batch asks for 8.5 GB more and fails, and at 6 hands each further batch of one process adds
+3.2 GB and fails. Run the cylinder tasks one batch per process: a loop of runs at --chunk 6, each resuming from the rows
+already written (logs/20261115-ilqr/lane.txt, lines r20c_*).
 """
 from __future__ import annotations
 
