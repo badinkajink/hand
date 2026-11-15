@@ -33,6 +33,7 @@ import http.client
 import json
 import math
 import os
+import queue
 import select
 import socket
 import sys
@@ -57,11 +58,11 @@ class Station:
     """Keep-alive HTTP to the CB1's station: state polling (read-only) and the policy stream (--live only); the
     hand_link.py class."""
 
-    def __init__(self, url, token_file, live):
+    def __init__(self, url, token_file, live, read_back=True):
         u = urlparse(url)
-        self.host, self.port, self.live = u.hostname, u.port or 80, live
+        self.host, self.port, self.live, self.read_back = u.hostname, u.port or 80, live, read_back
         self.token = Path(token_file).read_text().strip() if live else None
-        self.stream_token = None
+        self.stream_token, self.n_read, self.n_frames = None, 0, 0
         self.joints, self.t_joints, self.error, self.state, self.suspended = None, float("nan"), None, {}, None
         self.stop_evt = threading.Event()
 
@@ -104,12 +105,42 @@ class Station:
     def start_stream(self):
         self.c = self._conn()
         self.stream_token = self._post(self.c, "/api/v1/stream/start", {"timeout_s": 0.25})["token"]
+        self.q = queue.Queue(maxsize=1)
+        threading.Thread(target=self._frames, daemon=True, name="frames").start()
 
     def frame(self, joints, speed=None):
-        body = {"token": self.stream_token, "joints": joints}
-        if speed is not None:
-            body["servo_speed"] = int(speed)
-        self._post(self.c, "/api/v1/stream/frame", body)
+        """Hand the newest frame to the worker; a frame still waiting is dropped. The loop never waits on HTTP: with the
+        read-back a frame takes the station about 9 ms more."""
+        try:
+            self.q.get_nowait()
+        except queue.Empty:
+            pass
+        self.q.put_nowait((joints, speed))
+
+    def _frames(self):
+        """POST each frame on a connection of its own; with read_back the station reads the nine servos after writing
+        and answers with them (a station without the change ignores the flag and answers without them)."""
+        c = self._conn()
+        while self.stream_token is not None:
+            try:
+                joints, speed = self.q.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            body = {"token": self.stream_token, "joints": joints, "read_back": self.read_back}
+            if speed is not None:
+                body["servo_speed"] = int(speed)
+            try:
+                r = self._post(c, "/api/v1/stream/frame", body)
+                self.n_frames += 1
+                sv = r.get("servos")
+                if sv:
+                    self.joints = np.array([[sv[str(k)][j] for j in ("aa", "fe1", "fe2")] for k in range(3)], float)
+                    self.t_joints = time.time() * 1000.0 - 1.0      # read at the end of the station's handler
+                    self.n_read += 1
+            except (OSError, http.client.HTTPException, RuntimeError, ValueError, KeyError) as e:
+                self.error = repr(e)
+                c.close()
+                c = self._conn()
 
     def end_stream(self):
         if self.stream_token:
@@ -356,6 +387,8 @@ def cmd_trial(a):
         if lift is not None:
             lift.join(timeout=6.0)
         log.write(json.dumps({"kind": "end", "states": seq, "last_target": last_seq, "status": status,
+                              "frames_posted": None if station is None else station.n_frames,
+                              "frames_with_joints": None if station is None else station.n_read,
                               "lift": None if lift is None else {"phase": lift.phase, **lift.rec},
                               "station_error": None if station is None else station.error}) + "\n")
         log.close()

@@ -91,6 +91,7 @@ class HardwareBackend(Protocol):
     def move_mounts(self, targets: dict[int, tuple[float, float]],
                     cancel=None, report=None) -> None: ...
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None: ...
+    def read_joints(self) -> dict[int, dict[str, float]]: ...
     def read_telemetry(self, include_servos: bool = True) -> dict: ...
     def adoptable_home(self) -> dict: ...
     def set_servo_torque(self, state: int) -> dict: ...
@@ -212,6 +213,11 @@ class RealHardwareBackend:
 
     def write_joints(self, pose: dict[int, dict[str, float]], speed: int | None = None) -> None:
         self.hand.set_joints_fast(pose, speed=speed)
+
+    def read_joints(self) -> dict[int, dict[str, float]]:
+        """The nine present positions in zero-relative degrees: one READ per servo, about 9 ms at a 1 ms FTDI latency
+        timer (servos.sync_read_joint_positions)."""
+        return self.servos.sync_read_joint_positions()
 
     def set_servo_torque(self, state: int) -> dict:
         return self.servos.set_torque_all(state)
@@ -342,6 +348,9 @@ class MockHardwareBackend:
         for fid, values in pose.items():
             self.joints[fid].update(values)
         self.writes += 1
+
+    def read_joints(self) -> dict[int, dict[str, float]]:
+        return {fid: dict(v) for fid, v in self.joints.items()}
 
     def set_servo_torque(self, state: int) -> dict:
         self.torque = state
@@ -1100,7 +1109,11 @@ class HandRuntime:
             return self._stream_token
 
     def stream_frame(self, token: str, joints: dict[str, dict[str, float]],
-                     *, servo_speed: int | None = None) -> None:
+                     *, servo_speed: int | None = None, read_back: bool = False) -> dict | None:
+        """Write one frame of the policy stream. With read_back the nine positions are read right after the write and
+        returned with their time (and kept as the servo telemetry): the telemetry loop does not read the servos during a
+        stream, and a controller that closes its loop on the joints (HOM on the bench, 2026-11-15) needs them every
+        frame. The read adds about 9 ms of bus time to the frame."""
         with self._lock:
             if token != self._stream_token or self._operation != "policy stream":
                 raise RuntimeErrorState("policy stream token is absent or expired")
@@ -1109,6 +1122,15 @@ class HandRuntime:
         self.backend.write_joints(self._servo_pose(normalized), speed=servo_speed)
         with self._lock:
             self._last_command = normalized
+        if not read_back:
+            return None
+        servos = self.backend.read_joints()
+        now = time.time()
+        with self._lock:
+            telem = dict(self._telemetry)
+            telem.update({"servos": servos, "servo_timestamp": now, "servo_age_s": 0.0})
+            self._telemetry = telem
+        return {"servos": {str(fid): v for fid, v in servos.items()}, "servo_timestamp": now}
 
     def end_stream(self, token: str) -> None:
         with self._lock:

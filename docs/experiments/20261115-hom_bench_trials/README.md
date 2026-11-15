@@ -28,10 +28,23 @@ Blocking a real trial:
    (`manta_hand/runtime.py`, `_telemetry_loop`). Without measured angles HOM fails: in the simulated loop on the cad_v1
    hand it dropped the sphere on the twist and the roll (J 0 against 0.352 and 0.315 with the angles), whether its
    reference or its targets stood in for them. Change on the CB1 (needs the owner's go; the CB1's working copy runs
-   uncommitted edits, so the change is made on that file and shipped alone): `stream_frame` reads the nine positions
-   after each write (`servos.sync_read_joint_positions`, nine reads in about 9 ms at a 1 ms FTDI latency timer) and
-   returns them with their age; `/api/v1/stream/frame` puts them in its answer; `hom_trial.py`'s `Station.frame` takes
-   them as the next state's joints.
+   uncommitted edits, so the change is made on that file alone): `stream_frame(..., read_back=True)` reads the nine
+   positions after each write (`servos.sync_read_joint_positions`, nine reads in about 9 ms at a 1 ms FTDI latency
+   timer) and returns them; `/api/v1/stream/frame` passes `read_back` and answers with them; `hom_trial.py` posts frames
+   from a worker thread and takes them as the next state's joints. Made in the repository's copy and checked on the
+   station's fake hardware (`scripts/hardware/station_read_back_check.py`: 50 frames, read-back equal to the written
+   servo pose, 2.1 ms per frame without the real bus). The same change against the CB1's own files, whose `runtime.py`
+   differs from the repository's only in comments and whose `web.py` keeps its own defaults, is
+   `cb1/20261115-stream_read_back.patch`. To apply, with the owner's go and the station stopped:
+
+       scp -o ProxyJump=corvus docs/experiments/20261115-hom_bench_trials/cb1/20261115-stream_read_back.patch irlab@10.99.99.2:/tmp/
+       ssh -J corvus irlab@10.99.99.2 'cd ~/hand && D=src/morphohand/driver/manta/host/manta_hand && \
+           cp $D/runtime.py /tmp/runtime.py.bak-20261115 && cp $D/web.py /tmp/web.py.bak-20261115 && \
+           patch -p0 --dry-run < /tmp/20261115-stream_read_back.patch && patch -p0 < /tmp/20261115-stream_read_back.patch && \
+           python3 -m py_compile $D/runtime.py $D/web.py'
+
+   then `~/run_control_station.sh start` on the CB1. An unpatched station ignores `read_back` and answers without the
+   positions.
 2. The hand model for the five layouts. HomBench's CPU path (`hom_tasks.build`) has the cad_v1 hand and the 10-22
    grasps only; the five layouts of the series and their grasps are in the GPU study's worlds. A builder that makes
    HomBench from such a world is being written (`plans/`, see below).

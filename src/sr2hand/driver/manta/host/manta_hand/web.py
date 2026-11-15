@@ -341,10 +341,11 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
                 token = rt.begin_stream(timeout_s=float(body.get("timeout_s", 0.25)))
                 return self._json(HTTPStatus.OK, {"token": token})
             if path == "/api/v1/stream/frame":
-                rt.stream_frame(str(body["token"]), body["joints"],
-                                servo_speed=(int(body["servo_speed"])
-                                             if body.get("servo_speed") is not None else None))
-                return self._json(HTTPStatus.OK, {"accepted": True})
+                res = rt.stream_frame(str(body["token"]), body["joints"],
+                                      servo_speed=(int(body["servo_speed"])
+                                                   if body.get("servo_speed") is not None else None),
+                                      read_back=bool(body.get("read_back")))
+                return self._json(HTTPStatus.OK, {"accepted": True, **(res or {})})
             if path == "/api/v1/stream/end":
                 rt.end_stream(str(body["token"]))
                 return self._json(HTTPStatus.OK, {"ended": True})
