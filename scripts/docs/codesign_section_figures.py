@@ -592,6 +592,20 @@ def controllers():
         p_ = MP.paired(rr, HP.hom_rank(R, t)) if rr else None
         out["tasks"][t]["residual"] = ({"J": MP.mean_j(rr), **{k: p_[k] for k in ("d", "lo", "hi")}} if p_ else None)
     out["residual_cost"] = HP.gpu_ratio(R, MP.tstem("res_anneal", "twist", "_rank20", MP.CFG_PICK))
+    G = HP.press_grid_numbers(R)        # full DIAL and HOM on all 369 press layouts (HOM page, section press grid)
+    if G and G.get("fresh"):
+        F = G["fresh"]
+        out["press_grid"] = {"n": G["n"], "rho": G["rho_hd"], "out50": G["out50"], "in100": len(G["in100"]),
+                             "ysep_med_dial": G["med"]["d"][1], "ysep_med_grid": G["med"]["g"][1],
+                             "k_reach": G["k_reach"], "k_reach_rnd": G["k_reach_rnd"],
+                             "fresh_dial": F["dial"], "fresh_hom": F["hom"], "fresh_diff": F["diff"],
+                             "contact_hom": {w: F["contact"][("hom", w)] for w in ("d", "g")}}
+    IL_ = HP.ilqr_numbers(R)            # iLQR on the 20 pairs of each task (HOM page, section iLQR)
+    if IL_:
+        out["ilqr"] = {"J": IL_["j20"], "hom": IL_["h20"], "full": IL_["f20"], "cost": IL_["gpu"],
+                       "one_hand_s": IL_["one"],
+                       "vs_hom": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in IL_["vs_hom"].items()},
+                       "vs_full": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in IL_["vs_full"].items()}}
     x = np.arange(len(tasks))
     S_ = [out["tasks"][t]["screen"] or {} for t in tasks]
     g = (lambda k: np.array([s_.get(k, np.nan) for s_ in S_]))

@@ -1360,14 +1360,24 @@ def ilqr_numbers(R):
            for nm, m, c in (("hom", "hom", None), ("d64", "anneal", CFG_D64), ("full", "anneal", CFG_FULL2))}
     rows20, full20 = [r for t in TASKS for r in r20[t]], [r for t in TASKS for r in f20[t]]
     st = [r["ilqr_stats"] for r in rows20 if r.get("ilqr_stats")]
-    rep = []
+    rep, rep_max, flip = {}, 0.0, 0
     for t in TASKS:
-        a_ = {key(r): r["J"] for r in tune[CFG_IL2][t]}
-        b_ = {key(r): r["J"] for r in rows_of(R, MP.tstem("ilqr", t, "_tune", CFG_IL2) + "_first")}
-        rep += [abs(a_[k] - b_[k]) for k in set(a_) & set(b_)]
+        a_ = {key(r): r for r in tune[CFG_IL2][t]}
+        b_ = {key(r): r for r in rows_of(R, MP.tstem("ilqr", t, "_tune", CFG_IL2) + "_first")}
+        ks = set(a_) & set(b_)
+        if ks:
+            rep[t] = float(np.mean([abs(a_[k]["J"] - b_[k]["J"]) for k in ks]))
+            rep_max = max(rep_max, max(abs(a_[k]["J"] - b_[k]["J"]) for k in ks))
+            flip += sum(bool(a_[k].get("held")) != bool(b_[k].get("held")) for k in ks)
     one = [r["replan_s_mean"] for r in rows_of(R, MP.tstem("ilqr", "twist", "_tune", CFG_IL2) + "_chunk1")
            if r.get("replan_s_mean")]
-    return {"j20": {t: MP.mean_j(r20[t]) for t in TASKS}, "h20": {t: MP.mean_j(h20[t]) for t in TASKS},
+    fac = {}                                    # J's two factors: three-pad share and tracking factor (held runs)
+    for t in TASKS:
+        e_ref = e_ref_of(r20[t] + f20[t] + h20[t])
+        fac[t] = {nm: (float(np.mean([r["contact_all_frac"] for r in rr])),
+                       float(np.mean([max(0.0, 1.0 - r["track_err_rms_deg"] / e_ref) for r in rr if r.get("held")])))
+                  for nm, rr in (("il", r20[t]), ("full", f20[t]))}
+    return {"fac": fac, "j20": {t: MP.mean_j(r20[t]) for t in TASKS}, "h20": {t: MP.mean_j(h20[t]) for t in TASKS},
             "f20": {t: MP.mean_j(f20[t]) for t in TASKS}, "s20": {t: MP.mean_j(s20[t]) for t in TASKS},
             "vs_hom": {t: paired(r20[t], h20[t]) for t in TASKS}, "vs_full": {t: paired(r20[t], f20[t]) for t in TASKS},
             "vs_res": {t: paired(r20[t], s20[t]) for t in TASKS},
@@ -1385,7 +1395,7 @@ def ilqr_numbers(R):
             "gpu_res": gpu_ratio(R, MP.tstem("res_anneal", "twist", "_rank20", CFG_PICK)),
             "gpu_full": gpu_ratio(R, MP.tstem("anneal", "twist", "_rank", CFG_FULL2)),
             "one": float(np.mean(one)) if one else None,
-            "rep": (float(np.mean(rep)), float(np.max(rep)), len(rep)) if rep else None}
+            "rep": rep if len(rep) == len(TASKS) else None, "rep_max": rep_max, "rep_flip": flip}
 
 
 def sec_ilqr(R):
@@ -1405,6 +1415,9 @@ By the 95 % interval of the paired difference, iLQR scored above HOM on <<ah>> a
 DIAL on <<bf>> and above it on <<af>>. It dropped the object in <<dr>> of <<dn>> runs, full DIAL in <<drf>>. Per twist
 rollout iLQR took <<g>> times HOM's GPU time at 16 hands per batch, the DIAL residual on HOM <<gr>> times and full DIAL
 <<gf>> times.</p>
+<p>J's two factors show where iLQR fell short. Its three-pad share was <<pd0>> to <<pd1>> below full DIAL's on the four
+tasks, <<pi>> against <<pf>> on the twist. Its tracking factor differed from full DIAL's by <<td0>> to <<td1>>. The pad
+term has no gradient and enters only iLQR's line search.</p>
 <p>The plan is the nine servo targets, each held for 50 ms, over the 0.3 s horizon (<code>scripts/hom/inner_loop_ilqr.py</code>;
 the method is set out on the <a href="<<mp>>">sampling MPC page</a>). Each iteration linearizes the planner's MuJoCo-Warp
 model about the plan by forward differences, 40 one-step rollouts per step, and takes a Gauss-Newton backward pass.
@@ -1414,12 +1427,18 @@ dynamics' second derivatives to the backward pass. FDDP [<<ref2>>] treats an inf
 starts from a rollout of the shifted plan.</p>
 <p>On the six tuning pairs of each task, two iterations scored <<t2>> and four iterations <<t4>>. DIAL 2 &#215; 64 over
 0.3 s, at 128 rollouts per replanning, scored <<d64>> there, and full DIAL <<tf>>. The line search lowered the plan's cost
-in <<acc>> % of the iterations and took the full step in <<fs>> %. iLQR draws no random numbers. Run twice on the tuning
-pairs, a pair's J differed by a mean of <<rp>>, at most <<rpx>>. For one hand alone a replanning took <<one>> s against
+in <<acc>> % of the iterations and took the full step in <<fs>> %. iLQR draws no random numbers, but the GPU's sums
+are not repeatable bit for bit. Run twice on the tuning pairs, a pair's J differed by a mean of <<rp>>, at most <<rpx>>.
+<<rpf>> For one hand alone a replanning took <<one>> s against
 the 0.1 s interval. At the 50 ms step iLQR's targets moved at <<rt>> deg/s RMS and reversed <<rv>> times per joint per
 second. Full DIAL's targets, counted per 10 ms period, moved at <<rtf>> deg/s and reversed <<rvf>> times on the same
 pairs.</p>""",
-               ref=REF_ILQR, ref2=REF_FDDP, j=lst(N["j20"]), jm=f"{m4(N['j20']):.3f}", tn=P.TAB[0] + 1,
+               ref=REF_ILQR, ref2=REF_FDDP,
+               pd0=f"{min(N['fac'][t]['full'][0] - N['fac'][t]['il'][0] for t in TASKS):.2f}",
+               pd1=f"{max(N['fac'][t]['full'][0] - N['fac'][t]['il'][0] for t in TASKS):.2f}",
+               pi=f"{N['fac']['twist']['il'][0]:.2f}", pf=f"{N['fac']['twist']['full'][0]:.2f}",
+               td0=f"{min(N['fac'][t]['il'][1] - N['fac'][t]['full'][1] for t in TASKS):+.2f}",
+               td1=f"{max(N['fac'][t]['il'][1] - N['fac'][t]['full'][1] for t in TASKS):+.2f}", j=lst(N["j20"]), jm=f"{m4(N['j20']):.3f}", tn=P.TAB[0] + 1,
                h=lst(N["h20"]), hm=f"{m4(N['h20']):.3f}", f=lst(N["f20"]), fm=f"{m4(N['f20']):.3f}",
                ah=where(N["vs_hom"], 1), bh=where(N["vs_hom"], -1), bf=where(N["vs_full"], -1),
                af=where(N["vs_full"], 1), dr=N["drop"][0], dn=N["drop"][1], drf=N["drop_full"][0],
@@ -1428,8 +1447,11 @@ pairs.</p>""",
                ro2=f"{N['ro'][CFG_IL2]:.0f}", t2=lst(N["tune"][CFG_IL2]),
                t4=lst(t4) if all(v is not None for v in t4.values()) else "&#8212;",
                d64=lst(N["ref"]["d64"]), tf=lst(N["ref"]["full"]), acc=f"{100 * N['accept']:.0f}",
-               fs=f"{100 * N['full_step']:.0f}", rp=f"{N['rep'][0]:.3f}" if N["rep"] else "&#8212;",
-               rpx=f"{N['rep'][1]:.3f}" if N["rep"] else "&#8212;",
+               fs=f"{100 * N['full_step']:.0f}",
+               rp=(al([f"{N['rep'][t]:.3f} on the {TN[t].lower()}" for t in TASKS]) if N["rep"] else "&#8212;"),
+               rpx=f"{N['rep_max']:.3f}",
+               rpf=("" if not N["rep_flip"] else f"In {NUMW[N['rep_flip']]} of the pairs the object was dropped in one "
+                    "run and held in the other."),
                one=f"{N['one']:.2f}" if N["one"] else "&#8212;", rt=f"{N['rate']:.1f}", rv=f"{N['rev']:.2f}",
                rtf=f"{N['rate_full']:.1f}", rvf=f"{N['rev_full']:.2f}")
     rows = [[TN[t], f"{N['j20'][t]:.3f}", fd(N["vs_hom"][t]), fd(N["vs_full"][t]), fd(N["vs_res"][t])] for t in TASKS]
@@ -1529,6 +1551,14 @@ def sec_future(R):
             f"The DIAL residual at 2 &#215; 16 samples: one hand's replanning at 2 &#215; 32 took {one['res']:.2f} s "
             "against the 0.1 s interval. The smaller residual would be timed at <code>--chunk 1</code> and run on the "
             "20 pairs of each task; if it keeps J above HOM on three tasks in real time, it is the bench's controller.")
+    IL_ = ilqr_numbers(R)
+    if IL_:
+        items.append(
+            "A smooth pad term in iLQR's model: each pad's force below 0.05 N as a residual, its Jacobian from the same "
+            "finite differences (<code>inner_loop_ilqr.Planner.linearize</code>), run on the 20 pairs of each task. If "
+            "the three-pad share on the twist rises to full DIAL's and J with it, the gap to full DIAL "
+            f"({IL_['vs_full']['twist']['d']:+.3f} on the twist) comes from that term; if the share rises and J does "
+            "not, it comes from the linearization.")
     if press_grid_numbers(R):
         items.append(
             "Full DIAL on every layout of the twist's, the roll's and the pin-push's grids, as on the press "

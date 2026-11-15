@@ -1,4 +1,11 @@
 Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+State 11-15 12:52: iLQR done (lane logs/20261115-ilqr, ended 12:50): 20 pairs per task at seeds 0-1, J 0.383/0.449/
+  0.276/0.491 (mean 0.399; HOM 0.281, full DIAL 0.425), within full DIAL's interval on roll/pin-push/press, -0.160 on
+  the twist (three-pad share 0.45 vs 0.60); 95x HOM's GPU per twist rollout (full DIAL 209x); one hand 0.29 s per
+  replanning; 4 iterations no better on _tune; repeat |dJ| 0.006-0.091. Cylinder runs need one 6-hand batch per process
+  (each new batch adds a 3.2 GB collision buffer; 16 hands OOM). Pages built (HOM 265, MPC 294 flags per 1000);
+  figures.json controllers_track has press_grid and ilqr; contact build_talk.py has grid_note/ilqr_note (not built).
+  Next: commit + push hand, republish HOM v4 and MPC v9, build and commit the deck, memory, ledger 26/27 done.
 State 11-15 11:57: press grid done (lane logs/20261115-press_grid, rows c93a1a9c0): HOM vs full DIAL rho 0.65 over 369
   layouts; criterion met (9 of full DIAL's ten best outside HOM's 50 best; 7 of ten within the grid's 100 best); at
   seeds 10-11 full DIAL's ten +0.067 (+0.017 to +0.115) over the grid's ten under DIAL, 0.384 below under HOM (pads all

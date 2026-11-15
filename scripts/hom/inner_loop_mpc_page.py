@@ -1428,41 +1428,45 @@ def half(rows, task, by):
     return [r for r in rows if key(r)[:3] in prs]
 
 
-def ilqr_text(R, j):
-    """iLQR on the tuning pairs (inner_loop_ilqr.py, rows mpc_ilqr_<task>_tune_pdt2_r10h30k3i2): the method and its J
-    against DIAL 2 x 64 over 0.3 s, the planner nearest its rollouts per replanning, and HOM; empty while rows are
-    missing."""
+def ilqr_text(R, j, tn):
+    """iLQR on the tuning pairs (inner_loop_ilqr.py, rows mpc_ilqr_<task>_tune_pdt2_r10h30k3i2 and the first run's
+    ..._first): the method and its mean J against DIAL 2 x 64 over 0.3 s, the planner nearest its rollouts per
+    replanning, and HOM (tn: the tuning table's number); empty while rows are missing."""
     il = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL2)) for k in TASKS4}
     il4 = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL4)) for k in TASKS4}
+    il1 = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL2) + "_first") for k in TASKS4}     # the first run, 11:54
     if not all(il.values()):
         return ""
     rows = [r for k in TASKS4 for r in il[k]]
     st = [r["ilqr_stats"] for r in rows if r.get("ilqr_stats")]
     rt = il_rt(R, CFG_IL2)
     d64 = (2, 30, 3, 10, 0.002, 64)
+    m4 = (lambda d: float(np.mean([mean_j(d[k]) for k in TASKS4])))
     return fill(r"""<p>iLQR [6] was run on the tuning pairs as well (<code>scripts/hom/inner_loop_ilqr.py</code>). Its
 plan is the nine targets, each held for 50 ms, over the 0.3 s horizon. Each iteration linearizes the planner's model about
 the plan by forward differences, as MJPC's iLQG does on the CPU. From each step's start one step is run with each of the 30
-state coordinates and each of the 9 targets perturbed, 40 one-step rollouts per step. The backward pass treats the cost's
-rotation and position terms as residuals (Gauss-Newton) and its rate term exactly, and regularizes $Q_{uu}$ as in [7]. The
-pad and drop terms have no gradient and are scored only in the line search. Eight step sizes are rolled out in parallel,
+state coordinates and each of the 9 targets perturbed, 40 one-step rollouts per step. In the backward pass the cost's
+rotation and position terms are treated as residuals (Gauss-Newton) and its rate term exactly, and $Q_{uu}$ is
+regularized as in [7]. The pad and drop terms have no gradient and are scored only in the line search. Eight step sizes
+are rolled out in parallel,
 $$u_t = \bar u_t + \alpha\, k_t + K_t\,(z_t \ominus \bar z_t), \qquad \alpha = 2^{-i},\ i = 0, \dots, 7,$$
 where $z_t$ is the state with the last target and $\ominus$ the difference in the tangent space. The cheapest under the
-full cost replaces the plan if it costs less. Two iterations take <<ro>> rollouts of the horizon per replanning, against
-128 for DIAL 2 &#215; 64 over 0.3 s. iLQR scored <<ij>> on the twist, the roll, the pin-push and the press. DIAL
-2 &#215; 64 scored <<dj>> and HOM <<hj>>. <<i4>> The line search lowered the plan's cost in <<acc>> % of the iterations and took
-the full step in <<fs>> %. <<rts>> FDDP [8] differs from iLQR in its treatment of gaps in an infeasible initial guess; the
-plan here starts from a rollout, which has none.</p>""",
-                ro=f"{np.mean([r['rollouts_per_replan'] for r in rows]):.0f}",
-                ij=", ".join(f"{mean_j(il[k]):.3f}" for k in TASKS4),
-                dj=", ".join(f2(j("anneal", k, d64), 3) for k in TASKS4),
-                hj=", ".join(f2(j("hom", k, None), 3) for k in TASKS4),
+full cost replaces the plan if it costs less. In two iterations the horizon is rolled out <<ro>> times per replanning.
+Under DIAL 2 &#215; 64 over 0.3 s it is rolled out 128 times. On the tuning pairs iLQR scored a mean of <<im>> over the
+four tasks, and <<im2>> in an earlier run of the same pairs (Table <<tn>>). DIAL 2 &#215; 64 scored <<dm>> and HOM <<hm>>.
+<<i4>> The line search lowered the plan's cost in <<acc>> % of the iterations and took the full step in <<fs>> %. <<rts>>
+FDDP [8] differs from iLQR in its treatment of gaps in an infeasible initial guess; the plan here starts from a rollout,
+which has none.</p>""",
+                ro=f"{np.mean([r['rollouts_per_replan'] for r in rows]):.0f}", tn=tn, im=f"{m4(il):.3f}",
+                im2=f"{m4(il1):.3f}" if all(il1.values()) else "&#8212;",
+                dm=f"{np.mean([j('anneal', k, d64) for k in TASKS4]):.3f}",
+                hm=f"{np.mean([j('hom', k, None) for k in TASKS4]):.3f}",
                 acc=f"{100 * np.mean([x['accept'] for x in st]):.0f}" if st else "&#8212;",
                 fs=f"{100 * np.mean([x['full_step'] for x in st]):.0f}" if st else "&#8212;",
-                rts=(f"One hand's replanning took {rt:.1f} times the replanning interval." if rt is not None else ""),
+                rts=(f"One hand was replanned in {rt * 10 * PERIOD_S:.2f} s, {rt:.1f} times the 0.1 s interval."
+                     if rt is not None else ""),
                 i4=(f"Four iterations, at {np.mean([r['rollouts_per_replan'] for k in TASKS4 for r in il4[k]]):.0f} "
-                    "rollouts per replanning, scored " + ", ".join(f"{mean_j(il4[k]):.3f}" for k in TASKS4) + "."
-                    if all(il4.values()) else ""))
+                    f"rollouts per replanning, scored a mean of {m4(il4):.3f}." if all(il4.values()) else ""))
 
 
 def tasks_text(R, T, tn0):
@@ -1492,7 +1496,7 @@ gradient planner, at the twist setting's budget, scored <<gr>> on the roll and <
              sr=f"{max(short_roll):.3f}" if short_roll else "&#8212;",
              rr=f2(j("anneal", "roll", CFG_RT30), 3), gr=f2(j("grad", "roll", CFG_PICK), 3),
              gp=f2(j("grad", "pinpush", CFG_PICK), 3))
-    t += ilqr_text(R, j)
+    t += ilqr_text(R, j, tn0 + 1)
     hom_r = {k: R.get(tstem("hom", k, "_rank")) for k in TASKS4}
     rt30 = {k: R.get(tstem("anneal", k, "_rank", CFG_RT30)) for k in TASKS4}
     full = {k: R.get(tstem("anneal", k, "_rank", CFG_FULL2)) for k in TASKS4}
@@ -1968,6 +1972,7 @@ def main():
     for t in TASKS4:
         stems += [tstem(m, t, "_tune", c) for m, c, _l in TUNE] + [tstem(m, t, "_rank", c) for m, c, _l in RANK_RUNS]
     stems.append(tstem("ilqr", "twist", "_tune", CFG_IL2) + "_chunk1")
+    stems += [tstem("ilqr", t, "_tune", CFG_IL2) + "_first" for t in TASKS4]
     stems = list(dict.fromkeys(stems))
     R = {s: load(s) for s in stems}
     hom = {key(r): r for r in R["hom_twist"]}
