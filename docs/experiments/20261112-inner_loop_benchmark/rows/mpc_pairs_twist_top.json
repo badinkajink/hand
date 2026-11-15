@@ -1,0 +1,126 @@
+{
+ "task": "twist",
+ "pairs": [
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 10,
+   "by": "both",
+   "J_hom": 0.7604,
+   "J_planner": 0.863
+  },
+  {
+   "x": 60.0,
+   "y": 70.0,
+   "grasp": 3,
+   "by": "both",
+   "J_hom": 0.7428,
+   "J_planner": 0.9332
+  },
+  {
+   "x": 100.0,
+   "y": 60.0,
+   "grasp": 7,
+   "by": "hom_top",
+   "J_hom": 0.7408,
+   "J_planner": 0.6825
+  },
+  {
+   "x": 105.0,
+   "y": 60.0,
+   "grasp": 9,
+   "by": "both",
+   "J_hom": 0.7074,
+   "J_planner": 0.9279
+  },
+  {
+   "x": 105.0,
+   "y": 65.0,
+   "grasp": 14,
+   "by": "hom_top",
+   "J_hom": 0.7012,
+   "J_planner": 0.6197
+  },
+  {
+   "x": 100.0,
+   "y": 70.0,
+   "grasp": 4,
+   "by": "both",
+   "J_hom": 0.6671,
+   "J_planner": 0.9368
+  },
+  {
+   "x": 80.0,
+   "y": 95.0,
+   "grasp": 7,
+   "by": "both",
+   "J_hom": 0.6574,
+   "J_planner": 0.9
+  },
+  {
+   "x": 70.0,
+   "y": 110.0,
+   "grasp": 11,
+   "by": "hom_top",
+   "J_hom": 0.6395,
+   "J_planner": 0.5115
+  },
+  {
+   "x": 100.0,
+   "y": 55.0,
+   "grasp": 13,
+   "by": "hom_top",
+   "J_hom": 0.6321,
+   "J_planner": 0.5308
+  },
+  {
+   "x": 70.0,
+   "y": 60.0,
+   "grasp": 14,
+   "by": "hom_top",
+   "J_hom": 0.6267,
+   "J_planner": 0.6159
+  },
+  {
+   "x": 120.0,
+   "y": 65.0,
+   "grasp": 12,
+   "by": "planner_top",
+   "J_hom": 0.5466,
+   "J_planner": 0.9284
+  },
+  {
+   "x": 95.0,
+   "y": 95.0,
+   "grasp": 5,
+   "by": "planner_top",
+   "J_hom": 0.588,
+   "J_planner": 0.9253
+  },
+  {
+   "x": 85.0,
+   "y": 75.0,
+   "grasp": 1,
+   "by": "planner_top",
+   "J_hom": 0.5165,
+   "J_planner": 0.9001
+  },
+  {
+   "x": 75.0,
+   "y": 65.0,
+   "grasp": 6,
+   "by": "planner_top",
+   "J_hom": 0.6181,
+   "J_planner": 0.8893
+  },
+  {
+   "x": 85.0,
+   "y": 115.0,
+   "grasp": 0,
+   "by": "planner_top",
+   "J_hom": 0.4934,
+   "J_planner": 0.846
+  }
+ ],
+ "rule": "The ranking test's confirmation pairs: the n best of the task's _rank pairs under HOM and the n best under the\n    planner (rows mpc_hom_<task>_rank.jsonl and mpc_<ref>_<task>_rank<ref_tag>.jsonl, J averaged over seeds 0 and 1),\n    to run again at fresh seeds, so that neither controller's first choice is scored at the seeds it was chosen at."
+}

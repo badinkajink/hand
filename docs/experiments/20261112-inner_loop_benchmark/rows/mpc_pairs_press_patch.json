@@ -1,0 +1,265 @@
+{
+ "task": "press",
+ "pairs": [
+  {
+   "x": 55.0,
+   "y": 55.0,
+   "grasp": 1,
+   "by": "patch",
+   "J_by": 0.0835
+  },
+  {
+   "x": 55.0,
+   "y": 80.0,
+   "grasp": 2,
+   "by": "patch",
+   "J_by": 0.1843
+  },
+  {
+   "x": 60.0,
+   "y": 55.0,
+   "grasp": 1,
+   "by": "patch",
+   "J_by": 0.1316
+  },
+  {
+   "x": 60.0,
+   "y": 60.0,
+   "grasp": 11,
+   "by": "patch",
+   "J_by": 0.1512
+  },
+  {
+   "x": 60.0,
+   "y": 70.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.1251
+  },
+  {
+   "x": 60.0,
+   "y": 75.0,
+   "grasp": 1,
+   "by": "patch",
+   "J_by": 0.1626
+  },
+  {
+   "x": 60.0,
+   "y": 80.0,
+   "grasp": 12,
+   "by": "patch",
+   "J_by": 0.1437
+  },
+  {
+   "x": 65.0,
+   "y": 55.0,
+   "grasp": 9,
+   "by": "patch",
+   "J_by": 0.5704
+  },
+  {
+   "x": 65.0,
+   "y": 60.0,
+   "grasp": 10,
+   "by": "patch",
+   "J_by": 0.5025
+  },
+  {
+   "x": 65.0,
+   "y": 65.0,
+   "grasp": 1,
+   "by": "patch",
+   "J_by": 0.5212
+  },
+  {
+   "x": 65.0,
+   "y": 70.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.415
+  },
+  {
+   "x": 65.0,
+   "y": 75.0,
+   "grasp": 3,
+   "by": "patch",
+   "J_by": 0.2396
+  },
+  {
+   "x": 65.0,
+   "y": 80.0,
+   "grasp": 15,
+   "by": "patch",
+   "J_by": 0.1614
+  },
+  {
+   "x": 70.0,
+   "y": 55.0,
+   "grasp": 6,
+   "by": "patch",
+   "J_by": 0.4992
+  },
+  {
+   "x": 70.0,
+   "y": 60.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.6136
+  },
+  {
+   "x": 70.0,
+   "y": 65.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.6174
+  },
+  {
+   "x": 70.0,
+   "y": 70.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.6139
+  },
+  {
+   "x": 70.0,
+   "y": 75.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.5633
+  },
+  {
+   "x": 70.0,
+   "y": 80.0,
+   "grasp": 15,
+   "by": "patch",
+   "J_by": 0.2761
+  },
+  {
+   "x": 75.0,
+   "y": 55.0,
+   "grasp": 4,
+   "by": "patch",
+   "J_by": 0.5555
+  },
+  {
+   "x": 75.0,
+   "y": 60.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.2111
+  },
+  {
+   "x": 75.0,
+   "y": 65.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.2151
+  },
+  {
+   "x": 75.0,
+   "y": 70.0,
+   "grasp": 12,
+   "by": "patch",
+   "J_by": 0.5841
+  },
+  {
+   "x": 75.0,
+   "y": 75.0,
+   "grasp": 7,
+   "by": "patch",
+   "J_by": 0.3841
+  },
+  {
+   "x": 75.0,
+   "y": 80.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.2338
+  },
+  {
+   "x": 80.0,
+   "y": 55.0,
+   "grasp": 15,
+   "by": "patch",
+   "J_by": 0.5208
+  },
+  {
+   "x": 80.0,
+   "y": 60.0,
+   "grasp": 9,
+   "by": "patch",
+   "J_by": 0.2753
+  },
+  {
+   "x": 80.0,
+   "y": 65.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.2038
+  },
+  {
+   "x": 80.0,
+   "y": 70.0,
+   "grasp": 15,
+   "by": "patch",
+   "J_by": 0.2699
+  },
+  {
+   "x": 80.0,
+   "y": 75.0,
+   "grasp": 4,
+   "by": "patch",
+   "J_by": 0.4172
+  },
+  {
+   "x": 80.0,
+   "y": 80.0,
+   "grasp": 7,
+   "by": "patch",
+   "J_by": 0.3989
+  },
+  {
+   "x": 85.0,
+   "y": 55.0,
+   "grasp": 0,
+   "by": "patch",
+   "J_by": 0.2429
+  },
+  {
+   "x": 85.0,
+   "y": 60.0,
+   "grasp": 13,
+   "by": "patch",
+   "J_by": 0.3719
+  },
+  {
+   "x": 85.0,
+   "y": 65.0,
+   "grasp": 14,
+   "by": "patch",
+   "J_by": 0.6066
+  },
+  {
+   "x": 85.0,
+   "y": 70.0,
+   "grasp": 2,
+   "by": "patch",
+   "J_by": 0.2899
+  },
+  {
+   "x": 85.0,
+   "y": 75.0,
+   "grasp": 5,
+   "by": "patch",
+   "J_by": 0.1677
+  },
+  {
+   "x": 85.0,
+   "y": 80.0,
+   "grasp": 4,
+   "by": "patch",
+   "J_by": 0.3059
+  }
+ ],
+ "rule": "The lattice neighbourhood of HOM's best layout of the task's grid: every reached layout within half (mm) of it in\n    x_sep and in y_sep, each with its best grasp by HOM's J (mean over seeds 0-2), for both controllers' smoothness on\n    the same layouts (owner, 2026-11-14: \"stability across metrics, tasks, solutions? ... explore this\")."
+}

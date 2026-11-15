@@ -1,0 +1,142 @@
+{
+ "task": "press",
+ "pairs": [
+  {
+   "x": 90.0,
+   "y": 100.0,
+   "grasp": 3,
+   "by": "both",
+   "J_hom": 0.7746,
+   "J_planner": 0.7337
+  },
+  {
+   "x": 70.0,
+   "y": 105.0,
+   "grasp": 1,
+   "by": "hom_top",
+   "J_hom": 0.7038,
+   "J_planner": 0.5724
+  },
+  {
+   "x": 100.0,
+   "y": 105.0,
+   "grasp": 15,
+   "by": "both",
+   "J_hom": 0.7008,
+   "J_planner": 0.7395
+  },
+  {
+   "x": 70.0,
+   "y": 65.0,
+   "grasp": 0,
+   "by": "hom_top",
+   "J_hom": 0.6258,
+   "J_planner": 0.5312
+  },
+  {
+   "x": 70.0,
+   "y": 70.0,
+   "grasp": 0,
+   "by": "hom_top",
+   "J_hom": 0.6222,
+   "J_planner": 0.5836
+  },
+  {
+   "x": 80.0,
+   "y": 120.0,
+   "grasp": 6,
+   "by": "hom_top",
+   "J_hom": 0.6219,
+   "J_planner": 0.5938
+  },
+  {
+   "x": 90.0,
+   "y": 115.0,
+   "grasp": 15,
+   "by": "both",
+   "J_hom": 0.6203,
+   "J_planner": 0.7189
+  },
+  {
+   "x": 75.0,
+   "y": 100.0,
+   "grasp": 8,
+   "by": "hom_top",
+   "J_hom": 0.6185,
+   "J_planner": 0.4969
+  },
+  {
+   "x": 70.0,
+   "y": 60.0,
+   "grasp": 0,
+   "by": "hom_top",
+   "J_hom": 0.6179,
+   "J_planner": 0.5411
+  },
+  {
+   "x": 75.0,
+   "y": 70.0,
+   "grasp": 12,
+   "by": "hom_top",
+   "J_hom": 0.6014,
+   "J_planner": 0.6169
+  },
+  {
+   "x": 80.0,
+   "y": 70.0,
+   "grasp": 15,
+   "by": "planner_top",
+   "J_hom": 0.3294,
+   "J_planner": 0.7629
+  },
+  {
+   "x": 90.0,
+   "y": 105.0,
+   "grasp": 5,
+   "by": "planner_top",
+   "J_hom": 0.0496,
+   "J_planner": 0.6761
+  },
+  {
+   "x": 100.0,
+   "y": 125.0,
+   "grasp": 13,
+   "by": "planner_top",
+   "J_hom": 0.4036,
+   "J_planner": 0.6746
+  },
+  {
+   "x": 80.0,
+   "y": 135.0,
+   "grasp": 9,
+   "by": "planner_top",
+   "J_hom": 0.4061,
+   "J_planner": 0.673
+  },
+  {
+   "x": 95.0,
+   "y": 65.0,
+   "grasp": 14,
+   "by": "planner_top",
+   "J_hom": 0.3125,
+   "J_planner": 0.6709
+  },
+  {
+   "x": 75.0,
+   "y": 110.0,
+   "grasp": 3,
+   "by": "planner_top",
+   "J_hom": 0.4227,
+   "J_planner": 0.6687
+  },
+  {
+   "x": 100.0,
+   "y": 100.0,
+   "grasp": 2,
+   "by": "planner_top",
+   "J_hom": 0.588,
+   "J_planner": 0.6671
+  }
+ ],
+ "rule": "The ranking test's confirmation pairs: the n best of the task's _rank pairs under HOM and the n best under the\n    planner (rows mpc_hom_<task>_rank.jsonl and mpc_<ref>_<task>_rank<ref_tag>.jsonl, J averaged over seeds 0 and 1),\n    to run again at fresh seeds, so that neither controller's first choice is scored at the seeds it was chosen at."
+}
