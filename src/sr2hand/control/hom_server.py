@@ -21,9 +21,11 @@ at 1.6 s, the task from 2.0 s) follows the host that also times the lift, and ea
 in simulation. (From the raw millisecond stamps 3.3 s arrived as 3.2999998 s, and the twist's ramp started a period
 late.) A resent state gets the same answer again. While a policy stream
 runs, the station does not read the servos (manta_hand/runtime.py) and the joints arrive as NaN or stale, stamped with
-the poll's time. With --joints targets (until the station reads between frames) the controller takes its own last
-targets as the joint angles; with auto it takes the bus's when they are finite and at most --max-joint-age-ms older than
-the state (both of corvus's clock), else its own targets; the record says which source each period used.
+the poll's time. Without fresh angles the controller takes its own last reference (HOM's theta_ref, which in contact
+sits at the object's surface) as the joint angles: --joints reference, or auto (the bus's angles when finite and at most
+--max-joint-age-ms older than the state, both of corvus's clock, else the reference). Its last targets (--joints targets)
+are a worse stand-in: they hold the force and gravity offsets, which a re-anchor to them would add to the reference
+again. The record says which source each period used.
 
 Record (JSON lines, one file per trial in --log-dir): a header line {"kind": "header", ...}, one line per period in the
 stream format of hom_bench.simulate (t, joints, obj_pos_mm, obj_quat, contacts, targets in servo degrees, phase,
@@ -120,8 +122,8 @@ class Server:
 
     def _open(self, s):
         self.b.reset()
-        self.t0_ms, self.seq, self.n, self.last_out, self.last_obj = s.t_ms, 0, 0, None, None
-        self.n_src = {"bus": 0, "targets": 0, "open": 0}
+        self.t0_ms, self.seq, self.n, self.last_out, self.last_obj, self.last_ref = s.t_ms, 0, 0, None, None, None
+        self.n_src = {"bus": 0, "reference": 0, "targets": 0, "open": 0}
         stamp = time.strftime("%Y%m%d-%H%M%S")
         self.path = self.log_dir / f"{stamp}_{self.a.task}_d{self.a.d:g}_trial{self.trials:03d}.jsonl"
         self.fh = open(self.path, "w")
@@ -154,8 +156,10 @@ class Server:
         if self.a.joints == "bus" or (self.a.joints == "auto" and np.all(np.isfinite(j))
                                       and age <= self.a.max_joint_age_ms):
             return s.joints_dict(), "bus", age
-        if self.last_out is not None:
+        if self.a.joints == "targets" and self.last_out is not None:
             return self.last_out, "targets", age
+        if self.last_ref is not None:
+            return self.last_ref, "reference", age
         return self.HB.servo_from_sim(self.b.q_open), "open", age
 
     def handle(self, s):
@@ -182,15 +186,23 @@ class Server:
             out, info = self.HB.servo_from_sim(b.q_open), {"phase": "no object", "clipped": [], "schedule": {}}
         else:
             tc = time.perf_counter()
-            out, info = b.step(t, joints, self.last_obj[0], self.last_obj[1], _contacts(s.cop))
+            try:
+                out, info = b.step(t, joints, self.last_obj[0], self.last_obj[1], _contacts(s.cop))
+            except Exception as e:             # noqa: BLE001  e.g. a least-squares solve on a diverged state
+                out = self.last_out if self.last_out is not None else self.HB.servo_from_sim(b.q_open)
+                info = {"phase": "controller error", "clipped": [], "schedule": {}, "error": repr(e)}
+                print(f"  controller error at t = {t:.2f} s: {e!r}; holding the last targets and stopping", flush=True)
             info["compute_ms"] = 1e3 * (time.perf_counter() - tc)
-        stop = t > b.t_end + self.a.tail_s
+        stop = t > b.t_end + self.a.tail_s or "error" in info
         sim_deg = _sim_deg(self.HB, out)
         self.last_msg = L.TargetMsg(seq=self.seq, state_seq=s.seq, t_ms=time.time() * 1000.0, targets=sim_deg,
                                     flags=L.STOP if stop else 0).pack()
         self.tx.sendto(self.last_msg, self.to)
         self.seq += 1
         self.last_out = out
+        hom = info.get("hom") or {}
+        if all(f in hom and "theta_ref" in hom[f] for f in self.HB.FINGERS):
+            self.last_ref = self.HB.servo_from_sim({f: hom[f]["theta_ref"] for f in self.HB.FINGERS})
         sch = info.get("schedule", {})
         rec = {"t": round(t, 4), "seq": s.seq, "t_ms": s.t_ms, "t_joints_ms": s.t_joints_ms, "joints": joints,
                "joints_src": src, "joint_age_ms": round(age, 2) if math.isfinite(age) else None,
@@ -199,11 +211,11 @@ class Server:
                "obj_flags": s.obj_flags, "n_tags": s.n_tags, "contacts": _contacts(s.cop), "status": s.status,
                "targets": out, "targets_sim_deg": sim_deg, "phase": info["phase"], "clipped": info["clipped"],
                "compute_ms": round(info.get("compute_ms", float("nan")), 3),
-               "ref": {k: sch[k] for k in ("w_ref", "v_ref", "theta_ref") if k in sch}}
+               "ref": {k: sch[k] for k in ("w_ref", "v_ref", "theta_ref") if k in sch}, "error": info.get("error")}
         self.fh.write(json.dumps(rec, default=_jsonable) + "\n")
         self.n += 1
         if stop:
-            self._close("end of schedule")
+            self._close("controller error: " + info["error"] if "error" in info else "end of schedule")
         return stop
 
     def run(self):
@@ -317,6 +329,8 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
             waited += time.time() - t_send
             if tg is None and waited > a.wait_s:
                 raise RuntimeError(f"no answer to state {seq} in {a.wait_s:.0f} s")
+        if tg.flags & L.STOP:                  # the controller stopped (its schedule's end or an error): so does corvus
+            break
         q = {f: np.radians(np.asarray(tg.targets, float).reshape(3, 3)[k]) for k, f in enumerate(HB.FINGERS)}
         plant.set_targets(q)
         sent.append(np.asarray(tg.targets, float))
@@ -341,7 +355,7 @@ def cmd_sil(a):
     import hom_landscape as L_
     srv = [sys.executable, "-m", "sr2hand.control.hom_server", "serve", "--task", a.task, "--d", str(a.d),
            "--plant", a.plant, "--hand", a.hand, "--dt", str(a.dt), "--listen", str(a.port_out),
-           "--reply", f"127.0.0.1:{a.port_in}", "--log-dir", a.log_dir, "--once", "--joints", "auto",
+           "--reply", f"127.0.0.1:{a.port_in}", "--log-dir", a.log_dir, "--once", "--joints", a.server_joints,
            "--tail-s", "0"] + (["--plan", a.plan] if a.plan else [])
     proc = subprocess.Popen(srv, cwd=str(ROOT), env=dict(os.environ, PYTHONPATH=str(ROOT / "src")))
     try:
@@ -390,8 +404,9 @@ def main() -> int:
         if name == "serve":
             p.add_argument("--listen", type=int, default=47002)
             p.add_argument("--reply", required=True, help="corvus's HOST:PORT (hand_link --listen)")
-            p.add_argument("--joints", default="auto", choices=("auto", "bus", "targets"),
-                           help="joint angles from the bus when fresh (auto), always (bus) or the own last targets")
+            p.add_argument("--joints", default="auto", choices=("auto", "bus", "reference", "targets"),
+                           help="joint angles from the bus when fresh, else HOM's last reference (auto); always the bus; "
+                                "always the reference; or the last targets")
             p.add_argument("--max-joint-age-ms", type=float, default=60.0)
             p.add_argument("--gap-s", type=float, default=1.0, help="a trial ends after this long without a state")
             p.add_argument("--tail-s", type=float, default=0.5, help="periods past the schedule's end before STOP")
@@ -401,6 +416,7 @@ def main() -> int:
             p.add_argument("--port-out", type=int, default=47102)
             p.add_argument("--port-in", type=int, default=47101)
             p.add_argument("--wait-s", type=float, default=180.0, help="longest wait for an answer (the server's build)")
+            p.add_argument("--server-joints", default="auto", help="sil: the server's --joints")
     a = ap.parse_args()
     if a.cmd == "serve":
         return cmd_serve(a)
