@@ -126,3 +126,31 @@ Each trial gives two JSON-lines files with one line per 20 ms period, joined by 
   its targets in servo and sim degrees, the phase, the schedule's references, the compute time, any error.
 
 Raw records stay out of git when over 2 MB; they move to the workstation by rsync.
+
+## Scoring and calibration
+
+    .venv/bin/python -m sr2hand.control.trial_score merge --server runs/SERVER.jsonl --corvus OUT/CORVUS.jsonl \
+        --mass-g 25 --out TRIAL.jsonl                       # one trial file: header, one line per period
+    .venv/bin/python -m sr2hand.control.trial_score score TRIAL.jsonl          # J and its inputs
+    .venv/bin/python scripts/hardware/sr2_hom_replay.py replay --truth TRIAL.jsonl   # open loop at the header's plant
+    .venv/bin/python scripts/hardware/sr2_hom_replay.py fit TRIAL_*.jsonl            # the plant from the trials
+
+The merge joins the two records by the state's sequence number. Gravity in P comes from the arm's pose and the tool
+chain, the target delay from corvus's round trips, and the lift's start from corvus's end line. The score follows
+`hom_tasks.metrics` from the tracked quaternions; `J_025` counts a pad in contact from 0.25 N, the fingertip boards'
+floor. The replay applies the recorded targets open loop from the first sample. The fit minimizes the joint, position
+and orientation errors of the replays over kp, damping, torque limit, dead band, joint friction, contact friction and
+pad modulus, with a held-out split. Fitting is to trajectories, never to task outcomes (owner, 2026-10-06).
+
+Checked in simulation: a SIL trial on the generalist twist plan, both records written (`hom_server sil --corvus-log`),
+merged and scored at J 0.4397 against the simulation's 0.4386, replayed at its own plant to 0.0013 deg RMS in the
+joints, 0.0024 mm in the object's position and 0.0079 deg in its orientation. On six synthetic trials at kp 0.55 and
+friction 0.8 the fit recovered kp 0.552, friction 0.809, damping 0.0146 and pad modulus 2.58 MPa (truth 0.0144 and 2.5),
+in 2.5 to 13 min on 7 CPU workers (`logs/20261115-sr2_hom_replay/`). The torque limit was not reached in those trials
+and stayed undetermined.
+
+Not yet in the replay's model: the stem and tag block (the scene's object is the bare 25 g sphere or cylinder) and the
+arm's lift (the replay removes the post at the lift's start). A record without fingertip boards has no contacts, which
+the score cannot tell from no contact; with the boards, the press's pusher (median 0.18 N in simulation) lies below their
+0.25 N floor. The fit's error weights (1 deg, 1 mm, 1 deg) are to be set from the measured noise of the servos and the
+tracker.

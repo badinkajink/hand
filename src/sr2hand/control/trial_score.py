@@ -101,6 +101,53 @@ def write_trial(path, header: dict, stream: list[dict]) -> None:
             fh.write(json.dumps(smp, default=enc) + "\n")
 
 
+def merge_records(server_path, corvus_path, object_mass_kg: float | None = None) -> tuple[dict, list[dict]]:
+    """(header, samples) of a real trial from its two records, joined by the state's sequence number: the HOM server's
+    (hom_server.py: what HOM was given and sent) and corvus's (docs/experiments/20261115-hom_bench_trials/lab/
+    hom_trial.py: the arm's pose, the HEX-E, the times). Times become seconds on the server's trial clock t: t_joints
+    and t_obj are the joints' read and the tracker frame's capture, target_delay_s is the median time from a state's
+    sending to the application of its answer. gravity_P is gravity in {P} from the arm's pose at the first sample and
+    the tool chain's flange-to-palm transform (sr2hand.robot.tool_chain.SR2Hand), the UR base's z pointing up;
+    post_off_s is the lift's start on the trial clock. object_mass_kg replaces the server header's when given."""
+    from sr2hand.geometry.rotations import exp_so3
+    hs, srv = load_trial(server_path)
+    _hc, cor = load_trial(corvus_path)
+    by_seq = {r["seq"]: r for r in cor if "seq" in r}
+    t0_ms = float(hs.get("t0_ms", srv[0]["t_ms"] if srv else 0.0))
+    stream, delays = [], []
+    for smp in srv:
+        c = by_seq.get(smp.get("seq"), {})
+        out = dict(smp)
+        if smp.get("t_joints_ms") is not None and math.isfinite(float(smp["t_joints_ms"])):
+            out["t_joints"] = (float(smp["t_joints_ms"]) - t0_ms) / 1000.0
+        if smp.get("t_capture_ms") is not None and math.isfinite(float(smp["t_capture_ms"])):
+            out["t_obj"] = (float(smp["t_capture_ms"]) - t0_ms) / 1000.0
+        for k in ("arm", "ft", "lift", "rtt", "target_age"):
+            if k in c:
+                out[k] = c[k]
+        if c.get("rtt") is not None:
+            delays.append(float(c["rtt"]) / 1000.0)
+        stream.append(out)
+    header = dict(hs)
+    if object_mass_kg is not None:
+        header["object_mass_kg"] = float(object_mass_kg)
+    if delays:
+        header["target_delay_s"] = float(np.median(delays))
+    arm0 = next((r["arm"] for r in cor if r.get("arm")), None)
+    if arm0 is not None:
+        from sr2hand.robot.tool_chain import SR2Hand
+        R_BE = exp_so3(np.asarray(arm0[3:6], float))
+        R_BP = R_BE @ SR2Hand.load().T_E_P()[:3, :3]
+        header["gravity_P"] = (R_BP.T @ np.array([0.0, 0.0, -9.81])).round(6).tolist()
+    end = next((json.loads(x) for x in Path(corvus_path).read_text().splitlines()
+                if x.strip() and '"kind": "end"' in x), None)          # load_trial drops the end line
+    lift = (end or {}).get("lift") or {}
+    if lift.get("t_start_ms") is not None:
+        header["post_off_s"] = (float(lift["t_start_ms"]) - t0_ms) / 1000.0
+    header["records"] = {"server": str(server_path), "corvus": str(corvus_path)}
+    return header, stream
+
+
 # ------------------------------------------------------------------------------------------------ commanded rotation
 
 def phase_w(phase: str, prm: dict) -> np.ndarray | None:
@@ -235,3 +282,30 @@ def score_stream(stream: list[dict], header: dict, f_min: float = F_MIN, f_board
 def score_file(path, **kw) -> dict:
     header, stream = load_trial(path)
     return score_stream(stream, header, **kw)
+
+
+def main() -> int:
+    """merge: the two records of a real trial into one trial file; score: J and its inputs of a trial file."""
+    import argparse
+    ap = argparse.ArgumentParser(description=main.__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    m = sub.add_parser("merge")
+    m.add_argument("--server", required=True, help="hom_server's record of the trial")
+    m.add_argument("--corvus", required=True, help="hom_trial.py's record of the trial")
+    m.add_argument("--mass-g", type=float, default=None, help="the object's measured mass with stem and block")
+    m.add_argument("--out", required=True)
+    s = sub.add_parser("score")
+    s.add_argument("trial")
+    a = ap.parse_args()
+    if a.cmd == "merge":
+        header, stream = merge_records(a.server, a.corvus, None if a.mass_g is None else a.mass_g / 1000.0)
+        write_trial(a.out, header, stream)
+        print(f"{len(stream)} samples -> {a.out}; gravity_P {header.get('gravity_P')}, target_delay_s "
+              f"{header.get('target_delay_s')}, post_off_s {header.get('post_off_s')}")
+        return 0
+    print(json.dumps(score_file(a.trial), default=float))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

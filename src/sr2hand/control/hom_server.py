@@ -135,7 +135,9 @@ class Server:
                 "scenes": os.environ.get("HOS_SCENES"), "dt": b.prm.dt, "t_end": b.t_end,
                 "design": b.setup.get("design"), "mounts_mm": {f: (1e3 * np.asarray(b.setup["mounts"][f][:2])).tolist()
                                                                for f in self.HB.FINGERS},
-                "q_open_rad": b.q_open, "git": _git(), "host": socket.gethostname(),
+                "q_open_rad": b.q_open, "palm_m": b.palm, "prm": b.task_prm, "hold_s": b.hold_s,
+                "object_mass_kg": None if self.a.object_mass_g is None else self.a.object_mass_g / 1000.0,
+                "git": _git(), "host": socket.gethostname(),
                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "t0_ms": self.t0_ms,
                 "joints_mode": self.a.joints, "max_joint_age_ms": self.a.max_joint_age_ms}
         self.fh.write(json.dumps(head, default=_jsonable) + "\n")
@@ -310,6 +312,9 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
     t, lifted, s0, seq = 0.0, False, None, 0
     t0_ms = time.time() * 1000.0
     rows, sent = [], []
+    clog = open(a.corvus_log, "w") if getattr(a, "corvus_log", None) else None    # corvus's record, as hom_trial.py
+    if clog:
+        clog.write(json.dumps({"kind": "header", "task": bench.task, "simulated": True, "t0_ms": t0_ms}) + "\n")
     while t < t_end - 1e-9:
         s = plant.state()
         if t >= T.T_LIFT and not lifted:
@@ -333,6 +338,12 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
             waited += time.time() - t_send
             if tg is None and waited > a.wait_s:
                 raise RuntimeError(f"no answer to state {seq} in {a.wait_s:.0f} s")
+        if clog:
+            clog.write(json.dumps({"seq": seq, "t_ms": msg.t_ms, "t": round(t, 4), "joints": msg.joints,
+                                   "t_joints_ms": msg.t_joints_ms, "obj": {"p_PO": msg.p_PO, "q_PO": msg.q_PO,
+                                                                            "t_capture_ms": msg.t_capture_ms},
+                                   "arm": None, "ft": None, "rtt": 0.0, "target": tg.seq,
+                                   "target_sim_deg": tg.targets}, default=_jsonable) + "\n")
         if tg.flags & L.STOP:                  # the controller stopped (its schedule's end or an error): so does corvus
             break
         q = {f: np.radians(np.asarray(tg.targets, float).reshape(3, 3)[k]) for k, f in enumerate(HB.FINGERS)}
@@ -343,6 +354,10 @@ def sim_hand(a, HB, bench, port_out: int, port_in: int):
         seq += 1
         t += dt
         plant.advance(t)
+    if clog:
+        clog.write(json.dumps({"kind": "end", "states": seq, "lift": {"phase": "simulated (the post's removal)",
+                                                                      "t_start_ms": t0_ms + 1000.0 * T.T_LIFT}}) + "\n")
+        clog.close()
     return T.metrics(bench.task, bench.setup, rows, s0, plant.state()), np.array(sent)
 
 
@@ -443,12 +458,15 @@ def main() -> int:
             p.add_argument("--gap-s", type=float, default=1.0, help="a trial ends after this long without a state")
             p.add_argument("--tail-s", type=float, default=0.5, help="periods past the schedule's end before STOP")
             p.add_argument("--once", action="store_true", help="exit after one trial")
+            p.add_argument("--object-mass-g", type=float, default=None,
+                           help="the object's measured mass with stem and block, for the record")
         elif name != "nominal":
             p.add_argument("--seed", type=int, default=0)
             p.add_argument("--port-out", type=int, default=47102)
             p.add_argument("--port-in", type=int, default=47101)
             p.add_argument("--wait-s", type=float, default=180.0, help="longest wait for an answer (the server's build)")
             p.add_argument("--server-joints", default="auto", help="sil: the server's --joints")
+            p.add_argument("--corvus-log", default=None, help="also write corvus's record (hom_trial.py's format)")
     a = ap.parse_args()
     if a.cmd == "serve":
         return cmd_serve(a)
