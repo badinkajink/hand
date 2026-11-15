@@ -20,7 +20,7 @@ bench_world(task, d6, v, prm) returns the arguments of HomBench.__init__ and two
                cylinder tasks (variant hold of hom_ea.VARIANT), 0 on the sphere; HomBench.simulate() never sets it
   body_mounts  {finger: the mount body's position in the palm body (m)}
   world        the GPU world as evaluate() builds it: key, seed, setup, body_mounts, q_open, prm, var
-make_bench(w) wraps HomBench with task_prm and hold_s until HomBench.from_world takes them. check_world(w) compares the
+make_bench(w) is HomBench on the world with its task_prm and hold_s. check_world(w) compares the
 bench's objects with the world (mounts, palm, contact points, open pose, the schedule's forces and weights, HomParams,
 the baked plant). study_pick(task, xy) reads a layout's S1, S2 or S3 pick of the task-conflict study's SCS0009 plant
 (docs/experiments/20261103-hom_task_conflict/rows_refine/sv25), and world_from_plan(plan) rebuilds the world of a plan
@@ -172,35 +172,12 @@ def bench_world(task, d6, v, prm=None, dt=None, plant="sv25", seed=0, variant=No
 
 
 def make_bench(w, dt=None, **kw):
-    """A HomBench on world w that runs the world's schedule parameters and plant hold. HomBench.reset() builds its
-    schedule from hom_tasks.PRM, and simulate() builds its plant without a hold, so until HomBench takes task_prm and
-    hold_s (from_world), this subclass passes task_prm in reset(), and its hom_tasks view gives simulate() a Plant that
-    holds the object (hom_tasks.rollout sets the same Plant.hold_s)."""
+    """A HomBench on world w that runs the world's schedule parameters and plant hold (HomBench takes task_prm and hold_s
+    since 2026-11-15 14:15). Until 16:22 this function wrapped HomBench to pass them, and from 14:15 simulate() set the
+    plant's hold from the bench's own hold_s, 0, over the wrapper's: runs through it in that window had no hold."""
     from sr2hand.control import hom_bench as HB
-
-    task_prm, hold_s = dict(w["task_prm"]), float(w["hold_s"])
-
-    class _TasksView:
-        def __init__(self, T):
-            self._T = T
-
-            class Plant(T.Plant):
-                def __init__(p, path, setup):
-                    super().__init__(path, setup)
-                    p.hold_s = hold_s
-            self.Plant = Plant
-
-        def __getattr__(self, name):
-            return getattr(self._T, name)
-
-    class WorldBench(HB.HomBench):
-        def reset(self):
-            super().reset()
-            self.sch = self.T.Schedule(self.task, self.setup, task_prm)
-
-    b = WorldBench(w["task"], w["d_mm"], w["setup"], w["m_pt"], w["q_open"], w["dt"] if dt is None else dt,
-                   prm=w["prm"], p_pads=w["p_pads"], **kw)
-    b.T = _TasksView(b.T)
+    b = HB.HomBench(w["task"], w["d_mm"], w["setup"], w["m_pt"], w["q_open"], w["dt"] if dt is None else dt,
+                    prm=w["prm"], p_pads=w["p_pads"], task_prm=w["task_prm"], hold_s=w["hold_s"], **kw)
     b.reset()
     return b
 

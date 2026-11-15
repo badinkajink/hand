@@ -2,13 +2,14 @@
 """AprilTag stickers for the back of the DIP link b v4, to track the fingers' gantries with the two D435s of the HOM
 trials (owner, 2026-11-15: "please design a pdf of apriltags to print on the back of the dip link. we have a nice flat
 surface there"; the thumb's tag is seen directly, the index's and middle's with the MCP and PIP flexed about 90 deg and
-the thumb out of the way).
+the thumb out of the way; "we can use probably the entire back", "although we will need some edge perimeter space for
+the glue").
 
 The face is the tongue's back, behind the fingertip board: 21.0 mm across the finger by 21.41 mm along it, between a
 1.45 mm step at the PIP end and the top cover's end plate, which is flush with it at the tip end. Four holes of 1.9 mm
 (the M2 pilot holes) pass through it at 8.0 mm either side of the centre line and 8.0 mm either side of the holes'
-mid-plane (z_L -44.26 and -28.26 mm). Measured on assets/mjcf/experimental/20261030-cad_v2/meshes/v4b_dip_link.stl,
-the print STL moved into frame L.
+mid-plane (z_L -44.26 and -28.26 mm), from the board's seat to the back; the screws end 0.1 mm inside the tongue.
+Measured on assets/mjcf/experimental/20261030-cad_v2/meshes/v4b_dip_link.stl, the print STL moved into frame L.
 
 Frame L is that mesh's frame, the frame of each finger's <finger>_pip_frame body in the cad_v3 model
 (assets/mjcf/experimental/20261104-cad_v3/ur5_full_k0.xml): origin on the PIP axis, y_L along it, x_L dorsal, z_L from
@@ -16,9 +17,11 @@ the tip toward the PIP axis (the tip's end at z_L = -46.91 mm). It is frame D of
 about the PIP axis (x_L = -x_D, y_L = y_D, z_L = -z_D). The thumb's DIP link mesh sits in its pip_frame turned 180 deg
 about z (quat 0 0 0 1); the index's and middle's without a turn.
 
-Each sticker is a tag36h11 tag with a 13.0 mm black square (the size of the tag blocks' tags) and a white border of one
-cell, centred in a cut outline 0.25 mm inside the face. A 14 mm square would put its corners 0.46 mm from the holes'
-edges; at 13 mm they are 1.17 mm away, and the holes lie under the outer corners of the white border. Thumb 24, index
+Each sticker is a tag36h11 tag with a 14.0 mm black square and a white border of one cell (1.75 mm), centred in a cut
+outline 0.25 mm inside the face; outside the white border a perimeter of 1.50 mm across the finger and 1.70 mm along it
+takes the glue. The black square's corners lie 0.46 mm from the holes' edges, and the paper bridges the holes. The
+sticker's corner at the PIP end on the -y_L side is cut off at 45 deg (1.2 mm) to mark the orientation; the labels are
+printed outside the cut outline. Thumb 24, index
 25, middle 26: ids 0-4, 6 and 10-23 are on the test plate, the hand's tag plate and the objects' blocks, and
 tracking/tag_bits.json has ids 0-31. Upright as seen from the back with the PIP joint up: the tag's right is +y_L, its
 down -z_L, its face +x_L.
@@ -54,7 +57,7 @@ PREVIEW = OUT / f"{DATE}-dip_link_tags_preview.png"
 REPORT = OUT / f"{DATE}-dip_link_tags.json"
 PAGE = (215.9, 279.4)                       # mm, US Letter
 FAMILY = "tag36h11"
-TAG = 13.0                                  # mm, the black square's edge
+TAG = 14.0                                  # mm, the black square's edge
 IDS = {"thumb": 24, "index": 25, "middle": 26}
 COPIES = 4                                  # stickers per finger
 FACE = (21.0, 21.41)                        # mm, the tongue's back: across the finger (y_L), along it (z_L)
@@ -64,6 +67,7 @@ STEP = 1.45                                 # mm, the step up to the face at x_L
 HOLES = [(y, z) for y in (-8.0, 8.0) for z in (-44.26, -28.26)]   # y_L, z_L (mm), radius 0.95
 HOLE_R = 0.95
 INSET = 0.25                                # mm, the cut outline inside the face's edges
+CHAMFER = 1.2                               # mm, the cut-off corner at the PIP end, -y_L side
 STICKER_T = 0.10                            # mm, paper and glue
 GAP = 9.0                                   # mm between neighbouring stickers
 CHECK_DPI = 600
@@ -101,24 +105,33 @@ def draw_tag(ax, tag_id, cx, cy, size, zorder=3):
     ax.add_patch(PathPatch(MPath(verts, codes), fc="black", ec="none", lw=0, zorder=zorder))
 
 
-def sticker(ax, finger, cx, cy, scale=1.0, label=True):
-    """One sticker centred at (cx, cy) mm: the cut outline, the tag and, in the margin at the PIP end, the finger, id and
-    an arrow toward the PIP joint."""
-    from matplotlib.patches import Rectangle, Polygon
+def outline(cx, cy, w, h, ch):
+    """The cut outline's corners (page mm, y up) of a sticker seen from the back with the PIP joint up: the top-left
+    corner, at the PIP end on the -y_L side, cut off by ch."""
+    x0, x1, y0, y1 = cx - w / 2, cx + w / 2, cy - h / 2, cy + h / 2
+    return [(x0, y0), (x1, y0), (x1, y1), (x0 + ch, y1), (x0, y1 - ch)]
+
+
+def sticker(ax, finger, cx, cy, scale=1.0, label=True, glue=False):
+    """One sticker centred at (cx, cy) mm, seen from the back with the PIP joint up: the cut outline with its cut-off
+    corner, the tag and, above the outline on the paper that is cut away, the finger, its id and an arrow toward the PIP
+    joint. glue shades the perimeter outside the white border (the placement drawing)."""
+    from matplotlib.patches import Polygon, Rectangle
     w, h = (v * scale for v in cut_size())
-    ax.add_patch(Rectangle((cx - w / 2, cy - h / 2), w, h, fill=False, ec=GREY, lw=0.25, zorder=2))
-    draw_tag(ax, IDS[finger], cx, cy, TAG * scale)
+    pts = outline(cx, cy, w, h, CHAMFER * scale)
+    if glue:
+        q = TAG * scale / 2 * 10.0 / 8.0                          # the white border's outer edge from the centre
+        ax.add_patch(Polygon(pts, closed=True, fc="#d0d0d0", ec="none", zorder=2))
+        ax.add_patch(Rectangle((cx - q, cy - q), 2 * q, 2 * q, fc="white", ec="none", zorder=2))
+    ax.add_patch(Polygon(pts, closed=True, fill=False, ec="k" if glue else GREY, lw=0.5 if glue else 0.25, zorder=3))
+    draw_tag(ax, IDS[finger], cx, cy, TAG * scale, zorder=4)
     if label:
-        quiet = TAG * scale / 2 * (10.0 / 8.0)                  # the white border's outer edge from the centre
-        ym = cy + (quiet + h / 2) / 2                             # midway between it and the cut line
-        fs = 3.6 * scale
-        ax.text(cx, ym, f"{finger} {IDS[finger]}", ha="center", va="center", fontsize=fs, color=GREY,
+        ym = cy + h / 2 + 2.8 * scale
+        ax.text(cx - 4.4 * scale, ym, f"{finger} {IDS[finger]}", ha="left", va="center", fontsize=7.0 * scale,
                 family="serif", zorder=3)
-        a = 0.55 * scale
-        for sx in (-1, 1):                                        # beside the label, clear of the holes (|y_L| <= 5)
-            x = cx + sx * 4.6 * scale
-            ax.add_patch(Polygon([(x - a, ym - a * 0.8), (x + a, ym - a * 0.8), (x, ym + a * 0.9)], closed=True,
-                                 fc=GREY, ec="none", zorder=3))
+        a, x = 0.8 * scale, cx - 6.4 * scale
+        ax.add_patch(Polygon([(x - a, ym - a), (x + a, ym - a), (x, ym + a)], closed=True, fc="k", ec="none",
+                             zorder=3))
 
 
 def grid_layout():
@@ -145,15 +158,16 @@ def placement(ax, ox, oy, s=3.0):
     ax.add_patch(Rectangle((ox - 2.0, oy + H), W + 4.0, 5.0, fc="#d9d9d9", ec="k", lw=0.6, zorder=1))   # the step
     ax.add_patch(Rectangle((ox, oy - 1.6 * s), W, 1.6 * s, fc="#e6e6e6", ec="k", lw=0.4, ls=(0, (2, 1)), zorder=1))
     cx, cy = ox + W / 2, oy + (zc - FACE_Z[0]) * s
-    sticker(ax, "index", cx, cy, scale=s, label=True)
+    sticker(ax, "index", cx, cy, scale=s, label=False, glue=True)
     for y, z in HOLES:                                            # the holes under the sticker, dashed
         ax.add_patch(Circle((ox + (y + FACE[0] / 2) * s, oy + (z - FACE_Z[0]) * s), HOLE_R * s, fill=False,
                             ec="k", lw=0.4, ls=(0, (1.5, 1.0)), zorder=5))
     t = dict(fontsize=7.5, family="serif", zorder=6)
     ax.text(ox + W / 2, oy + H + 2.5, f"step up {STEP:.2f} mm toward the PIP joint", ha="center", va="center", **t)
     ax.text(ox + W / 2, oy - 0.8 * s, "top cover's end plate (flush)", ha="center", va="center", **t)
-    ax.text(ox + W / 2, oy - 1.6 * s - 4.0, f"face {FACE[0]:.2f} × {FACE[1]:.2f} mm; holes {2 * HOLE_R:.1f} mm in diameter at "
-            f"±8.0 mm; scale {s:g}:1", ha="center", va="top", **t)
+    ax.text(ox + W / 2, oy - 1.6 * s - 4.0, f"face {FACE[0]:.2f} × {FACE[1]:.2f} mm, scale {s:g}:1; holes {2 * HOLE_R:.1f} mm "
+            f"in diameter at ±8.0 mm (dashed)\nglue on the grey perimeter only", ha="center", va="top", linespacing=1.5,
+            **t)
     return W, H
 
 
@@ -178,19 +192,18 @@ def cmd_build(a):
     w, h = cut_size()
     for f, cx, cy in cells:
         sticker(ax, f, cx, cy)
-    for f, cx, cy in cells[::COPIES]:
-        ax.text(cx, cy + h / 2 + 4.0, f"{f} {IDS[f]}", ha="center", va="bottom", fontsize=10, family="serif")
     # the placement drawing to the right of the grid
     W, H = placement(ax, 18.0 + gw + 22.0, PAGE[1] - 40.0 - 3.0 * FACE[1] - 6.0, s=3.0)
     y = PAGE[1] - 40.0 - COPIES * h - (COPIES - 1) * GAP - 12.0
     lines = [
         "Print at 100 % (actual size, no fit to page) on matte paper. The bar below measures 100.0 mm and each tag's",
         f"black square {TAG:.2f} mm; measure one with calipers.",
-        "Cut along the grey outline. Glue the sticker flat on the back of the DIP link, the face behind the fingertip board",
-        "between the step at the PIP end and the top cover, with a 0.25 mm reveal on each side. The arrows and the label",
-        "point toward the PIP joint: seen from the back with the PIP joint up, the tag reads upright.",
-        "Thumb 24, index 25, middle 26. The four screw holes lie under the corners of the white border; press the paper flat",
-        "there. Tag centre in the link's frame L (x_L dorsal, y_L along the PIP axis, z_L toward the PIP axis):",
+        "Cut along the grey outline, including the cut-off corner. Glue the sticker flat on the back of the DIP link, the",
+        "face behind the fingertip board between the step at the PIP end and the top cover, with a 0.25 mm reveal on each",
+        "side: the cut-off corner at the PIP end, on the left as seen from the back with the PIP joint up. Glue only the",
+        "perimeter outside the white border (1.5 mm across the finger, 1.7 mm along it), so that no glue soaks the tag.",
+        "Thumb 24, index 25, middle 26. Tag centre in the link's frame L (x_L dorsal, y_L along the PIP axis, z_L toward the",
+        "PIP axis):",
         f"x_L {FACE_X + STICKER_T:.2f}, y_L {face_centre()[0]:.2f}, z_L {face_centre()[1]:.3f} mm "
         f"(scripts/hardware/dip_tag_print.py; {REPORT.name}).",
     ]
@@ -211,7 +224,8 @@ def cmd_build(a):
            "script": "scripts/hardware/dip_tag_print.py", "pdf": str(PDF.relative_to(ROOT)), "page_mm": PAGE,
            "family": FAMILY, "tag_mm": TAG, "ids": IDS, "copies": COPIES, "face_mm": FACE, "face_z_L_mm": FACE_Z,
            "face_x_L_mm": FACE_X, "holes_yz_L_mm": HOLES, "hole_r_mm": HOLE_R, "cut_mm": cut_size(),
-           "sticker_t_mm": STICKER_T,
+           "sticker_t_mm": STICKER_T, "chamfer_mm": CHAMFER,
+           "glue_perimeter_mm": [round(cut_size()[0] / 2 - TAG * 10 / 16, 3), round(cut_size()[1] / 2 - TAG * 10 / 16, 3)],
            "frame_L": "the cad_v2 mesh v4b_dip_link.stl's frame = <finger>_pip_frame in assets/mjcf/experimental/"
                       "20261104-cad_v3/ur5_full_k0.xml (thumb's mesh turned 180 deg about z there): origin on the PIP "
                       "axis, y_L along it, x_L dorsal, z_L toward the PIP axis; x_L = -x_D, y_L = y_D, z_L = -z_D",

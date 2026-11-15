@@ -7,7 +7,7 @@
   279.4
  ],
  "family": "tag36h11",
- "tag_mm": 13.0,
+ "tag_mm": 14.0,
  "ids": {
   "thumb": 24,
   "index": 25,
@@ -47,88 +47,93 @@
   20.91
  ],
  "sticker_t_mm": 0.1,
+ "chamfer_mm": 1.2,
+ "glue_perimeter_mm": [
+  1.5,
+  1.705
+ ],
  "frame_L": "the cad_v2 mesh v4b_dip_link.stl's frame = <finger>_pip_frame in assets/mjcf/experimental/20261104-cad_v3/ur5_full_k0.xml (thumb's mesh turned 180 deg about z there): origin on the PIP axis, y_L along it, x_L dorsal, z_L toward the PIP axis; x_L = -x_D, y_L = y_D, z_L = -z_D",
  "maps_L": {
   "thumb": {
    "family": "tag36h11",
-   "size_mm": 13.0,
+   "size_mm": 14.0,
    "corners_mm": {
     "24": [
      [
       8.1,
-      6.5,
-      -29.705
+      7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -29.705
+      -7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -42.705
+      -7.0,
+      -43.205
      ],
      [
       8.1,
-      6.5,
-      -42.705
+      7.0,
+      -43.205
      ]
     ]
    }
   },
   "index": {
    "family": "tag36h11",
-   "size_mm": 13.0,
+   "size_mm": 14.0,
    "corners_mm": {
     "25": [
      [
       8.1,
-      6.5,
-      -29.705
+      7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -29.705
+      -7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -42.705
+      -7.0,
+      -43.205
      ],
      [
       8.1,
-      6.5,
-      -42.705
+      7.0,
+      -43.205
      ]
     ]
    }
   },
   "middle": {
    "family": "tag36h11",
-   "size_mm": 13.0,
+   "size_mm": 14.0,
    "corners_mm": {
     "26": [
      [
       8.1,
-      6.5,
-      -29.705
+      7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -29.705
+      -7.0,
+      -29.205
      ],
      [
       8.1,
-      -6.5,
-      -42.705
+      -7.0,
+      -43.205
      ],
      [
       8.1,
-      6.5,
-      -42.705
+      7.0,
+      -43.205
      ]
     ]
    }
@@ -238,10 +243,10 @@
   "stickers": 12,
   "ids_ok": true,
   "edge_mm": [
-   12.9859,
-   13.0231
+   13.9853,
+   14.0265
   ],
-  "centre_err_mm_max": 0.0088,
+  "centre_err_mm_max": 0.0078,
   "upright": true,
   "ok": true
  }
