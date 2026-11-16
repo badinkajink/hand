@@ -49,8 +49,11 @@ def main():
     ap.add_argument("--breakaway", type=float, default=0.0)
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--scene", default=None, help="the plant's scene in scenes/ (default rev_fric2's soft-contact scene)")
     a = ap.parse_args()
     RC2.STIFF, RC2.KP_YAW_IM, RC2.BREAKAWAY = True, a.kp_yaw_im, a.breakaway
+    if a.scene:
+        RG.RF.SCENE = D / "scenes" / a.scene
     RG.gear_class = RC2.clutch_class
     gs = []
     for g in a.grasps:
