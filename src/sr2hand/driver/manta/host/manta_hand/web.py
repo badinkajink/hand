@@ -189,6 +189,9 @@ class ControlHTTPServer(ThreadingHTTPServer):
 class ControlRequestHandler(BaseHTTPRequestHandler):
     server: ControlHTTPServer
     protocol_version = "HTTP/1.1"
+    # TCP_NODELAY on each connection: a reply's header and body writes otherwise meet Nagle's algorithm and the
+    # client's delayed ACK, about 40 ms per request (2026-11-16, the HOM stream at 45 ms a frame)
+    disable_nagle_algorithm = True
     # Without this a keep-alive connection that the browser abandons (page reload, a
     # network blip, a laptop lid) holds its handler thread forever. Over a long bench
     # session on a CB1 those accumulate with nothing to reap them.

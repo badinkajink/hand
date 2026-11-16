@@ -114,6 +114,9 @@ INTER_CMD_DELAY_S = 0.3
 # different servos, a different adapter, or a longer chain.
 INTER_READ_DELAY_S = 0.0
 
+# Frames a servo that missed a stream read-back is left out of it (read_joint_positions_stream; 2026-11-16).
+STREAM_SKIP = 10
+
 # Gap a READ waits out after a SYNC write (sync_set_joints), as opposed to after one of
 # the slow verified individual writes, which keep the full INTER_CMD_DELAY_S above.
 # Measured on the real chain 2026-08-29, writing each servo the pose it was already
@@ -362,6 +365,34 @@ class ServoBus:
             for name, (servo_id, zero_deg, _limits) in joints.items():
                 raw = self.servo(servo_id)._call(self._c.read_present_position)[0]
                 out[finger_id][name] = math.degrees(float(raw)) - zero_deg
+        return out
+
+    def read_joint_positions_stream(self, budget_s: float = 0.03) -> dict[int, dict[str, float | None]]:
+        """The nine positions for the policy stream's read-back (2026-11-16): one READ per servo, with no retry and no
+        quiet period after a timeout; a servo that timed out is skipped for its next STREAM_SKIP frames, and the reads
+        stop once budget_s has passed. A joint not read is None. Under a grip's load a servo can miss a READ, and the
+        retrying path (Servo._call: three attempts, each followed by INTER_CMD_DELAY_S) held the bus for about 1.5 s,
+        long enough for the stream's lease to lapse with the fingers half closed."""
+        skip = self.__dict__.setdefault("_stream_skip", {})
+        out: dict[int, dict[str, float | None]] = {fid: {} for fid in FINGER_JOINTS}
+        t0 = time.monotonic()
+        for finger_id, joints in FINGER_JOINTS.items():
+            for name, (servo_id, zero_deg, _limits) in joints.items():
+                n = skip.get(servo_id, 0)
+                if n > 0 or time.monotonic() - t0 > budget_s:
+                    skip[servo_id] = max(0, n - 1)
+                    out[finger_id][name] = None
+                    continue
+                with self._lock:
+                    self._wait_for_quiet(False)
+                    try:
+                        raw = self._c.read_present_position(servo_id)[0]
+                        self._note_transaction(False)
+                        out[finger_id][name] = math.degrees(float(raw)) - zero_deg
+                    except RuntimeError:
+                        self._note_transaction(True)
+                        skip[servo_id] = STREAM_SKIP
+                        out[finger_id][name] = None
         return out
 
     def read_alarms(self) -> dict[int, int] | None:

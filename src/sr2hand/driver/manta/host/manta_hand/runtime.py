@@ -219,6 +219,10 @@ class RealHardwareBackend:
         timer (servos.sync_read_joint_positions)."""
         return self.servos.sync_read_joint_positions()
 
+    def read_joints_stream(self) -> dict[int, dict[str, float | None]]:
+        """The stream's read-back: one attempt per servo, None for a joint not read (servos.read_joint_positions_stream)."""
+        return self.servos.read_joint_positions_stream()
+
     def set_servo_torque(self, state: int) -> dict:
         return self.servos.set_torque_all(state)
 
@@ -1124,13 +1128,30 @@ class HandRuntime:
             self._last_command = normalized
         if not read_back:
             return None
-        servos = self.backend.read_joints()
+        missed: list[str] = []
+        if hasattr(self.backend, "read_joints_stream"):
+            # one attempt per servo; a missed joint keeps its last reading (2026-11-16: a retried READ under the
+            # grip's load held the bus 1.5 s and the lease lapsed)
+            fresh = self.backend.read_joints_stream()
+            with self._lock:
+                prev = dict(self._telemetry.get("servos") or {})
+            servos = {}
+            for fid, joints in fresh.items():
+                last = prev.get(fid, prev.get(str(fid), {})) or {}
+                servos[fid] = {}
+                for name, v in joints.items():
+                    if v is None:
+                        missed.append(f"{fid}.{name}")
+                        v = last.get(name)
+                    servos[fid][name] = v
+        else:
+            servos = self.backend.read_joints()
         now = time.time()
         with self._lock:
             telem = dict(self._telemetry)
             telem.update({"servos": servos, "servo_timestamp": now, "servo_age_s": 0.0})
             self._telemetry = telem
-        return {"servos": {str(fid): v for fid, v in servos.items()}, "servo_timestamp": now}
+        return {"servos": {str(fid): v for fid, v in servos.items()}, "servo_timestamp": now, "missed": missed}
 
     def end_stream(self, token: str) -> None:
         with self._lock:
