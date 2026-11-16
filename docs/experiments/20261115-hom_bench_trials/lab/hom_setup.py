@@ -26,8 +26,12 @@ Every command prints what it would do; only with --go does anything move.
     zero       the fingers straight down; with the fingers away from zero only after zero_guard has found them clear of
                the tracked object (--object, --map; or --unchecked)
     ready      zero, approach and the open pose in small steps, under one tracker (and one recording)
-    putdown    after a trial: the tracked touchdown, the seated check, the release checked on the hand's model, the
-               slow release, the rise with the fingers open, zero, and the rise by --clear (cmd_putdown)
+    putdown    after a trial: the tracked touchdown (or the HEX-E's backstop within --touch-window of the expected
+               one), the seated check, the release checked on the hand's model, then letgo's sequence (cmd_putdown)
+    letgo      release -> straighten -> lift, on its own after any touchdown or a stopped putdown (owner, 2026-11-16:
+               "this release --> straighten --> lift should also be automated/skill-ified ... it works pretty
+               reliably"): the open pose over --ramp-s, the fingers straight when the model's path to zero only moves
+               each part away from the object, the palm to the grasp's height + --clear, levelled (cmd_letgo)
 
 Every moving command takes --video-dir DIR: both cameras from before its first motion to a second after its last,
 into DIR/<YYYYmmdd-HHMMSS>_<step>_<plan stem>_<serial>.mp4 (hom_trial.py trial --video-dir writes
@@ -514,6 +518,33 @@ def path_clearance(plan, j_from, j_to, caps):
     return best, where
 
 
+def path_away(plan, j_from, j_to, caps, margin, tol=0.5):
+    """(ok, text, rec): the joints' straight path from j_from to j_to checked part by part (each finger's tip pad, tip
+    end and PIP joint against each of the object's capsules): a part that starts within margin mm of the object, in
+    contact even, may only move away from it (never closer than its start, less tol), and every other part must keep
+    margin. The rule of the three releases by hand on 2026-11-16 (12:52, 12:56, 13:00): the fingers went straight
+    cleanly each time the closest approach lay at the path's start, the middle's pad still on the ball (-2.3 mm) at
+    13:00, where putdown's --zero-first-margin of 6 mm refused."""
+    series = {}
+    for f, u, part, pt, rad in path_pts(plan, j_from, j_to):
+        for name, a_, b_, cr in caps:
+            series.setdefault((f, part, name), []).append((u, seg_dist(pt, a_, b_) - cr - rad))
+    worst, gmin = None, (math.inf, "", 0.0)
+    for (f, part, name), s in series.items():
+        d0 = s[0][1]
+        allowed = min(d0, margin) - tol
+        for u, d in s:
+            if d < gmin[0]:
+                gmin = (d, f"{f} {part} at {u:.0%} of the path, {name}", u)
+            if allowed - d > 0 and (worst is None or allowed - d > worst[0]):
+                worst = (allowed - d, f"the {f} {part} comes to {d:.1f} mm from {name} at {u:.0%} of the path (it "
+                                      f"starts at {d0:.1f} mm; {allowed:.1f} allowed)")
+    ok = worst is None
+    text = (f"closest {gmin[0]:.1f} mm ({gmin[1]}); "
+            + (f"every part keeps its start's distance or {margin:g} mm" if ok else f"REFUSED: {worst[1]}"))
+    return ok, text, {"min_mm": gmin[0], "min_at": gmin[1], "min_u": gmin[2], "worst": None if ok else worst[1]}
+
+
 def silhouette_gap(plan, j, p, q):
     """(mm, where): the least horizontal gap, in P's xy, between the tips (pad and end) at joints j and the object's
     body over them, less both radii: what a rise along z_P with these joints needs to stay positive."""
@@ -949,19 +980,23 @@ def cmd_putdown(a):
       2. down along base z at --v to d - --pre-mm, then at --v-slow to at most d + --past-mm, each leg stopped by the
          tracker when the object moves against the hand (the block on the table holds it while the hand goes on:
          --fast-touch-mm along z_P on the fast leg, --touch-mm on the slow one, --touch-lat in P's xy), with the
-         HEX-E's change past --stop-n (2 N) as the backstop; the block seated when its bottom lies within --seat-mm of
-         the table and its axis within --seat-deg of vertical;
+         HEX-E's change past --stop-n (2 N) as the backstop. A backstop stop within --touch-window mm of the expected
+         touchdown counts as one (12:59: the firmer ground-clear grasp stopped on 2.08 N at 39.2 mm, 40.7 expected);
+         the block seated when its bottom lies within --seat-mm of the table and its axis within --seat-deg of
+         vertical (20 deg: owner, 2026-11-16, "the sphere probably settles on the open");
       3. the release checked on the hand's model before it runs (release_check): along the joints' straight path to
          the open pose, every tip pad, tip end and PIP joint --table-clear mm above the table and --block-clear mm
-         outside the seated block;
-      4. the open pose in small steps over --ramp-s;
-      5. the hand up along z_P with the fingers open, to 5 mm over the grasp's height above the object (more when the
-         model's path to zero needs it, at most --max-extra), when the object lies within --lat-max mm of the grasp's
-         axis and the open tips stand --silhouette-clear mm outside its silhouette; watched: the object stays put in B;
-      6. the fingers straight (zero: ready's straight-finger descent in reverse), then the hand up --clear mm, watched.
-    When step 5 cannot run (the object off the axis, an open tip over it), the fingers go straight where they are if
-    the model's path to zero keeps --zero-first-margin mm from the object, and the hand rises with them straight.
-    Any step that fails stops the command with the hand where it is."""
+         outside the seated block (-8 mm: owner, "its a pretty conservative check you have");
+      4. letgo's sequence (letgo_sequence; owner, 2026-11-16: "this release --> straighten --> lift should also be
+         automated ... it works pretty reliably"): the open pose in small steps over --ramp-s, the fingers straight
+         when the model's path to zero only moves each part away from the object (path_away), and the palm up to the
+         grasp's height + --clear, levelled, watched.
+    With --rise-open, steps 4 on are the first version's: the hand up along z_P with the fingers open, to 5 mm over the
+    grasp's height above the object (more when the model's path to zero needs it, at most --max-extra), when the object
+    lies within --lat-max mm of the grasp's axis and the open tips stand --silhouette-clear mm outside its silhouette,
+    else the fingers straight where they are if the path to zero keeps --zero-first-margin mm; then zero and the hand
+    up --clear-up mm. At 12:56 its watched rise stopped on the object's 1.5 mm settling, and at 13:00 the 6 mm margin
+    refused a release that went cleanly by hand. Any step that fails stops the command with the hand where it is."""
     plan = load_plan(a.plan)
     shape = plan["meta"]["hom"]["shape"]
     if shape != a.object:
@@ -1026,6 +1061,13 @@ def cmd_putdown(a):
         if touched is None:
             raise SystemExit(f"no touchdown within {total:.1f} mm: the object may hang above the table; look before "
                              "anything else")
+        if (not touched.startswith("TOUCHDOWN") and " changed " in touched and "N (limit" in touched
+                and total >= d - a.touch_window):
+            # the HEX-E's backstop near the expected touchdown: the block on the table before the object moved in a
+            # firm grasp (12:59, 2.08 N at 39.2 mm, 40.7 expected); the seat check below decides
+            print(f"   the force stopped the descent {total:.1f} mm down, within {a.touch_window:g} mm of the expected "
+                  f"{d:.1f}: taken as the touchdown", flush=True)
+            touched = f"TOUCHDOWN (force, {total:.1f} of {d:.1f} mm): {touched}"
         if not touched.startswith("TOUCHDOWN"):
             raise SystemExit(f"the descent stopped: {touched}; look at the fingers and the object before anything else")
         p_m, q_m, info = meas.pose(a.measure_s, settle=0.3)
@@ -1046,6 +1088,8 @@ def cmd_putdown(a):
         if not rel["ok"]:
             raise SystemExit("the release would bring a finger too near the table or the block: not releasing; the "
                              "hand holds the object on the table")
+        if not a.rise_open:
+            return letgo_sequence(a, plan, st, arm, meas, h)
         cmd_open(a)
         p_m, q_m, info = meas.pose(a.measure_s)
         dn, _ = report("released", p_m, q_m, p_n, q_n, shape, info)
@@ -1081,7 +1125,7 @@ def cmd_putdown(a):
             if why:
                 raise SystemExit(f"the rise stopped: {why}; look before anything else")
             zero_fingers(a, st)
-            up = a.clear
+            up = a.clear_up
         else:
             # the open fingers may not rise: straight here instead, when the model's path to zero keeps
             # --zero-first-margin from the object and the straight fingers stand outside its silhouette
@@ -1093,7 +1137,7 @@ def cmd_putdown(a):
             print(f"   {why_not}: the fingers straight here instead (their path keeps {c0:.1f} mm from the object, "
                   f"{w0})", flush=True)
             zero_fingers(a, st)
-            up = rise0 + a.clear
+            up = rise0 + a.clear_up
         ref = meas.latest(5, 0.5)
         if ref is None:
             raise SystemExit("the tracker does not see the object: not moving")
@@ -1110,6 +1154,134 @@ def cmd_putdown(a):
         meas.stop()
         arm.close()
     return 0
+
+
+def zero_path_check(a, plan, j, T_BP, p_m, q_m, info, h):
+    """(ok, text, rec): the fingers' straight path from j to zero on the hand's model: path_away against the tracked
+    object (each part only moves away, or keeps --zero-margin) and every part --table-clear mm above the table."""
+    ok, text, rec = path_away(plan, j, ZERO, object_capsules(p_m, q_m, plan, h), a.zero_margin)
+    tab = release_check(plan, j, ZERO, T_BP, info["p_B"], info["q_B"], h, a)
+    ok_t = tab["table_mm"] >= a.table_clear
+    text += (f"; the lowest finger part {tab['table_mm']:.1f} mm above the table" + ("" if ok_t else
+             f" (REFUSED: {a.table_clear:g} wanted)"))
+    return ok and ok_t, text, {**rec, "table_mm": tab["table_mm"]}
+
+
+def lift_goal(a, plan, T_BP, h):
+    """(T_BE goal or None, dz mm, text): the palm straight up in base z to --clear mm over the grasp's height for the
+    object resting on the table (place's height), z_P levelled when it is within --max-level of vertical; None when the
+    palm is there already."""
+    p_n, _ = nominal(plan)
+    z_goal = a.table_z + h - p_n[2] + a.clear
+    dz = float(z_goal - T_BP[2, 3])
+    tilt = math.degrees(math.acos(min(1.0, float(T_BP[2, 2]))))
+    level = tilt <= a.max_level
+    R = rot_between(T_BP[:3, 2], [0.0, 0.0, 1.0]) @ T_BP[:3, :3] if level else T_BP[:3, :3]
+    text = (f"palm at z_B {T_BP[2, 3]:.1f} -> {z_goal:.1f} mm (the grasp's height + {a.clear:g}): {dz:+.1f} mm"
+            + (f", z_P levelled from {tilt:.2f} deg" if level else f", z_P kept at {tilt:.2f} deg (over --max-level)"))
+    if dz <= 0.5:
+        return None, dz, text + "; no lift"
+    if dz > a.max_dz:
+        raise SystemExit(f"{text}: more than --max-dz {a.max_dz:g}")
+    return tf(R, T_BP[:3, 3] + [0.0, 0.0, dz]) @ tf_inv(T_EP), dz, text
+
+
+def letgo_sequence(a, plan, st, arm, meas, h):
+    """Release, straighten, lift, after a touchdown (owner, 2026-11-16: "this release --> straighten --> lift should
+    also be automated/skill-ified if not already. it works pretty reliably"; by hand at 12:52, 12:56 and 13:00): the
+    open pose in small steps over --ramp-s (the object settles even with a finger left on it), the object measured,
+    the fingers straight when zero_path_check passes, and the palm up to the grasp's height + --clear, levelled, the
+    object watched in B (--lift-still-mm: nothing should touch it once the fingers are straight). arm connected, meas
+    running (a._meas set, so cmd_open records into it). Raises SystemExit with the hand where it is on a refusal."""
+    shape = plan["meta"]["hom"]["shape"]
+    p_n, q_n = nominal(plan)
+    j = sim_joints(st.state())
+    if j is None:
+        raise SystemExit("no joint telemetry")
+    if max(abs(j[f][k]) for f in j for k in j[f]) > 5.0:
+        cmd_open(a)
+        p_m, q_m, info = meas.pose(a.measure_s)
+        report("released", p_m, q_m, p_n, q_n, shape, info)
+        j = sim_joints(st.state())
+        ok, text, rec = zero_path_check(a, plan, j, arm.T_BP(), p_m, q_m, info, h)
+        print("   the path to zero: " + text, flush=True)
+        note({"cmd": "letgo", "step": "zero check", "ok": ok, **rec})
+        if not ok:
+            raise SystemExit("not straightening the fingers: the hand holds its open pose over the object; look")
+        zero_fingers(a, st)
+    else:
+        print("   the fingers are straight already: no release", flush=True)
+    T_goal, dz, text = lift_goal(a, plan, arm.T_BP(), h)
+    print("   lift: " + text, flush=True)
+    if T_goal is not None:
+        ref = meas.latest(5, 0.5)
+        if ref is None:
+            raise SystemExit("the tracker does not see the object: not moving")
+        why, _ = arm.move(T_goal, a.v, a.acc, a.stop_n, dz / (1e3 * a.v) + 6.0, f"lift {dz:+.1f} mm, fingers straight",
+                          check=meas.watch_still(ref[1], a.lift_still_mm))
+        if why:
+            raise SystemExit(f"the lift stopped: {why}; look before anything else")
+    p_m, q_m, info = meas.pose(a.measure_s)
+    report("let go", p_m, q_m, p_n, q_n, shape, info)
+    note({"cmd": "letgo", "step": "done", "p_PO": p_m.tolist(), "p_B": info["p_B"]})
+    print("LET GO: the fingers straight, the hand over the object at the grasp's height + "
+          f"{a.clear:g} mm", flush=True)
+    return 0
+
+
+def cmd_letgo(a):
+    """release -> straighten -> lift on its own, after any touchdown or a putdown that stopped with the object on the
+    table (letgo_sequence), under one tracker (one recording with --video-dir). It refuses when the object's block is
+    over --seat-mm above the table (the release would drop it; --drop-ok to allow) and when the station's mounts are
+    not the plan's (the hand's model would be wrong). The dry run measures the object and checks the path to zero from
+    the plan's open pose, the one the release will reach unless the object stops a finger."""
+    plan = load_plan(a.plan)
+    shape = plan["meta"]["hom"]["shape"]
+    if shape != a.object:
+        raise SystemExit(f"the plan's object is the {shape}, not the {a.object}")
+    p_n, q_n = nominal(plan)
+    h = map_height(a.map)
+    st = Station(a.station, a.token_file)
+    s = st.state()
+    bad = mounts_off(plan, s)
+    if bad:
+        raise SystemExit(f"the station's mounts are not the plan's ({bad}): the hand's model would be wrong")
+    j = sim_joints(s)
+    if j is None:
+        raise SystemExit("no joint telemetry")
+    print(f"station: torque {s.get('servo_torque')}, mounts {s.get('mount_positions')}")
+    print("   " + show_pose("measured", j))
+    if a.go and s.get("servo_torque") != 1:
+        raise SystemExit("servo torque is off: run torque-on (with the fingers straightened by hand if one is curled "
+                         "past ~60 deg) first")
+    arm = Arm(a.ur_ft, a.blank_s)
+    meas = Measure(a, video=recorder(a, "letgo"))
+    a._meas = meas
+    try:
+        p_m, q_m, info = meas.pose(a.measure_s, settle=0.0)
+        report("before the release", p_m, q_m, p_n, q_n, shape, info)
+        bottom = float(info["p_B"][2]) - h - a.table_z
+        tilt = math.degrees(math.acos(float(np.clip(quat_to_mat(np.asarray(info["q_B"]))[2, 1], -1.0, 1.0))))
+        print(f"   the block's bottom {bottom:+.2f} mm from the table, its axis {tilt:.1f} deg from vertical", flush=True)
+        if bottom > a.seat_mm and not a.drop_ok:
+            raise SystemExit(f"the block is {bottom:.1f} mm above the table (over --seat-mm {a.seat_mm:g}): the release "
+                             "would drop the object; put it down first (putdown), or --drop-ok")
+        straight = max(abs(j[f][k]) for f in j for k in j[f]) <= 5.0
+        if not straight:
+            rel = release_check(plan, j, open_pose(plan), arm.T_BP(), info["p_B"], info["q_B"], h, a)
+            print("   the release: " + rel["text"], flush=True)
+            ok, text, _ = zero_path_check(a, plan, open_pose(plan), arm.T_BP(), p_m, q_m, info, h)
+            print("   the path to zero from the open pose (checked again after the release): " + text, flush=True)
+        _, _, text = lift_goal(a, plan, arm.T_BP(), h)
+        print("   lift: " + text, flush=True)
+        if not a.go:
+            return 0
+        arm.connect(a.stop_n is not None)
+        return letgo_sequence(a, plan, st, arm, meas, h)
+    finally:
+        a._meas = None
+        meas.stop()
+        arm.close()
 
 
 def cmd_release(a):
@@ -1220,24 +1392,59 @@ def main():
             p.add_argument("--touch-mm", type=float, default=0.8, help="the object's motion along z_P: touchdown")
             p.add_argument("--fast-touch-mm", type=float, default=2.0, help="the same on the fast leg")
             p.add_argument("--touch-lat", type=float, default=1.5, help="the object's motion in P's xy: a stop")
+            p.add_argument("--touch-window", type=float, default=4.0,
+                           help="mm short of the expected touchdown within which the HEX-E's backstop counts as one")
             p.add_argument("--seat-mm", type=float, default=3.0)
-            p.add_argument("--seat-deg", type=float, default=5.0)
-            p.add_argument("--table-clear", type=float, default=8.0)
-            p.add_argument("--block-clear", type=float, default=3.0)
-            p.add_argument("--lat-max", type=float, default=4.0)
-            p.add_argument("--silhouette-clear", type=float, default=2.0)
-            p.add_argument("--max-extra", type=float, default=40.0, help="mm of rise over the grasp's height for zero")
-            p.add_argument("--still-mm", type=float, default=1.5)
+            p.add_argument("--seat-deg", type=float, default=20.0,
+                           help="the block's tilt allowed at the touchdown (owner: the sphere settles on the open)")
+            p.add_argument("--rise-open", action="store_true",
+                           help="the first version's ending: rise with the fingers open, then zero, then --clear-up")
+            p.add_argument("--lat-max", type=float, default=4.0, help="--rise-open")
+            p.add_argument("--silhouette-clear", type=float, default=2.0, help="--rise-open")
+            p.add_argument("--max-extra", type=float, default=40.0, help="--rise-open: mm of rise over the grasp's "
+                           "height for zero")
+            p.add_argument("--still-mm", type=float, default=1.5, help="--rise-open: the object's motion that stops "
+                           "the open-finger rise")
             p.add_argument("--zero-first-margin", type=float, default=6.0,
-                           help="mm the path to zero must keep from the object to straighten the fingers before rising")
-            p.add_argument("--clear", type=float, default=60.0, help="mm up along z_P after zero")
+                           help="--rise-open: mm the path to zero must keep from the object to straighten first")
+            p.add_argument("--clear-up", type=float, default=60.0, help="--rise-open: mm up along z_P after zero")
+            _letgo_args(p)
+    p = sub.add_parser("letgo")
+    common(p)
+    p.add_argument("--object", choices=("cylinder", "sphere"), required=True)
+    p.add_argument("--map", required=True)
+    p.add_argument("--table-z", type=float, default=3.0, help="the table's height in the base frame (mm)")
+    p.add_argument("--measure-s", type=float, default=0.5)
+    p.add_argument("--speed", type=int, default=40)
+    p.add_argument("--wait-s", type=float, default=2.0)
+    p.add_argument("--ramp-s", type=float, default=4.0, help="the release: the open pose in small steps over this long")
+    p.add_argument("--v", type=float, default=0.01, help="m/s of the lift")
+    p.add_argument("--seat-mm", type=float, default=4.0,
+                   help="the block's bottom at most this far above the table, or the release would drop the object")
+    p.add_argument("--drop-ok", action="store_true", help="release even with the block above the table")
+    _letgo_args(p)
     p = sub.add_parser("approach")
     common(p, station=False)
     _approach_args(p)
     a = ap.parse_args()
     return {"status": cmd_status, "torque-on": cmd_torque_on, "open": cmd_open, "zero": cmd_zero, "layout": cmd_layout,
             "place": cmd_place, "approach": cmd_approach, "release": cmd_release, "ready": cmd_ready,
-            "putdown": cmd_putdown}[a.cmd](a)
+            "putdown": cmd_putdown, "letgo": cmd_letgo}[a.cmd](a)
+
+
+def _letgo_args(p):
+    """letgo's checks and lift, shared by letgo and putdown (letgo_sequence)."""
+    p.add_argument("--table-clear", type=float, default=8.0, help="mm every finger part keeps above the table")
+    p.add_argument("--block-clear", type=float, default=-8.0,
+                   help="mm the release's path keeps outside the block (owner: a conservative check; -8 accepted)")
+    p.add_argument("--zero-margin", type=float, default=3.0,
+                   help="mm a finger part that starts clear keeps from the object on the path to zero (one that starts "
+                        "nearer may only move away)")
+    p.add_argument("--clear", type=float, default=30.0, help="mm over the grasp's height the lift takes the palm to")
+    p.add_argument("--lift-still-mm", type=float, default=3.0,
+                   help="the object's motion in B that stops the lift (the fingers straight, nothing should touch it)")
+    p.add_argument("--max-level", type=float, default=5.0, help="deg of z_P tilt the lift levels out")
+    p.add_argument("--max-dz", type=float, default=160.0, help="mm the lift may take at most")
 
 
 def _approach_args(p):
