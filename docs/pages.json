@@ -93,7 +93,7 @@
   "builder": "scripts/hom/inner_loop_benchmark_page.py",
   "artifact": "https://claude.ai/artifact/6Pen2iF2bpC4YTWh13eBrb",
   "status": "current",
-  "mb": 0.7
+  "mb": 0.8
  },
  {
   "date": "2026-11-11",

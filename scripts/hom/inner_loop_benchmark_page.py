@@ -145,6 +145,18 @@ def eval_seconds(run):
     return [int(m.group(1)), int(m.group(2))] if m else None
 
 
+def train_dropped(run):
+    """[min, max, iterations] of the share of each training iteration's finished episodes that dropped the sphere, from
+    the training log whose done line names the run's directory, or None."""
+    for log in sorted(glob.glob(str(ROOT / "logs/2026111*-uhas*/*.log"))):
+        txt = Path(log).read_text(errors="replace")
+        if re.search(rf"^done: \d+ iterations in .*/{re.escape(run)}\s*$", txt, re.M):
+            v = [float(x) for x in re.findall(r"Mean episode dropped: ([0-9.]+)", txt)]
+            if v:
+                return [min(v), max(v), len(v)]
+    return None
+
+
 def summarize():
     """rows/uhas_twist_test_summary.json from the evaluation rows present (the rows are 5 MB each and stay out of git):
     per run its split, plant and checkpoint, and per (x_sep, y_sep, grasp) the mean J over the seeds, the held share and
@@ -167,6 +179,7 @@ def summarize():
                   "J_mean_all": round(float(np.mean([r["J"] for r in rows])), 4),
                   "held_all": round(float(np.mean([bool(r.get("held")) for r in rows])), 4),
                   "eval": eval_seconds(run) or S.get(run, {}).get("eval"),
+                  "train_dropped": train_dropped(run) or S.get(run, {}).get("train_dropped"),
                   "split": {k: (len(v) if k in ("train", "test") and len(v) > 2 else v) for k, v in sp.items()},
                   "per": [[x, y, g, round(float(np.mean([j for j, _h in v])), 4),
                            round(float(np.mean([h for _j, h in v])), 4), len(v)] for (x, y, g), v in sorted(per.items())]}
@@ -515,9 +528,11 @@ def sec_uhas(runs):
         prog = uhas_progress(run)
         st[v] = (S, prog)
         last = prog[-1] if prog else {}
+        any_ = S["uhas_best"] > 0                      # a run at J = 0 everywhere has no first choice
         rows.append([VARIANTS[v][0], f"{last.get('minutes', 0):.0f}", f"{100 * S['held_uhas']:.0f}",
                      f"{S['uhas_mean']:.3f}", f"{S['uhas_best']:.2f}",
-                     f"({S['uhas_pick'][0]:g}, {S['uhas_pick'][1]:g})", f"{S['hom_of_uhas_pick']:.2f}",
+                     f"({S['uhas_pick'][0]:g}, {S['uhas_pick'][1]:g})" if any_ else "none",
+                     f"{S['hom_of_uhas_pick']:.2f}" if any_ else "&#8212;",
                      f"{S['rho']:.2f}" if S["rho"] == S["rho"] else "&#8212;"])
     S0 = st["published"][0]
     rows.insert(0, ["HOM", "none", f"{100 * S0['held_hom']:.0f}", f"{S0['hom_mean']:.3f}", f"{S0['hom_best']:.2f}",
@@ -548,6 +563,11 @@ rollouts.</p>""", ml=f"{SL['uhas_mean']:.3f}", hl=f"{100 * SL['held_uhas']:.0f}"
         t += fill(r"""<p>Acting from the open hand, with its own grasp and lift, UHAS held the sphere in <<ho>> % of
 <<no>> test rollouts, and its mean J per test layout was <<mo>>.</p>""", ho=f"{100 * SO['held_uhas']:.0f}",
                   no=f"{SO['rollouts']:,}", mo=f"{SO['uhas_mean']:.3f}")
+        run_o, E_o = runs["open"]
+        td, pg = E_o.get("train_dropped"), st["open"][1]
+        if td and td[0] == 1.0 and pg and max(r_.get("J_proxy", 0) for r_ in pg) == 0:
+            t = t[:-4] + fill(r""" In all <<it>> training iterations every episode that ended had dropped the sphere, and
+its J proxy was 0 at each of its <<nc>> checkpoints.</p>""", it=f"{td[2]:,}", nc=len(pg))
     t += table(["Controller", "Training (min)", "Held (%)", "Mean J per layout", "Best layout's J", "First choice (mm)",
                 "Its J under HOM", "&#961; with HOM's J"], rows,
                "The 109 test layouts of the twist on the SCS0009 plant, every grasp at seeds 0-2. Mean J per layout: "
