@@ -1174,13 +1174,23 @@ def sec_sensing(S):
         if s_:
             rows.append([desc[0].upper() + desc[1:], f2(s_["J"], 3), f"{100 * s_['held']:.0f}", f2(s_["err"], 1),
                          f2(s_["contact"]), f2(s_["grip_mean_N"], 1), f2(s_["reversals_ps"])])
-    pl = []
-    for stem, lab in (("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"), ("anneal_twist", "Annealed sampling")):
-        ex, nz = S.get(stem), S.get(stem.replace("_twist", "_twist_d4n") if stem == "anneal_twist" else
-                                    "ps_twist_d4n_r10h10k2i1")
+    pl, plf = [], {}
+    rt = CFG_PICK                     # the real-time pick (logs/20261112-mpc/rt_pick.txt)
+    for meth, cfg, lab in (("ps", CFG_PSRT, "Predictive sampling, real-time budget"),
+                           ("anneal", rt, "Annealed sampling, real-time budget"),
+                           ("anneal", CFG_FULL, "Full annealed sampling")):
+        if cfg is None:
+            continue
+        ex, nz, fz = (S.get(stem_of(meth, cfg, delay=dl)) for dl in ("", "_d4n", "_d4nf0.2"))
         if ex and nz:
-            pl.append([lab, f2(ex["J"], 3), f2(nz["J"], 3), f"{100 * nz['held']:.0f}", f2(nz["err"], 1),
-                       f2(nz["contact"])])
+            pl.append([lab, f2(ex["J"], 3), f2(nz["J"], 3), f2(fz["J"], 3) if fz else "&#8212;",
+                       f"{100 * (fz or nz)['held']:.0f}", f2((fz or nz)["reversals_ps"]), f2((fz or nz)["contact"])])
+            if fz:
+                plf[lab] = (ex["J"], nz["J"], fz["J"], fz["reversals_ps"], nz["reversals_ps"])
+    hx, hn, hf = S.get("hom_twist"), S.get("hom_twist_notip"), S.get("hom_twist_notip_pf0.2")
+    if pl and hx and hn and hf:
+        pl.insert(0, ["HOM (the tag tracker at 50 Hz)", f2(hx["J"], 3), f2(hn["J"], 3), f2(hf["J"], 3),
+                      f"{100 * hf['held']:.0f}", f2(hf["reversals_ps"]), f2(hf["contact"])])
     if len(rows) < 2 and not pl:
         return ""
     t = fill(r"""<p>HOM reads the joint angles, the sphere's pose and each fingertip's contact point and force. Every
@@ -1196,9 +1206,25 @@ plant's exact state.</p>""", r=REVIEW)
     if pl:
         t += r"""<p>A planner copies the plant's state into its rollouts. With the tag tracker the copy is 40 ms old, and
 the sphere's pose in it has the tracker's noise. Here each plan starts from the plant's state 4 periods earlier, with
-0.5 mm and 1 deg of noise on the sphere's pose. The plan is applied from now (<code>--plan-delay 4 --plan-noise</code>).</p>"""
-        t += table(["Planner", "Mean J, exact state", "Mean J, measured state", "Held (%)", "Tracking error (deg)",
-                    "Three-pad share"], pl, "Planners from a 40 ms old, noisy state, on the same 40 runs.")
+0.5 mm and 1 deg of noise on the sphere's pose. The plan is applied from now (<code>--plan-delay 4 --plan-noise</code>).
+With <code>--plan-filter 0.2</code> the measured pose goes through the complementary filter of the next section first.
+The filter is kept at the measurement's own time, since the joints of the start state are as old. Each period the
+estimate is turned by the commanded angular velocity. It then moves by $\Delta t/\tau$ of its difference to the
+period's noised measurement, with $\tau$ = 0.2 s.</p>"""
+        t += table(["Controller", "Mean J, exact state", "Mean J, measured state", "Mean J, measured state through "
+                    "the filter", "Held (%)", "Target reversals (1/s)", "Three-pad share"], pl,
+                   "Planners from a 40 ms old, noisy state, on the same 40 runs, and HOM with the tag tracker's pose "
+                   "(HOM at 50 Hz, the planners at 100 Hz). Held, reversals and three-pad share: the filtered run where "
+                   "it exists.", num_from=1)
+        if plf and hf and hn:
+            up = [v[2] - v[1] for v in plf.values()]
+            t += fill(r"""<p>The filter raised the planners' mean J by <<u0>> to <<u1>> and HOM's by <<uh>>. Through the
+filter the planners' J differed from HOM's by <<d0>> to <<d1>>. From the raw measured state the difference had been
+<<r0>> to <<r1>>.</p>""", u0=f"{min(up):.3f}", u1=f"{max(up):.3f}", uh=f"{hf['J'] - hn['J']:.3f}",
+                      d0=f"{min(v[2] - hf['J'] for v in plf.values()):+.3f}",
+                      d1=f"{max(v[2] - hf['J'] for v in plf.values()):+.3f}",
+                      r0=f"{min(v[1] - hn['J'] for v in plf.values()):+.3f}",
+                      r1=f"{max(v[1] - hn['J'] for v in plf.values()):+.3f}")
     return t
 
 
@@ -1213,6 +1239,8 @@ PF_RUNS = (("hom_twist_notip", "Tag tracker 50 Hz, frames used as they come"),
            ("hom_twist_tip", "Tag tracker and fingertip model, frames as they come"),
            ("hom_twist_tip_pf0.1", "Tag tracker and fingertip model, filter 0.1 s"),
            ("hom_twist_tip_pf0.2", "Tag tracker and fingertip model, filter 0.2 s"),
+           ("hom_twist_tip_pf0.2c0.2", "Tag tracker and fingertip model, filter 0.2 s, contact points 0.2 s"),
+           ("hom_twist_tip_pf0.2c0.5", "Tag tracker and fingertip model, filter 0.2 s, contact points 0.5 s"),
            ("hom_twist_rate50", "Exact pose, 50 Hz"),
            ("hom_twist_rate50_pf0.2", "Exact pose, 50 Hz, filter 0.2 s"))
 
@@ -1231,11 +1259,25 @@ noise reaches the servo targets. A complementary filter keeps a belief of the po
 estimate by the schedule's angular velocity. A tracker frame is compared with the estimate that was kept for the
 frame's own time, 40 ms earlier. The current estimate then moves by $\Delta t_{\mathrm{frame}}/\tau$ of the difference,
 in position and in rotation (<code>hom_gpu.POSE_FILTER</code>). With $\tau$ infinite the estimate is never
-corrected after the task's start: open loop. A 17 Hz tracker sends a frame every third period.</p>"""
-    return t + table(["Measurement of the sphere's pose", "Mean J", "Held (%)", "Tracking error (deg)",
-                      "Three-pad share", "Target reversals (1/s)", "Target rate (deg/s)"], rows,
-                     "HOM with the tag tracker's pose (0.5 mm, 1 deg, 40 ms late) through the complementary filter, on "
-                     "the same 40 runs at 50 Hz.")
+corrected after the task's start: open loop. A 17 Hz tracker sends a frame every third period. With the fingertip
+model the measured contact points pass through a filter as well (<code>--cop-tau</code>). While a finger stays in
+contact, its estimate moves by $\Delta t/\tau_c$ of the difference to the period's measurement. A contact that begins
+restarts it.</p>"""
+    t += table(["Measurement of the sphere's pose", "Mean J", "Held (%)", "Tracking error (deg)",
+                "Three-pad share", "Target reversals (1/s)", "Target rate (deg/s)"], rows,
+               "HOM with the tag tracker's pose (0.5 mm, 1 deg, 40 ms late) through the complementary filter, on "
+               "the same 40 runs at 50 Hz.")
+    a_, c2, c5 = S.get("hom_twist_tip_pf0.2"), S.get("hom_twist_tip_pf0.2c0.2"), S.get("hom_twist_tip_pf0.2c0.5")
+    if a_ and c2:
+        t += fill(r"""<p>With the fingertip model and the pose filter at 0.2 s, HOM's targets reversed <<r0>> times per
+joint per second. Filtering the measured contact points at 0.2 s lowered that to <<r1>>, near the <<rn>> of the tag
+tracker alone. J fell from <<j0>> to <<j1>>, and the sphere was held in <<h1>> % of the runs against <<h0>> %.<<c5>></p>""",
+                  r0=f2(a_["reversals_ps"], 1), r1=f2(c2["reversals_ps"], 1),
+                  rn=f2(S["hom_twist_notip_pf0.2"]["reversals_ps"], 1) if S.get("hom_twist_notip_pf0.2") else "&#8212;",
+                  j0=f"{a_['J']:.3f}", j1=f"{c2['J']:.3f}", h0=f"{100 * a_['held']:.0f}", h1=f"{100 * c2['held']:.0f}",
+                  c5=(f" At 0.5 s the reversals were {f2(c5['reversals_ps'], 1)} per joint per second, J "
+                      f"{c5['J']:.3f}, and {100 * c5['held']:.0f} % of the runs held the sphere." if c5 else ""))
+    return t
 
 
 # UHAS retrained on the SCS0009 plant (lane steps sv_uhas_*, logs/20261112-mpc/uhas_train_eval.sh): (rows tag, run, label)
@@ -1986,6 +2028,8 @@ def main():
             stems += [stem_of(meth, cfg, plant=p, model=m) for m in ("pads", "pt", p)]
     for meth, cfg in RT_TABLE:                      # the real-time configurations, and from delayed noisy states
         stems += [stem_of(meth, cfg, delay=dl) for dl in ("", "_d4n", "_d14n")]
+    for meth, cfg in (("ps", CFG_PSRT), ("anneal", CFG_PICK), ("anneal", CFG_FULL)):   # ... through the pose filter
+        stems += [stem_of(meth, cfg, delay=dl) for dl in ("", "_d4n", "_d4nf0.2")]
     stems += [stem_of(m, c, sh=sh) for m, c, sh, _l, _k in REV_RUNS] + [s_ for s_, _l in REV_REF]
     for t in TASKS4:
         stems += [tstem(m, t, "_tune", c) for m, c, _l in TUNE] + [tstem(m, t, "_rank", c) for m, c, _l in RANK_RUNS]
