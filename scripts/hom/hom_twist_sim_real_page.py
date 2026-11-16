@@ -326,8 +326,12 @@ equator behaved like the ground-clear grasps. The sphere rose 3.8 and 2.4 mm and
 began: {f1(l12['rise_max_mm'])} mm, tracking {f1(l12['track_ratio'], 2)}. In simulation at a friction of 0.5, grasp 10 at
 8° dropped the sphere in all three seeds. With the soft contact it climbed 10 to 14 mm. Every model turned the sphere 69 to
 82°, about twice as far as the hand. The replay found the real joints stalling well short of HOM's targets, the thumb's
-MCP by 25° and the middle's yaw by 20°. The servos' torque limit, or compliance in the tape, may absorb the drive that
-simulation delivers.</p>
+MCP by 25° and the middle's yaw by 20°.</p>
+<p>A weaker servo does not close the gap. With the servos' torque capped at 0.09 or 0.12 N m in place of 0.18, the
+film grasps stopped climbing under stiff friction, and the 4 and 8° grasps tipped over instead of twisting less; each
+was held in 1 of 3 runs at 0.09 N m. With the soft contact, grasp 10 at 4° rose 3.7 to 3.8 mm, close to the hand's
+2.4, but it tilted 63 to 95° and twisted 26 to 28°. Where simulated tracking falls, it falls with tilt and drops, not
+with the shorter, upright twist of the hand (data/20261116-sweep/sim/tau_*.jsonl).</p>
 {table(["Model", "Below equator (°)", "Tracking", "Rise (mm)", "Held"], lat_rows, num=(1, 2, 3),
        caption="Simulated HOM on grasp 10 and its raised variants with the real object and the server's servo plant, "
                "seeds 0 to 2 (data/20261116-sweep/sim/lat_g10.jsonl).", n=3)}"""))
@@ -345,8 +349,9 @@ grasp 7, 12.5° below, ranks first under both models (J 0.603 at 0.5, 0.547 at 1
 <li>Measure the pads' friction on the taped sphere: a fingertip pressed and dragged across it on the UR5, with the
 HEX-E reading the forces and the sphere clamped.</li>
 <li>Run grasp 7 at (105, 70) on the hand, and repeat the raised variants for their spread.</li>
-<li>Model the real servos' stall (torque limit and current) and the tape's compliance, and fit them to the latitude
-sweep, which no current model reproduces.</li>
+<li>Compare the real joints' motion during the twist with simulation's: which joints stall after the squeeze, and
+whether a few joints make the whole twist. No friction, contact softness or torque limit tried so far reproduces the
+latitude sweep.</li>
 <li>Record the fingertip boards in every trial; only the last press of the day did.</li>
 <li>Re-score the twist landscape on the real object before the next grasp or layout choice.</li>
 </ul>"""))
