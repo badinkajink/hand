@@ -5,11 +5,11 @@
   "title": "Sim-to-real reversal of HOM's sphere-twist grasps on the SR2 hand",
   "page_title": "Sim-to-real reversal of HOM's sphere-twist grasps on the SR2 hand",
   "topic": "mechanisms",
-  "summary": "Real SR2 twists: contacts 2-8° below the sphere's equator tracked 0.38-0.42 with ≤3.8 mm rise; the film grasps (18-20° below) 0.00-0.29 with 14-27 mm climb, the reverse of simulation (0.64-0.76 vs 0.15-0.17). Simulation with the real object at friction 0.5 (or soft tangential contact at 1.0) reproduces the reversal.",
+  "summary": "Real SR2 twists: contacts 2-8° below the sphere's equator tracked 0.38-0.42 with ≤3.8 mm rise; the film grasps (18-20° below) 0.00-0.29 with 14-27 mm climb, the reverse of simulation (0.64-0.76 vs 0.15-0.17). Simulation with the real object at friction 0.5 (or soft tangential contact at 1.0) reproduces the reversal. The hand's servos do not backdrive (a pinch held its grip with no motor torque); simulated servos that the load cannot backdrive turn the sphere 22-49° against the hand's 26-42°, where free servos turned it 60-82°.",
   "builder": "scripts/hom/hom_twist_sim_real_page.py",
   "artifact": "https://claude.ai/artifact/EKvP8Wj3vU3Q5nu91JJtwK",
   "status": "current",
-  "mb": 0.4
+  "mb": 0.6
  },
  {
   "date": "2026-11-15",
