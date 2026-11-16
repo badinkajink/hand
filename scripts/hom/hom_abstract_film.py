@@ -341,7 +341,8 @@ def render_reconfig(a):
     """Rollout A, the hand reconfiguring to B's layout, rollout B (owner, 2026-11-15: "an alternative version of the
     abstract video that extends into a reconfiguration ... highlight the morphology DoFs during a morphology reconfig,
     and then we can show the updated morphology doing the same task ... it has control (fingers) and morphology (xy
-    repositioning)"; then "zoom into a fingertip-sphere interaction, and show the sphere-packed surface"). During A the
+    repositioning)"; then "zoom into a fingertip-sphere interaction, and show the sphere-packed surface"; on 11-16 "move
+    the sphere pad zoom in to the controls after the morphology reconfiguration"). During B (--zoom-in A: during A) the
     camera turns and zooms onto one fingertip's contact, seen side-on, where its pad spheres press into the object,
     coloured by their normal force, with the rollout at a quarter of real time. Between the rollouts the object fades
     out, the fingers return to A's open pose, the mounts slide on their stages to B's layout (the travel boxes and each
@@ -359,18 +360,28 @@ def render_reconfig(a):
     V0 = view()
     fps, r = 25, A["r_mm"]
     # ---- timeline: (segment, rollout frame index as float, blend w, zoom s)
-    seq = []
-    kz = int(np.argmin([abs(fr["t"] - a.zoom_at) for fr in A["frames"]]))
-    for k in range(kz):
-        seq.append(("A", float(k), 0.0, 0.0))
-    ka, slow = float(kz), 0.25
+    Zr = B if a.zoom_in == "B" else A                 # the rollout the zoom interrupts
+    kz = int(np.argmin([abs(fr["t"] - a.zoom_at) for fr in Zr["frames"]]))
+    slow = 0.25
     n_in, n_hold, n_out = int(1.8 * fps), int(3.2 * fps), int(1.6 * fps)
-    for k in range(n_in + n_hold + n_out):
-        sz = _ease((k + 1) / n_in) if k < n_in else (1.0 if k < n_in + n_hold else 1.0 - _ease((k - n_in - n_hold + 1) / n_out))
-        seq.append(("Z", min(ka, len(A["frames"]) - 1), 0.0, sz))
-        ka += slow
-    for k in range(int(round(ka)), len(A["frames"])):
-        seq.append(("A", float(k), 0.0, 0.0))
+
+    def rollout(seg, rec):
+        """The rollout's frames, with the zoom from frame kz at a quarter of real time if it is the zoomed one; and the
+        zoom's first index in them."""
+        if rec is not Zr:
+            return [(seg, float(k), 0.0, 0.0) for k in range(len(rec["frames"]))], None
+        out = [(seg, float(k), 0.0, 0.0) for k in range(kz)]
+        i_z, ka = len(out), float(kz)
+        for k in range(n_in + n_hold + n_out):
+            sz = (_ease((k + 1) / n_in) if k < n_in else
+                  (1.0 if k < n_in + n_hold else 1.0 - _ease((k - n_in - n_hold + 1) / n_out)))
+            out.append(("Z", min(ka, len(rec["frames"]) - 1), 0.0, sz))
+            ka += slow
+        out += [(seg, float(k), 0.0, 0.0) for k in range(int(round(ka)), len(rec["frames"]))]
+        return out, i_z
+
+    seq, i_za = rollout("A", A)
+    i_zoom = i_za
     i_morph = len(seq)
     for k in range(int(0.8 * fps)):
         seq.append(("open", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
@@ -381,8 +392,10 @@ def render_reconfig(a):
     for k in range(int(0.8 * fps)):
         seq.append(("in", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
     i_morph_end = len(seq)
-    for k in range(len(B["frames"])):
-        seq.append(("B", float(k), 0.0, 0.0))
+    sb, i_zb = rollout("B", B)
+    if i_zb is not None:
+        i_zoom = i_morph_end + i_zb
+    seq += sb
     chain = lambda fr: {f: np.array(c, float) for f, c in fr["chain"].items()}  # noqa: E731
     A0, A1, B0 = chain(A["frames"][0]), chain(A["frames"][-1]), chain(B["frames"][0])
     # ---- the full view's window, as a camera
@@ -394,10 +407,10 @@ def render_reconfig(a):
     full = _camera(V0, V0.T @ np.array([(lim[0] + lim[1]) / 2, 0.0, (lim[2] + lim[3]) / 2]), (lim[1] - lim[0]) / 2)
     # ---- the zoom's camera: the chosen finger's contact at the zoom frame, seen side-on
     fz = a.zoom_finger
-    frz = A["frames"][kz]
+    frz = Zr["frames"][kz]
     tz = frz["tips"][fz]
-    padsL = np.array(A["pads_L_mm"][fz])
-    rp = A["pad_r_mm"]
+    padsL = np.array(Zr["pads_L_mm"][fz])
+    rp = Zr["pad_r_mm"]
     Fz = frz["pad_F"][fz]
     P = np.array(tz["p"]) + padsL @ np.array(tz["R"]).T
     idx = np.array([int(i) for i in Fz])
@@ -408,9 +421,9 @@ def render_reconfig(a):
     Vz = _look_side(V0, nrm)
     zoom = _camera(Vz, pc + 1.5 * nrm, a.zoom_halfwidth)
     slerp = Slerp([0.0, 1.0], Rotation.from_matrix(np.stack([V0, Vz])))
-    track = []                                         # the zoomed finger's contact centroid and normal per frame of A
+    track = []                                         # the zoomed finger's contact centroid and normal per frame
     last = (pc, nrm)
-    for fr_ in A["frames"]:
+    for fr_ in Zr["frames"]:
         Fd = fr_.get("pad_F", {}).get(fz) or {}
         if Fd:
             t_ = fr_["tips"][fz]
@@ -430,11 +443,19 @@ def render_reconfig(a):
     track_n /= np.linalg.norm(track_n, axis=1, keepdims=True)
 
     def cam_at(sz, k=None):
+        """The camera at zoom sz (0 the full view, 1 the zoom) on frame k of the zoomed rollout. The contact's place in
+        the window moves straight from where it is in the full view to its place in the zoom, so it stays in sight while
+        the window shrinks (a centre interpolated in space would leave it behind)."""
         if sz <= 0:
             return full
-        ctr = zoom["ctr"] if k is None else track_c[k] + 1.5 * track_n[k]
-        return _camera(slerp([sz]).as_matrix()[0], (1 - sz) * full["ctr"] + sz * ctr,
-                       np.exp((1 - sz) * np.log(full["W"]) + sz * np.log(zoom["W"])))
+        tgt, nk = (pc, nrm) if k is None else (track_c[k], track_n[k])
+        Vs = slerp([sz]).as_matrix()[0]
+        Ws = float(np.exp((1 - sz) * np.log(full["W"]) + sz * np.log(zoom["W"])))
+        q0 = V0 @ (tgt - full["ctr"]) / full["W"]       # (right, depth, up) over the half-width, in the full view
+        q1 = Vz @ (-1.5 * nk) / zoom["W"]                # ... and in the zoom, centred 1.5 mm outside the contact
+        q = (1 - sz) * q0 + sz * q1
+        q[1] = 0.0
+        return _camera(Vs, tgt - Ws * (Vs.T @ q), Ws)
 
     cmdA, achA = yaw_angles(A)
     cmdB, achB = yaw_angles(B)
@@ -462,7 +483,7 @@ def render_reconfig(a):
         rec, row, obj, oalpha, forces = None, None, None, 1.0, True
         k = int(kf)
         if seg in ("A", "B", "Z"):
-            rec = A if seg in ("A", "Z") else B
+            rec = A if seg == "A" else (B if seg == "B" else Zr)
             fr = rec["frames"][k]
             row = rec["rows"][min(k * rec["frame_every"], len(rec["rows"]) - 1)]
             chains = chain(fr)
@@ -503,7 +524,7 @@ def render_reconfig(a):
         items = [(float(uv(ch)[2].mean()), "finger", f, ch) for f, ch in chains.items()]
         if obj is not None:
             items.append((float(uv(obj[0])[2]), "object", None, None))
-        R0 = np.array((A if seg in ("A", "Z", "open", "show", "move") else B)["frames"][0]["obj_R"])
+        R0 = np.array((Zr if seg == "Z" else A if seg in ("A", "open", "show", "move") else B)["frames"][0]["obj_R"])
         kv = int(np.argmax(np.abs(R0[2])))
         kh = min((q for q in range(3) if q != kv), key=lambda q: abs(R0[2, q]))
         k3 = 3 - kv - kh
@@ -580,9 +601,10 @@ def render_reconfig(a):
                 ax.text(x0 + 0.5, y0 + 0.2, "1 mm", ha="center", va="bottom", fontsize=17, color=INK, zorder=50)
                 fig.text(0.02, 0.862, f"A slice through the contact: {nc} of the {fz}'s pads touch the sphere, "
                          f"{Ft:.2f} N in all (darker: more force).", fontsize=17, color=ACH, va="top")
-        lay = L0 + (_ease(w) if seg == "move" else (1.0 if seg in ("in", "B") else 0.0)) * (L1 - L0)
+        after = seg in ("in", "B") or (seg == "Z" and Zr is B)
+        lay = L0 + (_ease(w) if seg == "move" else (1.0 if after else 0.0)) * (L1 - L0)
         if seg in ("A", "B", "Z"):
-            cmd, ach = (cmdA, achA) if seg in ("A", "Z") else (cmdB, achB)
+            cmd, ach = (cmdA, achA) if rec is A else (cmdB, achB)
             t_rows = np.array([q["t"] for q in rec["rows"]])
             i = min(k * rec["frame_every"], len(rec["rows"]) - 1)
             ax2 = fig.add_axes([0.67, 0.50, 0.30, 0.30])
@@ -645,8 +667,8 @@ def render_reconfig(a):
     enc(0, len(seq), out)
     still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), out.with_suffix(".jpg"))
     zo = OUT / "media" / f"20261115-abstract_{a.task}_pads_zoom.mp4"           # the dynamics section's subclip
-    enc(kz, n_in + n_hold + n_out, zo)
-    still(kz + n_in + n_hold // 2, zo.with_suffix(".jpg"))
+    enc(i_zoom, n_in + n_hold + n_out, zo)
+    still(i_zoom + n_in + n_hold // 2, zo.with_suffix(".jpg"))
     mo = OUT / "media" / f"20261115-abstract_{a.task}_morphology.mp4"          # the morphology section's subclip
     enc(i_morph, i_morph_end - i_morph, mo)
     still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), mo.with_suffix(".jpg"))
@@ -654,7 +676,8 @@ def render_reconfig(a):
         q.unlink()
     tmp.rmdir()
     print(f"{out.relative_to(ROOT)}: {len(seq)} frames ({len(seq) / fps:.1f} s); zoom {(n_in + n_hold + n_out) / fps:.1f} s "
-          f"at t {A['frames'][kz]['t']:.2f} s on the {fz}; morphology {(i_morph_end - i_morph) / fps:.1f} s", flush=True)
+          f"in {a.zoom_in} at t {Zr['frames'][kz]['t']:.2f} s on the {fz} (film {i_zoom / fps:.1f} s); morphology "
+          f"{(i_morph_end - i_morph) / fps:.1f} s from {i_morph / fps:.1f} s", flush=True)
     return 0
 
 
@@ -674,9 +697,10 @@ def main():
     d.add_argument("--task", default="twist")
     c = sp.add_parser("reconfig", help="rollout A (the 20261111 rows), the reconfiguration, rollout B (--tag)")
     c.add_argument("--task", default="twist")
-    c.add_argument("--tag", default="70_110")
-    c.add_argument("--tag-a", default="105_70_pads", help="rollout A's rows, recorded with --pads")
-    c.add_argument("--zoom-at", type=float, default=4.6, help="A's time (s) at which the zoom starts")
+    c.add_argument("--tag", default="70_110_pads", help="rollout B's rows (recorded with --pads to zoom in B)")
+    c.add_argument("--tag-a", default="105_70_pads", help="rollout A's rows (recorded with --pads to zoom in A)")
+    c.add_argument("--zoom-in", default="B", choices=("A", "B"), help="the rollout the zoom interrupts")
+    c.add_argument("--zoom-at", type=float, default=4.6, help="that rollout's time (s) at which the zoom starts")
     c.add_argument("--zoom-finger", default="thumb")
     c.add_argument("--zoom-halfwidth", type=float, default=6.5, help="mm")
     c.add_argument("--slice-mm", type=float, default=0.8, help="thickness of the slice of pads drawn in the zoom")
