@@ -1,0 +1,34 @@
+{
+ "task": "twist",
+ "layout": [
+  40.0,
+  80.0
+ ],
+ "grasp": 12,
+ "seed": 0,
+ "run": "20261113-2115_twist_s0",
+ "checkpoint": "model_4816.pt",
+ "hom": {
+  "J": 0.1200153121319199,
+  "held": true,
+  "track_err_rms_deg": 14.0,
+  "track_ref_rms_deg": 59.43,
+  "contact_all_frac": 0.157,
+  "link_force_max_N": 2.669,
+  "link_force_mean_N": 2.201,
+  "pad_share": 0.696,
+  "drift_max_mm": 11.46
+ },
+ "uhas": {
+  "J": 0.8711139155308767,
+  "held": true,
+  "track_err_rms_deg": 3.28,
+  "track_ref_rms_deg": 59.43,
+  "contact_all_frac": 0.922,
+  "link_force_max_N": 2.65,
+  "link_force_mean_N": 0.043,
+  "pad_share": 0.995,
+  "drift_max_mm": 19.82
+ },
+ "grid_J_of_grasp": 0.13369583263222837
+}
