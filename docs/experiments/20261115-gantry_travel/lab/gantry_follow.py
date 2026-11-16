@@ -70,7 +70,11 @@ class Station:
         return self._req("/api/v1/state")
 
     def snap(self):
-        s = self.state()
+        """The station's mounts, steppers and servos; {"error": ...} while the station is stopped (raw-bus work)."""
+        try:
+            s = self.state()
+        except OSError as e:
+            return {"error": repr(e), "mount_positions": None}
         t = s.get("telemetry", {})
         return {"mount_positions": s.get("mount_positions"), "steppers": [
             {k: x[k] for k in ("id", "position_mm", "target_mm", "moving")} for x in t.get("steppers", [])],
