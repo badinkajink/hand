@@ -759,7 +759,7 @@ def render_reconfig(a):
         dur = len(seq) / fps
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out), "-i", str(ROOT / sync["film"]),
                         "-filter_complex", f"[0:v]scale=960:540:flags=lanczos,setsar=1[a];[1:v]tpad=stop_mode=clone:"
-                        f"stop_duration={dur:.2f},setsar=1,format=yuv420p[b];[a][b]hstack=inputs=2,"
+                        f"stop_duration={dur:.2f},setsar=1,format=yuv420p[b];[b][a]hstack=inputs=2,"   # hand left (owner)
                         f"trim=duration={dur:.3f}[v]", "-map", "[v]", "-r", str(fps), "-c:v", "libx264", "-pix_fmt",
                         "yuv420p", "-crf", "20", "-preset", "slow", "-movflags", "+faststart", str(sbs)], check=True)
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{max(i_zoom - 10, 0) / fps:.3f}", "-i", str(sbs),
