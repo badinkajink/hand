@@ -115,7 +115,10 @@ in 3.9 h. The projects now put black on filament 1 and white on 2. Its map is th
 as for the sphere. A plate pressed on the face of tag 10 or 13 lies parallel to its axis, and equal gaps to the
 cylinder at both ends set its turn when it is glued. The blocks' second version (owner, 2026-11-16;
 `assets/tracking/20261116-tag_blocks/`) widens the stem's root to 6 mm, tapering to the stem over 10 mm, with a 3 mm
-fillet to the block's top. In the replayed rollouts no finger came within 6.8 mm of it on the series' layouts. The sphere is two
+fillet to the block's top. In the replayed rollouts no finger came within 6.8 mm of it on the series' layouts. In the
+third version (owner, 2026-11-16; `assets/tracking/20261116-cotter_joint/`) each block is held without glue by a cotter
+joint: a square taper on the stem's end is drawn into a socket in the object by a printed pin with a 1:5 taper, pushed
+across the stem; three pins 0.25 mm apart take up -0.55 to +0.55 mm of printing error. The sphere is two
 hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The
 measured servo's best layouts (grids of 2026-11-10, press, roll and twist) reach 18.5 mm below the cylinder and 10.7 mm
 below the sphere (`rows/stem_sv25_sv55db.json`), so the cylinder's stem stays at 35.6 mm and the sphere's grows by

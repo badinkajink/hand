@@ -29,11 +29,11 @@
   "title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
   "page_title": "Tracked objects, tag blocks and calibration board for the SR2 hand on the UR5",
   "topic": "hardware",
-  "summary": "Print files of the HOM cylinder and sphere on tag-block stems (35.6 and 25.7 mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at 0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within 6.8 mm of it in the rollouts), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm back. With the board at an unmeasured place on the hand, translations alone leave each camera's position undetermined; turns of +-10 deg about three axes give 0.25 mm RMS for the palm in the camera in simulation.",
+  "summary": "Print files of the HOM cylinder and sphere on tag-block stems (35.6 and 25.7 mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at 0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within 6.8 mm of it in the rollouts; blocks held without glue by a cotter joint, a square taper and a tapered pin, three pins covering +-0.55 mm of fit), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm back. With the board at an unmeasured place on the hand, translations alone leave each camera's position undetermined; turns of +-10 deg about three axes give 0.25 mm RMS for the palm in the camera in simulation.",
   "builder": null,
   "artifact": "https://claude.ai/artifact/CfmQuMQ9dc6V3VToYK3DqF",
   "status": "current",
-  "mb": 6.7
+  "mb": 7.3
  },
  {
   "date": "2026-11-13",

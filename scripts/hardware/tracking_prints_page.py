@@ -16,6 +16,7 @@ logs/20261113-tracking_prints/, on the workstation).
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -48,6 +49,7 @@ TAGP = "assets/tracking/20261107-tag_prints"
 STEM_ROWS = "docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db.json"
 PAPER = "assets/tracking/20261113-paper_board"
 BLK2 = "assets/tracking/20261116-tag_blocks"
+JNT = "assets/tracking/20261116-cotter_joint"
 
 
 def rel(path):
@@ -72,6 +74,8 @@ def load():
     J["paper"] = json.loads((ROOT / f"{PAPER}/20261113-paper_boards.json").read_text())
     J["blk2"] = json.loads((ROOT / f"{BLK2}/20261116-tag_blocks.json").read_text())
     J["rc"] = json.loads((ROOT / f"{BLK2}/20261116-root_clearance.json").read_text())
+    J["jnt"] = json.loads((ROOT / f"{JNT}/20261116-cotter_joint.json").read_text())
+    J["touch"] = json.loads((ROOT / f"{JNT}/20261116-opening_touches.json").read_text())
     return J
 
 
@@ -99,6 +103,13 @@ def sec_terms():
         ("Stem, seat, key", "the 4 mm stem runs from the block's top to the object. Its upper end is a 45&deg; cone and "
                             "a flat seat 10 mm across. A key of 2.4 &times; 5 &times; 4 mm on the seat enters a slot "
                             "in the object."),
+        ("Cotter joint, cotter", "the third version's attachment of a block to its object (2026-11-16): a square "
+                                 "taper on the stem's end sits in a socket in the object. The cotter is a printed pin "
+                                 "with a 1:5 taper on its top face. It is pushed across the stem through a slot in the "
+                                 "object and a slot in a post above the taper."),
+        ("Joint frame $J$", "axes on the stem's axis at the object's flat seat: $u$ along the stem into the object, $w$ "
+                            "along the cotter toward its entry, $v$ across the cotter (mm)."),
+        ("Touch", "in a replayed rollout, a finger geom within 0.5 mm of the object's surface at a recorded period."),
         ("Reach below the object", "how far the lowest finger point lies below the object's surface at the open and "
                                    "touch poses of a grasp (mm), from the HOM scenes of the rollouts."),
         ("Clearance to the block", "the stem's length less the reach below the object (mm); the plan's value is "
@@ -130,7 +141,7 @@ def sec_terms():
 
 def sec_files(J):
     O, B, T = J["obj"], J["brd"], J["tag"]
-    op, b2 = O["parts"], J["blk2"]["parts"]
+    op, b2, jp = O["parts"], J["blk2"]["parts"], J["jnt"]["parts"]
 
     def stls(name, folder=OBJ, colours=("white", "black")):
         date = Path(folder).name[:8]
@@ -145,6 +156,21 @@ def sec_files(J):
          stls("cylinder_block", BLK2), f"{b2['cylinder_block']['height_mm']:.1f}", "in place of the first version"),
         ("Sphere's tag block, second version (2026-11-16)", stls("sphere_block", BLK2),
          f"{b2['sphere_block']['height_mm']:.1f}", "in place of the first version"),
+        ("Cylinder's tag block, cotter joint (2026-11-16)", stls("cylinder_block", JNT),
+         f"{jp['cylinder_block']['height_mm']:.1f}", "cotter joint, no glue"),
+        ("Sphere's tag block, cotter joint (2026-11-16)", stls("sphere_block", JNT),
+         f"{jp['sphere_block']['height_mm']:.1f}", "cotter joint, no glue"),
+        ("Cylinder without end tags, with the joint's socket (2026-11-16)", stls("cylinder", JNT, ("white",)), "100.0",
+         "printed standing; grip tape on its side"),
+        ("Sphere, lower hemisphere with the joint's socket (2026-11-16)", stls("sphere_lower", JNT, ("white",)),
+         f"{jp['sphere_lower']['white']['bounds_mm'][1][2]:.1f}", "three dowels into the upper half"),
+        ("Cotters: thin, middle and thick (one, two and three dimples)",
+         "<br>".join(flink(f"{JNT}/20261116-cotter_{k}_white.stl") for k in ("thin", "mid", "thick")), "2.4",
+         "through the object's and the post's slots"),
+        ("Fit coupons of the cotter joint: the stem's end, a slice of the cylinder, the sphere's lower cap",
+         "<br>".join(flink(f"{JNT}/20261116-coupon_{k}_white.stl") for k in ("stem", "cylinder", "sphere")),
+         " / ".join(f"{jp[f'coupon_{k}']['white']['bounds_mm'][1][2]:.1f}" for k in ("stem", "cylinder", "sphere")),
+         "test print of the joint"),
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
         ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
          "printed standing; grip tape on its side"),
@@ -185,6 +211,10 @@ def sec_files(J):
         if (q := O.get("bambu_variants", {}).get(v))
     ] + [row(f"{BLK2}/20261116-tag_blocks_p1s.3mf", "the two tag blocks, second version (2026-11-16)",
              J["blk2"]["bambu"]),
+         row(f"{JNT}/20261116-joint_coupons_p1s.3mf", "the cotter joint's fit coupons and three cotters (2026-11-16)",
+             J["jnt"]["bambu_coupons"]),
+         row(f"{JNT}/20261116-cotter_joint_p1s.3mf", "the cotter joint's two blocks, cylinder, lower hemisphere and six "
+             "cotters (2026-11-16)", J["jnt"]["bambu"]),
          row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
          row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
     t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
@@ -199,7 +229,8 @@ def sec_files(J):
                "script's <code>bambu</code> command rebuilds its project. The mount prints in white alone and has no "
                "project.", num_from=2)
     hw = ("<p>The mount is fixed with one M5 &times; 16 bolt and a nut, and the board with two M3 self-tapping screws "
-          "of 10 to 12 mm. The stems and the dowels are glued with cyanoacrylate or two-part epoxy. The cylinder's "
+          "of 10 to 12 mm. The stems of the first and second blocks and the dowels are glued with cyanoacrylate or "
+          "two-part epoxy; the blocks of the cotter joint take no glue. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "
           "to another plate.</p>")
     alt = ""
@@ -338,6 +369,103 @@ def sec_root(J):
           f"{-min(x['root_min_mm'] for x in out):.2f} mm. Files: <a href=\"{rel(BLK2 + '/README.md')}\">"
           f"<code>{BLK2}/</code></a>; replay: <code>object_tracking_rollouts.py rootclear</code>.</p>")
     return p1 + f + p2
+
+
+def sec_joint(J):
+    """The cotter joint (2026-11-16): the blocks held on their objects without glue."""
+    R, T_ = J["jnt"], J["touch"]
+    j, cc, cs, jp = R["joint"], R["checks"]["cylinder"], R["checks"]["sphere"], R["parts"]
+    o = {(x["shape"], x["opening"]): x for x in T_["openings"]}
+    f1 = img(MEDIA / "20261116-cotter_joint_parts.png",
+             "The cotter joint's print files, rendered. Top: each object with its block and the middle cotter apart. "
+             "Bottom left: the stem's end with the cotter through the post's slot. Bottom right: the fit coupons "
+             "apart. The cotter is drawn in orange.")
+    n1 = P.FIG[0]
+    f2 = img(MEDIA / "20261116-cotter_joint_sections.png",
+             "The joint assembled, the middle cotter at its nominal place, cut through the stem's axis along the cotter "
+             "(left) and across it (right) in the joint frame $J$. The object is beige, the block's stem blue and the "
+             "cotter orange. The dashed line is the flat seat, $u = 0$.")
+    n2 = P.FIG[0]
+    f3 = img(MEDIA / "20261116-opening_touches.png",
+             "Share of the replayed rollouts in which a finger touched each bin of the object's surface, with the "
+             "joint's two openings outlined in red. Left: the cylinder unrolled, 5&deg; by 2 mm bins. Right: the "
+             "sphere's lower half at its two layouts, 3&deg; by 5&deg; bins. White bins were never touched.")
+    n3 = P.FIG[0]
+    slope_deg = math.degrees(math.atan(j["cotter_slope"]))
+    mu = math.tan(math.atan(j["cotter_slope"]) / 2)
+    a, b = j["cotter_ends_mm"]
+    rng = j["travel_mm"] * j["cotter_slope"]
+    p1 = ("<p>In the first and second versions the block is glued to its object, so a broken stem would take the "
+          "object with it. "
+          "The owner asked for a joint without glue on 2026-11-16: \"can we think of ways to attach the hex block to "
+          "the cylinder/sphere without glue? ... tight enough to prevent slop but fit enough to insert (and remove in "
+          "the case of a break)\". In the third "
+          f"version each block is held by a cotter joint (Figure {n1}). The stem ends in a square taper with faces at "
+          f"{j['taper_deg']:g}&deg; to the stem, {j['socket_side_mm']:g} mm across at the object's flat seat. The object "
+          f"has a socket of the same taper. Above the taper a square post {j['post_side_mm']:g} mm across has a slot "
+          f"across the stem. The cotter is a printed pin {j['cotter_w_mm']:g} mm wide and {b - a:g} mm long, "
+          f"{j['cotter_t_mm']:g} mm thick at the stem's axis. Its top face rises 1 mm in {1 / j['cotter_slope']:g}. It is "
+          f"pushed through a slot in the object and through the post's slot (Figure {n2}). It rests on the object's slot "
+          f"floor {j['floor_u_mm']:g} mm above the seat, under the post's ceiling, which slopes as the cotter's top does. "
+          "Pushing the cotter in therefore lifts the post and draws the taper into its socket. The four taper faces "
+          "then fix the block's position, tilt and turn on the object. A wedge stays in place while its angle is below "
+          f"the sum of the friction angles on its two faces. The cotter's angle is {slope_deg:.1f}&deg;, so it stays "
+          f"in place for friction coefficients above {mu:.2f}.</p>")
+    p2 = (f"<p>The joint's printing error is taken up by the cotter's travel. Each {j['travel_mm']:g} mm of travel "
+          f"along the slot moves the post {rng:g} mm along the stem. Three cotters, 0.25 mm apart in thickness and "
+          f"marked by one, two and three dimples, together cover &minus;{0.25 + rng:g} to +{0.25 + rng:g} mm. One corner "
+          "of the stem's taper and of the socket is cut flat, so the stem goes in one way only. Turned by 180&deg; it "
+          f"stops {cc['turned_stops_out_mm']:g} mm short of its seat, its slot {cc['turned_slot_below_tip_mm']:.1f} mm "
+          "below the cotter's tip. The fit coupons test the joint before the parts are printed, in "
+          f"{R['bambu_coupons']['reslice']['hours']:.1f} h. They are the stem's end on a short stub, a 16 mm slice of "
+          "the cylinder, the sphere's lower cap and one cotter of each size. Each slice is printed in its object's orientation, "
+          "so its socket and slot print as the object's do.</p>")
+    p3 = ("<p>In the CAD assembly the block, the object and the cotter share 0 mm<sup>3</sup> on both objects. The "
+          "shared volume is 0 at the cotter's nominal place and at both ends of its travel, for each of the three "
+          "cotters. Over its "
+          f"travel the cotter's ends stay {min(cc['end_recess_mm']):.2f} to {max(cc['end_recess_mm']):.2f} mm inside "
+          f"the cylinder's surface and {min(cs['end_recess_mm']):.2f} to {max(cs['end_recess_mm']):.2f} mm inside the "
+          f"sphere's. It rests at least {cc['support_min_mm']:.2f} mm on the floor on each side of the socket. The "
+          "blocks' tags and the stems' length are those of the second version, and all 12 block tags decode at "
+          f"0.022 mm RMS. The stem with its root, cone, taper and post is {jp['cylinder_block']['stem_solid_g']:.2f} g "
+          f"of solid PLA on the cylinder and {jp['sphere_block']['stem_solid_g']:.2f} g on the sphere. In the second "
+          f"version it was {jp['cylinder_block']['v2_stem_solid_g']:.2f} and {jp['sphere_block']['v2_stem_solid_g']:.2f} g. "
+          f"A cotter is {jp['cotter_mid']['solid_pla_g']:.1f} g.</p>")
+    cyl = [x for x in T_["rows"] if x["shape"] == "cylinder"]
+    on = [x for x in cyl if x["far_min_mm"] is not None and x["far_min_mm"] <= 0.0]
+    near = [x for x in cyl if x["far_min_mm"] is not None and 0.0 < x["far_min_mm"] <= T_["near_mm"]]
+
+    def where(x):
+        return f"{x['task'].replace('pinpush', 'pin-push')} at ({x['xy'][0]:.0f}, {x['xy'][1]:.0f}), seed {x['seed']}"
+
+    def count(k, noun="rollout"):
+        return f"{['no', 'one', 'two', 'three', 'four', 'five'][k] if k < 6 else k} {noun}{'s' if k != 1 else ''}"
+    p4 = (f"<p>The cotter enters on the cylinder's $-x_O$ side and on the sphere's $+z_O$ side. The slot's far end lets "
+          f"a pin push it out. The entry is {j['slot_w_mm']:g} &times; {j['slot_h_entry_mm']:.1f} mm in section and "
+          f"the far opening {j['slot_w_mm']:g} &times; {j['slot_h_far_mm']:.1f} mm. These sides were chosen from where "
+          f"the fingers touched the objects in the replayed rollouts of 2026-11-05 (Figure {n3}). There were "
+          f"{T_['n_rollouts']['cylinder']} rollouts on the cylinder and {T_['n_rollouts']['sphere']} on the sphere at "
+          "its two layouts. On the cylinder "
+          f"no finger came within {o[('cylinder', 'entry')]['min_mm']:.1f} mm of the entry. A finger touched the tape "
+          f"over the far opening in {count(len(on))} ({'; '.join(where(x) for x in on)})."
+          + (f" In {count(len(near), 'more rollout')} a finger came within {max(x['far_min_mm'] for x in near):.1f} mm of it "
+             f"({'; '.join(where(x) for x in near)})." if near else "")
+          + f" On the sphere the nearest touches were {o[('sphere', 'entry')]['min_mm']:.1f} mm from the entry and "
+          f"{o[('sphere', 'far')]['min_mm']:.1f} mm from the far opening. On the cylinder both openings lie under the "
+          "grip tape, at the middle of its length.</p>")
+    steps = ["Push the block's taper into the socket, the stem's cut corner toward the socket's cut corner.",
+             "Slide the middle cotter (two dimples) into the entry, chamfered tip first, its sloped face toward the "
+             "object's centre and its dimples away from the cut corner.",
+             "Press its thick end with a small screwdriver until the block no longer rocks. If the block is firm while "
+             "the thick end still stands out of the entry, use the thin cotter. If the tip reaches the far opening's "
+             "mouth while the block is still loose, use the thick one.",
+             "To take the block off, push the cotter back out through the far opening with a pin of 2 mm or less and "
+             "pull the block straight out."]
+    p5 = ("<p>Assembly:</p><ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
+          f"<p>Files and the full account of the checks: <a href=\"{rel(JNT + '/README.md')}\"><code>{JNT}/</code></a>; "
+          "geometry: <code>tracking_objects_print.py joint</code>; touches: "
+          "<code>object_tracking_rollouts.py touchmap</code>.</p>")
+    return p1 + f1 + p2 + f2 + p3 + p4 + f3 + p5
 
 
 def sec_board(J, viewer):
@@ -530,7 +658,9 @@ def sec_earlier():
 
 def sec_limits():
     return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
-            "have not been measured. The PLA board and its mount have not been printed. The paper "
+            "have not been measured. The cotter joint's parts and coupons have not been printed. The cotter stays "
+            "in place only if PLA's friction coefficient on PLA exceeds 0.10. The PLA board and its mount have not been "
+            "printed. The paper "
             "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
             "href=\"../20261113-camera_arm_calibration/20261113-camera_arm_calibration.html\">its page</a>). There the "
             "arm measured its squares at 15.031 mm, and the board's solved shape is 0.25 mm RMS out of plane. The "
@@ -546,6 +676,11 @@ def sec_limits():
 
 def sec_future():
     items = [
+        "Print the cotter joint's fit coupons (0.4 h). Push the stem coupon into each slice and the middle cotter in "
+        "until the stem no longer rocks. The joint works if one of the three cotters makes the stem firm with its thick "
+        "end inside the entry, and a push through the far opening then frees it. If none does, measure the post's slot "
+        "and the slice's floor with calipers and change <code>COT_T</code> in "
+        "<code>tracking_objects_print.py</code> by the difference.",
         "Print the objects, weigh each block with its stem and the cylinder's tape, and set the bodies' infill so "
         "that each object weighs 25 g (plan, step 4).",
         "Calibrate each colour camera's lens with distortion from 20 or more views of a flat board, and solve the "
@@ -572,6 +707,8 @@ def sec_scripts():
              "simulation"),
             ("scripts/hardware/paper_board_print.py", "the paper boards' PDF and its check"),
             ("scripts/hardware/handeye_rotation_sim.py", "the hand-eye calibration's error against the turn range"),
+            ("scripts/hardware/object_tracking_rollouts.py", "the rollouts of 2026-11-05 and their replays: the root's "
+             "clearance (<code>rootclear</code>) and the fingers' touches (<code>touchmap</code>)"),
             ("scripts/hardware/tracking_prints_media.py", "this page's renders, drawings and viewer models"),
             ("scripts/hardware/tracking_prints_page.py", "this page"),
             (PLAN, "the plan")]
@@ -594,14 +731,17 @@ def lede_and_summary(J):
             f"lies 15 mm below the lowest finger point of both layout sets. All 14 tags decode from the print files, "
             f"0.022 mm RMS from the tracker's map. A second version of the two blocks (2026-11-16) widens and "
             f"fillets the stem's root. In the simulated rollouts on the trial series' layouts no finger came within "
-            f"{root_gap(J):.1f} mm of it. For the cameras' calibration a paper ChArUco board fits the owner's "
+            f"{root_gap(J):.1f} mm of it. In a third version each block is held without glue by a cotter joint. A square "
+            f"taper on the stem's end is drawn into a socket in the object by a printed tapered pin. Printing errors of "
+            f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
             f"in the camera to {he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS in simulation.")
     summary = (f"Print files of the HOM cylinder and sphere on tag-block stems ({stem['cylinder']:.1f} and "
                f"{stem['sphere']:.1f} mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at "
                f"0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within "
-               f"{root_gap(J):.1f} mm of it in the rollouts), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
+               f"{root_gap(J):.1f} mm of it in the rollouts; blocks held without glue by a cotter joint, a square taper and a "
+               f"tapered pin, three pins covering +-0.55 mm of fit), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
                f"position undetermined; turns of +-10 deg about three axes give "
                f"{he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS for the palm in the camera in "
@@ -633,6 +773,7 @@ def main():
         ("files", "Print files and hardware", sec_files(J)),
         ("objects", "Objects on their tag blocks", sec_objects(J, "{{VIEWER_OBJECTS}}")),
         ("stems", "Stem length and finger clearance", sec_stems(J)),
+        ("joint", "Cotter joint between block and object", sec_joint(J)),
         ("board", "ChArUco board and its mount on the hand", sec_board(J, "{{VIEWER_HAND}}")),
         ("views", "The board seen by the two cameras", sec_views(J)),
         ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration(J)),
