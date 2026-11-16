@@ -67,6 +67,15 @@ which the commanded rotation leaves in place. pairs --rule rank writes rows/mpc_
 with HOM's best J on the task's grid and 50 drawn at random from the rest, each with HOM's best grasp, and
 mpc_pairs_<task>_rank20.json, every fifth of each half; run --pairs _rank reads it and names its rows
 mpc_<method>_<task>_rank....
+
+Other object sizes (owner, 2026-11-16: "evaluate on a wider range of sizes"): --d sets the object's diameter (mm) in
+place of uhas_sr2.D_MM's, which every scene, layout list and grid read here goes through. The HOM grid's rows are then
+<task>_d<d>.jsonl in inner_loop_benchmark_page.GRID (hom_gpu.py run --layouts grid2dff_size --d <d>), and the pair
+files, rows and films take the tag _d<d> after the task: mpc_pairs_roll_d67_rank.json, mpc_anneal_roll_d67_rank_pdt2.jsonl.
+At the base sizes (40 mm spheres, 25 mm cylinders) the names stay as they were.
+
+    .venv/bin/python scripts/hom/inner_loop_mpc.py pairs --task roll --d 67 --rule rank
+    .venv/bin/python scripts/hom/inner_loop_mpc.py run --task roll --d 67 --pairs _rank --method anneal --plan-dt 0.002
 """
 from __future__ import annotations
 
@@ -99,17 +108,23 @@ from sr2hand.rl.math import quat_conj, quat_from_axis_angle, quat_mul, quat_rota
 
 T = HG.T
 TASK = "twist"                           # set_task; uhas_sr2.D_MM lists the four
+BASE_D = dict(UH.D_MM)                   # the benchmark's object diameters, mm
+DTAG = ""                                # _d<d> when set_task was given another diameter
 
 
-def set_task(task):
-    global TASK
+def set_task(task, d=None):
+    """The task, and with d (mm) another object diameter than the benchmark's: uhas_sr2.D_MM[task] is set to it, and the
+    pair files, rows and films are named with DTAG = _d<d>."""
+    global TASK, DTAG
     if task not in UH.D_MM:
         raise SystemExit(f"task {task}: one of {sorted(UH.D_MM)}")
     TASK = task
+    UH.D_MM[task] = BASE_D[task] if d is None else float(d)
+    DTAG = "" if UH.D_MM[task] == BASE_D[task] else f"_d{UH.D_MM[task]:g}"
 
 
 def pairs_path(name=""):
-    return ROWS / f"mpc_pairs_{TASK}{name}.json"
+    return ROWS / f"mpc_pairs_{TASK}{DTAG}{name}.json"
 ROWS = UH.OUT / "rows"
 RUN = "20261112-1244_twist_s0"           # the UHAS run whose test split and usability rows choose the pairs
 SHARED = ROOT / "docs/experiments/20261103-hom_score_refine/rows/sv25_track/shared"
@@ -930,7 +945,7 @@ def row_key(r):
 def cmd_run(a):
     global PLAN_DT, WARM
     import hom_landscape as L
-    set_task(a.task)
+    set_task(a.task, a.d)
     a.variant = a.variant or UH.VARIANT[TASK]
     WARM = a.warm
     configure(a.replan, a.horizon, a.knots, a.iters)
@@ -1011,7 +1026,7 @@ def cmd_run(a):
     scene, worlds = worlds_of(prs, a.seeds, a.variant, prm)
     tag = ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}") + ("" if a.plant_model == "pads"
                                                                  else f"_plant_{a.plant_model}")
-    out = ROWS / f"mpc_{a.method}_{TASK}{a.pairs}{tag}{a.tag}.jsonl"
+    out = ROWS / f"mpc_{a.method}_{TASK}{DTAG}{a.pairs}{tag}{a.tag}.jsonl"
     done = set()
     if out.exists():
         done = {row_key(json.loads(x)) for x in out.read_text().splitlines() if x.strip()}
@@ -1058,7 +1073,7 @@ def cmd_run(a):
             x, y = UH.xy_of(wd_["key"])
             row = {"controller": a.method, "x_sep": x, "y_sep": y, "grasp": int(wd_["key"].get("grasp", 0)),
                    "seed": wd_["seed"], "by": wd_["by"], "plant_mu": a.plant_mu, "J": L.track_score(TASK, r),
-                   "task": TASK, "pairs": a.pairs or "benchmark", **PL}
+                   "task": TASK, "d_mm": UH.D_MM[TASK], "pairs": a.pairs or "benchmark", **PL}
             row.update({k: r.get(k) for k in IU.KEEP if k != "J"})
             row.update({k: round(float(M[k][i]), 4) for k in IU.METRICS})
             row.update({"model": a.model, "plant_model": a.plant_model, "att_gain": UH.ATT_GAIN, "variant": a.variant,
@@ -1098,7 +1113,7 @@ def cmd_run(a):
 
 
 def cmd_pairs(a):
-    set_task(a.task)
+    set_task(a.task, a.d)
     if a.rule == "rank":
         prs = rank_pairs()
         rule = ("the 50 layouts of the task's grid with HOM's best J (mean over seeds 0-2), each with that grasp, then 50 "
@@ -1137,8 +1152,9 @@ def cmd_pairs(a):
         pairs_path("_tune").write_text(json.dumps({"task": TASK, "pairs": prs, "rule": tune_pairs.__doc__}, indent=1))
         print(f"{len(prs)} pairs -> {pairs_path('_tune').relative_to(ROOT)}")
         return 0
-    if TASK != "twist":
-        raise SystemExit("the benchmark's pairs (HOM's and UHAS's ten best) exist for the twist only: --rule rank")
+    if TASK != "twist" or DTAG:
+        raise SystemExit("the benchmark's pairs (HOM's and UHAS's ten best) exist for the twist of the 40 mm sphere "
+                         "only: --rule rank")
     prs = pairs(a.run, a.top)
     path = ROWS / "mpc_pairs_twist.json"
     path.write_text(json.dumps({"run": a.run, "top": a.top, "pairs": prs,
@@ -1155,7 +1171,7 @@ def cmd_timing(a):
     """Wall time of a rollout period and of one replanning for a chunk of plant worlds: the configuration of the flags, or
     each of --configs, "iterations,horizon,knots,replanning interval,planner step in ms,samples"."""
     global PLAN_DT
-    set_task(a.task)
+    set_task(a.task, a.d)
     prs = json.loads(pairs_path(a.pairs).read_text())["pairs"]
     scene, worlds = worlds_of(prs, [0])
     chunk = (worlds * 4)[:a.chunk]
@@ -1215,7 +1231,7 @@ def cmd_film(a):
     import hom_films as HF
     import hom_landscape as L
     import uhas_sr2_film as UF
-    set_task(a.task)
+    set_task(a.task, a.d)
     p = json.loads(pairs_path(a.pairs).read_text())["pairs"][a.pair]
     scene, worlds = worlds_of([p], [a.seed])
     world = worlds[0]
@@ -1272,7 +1288,7 @@ def cmd_film(a):
     UH.ATT_GAIN = 0.0
     PLAN_DT = None
     configure(10, 30, 3, 4)
-    name = (f"film_mpc_{TASK}{a.pairs}_p{a.pair}_s{a.seed}" + ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}")
+    name = (f"film_mpc_{TASK}{DTAG}{a.pairs}_p{a.pair}_s{a.seed}" + ("" if a.plant_mu == 1.0 else f"_mu{a.plant_mu:g}")
             + ("" if a.plant_model == "pads" else f"_plant_{a.plant_model}") + a.tag)
     HF.compose(clips, UH.OUT / "media" / f"{a.date}-{name}.mp4", grid=(2, 2) if len(clips) == 4 else None)
     (ROWS / f"{name}.json").write_text(json.dumps({"pair": p, "seed": a.seed, "plant_mu": a.plant_mu,
@@ -1377,6 +1393,9 @@ def main():
     p.add_argument("--date", default=time.strftime("%Y%m%d"), help="the film's file-name date")
     for q in sub.choices.values():
         q.add_argument("--task", default="twist", choices=sorted(UH.D_MM))
+        q.add_argument("--d", type=float, default=None, help="the object's diameter, mm (default uhas_sr2.D_MM: 40 "
+                       "for the spheres, 25 for the cylinders); another reads the HOM grid <task>_d<d>.jsonl and "
+                       "names the pair files, rows and films with _d<d>")
     for q in (sub.choices["timing"], sub.choices["run"], sub.choices["film"]):
         q.add_argument("--pairs", default="", help="the pair set: rows/mpc_pairs_<task><pairs>.json ('' the "
                        "benchmark's twist pairs, _rank or _rank20 those of pairs --rule rank)")
