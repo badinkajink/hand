@@ -63,7 +63,9 @@ def timing(seg):
     if len(t) < 2:
         return None, None
     span = (t[-1] - t[0]) / 1000.0
-    return (len(t) - 1) / span, span
+    # the median frame interval: a camera gap at a clip's start (1.7 s after frames 31-33 in 125922 and 130318) would
+    # otherwise enter the rate and play the clip at 0.75-0.88 of real time (hand-4a, 2026-11-16 15:45)
+    return 1000.0 / float(np.median(np.diff(t))), span
 
 
 def nominal_fps(f):
@@ -159,6 +161,7 @@ def main():
     ap.add_argument("--trial-x", type=float, default=1.0, help="the speed of the trials")
     ap.add_argument("--head-s", type=float, default=0.5, help="real seconds dropped from each segment's start")
     ap.add_argument("--label", action="append", default=[], help="STAMP=TEXT: a segment's caption")
+    ap.add_argument("--speed", action="append", default=[], help="STAMP=X: that segment's speed")
     ap.add_argument("--trim-idle", action="store_true",
                     help="cut the still stretches (motion under --idle-k x the camera's noise floor)")
     ap.add_argument("--idle-k", type=float, default=1.25)
@@ -166,11 +169,16 @@ def main():
                     help="STAMP=X:Y:W:H: smear that rectangle (pixels of the 960 x 540 frame) in the segment, as for a "
                          "person in view (people are blurred in published frames)")
     ap.add_argument("--blur-all", default=None, help="X:Y:W:H smeared in every segment (a side where people pass)")
+    ap.add_argument("--blur-cam", action="append", default=[],
+                    help="SERIAL=X:Y:W:H: smeared in every segment of that camera (with --both too)")
+    ap.add_argument("--control", action="append", default=[],
+                    help="STAMP: a segment that, like a trial, keeps its still stretches under --trim-idle")
     ap.add_argument("--clock", action="store_true", help="each caption starts with the segment's clock time")
     ap.add_argument("--list", action="store_true", help="list the segments only")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     labels = dict(x.split("=", 1) for x in a.label)
+    speeds = {k: float(v) for k, v in (x.split("=", 1) for x in a.speed)}
     blurs = {}
     if a.blur_all:
         bx, by, bw, bh = (int(t) for t in a.blur_all.split(":"))
@@ -180,6 +188,15 @@ def main():
         bx, by, bw, bh = (int(t) for t in v.split(":"))
         blurs.setdefault(k, []).append(f"delogo=x={max(1, bx)}:y={max(1, by)}:w={min(bw, 958 - max(1, bx))}:"
                                        f"h={min(bh, 538 - max(1, by))}")
+    cam_blur = {}
+    for x in a.blur_cam:
+        k, v = x.split("=", 1)
+        bx, by, bw, bh = (int(t) for t in v.split(":"))
+        cam_blur.setdefault(k, []).append(f"delogo=x={max(1, bx)}:y={max(1, by)}:w={min(bw, 958 - max(1, bx))}:"
+                                          f"h={min(bh, 538 - max(1, by))}")
+
+    def cb(serial):
+        return "".join(f",{b}" for b in cam_blur.get(serial, []))
     segs = segments(a.dir, a.camera, a.t_from, a.t_to)
     if a.both:
         other = {s["stamp"] + s["step"]: s for s in segments(a.dir, [s for s in SERIALS if s != a.camera][0],
@@ -194,12 +211,12 @@ def main():
         thr = a.idle_k * floor
         print(f"still below {thr:.3f} (the noise floor {floor:.3f} x {a.idle_k:g})")
     for s in segs:
-        speed = a.trial_x if s["step"] == "trial" else a.fast
+        speed = speeds.get(s["stamp"], a.trial_x if s["step"] == "trial" else a.fast)
         fps, span = timing(s)
         s["speed"] = speed
         out_s = None if span is None else max(0.0, span - a.head_s) / speed
         if thr is not None:
-            s["ranges"] = keep_ranges(s, thr, a.head_s, s["step"] == "trial")
+            s["ranges"] = keep_ranges(s, thr, a.head_s, s["step"] == "trial" or s["stamp"] in a.control)
             n = sum(b - a_ + 1 for a_, b in s["ranges"])
             out_s = n / (fps or nominal_fps(s["file"])) / speed
         total += out_s or 0.0
@@ -221,12 +238,13 @@ def main():
             part = Path(tmp) / f"part{i:03d}.mp4"
             if a.both and s.get("pair"):
                 inputs = ["-i", str(s["file"]), "-i", str(s["pair"]["file"])]
-                fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))}[a];"
-                      f"{chain(1, s['pair'], s['speed'], a.head_s, s.get('ranges'))}[b];"
+                other_sn = [x for x in SERIALS if x != a.camera][0]
+                fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))}{cb(a.camera)}[a];"
+                      f"{chain(1, s['pair'], s['speed'], a.head_s, s.get('ranges'))}{cb(other_sn)}[b];"
                       f"[a][b]hstack=inputs=2:shortest=1,{text}[v]")
             else:
                 inputs = ["-i", str(s["file"])]
-                bl = "".join(f"{b}," for b in blurs.get(s["stamp"], []) + blurs.get("*", []))
+                bl = "".join(f"{b}," for b in blurs.get(s["stamp"], []) + blurs.get("*", []) + cam_blur.get(a.camera, []))
                 fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))},{bl}{'pad=1920:540:0:0,' if a.both else ''}"
                       f"{text}[v]")
             subprocess.run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", fc, "-map", "[v]", "-an",

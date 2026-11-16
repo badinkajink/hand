@@ -4,6 +4,45 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 15:51: pick-up by controlled slip
+
+The owner, 15:2x: "carefully try to pick up the sphere and run a controlled slip to have it rotate to more level, and
+try placing it? would be a very interesting skill to build. controlled friction is the name of the game after all."
+`lab/pinch_pickup.py` does it for the sphere lying on its side. The film is
+`media/20261116-pinch_pickup_controlled_slip.mp4` (27.7 s, both cameras, people blurred).
+
+- **The pinch.** The thumb against the middle (or the index) along x_P, the pads' normals along x_P, the contacts
+  `--lat-deg` (3) above the ball's equator. A finger's yaw turns it about x_P, so every flexion plane contains x_P. The
+  object lying across x_P therefore needs no wrist turn. In the pinch the object can turn only about the line through
+  the two contacts. The third finger curls away on the side opposite the block. `plan` solves the joints on the hand's
+  model with the v4b pads as half-ellipsoids. It checks the table (8.4 mm at touch on the conservative tip-end ball),
+  the stem and block (22 mm), and the ball on the way down (7.8 mm). It writes the plan file that putdown and letgo
+  read.
+- **The run, 15:43-15:47.** `grasp`: open pose, 106 mm sideways, 70 mm down in two legs, pinch closed. Each arm move
+  stops on 3 N at the HEX-E, the object moving 1.5 mm in B, or a finger joint pushed 4 deg. The sphere moved 1.3 mm
+  over the close. `lift`: 64 mm up at 3 mm/s. The block dragged on the table and the object stood up from 85 to 42
+  deg, then hung there on the pads' torsional friction. `slip`: the PIPs' squeeze lowered from 8 deg in 0.5 deg steps.
+  At 4 deg the object turned from 42 to 13 deg, and at 0 deg it reached 6.9 deg. `hom_setup.py putdown --plan
+  plans/20261116-pinch_pickup_thumb_middle_plan.json --level-max 0` gave a tracked touchdown with the block seated at
+  6.7 deg. The object settled upright at 0.4 deg on the release.
+- **The gears do not backdrive.** From the slip's log (`data/20261116-pinch_pickup/`): while the squeeze fell from 8 to
+  4.5 deg, the PIPs' loads fell in proportion to their error, about 60 units a degree (300 is about 30 % PWM). The
+  middle's load reached 0 inside the servo's dead band. The pads' fields stayed at 35-37 and 42-44 uT, and the joints
+  did not move. The gear held the grip with no motor torque. Each yield was a servo reversal: once the command lay
+  about 0.5 deg below the measured angle, that finger stepped open by 0.9-1.8 deg. The contact never backdrove a joint.
+  This fits a gear train about 40 % efficient forward and self-locking backward. The 2.5 times larger free-air yaw sag
+  points the same way. So does the sphere's failure to turn the index and middle yaws in the twists.
+- **Logging.** The fingertip boards come from `reskin5x_mux.py` under `/usr/bin/python3` (miniconda's Python lacks
+  numpy on corvus). In its log the boards run ch0 middle, ch1 index, ch3 thumb. `pinch_pickup.py` reads that log
+  live: each board's field change from a rest taken just before the close. Its streams, at 20 Hz, hold the joints,
+  servo loads, tracked object, HEX-E force and the pads.
+
+    /usr/bin/python3 lab/pinch_pickup.py plan  --map maps/20261116-sphere_fitted_map_O.json --gap 8
+    /usr/bin/python3 lab/pinch_pickup.py grasp --plan PLAN --map MAP --go --video-dir DIR
+    /usr/bin/python3 lab/pinch_pickup.py lift  --plan PLAN --map MAP --go --video-dir DIR
+    /usr/bin/python3 lab/pinch_pickup.py slip  --plan PLAN --map MAP --go --video-dir DIR
+    /usr/bin/python3 lab/hom_setup.py putdown --plan PLAN --object sphere --map MAP --level-max 0 --go --video-dir DIR
+
 ## State on 2026-11-16 13:21
 
 **The ground-clear grasps transfer.** The grid2dgr twist grasps put the contacts 2-5 deg below the sphere's equator,
@@ -55,8 +94,11 @@ The afternoon session (owner at the UR5) added these:
 - **MCP readings past about 62-68 deg flexion are wrong.** There the servo's potentiometer is out of range and the
   reading jumps by about -110 deg. Never turn torque on with a finger curled that far. The flexion signs are right.
 - **Ground-clear grasps** (grid2dgr, contacts 2-5 deg below the equator, `plans/20261116-film_*_gr_plan.json`). In
-  simulation they hold the sphere but barely twist: track 0.15 and 0.17, against 0.756 and 0.643 for the film grasps.
-  HOM's twist in the simulation needs contacts below the equator.
+  simulation the sphere turns, late and with the index off: 77 and 73 deg of the commanded 90 in hand-4d's CPU rollouts
+  (g0 and g13, sv25 plant, 2.5 MPa pads, seed 0; rows
+  `docs/experiments/20261110-codesign_formulation/rows/20261115-abstract_twist_{70_110,105_70}_gr_pads.json`). Their J of
+  0.15 and 0.17 (0.756 and 0.643 for the film grasps) comes from the contact factor: the index pad carries load for only
+  20-39 % of the task. Their simulated tracking is 0.62-0.74.
 - **The continuous film's trials.** The film is `media/20261116-real_hand_twist_continuous.mp4`, 48.7 s, from camera
   832412070344, which has no people in view. Its segments are in `logs/20261116-hom_trials/20261116-1248_session/`.
 
