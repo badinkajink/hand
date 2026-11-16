@@ -62,8 +62,10 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
 - **Git LFS (2026-10-09).** Media and detailed result pages under `docs/` are LFS files by the patterns in
   `.gitattributes` (data files were too until 2026-11-09; see the next bullet); commit them as usual and git-lfs stores them. Overview pages listed
   with `!filter` in `.gitattributes` stay ordinary files. Since 2026-11-15 (owner: films did not load on the laptop)
-  `.lfsconfig` makes clones fetch only the pages and media under `docs/` (html, mp4, webm, gif, png, jpg, pdf; about
-  1.7 GB of the 27 GB of LFS content); this workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
+  `.lfsconfig` makes clones fetch only the pages and films under `docs/` (html, mp4, webm, gif: about 1.2 GB; figures are
+  inlined in the pages); this workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. GitHub's LFS held
+  3.5 GB on 2026-11-15 (1.75 GB for the current tree; 2.1 GB of it old page versions, each rebuild of a page with
+  inlined films uploads it again) against the account's 10 GB. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
   `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
 - **GitHub's LFS stores the pages and their media only (owner, 2026-11-06).** The repository was deleted and re-pushed
