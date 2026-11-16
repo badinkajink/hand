@@ -386,7 +386,11 @@ def cmd_trial(a):
     path = out / f"{stamp}_{a.task}_corvus.jsonl"
     if not a.no_tracker:
         if a.video:
-            video = VideoRecorder(str(out / f"{stamp}_{a.task}_video"))
+            # with --video-dir, the session's folder of hom_setup.py's recordings (film_session.py joins them)
+            stem = (Path(a.video_dir) / f"{stamp}_trial_{a.label or a.task}" if a.video_dir
+                    else out / f"{stamp}_{a.task}_video")
+            stem.parent.mkdir(parents=True, exist_ok=True)
+            video = VideoRecorder(str(stem))
         arm, tracker = start_tracker(a, lambda s: latest.__setitem__("msg", s.msg),
                                      on_frame=None if video is None else video.on_frame)
         time.sleep(a.settle_s)                                   # the cameras' first frames
@@ -625,6 +629,10 @@ def main():
     pt.add_argument("--no-tracker", action="store_true")
     pt.add_argument("--no-video", dest="video", action="store_false",
                     help="do not record the cameras (by default each camera's frames go to OUT, 960 x 540)")
+    pt.add_argument("--video-dir", default=None,
+                    help="the videos into DIR/<stamp>_trial_<label>_<serial>.mp4 in place of OUT/<stamp>_<task>_video_..., "
+                         "beside hom_setup.py's --video-dir recordings of the same session (2026-11-16)")
+    pt.add_argument("--label", default=None, help="the videos' name with --video-dir (the plan's stem; default the task)")
     pt.add_argument("--arm", action="store_true", help="move the arm (the lift); without it the lift is only logged")
     pt.add_argument("--ft", action="store_true", help="stream the HEX-E (needed with --arm for the force stop)")
     pt.add_argument("--ur-ft", action="store_true",
