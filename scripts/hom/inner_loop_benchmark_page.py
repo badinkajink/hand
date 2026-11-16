@@ -622,7 +622,7 @@ def sec_single(runs):
     S = uhas_stats(E)
     x, y = S["keys"][0]
     return fill(r"""<p>Trained on the layout (<<x>>, <<y>>) mm alone for 30 min, UHAS reached J <<u>> there at its best
-grasp and held the sphere in <<hu>> % of the 48 rollouts. HOM's J there is <<h>>, with the sphere held in <<hh>> %.
+grasp and held the sphere in <<hu>> % of the 48 rollouts. HOM's J there was <<h>>, with the sphere held in <<hh>> %.
 Trained this way on every layout, the twist's 527 layouts would take <<days>> days of the GPU.</p>""",
                 x=f"{x:g}", y=f"{y:g}", u=f"{S['uhas_best']:.2f}", hu=f"{100 * S['held_uhas']:.0f}",
                 h=f"{S['hom_best']:.2f}", hh=f"{100 * S['held_hom']:.0f}", days=f"{527 * 30 / 60 / 24:.0f}")
@@ -670,11 +670,10 @@ def sec_limits(runs):
 
 def sec_future(runs):
     items = []
-    if "open" not in runs or "single" not in runs:
-        items.append("UHAS from the open hand and UHAS trained on one layout, on the SCS0009 plant "
-                     "(<code>uhas_sr2.py train --task twist --start open --minutes 120</code>; <code>--only 105 70 "
-                     "--minutes 30</code>). On the work plant the first held the sphere in none of 5,232 test rollouts. "
-                     "A held share above 0 on the SCS0009 plant would show that UHAS grasps without HOM.")
+    if "open" not in runs:
+        items.append("UHAS from the open hand on the SCS0009 plant (<code>uhas_sr2.py train --task twist --start open "
+                     "--minutes 120</code>). On the work plant it held the sphere in none of 5,232 test rollouts. A held "
+                     "share above 0 on the SCS0009 plant would show that UHAS grasps without HOM.")
     items += ["UHAS on the roll, the pin-push and the press, and a second training seed on the twist "
               "(<code>uhas_sr2.py train --task roll</code>). HOM's place above UHAS in usability fails on a task where "
               "UHAS's targets reverse fewer than HOM's 2.6 times per joint per second at a higher J.",
