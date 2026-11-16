@@ -16,6 +16,17 @@ plays in real time at 25 frames per second.
     .venv/bin/python scripts/hom/hom_abstract_film.py render --task twist
     ... record --task twist --d 40 --layout 70 110 --tag 70_110            # a second layout (rows/20261115-...)
     .venv/bin/python scripts/hom/hom_abstract_film.py reconfig --task twist --tag 70_110   # A, reconfiguration, B
+
+The ground-clear grasps run on the SR2 hand on 2026-11-16, paced to the hand's film (owner, 2026-11-16: "update the
+abstract videos to match the ground-clearance trajectories we actually ran ... add pauses to sync up the motions with the
+real stitched video"); the zoom then puts the drawing behind the hand's film by its extra length (owner: "i can live with
+some de-sync on the one slide that has them side by side"):
+    ... record --task twist --d 40 --layout 70 110 --grid grid2dgr --grasp 0 --pads --tag 70_110_gr_pads
+    ... record --task twist --d 40 --layout 105 70 --grid grid2dgr --grasp 13 --pads --tag 105_70_gr_pads
+    .venv/bin/python scripts/hom/hom_abstract_film.py timeline --clips DIR     # DIR: the two trial clips from corvus
+    .venv/bin/python scripts/hom/hom_abstract_film.py reconfig --tag-a 70_110_gr_pads --tag 105_70_gr_pads --zoom-at 4.8 \\
+        --sync docs/experiments/20261110-codesign_formulation/rows/20261116-abstract_sync_ground_clear.json \\
+        --out-stem 20261116-abstract_twist_ground_clear       # also the drawing beside the hand's film (abstract_vs_hand)
 """
 from __future__ import annotations
 
@@ -115,10 +126,10 @@ def record(a):
     import hom_gpu as HG
     import hom_landscape as L
     T, S, H = HG.T, HG.S, HG.H
-    L.GRID_SRC = "grid2dff"
+    L.GRID_SRC = a.grid
     call = HF.call_at(a.task, a.d, *a.layout)
     grasp, by = (a.grasp, {}) if a.grasp is not None else best_track_grasp(a.task, a.d, call, a.rows)
-    _key, mxy, setup = HF.find(a.task, "grid2dff_size", a.d, call, grasp)
+    _key, mxy, setup = HF.find(a.task, f"{a.grid}_size", a.d, call, grasp)
     scene = HG.Scene(T.SHAPE[a.task], a.d)
     bm, q_open = scene.prepare(mxy, setup)
     plant = T.Plant(scene.pads_path, setup)
@@ -325,6 +336,32 @@ def _camera(V, ctr, W):
     return {"V": np.asarray(V, float), "ctr": np.asarray(ctr, float), "W": float(W)}
 
 
+def frame_at(rec, kf):
+    """The rollout's frame at the fractional index kf: positions interpolated linearly, rotations spherically, the pad
+    forces those of the nearer frame. An integer kf returns the recorded frame."""
+    fr = rec["frames"]
+    k0 = int(np.floor(kf))
+    u = float(kf) - k0
+    if k0 >= len(fr) - 1 or u < 1e-6:
+        return fr[min(k0, len(fr) - 1)]
+    from scipy.spatial.transform import Rotation, Slerp
+    p, q = fr[k0], fr[k0 + 1]
+
+    def lin(x, y):
+        return ((1 - u) * np.asarray(x, float) + u * np.asarray(y, float)).tolist()
+
+    def sl(Ra, Rb):
+        return Slerp([0.0, 1.0], Rotation.from_matrix(np.stack([Ra, Rb])))([u]).as_matrix()[0].tolist()
+
+    out = {"t": (1 - u) * p["t"] + u * q["t"], "chain": {f: lin(p["chain"][f], q["chain"][f]) for f in p["chain"]},
+           "obj_p": lin(p["obj_p"], q["obj_p"]), "obj_R": sl(p["obj_R"], q["obj_R"])}
+    if "tips" in p:
+        out["tips"] = {f: {"p": lin(p["tips"][f]["p"], q["tips"][f]["p"]), "R": sl(p["tips"][f]["R"], q["tips"][f]["R"])}
+                       for f in p["tips"]}
+        out["pad_F"] = (p if u < 0.5 else q)["pad_F"]
+    return out
+
+
 def _look_side(V, n):
     """A view whose depth axis is perpendicular to the contact normal n and nearest the view V's: the contact seen
     side-on, the pads against the object's outline."""
@@ -357,13 +394,18 @@ def render_reconfig(a):
     plt.rcParams.update({"font.family": "Nimbus Sans", "mathtext.fontset": "cm"})
     A = json.loads((OUT / "rows" / f"20261115-abstract_{a.task}_{a.tag_a}.json").read_text())
     B = json.loads((OUT / "rows" / f"20261115-abstract_{a.task}_{a.tag}.json").read_text())
+    sync = json.loads(Path(a.sync).read_text()) if a.sync else None
     V0 = view()
-    fps, r = 25, A["r_mm"]
+    fps, r = (sync["fps"] if sync else 25), A["r_mm"]
     # ---- timeline: (segment, rollout frame index as float, blend w, zoom s)
     Zr = B if a.zoom_in == "B" else A                 # the rollout the zoom interrupts
     kz = int(np.argmin([abs(fr["t"] - a.zoom_at) for fr in Zr["frames"]]))
     slow = 0.25
     n_in, n_hold, n_out = int(1.8 * fps), int(3.2 * fps), int(1.6 * fps)
+
+    def zoom_s(k):
+        return (_ease((k + 1) / n_in) if k < n_in else
+                (1.0 if k < n_in + n_hold else 1.0 - _ease((k - n_in - n_hold + 1) / n_out)))
 
     def rollout(seg, rec):
         """The rollout's frames, with the zoom from frame kz at a quarter of real time if it is the zoomed one; and the
@@ -373,31 +415,67 @@ def render_reconfig(a):
         out = [(seg, float(k), 0.0, 0.0) for k in range(kz)]
         i_z, ka = len(out), float(kz)
         for k in range(n_in + n_hold + n_out):
-            sz = (_ease((k + 1) / n_in) if k < n_in else
-                  (1.0 if k < n_in + n_hold else 1.0 - _ease((k - n_in - n_hold + 1) / n_out)))
-            out.append(("Z", min(ka, len(rec["frames"]) - 1), 0.0, sz))
+            out.append(("Z", min(ka, len(rec["frames"]) - 1), 0.0, zoom_s(k)))
             ka += slow
         out += [(seg, float(k), 0.0, 0.0) for k in range(int(round(ka)), len(rec["frames"]))]
         return out, i_z
 
-    seq, i_za = rollout("A", A)
-    i_zoom = i_za
-    i_morph = len(seq)
-    for k in range(int(0.8 * fps)):
-        seq.append(("open", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
-    for k in range(int(0.6 * fps)):
-        seq.append(("show", 0.0, _ease((k + 1) / (0.6 * fps)), 0.0))
-    for k in range(int(2.8 * fps)):
-        seq.append(("move", 0.0, _ease((k + 1) / (2.8 * fps)), 0.0))
-    for k in range(int(0.8 * fps)):
-        seq.append(("in", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
-    i_morph_end = len(seq)
-    sb, i_zb = rollout("B", B)
-    if i_zb is not None:
-        i_zoom = i_morph_end + i_zb
-    seq += sb
+    held = {}                                         # sync: the frame each rollout last showed, held in pauses
+    if sync is None:
+        seq, i_za = rollout("A", A)
+        i_zoom = i_za
+        i_morph = len(seq)
+        for k in range(int(0.8 * fps)):
+            seq.append(("open", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
+        for k in range(int(0.6 * fps)):
+            seq.append(("show", 0.0, _ease((k + 1) / (0.6 * fps)), 0.0))
+        for k in range(int(2.8 * fps)):
+            seq.append(("move", 0.0, _ease((k + 1) / (2.8 * fps)), 0.0))
+        for k in range(int(0.8 * fps)):
+            seq.append(("in", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
+        i_morph_end = len(seq)
+        sb, i_zb = rollout("B", B)
+        if i_zb is not None:
+            i_zoom = i_morph_end + i_zb
+        seq += sb
+    else:
+        # one frame per frame of the hand's film: its set-up steps pause the drawing, its reconfiguration is the
+        # morphology segment, and each control frame shows the rollout at the controller time that frame shows on the
+        # hand. The zoom plays its rollout at a quarter of real time and then skips the hand's frames it has covered,
+        # so from there on the drawing runs behind the hand's film by the zoom's extra length.
+        recs = {"A": A, "B": B}
+        dtf = {k: v["dt_row"] * v["frame_every"] for k, v in recs.items()}
+        seq, i_zoom, i_morph, i_morph_end = [], None, None, None
+        for sg in sync["segments"]:
+            n, kind, ro = sg["f1"] - sg["f0"], sg["kind"], sg["rollout"]
+            if kind in ("open", "show", "move", "in"):
+                i_morph = len(seq) if kind == "open" else i_morph
+                seq += [(kind, 0.0, _ease((k + 1) / n), 0.0) for k in range(n)]
+                i_morph_end = len(seq) if kind == "in" else i_morph_end
+                continue
+            rec = recs[ro]
+            last = len(rec["frames"]) - 1
+            if kind == "hold":
+                seq += [(ro, held.get(ro, 0.0), 0.0, 0.0)] * n
+                continue
+            ts, j = sg["t"], 0
+            while j < n:
+                if rec is Zr and i_zoom is None and ts[j] >= a.zoom_at:
+                    i_zoom, ka = len(seq), float(kz)
+                    for k in range(n_in + n_hold + n_out):
+                        seq.append(("Z", min(ka, last), 0.0, zoom_s(k)))
+                        ka += slow / fps / dtf[ro]
+                    held[ro] = min(ka, last)
+                    t_res = rec["frames"][0]["t"] + ka * dtf[ro]
+                    while j < n and ts[j] < t_res:
+                        j += 1
+                    continue
+                held[ro] = min(max((ts[j] - rec["frames"][0]["t"]) / dtf[ro], 0.0), last)
+                seq.append((ro, held[ro], 0.0, 0.0))
+                j += 1
     chain = lambda fr: {f: np.array(c, float) for f, c in fr["chain"].items()}  # noqa: E731
-    A0, A1, B0 = chain(A["frames"][0]), chain(A["frames"][-1]), chain(B["frames"][0])
+    kA_end = held.get("A", len(A["frames"]) - 1)      # the frame A ends on: its last, or the last the hand's film showed
+    A0, A1, B0 = chain(A["frames"][0]), chain(frame_at(A, kA_end)), chain(B["frames"][0])
     # ---- the full view's window, as a camera
     pts = [p for rec in (A, B) for fr in rec["frames"] for ch in fr["chain"].values() for p in ch]
     pts += [fr["obj_p"] for rec in (A, B) for fr in rec["frames"]] + [p for b in boxes() for p in b]
@@ -463,7 +541,8 @@ def render_reconfig(a):
     L0, L1 = np.array(A["layout"], float), np.array(B["layout"], float)
     Fmax = 0.2
     for n, (seg, kf, w, sz) in enumerate(seq):
-        cam = cam_at(sz, int(kf) if seg == "Z" else None)
+        kr = min(int(round(kf)), len(track_c) - 1)       # the nearest recorded frame of the zoomed rollout
+        cam = cam_at(sz, kr if seg == "Z" else None)
 
         def uv(Pp):
             Qq = (np.asarray(Pp, float) - cam["ctr"]) @ cam["V"].T
@@ -481,11 +560,11 @@ def render_reconfig(a):
         sw = full["W"] / cam["W"]                       # zoom factor: line widths drawn in mm would grow with it
         ppl = ppm / sw                                  # widths of the hand drawing stay as in the full view
         rec, row, obj, oalpha, forces = None, None, None, 1.0, True
-        k = int(kf)
         if seg in ("A", "B", "Z"):
             rec = A if seg == "A" else (B if seg == "B" else Zr)
-            fr = rec["frames"][k]
-            row = rec["rows"][min(k * rec["frame_every"], len(rec["rows"]) - 1)]
+            fr = frame_at(rec, kf)
+            i = min(int(round(kf * rec["frame_every"])), len(rec["rows"]) - 1)
+            row = rec["rows"][i]
             chains = chain(fr)
             obj = (np.array(fr["obj_p"]), np.array(fr["obj_R"]))
         else:
@@ -493,7 +572,7 @@ def render_reconfig(a):
             fr = None
             if seg == "open":
                 chains = {f: (1 - w) * A1[f] + w * A0[f] for f in A0}
-                frl = A["frames"][-1]
+                frl = frame_at(A, kA_end)
                 obj, oalpha = (np.array(frl["obj_p"]), np.array(frl["obj_R"])), 1.0 - w
             elif seg == "show":
                 chains = A0
@@ -574,7 +653,7 @@ def render_reconfig(a):
             Fp = np.zeros(len(Pp))
             for i_, F_ in fr["pad_F"][fz].items():
                 Fp[int(i_)] = F_
-            d_cut = float(uv(track_c[k])[2])            # a slice through the contact, one pad thick, seen side-on
+            d_cut = float(uv(track_c[kr])[2])           # a slice through the contact, one pad thick, seen side-on
             sl = np.abs(dd - d_cut) < a.slice_mm / 2
             ctx = np.flatnonzero(~sl)
             ax.add_collection(EllipseCollection(np.full(len(ctx), 2 * rp), np.full(len(ctx), 2 * rp), np.zeros(len(ctx)),
@@ -606,7 +685,6 @@ def render_reconfig(a):
         if seg in ("A", "B", "Z"):
             cmd, ach = (cmdA, achA) if rec is A else (cmdB, achB)
             t_rows = np.array([q["t"] for q in rec["rows"]])
-            i = min(k * rec["frame_every"], len(rec["rows"]) - 1)
             ax2 = fig.add_axes([0.67, 0.50, 0.30, 0.30])
             ax2.plot(t_rows, cmd, "--", color=NEW, lw=2.4, label="commanded")
             ax2.plot(t_rows[:i + 1], ach[:i + 1], color=ACH, lw=2.8, label="object")
@@ -650,10 +728,14 @@ def render_reconfig(a):
         fig.text(0.02, 0.95, head[0], fontsize=30, color=head[1], weight="bold", va="top")
         fig.text(0.02, 0.895, f"Layout ({lay[0]:.0f}, {lay[1]:.0f}) mm: thumb to finger pair, and index to middle. "
                  f"{NAME[a.task]} of a {A['d_mm']:g} mm {OBJ[a.task]}, CPU simulation, "
-                 + ("a quarter of real time." if seg == "Z" else "real time."), fontsize=19, color="#4B5563", va="top")
+                 + ("a quarter of real time." if seg == "Z" else ("paced to the hand's film." if sync else "real time.")),
+                 fontsize=19, color="#4B5563", va="top")
         fig.savefig(tmp / f"f{n:05d}.png", facecolor="white")
         plt.close(fig)
-    out = OUT / "media" / f"20261115-abstract_{a.task}_reconfig.mp4"
+    stem = a.out_stem or f"20261115-abstract_{a.task}"
+    out = OUT / "media" / (f"{stem}.mp4" if a.out_stem else f"{stem}_reconfig.mp4")
+    mv = [i_ for i_, s_ in enumerate(seq) if s_[0] == "move"]
+    i_mid = mv[len(mv) // 2]                           # half way through the mounts' move
 
     def enc(first, count, path):
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-start_number", str(first), "-i",
@@ -665,19 +747,99 @@ def render_reconfig(a):
                        check=True)
 
     enc(0, len(seq), out)
-    still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), out.with_suffix(".jpg"))
-    zo = OUT / "media" / f"20261115-abstract_{a.task}_pads_zoom.mp4"           # the dynamics section's subclip
+    still(i_mid, out.with_suffix(".jpg"))
+    zo = OUT / "media" / f"{stem}_pads_zoom.mp4"                                # the dynamics section's subclip
     enc(i_zoom, n_in + n_hold + n_out, zo)
     still(i_zoom + n_in + n_hold // 2, zo.with_suffix(".jpg"))
-    mo = OUT / "media" / f"20261115-abstract_{a.task}_morphology.mp4"          # the morphology section's subclip
+    mo = OUT / "media" / f"{stem}_morphology.mp4"                               # the morphology section's subclip
     enc(i_morph, i_morph_end - i_morph, mo)
-    still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), mo.with_suffix(".jpg"))
+    still(i_mid, mo.with_suffix(".jpg"))
+    if sync:                                           # the drawing beside the hand's film, for the slide with both
+        sbs = OUT / "media" / f"{stem.replace(f'abstract_{a.task}', 'abstract_vs_hand')}.mp4"
+        dur = len(seq) / fps
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out), "-i", str(ROOT / sync["film"]),
+                        "-filter_complex", f"[0:v]scale=960:540:flags=lanczos,setsar=1[a];[1:v]tpad=stop_mode=clone:"
+                        f"stop_duration={dur:.2f},setsar=1,format=yuv420p[b];[a][b]hstack=inputs=2,"
+                        f"trim=duration={dur:.3f}[v]", "-map", "[v]", "-r", str(fps), "-c:v", "libx264", "-pix_fmt",
+                        "yuv420p", "-crf", "20", "-preset", "slow", "-movflags", "+faststart", str(sbs)], check=True)
+        print(f"{sbs.relative_to(ROOT)}: the drawing beside {sync['film']}", flush=True)
     for q in tmp.glob("f*.png"):
         q.unlink()
     tmp.rmdir()
     print(f"{out.relative_to(ROOT)}: {len(seq)} frames ({len(seq) / fps:.1f} s); zoom {(n_in + n_hold + n_out) / fps:.1f} s "
           f"in {a.zoom_in} at t {Zr['frames'][kz]['t']:.2f} s on the {fz} (film {i_zoom / fps:.1f} s); morphology "
           f"{(i_morph_end - i_morph) / fps:.1f} s from {i_morph / fps:.1f} s", flush=True)
+    return 0
+
+
+# The ground-clear film of the SR2 hand (owner, 2026-11-16): its segments, read from its captions as film frames at
+# 30 fps, and the rollout each control segment shows. film_session.py put the trials in at about 0.75-0.88 of real time
+# (each clip's frame rate was measured over a span holding a 1.7 s camera gap), so a control segment's frames are mapped
+# to the controller's clock through the trial clip they came from.
+GC_FILM = "docs/experiments/20261115-hom_bench_trials/media/20261116-real_hand_twist_ground_clear.mp4"
+GC_SEGMENTS = [(0, 23, "hold", "A", "recentre and pre-grasp at (70, 110) mm, 10x"),
+               (23, 271, "control", "A", "control: HOM twist, ground-clear grasp at (70, 110) mm"),
+               (271, 296, "hold", "A", "put down at (70, 110) mm, 10x"),
+               (296, 313, "open", None, "fingers open at (70, 110) mm, 10x"),
+               (313, 325, "show", None, "placement at (70, 110) mm, 10x"),
+               (325, 412, "move", None, "reconfiguration to (105, 70) mm, 10x"),
+               (412, 439, "in", None, "recentre and pre-grasp at (105, 70) mm, 10x"),
+               (439, 729, "control", "B", "control: HOM twist, ground-clear grasp at (105, 70) mm"),
+               (729, 809, "hold", "B", "put down, fingers open and straight, placement at (105, 70) mm, 10x")]
+GC_TRIALS = {"A": ("20261116-125922", "trial_x70_y110_gr"), "B": ("20261116-130318", "trial_x105_y70_gr")}
+
+
+def timeline(a):
+    """The film's segments and, for each control segment, the controller time (s after HOM's start) shown in each of
+    its frames: the film's frames are matched to the trial clip of camera 832412070344 by the best straight-line map
+    from film frame to clip frame (the mean-removed correlation of 160 x 86 grey frames, summed over the segment), and
+    the clip frame's camera time less the trial record's t0 is the controller time. The clips and their _frames.csv are
+    corvus's logs/20261116-hom_trials/20261116-1258_session/ (--clips)."""
+    import csv
+
+    def grey(path):
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-vf", "scale=160:90,format=gray", "-f", "rawvideo",
+                              "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+        g = np.frombuffer(raw, np.uint8).reshape(-1, 90, 160).astype(np.float32)[:, 4:, :]     # without the caption strip
+        g = g - g.mean(axis=(1, 2), keepdims=True)
+        return (g / (g.std(axis=(1, 2), keepdims=True) + 1e-6)).reshape(len(g), -1)
+
+    film = grey(ROOT / GC_FILM)
+    clips = Path(a.clips)
+    runs = ROOT / "docs/experiments/20261115-hom_bench_trials/runs_corvus"
+    segs = []
+    for f0, f1, kind, rollout, cap in GC_SEGMENTS:
+        s = {"f0": f0, "f1": f1, "kind": kind, "rollout": rollout, "caption": cap}
+        if kind == "control":
+            stamp, name = GC_TRIALS[rollout]
+            base = clips / f"{stamp}_{name}_832412070344"
+            clip = grey(base.with_suffix(".mp4"))
+            with open(f"{base}_frames.csv") as fh:
+                tc = np.array([float(r["t_camera_ms"]) for r in csv.DictReader(fh)])
+            t0 = json.loads((runs / f"{stamp}_twist_corvus.jsonl").read_text().splitlines()[0])["t0_ms"]
+            C = film[f0:f1] @ clip.T / film.shape[1]
+            C -= C.mean(axis=1, keepdims=True)
+            J = np.arange(f1 - f0)
+            best = (-np.inf, 0.0, 0.0)
+            for r in np.arange(0.70, 1.40, 0.002):
+                for n0 in np.arange(-5.0, 70.0, 0.25):
+                    n = np.round(n0 + J * r).astype(int)
+                    ok = (n >= 0) & (n < len(clip))
+                    if ok.mean() >= 0.98:
+                        sc = float(C[J[ok], n[ok]].sum())
+                        if sc > best[0]:
+                            best = (sc, float(r), float(n0))
+            _, r, n0 = best
+            t = (np.interp(n0 + J * r, np.arange(len(tc)), tc) - t0) / 1000.0
+            s.update({"trial": stamp, "clip_frames_per_film_frame": round(r, 4), "clip_frame0": n0,
+                      "t": t.round(4).tolist()})
+            print(f"{cap}: film {f0 / 30:.2f}-{f1 / 30:.2f} s shows controller time {t[0]:.2f} to {t[-1]:.2f} s "
+                  f"({r * 30:.1f} clip frames per film second)", flush=True)
+        segs.append(s)
+    out = OUT / "rows" / "20261116-abstract_sync_ground_clear.json"
+    out.write_text(json.dumps({"film": GC_FILM, "fps": 30, "frames": GC_SEGMENTS[-1][1], "segments": segs,
+                               "rollouts": {"A": "70_110_gr_pads", "B": "105_70_gr_pads"}}, separators=(",", ":")))
+    print(f"{out.relative_to(ROOT)}", flush=True)
     return 0
 
 
@@ -691,6 +853,9 @@ def main():
     r.add_argument("--grasp", type=int, default=None)
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--rows", default="grid2dff_v4b_sv25r", help="grid rows that pick the grasp by the tracking score")
+    r.add_argument("--grid", default="grid2dff", choices=("grid2dff", "grid2dgr"),
+                   help="the toy grid of the grasp: grid2dgr holds the grasps clear of a ground at the sphere's lowest "
+                        "point, as run on the SR2 hand on 2026-11-16 (lab/film_plan.py --grid)")
     r.add_argument("--tag", default="", help="a second rollout's name: rows/20261115-abstract_<task>_<tag>.json")
     r.add_argument("--pads", action="store_true", help="also each tip's pose and every pad's contact force per frame")
     d = sp.add_parser("render")
@@ -704,8 +869,14 @@ def main():
     c.add_argument("--zoom-finger", default="thumb")
     c.add_argument("--zoom-halfwidth", type=float, default=6.5, help="mm")
     c.add_argument("--slice-mm", type=float, default=0.8, help="thickness of the slice of pads drawn in the zoom")
+    c.add_argument("--sync", default=None, help="a timeline of the `timeline` command: the film paced to the hand's film, "
+                                                "30 frames per second, pauses where the hand's film shows set-up steps")
+    c.add_argument("--out-stem", default=None, help="the films' name stem under media/ (default 20261115-abstract_<task>)")
+    tl = sp.add_parser("timeline", help="the ground-clear film's segments and each control frame's controller time")
+    tl.add_argument("--clips", required=True, help="a folder with the two trial clips of camera 832412070344 and their "
+                                                    "_frames.csv, copied from corvus")
     a = ap.parse_args()
-    return {"record": record, "render": render, "reconfig": render_reconfig}[a.cmd](a)
+    return {"record": record, "render": render, "reconfig": render_reconfig, "timeline": timeline}[a.cmd](a)
 
 
 if __name__ == "__main__":
