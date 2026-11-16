@@ -197,11 +197,12 @@ def hand_series():
 def model_series(name, pick=None):
     """{grasp: (track, twist, rise, held, n)} means over seeds of a servo-model file's series (pick: a row filter)."""
     d = j(SIM / name)
-    rows = d if isinstance(d, list) else d["series"]
+    rows = d if isinstance(d, list) else d.get("series") or d["rows"]
     rows = [r for r in rows if pick is None or pick(r)]
+    alias = {"gr_g13_x105_y70": "grid2dgr_c329_g13", "gr_g0_x70_y110": "grid2dgr_c162_g0"}   # rev_predict.py's names
     out = {}
     for g, _, _ in SERIES:
-        rs = [r for r in rows if r["grasp"] == g]
+        rs = [r for r in rows if r["grasp"] in (g, alias.get(g))]
         if rs:
             out[g] = (float(np.mean([r["track"] for r in rs])), float(np.mean([r["twist_end"] for r in rs])),
                       float(np.mean([r["rise_max"] for r in rs])), sum(bool(r["held"]) for r in rs), len(rs))
@@ -343,7 +344,7 @@ def page():
     s05 = C["closed_stem_mu-0.5.json"]
     s10 = C["closed_stem_mu-1.0.json"]
 
-    H0, ST0 = hand_series(), model_series("clutch2_stiff_soft.json")
+    H0, ST0 = hand_series(), model_series("predict_series_kp035.json")
     tw0 = [ST0[g][1] for g, _, _ in SERIES]
     htw0 = [v for g, _, _ in SERIES for v in H0[g]["twist"]]
     lede = (f"On the real SR2 hand, HOM twisted the 40 mm sphere best when the fingertips held it near its equator, the "
@@ -357,7 +358,7 @@ def page():
             f"ground-clear ones, as the hand did. The rest of the gap lay in the hand's servos. In a pinch the gears held "
             f"the grip with no motor torque, and the grip gave way only when a servo reversed. With servos that the load "
             f"cannot drive backward, simulated HOM turned the sphere {min(tw0):.0f} to {max(tw0):.0f}°. The hand turned "
-            f"it {min(htw0):.0f} to {max(htw0):.0f}°, every earlier model 60 to 82°.")
+            f"it {min(htw0):.0f} to {max(htw0):.0f}°, and simulation with free servos 60 to 82°.")
     summary = (f"Real SR2 twists: contacts 2-8° below the sphere's equator tracked {min(tr(near)):.2f}-{max(tr(near)):.2f} "
                f"with ≤{max(rise(near)):.1f} mm rise; the film grasps (18-20° below) {min(tr(low)):.2f}-{max(tr(low)):.2f} "
                f"with {min(rise(low)):.0f}-{max(rise(low)):.0f} mm climb, the reverse of simulation (0.64-0.76 vs 0.15-0.17). "
@@ -437,7 +438,8 @@ object with its stem and block, standing on its block until the lift, and ran HO
 several frictions. HOM itself kept its bare-ball model, as on the hand. Table 2 has the results.</p>
 {table(["Model", "Film g10, 18.2°", "Film g11, 20.0°", "Ground-clear g13, 2.4°", "Ground-clear g0, 5.4°"], rows2,
        caption="Closed-loop HOM in simulation, mean of seeds 0 to 2: tracking / rise (mm) / largest tilt (°). A failed "
-               "run is one where HOM's least-squares solve did not converge. Files: data/20261116-sweep/sim/closed_*.json.",
+               "run is one where HOM's least-squares solve did not converge. HOM's servo gain was 0.72 N m/rad in these "
+               "runs, against the bench's 0.55. Files: data/20261116-sweep/sim/closed_*.json.",
        n=2)}
 <p>At a friction of 0.5 the real object reproduces the hand. The film grasps climb {f1(s05['film_g10_x105_y70']['rise'])}
 and {f1(s05['film_g11_x70_y110']['rise'])} mm, tip over and fail to track. The ground-clear grasps rise
@@ -545,29 +547,32 @@ throughout.</p>
 
     # ---- the servo models in simulation
     H = hand_series()
-    models = (("joint friction 0.15 N m", model_series("fric2_soft.json", lambda r: r["params"].get("frictionloss") == 0.15
-                                                                         and "kp_yaw_im" not in r["params"])),
-              ("gear friction 0.8 |τ|", model_series("gear_soft.json", lambda r: r["c"] == 0.8)),
-              ("no backdrive, 0.6 |τ|", model_series("clutch2_soft.json")),
-              ("no backdrive, 0.6 |τ|, no creep", model_series("clutch2_stiff_soft.json")),
-              ("the same, index and middle yaw gains 0.35", model_series("clutch2_stiff_kpyaw035_soft.json")))
+    old72 = (("joint friction 0.15 N m, HOM 0.72", model_series("fric2_soft.json", lambda r: r["params"].get("frictionloss")
+                                                                    == 0.15 and "kp_yaw_im" not in r["params"])),
+             ("gear friction 0.8 |τ|, HOM 0.72", model_series("gear_soft.json", lambda r: r["c"] == 0.8)),
+             ("no backdrive, no creep, HOM 0.72", model_series("clutch2_stiff_soft.json")))
+    new55 = (("no backdrive, no creep", model_series("predict_all055.json")),
+             ("the same, index and middle yaw gains 0.35", model_series("predict_series_kp035.json")),
+             ("the same, with a 0.02 N m breakaway", model_series("predict_series_kp035_break002.json")))
     rng = lambda v, nd=1: f1(v[0], nd) if len(v) == 1 else f"{f1(min(v), nd)}-{f1(max(v), nd)}"  # noqa: E731
     rows5 = [["the hand"] + [f"{rng(H[g]['track'], 2)} / {rng(H[g]['twist'], 0)} / {rng(H[g]['rise'])}"
                              for g, _, _ in SERIES]]
-    for lab, M in models:
+    for lab, M in old72 + new55:
         rows5.append([lab] + [f"{f1(M[g][0], 2)} / {f1(M[g][1], 0)} / {f1(M[g][2])}"
                               + ("" if M[g][3] == M[g][4] else f", held {M[g][3]}/{M[g][4]}") for g, _, _ in SERIES])
-    stiff, soft35 = models[-2][1], models[-1][1]
-    tw = [stiff[g][1] for g, _, _ in SERIES]
+    a55, k35, brk = (m for _, m in new55)
+    hmean = {g: float(np.mean(H[g]["track"])) for g, _, _ in SERIES}
+    under = [hmean[g] - a55[g][0] for g in ("g10_lat12", "g10_lat8", "g10_lat4")]
+    mean_d = lambda M: float(np.mean([abs(M[g][0] - hmean[g]) for g, _, _ in SERIES]))  # noqa: E731
+    tw = [k35[g][1] for g, _, _ in SERIES]
     htw = [v for g, _, _ in SERIES for v in H[g]["twist"]]
-    dtr = [abs(stiff[g][0] - float(np.mean(H[g]["track"]))) for g, _, _ in SERIES if g != "g10_lat18.2"]
+    held_all = all(M[g][3] == M[g][4] for M in (a55, k35, brk) for g, _, _ in SERIES)
     sag = sag_rows()
     seq = lambda v: "&ndash;" if v is None else " / ".join(f"{x:.1f}" for x in v)  # noqa: E731
     rows6 = [[lab, seq(h), seq(pl), seq(g8), seq(st), seq(sf)] for lab, h, pl, g8, st, sf in sag]
-    gap35 = [r["gap_middle_aa"] for r in j(SIM / "clutch2_stiff_kpyaw035_soft.json")["series"]]
+    gap35 = [r["gap_middle_aa"] for r in j(SIM / "predict_series_kp035.json")["rows"]]
     TT = {r["stamp"]: r for r in j(D / "data/20261116-trial_tracking.json")["trials"]}
     gap_h = [TT[st]["joint_gap"]["joints"]["middle.aa"]["median_deg"] for _, _, sts in SERIES for st in sts.split()]
-    grow = [soft35[g][1] - stiff[g][1] for g in ("g10_lat8", "g10_lat12")]
     S.append(("models", "Servos that do not backdrive, in simulation", f"""
 <p>The workstation gave the simulated servos the same gear (Table 5). All runs used the real object, friction 1.0 with
 the soft tangential contact, the server's servo plant and seeds 0 to 2. A constant friction of 0.15 N m on every
@@ -576,23 +581,24 @@ target, and the hand reached its free-air targets within 1 to 4° (Table 6). Fri
 torque, 0.8 |τ|, fits free air but not the slip, because it vanishes when the motor stops.</p>
 <p>The model that fits both raises a joint's friction to the load whenever the load pushes against the motor, and
 keeps 0.6 |τ| when the motor drives. MuJoCo's dry friction is a soft constraint that lets a held joint creep, by 4° in
-the index yaw over a twist. With it made stiff, the model twisted the sphere {min(tw):.0f} to {max(tw):.0f}°, where the
-hand turned it {min(htw):.0f} to {max(htw):.0f}° and every model before reached 60 to 82°. Tracking came within
-{max(dtr):.2f} of the hand at every latitude but 18.2°, and every grasp held. In ground-clear grasp 13 the simulated
-index yaw stayed at 11.5° from 1 to 7 s, against 15.2 to 16.1° on the hand. The thumb's yaw went from 2.4 to −12.0°,
-against 3.5 to −9.1°.</p>
-<p>The index and middle yaws still sagged about half as far as on the hand. With their gains lowered from 0.55 to
-0.35 N m/rad, their free-air sag matches the hand's at 30 and 40° (Table 6). At 10° it falls short, where a dead band
-would add its share. Their gap in the twist then comes near the hand's: the middle yaw's median gap from its target is
-{min(gap35):.0f} to {max(gap35):.0f}°, against {min(gap_h):.0f} to {max(gap_h):.0f}° on the hand. Tracking at 18.2° rises
-from {f1(stiff['g10_lat18.2'][0], 2)} to {f1(soft35['g10_lat18.2'][0], 2)}, near the hand's
-{f1(H['g10_lat18.2']['track'][0], 2)}, but the twists at 8 and 12° grow by {min(grow):.0f} to {max(grow):.0f}°. Neither variant is closer on every grasp, so both stand in Table 5.</p>
+the index yaw over a twist, so the runs made it stiff. Those runs had one setting wrong. HOM converted its forces to
+joint offsets with a servo gain of 0.72 N m/rad, where the bench server uses 0.55, so on the hand HOM commanded offsets
+1.3 times larger. Every closed-loop run before 16:06 carries that gain, Table 2's and Figure 1's among them.</p>
+<p>With HOM's gain as on the bench, the no-backdrive model with every gain at 0.55 tracks {min(under):.2f} to
+{max(under):.2f} below the hand at 4 to 12°. On the hand the index and middle yaws sag about twice as far as the thumb's
+yaw (Table 6). With their gains at 0.35 N m/rad, their free-air sag matches the hand's at 30 and 40°. At 10° it falls
+short, where a dead band would add its share. That model turned the sphere {min(tw):.0f} to {max(tw):.0f}°, against the
+hand's {min(htw):.0f} to {max(htw):.0f}° and 60 to 82° for free servos. Its tracking differs from the hand's by
+{mean_d(k35):.2f} on average. Its middle yaw sits {min(gap35):.0f} to {max(gap35):.0f}° from its target, against
+{min(gap_h):.0f} to {max(gap_h):.0f}° on the hand. A forward breakaway of 0.02 N m, about what the slip showed, brings the
+mean tracking difference to {mean_d(brk):.2f}.{" Every grasp held under all three." if held_all else ""}</p>
 {table(["Model"] + [lab for _, lab, _ in SERIES], rows5,
        caption="Tracking / net twist at the end (°) / largest rise (mm): the hand's full-length trials "
-               "(data/20261116-trial_tracking.json; two runs of g13) and simulated HOM under five servo models, mean of "
-               "seeds 0 to 2. |τ| is the motor's torque. Files: data/20261116-sweep/sim/fric2_soft.json, gear_soft.json, "
-               "clutch2_soft.json, clutch2_stiff_soft.json, clutch2_stiff_kpyaw035_soft.json; scripts in "
-               "sim/scripts/.", n=5)}
+               "(data/20261116-trial_tracking.json; two runs of g13) and simulated HOM under six servo models, mean of "
+               "seeds 0 to 2. |τ| is the motor's torque. The first three ran HOM with a servo gain of 0.72 N m/rad, the "
+               "last three with the bench's 0.55. Files in data/20261116-sweep/sim/: fric2_soft.json, gear_soft.json, "
+               "clutch2_stiff_soft.json, predict_all055.json, predict_series_kp035.json and "
+               "predict_series_kp035_break002.json; scripts in sim/scripts/.", n=5)}
 {table(["Joint, direction", "The hand", "Plant, no friction", "Gear friction 0.8 |τ|", "No backdrive, no creep",
         "The same, index and middle yaws 0.35"], rows6,
        caption="Free-air shortfall (°) of each joint at its four steps: yaws to ±10, 20, 30 and 40°, MCPs to 15, 30, 45 "
@@ -600,19 +606,18 @@ from {f1(stiff['g10_lat18.2'][0], 2)} to {f1(soft35['g10_lat18.2'][0], 2)}, near
                "sim/joint_sag_sim.json and the free_air entries of the model files).", n=6)}"""))
 
     S.append(("remaining", "What does not fit yet", f"""
+<p>In the no-backdrive model with the softer yaws and HOM's gain as on the bench:</p>
 <ul>
-<li>The rise near the equator. At 8° below, the no-backdrive model lifts the sphere {f1(stiff['g10_lat8'][2])} mm
-toward the palm, the hand {f1(H['g10_lat8']['rise'][0])}. Ground-clear g0 rises {f1(stiff['gr_g0_x70_y110'][2])} mm
-against {f1(H['gr_g0_x70_y110']['rise'][0])}.</li>
-<li>The deepest grasp. At 18.2° the model twists {f1(stiff['g10_lat18.2'][1], 0)}° and tracks
-{f1(stiff['g10_lat18.2'][0], 2)}, where the hand turned {f1(H['g10_lat18.2']['twist'][0], 0)}° and tracked
-{f1(H['g10_lat18.2']['track'][0], 2)}.</li>
-<li>The index and middle yaws. On the hand they sag about twice as far as the thumb's yaw. A gain of 0.35 in place of
-0.55 matches their sag at 30 and 40° and brings their gap in the twist near the hand's, but misses their 1.2 to 1.5°
-at 10°. Whether the give is
-the servo's gain or play in the mounts is not measured.</li>
-<li>The forward drive has a breakaway as well as a dead band. In the slip the middle PIP's motor pushed open at 8 to 10%
-of full PWM for 3 s, the grip pushing the same way, before the joint moved.</li>
+<li>The rise near the equator. At 8° below, the model lifts the sphere {f1(k35['g10_lat8'][2])} mm toward the palm, the
+hand {f1(H['g10_lat8']['rise'][0])}. Ground-clear g13 rises {f1(k35['gr_g13_x105_y70'][2])} mm against
+{rng(H['gr_g13_x105_y70']['rise'])}, and g0 {f1(k35['gr_g0_x70_y110'][2])} against
+{f1(H['gr_g0_x70_y110']['rise'][0])}. The breakaway does not change it.</li>
+<li>The deep grasps. At 12 and 18.2° the model tracks {f1(k35['g10_lat12'][0], 2)} and {f1(k35['g10_lat18.2'][0], 2)},
+where the hand tracked {f1(H['g10_lat12']['track'][0], 2)} and {f1(H['g10_lat18.2']['track'][0], 2)}. It twists
+{f1(k35['g10_lat12'][1], 0)} and {f1(k35['g10_lat18.2'][1], 0)}°, against {f1(H['g10_lat12']['twist'][0], 0)} and
+{f1(H['g10_lat18.2']['twist'][0], 0)}°.</li>
+<li>The index and middle yaws' give. A gain of 0.35 matches their sag at 30 and 40° but misses their 1.2 to 1.5° at 10°.
+Whether the give is the servo's gain or play in the mounts is not measured.</li>
 </ul>"""))
 
     rs = ""
