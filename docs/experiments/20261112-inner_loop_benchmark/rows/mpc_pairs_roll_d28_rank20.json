@@ -1,0 +1,146 @@
+{
+ "task": "roll",
+ "pairs": [
+  {
+   "x": 120.0,
+   "y": 65.0,
+   "grasp": 11,
+   "by": "hom_best",
+   "J_by": 0.292
+  },
+  {
+   "x": 110.0,
+   "y": 60.0,
+   "grasp": 13,
+   "by": "hom_best",
+   "J_by": 0.2111
+  },
+  {
+   "x": 75.0,
+   "y": 55.0,
+   "grasp": 0,
+   "by": "hom_best",
+   "J_by": 0.1629
+  },
+  {
+   "x": 80.0,
+   "y": 90.0,
+   "grasp": 13,
+   "by": "hom_best",
+   "J_by": 0.151
+  },
+  {
+   "x": 65.0,
+   "y": 150.0,
+   "grasp": 15,
+   "by": "hom_best",
+   "J_by": 0.1392
+  },
+  {
+   "x": 85.0,
+   "y": 75.0,
+   "grasp": 7,
+   "by": "hom_best",
+   "J_by": 0.1243
+  },
+  {
+   "x": 115.0,
+   "y": 65.0,
+   "grasp": 7,
+   "by": "hom_best",
+   "J_by": 0.1146
+  },
+  {
+   "x": 90.0,
+   "y": 80.0,
+   "grasp": 9,
+   "by": "hom_best",
+   "J_by": 0.0878
+  },
+  {
+   "x": 105.0,
+   "y": 75.0,
+   "grasp": 12,
+   "by": "hom_best",
+   "J_by": 0.0788
+  },
+  {
+   "x": 95.0,
+   "y": 80.0,
+   "grasp": 13,
+   "by": "hom_best",
+   "J_by": 0.0701
+  },
+  {
+   "x": 80.0,
+   "y": 95.0,
+   "grasp": 14,
+   "by": "random",
+   "J_by": 0.0646
+  },
+  {
+   "x": 60.0,
+   "y": 75.0,
+   "grasp": 10,
+   "by": "random",
+   "J_by": 0.0497
+  },
+  {
+   "x": 80.0,
+   "y": 65.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0191
+  },
+  {
+   "x": 95.0,
+   "y": 75.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0024
+  },
+  {
+   "x": 45.0,
+   "y": 145.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 60.0,
+   "y": 130.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 75.0,
+   "y": 95.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 85.0,
+   "y": 170.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 100.0,
+   "y": 95.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  },
+  {
+   "x": 110.0,
+   "y": 135.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.0
+  }
+ ],
+ "rule": "every fifth pair of each half of mpc_pairs_roll_d28_rank.json"
+}
