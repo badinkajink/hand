@@ -34,10 +34,6 @@ from sr2hand.tracking.tags import HexBlock  # noqa: E402
 
 SETTINGS = {"enable_auto_exposure": 0, "enable_auto_white_balance": 0, "exposure": 166, "gain": 64,
             "white_balance": 4600}
-TM = HexBlock(across_flats=29.985, tag_size=13.0).tag_map()
-IDS = TM.ids()
-PAIRS = [(IDS[k], IDS[(k + 1) % 6]) for k in range(6)]
-
 ap = argparse.ArgumentParser()
 ap.add_argument("outdir")
 ap.add_argument("lens")
@@ -47,7 +43,17 @@ ap.add_argument("--cap", type=int, default=80)
 ap.add_argument("--still", type=float, default=1.0)
 ap.add_argument("--min-tags", type=int, default=3)
 ap.add_argument("--burst", type=int, default=6)
+ap.add_argument("--ids", default="10,11,12,13,14,15",
+                help="the block's tag ids of faces 0-5: 10-15 the cylinder's (and the test block's), 16-21 the sphere's "
+                     "(object_tracking_mjcf.IDS; 2026-11-16)")
+ap.add_argument("--extra-ids", default="",
+                help="other tags of the object, recorded with the block's but not used for the view's pose (the "
+                     "cylinder's end tags 22,23), for a fit of where the object sits on its block")
 a = ap.parse_args()
+TM = HexBlock(across_flats=29.985, tag_size=13.0, ids=tuple(int(x) for x in a.ids.split(","))).tag_map()
+IDS = TM.ids()
+DET_IDS = list(IDS) + [int(x) for x in a.extra_ids.split(",") if x.strip()]
+PAIRS = [(IDS[k], IDS[(k + 1) % 6]) for k in range(6)]
 out = Path(a.outdir)
 out.mkdir(parents=True, exist_ok=True)
 LENS = json.load(open(a.lens))["cams"]
@@ -74,7 +80,7 @@ def retry(fn, *args):
 def grab(cam):
     fs = cam["pipe"].wait_for_frames()
     col = np.asanyarray(fs.get_color_frame().get_data()).copy()
-    return col, tp.detect(DET, cv2.cvtColor(col, cv2.COLOR_BGR2GRAY), ids=IDS)
+    return col, tp.detect(DET, cv2.cvtColor(col, cv2.COLOR_BGR2GRAY), ids=DET_IDS)
 
 
 def moved(cur, prev):
@@ -86,8 +92,8 @@ def moved(cur, prev):
 
 def block_in_base(seen):
     """The block's pose in the base frame from the camera seeing the most tags (nominal map), or None."""
-    sn = max(seen, key=lambda s: len(seen[s]))
-    if not seen[sn]:
+    sn = max(seen, key=lambda s: len(set(seen[s]) & set(IDS)))
+    if not set(seen[sn]) & set(IDS):
         return None
     T_CB, _ = tp.solve_body(seen[sn], TM, cams[sn]["cam"])
     return None if T_CB is None else tf_inv(np.array(HE[sn]["T_CB"])) @ T_CB
@@ -105,7 +111,7 @@ for dev in rs.context().devices:
         retry(rgb.set_option, getattr(rs.option, o), v)
     cams[sn] = dict(pipe=p, prev={}, cam=camera(sn))
 SNS = sorted(cams)
-(out / "session.json").write_text(json.dumps(dict(map="HexBlock(29.985, 13.0)", ids=IDS, settings=SETTINGS,
+(out / "session.json").write_text(json.dumps(dict(map="HexBlock(29.985, 13.0)", ids=IDS, extra_ids=DET_IDS[len(IDS):], settings=SETTINGS,
                                                   lens=a.lens, handeye=a.handeye, start=time.time()), indent=1))
 both = {i: 0 for i in IDS}
 either = {i: 0 for i in IDS}

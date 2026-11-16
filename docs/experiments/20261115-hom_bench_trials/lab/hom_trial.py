@@ -54,7 +54,8 @@ from sr2hand.control.link import DRY_RUN, STOP, STOPPED, STREAMING, StateMsg, Ta
 from sr2hand.geometry.rotations import log_so3  # noqa: E402
 
 CAL = ROOT / "docs/experiments/20261113-camera_arm_calibration/data/fits"
-ROBOT, FT = "192.168.0.4", "192.168.0.6"
+ROBOT = "192.168.0.4"
+FT = "192.168.1.1"     # the HEX-E's compute box since its recabling on 2026-11-16 (it was 192.168.0.6 by DHCP)
 
 
 class Station:
@@ -66,6 +67,7 @@ class Station:
         self.host, self.port, self.live, self.read_back = u.hostname, u.port or 80, live, read_back
         self.token = Path(token_file).read_text().strip() if live else None
         self.stream_token, self.n_read, self.n_frames = None, 0, 0
+        self.lease_s, self.n_restarts, self.errors = 1.0, 0, {}
         self.joints, self.t_joints, self.error, self.state, self.suspended = None, float("nan"), None, {}, None
         self.stop_evt = threading.Event()
 
@@ -107,7 +109,9 @@ class Station:
 
     def start_stream(self):
         self.c = self._conn()
-        self.stream_token = self._post(self.c, "/api/v1/stream/start", {"timeout_s": 0.25})["token"]
+        # a 1 s lease (2026-11-16: at 0.25 s a frame held up behind the station's lock let the lease lapse after 33
+        # frames, and the station then held the grip's goals until the servos' overload protection let go)
+        self.stream_token = self._post(self.c, "/api/v1/stream/start", {"timeout_s": self.lease_s})["token"]
         self.q = queue.Queue(maxsize=1)
         threading.Thread(target=self._frames, daemon=True, name="frames").start()
 
@@ -142,8 +146,12 @@ class Station:
                     self.n_read += 1
             except (OSError, http.client.HTTPException, RuntimeError, ValueError, KeyError) as e:
                 self.error = repr(e)
+                key = type(e).__name__ + (": lease" if "absent or expired" in str(e) else "")
+                self.errors[key] = self.errors.get(key, 0) + 1
                 c.close()
                 c = self._conn()
+                # no restart after a lapsed lease: the first frame of a new stream jumped the fingers to the
+                # controller's targets of that moment (owner, 2026-11-16: "on the lift they spasmed quickly")
 
     def end_stream(self):
         if self.stream_token:
@@ -180,10 +188,23 @@ class Lift(threading.Thread):
     """The arm's lift at t_lift (host seconds): moveL up dz mm in the base frame, asynchronous, watched every 10 ms for the
     HEX-E's force change past stop_N from its reading before the move, a stale HEX-E, or a protective stop."""
 
-    def __init__(self, t_lift, dz, v, acc, stop_n, ft, arm_enabled):
+    def __init__(self, t_lift, dz, v, acc, stop_n, ft, arm_enabled, rtde=None):
         super().__init__(daemon=True, name="lift")
         self.t_lift, self.dz, self.v, self.acc, self.stop_n, self.ft, self.arm = t_lift, dz, v, acc, stop_n, ft, arm_enabled
+        self.rtde = rtde
         self.phase, self.rec = "waiting", {}
+
+    @staticmethod
+    def connect():
+        """(rtde_receive, rtde_control) opened before the trial's t = 0: opening the control interface holds the
+        interpreter for about 1.5 s (2026-11-16: opened at the lift, it froze the link loop and the frames, the
+        controller ended the trial after 1 s without a state and the station's stream lease expired)."""
+        import rtde_control
+        import rtde_receive
+        r = rtde_receive.RTDEReceiveInterface(ROBOT, 125.0)
+        c = rtde_control.RTDEControlInterface(ROBOT)
+        c.setTcp([0.0] * 6)
+        return r, c
 
     def run(self):
         while time.time() < self.t_lift:
@@ -192,17 +213,16 @@ class Lift(threading.Thread):
         if not self.arm:
             self.phase, self.rec["note"] = "logged only (no --arm)", "dry run: no motion"
             return
-        import rtde_control
-        import rtde_receive
-        r = rtde_receive.RTDEReceiveInterface(ROBOT, 125.0)
-        c = rtde_control.RTDEControlInterface(ROBOT)
+        r, c = self.rtde
         try:
-            c.setTcp([0.0] * 6)
             p0 = np.array(r.getActualTCPPose())
             tgt = p0.copy()
             tgt[2] += self.dz / 1000.0
             F0 = None
-            if self.ft is not None:
+            if self.ft == "ur":
+                F0 = np.mean([np.asarray(r.getActualTCPForce(), float)[:3] for _ in range(25) if time.sleep(0.008) is None],
+                             axis=0)
+            elif self.ft is not None:
                 _, v0 = self.ft.ring.since(time.time() - 0.2)
                 F0 = np.asarray(v0, float)[:, :3].mean(axis=0) if len(v0) else None
             self.phase = "lifting"
@@ -211,13 +231,14 @@ class Lift(threading.Thread):
             time.sleep(0.02)
             while True:
                 if self.ft is not None and F0 is not None:
-                    t, v = self.ft.ring.latest()
+                    t, v = ((time.time(), r.getActualTCPForce()) if self.ft == "ur" else self.ft.ring.latest())
+                    src = "UR TCP force" if self.ft == "ur" else "HEX-E"
                     if t is None or time.time() - t > 0.1:
-                        why = "no HEX-E sample for 100 ms"
+                        why = f"no {src} sample for 100 ms"
                     else:
                         fmax = max(fmax, float(np.linalg.norm(np.asarray(v, float)[:3] - F0)))
                         if fmax > self.stop_n:
-                            why = f"HEX-E force changed {fmax:.2f} N (limit {self.stop_n:g})"
+                            why = f"{src} force changed {fmax:.2f} N (limit {self.stop_n:g})"
                 if why is None and (r.isProtectiveStopped() or r.isEmergencyStopped()):
                     why = "protective or emergency stop"
                 if why:
@@ -234,23 +255,81 @@ class Lift(threading.Thread):
             self.rec.update(t_end_ms=time.time() * 1000.0, from_m=p0.round(6).tolist(), to_m=p1.round(6).tolist(),
                             dz_mm=round(1000.0 * float(p1[2] - p0[2]), 3), max_dF_N=round(fmax, 3), stopped=why)
             self.phase = f"stopped: {why}" if why else "up"
+        except Exception as e:                            # noqa: BLE001  the record says so; close() still runs
+            self.phase = f"error: {e!r}"
+
+    def close(self):
+        """The RTDE interfaces closed after the trial's loop (stopScript and disconnect hold the interpreter too)."""
+        if self.rtde is None:
+            return
+        r, c = self.rtde
+        try:
+            c.stopScript()
+            c.disconnect()
         finally:
+            r.disconnect()
+
+
+class VideoRecorder:
+    """Each camera's frames during a trial (owner, 2026-11-16: "make sure to record video from the realsense's"): the
+    tracker's luma frames, halved to 960 x 540, into OUT/<stem>_<serial>.mp4 by a writer thread, with each frame's
+    camera time and number in OUT/<stem>_<serial>_frames.csv, so the film lines up with the trial's record."""
+
+    def __init__(self, stem, scale=0.5, fps=30.0):
+        import cv2
+        self.cv2, self.stem, self.scale, self.fps = cv2, stem, scale, fps
+        self.q = queue.Queue(maxsize=240)
+        self.writers, self.stamps, self.dropped, self.written = {}, {}, 0, 0
+        self.stop_evt = threading.Event()
+        self.thread = threading.Thread(target=self._run, daemon=True, name="video")
+        self.thread.start()
+
+    def on_frame(self, sn, y, det):
+        try:
+            self.q.put_nowait((sn, self.cv2.resize(y, None, fx=self.scale, fy=self.scale,
+                                                   interpolation=self.cv2.INTER_AREA), det.t_frame_ms, det.frame))
+        except queue.Full:
+            self.dropped += 1
+
+    def _run(self):
+        while not (self.stop_evt.is_set() and self.q.empty()):
             try:
-                c.stopScript()
-                c.disconnect()
-            finally:
-                r.disconnect()
+                sn, img, t_ms, n = self.q.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            if sn not in self.writers:
+                h, w = img.shape[:2]
+                self.writers[sn] = self.cv2.VideoWriter(f"{self.stem}_{sn}.mp4", self.cv2.VideoWriter_fourcc(*"mp4v"),
+                                                        self.fps, (w, h), isColor=False)
+                self.stamps[sn] = open(f"{self.stem}_{sn}_frames.csv", "w")
+                self.stamps[sn].write("frame,t_camera_ms,t_host_ms\n")
+            self.writers[sn].write(img)
+            self.stamps[sn].write(f"{n},{t_ms:.3f},{time.time() * 1000.0:.3f}\n")
+            self.written += 1
+
+    def close(self):
+        self.stop_evt.set()
+        self.thread.join(timeout=10)
+        for w in self.writers.values():
+            w.release()
+        for f in self.stamps.values():
+            f.close()
+        return {"files": [f"{self.stem}_{sn}.mp4" for sn in self.writers], "frames": self.written,
+                "dropped": self.dropped}
 
 
-def start_tracker(a, on_sample):
+def start_tracker(a, on_sample, on_frame=None):
     from sr2hand.robot.tool_chain import SR2Hand
     from sr2hand.tracking import live
     arm = live.ArmPose()
     arm.start()
     tracker = live.Tracker(live.load_cameras(CAL / "20261113-lens_board_k3_arm.json",
                                              CAL / "20261113-handeye_tcp_fitted_lens_moved836.json"),
-                           live.load_map(a.map), arm=arm, T_EP=SR2Hand.load().T_E_P(), on_sample=on_sample).start()
-    return arm, tracker
+                           live.load_map(a.map), arm=arm, T_EP=SR2Hand.load().T_E_P(), on_sample=on_sample)
+    if on_frame is not None:
+        for w in tracker.workers:
+            w.on_frame = on_frame
+    return arm, tracker.start()
 
 
 def pose_error(p_mm, q, nominal):
@@ -300,14 +379,19 @@ def cmd_trial(a):
     elif a.live:
         sys.exit("--live needs --station")
     latest = {"msg": None}
-    arm = tracker = None
-    if not a.no_tracker:
-        arm, tracker = start_tracker(a, lambda s: latest.__setitem__("msg", s.msg))
-        time.sleep(a.settle_s)                                   # the cameras' first frames
-    ft = open_ft(a.ft)
+    arm = tracker = video = None
     out = Path(a.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    path = out / f"{time.strftime('%Y%m%d-%H%M%S')}_{a.task}_corvus.jsonl"
+    stamp = time.strftime('%Y%m%d-%H%M%S')
+    path = out / f"{stamp}_{a.task}_corvus.jsonl"
+    if not a.no_tracker:
+        if a.video:
+            video = VideoRecorder(str(out / f"{stamp}_{a.task}_video"))
+        arm, tracker = start_tracker(a, lambda s: latest.__setitem__("msg", s.msg),
+                                     on_frame=None if video is None else video.on_frame)
+        time.sleep(a.settle_s)                                   # the cameras' first frames
+    ft = "ur" if a.ur_ft else open_ft(a.ft)
+    rtde = Lift.connect() if (a.arm and a.lift_mm > 0) else None
     log = open(path, "w")
     rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     rx.bind(("0.0.0.0", a.listen))
@@ -316,10 +400,11 @@ def cmd_trial(a):
     sent, status = {}, (DRY_RUN if not a.live else 0)
     last_seq, t_last_new, armed = -1, None, False
     seq = 0
+    p_obj0 = None                                         # the object's first tracked position, for --max-drift-mm
     t0 = time.time()
-    lift = Lift(t0 + a.lift_at, a.lift_mm, a.lift_v, a.lift_a, a.stop_n, ft, a.arm) if a.lift_mm > 0 else None
+    lift = Lift(t0 + a.lift_at, a.lift_mm, a.lift_v, a.lift_a, a.stop_n, ft, a.arm, rtde) if a.lift_mm > 0 else None
     log.write(json.dumps({"kind": "header", "task": a.task, "object": a.object, "map": a.map, "controller": a.controller,
-                          "live": a.live, "arm": a.arm, "ft": a.ft, "hz": a.hz, "t0_ms": t0 * 1000.0,
+                          "live": a.live, "arm": a.arm, "ft": "ur" if a.ur_ft else a.ft, "hz": a.hz, "t0_ms": t0 * 1000.0,
                           "lift": {"at_s": a.lift_at, "mm": a.lift_mm, "v_mps": a.lift_v, "a_mps2": a.lift_a,
                                    "stop_N": a.stop_n}, "host": socket.gethostname(),
                           "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
@@ -327,7 +412,7 @@ def cmd_trial(a):
         lift.start()
     next_t = time.perf_counter()
     print(f"{time.strftime('%H:%M:%S')} trial {a.task}: {1000 * P:.0f} ms period, controller {ctrl}, "
-          f"{'LIVE' if a.live else 'dry run'}, arm {'on' if a.arm else 'off'}, HEX-E {'on' if ft else 'off'} -> {path}",
+          f"{'LIVE' if a.live else 'dry run'}, arm {'on' if a.arm else 'off'}, guard {'UR TCP force' if ft == 'ur' else 'HEX-E' if ft else 'off'} -> {path}",
           flush=True)
     try:
         while time.time() - t0 < a.seconds:
@@ -356,7 +441,7 @@ def cmd_trial(a):
                 if newest is not None and newest.state_seq == seq:
                     break
             T_BE = arm.at(now) if arm is not None else None
-            t_ft, w = ft_now(ft)
+            t_ft, w = ft_now(None if ft == "ur" else ft)
             row = {"seq": seq, "t_ms": round(now, 3), "t": round((now - 1000.0 * t0) / 1000.0, 4),
                    "joints": None if st.joints is None or not np.all(np.isfinite(st.joints)) else np.round(st.joints, 3).tolist(),
                    "t_joints_ms": st.t_joints_ms if math.isfinite(st.t_joints_ms) else None,
@@ -366,6 +451,15 @@ def cmd_trial(a):
                    "servo_polling_suspended": None if station is None else station.suspended,
                    "lift": None if lift is None else lift.phase, "status": status}
             now2 = time.time() * 1000.0
+            if m is not None and np.all(np.isfinite(m.p_PO)):
+                if p_obj0 is None:
+                    p_obj0 = np.array(m.p_PO, float)
+                drift = float(np.linalg.norm(np.asarray(m.p_PO, float) - p_obj0))
+                # the lift raises the hand and the object together, so the drift in P stays the object's own motion
+                if a.max_drift_mm > 0 and drift > a.max_drift_mm and not status & STOPPED:
+                    status |= STOPPED
+                    row["stop"] = f"object drifted {drift:.1f} mm from its start in P (limit {a.max_drift_mm:g})"
+                    print(f"{time.strftime('%H:%M:%S')} STOP: {row['stop']}", flush=True)
             if newest is not None and not status & STOPPED:
                 if newest.flags & STOP:
                     status |= STOPPED
@@ -401,9 +495,20 @@ def cmd_trial(a):
             station.end_stream()
         if lift is not None:
             lift.join(timeout=6.0)
-        log.write(json.dumps({"kind": "end", "states": seq, "last_target": last_seq, "status": status,
+            lift.close()
+        if video is not None:
+            time.sleep(1.0)                                      # a second of the hold after the end
+        vid = None
+        if tracker is not None:
+            tracker.stop()
+            tracker = None
+        if video is not None:
+            vid = video.close()
+        log.write(json.dumps({"kind": "end", "states": seq, "last_target": last_seq, "status": status, "video": vid,
                               "frames_posted": None if station is None else station.n_frames,
                               "frames_with_joints": None if station is None else station.n_read,
+                              "frame_errors": None if station is None else station.errors,
+                              "stream_restarts": None if station is None else station.n_restarts,
                               "lift": None if lift is None else {"phase": lift.phase, **lift.rec},
                               "station_error": None if station is None else station.error}) + "\n")
         log.close()
@@ -420,27 +525,35 @@ def cmd_return(a):
     """Down by --lift-mm at 10 mm/s, stopped by the HEX-E's force change past --stop-N or a protective stop."""
     import rtde_control
     import rtde_receive
-    ft = open_ft(True)
+    ft = None if a.ur_ft else open_ft(True)
     r = rtde_receive.RTDEReceiveInterface(ROBOT, 125.0)
     c = rtde_control.RTDEControlInterface(ROBOT)
+    src = "UR TCP force" if a.ur_ft else "HEX-E"
+
+    def latest():
+        return (time.time(), r.getActualTCPForce()) if a.ur_ft else ft.ring.latest()
     try:
         c.setTcp([0.0] * 6)
         time.sleep(0.6)
-        _, v0 = ft.ring.since(time.time() - 0.4)
-        F0 = np.asarray(v0, float)[:, :3].mean(axis=0)
+        if a.ur_ft:
+            F0 = np.mean([np.asarray(r.getActualTCPForce(), float)[:3] for _ in range(50) if time.sleep(0.008) is None],
+                         axis=0)
+        else:
+            _, v0 = ft.ring.since(time.time() - 0.4)
+            F0 = np.asarray(v0, float)[:, :3].mean(axis=0)
         p0 = np.array(r.getActualTCPPose())
         tgt = p0.copy()
         tgt[2] -= a.lift_mm / 1000.0
         c.moveL(tgt.tolist(), 0.010, 0.1, True)
         t0, fmax, why = time.time(), 0.0, None
         while True:
-            t, v = ft.ring.latest()
+            t, v = latest()
             if t is None or time.time() - t > 0.1:
-                why = "no HEX-E sample for 100 ms"
+                why = f"no {src} sample for 100 ms"
             else:
                 fmax = max(fmax, float(np.linalg.norm(np.asarray(v, float)[:3] - F0)))
                 if fmax > a.stop_n:
-                    why = f"HEX-E force changed {fmax:.2f} N (limit {a.stop_n:g})"
+                    why = f"{src} force changed {fmax:.2f} N (limit {a.stop_n:g})"
             if why is None and (r.isProtectiveStopped() or r.isEmergencyStopped()):
                 why = "protective or emergency stop"
             if why:
@@ -454,7 +567,7 @@ def cmd_return(a):
                 break
             time.sleep(0.01)
         p1 = np.array(r.getActualTCPPose())
-        print(f"return: {'STOPPED, ' + why if why else 'down'}; moved {1000 * (p1[2] - p0[2]):.2f} mm in z, HEX-E force "
+        print(f"return: {'STOPPED, ' + why if why else 'down'}; moved {1000 * (p1[2] - p0[2]):.2f} mm in z, {src} "
               f"changed at most {fmax:.2f} N", flush=True)
     finally:
         try:
@@ -510,21 +623,30 @@ def main():
     pt.add_argument("--token-file", default=str(Path.home() / ".sr2_station_token"))
     pt.add_argument("--live", action="store_true")
     pt.add_argument("--no-tracker", action="store_true")
+    pt.add_argument("--no-video", dest="video", action="store_false",
+                    help="do not record the cameras (by default each camera's frames go to OUT, 960 x 540)")
     pt.add_argument("--arm", action="store_true", help="move the arm (the lift); without it the lift is only logged")
     pt.add_argument("--ft", action="store_true", help="stream the HEX-E (needed with --arm for the force stop)")
+    pt.add_argument("--ur-ft", action="store_true",
+                    help="the UR's own TCP force as the lift's force stop, in place of the HEX-E (2026-11-16)")
     pt.add_argument("--lift-at", type=float, default=1.6)
     pt.add_argument("--lift-mm", type=float, default=40.0)
     pt.add_argument("--lift-v", type=float, default=0.06, help="m/s")
     pt.add_argument("--lift-a", type=float, default=0.3, help="m/s^2")
     pt.add_argument("--stop-n", type=float, default=5.0, help="N of HEX-E force change that stops the lift")
     pt.add_argument("--out-dir", required=True)
+    pt.add_argument("--max-drift-mm", type=float, default=20.0,
+                    help="stop the trial (the station holds the last goals) when the tracked object moves this far from "
+                         "its first pose in P; 0 turns it off (owner, 2026-11-16: keep the sphere in the usable "
+                         "workspace)")
     pr = sub.add_parser("return")
     pr.add_argument("--lift-mm", type=float, default=40.0)
     pr.add_argument("--stop-n", type=float, default=3.0)
+    pr.add_argument("--ur-ft", action="store_true", help="the UR's own TCP force as the force stop")
     a = ap.parse_args()
     if a.cmd == "trial":
-        if a.arm and not a.ft:
-            sys.exit("--arm needs --ft: the lift is stopped by the HEX-E's force change")
+        if a.arm and not (a.ft or a.ur_ft):
+            sys.exit("--arm needs --ft (or --ur-ft): the lift is stopped by a force change")
         if not a.no_tracker and not a.map:
             sys.exit("--map is needed with the tracker")
         return cmd_trial(a)

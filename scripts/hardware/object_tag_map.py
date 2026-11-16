@@ -32,9 +32,9 @@ from sr2hand.geometry.rotations import kabsch, log_so3  # noqa: E402
 from sr2hand.tracking import tags as TG  # noqa: E402
 
 
-def to_object_frame(fitted: TG.TagMap, shape: str):
+def to_object_frame(fitted: TG.TagMap, shape: str, designed: bool = False):
     """(the fitted map in O, report): the map moved by the Kabsch fit of its corners onto the CAD object map's."""
-    cad = OM.object_map(shape)
+    cad = OM.object_map(shape) if designed else OM.assembled_map(shape)   # as glued on 2026-11-16 (blocks swapped)
     ids = sorted(set(fitted.corners) & set(cad.corners))
     if len(ids) < 2:
         raise SystemExit(f"{shape}: the fitted map shares {len(ids)} tag(s) with the CAD map ({sorted(cad.corners)})")
@@ -51,19 +51,65 @@ def to_object_frame(fitted: TG.TagMap, shape: str):
     return out, rep
 
 
+
+def ends_frame(fitted: TG.TagMap, shape: str, designed: bool = False):
+    """(the fitted map in O, report), O from the cylinder's two fitted end tags: the origin midway between their
+    centres, z_O from tag 23's centre to tag 22's, x_O along tag 22's right edge and against tag 23's (made normal to
+    z_O), y_O = z_O x x_O. The report gives the end tags' distance against the length and where the block's tags lie
+    in that O against the CAD's: the block's offset (its stem along -y_O) and turn."""
+    e0, e1 = OM.END_IDS
+    if shape != "cylinder" or e0 not in fitted.frames or e1 not in fitted.frames:
+        raise SystemExit("--frame ends needs the cylinder's fitted map with both end tags 22 and 23")
+    c0, r0 = fitted.frames[e0][0], fitted.frames[e0][1]
+    c1, r1 = fitted.frames[e1][0], fitted.frames[e1][1]
+    z = (c0 - c1) / np.linalg.norm(c0 - c1)
+    x = (r0 - r1) - ((r0 - r1) @ z) * z
+    x /= np.linalg.norm(x)
+    R = np.c_[x, np.cross(z, x), z]                       # O's axes in the fitted map's frame
+    T = np.eye(4)
+    T[:3, :3], T[:3, 3] = R.T, -R.T @ (0.5 * (c0 + c1))
+    out = fitted.transformed(T)
+    cad = OM.object_map(shape) if designed else OM.assembled_map(shape)
+    blk = sorted(set(out.corners) & set(cad.corners) - {e0, e1})
+    A, B = out.stacked(blk), cad.stacked(blk)
+    Rb, tb = kabsch(B, A)                                 # the CAD block onto the fitted one, in O
+    ca, cb = A.mean(0), B.mean(0)
+    rep = {"shape": shape, "tags": sorted(out.corners), "frame": "ends",
+           "end_tags_apart_mm": round(float(np.linalg.norm(c0 - c1)), 3),
+           "length_mm": OM.OBJECTS[shape]["length_mm"],
+           "block_centre_O_mm": ca.round(3).tolist(), "block_centre_cad_O_mm": cb.round(3).tolist(),
+           "block_offset_mm": (ca - cb).round(3).tolist(),
+           "block_turn_deg": round(float(np.degrees(np.linalg.norm(log_so3(Rb)))), 3),
+           "block_turn_about_y_deg": round(float(np.degrees(log_so3(Rb)[1])), 3),
+           "block_rms_after_fit_mm": round(float(np.sqrt(np.mean(np.sum((B @ Rb.T + tb - A) ** 2, 1)))), 4),
+           "left_out": []}
+    return out, rep
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--object", required=True, choices=sorted(OM.OBJECTS))
     ap.add_argument("--fitted", required=True, help="the block's fitted map (TagMap.to_json)")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--frame", choices=("cad", "ends"), default="cad",
+                    help="cad: Kabsch onto the CAD map's tags; ends (the cylinder with both end tags fitted): O from "
+                         "the end tags themselves, which measures where the cylinder sits on its block")
+    ap.add_argument("--as-designed", action="store_true",
+                    help="the CAD map as designed (object_map) instead of as assembled on 2026-11-16 (assembled_map)")
     a = ap.parse_args()
     m = json.loads(Path(a.fitted).read_text())
     fitted = TG.TagMap.from_corners(m["family"], m["size_mm"], {int(i): c for i, c in m["corners_mm"].items()})
-    out, rep = to_object_frame(fitted, a.object)
+    if a.frame == "ends":
+        out, rep = ends_frame(fitted, a.object, a.as_designed)
+        how = ("from the fitted end tags 22 and 23: origin midway between their centres, z_O toward tag 22, x_O along "
+               "their right edges")
+    else:
+        out, rep = to_object_frame(fitted, a.object, a.as_designed)
+        how = "by a Kabsch fit of the shared tags' corners onto the CAD map"
     keep = {i: out.corners[i] for i in rep["tags"]}
     res = TG.TagMap.from_corners(out.family, out.size, keep).to_json()
-    res["frame"] = (f"O, the {a.object}'s HOM frame (object_tracking_mjcf.object_map), from {a.fitted} by a Kabsch fit "
-                    "of the shared tags' corners onto the CAD map")
+    res["frame"] = (f"O, the {a.object}'s HOM frame (object_tracking_mjcf."
+                    f"{'object_map' if a.as_designed else 'assembled_map'}), from {a.fitted} {how}")
     res["fit"] = rep
     Path(a.out).write_text(json.dumps(res, indent=1))
     print(json.dumps(rep, indent=1))

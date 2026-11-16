@@ -77,11 +77,45 @@ def object_map(shape) -> TG.TagMap:
     and on the cylinder the two end-face tags, upright with +y_O up (right +x_O on the +z_O end, -x_O on the -z_O end)."""
     o = OBJECTS[shape]
     out = block_map(shape).transformed(T_OB(o["r_mm"], o["stem_mm"]))
+    return _end_tags(out, shape)
+
+
+def _end_tags(out, shape, ids=END_IDS):
+    """The cylinder's end-face tags `ids` (22 on +z_O, 23 on -z_O) added to a map in O; other shapes unchanged."""
     if shape == "cylinder":
-        h = o["length_mm"] / 2
-        out.add(END_IDS[0], (0.0, 0.0, h), (1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
-        out.add(END_IDS[1], (0.0, 0.0, -h), (-1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
+        h = OBJECTS[shape]["length_mm"] / 2
+        if END_IDS[0] in ids:
+            out.add(END_IDS[0], (0.0, 0.0, h), (1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
+        if END_IDS[1] in ids:
+            out.add(END_IDS[1], (0.0, 0.0, -h), (-1.0, 0.0, 0.0), (0.0, -1.0, 0.0))
     return out
+
+
+# The blocks as glued on 2026-11-16 (owner: "did i swap the cylinder and sphere tag blocks? i thought the taller one had
+# to be paired with the sphere. well, they're glued on now"): the cylinder carries the block and stem printed for the
+# sphere (ids 16-21, 26.3 mm from its seat to the block's top) and the sphere the cylinder's (ids 10-15, 37.5 mm), each
+# seated on its own object's flat and key. The key and slot are the same on both, so the block's turn about the stem is
+# as designed (or 180 deg off: the key is symmetric). The cylinder's end tags 22 and 23 are on the printed cylinder.
+BLOCK_ON = {"cylinder": "sphere", "sphere": "cylinder"}
+
+
+def assembled_stem_mm(shape):
+    """The stem in T_OB's sense (the block's top below the object's taped or bare surface, mm) of the block glued on
+    `shape`: the glued part's seat-to-top length, as printed for BLOCK_ON[shape], from this object's seat plane.
+    24.41 mm on the cylinder (35.6 designed) and 36.89 mm on the sphere (25.7)."""
+    import tracking_objects_print as TP       # the seat geometry of the print (no manifold3d needed for it)
+    part = BLOCK_ON[shape]
+    p = OBJECTS[part]
+    drop = p["r_mm"] + p["stem_mm"] + TP.seat(part)[2]      # the part's seat plane to its block's top
+    return -TP.seat(shape)[2] + drop - OBJECTS[shape]["r_mm"]
+
+
+def assembled_map(shape, end_ids=END_IDS) -> TG.TagMap:
+    """object_map(shape) as assembled on 2026-11-16: the glued block's tags (BLOCK_ON) at assembled_stem_mm, and on
+    the cylinder its end tags end_ids."""
+    o = OBJECTS[shape]
+    out = block_map(BLOCK_ON[shape]).transformed(T_OB(o["r_mm"], assembled_stem_mm(shape)))
+    return _end_tags(out, shape, end_ids)
 
 
 def block_centre_O(r_mm, stem_mm):

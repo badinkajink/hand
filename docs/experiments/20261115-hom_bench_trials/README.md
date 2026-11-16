@@ -4,6 +4,73 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 12:20
+
+The first live trials ran on 2026-11-16 with the owner supervising at the UR5. The set-up is one command
+(`lab/hom_setup.py`), each trial is filmed by both cameras, and the station's stream holds 50 Hz with read-back.
+
+A trial cycle on corvus (the HOM server for the plan running on the workstation):
+
+    /usr/bin/python3 lab/hom_setup.py torque-on --go                      # motionless restart: goals = present, torque on
+    /usr/bin/python3 lab/hom_setup.py zero --plan PLAN --go               # fingers straight down
+    /usr/bin/python3 lab/hom_setup.py layout --plan PLAN --go [--video]   # plan in, gantries to the layout, filmed
+    /usr/bin/python3 lab/hom_setup.py place --plan PLAN --map MAP --go     # hand 80 mm above the grasp height, levelled
+    /usr/bin/python3 lab/hom_setup.py ready --plan PLAN --object sphere --map MAP --go
+    /usr/bin/python3 lab/hom_trial.py trial --task twist --controller 100.65.73.59:PORT --object sphere --map MAP \
+        --station http://10.99.99.2:8765 --live --arm --ft --out-dir logs/20261116-hom_trials
+    /usr/bin/python3 lab/hom_setup.py putdown --plan PLAN --go            # down to a 3 N touchdown, slow release
+
+`ready` straightens the fingers, measures the object, rises first when the hand is below the grasp's height, moves
+sideways and then down to the nominal pose (the descent stops if the tracked object moves 1.5 mm or turns 3 deg), and
+opens the fingers in small steps. It ended within 0.04 to 0.24 mm of the nominal pose every time. `trial` records
+each camera at 960 x 540 (`<stamp>_twist_video_<serial>.mp4`, frame times in `_frames.csv`), stops when the object
+drifts more than `--max-drift-mm` (20) from its start, and opens the arm's RTDE connection before t = 0. Without
+`--go` every command only prints.
+
+Changes of 2026-11-16:
+
+- Objects. The owner glued the tag blocks to each other's objects: the cylinder carries ids 16 to 21 on the sphere's
+  shorter stem, the sphere ids 10 to 15 on the cylinder's longer one (the 11-13 test block also has ids 10 to 15, so it
+  stays out of view). `object_tracking_mjcf.assembled_map` gives the CAD maps; the fitted maps are
+  `maps/20261116-*_fitted_map_O.json` (`block_views.py --ids --extra-ids`, `block_map_fit.py`, `object_tag_map.py
+  --frame ends`). The cylinder's end tags put its block 0.25 mm lower than the as-assembled CAD and turned 1.4 deg.
+  Measured masses: block 6.5 g, cylinder 23.6 g, sphere 21.59 g (taped).
+- Network. The HEX-E's compute box answers at 192.168.1.1 and serves DHCP on the lab LAN. corvus's profile
+  "ASUS Router lab" refuses its offers and holds 192.168.1.100 beside 10.99.99.77 and 192.168.123.100.
+- CB1 driver (owner's go). `web.py` sets `disable_nagle_algorithm`: Nagle's algorithm and the client's delayed ACK had
+  cost about 40 ms per request, so a frame with read-back went from 55 to 14 ms. `servos.py` and `runtime.py` read the
+  stream's positions with one attempt per servo: a READ that timed out under the grip's load had been retried for
+  1.5 s and the stream's lease lapsed. Backups are in `~/backups/20261116-*` on the CB1; the repository's copies carry the
+  same edits.
+
+The trials (records in `logs/20261116-hom_trials/`, the server's in `runs/` on the workstation):
+
+| Time | Plan | Outcome |
+|---|---|---|
+| 11:37 | generalist twist | corvus froze 1.5 s at the lift (RTDE opened then); stream lost |
+| 11:43 | generalist twist | full schedule at 18 Hz frames; the grasp scooped the sphere 24 mm up into the hand |
+| 11:57 | generalist twist | stream lease lapsed after 33 frames; servos held the grip goals until overload |
+| 12:00 | generalist twist | a servo READ timed out (1.5 s); loose grip, the sphere dropped at the lift |
+| 12:09 | film (105, 70), grasp 10 | 191 frames without error; drift guard at 3.9 s (20.4 mm) |
+| 12:11 | reconfiguration to (70, 110) | filmed, 57 s |
+| 12:12 | film (70, 110), grasp 11 | 282 frames without error; twist about z_P 10-14 deg; drift guard at 5.7 s (30 mm) |
+
+The film for the owner's talk, the counterpart of the abstract-hand film, is
+`media/20261116-real_hand_twist_reconfiguration.mp4` (23.8 s: the (105, 70) twist, the reconfiguration at 8x, the
+(70, 110) twist; camera 832412070344 re-timed to real time; its three parts beside it).
+
+Findings:
+
+- The grasp is deep and pushes the sphere up. HOM makes its force through the servo: at 0.8 s its targets jump 20 to
+  36 deg past the measured joints (0.55 N m/rad for about 4 N), the fingers stall at the touch pose and keep curling
+  (the thumb's PIP from 46 to 74 deg over the twist), and the pads roll off the contact. Next: a lower f_tripod and a
+  cap on target minus measured.
+- The thumb sits where the model puts it at the open pose: its DIP tag (joint two-camera solve) is 0.2 mm off the model
+  along the approach to the sphere and 5 mm sideways.
+- After a lapsed stream the station holds the grip's goals and the SCS0009's overload protection turns servos off.
+  Torque comes on only through `torque-on` (a plain torque-on drives each servo to a stale goal).
+- The index PIP servo read +186 deg after a touchdown with the finger in place; the owner re-zeroed it by hand.
+
 ## State on 2026-11-15 17:42
 
 Built and checked without hardware:
