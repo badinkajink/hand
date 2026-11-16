@@ -1475,8 +1475,31 @@ def size_films(S):
 
 
 def size_film_text(c, F):
-    """What the films of the size whose best pairs lie farthest apart show (written after looking at them)."""
-    return ""
+    """What the films of the size whose best pairs lie farthest apart show, as seen in them on 2026-11-16: the roll with
+    the 28 mm sphere, its pairs 1 (HOM's best) and 65 (the planner's best). The pad forces are read off the frames."""
+    cl = {nm: (info["clips"]["hom"], next(v for k, v in info["clips"].items() if k != "hom"), info["pair"])
+          for nm, _p, info in F}
+    G = gains_numbers()
+    if (c["task"], c["d"]) != ("roll", 28.0) or set(cl) != {"H", "A"} or "roll" not in G:
+        return ""
+    (h1, a1, p1), (h2, a2, p2) = cl["H"], cl["A"]
+    whole = (lambda v: "the whole task" if v >= 0.995 else f"{v:.2f} of the task")
+    txt = fill(r"""<p>Films <<f1>> and <<f2>> show the two best pairs of the roll with the 28 mm sphere at seed 10. On HOM's
+best pair, (<<x1>>, <<y1>>) mm with grasp <<g1>>, the fingers' rigid parts pressed the sphere under both controllers.
+Their force was above 1 N for <<lh>> under HOM and for <<la>> under the planner. In the film the middle finger's pad
+bore no load for most of the task. Three pads touched the sphere for <<ch>> of the task under HOM and <<ca>> under the
+planner. HOM followed the command within <<eh>> deg RMS and scored <<jh>>; the planner scored <<ja>>.</p>""",
+               f1=P.FILM[0] + 1, f2=P.FILM[0] + 2, x1=f"{p1['x']:g}", y1=f"{p1['y']:g}", g1=p1["grasp"],
+               lh=whole(h1["link_frac_1N"]), la=whole(a1["link_frac_1N"]), ch=f2(h1["contact_all_frac"]),
+               ca=f2(a1["contact_all_frac"]), eh=f"{h1['track_err_rms_deg']:.1f}", jh=f2(h1["J"]), ja=f2(a1["J"]))
+    txt += fill(r"""<p>On the planner's best pair, (<<x2>>, <<y2>>) mm with grasp <<g2>>, both controllers kept three pads
+on the sphere for the whole task, and no rigid part touched it. Under HOM each pad pressed with 2.6 to 2.9 N to the end,
+and the sphere's axis stayed upright. HOM's tracking error of <<eh>> deg was close to the commanded rotation's RMS of
+<<er>> deg, and its J was <<jh>>. The planner lowered its pad forces from 2.3-2.8 N to 1.2-1.7 N and rolled the sphere.
+It followed the command within <<ea>> deg and scored <<ja>>.</p>""",
+                x2=f"{p2['x']:g}", y2=f"{p2['y']:g}", g2=p2["grasp"], eh=f"{h2['track_err_rms_deg']:.1f}",
+                er=f"{G['roll']['e_ref']:.1f}", jh=f2(h2["J"]), ea=f"{a2['track_err_rms_deg']:.1f}", ja=f2(a2["J"]))
+    return txt
 
 
 def sgn(x, d=2):
@@ -1521,8 +1544,8 @@ def sec_sizes(R):
 object. Their median rose by <<h>> mm per mm of diameter under HOM and by <<a>> mm per mm under the planner (Table <<t3>>,
 Figure <<fn>>).""", h=rng([sl[t]["H"] for t in ts]), a=rng([sl[t]["A"] for t in ts]), t3=tn + 3, fn=fn)
               if len(upH) == len(upA) == len(ts) else
-              fill(r""" The median $x_{\mathrm{sep}}$ of the ten best pairs rose with the diameter on <<ua>> under the
-planner and on <<uh>> under HOM (Table <<t3>>, Figure <<fn>>).""", ua=MP.tasks_list(upA), uh=MP.tasks_list(upH),
+              fill(r""" Under the planner the median $x_{\mathrm{sep}}$ of the ten best pairs rose with the diameter on
+<<ua>>. Under HOM it rose on <<uh>> (Table <<t3>>, Figure <<fn>>).""", ua=MP.tasks_list(upA), uh=MP.tasks_list(upH),
                    t3=tn + 3, fn=fn)
               + "".join(f" On the {TN[t].lower()} {'HOM' if nm == 'H' else 'the planner'}'s median was "
                         + al([f"{c['top10_x_med'][nm]:g} mm with the {size_label(t, c['d'])}" for c in S[t]]) + "."
@@ -1530,8 +1553,8 @@ planner and on <<uh>> under HOM (Table <<t3>>, Figure <<fn>>).""", ua=MP.tasks_l
               + f" Where it rose, its slope was {rng([sl[t]['H'] for t in upH])} mm per mm under HOM and "
                 f"{rng([sl[t]['A'] for t in upA])} under the planner.") + "</p>")
     txt += fill(r"""<p>The sizes are those of the size study on the SCS0009 plant (<a href="<<sp>>">search-methods
-page</a>): <<os>>, beside the benchmark's spheres of 40 mm and cylinders of 25 mm. The spheres are the twist's and the
-roll's objects, the cylinders the pin-push's and the press's. At each size HOM ran every layout of the grid on the benchmark's plant at
+page</a>): <<os>>. The benchmark's sizes are spheres of 40 mm and cylinders of 25 mm. The spheres are the twist's and
+the roll's objects, the cylinders the pin-push's and the press's. At each size HOM ran every layout of the grid on the benchmark's plant at
 seeds 0-2, and each layout kept its best grasp. From that grid the 100 pairs were chosen as at the benchmark's sizes:
 HOM's 50 best layouts and 50 drawn at random from the rest (Terms, pair sets). Both controllers ran each pair at seeds 0
 and 1.</p>""", sp=SEARCH_PAGE, os=other_sizes(S))
@@ -1567,19 +1590,24 @@ HOM.</p>""",
                 tk=TN[far["task"]].lower(), sz=size_label(far["task"], far["d"]), dd=f"{far['best_dist_mm']:.0f}",
                 t2=tn + 2, hx=f"{bh['x']:g}", hy=f"{bh['y']:g}", hj=f2(bh["J"]), ho=f2(bh["J_other"]),
                 ax=f"{ba['x']:g}", ay=f"{ba['y']:g}", aj=f2(ba["J"]), ao=f2(ba["J_other"]))
-    ins = [f"{sl[t]['H']:.2f}" + (" mm per mm" if i == 0 else "") + f" on the {TN[t].lower()}" for i, t in enumerate(ts)]
-    tr = [f"{TRENDS_SLOPE[t]:.2f}" + (" mm per mm" if i == 0 else "") + f" on the {TN[t].lower()}"
-          for i, t in enumerate(ts)]
-    txt += fill(r"""<p>Under HOM the median $x_{\mathrm{sep}}$ of the ten best pairs moved by <<ins>> (Table <<t3>>). On
-the same plant, HOM's searches over 9 or 10 sizes per task moved the centroid of their best layouts by <<tr>>. They were
-scored before J was adopted (<a href="<<tp>>">layout-trends page</a>, Table 2). A single best pair moved less regularly:
-its slope was <<bh>> under HOM and <<ba>> under the planner.</p>""",
-                ins=al(ins), t3=tn + 3, tr=al(tr), tp=TRENDS_PAGE,
-                bh=f"{sgn(min(sb[t]['H'] for t in ts))} to {sgn(max(sb[t]['H'] for t in ts))}",
+    dtr = {t: abs(sl[t]["H"] - TRENDS_SLOPE[t]) for t in ts}
+    near = [t for t in ts if dtr[t] <= 0.1]
+    txt += fill(r"""<p>Under HOM the median $x_{\mathrm{sep}}$ of the ten best pairs moved by <<h0>> to <<h1>> mm per mm (Table
+<<t3>>). On the same plant, HOM's searches over 9 or 10 sizes per task moved the centroid of their best layouts by <<s0>>
+to <<s1>> mm per mm. They were scored before J was adopted (<a href="<<tp>>">layout-trends page</a>, Table 2).""",
+                h0=f"{min(sl[t]['H'] for t in ts):.2f}", h1=f"{max(sl[t]['H'] for t in ts):.2f}", t3=tn + 3,
+                s0=f"{min(TRENDS_SLOPE[t] for t in ts):.2f}", s1=f"{max(TRENDS_SLOPE[t] for t in ts):.2f}", tp=TRENDS_PAGE)
+    if near:
+        txt += (f" On {MP.tasks_list(near)} the two slopes differed by {max(dtr[t] for t in near):.2f} mm per mm or less"
+                + "".join(f", and on the {TN[t].lower()} by {dtr[t]:.2f}" for t in ts if t not in near) + ".")
+    txt += fill(r""" A single best pair moved less regularly: its slope was <<bh>> under HOM and <<ba>> under the
+planner.</p>""", bh=f"{sgn(min(sb[t]['H'] for t in ts))} to {sgn(max(sb[t]['H'] for t in ts))}",
                 ba=f"{sgn(min(sb[t]['A'] for t in ts))} to {sgn(max(sb[t]['A'] for t in ts))}")
     sm = [(c["smooth"]["H"], c["smooth"]["A"]) for c in cells]
-    txt += fill(r"""<p>HOM's servo targets moved faster than the planner's at every size: a target rate of <<rh>> deg/s
-against <<ra>> deg/s. HOM's targets reversed <<vh>> times per joint per second and the planner's <<va>> times.</p>""",
+    lead = ("HOM's servo targets moved faster than the planner's at every size: a target rate of"
+            if all(h["cmd_rate_dps"] > a["cmd_rate_dps"] for h, a in sm) else "HOM's target rate was")
+    txt += fill(r"""<p><<lead>> <<rh>> deg/s against <<ra>> deg/s. HOM's targets reversed <<vh>> times per joint per second
+and the planner's <<va>> times.</p>""", lead=lead,
                 rh=rng([h["cmd_rate_dps"] for h, _a in sm], 0), ra=rng([a["cmd_rate_dps"] for _h, a in sm], 0),
                 vh=rng([h["reversals_ps"] for h, _a in sm]), va=rng([a["reversals_ps"] for _h, a in sm]))
     rows = []
@@ -1639,9 +1667,10 @@ against <<ra>> deg/s. HOM's targets reversed <<vh>> times per joint per second a
         txt += size_film_text(cf, F)
         for nm, p, info in F:
             pr = info["pair"]
-            who = "HOM's" if nm == "H" else "Full annealed sampling's"
+            who = "HOM's" if nm == "H" else "full annealed sampling's"
             parts = [f"{cap(MP.FILM_SPEC.get(spec, esc(spec)))}: J {c['J']:.2f}, three pads for "
-                     f"{c['contact_all_frac']:.2f} of the task, tracking error {c['track_err_rms_deg']:.1f} deg, "
+                     + ("the whole task" if c["contact_all_frac"] >= 0.995 else f"{c['contact_all_frac']:.2f} of the task")
+                     + f", tracking error {c['track_err_rms_deg']:.1f} deg, "
                      f"{c['reversals_ps']:.1f} target reversals per joint per second"
                      + ("" if c.get("held") else ", dropped") for spec, c in info["clips"].items()]
             txt += P.film(p, f"{TN[cf['task']]} with the {size_label(cf['task'], cf['d'])}: {who} best of the 100 "
@@ -2119,11 +2148,11 @@ def sec_future(R):
     if sizes_numbers():
         items.append(
             "Full annealed sampling on every layout of the grids at the other object sizes (<code>inner_loop_mpc.py pairs "
-            "--d D --rule all</code>, then <code>run --d D --pairs _all --method anneal --plan-dt 0.002</code>), about 2 "
-            "to 3 h per task and size from the 20 to 36 min of the 100-pair runs. If more than five of the planner's ten "
-            "best layouts at a size lie outside HOM's 50 best, HOM's grid misses the planner's best layouts at that size. "
-            "If the planner's size slope over the whole grid differs from HOM's by more than 0.5 mm per mm, the two "
-            "controllers move the best layout differently with the object's size.")
+            "--d D --rule all</code>, then <code>run --d D --pairs _all --method anneal --plan-dt 0.002</code>). From "
+            "the 20 to 36 min of the 100-pair runs, a grid takes about 2 to 3 h per task and size. If more than five of "
+            "the planner's ten best layouts at a size lie outside HOM's 50 best, HOM's grid misses the planner's best "
+            "layouts at that size. If the two controllers' size slopes over the whole grids differ by more than 0.5 mm "
+            "per mm, they move the best layout differently with the object's size.")
     if gains_numbers():
         items.append(
             "Each finger's share of the task with its pad in contact in <code>inner_loop_mpc.py</code>'s rows, beside "
