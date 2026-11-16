@@ -1,4 +1,9 @@
 Status: active (armed for the autopilot on colorado from window 8955e04e, 11-15 17:44; the owner left for the night)
+State 11-16 06:28 (autopilot): step 40, cells 1-5 of 8 done. Twist 28 mm (06:28, 58 min): rho 0.62 (0.81 at
+  40 mm), single seed 0.56 vs ceiling 0.69, mean J HOM 0.341, planner 0.523; best HOM (65, 80) 0.75 (planner 0.94),
+  planner (80, 80) 0.97 (HOM 0.61); ten-best median x_sep HOM 80, planner 77.5 mm (100 and 90 at 40 mm), 4 of 10
+  shared. HOM page section drafted in the builder (3a4a3747a; page not yet committed). Roll 28 mm running, then
+  press 18, pin-push 18 (~09:00), size films.
 State 11-16 05:31 (autopilot): step 40, cells 1-4 of 8 done, so every task has its large size. Pin-push 45 mm
   (05:30, 59 min): rho 0.41 (0.50 at 25 mm), single seed 0.36 vs ceiling 0.79, mean J HOM 0.297, planner 0.368;
   best HOM (105, 65) 0.50 (planner 0.49), planner (105, 125) 0.59 (HOM 0.49); ten-best median x_sep HOM 97.5,
