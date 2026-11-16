@@ -762,6 +762,8 @@ def render_reconfig(a):
                         f"stop_duration={dur:.2f},setsar=1,format=yuv420p[b];[a][b]hstack=inputs=2,"
                         f"trim=duration={dur:.3f}[v]", "-map", "[v]", "-r", str(fps), "-c:v", "libx264", "-pix_fmt",
                         "yuv420p", "-crf", "20", "-preset", "slow", "-movflags", "+faststart", str(sbs)], check=True)
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{max(i_zoom - 10, 0) / fps:.3f}", "-i", str(sbs),
+                        "-frames:v", "1", "-q:v", "3", str(sbs.with_suffix(".jpg"))], check=True)   # the second twist
         print(f"{sbs.relative_to(ROOT)}: the drawing beside {sync['film']}", flush=True)
     for q in tmp.glob("f*.png"):
         q.unlink()
