@@ -1,0 +1,20 @@
+{
+ "recorded": "2026-11-16T16:06:47",
+ "source": "hand-4a's message of 16:06 (2026-11-16), relayed to corvus before any of these trials ran; simulation: the real object, soft tangential contact at friction 1.0, the server's plant kp 0.55, HOM's gain 0.55 (as the bench server), servos that the load cannot backdrive with stiff dry friction (rev_clutch2.py --stiff, c_f 0.6), seeds 0-2; rows in logs/20261116-sim_real_reversal/ on the workstation",
+ "format": "track mean [range], twist at the end (deg), rise (mm), gaps middle yaw / index yaw / thumb MCP (deg); every grasp held 3/3",
+ "variants": {"kp035": "index and middle yaw gains 0.35 N m/rad", "all055": "every gain 0.55 N m/rad"},
+ "grasps": [
+  {"label": "gr_g4", "grid": "grid2dgr", "grasp": 4, "below_equator_deg": 0.8, "port": 47015, "role": "the high one",
+   "kp035": {"track": 0.46, "track_range": [0.45, 0.48], "twist": 53.1, "rise": 8.1, "gaps": [-11.3, 18.7, 15.3]},
+   "all055": {"track": 0.45, "track_range": [0.44, 0.46], "twist": 49.6, "rise": 8.8, "gaps": [-9.3, 16.7, 15.1]}},
+  {"label": "gr_g12", "grid": "grid2dgr", "grasp": 12, "below_equator_deg": 4.0, "port": 47016, "role": "the middle one",
+   "kp035": {"track": 0.33, "track_range": [0.32, 0.33], "twist": 36.8, "rise": 6.5, "gaps": [-19.0, 15.0, 30.0]},
+   "all055": {"track": 0.27, "track_range": [0.26, 0.28], "twist": 35.1, "rise": 5.3, "gaps": [-15.7, 13.1, 31.1]}},
+  {"label": "gr_g8", "grid": "grid2dgr", "grasp": 8, "below_equator_deg": 0.7, "port": 47017, "role": "the low one",
+   "kp035": {"track": 0.10, "track_range": [0.08, 0.12], "twist": 18.2, "rise": 0.8, "gaps": [-15.9, 4.9, 25.2]},
+   "all055": {"track": 0.11, "track_range": [0.10, 0.13], "twist": 22.3, "rise": 0.8, "gaps": [-12.5, 3.1, 24.0]}},
+  {"label": "g7", "grid": "grid2dff", "grasp": 7, "below_equator_deg": 12.5, "port": 47014, "role": "the re-score's first; expect a climb",
+   "kp035": {"track": 0.57, "track_range": [0.52, 0.61], "twist": 65.0, "rise": 20.5, "gaps": [-16.7, 14.6, 21.3]},
+   "all055": {"track": 0.41, "track_range": [0.40, 0.42], "twist": 44.9, "rise": 16.4, "gaps": [-16.0, 8.5, 21.9]}}
+ ]
+}
