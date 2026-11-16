@@ -9,7 +9,8 @@ frame A, fingers in the CAD's modelled pose). The cameras are the plan's: portra
 task, at its height, at azimuths 0 and 260 deg from x_P, aimed as in object_tracking_sim.py (`visibility`). The palm's
 height in the task is the generalist's pin-push rollout of 2026-11-05 plus the 40 mm lift.
 
-    drawings  section drawings of the joints and a drawing of the board (femtip: manifold3d, matplotlib)
+    drawings  section drawings of the joints, of the blocks' two stem roots and of the board (femtip: manifold3d,
+              matplotlib; --only NAME for one drawing)
     renders   MuJoCo renders of the objects, the mount and the cameras' views, and the page's rows/views.json
               (camera stack)
     viewers   the MJCF models of the page's two viewers in logs/20261113-tracking_prints/viewer (camera stack)
@@ -178,8 +179,11 @@ def mjcf(geoms, cameras=(), floor=None, extra_assets="", bodies=""):
 """
 
 
+COTTER_RGBA = "0.89 0.64 0.23 1"
+
+
 def rgba(c):
-    return WHITE if c == "white" else BLACK
+    return {"white": WHITE, "black": BLACK, "cotter": COTTER_RGBA}[c]
 
 
 def placed(parts, R_W, t_W_mm, explode=None):
@@ -282,6 +286,50 @@ def fig_objects():
             what = ("Cylinder" if shape == "cylinder" else "Sphere") + (", parts apart" if ex else ", assembled")
             frames.append(outline(label(img, what)))
     save(tile(frames, 2), f"{DATE}-objects.png")
+
+
+def joint_parts(shape, names):
+    """[(label, stl, R, t, colour, group)] of the cotter joint's print files in O of `shape` (mm), placed by the
+    transforms the build recorded (assets/tracking/20261116-cotter_joint/); the group is the part's name."""
+    rep = json.loads(TO.J_REPORT.read_text())["parts"]
+    JT = TO.joint_T(shape)
+    out = []
+    for n in names:
+        T = np.asarray(rep[n]["print_to"]["T"])
+        R, t = T[:, :3], T[:, 3]
+        if rep[n]["print_to"]["frame"] == "J":
+            R, t = JT[:, :3] @ R, JT[:, :3] @ t + JT[:, 3]
+        for c in ("white", "black"):
+            if c in rep[n]:
+                col = "cotter" if n.startswith("cotter") else c
+                out.append((n, ROOT / rep[n][c]["file"], R, t, col, n))
+    return out
+
+
+def fig_joint():
+    """The cotter joint's parts: each object with its block and cotter apart, the stem's end with the cotter in place,
+    and the fit coupons apart."""
+    JR = {s: TO.joint_T(s)[:, :3] for s in ("cylinder", "sphere")}
+    out_w = {s: (JR[s] @ np.array([1.0, 0, 0])) for s in JR}             # the cotter's way out, in O
+    panels = [
+        ("Cylinder, block and cotter apart", "cylinder", joint_parts("cylinder", ("cylinder", "cylinder_block", "cotter_mid")),
+         {"cylinder_block": (0.0, -16.0, 0.0), "cotter_mid": 24.0 * out_w["cylinder"]},
+         {"lookat": (-0.014, 0.0, -0.026), "distance": 0.17, "azimuth": 58.0, "elevation": 16.0}),
+        ("Sphere, block and cotter apart", "sphere",
+         joint_parts("sphere", ("sphere_lower", "sphere_block", "cotter_mid"))
+         + [p for p in object_parts("sphere") if p[5] in ("upper", "pins")],
+         {"sphere_block": (0.0, -16.0, 0.0), "cotter_mid": 24.0 * out_w["sphere"]},
+         {"lookat": (0.0, -0.010, -0.028), "distance": 0.19, "azimuth": 62.0, "elevation": 22.0}),
+        ("Stem's end with the cotter in place", "cylinder", joint_parts("cylinder", ("cylinder_block", "cotter_mid")),
+         None, {"lookat": (-0.002, 0.0, -0.0085), "distance": 0.055, "azimuth": 28.0, "elevation": 14.0}),
+        ("Fit coupons apart", "cylinder", joint_parts("cylinder", ("coupon_cylinder", "coupon_stem", "cotter_mid")),
+         {"coupon_stem": (0.0, -12.0, 0.0), "cotter_mid": 20.0 * out_w["cylinder"]},
+         {"lookat": (-0.006, 0.0, -0.014), "distance": 0.11, "azimuth": 25.0, "elevation": 24.0})]
+    frames = []
+    for title, shape, parts, ex, cam in panels:
+        m, d = compile_xml(mjcf(placed(parts, R_WO, np.zeros(3), ex)))
+        frames.append(outline(label(render(m, d, cam, 700, 620), title)))
+    save(tile(frames, 2), f"{TO.J_DATE}-cotter_joint_parts.png")
 
 
 def task_world():
@@ -415,8 +463,8 @@ def fig_views():
 
 
 def cmd_renders(a):
-    for k in a.only or ("objects", "mount", "views"):
-        {"objects": fig_objects, "mount": fig_mount, "views": fig_views}[k]()
+    for k in a.only or ("objects", "mount", "views", "joint"):
+        {"objects": fig_objects, "mount": fig_mount, "views": fig_views, "joint": fig_joint}[k]()
     return 0
 
 
@@ -547,10 +595,163 @@ def fig_board():
     print("wrote", p.relative_to(ROOT), flush=True)
 
 
+def fig_stem_root():
+    """The stem's root of the two block versions cut through the stem's axis (print frame, the block's top at z = 17 mm),
+    with the second version's dimensions (owner, 2026-11-16: the root filleted)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.size": 14, "xtick.labelsize": 13, "ytick.labelsize": 13})
+    R = np.array([[0, 1.0, 0], [0, 0, 1.0], [1.0, 0, 0]])          # the plane x = 0 onto z' = 0, (y, z) onto (x', y')
+    files = (("First version (2026-11-12)", lambda c: OBJ / f"{TO.DATE}-cylinder_block_{c}.stl"),
+             ("Second version (2026-11-16)", lambda c: TO.BLOCKS_OUT / f"{TO.BLOCKS_DATE}-cylinder_block_{c}.stl"))
+    fig, axs = plt.subplots(1, 2, figsize=(10.8, 6.4))
+    top, rt = OM.BLOCK.height, json.loads(TO.BLOCKS_REPORT.read_text())["root"]
+    for ax, (title, path) in zip(axs, files):
+        for c in ("white", "black"):
+            rings = [np.asarray(q) for q in to_manifold(path(c), R, np.zeros(3)).slice(0.0).to_polygons()]
+            if rings:                                   # the plane may miss every black cell
+                draw_rings(ax, rings, COL["black"] if c == "black" else COL["block"])
+        ax.set_xlim(-16, 16)
+        ax.set_ylim(top - 9, top + 17)
+        ax.set_aspect("equal")
+        ax.set_xlabel("$y$ (mm)")
+        ax.set_ylabel("$z$ above the bed (mm)")
+        ax.set_title(title, fontsize=15)
+        ax.grid(alpha=0.2, lw=0.5)
+    a = axs[1]
+    h, f = rt["root_h_mm"], rt["foot_d_mm"] / 2
+    dim(a, (-f, top - 1.6), (f, top - 1.6), f"foot {2 * f:.1f}", off=(0, -0.4), va="top", fs=13)
+    dim(a, (7.0, top), (7.0, top + h), f"taper {h:g},\n{rt['root_d_mm']:g} to {OM.STEM_D:g}", off=(0.4, 0),
+        ha="left", va="center", fs=13)
+    a.annotate(f"fillet R{rt['fillet_r_mm']:g}", xy=(-3.7, top + 0.8), xytext=(-15.0, top + 6.0), fontsize=13,
+               arrowprops=dict(arrowstyle="->", lw=0.9, color="#000000"))
+    a.text(2.6, top + 14.0, f"stem {OM.STEM_D:g}", ha="left", va="center", fontsize=13)
+    fig.tight_layout()
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    p = MEDIA / f"{TO.BLOCKS_DATE}-stem_root.png"
+    fig.savefig(p, dpi=100, facecolor="white", bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", p.relative_to(ROOT), flush=True)
+
+
+def joint_sections(shape):
+    """{cut: [(colour key, rings)]} of the assembled cotter joint in the joint frame J (mm), cut at v = 0 (drawn in w and
+    u) and at w = 0 (drawn in v and u): the object's body, the block's stem and the middle cotter at its nominal place."""
+    B = OM.BLOCK
+    o = OM.OBJECTS[shape]
+    w, b, _top = TO.block_stem(shape, root=True, joint=True)
+    T_ob = TO.m4(OM.R_OB, OM.block_centre_O(o["r_mm"], o["stem_mm"]) - OM.R_OB @ np.array([0.0, 0.0, B.height / 2]))
+    JT = TO.joint_T(shape)
+    inv = TO.m4(JT[:, :3].T, -JT[:, :3].T @ JT[:, 3])
+    parts = [("body", TO.body_O(shape)[0].transform(inv)), ("block", w.transform(T_ob).transform(inv)),
+             ("cotter", TO.cotter(0.0, 2))]
+    cuts = {"v0": np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]]),      # (w, u, -v)
+            "w0": np.array([[0, 1.0, 0], [0, 0, 1.0], [1.0, 0, 0]])}       # (v, u, w)
+    return {c: [(k, [np.asarray(q) for q in m.transform(TO.m4(R)).slice(0.0).to_polygons()]) for k, m in parts]
+            for c, R in cuts.items()}
+
+
+def fig_cotter_joint():
+    """The cotter joint assembled, cut along the cotter (v = 0) and across it (w = 0), on the cylinder and the sphere."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.size": 14, "xtick.labelsize": 13, "ytick.labelsize": 13,
+                         "mathtext.fontset": "cm"})
+    col = dict(COL, cotter="#e3a33b")
+    fig, axs = plt.subplots(2, 2, figsize=(10.8, 8.2))
+    hs, (h_in, h_far) = TO.half_diag(TO.SQ_H), TO.slot_heights()
+    for i, shape in enumerate(("cylinder", "sphere")):
+        S = joint_sections(shape)
+        for j, (cut, xl) in enumerate((("v0", "$w$ along the cotter (mm)"), ("w0", "$v$ across the cotter (mm)"))):
+            ax = axs[i, j]
+            for k, rings in S[cut]:
+                if rings:
+                    draw_rings(ax, rings, col[k])
+            ax.set_xlim(-13, 13)
+            ax.set_ylim(-5.5, 11.5)
+            ax.set_aspect("equal")
+            ax.axhline(0.0, color="#666666", lw=0.6, ls="--")
+            ax.set_xlabel(xl)
+            ax.set_ylabel("$u$ along the stem (mm)")
+            ax.grid(alpha=0.2, lw=0.5)
+            ax.set_title(f"{shape.capitalize()}, cut {'along' if cut == 'v0' else 'across'} the cotter", fontsize=15)
+        a = axs[i, 0]
+        a.annotate("entry", xy=(9.0 if shape == "cylinder" else 11.0, TO.FLOOR_U + h_in / 2), xytext=(8.0, 9.6),
+                   fontsize=13, ha="center", arrowprops=dict(arrowstyle="->", lw=0.9, color="#000000"))
+        a.annotate("far opening", xy=(-9.0 if shape == "cylinder" else -11.0, TO.FLOOR_U + h_far / 2),
+                   xytext=(-8.0, 9.6), fontsize=13, ha="center",
+                   arrowprops=dict(arrowstyle="->", lw=0.9, color="#000000"))
+        a.text(0.0, -4.6, "stem", ha="center", fontsize=13)
+        b = axs[i, 1]
+        dim(b, (-TO.SQ0 / math.sqrt(2.0), -1.6), (TO.SQ0 / math.sqrt(2.0), -1.6),
+            f"taper {TO.TAPER_DEG:g}$^\\circ$, {TO.SQ0 * math.sqrt(2.0):.1f} across corners", off=(0, -0.4), va="top",
+            fs=13)
+        b.annotate("key flat", xy=(-TO.KEY_V, 4.0), xytext=(-11.5, 9.6), fontsize=13,
+                   arrowprops=dict(arrowstyle="->", lw=0.9, color="#000000"))
+    axs[0, 0].text(0.0, TO.FLOOR_U + TO.COT_T + 0.35, "cotter, 1:5", ha="center", va="bottom", fontsize=13,
+                   bbox=dict(fc="white", ec="none", pad=0.6, alpha=0.85))
+    fig.tight_layout()
+    p = MEDIA / f"{TO.J_DATE}-cotter_joint_sections.png"
+    fig.savefig(p, dpi=100, facecolor="white", bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", p.relative_to(ROOT), flush=True)
+
+
+def fig_opening_touches():
+    """Where the fingers touched the objects in the rollouts of 2026-11-05 (object_tracking_rollouts.py touchmap), with
+    the cotter joint's two openings outlined: the cylinder unrolled, the sphere's lower half by angle from the pole."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon
+    plt.rcParams.update({"font.family": "serif", "font.size": 14, "xtick.labelsize": 13, "ytick.labelsize": 13})
+    t = json.loads((TO.J_OUT / f"{TO.J_DATE}-opening_touches.json").read_text())
+    fig, axs = plt.subplots(1, 2, figsize=(12.0, 5.2), gridspec_kw={"width_ratios": [1.25, 1.0]}, layout="constrained")
+    fig.get_layout_engine().set(wspace=0.08)
+    for ax, shape, title in ((axs[0], "cylinder", "Cylinder, unrolled"), (axs[1], "sphere", "Sphere, lower half")):
+        mp, n = t["maps"][shape], t["n_rollouts"][shape]
+        a, b = (np.asarray(x) for x in mp["bins"])
+        frac = np.asarray(mp["rollouts_with_touch"], float).T / n
+        im = ax.pcolormesh(a, b, np.where(frac > 0, frac, np.nan), cmap="viridis", vmin=0.0, vmax=1.0, shading="flat")
+        for o in t["openings"]:
+            if o["shape"] != shape:
+                continue
+            q = np.asarray(o["outline_deg"])[[0, 1, 3, 2]]
+            ax.add_patch(Polygon(q, closed=True, fill=False, ec="#d62728", lw=2.0))
+            c = q.mean(0)
+            ax.annotate(o["opening"], xy=c, xytext=(c[0] + (18 if shape == "cylinder" else 12), c[1] + 14),
+                        fontsize=13, color="#d62728", arrowprops=dict(arrowstyle="->", lw=0.9, color="#d62728"))
+        ax.set_xlabel(t["map_axes"][shape][0].replace(" (deg)", " (deg)"))
+        ax.set_ylabel(t["map_axes"][shape][1])
+        ax.set_title(f"{title}, {n} rollouts", fontsize=15)
+        ax.grid(alpha=0.25, lw=0.5)
+    axs[0].set_xlim(-120, 120)
+    axs[0].set_ylim(-50, 50)
+    axs[0].set_xlabel("Turn from the bottom line toward $+x_O$ (deg)")
+    axs[0].set_ylabel("$z_O$ along the axis (mm)")
+    axs[1].set_xlim(0, 90)
+    axs[1].set_xlabel("Angle from the bottom pole (deg)")
+    axs[1].set_ylabel("Azimuth toward $+z_O$ (deg)")
+    cb = fig.colorbar(im, ax=axs, shrink=0.9)
+    cb.set_label("Share of rollouts with a touch")
+    p = MEDIA / f"{TO.J_DATE}-opening_touches.png"
+    fig.savefig(p, dpi=100, facecolor="white", bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", p.relative_to(ROOT), flush=True)
+
+
 def cmd_drawings(a):
     MEDIA.mkdir(parents=True, exist_ok=True)
+    if a.only:
+        {"stem_root": fig_stem_root, "cotter_joint": fig_cotter_joint, "opening_touches": fig_opening_touches}[a.only]()
+        return 0
     fig_sections()
     fig_board()
+    fig_stem_root()
+    fig_cotter_joint()
+    fig_opening_touches()
     return 0
 
 
@@ -639,9 +840,11 @@ def cmd_viewers(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("drawings")
+    d = sub.add_parser("drawings")
+    d.add_argument("--only", choices=("stem_root", "cotter_joint", "opening_touches"),
+                   help="one drawing of 2026-11-16: the blocks' stem root, the cotter joint or its openings' touches")
     r = sub.add_parser("renders")
-    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views"))
+    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views", "joint"))
     sub.add_parser("viewers")
     a = ap.parse_args()
     return {"drawings": cmd_drawings, "renders": cmd_renders, "viewers": cmd_viewers}[a.cmd](a)

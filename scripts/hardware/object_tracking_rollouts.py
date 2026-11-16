@@ -429,6 +429,188 @@ def cmd_run(a):
     return 0
 
 
+BLOCKS_V2 = ROOT / "assets/tracking/20261116-tag_blocks/20261116-tag_blocks.json"
+
+
+def cmd_rootclear(a):
+    """Finger clearance of the tag blocks' second-version stem root (owner, 2026-11-16) over the recorded rollouts. The
+    root is drawn by two cylinders that enclose it: ROOT_D across from the block's top up to ROOT_H, and the fillet's
+    foot across up to FILLET_R. They are added to each rollout's built scene, every recorded period is set and
+    collided, and contacts within CLEAR_RANGE give the distance to the nearest finger geom, as in the rollouts."""
+    import mujoco
+    root_cfg = json.loads(BLOCKS_V2.read_text())["root"]
+    rows = [json.loads(x) for x in (ROWS / "rollouts.jsonl").read_text().splitlines() if x.strip()]
+    rows = [r for r in rows if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()]
+    models, out = {}, []
+    for r in rows:
+        z = np.load(ROOT / r["traj"])
+        r_mm, stem_mm, scene = float(z["r_mm"]), float(z["stem_mm"]), ROOT / str(z["scene"])
+        key = (scene, r_mm, stem_mm)
+        if key not in models:
+            xml = ET.parse(scene).getroot()
+            ob = xml.find(f".//body[@name='{S.OBJ}']")
+            stem = xml.find(".//geom[@name='otrack_stem']")
+            top = -(r_mm + stem_mm)                         # the block's top on y_O (mm); the stem runs along y_O
+            for name, rad, h in (("otrack_root", root_cfg["root_d_mm"] / 2, root_cfg["root_h_mm"]),
+                                 ("otrack_foot", root_cfg["foot_d_mm"] / 2, root_cfg["fillet_r_mm"])):
+                ET.SubElement(ob, "geom", name=name, type="cylinder", size=f"{rad / 1000.0:g}",
+                              fromto=f"0 {top / 1000.0:g} 0 0 {(top + h) / 1000.0:g} 0", mass="0", group="3",
+                              contype=stem.get("contype", "1"), conaffinity=stem.get("conaffinity", "1"),
+                              margin=f"{CLEAR_RANGE:g}", gap=f"{CLEAR_RANGE:g}")
+            tmp = scene.with_name(f"{scene.stem}.root{os.getpid()}.xml")
+            ET.ElementTree(xml).write(tmp)
+            try:
+                m = mujoco.MjModel.from_xml_path(str(tmp))
+            finally:
+                tmp.unlink()
+            fing = finger_geoms(m)
+            fname = {g: next(f for f in HG.FINGERS if m.body(m.geom_bodyid[g]).name.startswith(f + "_"))
+                     for g in np.flatnonzero(fing)}
+            ids = {nm: m.geom(nm).id for nm in ("otrack_root", "otrack_foot", "otrack_stem")}
+            models[key] = (m, mujoco.MjData(m), fing, fname, ids)
+        m, d, fing, fname, ids = models[key]
+        S.set_palm(m, z["palm"])
+        for f, p in zip(HG.FINGERS, z["mounts"]):
+            m.body_pos[m.body(f"{f}_mount").id] = p
+        best = {"root": (CLEAR_RANGE, None, None), "stem": (CLEAR_RANGE, None, None)}
+        for t, q in zip(z["t"], z["qpos"]):
+            d.qpos[:] = q
+            mujoco.mj_fwdPosition(m, d)
+            n = d.ncon
+            if not n:
+                continue
+            g, dist = d.contact.geom[:n], d.contact.dist[:n]
+            for part, sel in (("root", (ids["otrack_root"], ids["otrack_foot"])), ("stem", (ids["otrack_stem"],))):
+                hit = (np.isin(g[:, 0], sel) & fing[g[:, 1]]) | (np.isin(g[:, 1], sel) & fing[g[:, 0]])
+                if hit.any():
+                    k = int(np.argmin(np.where(hit, dist, np.inf)))
+                    if dist[k] < best[part][0]:
+                        other = g[k, 1] if g[k, 0] in sel else g[k, 0]
+                        best[part] = (float(dist[k]), fname[int(other)], float(t))
+        row = {k: r[k] for k in ("task", "xy", "role", "config", "seed", "stem_mm", "clear_min_mm")}
+        for part, (dist, f, t) in best.items():
+            row.update({f"{part}_min_mm": round(1e3 * dist, 2), f"{part}_finger": f,
+                        f"{part}_t": None if t is None else round(t, 2)})
+        out.append(row)
+        print({k: row[k] for k in ("task", "xy", "config", "seed", "root_min_mm", "stem_min_mm", "clear_min_mm")},
+              flush=True)
+    res = {"what": "finger clearance of the second-version stem root over the recorded rollouts (mm; 10 = none "
+                   "within CLEAR_RANGE)", "root": root_cfg, "configs": a.configs, "rows": out}
+    dst = BLOCKS_V2.with_name("20261116-root_clearance.json")
+    dst.write_text(json.dumps(res, indent=1))
+    print("root min", min(x["root_min_mm"] for x in out), "mm over", len(out), "rollouts ->", dst.relative_to(ROOT))
+    return 0
+
+
+TOUCH_MM = 0.5                  # mm: a finger geom within this of the object's surface touches it
+NEAR_MM = 2.0                   # mm: a touch this close to an opening counts as near it
+
+
+def opening_boxes(shape):
+    """{opening: (lo, hi)} of the cotter joint's slot on each side of the socket in the joint frame J (w, v, u), open
+    outward along w (tracking_objects_print.socket)."""
+    import tracking_objects_print as TO
+    hs, (h_in, h_far) = TO.half_diag(TO.SQ_H), TO.slot_heights()
+    return {"entry": (np.array([hs, -TO.SLOT_W / 2, TO.FLOOR_U]), np.array([np.inf, TO.SLOT_W / 2, TO.FLOOR_U + h_in])),
+            "far": (np.array([-np.inf, -TO.SLOT_W / 2, TO.FLOOR_U]), np.array([-hs, TO.SLOT_W / 2, TO.FLOOR_U + h_far]))}
+
+
+def surface_angles(shape, P):
+    """Angles (deg) of points in O on the object: the cylinder's turn from its bottom line toward +x_O and z_O (mm); the
+    sphere's angle from its bottom pole and its azimuth atan2(z_O, x_O)."""
+    if shape == "cylinder":
+        return np.degrees(np.arctan2(P[:, 0], -P[:, 1])), P[:, 2]
+    r = np.linalg.norm(P, axis=1)
+    return np.degrees(np.arccos(np.clip(-P[:, 1] / r, -1, 1))), np.degrees(np.arctan2(P[:, 2], P[:, 0]))
+
+
+def cmd_touchmap(a):
+    """Where the fingers touch the objects over the recorded rollouts, against the cotter joint's openings (owner,
+    2026-11-16: the blocks attached without glue). Every second recorded period of the built and flat rollouts is set and
+    collided with the object's own geom given a margin; finger contacts within TOUCH_MM of its surface are touches. Per
+    opening of the joint's slot: the rollouts with a touch within NEAR_MM of it and the nearest touch. The maps count the
+    rollouts with a touch in each bin of the surface; the sphere's are those of its two layouts in the series."""
+    import mujoco
+    import tracking_objects_print as TO
+    rows = [json.loads(x) for x in (ROWS / "rollouts.jsonl").read_text().splitlines() if x.strip()]
+    rows = [r for r in rows if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()]
+    shape_of = {12.5: "cylinder", 20.0: "sphere"}
+    bins = {"cylinder": (np.arange(-180.0, 181.0, 5.0), np.arange(-50.0, 51.0, 2.0)),
+            "sphere": (np.arange(0.0, 91.0, 3.0), np.arange(-180.0, 181.0, 5.0))}
+    maps = {k: np.zeros((len(b[0]) - 1, len(b[1]) - 1), int) for k, b in bins.items()}
+    boxes = {k: opening_boxes(k) for k in ("cylinder", "sphere")}
+    models, out, n = {}, [], {"cylinder": 0, "sphere": 0}
+    for r in rows:
+        z = np.load(ROOT / r["traj"])
+        scene, shape = ROOT / str(z["scene"]), shape_of[float(z["r_mm"])]
+        if shape == "sphere" and tuple(r["xy"]) not in TO.SPHERE_LAYOUTS:
+            continue
+        if scene not in models:
+            m = mujoco.MjModel.from_xml_path(str(scene))
+            b = m.body(S.OBJ).id
+            g0 = next(g for g in range(m.ngeom) if m.geom_bodyid[g] == b and not m.geom(g).name)
+            m.geom_margin[g0] = m.geom_gap[g0] = TOUCH_MM / 1000.0
+            models[scene] = (m, mujoco.MjData(m), b, g0, finger_geoms(m))
+        m, d, b, g0, fing = models[scene]
+        S.set_palm(m, z["palm"])
+        for f, p in zip(HG.FINGERS, z["mounts"]):
+            m.body_pos[m.body(f"{f}_mount").id] = p
+        pts = []
+        for q in z["qpos"][::2]:
+            d.qpos[:] = q
+            mujoco.mj_fwdPosition(m, d)
+            g = d.contact.geom[:d.ncon]
+            hit = ((g[:, 0] == g0) & fing[g[:, 1]]) | ((g[:, 1] == g0) & fing[g[:, 0]])
+            if hit.any():
+                pts.append((d.contact.pos[:d.ncon][hit] - d.xpos[b]) @ d.xmat[b].reshape(3, 3) * 1e3)   # mm in O
+        P = np.unique(np.round(np.concatenate(pts), 1), axis=0) if pts else np.zeros((0, 3))
+        n[shape] += 1
+        A, B_ = surface_angles(shape, P)
+        maps[shape] += np.histogram2d(A, B_, bins=bins[shape])[0] > 0
+        JT = TO.joint_T(shape)
+        PJ = (P - JT[:, 3]) @ JT[:, :3]                      # O to J
+        row = {k: r[k] for k in ("task", "xy", "config", "seed")}
+        row["shape"], row["touch_points"] = shape, int(len(P))
+        for name, (lo, hi) in boxes[shape].items():
+            dist = np.linalg.norm(np.maximum(0.0, np.maximum(lo - PJ, PJ - hi)), axis=1)
+            row[f"{name}_min_mm"] = round(float(dist.min()), 2) if len(dist) else None
+        out.append(row)
+        print({k: row[k] for k in ("task", "xy", "config", "seed", "touch_points", "entry_min_mm", "far_min_mm")},
+              flush=True)
+    openings = []
+    for shape in ("cylinder", "sphere"):
+        for name, (lo, hi) in boxes[shape].items():
+            d_ = [x[f"{name}_min_mm"] for x in out if x["shape"] == shape and x[f"{name}_min_mm"] is not None]
+            # the opening's outline on the printed surface: the slot's section where it meets the surface
+            JT = TO.joint_T(shape)
+            rp = TO.seat(shape)[0]
+            corners = []
+            for v_ in (lo[1], hi[1]):
+                for u_ in (lo[2], hi[2]):
+                    s = 1.0 if name == "entry" else -1.0
+                    for w_ in np.linspace(0.0, 30.0, 3001):
+                        p_ = JT[:, :3] @ np.array([s * w_, v_, u_]) + JT[:, 3]
+                        if np.linalg.norm(p_ if shape == "sphere" else p_[:2]) >= rp:
+                            corners.append(p_)
+                            break
+            A, B_ = surface_angles(shape, np.array(corners))
+            openings.append({"shape": shape, "opening": name, "rollouts": len(d_),
+                             "near": int(sum(x <= NEAR_MM for x in d_)), "min_mm": round(min(d_), 2),
+                             "outline_deg": [[round(float(x), 2), round(float(y), 2)] for x, y in zip(A, B_)]})
+            print(openings[-1], flush=True)
+    res = {"what": "finger touches on the tracked objects over the recorded rollouts, against the cotter joint's "
+                   "openings (object_tracking_rollouts.py touchmap)", "configs": a.configs, "touch_mm": TOUCH_MM,
+           "near_mm": NEAR_MM, "n_rollouts": n, "openings": openings,
+           "maps": {k: {"bins": [b.tolist() for b in bins[k]], "rollouts_with_touch": maps[k].tolist()} for k in maps},
+           "map_axes": {"cylinder": ["turn from the bottom line toward +x_O (deg)", "z_O (mm)"],
+                        "sphere": ["angle from the bottom pole (deg)", "azimuth atan2(z_O, x_O) (deg)"]},
+           "rows": out}
+    dst = TO.J_OUT / f"{TO.J_DATE}-opening_touches.json"
+    dst.write_text(json.dumps(res, indent=1))
+    print("wrote", dst.relative_to(ROOT))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -442,7 +624,15 @@ def main():
     p.add_argument("--lift", type=float, default=40.0, help="the arm's lift at 1.6 s (mm)")
     p.add_argument("--part", type=int, default=0)
     p.add_argument("--parts", type=int, default=1)
+    p = sub.add_parser("rootclear", help="finger clearance of the tag blocks' second-version root (2026-11-16)")
+    p.add_argument("--configs", nargs="+", default=["built", "flat"])
+    p = sub.add_parser("touchmap", help="finger touches on the objects against the cotter joint's openings (2026-11-16)")
+    p.add_argument("--configs", nargs="+", default=["built", "flat"])
     a = ap.parse_args()
+    if a.cmd == "rootclear":
+        return cmd_rootclear(a)
+    if a.cmd == "touchmap":
+        return cmd_touchmap(a)
     if S.PLANT != S.SERVO_PLANT:
         raise SystemExit("run with HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25")
     return cmd_stem(a) if a.cmd == "stem" else cmd_run(a)
