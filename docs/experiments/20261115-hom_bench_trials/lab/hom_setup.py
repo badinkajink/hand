@@ -1266,6 +1266,9 @@ def cmd_letgo(a):
         if bottom > a.seat_mm and not a.drop_ok:
             raise SystemExit(f"the block is {bottom:.1f} mm above the table (over --seat-mm {a.seat_mm:g}): the release "
                              "would drop the object; put it down first (putdown), or --drop-ok")
+        if tilt > a.seat_deg and not a.tilt_ok and max(abs(j[f][k]) for f in j for k in j[f]) > 5.0:
+            raise SystemExit(f"the object stands {tilt:.1f} deg from vertical (over --seat-deg {a.seat_deg:g}): released, "
+                             "it may topple (21.6 deg did on 2026-11-16); --tilt-ok to release anyway")
         straight = max(abs(j[f][k]) for f in j for k in j[f]) <= 5.0
         if not straight:
             rel = release_check(plan, j, open_pose(plan), arm.T_BP(), info["p_B"], info["q_B"], h, a)
@@ -1395,8 +1398,10 @@ def main():
             p.add_argument("--touch-window", type=float, default=4.0,
                            help="mm short of the expected touchdown within which the HEX-E's backstop counts as one")
             p.add_argument("--seat-mm", type=float, default=3.0)
-            p.add_argument("--seat-deg", type=float, default=20.0,
-                           help="the block's tilt allowed at the touchdown (owner: the sphere settles on the open)")
+            p.add_argument("--seat-deg", type=float, default=14.0,
+                           help="the object's tilt allowed at the touchdown: released at 13.5 deg the sphere settled "
+                                "upright (owner: \"the sphere probably settles on the open\"), at 21.6 deg it toppled "
+                                "(13:41, 2026-11-16): its centre of mass, ~60 mm up, then lies past the block's edge")
             p.add_argument("--rise-open", action="store_true",
                            help="the first version's ending: rise with the fingers open, then zero, then --clear-up")
             p.add_argument("--lat-max", type=float, default=4.0, help="--rise-open")
@@ -1422,6 +1427,9 @@ def main():
     p.add_argument("--seat-mm", type=float, default=4.0,
                    help="the block's bottom at most this far above the table, or the release would drop the object")
     p.add_argument("--drop-ok", action="store_true", help="release even with the block above the table")
+    p.add_argument("--seat-deg", type=float, default=14.0,
+                   help="the object's tilt allowed for the release (at 21.6 deg the sphere toppled, 2026-11-16)")
+    p.add_argument("--tilt-ok", action="store_true", help="release a tilted object anyway (it may topple)")
     _letgo_args(p)
     p = sub.add_parser("approach")
     common(p, station=False)
