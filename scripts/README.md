@@ -462,7 +462,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (64)
+## hardware/ (67)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -481,7 +481,10 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `charuco_board_print.py` | A printed ChArUco board for the D435 colour cameras of the object tracking plan (docs/notes/20261105-object_seating_and_tracking/). |
 | `dip_tag_print.py` | AprilTag stickers for the back of the DIP link b v4, to track the fingers' gantries with the two D435s of the HOM trials (owner, 2026-11-15: "please design a pdf of apriltags to print on the back of the dip link. |
 | `fit_servo_compliance.py` | Fit the SCS0009's finite stiffness from the bench's own run logs. |
+| `gantry_follow_fit.py` | The gantries' travel from the follow logs of the owner's DIP-tag session (2026-11-15 16:53-17:13; docs/experiments/20261115-gantry_travel/lab/gantry_follow.py move; owner: "move each stepper to its max extent, track with |
 | `gantry_travel_fit.py` | The gantries' travel from a sweep of a DIP-link tag (docs/experiments/20261115-gantry_travel/lab/gantry_travel.py sweep; owner, 2026-11-15: "we theoretically should be able to track travel"). |
+| `gantry_travel_page.py` | Result page of 2026-11-15: the SR2 hand's gantry travel measured with AprilTags on the backs of the DIP links (the owner's session with the corvus lab session, 16:53-17:13; owner: "move each stepper to its max extent, tr |
+| `gantry_travel_page_text.py` | Text of the gantry travel page (scripts/hardware/gantry_travel_page.py page): every number from its data file. |
 | `handeye_rotation_sim.py` | Hand-eye calibration of a table-fixed camera with the board screwed to the hand at an unmeasured place: how the error of the camera's pose depends on how far the hand turns between poses (owner, 2026-11-13: "it will be o |
 | `hom_bench_plans.py` | Deploy plans of the first real-trial series (docs/notes/20261105-object_seating_and_tracking/ 20261105-object_seating_and_tracking_plan.md, section "Reproduction of the simulated experiments"), one per layout and task, i |
 | `mh.py` | Tiny client for the CB1 control service (workstation side). |
