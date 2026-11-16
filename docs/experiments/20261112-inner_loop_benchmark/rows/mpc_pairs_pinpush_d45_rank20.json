@@ -1,0 +1,146 @@
+{
+ "task": "pinpush",
+ "pairs": [
+  {
+   "x": 105.0,
+   "y": 65.0,
+   "grasp": 12,
+   "by": "hom_best",
+   "J_by": 0.4929
+  },
+  {
+   "x": 100.0,
+   "y": 140.0,
+   "grasp": 4,
+   "by": "hom_best",
+   "J_by": 0.448
+  },
+  {
+   "x": 95.0,
+   "y": 65.0,
+   "grasp": 10,
+   "by": "hom_best",
+   "J_by": 0.4317
+  },
+  {
+   "x": 80.0,
+   "y": 90.0,
+   "grasp": 3,
+   "by": "hom_best",
+   "J_by": 0.4255
+  },
+  {
+   "x": 95.0,
+   "y": 140.0,
+   "grasp": 11,
+   "by": "hom_best",
+   "J_by": 0.417
+  },
+  {
+   "x": 95.0,
+   "y": 160.0,
+   "grasp": 12,
+   "by": "hom_best",
+   "J_by": 0.4132
+  },
+  {
+   "x": 90.0,
+   "y": 160.0,
+   "grasp": 4,
+   "by": "hom_best",
+   "J_by": 0.4073
+  },
+  {
+   "x": 100.0,
+   "y": 115.0,
+   "grasp": 9,
+   "by": "hom_best",
+   "J_by": 0.3958
+  },
+  {
+   "x": 110.0,
+   "y": 110.0,
+   "grasp": 11,
+   "by": "hom_best",
+   "J_by": 0.3839
+  },
+  {
+   "x": 100.0,
+   "y": 75.0,
+   "grasp": 12,
+   "by": "hom_best",
+   "J_by": 0.3807
+  },
+  {
+   "x": 90.0,
+   "y": 95.0,
+   "grasp": 4,
+   "by": "random",
+   "J_by": 0.3745
+  },
+  {
+   "x": 90.0,
+   "y": 150.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.3664
+  },
+  {
+   "x": 75.0,
+   "y": 170.0,
+   "grasp": 4,
+   "by": "random",
+   "J_by": 0.3399
+  },
+  {
+   "x": 90.0,
+   "y": 60.0,
+   "grasp": 8,
+   "by": "random",
+   "J_by": 0.2644
+  },
+  {
+   "x": 125.0,
+   "y": 135.0,
+   "grasp": 12,
+   "by": "random",
+   "J_by": 0.1944
+  },
+  {
+   "x": 75.0,
+   "y": 130.0,
+   "grasp": 10,
+   "by": "random",
+   "J_by": 0.1518
+  },
+  {
+   "x": 65.0,
+   "y": 135.0,
+   "grasp": 0,
+   "by": "random",
+   "J_by": 0.1243
+  },
+  {
+   "x": 130.0,
+   "y": 75.0,
+   "grasp": 9,
+   "by": "random",
+   "J_by": 0.0991
+  },
+  {
+   "x": 60.0,
+   "y": 85.0,
+   "grasp": 13,
+   "by": "random",
+   "J_by": 0.0718
+  },
+  {
+   "x": 50.0,
+   "y": 90.0,
+   "grasp": 1,
+   "by": "random",
+   "J_by": 0.0175
+  }
+ ],
+ "rule": "every fifth pair of each half of mpc_pairs_pinpush_d45_rank.json"
+}
