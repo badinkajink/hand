@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sys
 
-from gantry_travel_page import DJ, MEDIA, ORDER, PAGE, ROOT, SNS, TEMPLATE, fig, film_html, label, moves, table
+from gantry_travel_page import DJ, MEDIA, ORDER, PAGE, ROOT, SNS, TEMPLATE, fig, film_html, j4_watch, label, moves, table
 
 
 def page():
@@ -16,6 +16,9 @@ def page():
     iy, mx = M["170427"]["solves"][SNS[0]], M["170735"]["solves"][SNS[1]]
     st = J["165655"]
     j4a, j4b = M["170813"]["solves"][SNS[1]], M["171230"]["solves"][SNS[0]]
+    W = j4_watch()
+    tw, Pw = W[26]
+    others = {tag: float(abs(PP[-30:, 1].mean() - PP[:30, 1].mean())) for tag, (_, PP) in W.items() if tag != 26}
     turns = [ix["turn_deg"], ty1["turn_deg"], ty2["turn_deg"], tx["turn_deg"]]
     edges = [e for v in J.values() for e in v["edge_mm"]]
     sd_one = [v[k] for m in M.values() for key, v in m["solves"].items() if key != "joint"
@@ -28,13 +31,14 @@ def page():
             f"times their commanded distance. The index's x stage moved {ix['along_mm']:.2f} mm of 60, the thumb's y stage "
             f"{ty1['along_mm']:.2f} and {ty2['along_mm']:.2f} mm of 110, and its x stage {tx['along_mm']:.2f} mm of 60. The middle "
             f"finger's palm-y stage J4 moved {j4a['along_mm']:.2f} and {j4b['along_mm']:.2f} mm when commanded 60 mm each "
-            f"way, so its motor looks unpowered. Every axis seen by both cameras turned {min(turns):.1f} to "
+            f"way: its carriage was binding. Once it was freed, J4's homing ran about 39.5 mm toward the palm centre, "
+            f"the opposite way from the station's model. Every axis seen by both cameras turned {min(turns):.1f} to "
             f"{max(turns):.1f}° about the palm normal, which puts the hand about 2° in yaw off the tool chain's palm "
             f"frame. The tags rode on the backs of the DIP links while the station drove each stage to its far end and "
             f"back.")
     summary = (f"Gantry travel from DIP-link tags, both cameras: index x {ix['along_mm']:.2f} of 60 mm, thumb y "
                f"{ty1['along_mm']:.2f}/{ty2['along_mm']:.2f} of 110, thumb x {tx['along_mm']:.2f} of 60; the middle's "
-               f"palm-y stage J4 moved nothing; the axes turned {min(turns):.1f} to {max(turns):.1f}° about the palm "
+               f"palm-y stage J4 was binding, and freed, it homed the opposite way from the station's model; the axes turned {min(turns):.1f} to {max(turns):.1f}° about the palm "
                f"normal (the hand about 2° in yaw off P).")
 
     S_ = []
@@ -108,16 +112,22 @@ x move.</p>
 
     S_.append(("j4", "The middle finger's palm-y stage J4", f"""
 <p>J4 was commanded from −85 to −25 mm and back. The middle's tag moved {j4a['along_mm']:.2f} and {j4b['along_mm']:.2f}
-mm, within one camera's noise. The station's step count reached 60 mm both ways. The motor made no sound. The owner turns
-its lead screw freely by hand, so the motor looks unpowered (its plug, its cable or its driver). Its counter was reset to
-0, and the middle sits at its home end, palm y −85 mm. J4 passed the station's homing. An axis that homes on its timeout
-(result 3) is marked homed whether it moved or not.</p>
+mm, within one camera's noise. The station's step count reached 60 mm both ways, and the motor made no sound. J4 had
+passed the station's homing: an axis that homes on its timeout (result 3) is marked homed whether it moved or not.</p>
+<p>At 17:20 the owner found J4's carriage binding. Turning the coupler by hand freed it, and the stepper began to step.
+The lab session stopped the station and homed J4 alone on the stepper board while the tags watched (Figure 3). The
+carriage ran toward +y<sub>P</sub>, the palm centre, from y<sub>P</sub> −86.6 mm (the session's reference) to
+{Pw[-30:, 1].mean():.1f} mm, about 4 mm/s where the tag was in view. It stopped there and stood until the home's timeout,
+with no stall. The other two tags moved by at most {max(others.values()):.1f} mm in y<sub>P</sub> meanwhile.</p>
+<p>The station's model puts J4's home at the −85 mm end, which lies the other way, and the run went farther than the
+home's 10 mm backoff. Either J4 turns opposite to the model, or the middle's palm-y mapping is mirrored; the binding hid
+this during the session. The board zeroed J4 near −47 mm, so an adopted home would place the middle about 38 mm off.</p>
 <p>Each plan of the first HOM series puts the middle's palm y between −25.0 and −81.6 mm
-(<a href="../20261115-hom_bench_trials/README.md">HOM trials runbook</a>, blocker 0). No layout can be set until J4
-moves.</p>"""))
+(<a href="../20261115-hom_bench_trials/README.md">HOM trials runbook</a>, blocker 0). No layout can be set until J4 runs
+free, its direction is checked and it is homed again.</p>"""))
 
     S_.append(("yaw", "Yaw of the hand against the palm frame", f"""
-<p>Each jointly solved move turned clockwise about z<sub>P</sub> (Figure 3). The thumb's three moves turned
+<p>Each jointly solved move turned clockwise about z<sub>P</sub> (Figure 4). The thumb's three moves turned
 {ty1['turn_deg']:+.2f}, {ty2['turn_deg']:+.2f} and {tx['turn_deg']:+.2f}°, and the index's x move {ix['turn_deg']:+.2f}°.
 A yaw of the whole hand against P turns every stage alike, and the thumb's y and x stages agree to
 {abs(ty1['turn_deg'] - tx['turn_deg']):.2f}°. The tracker's P is then about 2° in yaw off the hand. Two sources fit this:
@@ -138,11 +148,12 @@ live one-camera numbers came from it. Scale and turn for a stage need both camer
 
     S_.append(("future", "Future work", """
 <ol>
-<li>J4: check the motor's plug and its cable at both ends. If the driver on the stepper board is dead, move the motor to
-a spare slot (6 of the board's 8 are used) and change the pin map. Check with <code>lab/gantry_follow.py move --finger
-middle --y -25</code>: a travel under 59 mm with both cameras means the stage still does not move.</li>
-<li>An open-load check of each stepper driver after homing (the TMC drivers' DRV_STATUS flags) in the station, which
-would have flagged J4 at startup.</li>
+<li>J4: free the binding, then jog J4 by a few millimetres under the tags. The middle's tag should move +y<sub>P</sub>
+for a positive step; a move toward −y<sub>P</sub> confirms the reversed direction, to be fixed in the driver's direction
+or the firmware's pin map. Then home J4 again and check its full travel with <code>lab/gantry_follow.py move --finger
+middle --y -25</code>: a travel under 59 mm with both cameras means the stage still binds.</li>
+<li>A motion check after homing in the station: a stage that ends its home on the timeout without a stall would be moved
+a few millimetres and watched (tags, or the driver's StallGuard load). That would have flagged J4 at startup.</li>
 <li>Tag 6: its pose from both cameras against T<sub>BE</sub> T<sub>EP</sub> and its CAD pose in P. A 2° yaw of tag 6 puts
 the error in the hand's clocking (correct <code>frames.json</code>); none puts it in the hand-eye poses.</li>
 <li>Measure the index's y and the middle's x with both cameras. Pose the fingers, or move camera 836612071918, so that
@@ -171,16 +182,21 @@ and <code>scripts/hardware/gantry_travel_fit.py</code>. Tags: <code>scripts/hard
                         "The session's moves seen from above the palm, replayed from the tags' tracked positions in P at "
                         "8 times real time. The cameras' images were not saved. Green: the moving finger's tag and its "
                         "path. Grey: the other tags. Dashed: the moving finger's travel box drawn through its tag. Red x: "
-                        "the commanded end. The J4 moves show the middle's tag standing still.")
+                        "the commanded end. During the session's J4 moves the middle's tag stood still.")
     figs_ = [fig(2, MEDIA / "20261115-travel_traces.png",
                  "Travel of the moving tag along the commanded direction against time, per camera, for each move. "
                  "Dashed: the commanded distance. Above each panel: the travel from both cameras where the tag was in "
                  "both views, else from one camera.",
                  width=1100),
-             fig(3, MEDIA / "20261115-axis_turn.png",
+             fig(4, MEDIA / "20261115-axis_turn.png",
                  "Turn of each measured axis from its commanded direction about the palm normal. Circles: both cameras. "
                  "Squares: one camera alone.", width=1100)]
+    figs_.append(fig(3, MEDIA / "20261115-j4_home_watch.png",
+                     "The middle's tag in y<sub>P</sub> during J4's homing run at 17:20, from camera 832412070344 alone. "
+                     "The tag came into view about 21 s into the watch. Dashed: the start of the run as the lab session "
+                     "measured it.", width=1100))
     S_[2] = (S_[2][0], S_[2][1], S_[2][2] + figs_[0])
+    S_[3] = (S_[3][0], S_[3][1], S_[3][2] + figs_[2])
     S_[4] = (S_[4][0], S_[4][1], S_[4][2] + figs_[1])
     toc = "\n".join(f'<li><a href="#{k}">{i + 1}. {t}</a></li>' for i, (k, t, _) in enumerate(S_))
     secs = "\n".join(f'<section id="{k}"><h2>{i + 1}. {t}</h2>{b}</section>' for i, (k, t, b) in enumerate(S_))
