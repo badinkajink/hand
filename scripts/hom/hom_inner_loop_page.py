@@ -305,6 +305,16 @@ def sec_terms():
         ["Power", "the probability that the 95 % interval of a paired difference excludes zero when the true difference "
          "is 0.05, at the spread of the measured differences", "0 to 1"],
         ["Three-pad share $c$", "share of the task with all three pads above 0.05 N", "0 to 1"],
+        ["Gain", "J under full annealed sampling minus J under HOM on one layout, seeds 0 and 1 averaged", "J"],
+        ["Tracking part, three-pad part", "the gain's parts from the tracking factor $f$ and from $c$: per seed "
+         "$\\Delta f \\, (c_H + c_A)/2$ and $\\Delta c \\, (f_H + f_A)/2$, each $\\Delta$ the planner's value minus "
+         "HOM's, averaged over the seeds; the two parts sum to the gain", "J"],
+        ["HOM's outcome on a layout", "from HOM's runs at seeds 0 and 1: <i>dropped</i>, the object fell in a seed; "
+         "<i>untracked</i>, held with tracking factor 0 in a seed; <i>lost pad</i>, held and tracking, three pads in "
+         "contact for less than 0.9 of the task on average; <i>kept</i>, the rest", "four classes"],
+        ["Ceiling of $\\rho$", "$\\sqrt{\\rho_H \\rho_A}$, with $\\rho_H$ and $\\rho_A$ each controller's Spearman "
+         "correlation between its runs at seeds 0 and 1 over the same layouts: about the highest correlation that "
+         "single-seed runs of the two controllers can reach (Spearman's correction for attenuation)", "0 to 1"],
         ["Pair", "a finger layout (thumb-to-pair distance $x_{\\mathrm{sep}}$, pair spacing $y_{\\mathrm{sep}}$) with one "
          "grasp of its set; HOM's best grasp on the layout's grid row", "&#8212;"],
         ["Pair sets", "per task: <i>rank</i>, the 50 layouts with HOM's best J and 50 drawn at random from the rest; "
@@ -1222,6 +1232,191 @@ repeated in it. Between the two runs a pair's J at the same seed differed by a m
     return txt
 
 
+GAINS = DATA / "20261116-anneal_gain_regimes.json"      # scripts/hom/hom_anneal_gain_regimes.py --json
+GAINS_FIG = MEDIA / "20261116-anneal_gain_by_xsep.png"  # its --fig
+GCLS = (("kept", "Kept"), ("lost pad", "Lost pad"), ("untracked", "Untracked"), ("dropped", "Dropped"))
+
+
+def gains_numbers():
+    """Per task, full annealed sampling's gain on HOM over the grid's layouts (hom_anneal_gain_regimes.py), or {}."""
+    return json.loads(GAINS.read_text()) if GAINS.exists() else {}
+
+
+def prof_range(a, m, cond):
+    """(min, max) of a profile column over the x_sep values that satisfy cond."""
+    v = [p[m] for x, p in a["profile"].items() if cond(float(x)) and p[m] is not None]
+    return min(v), max(v)
+
+
+def gain_films():
+    """The films of HOM and full annealed sampling at seed 10 on the roll's layout of the largest gain among those where
+    HOM's held error exceeded the commanded rotation and the planner kept three pads, and on a pin-push layout where both
+    kept three pads (lane line gain_film_*): [(path, caption)]."""
+    out = []
+    for t, i, who in (("roll", 280, "of the layouts on which HOM's held error exceeded the commanded rotation's RMS and "
+                                    "the planner kept three pads, this one had the largest gain"),
+                      ("pinpush", 192, "at seeds 0 and 1 both controllers kept three pads and the gain was within "
+                                       "0.03")):
+        p = MP.MEDIA / f"20261116-film_mpc_{t}_all_p{i}_s10.mp4"
+        info_p = MP.ROWS / f"film_mpc_{t}_all_p{i}_s10.json"
+        if not (p.exists() and info_p.exists()):
+            continue
+        info = json.loads(info_p.read_text())
+        pr = info["pair"]
+        parts = [f"{cap(MP.FILM_SPEC.get(spec, esc(spec)))}: J {c['J']:.2f}, three pads for {c['contact_all_frac']:.2f} "
+                 f"of the task, tracking error {c['track_err_rms_deg']:.1f} deg" + ("" if c.get("held") else ", dropped")
+                 for spec, c in info["clips"].items()]
+        out.append((t, p, f"{TN[t]}: layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}. "
+                          f"{cap(who)}. " + ". ".join(parts) + ". Each frame gives each finger's pad force and the force "
+                          "through its rigid parts (N), in the order thumb, index, middle; the links are drawn "
+                          "see-through.", info))
+    return out
+
+
+def sec_gains(R):
+    G = gains_numbers()
+    if not G or not GAINS_FIG.exists():
+        return ""
+    ro, pp, tw, pr = G["roll"], G["pinpush"], G["twist"], G["press"]
+    tn, fn = P.TAB[0] + 1, P.FIG[0] + 1
+    med = (lambda v: float(np.median(v)))
+    mx = {t: (med(G[t]["top10_x"]["A"]), med(G[t]["top10_x"]["H"])) for t in G}
+    wide = [t for t in ("roll", "pinpush", "press") if mx[t][0] > mx[t][1]]
+    apart = [t for t in G if G[t]["err_x_rho"]["H"] >= 0.3 and G[t]["err_x_rho"]["A"] <= -0.3]
+    track = [t for t in G if G[t]["tpart"] > 0.5 * G[t]["gain"] > 0]
+    near = [t for t in G if G[t]["ceiling"] - G[t]["cross1"] < 0.1]
+    far = [t for t in G if t not in near]
+    txt = ("<p>" + ("Most of full annealed sampling's gain on HOM came from tracking the commanded rotation on "
+                    + MP.tasks_list(track) + f" (Table {tn + 1}). " if track else "")
+           + (f"On {MP.tasks_list(apart)} HOM's tracking error grew with the thumb-to-pair distance "
+              f"$x_{{\\mathrm{{sep}}}}$, and the planner's fell (Figure {fn}). " if apart else "")
+           + " ".join((f"The {TN[t].lower()}'s correlation of the two controllers at single seeds was "
+                       f"{f2(G[t]['cross1'])}, against the ceiling of {f2(G[t]['ceiling'])} that its seeds allow "
+                       f"(Table {tn})." if i == 0 else f"The {TN[t].lower()}'s was {f2(G[t]['cross1'])} against "
+                       f"{f2(G[t]['ceiling'])}.") for i, t in enumerate(far))
+           + (f" On {MP.tasks_list(near)} the correlations reached " + al([f2(G[t]["cross1"]) for t in near])
+              + ", against ceilings of " + al([f2(G[t]["ceiling"]) for t in near]) + "." if near else "") + "</p>")
+    txt += fill(r"""<p>The runs are those of Section <<gs>>: every layout of each grid with HOM's best grasp, at seeds 0
+and 1. Each layout was put in one of four classes by HOM's outcome at both seeds (Terms). The gain on a layout is the
+planner's J minus HOM's, seeds averaged; it splits into a tracking part and a three-pad part (Table <<t2>>). The
+agreement of a controller's two seeds bounds how well its single-seed runs can agree with another controller's (Terms,
+ceiling of $\rho$).</p>""",
+                gs="GRIDSEC", t2=tn + 1)
+    hb, ha = prof_range(ro, "e_H", lambda x: x < 100), prof_range(ro, "e_H", lambda x: x > 100)
+    cb, ca = prof_range(ro, "c_H", lambda x: x < 100), prof_range(ro, "c_H", lambda x: x > 100)
+    ea, cpa = prof_range(ro, "e_A", lambda x: True), prof_range(ro, "c_A", lambda x: x > 100)
+    txt += fill(r"""<p>On the roll HOM's held runs missed the command by more than the command's RMS of <<er>> deg on
+<<ov>> % of the layouts. HOM's J was 0 on <<zh>> of the <<n>> layouts, the planner's on <<za>>. With J's floor removed,
+$c\,(1 - e/e_{\mathrm{ref}})$ of the two controllers correlated at $\rho$ = <<ru>> over the <<nu>> layouts that both
+held. HOM's error rose with $x_{\mathrm{sep}}$ ($\rho$ = <<xh>>). It was <<hb0>> to <<hb1>> deg below 100 mm and <<ha0>>
+to <<ha1>> deg above. The planner's error fell with $x_{\mathrm{sep}}$ ($\rho$ = <<xa>>) and stayed between <<ea0>> and
+<<ea1>> deg. HOM's three-pad share fell from <<cb0>>-<<cb1>> below 100 mm to <<ca0>>-<<ca1>> above it. The planner's was
+<<pa0>>-<<pa1>> above 100 mm.</p>""",
+                er=f"{ro['e_ref']:.1f}", ov=f"{100 * ro['err_over_ref_H']:.0f}", zh=ro["zero"]["H"], n=ro["n"],
+                za=ro["zero"]["A"], ru=f"{ro['rho_unc'][1]:+.2f}", nu=ro["rho_unc"][0], xh=f"{ro['err_x_rho']['H']:+.2f}",
+                hb0=f"{hb[0]:.0f}", hb1=f"{hb[1]:.0f}", ha0=f"{ha[0]:.0f}", ha1=f"{ha[1]:.0f}",
+                xa=f"{ro['err_x_rho']['A']:+.2f}", ea0=f"{ea[0]:.0f}", ea1=f"{ea[1]:.0f}", cb0=f2(cb[0]), cb1=f2(cb[1]),
+                ca0=f2(ca[0]), ca1=f2(ca[1]), pa0=f2(cpa[0]), pa1=f2(cpa[1]))
+    Lp = pp["layouts"]
+    lo = [l_ for l_ in Lp if l_["x"] < 75]
+    g_lo = float(np.mean([l_["J_A"] - l_["J_H"] for l_ in lo]))
+    c_lo = (float(np.mean([l_["c_H"] for l_ in lo])), float(np.mean([l_["c_A"] for l_ in lo])))
+    kp = pp["classes"]["kept"]
+    wh, wa = prof_range(pp, "c_H", lambda x: 105 <= x <= 125), prof_range(pp, "c_A", lambda x: 105 <= x <= 125)
+    txt += fill(r"""<p>On the pin-push the two errors moved apart with $x_{\mathrm{sep}}$: $\rho$ = <<xh>> for HOM and
+<<xa>> for the planner. Below 75 mm both controllers kept three pads, for <<ch>> and <<ca>> of the task on average, and
+the planner's mean gain there was <<gl>>. On the <<nk>> layouts where HOM kept three pads and tracked, the gain was
+<<gk>>. From 105 to 125 mm HOM's three-pad share was <<w0>>-<<w1>> and the planner's <<a0>>-<<a1>>.</p>""",
+                xh=f"{pp['err_x_rho']['H']:+.2f}", xa=f"{pp['err_x_rho']['A']:+.2f}", ch=f2(c_lo[0]), ca=f2(c_lo[1]),
+                gl=f"{g_lo:+.3f}", nk=kp["n"], gk=f"{kp['gain']:+.3f}", w0=f2(wh[0]), w1=f2(wh[1]), a0=f2(wa[0]),
+                a1=f2(wa[1]))
+    txt += fill(r"""<p>On the twist both errors rose with $x_{\mathrm{sep}}$ ($\rho$ = <<xh>> and <<xa>>). Of the mean gain
+of <<g>>, <<tp>> came from tracking and <<cp>> from the three pads.</p>""",
+                xh=f"{tw['err_x_rho']['H']:+.2f}", xa=f"{tw['err_x_rho']['A']:+.2f}", g=f"{tw['gain']:+.3f}",
+                tp=f"{tw['tpart']:+.3f}", cp=f"{tw['cpart']:+.3f}")
+    gx = [p_["J_A"] - p_["J_H"] for p_ in pr["profile"].values()]
+    x0, x1 = min(pr["profile"], key=float), max(pr["profile"], key=float)
+    cpa = prof_range(pr, "c_A", lambda x: True)
+    txt += fill(r"""<p>On the press the ceiling of <<pc>> comes from the seeds' own correlations, <<sh>> for HOM and
+<<sa>> for the planner. Of the mean gain of <<g>>, <<tp>> came from
+tracking and <<cp>> from the three pads. The gain lay between <<g0>> and <<g1>> at every $x_{\mathrm{sep}}$. HOM's
+three-pad share fell from <<c0>> at <<x0>> mm to <<c1>> at <<x1>> mm, and the planner's stayed between <<a0>> and
+<<a1>>.</p>""",
+                pc=f2(pr["ceiling"]), sh=f2(pr["seed_rho"]["H"]), sa=f2(pr["seed_rho"]["A"]), g=f"{pr['gain']:+.3f}", tp=f"{pr['tpart']:+.3f}", cp=f"{pr['cpart']:+.3f}", g0=f"{min(gx):+.2f}",
+                g1=f"{max(gx):+.2f}", c0=f2(pr["profile"][x0]["c_H"]), x0=x0, c1=f2(pr["profile"][x1]["c_H"]), x1=x1,
+                a0=f2(cpa[0]), a1=f2(cpa[1]))
+    rest = [t for t in G if t not in wide]
+    tw_ = max(wide, key=lambda t: mx[t][0] - mx[t][1]) if wide else None
+    txt += ("<p>The planner's ten best layouts lay at a larger $x_{\\mathrm{sep}}$ than HOM's on "
+            + MP.tasks_list(wide) + f" (Table {tn})."
+            + (f" The largest shift was on the {TN[tw_].lower()}, where the planner's median was {mx[tw_][0]:g} mm "
+               f"and HOM's {mx[tw_][1]:g} mm." if tw_ else "")
+            + "".join(f" On the {TN[t].lower()} the planner's median was {mx[t][0]:g} mm and HOM's {mx[t][1]:g} mm."
+                      for t in rest) + "</p>")
+    rows = []
+    for t, a in G.items():
+        rows.append([TN[t], str(a["n"]), f2(a["rho"]), f"{f2(a['seed_rho']['H'])} / {f2(a['seed_rho']['A'])}",
+                     f"{f2(a['cross1'])} ({f2(a['ceiling'])})", f"{a['zero']['H']} / {a['zero']['A']}",
+                     f"{a['e_ref']:.1f}", f"{a['err_med']['H']:.1f} / {a['err_med']['A']:.1f}",
+                     f"{a['err_x_rho']['H']:+.2f} / {a['err_x_rho']['A']:+.2f}", f"{mx[t][1]:g} / {mx[t][0]:g}"])
+    txt += table(["Task", "Layouts", "&#961;, HOM and planner, seeds averaged", "&#961;, seeds 0 and 1: HOM / planner",
+                  "&#961;, HOM and planner at single seeds (ceiling)", "Layouts at J = 0: HOM / planner",
+                  "Commanded rotation, RMS (deg)", "Median tracking error of held runs (deg): HOM / planner",
+                  "&#961; of the tracking error with $x_{\\mathrm{sep}}$: HOM / planner",
+                  "Median $x_{\\mathrm{sep}}$ of the ten best (mm): HOM / planner"], rows,
+                 "HOM and full annealed sampling (4 &#215; 64) on every layout of each grid, each layout with HOM's best "
+                 "grasp, seeds 0 and 1. Single seeds: the mean of the four correlations between one seed of HOM and one "
+                 "of the planner. Ceiling: the square root of the product of the two seed correlations.", num_from=1)
+    rows = []
+    for t, a in G.items():
+        for c, nm in GCLS:
+            s = a["classes"][c]
+            if not s["n"]:
+                rows.append([TN[t], nm, "0"] + ["&#8212;"] * 6)
+                continue
+            rows.append([TN[t], nm, str(s["n"]), f"{s['J_H']:.3f}", f"{s['J_A']:.3f}", f"{s['gain']:+.3f}",
+                         f"{s['tpart']:+.3f}", f"{s['cpart']:+.3f}", str(s["top10"])])
+        rows.append([TN[t], "all layouts", str(a["n"]), f"{a['mean_H']:.3f}", f"{a['mean_A']:.3f}", f"{a['gain']:+.3f}",
+                     f"{a['tpart']:+.3f}", f"{a['cpart']:+.3f}", "10"])
+    txt += table(["Task", "HOM's outcome", "Layouts", "Mean J, HOM", "Mean J, planner", "Gain", "Tracking part",
+                  "Three-pad part", "Planner's ten best"], rows,
+                 "The layouts of Table " + str(tn) + " by HOM's outcome at seeds 0 and 1 (Terms): mean J of each "
+                 "controller, the planner's mean gain with its tracking and three-pad parts, and how many of the "
+                 "planner's ten best layouts of the grid fell in the class.", num_from=2)
+    txt += P.img(GAINS_FIG, "J, tracking error and three-pad share against the thumb-to-pair distance $x_{\\mathrm{sep}}$, "
+                 "one task per column, each point the mean over the layouts at that $x_{\\mathrm{sep}}$ (pair spacing and "
+                 "grasp vary), seeds 0 and 1. Blue: HOM; orange: full annealed sampling (4 &#215; 64). Middle row: "
+                 "the median RMS tracking error of the held runs; dashed, the task's commanded rotation (RMS). Bottom "
+                 "row: the mean three-pad share of the held runs. Titles give &#961; of the two controllers' J over the "
+                 "grid, seeds averaged.")
+    GF = gain_films()
+    fno = {t: P.FILM[0] + 1 + i for i, (t, *_r) in enumerate(GF)}
+    cl = {t: (info["clips"]["hom"], next(c for k, c in info["clips"].items() if k != "hom")) for t, _p, _c, info in GF}
+    if "roll" in cl:
+        h_, a_ = cl["roll"]
+        txt += fill(r"""<p>In Film <<f>>, on a roll layout at $x_{\mathrm{sep}}$ = 105 mm, HOM held the sphere on three pads
+for <<ch>> of the task. At 3.0 s, 1 s into the task, the index finger's pad left the sphere and the index's rigid parts
+pushed it with 1.7 N. Within 0.2 s the sphere turned away from the commanded orientation, and it stayed turned. Later
+the index's rigid parts pushed with up to 2.7 N. HOM's RMS tracking error over the task was <<eh>> deg against the
+commanded rotation's <<er>> deg; the planner's was <<ea>> deg, with three pads for <<ca>> of the task.</p>""",
+                    f=fno["roll"], ch=f2(h_["contact_all_frac"]), eh=f"{h_['track_err_rms_deg']:.1f}",
+                    er=f"{ro['e_ref']:.1f}", ea=f"{a_['track_err_rms_deg']:.1f}", ca=f2(a_["contact_all_frac"]))
+    if "pinpush" in cl:
+        h_, a_ = cl["pinpush"]
+        lay = next(l_ for l_ in pp["layouts"] if (l_["x"], l_["y"], l_["grasp"]) == (80.0, 65.0, 0))
+        txt += fill(r"""<p>Film <<f>> shows the pin-push layout (80, 65) mm, grasp 0. At seeds 0 and 1 the two controllers'
+J there were <<jh>> and <<ja0>>, and both kept three pads. At seed 10 HOM's run missed the commanded rotation by <<eh>> deg
+RMS, more than the commanded <<er>> deg, so its J was 0. The planner's run missed it by <<ea>> deg and scored <<ja>>. In
+the film both runs kept the cylinder in the pinch. The middle finger's pad pressed with 0.4 to 0.6 N in both, and HOM's
+rigid parts pressed with <<lh>> N on average.</p>""",
+                    f=fno["pinpush"], jh=f"{lay['J_H']:.3f}", ja0=f"{lay['J_A']:.3f}", eh=f"{h_['track_err_rms_deg']:.1f}",
+                    er=f"{pp['e_ref']:.1f}", ea=f"{a_['track_err_rms_deg']:.1f}", ja=f"{a_['J']:.2f}",
+                    lh=f"{h_['link_mean_N']:.3f}")
+    for _t, p, c, _i in GF:
+        txt += P.film(p, c)
+    return txt
+
+
 def variant_effects(R):
     """Each variant's paired difference from HOM's defaults on its tasks' 20 pairs: [(tag, label, tasks, {task:
     paired})], or None while a variant's rows are missing."""
@@ -1687,6 +1882,13 @@ def sec_future(R):
             f"{100 * F5['press']['five']['drop'] / F5['press']['five']['n']:.1f} % of those runs. If the drop rate "
             "stays above 20 % under the worst-seed rule, the cylinder grasps of HOM's grid fail at new placements "
             "whichever rule picks them.")
+    if gains_numbers():
+        items.append(
+            "Each finger's share of the task with its pad in contact in <code>inner_loop_mpc.py</code>'s rows, beside "
+            "the three-pad share, and HOM run again at seeds 0 and 1 on the roll's layouts above 100 mm. If one "
+            "finger's pad accounts for most of HOM's lost three-pad share there, that finger's commanded force at wide "
+            "$x_{\\mathrm{sep}}$ is the next change to test. If the losses are spread over the three fingers, the loss "
+            "is not one finger's reach.")
     return "<ul>" + "".join(f"<li>{x}</li>" for x in items) + "</ul>"
 
 
@@ -1701,6 +1903,9 @@ def sec_files():
              "Joseph-form backward pass and the parallel line search",
              "<code>scripts/hom/uhas_sr2.py</code>: <code>UBatch</code>, <code>PREVIEW_S</code>, the residual "
              "<code>q_add</code>",
+             "<code>scripts/hom/hom_anneal_gain_regimes.py</code>: the planner's gain per layout of the four grids, "
+             "its tracking and three-pad parts, HOM's outcome classes, the seed ceilings and the profiles against "
+             f"x_sep (<code>{GAINS.relative_to(ROOT)}</code>, <code>{GAINS_FIG.relative_to(ROOT)}</code>)",
              "<code>scripts/hom/hom_inner_loop_page.py</code>: this page",
              f"<code>{(DATA / '20261111-hom_picks_track.json').relative_to(ROOT)}</code>, "
              f"<code>{(DATA / '20261114-hom_grid_stability.json').relative_to(ROOT)}</code>: the reduced data",
@@ -1766,6 +1971,14 @@ def lede(R, PK, GS):
             parts.append(f"HOM's grid missed full annealed sampling's best layouts on {MP.tasks_list(miss)}, where "
                          f"{al([NUMW[Ns[t]['out50']] for t in miss])} of the planner's ten best lay outside HOM's 50 "
                          "best.")
+        G = gains_numbers()
+        if G:
+            t = max(G, key=lambda t_: G[t_]["ceiling"] - G[t_]["cross1"])
+            a_ = G[t]
+            parts.append(f"On the {TN[t].lower()} the two controllers' J correlated at &#961; = {a_['cross1']:.2f} at "
+                         f"single seeds, against a ceiling of {a_['ceiling']:.2f} from the seeds.")
+            parts.append(f"There HOM's tracking error rose with the thumb-to-pair distance (&#961; = "
+                         f"{a_['err_x_rho']['H']:+.2f}) and the planner's fell (&#961; = {a_['err_x_rho']['A']:+.2f}).")
         fr = {t: Ns[t]["fresh"] for t in ts if Ns[t].get("fresh")}
         up = [t for t in fr if fr[t]["diff"][1] > 0]
         if up:
@@ -1839,6 +2052,7 @@ def main():
                 ("tasks", "HOM and the planners on four tasks", sec_tasks(R, T)),
                 ("screen", "HOM's best layouts under full annealed sampling", sec_screen(R)),
                 ("grids", "Full annealed sampling on every layout of the four grids", sec_grids(R)),
+                ("gains", "Layouts on which full annealed sampling gains most on HOM", sec_gains(R)),
                 ("stability", "Stability of HOM's scores across seeds, layouts and controllers", sec_stability(R, GS)),
                 ("patch", "Score landscapes of HOM and full annealed sampling around HOM's best layouts", sec_patch(R)),
                 ("metrics", "Where HOM loses J against the planner", sec_metrics(R)),
@@ -1851,7 +2065,8 @@ def main():
                     f"<li>{r[r.index(']') + 2:]}</li>" for r in REFS) + "</ol>" + sec_files())]
     sections = [x for x in sections if x[2]]
     num = {sid: k for k, (sid, _h, _b) in enumerate(sections, 1)}
-    sections = [(sid, hd, b.replace("SCREENSEC", str(num.get("screen", "&#8212;")))) for sid, hd, b in sections]
+    sections = [(sid, hd, b.replace("SCREENSEC", str(num.get("screen", "&#8212;"))).replace(
+        "GRIDSEC", str(num.get("grids", "&#8212;")))) for sid, hd, b in sections]
     lede_t, summary = lede(R, PK, GS)
     unit = (lambda s_: re.sub(r"(\d) (%|mm|deg|N\b|s\b|min\b|h\b)", "\\1&nbsp;\\2", s_))
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(sections, 1))
