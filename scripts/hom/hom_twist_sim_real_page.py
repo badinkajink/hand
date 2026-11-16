@@ -332,6 +332,14 @@ film grasps stopped climbing under stiff friction, and the 4 and 8° grasps tipp
 was held in 1 of 3 runs at 0.09 N m. With the soft contact, grasp 10 at 4° rose 3.7 to 3.8 mm, close to the hand's
 2.4, but it tilted 63 to 95° and twisted 26 to 28°. Where simulated tracking falls, it falls with tilt and drops, not
 with the shorter, upright twist of the hand (data/20261116-sweep/sim/tau_*.jsonl).</p>
+<p>The joint records show where the hand differs (<code>data/20261116-trial_tracking.json</code>, from the workstation's
+<code>scripts/hardware/hom_trial_tracking.py</code>). No trial turned the sphere past about 44° of the commanded
+90.6°, whatever the grasp, where simulation reached 69 to 82°. The middle finger's yaw stayed 16 to 25° from its target
+in every period of every twist, and the index's yaw 7 to 21° the other way. Both gaps were already that large during the
+squeeze, so they are HOM's force offsets, and the yaw joints never closed them. In the deep grasps, at 18.2 and 12°, the
+sphere pushed the thumb's distal joint back to its stop near -20° for 12 to 27% of the task, while HOM commanded +21 to
++52°. That never happened at 4 or 8° or with the ground-clear grasps. The thumb giving way under the sphere is one route
+for the climb; whether the simulated thumb gives way the same way is the next check.</p>
 {table(["Model", "Below equator (°)", "Tracking", "Rise (mm)", "Held"], lat_rows, num=(1, 2, 3),
        caption="Simulated HOM on grasp 10 and its raised variants with the real object and the server's servo plant, "
                "seeds 0 to 2 (data/20261116-sweep/sim/lat_g10.jsonl).", n=3)}"""))
@@ -349,9 +357,10 @@ grasp 7, 12.5° below, ranks first under both models (J 0.603 at 0.5, 0.547 at 1
 <li>Measure the pads' friction on the taped sphere: a fingertip pressed and dragged across it on the UR5, with the
 HEX-E reading the forces and the sphere clamped.</li>
 <li>Run grasp 7 at (105, 70) on the hand, and repeat the raised variants for their spread.</li>
-<li>Compare the real joints' motion during the twist with simulation's: which joints stall after the squeeze, and
-whether a few joints make the whole twist. No friction, contact softness or torque limit tried so far reproduces the
-latitude sweep.</li>
+<li>Compare the yaw joints' travel during the twist with simulation's: on the hand they stay about 20° from their
+targets, which may set the ceiling near 44°. Check whether the simulated thumb's distal joint gives way under the sphere
+as the real one does at 12 to 18°. No friction, contact softness or torque limit tried so far reproduces the latitude
+sweep.</li>
 <li>Record the fingertip boards in every trial; only the last press of the day did.</li>
 <li>Re-score the twist landscape on the real object before the next grasp or layout choice.</li>
 </ul>"""))
