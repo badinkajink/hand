@@ -171,6 +171,9 @@ def main():
     ap.add_argument("--blur-all", default=None, help="X:Y:W:H smeared in every segment (a side where people pass)")
     ap.add_argument("--blur-cam", action="append", default=[],
                     help="SERIAL=X:Y:W:H: smeared in every segment of that camera (with --both too)")
+    ap.add_argument("--whole", action="append", default=[],
+                    help="STAMP: a segment kept whole under --trim-idle (only --head-s dropped), e.g. a slow slip whose "
+                         "wait matters")
     ap.add_argument("--control", action="append", default=[],
                     help="STAMP: a segment that, like a trial, keeps its still stretches under --trim-idle")
     ap.add_argument("--clock", action="store_true", help="each caption starts with the segment's clock time")
@@ -215,7 +218,7 @@ def main():
         fps, span = timing(s)
         s["speed"] = speed
         out_s = None if span is None else max(0.0, span - a.head_s) / speed
-        if thr is not None:
+        if thr is not None and s["stamp"] not in a.whole:
             s["ranges"] = keep_ranges(s, thr, a.head_s, s["step"] == "trial" or s["stamp"] in a.control)
             n = sum(b - a_ + 1 for a_, b in s["ranges"])
             out_s = n / (fps or nominal_fps(s["file"])) / speed

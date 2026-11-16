@@ -466,6 +466,17 @@ def obj_watch(meas, info, mm=1.5, turn_deg=3.0, lost_s=1.5):
     return check
 
 
+def swing_now(meas, n=5, max_age=0.5):
+    """The object's axis from vertical within the plane across the pinch axis x_P (deg): the part of the tilt the pinch
+    lets it turn out of; None without fresh samples."""
+    with meas.lock:
+        last = meas.samples[-n:]
+    if len(last) < n or time.time() - last[0][0] > max_age:
+        return None
+    s_ = -quat_to_mat(last[-1][2])[:, 1]                    # the stem in P
+    return math.degrees(math.atan2(float(s_[1]), float(-s_[2])))
+
+
 def joint_watch(st, j_ref, deflect, fingers=HS.FINGERS):
     """check() for Arm.move: a reason when a finger joint lies more than deflect deg off its reading at the leg's start
     (a finger pressed by the table or the object)."""
@@ -630,8 +641,9 @@ def cmd_grasp(a):
                 raise SystemExit(f"still {lat:.1f} mm off after the lateral move")
             C = tf(None, [d[0], d[1], 0.0])
             stream.mark(leg)
+            # high over the object no finger can touch it; the hand passing a camera shifts the estimate 1-2 mm (16:32)
             why, _ = arm.move(arm.T_BP() @ C @ tf_inv(T_EP), a.v_lat, a.acc, a.stop_n, lat / (1e3 * a.v_lat) + 6.0,
-                              f"{leg} {lat:.1f} mm", check=obj_watch(meas, info))
+                              f"{leg} {lat:.1f} mm", check=obj_watch(meas, info, a.lat_watch_mm))
             if why:
                 raise SystemExit(f"the {leg} move stopped: {why}")
         # the descent: fast to --slow-mm over the grasp's height, then slowly, each leg watched
@@ -647,7 +659,7 @@ def cmd_grasp(a):
             T_goal = arm.T_BE()
             T_goal[2, 3] -= dist
             why, _ = arm.move(T_goal, v, a.acc, a.stop_n, dist / (1e3 * v) + 6.0, f"descent, {leg} leg, {dist:.1f} mm",
-                              check=both(obj_watch(meas, info), joint_watch(st, jr, a.deflect_deg)))
+                              check=both(obj_watch(meas, info, a.watch_mm), joint_watch(st, jr, a.deflect_deg)))
             if why:
                 raise SystemExit(f"the descent stopped: {why}; look before anything else")
         p, q, info, stem_P, tilt = measure_object(meas, a)
@@ -659,7 +671,7 @@ def cmd_grasp(a):
             stream.mark("fine at height")
             why, _ = arm.move(arm.T_BP() @ tf(None, [d[0], d[1], 0.0]) @ tf_inv(T_EP), a.v_slow, a.acc, a.stop_n, 8.0,
                               f"fine {np.hypot(d[0], d[1]):.1f} mm at the grasp's height",
-                              check=obj_watch(meas, info))
+                              check=obj_watch(meas, info, a.watch_mm))
             if why:
                 raise SystemExit(f"the fine move stopped: {why}")
         # the close: open -> touch in small steps (the object watched: a finger arriving first pushes it), then the squeeze
@@ -781,9 +793,11 @@ def cmd_slip(a):
         pinch = ("thumb", pp["partner"])
         # the squeeze now: the commanded PIPs past touch (the station holds the last command; the plan's grip)
         sq = a.from_squeeze if a.from_squeeze is not None else float(pp["squeeze_deg"])
-        print(f"object: tilt {tilt:.1f} deg (goal {a.tilt_goal:g}); squeeze {sq:g} deg on the PIPs; steps of "
+        sw = swing_now(meas)
+        print(f"object: tilt {tilt:.1f} deg, of it {sw:+.1f} across the pinch axis (goal {a.tilt_goal:g}"
+              f"{' for that part' if a.swing_only else ''}); squeeze {sq:g} deg on the PIPs; steps of "
               f"{a.step_deg:g} deg every {a.dwell_s:g} s down to {a.min_squeeze:g}", flush=True)
-        if not a.go or tilt <= a.tilt_goal:
+        if not a.go or (abs(sw) if a.swing_only else tilt) <= a.tilt_goal:
             return 0
         stream = Stream(st, meas, None, STREAMS / f"{time.strftime('%Y%m%d-%H%M%S')}_pinch_slip_telemetry.jsonl",
                         pads=pads)
@@ -811,7 +825,10 @@ def cmd_slip(a):
                 st.call("POST", "/api/v1/manual/joints", {"joints": cmd, "servo_speed": a.speed})
                 print(f"   the ball slides in the pinch: squeeze back to {back:.2f} deg", flush=True)
                 break
-            if o[2] <= a.tilt_goal:
+            sw = swing_now(meas)
+            if a.swing_only and sw is not None:
+                print(f"      the swing across the pinch axis {sw:+.1f} deg", flush=True)
+            if (abs(sw) if (a.swing_only and sw is not None) else o[2]) <= a.tilt_goal:
                 if a.resqueeze > 0:
                     back = sq + a.resqueeze
                     cmd = {f: {k: target[f][k] + (back if (k == "pip" and f in pinch) else 0.0) for k in J}
@@ -885,6 +902,10 @@ def main():
     p.add_argument("--v-slow", type=float, default=0.003)
     p.add_argument("--slow-mm", type=float, default=15.0)
     p.add_argument("--deflect-deg", type=float, default=4.0)
+    p.add_argument("--lat-watch-mm", type=float, default=6.0,
+                   help="the object's motion in B that stops the sideways move, high over it (camera occlusion moves the "
+                        "estimate 1-2 mm)")
+    p.add_argument("--watch-mm", type=float, default=2.5, help="the same for the descent and the fine move")
     p.add_argument("--close-s", type=float, default=4.0)
     p.add_argument("--close-mm", type=float, default=5.0, help="the object's motion that stops the close")
     p.add_argument("--squeeze", type=float, default=8.0)
@@ -907,6 +928,9 @@ def main():
     p.add_argument("--min-squeeze", type=float, default=0.0)
     p.add_argument("--slip-mm", type=float, default=2.0)
     p.add_argument("--resqueeze", type=float, default=1.0)
+    p.add_argument("--swing-only", action="store_true",
+                   help="the goal on the swing across the pinch axis alone (the part along it is locked in the pinch; "
+                        "level it with putdown's turn)")
     p = sub.add_parser("status")
     common(p)
     a = ap.parse_args()
