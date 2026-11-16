@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 17:19
+## State on 2026-11-15 17:15
 
 Built and checked without hardware:
 
