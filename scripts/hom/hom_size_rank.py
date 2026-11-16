@@ -13,7 +13,8 @@ cylinders, have no _d<d>). Reported per (task, size), J of a pair the mean over 
   seed_rho      each controller's correlation between its seeds 0 and 1; ceiling sqrt(rho_H rho_A)
   cross1        the mean of the four single-seed correlations between the controllers
   mean          each controller's mean J over the pairs
-  best          each controller's best pair, with its J and the other controller's J there
+  best          each controller's best pair, with its J, the other controller's J there and its index in the pair file
+  best_dist_mm  the distance between the two controllers' best pairs in (x_sep, y_sep)
   top10_x       the x_sep (mm) of each controller's ten best pairs
   grid          the HOM grid at that size: layouts, mean J of each layout's best grasp, its best layout
 
@@ -90,6 +91,8 @@ def cell(task, d):
     H = by_pair(load(ROWS / f"mpc_hom_{task}{tg}_rank.jsonl"))
     A = by_pair(load(ROWS / f"mpc_anneal_{task}{tg}_rank_pdt2.jsonl"))
     keys = sorted(k for k in H if set(H[k]) >= set(SEEDS) and set(A.get(k, {})) >= set(SEEDS))
+    pf = ROWS / f"mpc_pairs_{task}{tg}_rank.json"
+    idx = {(q["x"], q["y"], q["grasp"]): i for i, q in enumerate(json.loads(pf.read_text())["pairs"])} if pf.exists() else {}
     out = {"task": task, "d": d, "base": d == BASE[task], "pairs": len(keys), "done": len(keys) >= N_PAIRS,
            "rows": {"H": sum(len(v) for v in H.values()), "A": sum(len(v) for v in A.values())},
            "grid": grid_summary(task, d)}
@@ -104,13 +107,14 @@ def cell(task, d):
         o = np.argsort(-jm[nm], kind="stable")
         i = int(o[0])
         best[nm] = {"x": keys[i][0], "y": keys[i][1], "grasp": keys[i][2], "J": float(jm[nm][i]),
-                    "J_other": float(jm[other][i])}
+                    "J_other": float(jm[other][i]), "pair": idx.get(keys[i])}
         top[nm] = sorted(float(xs[j]) for j in o[:10])
     out.update({"rho": spearman(jm["H"], jm["A"]), "seed_rho": seed_rho,
                 "ceiling": float(np.sqrt(max(seed_rho["H"] * seed_rho["A"], 0.0))),
                 "cross1": float(np.mean([spearman(j1["H"][a], j1["A"][b]) for a in SEEDS for b in SEEDS])),
                 "mean": {nm: float(jm[nm].mean()) for nm in "HA"}, "best": best, "top10_x": top,
                 "top10_x_med": {nm: float(np.median(top[nm])) for nm in "HA"},
+                "best_dist_mm": float(np.hypot(best["H"]["x"] - best["A"]["x"], best["H"]["y"] - best["A"]["y"])),
                 "top10_overlap": int(len(set(np.argsort(-jm["H"], kind="stable")[:10])
                                          & set(np.argsort(-jm["A"], kind="stable")[:10])))})
     return out
@@ -126,11 +130,12 @@ def figure(R, out):
                          "xtick.labelsize": 11.5, "ytick.labelsize": 11.5, "legend.fontsize": 12})
     TN = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
     CH, CA = "#2563eb", "#f97316"
-    fig, ax = plt.subplots(1, 4, figsize=(12.4, 3.9), layout="constrained")
+    fig, ax = plt.subplots(2, 2, figsize=(10.4, 7.4), layout="constrained")
+    ax = ax.ravel()
     for g, t in zip(ax, ("twist", "roll", "pinpush", "press")):
         cs = [c for c in R[t] if "best" in c]
-        for nm, col, lab in (("H", CH, "HOM"), ("A", CA, "Full annealed sampling")):
-            d = [c["d"] for c in cs]
+        for nm, col, lab, off in (("H", CH, "HOM", -0.5), ("A", CA, "Full annealed sampling", 0.5)):
+            d = [c["d"] + off for c in cs]                  # half a millimetre apart, so that neither hides the other
             g.plot(d, [c["best"][nm]["x"] for c in cs], "o-", color=col, lw=2, ms=7, label=f"{lab}, best pair")
             g.plot(d, [c["top10_x_med"][nm] for c in cs], "s--", color=col, lw=1.4, ms=5, alpha=0.8,
                    label=f"{lab}, median of ten best")
@@ -141,11 +146,11 @@ def figure(R, out):
         g.set_title(TN[t])
         g.set_xlabel("Object diameter (mm)")
         g.set_xticks(SIZES[t])
+        g.set_ylabel("$x_{sep}$ (mm)")
         for sp in ("top", "right"):
             g.spines[sp].set_visible(False)
-    ax[0].set_ylabel("$x_{sep}$ (mm)")
     h, lab = ax[0].get_legend_handles_labels()
-    fig.legend(h, lab, frameon=False, loc="outside lower center", ncol=3)
+    fig.legend(h, lab, frameon=False, loc="outside lower center", ncol=2)
     fig.savefig(out, dpi=110)
     plt.close(fig)
     return out
