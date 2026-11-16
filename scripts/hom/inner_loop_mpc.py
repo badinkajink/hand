@@ -391,18 +391,18 @@ def model_label(model):
 
 
 LABELS = {"hom": "HOM", "ps": "Predictive sampling", "ps_rt": "Predictive sampling, real-time budget", "mppi": "MPPI",
-          "cem": "CEM", "icem": "iCEM", "anneal": "DIAL annealing", "spider": "SPIDER",
+          "cem": "CEM", "icem": "iCEM", "anneal": "Annealed sampling", "spider": "SPIDER",
           "spider_wc": "SPIDER, worst case", "uhas": "UHAS", "hs_ps": "Predictive sampling in HOM's space",
           "hs_mppi": "MPPI in HOM's space", "hs_cem": "CEM in HOM's space", "hs_icem": "iCEM in HOM's space",
-          "hs_anneal": "DIAL annealing in HOM's space", "hs_spider": "SPIDER in HOM's space",
+          "hs_anneal": "Annealed sampling in HOM's space", "hs_spider": "SPIDER in HOM's space",
           "grad": "Gradient descent, finite differences", "res_ps": "HOM with a predictive-sampling residual",
-          "res_mppi": "HOM with an MPPI residual", "res_anneal": "HOM with a DIAL residual",
+          "res_mppi": "HOM with an MPPI residual", "res_anneal": "HOM with an annealed-sampling residual",
           "res_grad": "HOM with a gradient-descent residual"}
 
 
 SHORT = {"hom": "HOM", "ps": "PS", "ps_rt": "PS, real time", "mppi": "MPPI", "cem": "CEM", "icem": "iCEM",
-         "anneal": "DIAL", "spider": "SPIDER", "spider_wc": "SPIDER worst case", "uhas": "UHAS", "hs_ps": "PS, HOM space",
-         "hs_anneal": "DIAL, HOM space", "hs_icem": "iCEM, HOM space", "res_anneal": "HOM + DIAL residual",
+         "anneal": "Annealed sampling", "spider": "SPIDER", "spider_wc": "SPIDER worst case", "uhas": "UHAS", "hs_ps": "PS, HOM space",
+         "hs_anneal": "Annealed sampling, HOM space", "hs_icem": "iCEM, HOM space", "res_anneal": "HOM + annealed-sampling residual",
          "grad": "Gradient", "res_ps": "HOM + PS residual"}      # film labels (480 px clips)
 
 
@@ -764,20 +764,59 @@ def task_refs(B, task):
 # MEAS["delay"] > 0 a plan starts from the plant's state that many periods earlier (the tag tracker's 40 ms is 4), with
 # MEAS["pos_mm"] and MEAS["rot_deg"] of Gaussian noise on the object's position and orientation (hom_tasks.VARIANTS
 # "notip": 0.5 mm, 1 deg); the plan is applied from now. The joint-space planners only.
-MEAS = {"delay": 0, "pos_mm": 0.0, "rot_deg": 0.0}
+MEAS = {"delay": 0, "pos_mm": 0.0, "rot_deg": 0.0, "filter_tau": None}
 
 
-def measured(hist, B, gen):
-    """The planner's start state: the oldest of the kept states, the object's pose noised."""
-    st = {k_: v.clone() for k_, v in hist[0].items()}
+def noised_pose(st, B, gen):
+    """The object's position (W, 3) and orientation (W, 4) of a kept state with the tag tracker's noise of MEAS."""
     W, qa = B.W, B.qa
+    p_ = st["qpos"][:, qa:qa + 3].float().clone()
+    q_ = st["qpos"][:, qa + 3:qa + 7].float().clone()
     if MEAS["pos_mm"] > 0:
-        st["qpos"][:, qa:qa + 3] += torch.randn((W, 3), generator=gen, device="cuda") * (MEAS["pos_mm"] * 1e-3)
+        p_ += torch.randn((W, 3), generator=gen, device="cuda") * (MEAS["pos_mm"] * 1e-3)
     if MEAS["rot_deg"] > 0:
         ax = torch.nn.functional.normalize(torch.randn((W, 3), generator=gen, device="cuda"), dim=-1)
         ang = torch.randn(W, generator=gen, device="cuda") * math.radians(MEAS["rot_deg"])
-        q = quat_mul(quat_from_axis_angle(ax, ang), st["qpos"][:, qa + 3:qa + 7].float())
-        st["qpos"][:, qa + 3:qa + 7] = q / q.norm(dim=-1, keepdim=True)
+        q_ = quat_mul(quat_from_axis_angle(ax, ang), q_)
+        q_ = q_ / q_.norm(dim=-1, keepdim=True)
+    return p_, q_
+
+
+class PlanFilter:
+    """hom_gpu.POSE_FILTER's complementary filter on the planners' measured pose (MEAS["filter_tau"], s), kept at the
+    measurement's own time, since the joints of the planner's start state are as old as the measurement: each period
+    the estimate is turned by the commanded angular velocity of that time and then moved by dt/tau of its difference to
+    the period's noised measurement, in position and in rotation. The first measurement of the task phase starts it."""
+
+    def __init__(self, tau, dt):
+        self.a, self.dt, self.p, self.q = min(1.0, dt / tau), dt, None, None
+
+    def update(self, z_p, z_q, w_ref):
+        from sr2hand.rl.math import quat_to_rotvec
+        if self.p is None:
+            self.p, self.q = z_p.clone(), z_q.clone()
+            return
+        w = torch.as_tensor(np.asarray(w_ref, dtype=np.float32), device="cuda").expand_as(z_p)
+        ang = w.norm(dim=-1)
+        q_ = quat_mul(quat_from_axis_angle(w / ang.clamp_min(1e-12)[:, None], ang * self.dt), self.q)
+        e = self.a * quat_to_rotvec(quat_mul(z_q, quat_conj(q_)))
+        en = e.norm(dim=-1)
+        q_ = quat_mul(quat_from_axis_angle(e / en.clamp_min(1e-12)[:, None], en), q_)
+        self.q = q_ / q_.norm(dim=-1, keepdim=True)
+        self.p = self.p + self.a * (z_p - self.p)
+
+
+def measured(hist, B, gen, pf=None):
+    """The planner's start state: the oldest of the kept states, the object's pose noised, or the pose filter's estimate
+    of it."""
+    st = {k_: v.clone() for k_, v in hist[0].items()}
+    qa = B.qa
+    if pf is not None and pf.p is not None:
+        p_, q_ = pf.p, pf.q
+    else:
+        p_, q_ = noised_pose(st, B, gen)
+    st["qpos"][:, qa:qa + 3] = p_.to(st["qpos"].dtype)
+    st["qpos"][:, qa + 3:qa + 7] = q_.to(st["qpos"].dtype)
     return st
 
 
@@ -829,6 +868,7 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
     hist = []
     gen_m = torch.Generator(device="cuda")
     gen_m.manual_seed(2000 + seed)
+    pf = PlanFilter(MEAS["filter_tau"], B.prm.dt) if MEAS["filter_tau"] else None
     with torch.inference_mode():
         while not B.done():
             if trace is not None:
@@ -847,11 +887,14 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
                 if MEAS["delay"] > 0 or MEAS["pos_mm"] > 0 or MEAS["rot_deg"] > 0:
                     hist.append({k_: v.clone() for k_, v in B.state().items() if k_ != "body_pos"})
                     hist = hist[-(MEAS["delay"] + 1):]
+                    if pf is not None:                  # one tracker frame per period, as old as hist[0]
+                        pf.update(*noised_pose(hist[0], B, gen_m),
+                                  B.schedule(B.clock[max(0, B.k - len(hist) + 1)])[0])
                 if tau % REPLAN == 0:
                     t0 = time.perf_counter()
                     i = torch.arange(tau + 1, tau + H + 1, device="cuda").clamp(max=task.n)
                     ctx = dict(ctx0, **{k_: v[i].transpose(0, 1).repeat_interleave(r, 0) for k_, v in refs.items()})
-                    st = (dict(B.state(), plant=B) if hs or res else measured(hist, B, gen_m) if hist else B.state())
+                    st = (dict(B.state(), plant=B) if hs or res else measured(hist, B, gen_m, pf) if hist else B.state())
                     knots, inf = mpc.plan(R, st, u, ctx)
                     seg = knots if il else torch.einsum("hk,pkj->phj", W_EXEC, knots)
                     if REPLAN > 1:
@@ -930,14 +973,16 @@ def cmd_run(a):
     if a.pose_tau is not None or a.meas_every > 1:
         if a.method != "hom":
             raise SystemExit("--pose-tau/--meas-every: HOM's measured pose (hom_gpu.POSE_FILTER)")
-        HG.POSE_FILTER = {"tau": a.pose_tau, "every": a.meas_every}
+        HG.POSE_FILTER = {"tau": a.pose_tau, "every": a.meas_every, "cop_tau": a.cop_tau}
         a.tag = (f"_pf{a.pose_tau:g}" if a.pose_tau is not None else "_hold") + (f"e{a.meas_every}" if a.meas_every > 1
-                                                                                 else "") + a.tag
+                                                                                 else "") \
+            + (f"c{a.cop_tau:g}" if a.cop_tau else "") + a.tag
     if a.plan_delay or a.plan_noise:
         if a.method not in METHODS:
             raise SystemExit("--plan-delay/--plan-noise: the joint-space planners only")
-        MEAS.update(delay=a.plan_delay, pos_mm=0.5 if a.plan_noise else 0.0, rot_deg=1.0 if a.plan_noise else 0.0)
-        a.tag = f"_d{a.plan_delay}" + ("n" if a.plan_noise else "") + a.tag
+        MEAS.update(delay=a.plan_delay, pos_mm=0.5 if a.plan_noise else 0.0, rot_deg=1.0 if a.plan_noise else 0.0,
+                    filter_tau=a.plan_filter)
+        a.tag = f"_d{a.plan_delay}" + ("n" if a.plan_noise else "") + (f"f{a.plan_filter:g}" if a.plan_filter else "") + a.tag
     if a.variant != UH.VARIANT[TASK]:
         if a.method != "hom":
             raise SystemExit("--variant: only HOM reads the measured state; the planners and UHAS read the plant's")
@@ -1275,6 +1320,8 @@ def main():
     p.add_argument("--n", type=int, default=64, help="samples per plant world and iteration")
     p.add_argument("--limit-pairs", type=int, default=0, help="only the first pairs (smoke tests)")
     p.add_argument("--tag", default="", help="appended to the rows' file name")
+    p.add_argument("--cop-tau", type=float, default=None, help="method hom with --pose-tau: the fingertips' "
+                   "measured contact points through a filter of this time constant, s (hom_gpu.POSE_FILTER)")
     p.add_argument("--pose-tau", type=float, default=None, help="method hom: the pose filter's time constant, s (inf: "
                    "open loop from the task's start; hom_gpu.POSE_FILTER)")
     p.add_argument("--meas-every", type=int, default=1, help="method hom: a tracker frame every this many periods")
@@ -1282,6 +1329,8 @@ def main():
                    "earlier (4: the tag tracker's 40 ms)")
     p.add_argument("--plan-noise", action="store_true", help="planners: the tag tracker's noise on the object's pose "
                    "(0.5 mm, 1 deg)")
+    p.add_argument("--plan-filter", type=float, default=None, help="planners: the measured pose through "
+                   "hom_gpu.POSE_FILTER's complementary filter with this time constant, s (owner, 2026-11-15)")
     p.add_argument("--f-tripod", type=float, default=None, help="HOM's commanded pad force per finger, N "
                    "(hom_tasks.PRM f_tripod, 2.5), for every world")
     p.add_argument("--hs-sigma", type=float, default=None, help="HOM-space planners: the sampling noise in units "

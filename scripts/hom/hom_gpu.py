@@ -916,6 +916,7 @@ class Batch:
                     "cop": th.zeros((self.L, W, 3, 3), dtype=f64, device=dev),
                     "F": th.zeros((self.L, W, 3), dtype=f64, device=dev)}
         self.pf, self.w_pred = None, None                  # the pose filter's state (POSE_FILTER)
+        self.cf, self.cv = None, None                      # the contact-point filter's state (POSE_FILTER cop_tau)
         self.gen = th.Generator(device=dev)
         self.gen.manual_seed(int(self.gen_seed))
         self.qadr_t = th.tensor(self.qadr, device=dev)
@@ -962,9 +963,26 @@ class Batch:
         Fsel = th.where(md == 2, F_tip, th.where(md == 3, F_sn, F))
         csel = th.where((md == 2)[..., None], cop_tip, th.where((md == 3)[..., None], cop_sn, cop))
         Fm = th.where(valid, Fsel, th.zeros_like(Fsel))
+        if POSE_FILTER is not None and POSE_FILTER.get("cop_tau"):
+            csel = self._cop_filter(k, csel, valid)
         if POSE_FILTER is not None:
             pos_m, quat_m = self._pose_filter(k, pos_m, quat_m)
         return {"q": q_m, "pos": pos_m, "quat": quat_m, "cop": csel, "F": Fm, "valid": valid, "quat_d": quat}
+
+    def _cop_filter(self, k, cop, valid):
+        """Each finger's measured contact point (W, 3, 3) after POSE_FILTER["cop_tau"] (s): while the finger stays in
+        contact the estimate moves by dt/cop_tau of its difference to the period's measurement, as the pose filter's
+        correction; a contact that begins restarts it at the measurement. Raw points before the task phase."""
+        th = self.torch
+        a = min(1.0, self.prm.dt / POSE_FILTER["cop_tau"])
+        if self.cf is None or self.clock[k] < self.t_task - 1e-9:
+            self.cf, self.cv = cop.clone(), valid.clone()
+            return cop
+        start = (valid & ~self.cv)[..., None]
+        cf = th.where(start, cop, self.cf + a * (cop - self.cf))
+        cf = th.where(valid[..., None], cf, cop)
+        self.cf, self.cv = cf, valid.clone()
+        return cf
 
     def _pose_filter(self, k, pos_m, quat_m):
         """The object's pose after POSE_FILTER from this period's measurement (W, 3) and (W, 4)."""
