@@ -1,4 +1,8 @@
 Status: active (armed for the autopilot on colorado from window 8955e04e, 11-15 17:44; the owner left for the night)
+State 11-16 03:48 (autopilot): step 40, cells 1-2 of 8 done. Roll 67 mm (03:46, 39 min): rho 0.54 (0.38 at 40 mm),
+  single seed 0.51 vs ceiling 0.86, mean J HOM 0.105, planner 0.190; best HOM (125, 75) 0.35 (planner 0.43), planner
+  (140, 70) 0.57 (HOM 0.22); ten-best median x_sep HOM 115, planner 125 mm (77.5 and 112.5 at 40 mm), 5 of 10 shared.
+  Press 45 mm running; the last lane line size_films (report + films of the cell whose best pairs lie farthest apart).
 State 11-16 03:10 (autopilot): step 40, cell 1 of 8 done (twist 67 mm, 03:07): --d checked (HOM's runs at 67 mm
   reproduce the grid, rho 0.97); 100 pairs: rho 0.66 (0.81 at 40 mm), single seed 0.59 vs ceiling 0.80, mean J HOM 0.288,
   planner 0.402; best pair HOM (150, 55) 0.74 (planner 0.34 there), planner (95, 105) 0.88 (HOM 0.33); ten-best median
