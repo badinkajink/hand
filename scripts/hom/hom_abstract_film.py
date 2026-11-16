@@ -47,24 +47,50 @@ class Recorder:
     """Takes the place of hom_films.Film in hom_tasks.rollout: at each filmed period it returns the geometry of the hand
     and the object in the palm frame (mm) instead of an image."""
 
-    def __init__(self, plant, fingers):
+    def __init__(self, plant, fingers, pads=False):
         m = plant.m
-        self.plant, self.fingers = plant, fingers
+        self.plant, self.fingers, self.with_pads = plant, fingers, pads
         self.palm = m.body("palm_pose").id
         self.chain = {f: [m.body(f"{f}_{k}").id for k in CHAIN] for f in fingers}
+        self.tip = {f: m.body(f"{f}_tip").id for f in fingers}
         self.pads = {f: np.flatnonzero((m.geom_bodyid == m.body(f"{f}_tip").id)
                                        & np.array(["_pad" in (m.geom(g).name or "") for g in range(m.ngeom)]))
                      for f in fingers}
+        self.pad_of = {int(g): (f, k) for f in fingers for k, g in enumerate(self.pads[f])}
+        self.obj_geoms = set(np.flatnonzero(m.geom_bodyid == plant.tb).tolist())
+
+    def pads_local(self):
+        """Each pad's centre in its tip body's frame (mm) and the pads' radius (mm)."""
+        m = self.plant.m
+        return ({f: (1e3 * m.geom_pos[self.pads[f]]).round(4).tolist() for f in self.fingers},
+                float(1e3 * m.geom_size[self.pads[self.fingers[0]][0]][0]))
 
     def frame(self, plant, title, line):
+        import mujoco
         d = plant.d
         Rp, op = d.xmat[self.palm].reshape(3, 3), d.xpos[self.palm]
         to = (lambda p: (1e3 * (Rp.T @ (np.asarray(p) - op))).round(3).tolist())
-        return {"t": round(float(d.time), 4),
-                "chain": {f: [to(d.xpos[b]) for b in self.chain[f]] + [to(d.geom_xpos[self.pads[f]].mean(axis=0))]
-                          for f in self.fingers},
-                "obj_p": to(d.xpos[plant.tb]),
-                "obj_R": (Rp.T @ d.xmat[plant.tb].reshape(3, 3)).round(6).tolist()}
+        out = {"t": round(float(d.time), 4),
+               "chain": {f: [to(d.xpos[b]) for b in self.chain[f]] + [to(d.geom_xpos[self.pads[f]].mean(axis=0))]
+                         for f in self.fingers},
+               "obj_p": to(d.xpos[plant.tb]),
+               "obj_R": (Rp.T @ d.xmat[plant.tb].reshape(3, 3)).round(6).tolist()}
+        if self.with_pads:                         # every tip's pose and each pad's normal force on the object (N)
+            out["tips"] = {f: {"p": to(d.xpos[self.tip[f]]),
+                               "R": (Rp.T @ d.xmat[self.tip[f]].reshape(3, 3)).round(6).tolist()} for f in self.fingers}
+            F = {f: {} for f in self.fingers}
+            f6 = np.zeros(6)
+            for i in range(d.ncon):
+                c = d.contact[i]
+                g1, g2 = int(c.geom1), int(c.geom2)
+                pad = self.pad_of.get(g1) if g2 in self.obj_geoms else (self.pad_of.get(g2) if g1 in self.obj_geoms else None)
+                if pad is None:
+                    continue
+                mujoco.mj_contactForce(plant.m, d, i, f6)
+                if f6[0] > 1e-4:
+                    F[pad[0]][str(pad[1])] = round(F[pad[0]].get(str(pad[1]), 0.0) + float(f6[0]), 4)
+            out["pad_F"] = F
+        return out
 
     def close(self):
         pass
@@ -103,7 +129,7 @@ def record(a):
     S.set_palm(m_pt, setup["palm"])
     fs, os_ = T.sr2_specs(setup)
     mirror = H.Mirror(m_pt, fs, os_)
-    rec = Recorder(plant, HG.FINGERS)
+    rec = Recorder(plant, HG.FINGERS, pads=a.pads)
     over, noise = T.VARIANTS["base"]
     res, rows, frames = T.rollout(a.task, setup, plant, mirror, q_open, a.seed, T.PRM,
                                   replace(H.HomParams(dt=T.DT_C), **over), rec, noise, 0.0)
@@ -114,6 +140,7 @@ def record(a):
            "held": bool(res.get("held")), "track_err_rms_deg": res.get("track_err_rms_deg"),
            "track_ref_rms_deg": res.get("track_ref_rms_deg"), "contact_all_frac": res.get("contact_all_frac"),
            "dt_row": T.DT_C, "frame_every": 4, "frames": frames,
+           **({"pads_L_mm": rec.pads_local()[0], "pad_r_mm": rec.pads_local()[1]} if a.pads else {}),
            "rows": [{k: r[k] for k in keep if k in r} for r in rows]}
     (OUT / "rows").mkdir(parents=True, exist_ok=True)
     path = OUT / "rows" / (f"20261111-abstract_{a.task}.json" if not a.tag else f"20261115-abstract_{a.task}_{a.tag}.json")
@@ -292,139 +319,270 @@ def _ease(x):
     return x * x * (3.0 - 2.0 * x)
 
 
+def _camera(V, ctr, W):
+    """Orthographic camera: rows of V are right, depth (away from the viewer) and up in the palm frame; ctr the 3-D point
+    at the window's centre; W the half-width of the window (mm)."""
+    return {"V": np.asarray(V, float), "ctr": np.asarray(ctr, float), "W": float(W)}
+
+
+def _look_side(V, n):
+    """A view whose depth axis is perpendicular to the contact normal n and nearest the view V's: the contact seen
+    side-on, the pads against the object's outline."""
+    d0, u0 = V[1], V[2]
+    dz = d0 - (d0 @ n) * n
+    dz /= np.linalg.norm(dz)
+    uz = u0 - (u0 @ dz) * dz
+    uz /= np.linalg.norm(uz)
+    rz = np.cross(dz, uz) if np.allclose(V[0], np.cross(V[1], V[2]), atol=1e-6) else np.cross(uz, dz)
+    return np.array([rz, dz, uz])
+
+
 def render_reconfig(a):
     """Rollout A, the hand reconfiguring to B's layout, rollout B (owner, 2026-11-15: "an alternative version of the
     abstract video that extends into a reconfiguration ... highlight the morphology DoFs during a morphology reconfig,
     and then we can show the updated morphology doing the same task ... it has control (fingers) and morphology (xy
-    repositioning)"). Between the rollouts the object fades out, the fingers return to A's open pose, the mounts slide on
-    their stages to B's layout (the travel boxes and each mount's x and y axes in teal), and B's object fades in."""
+    repositioning)"; then "zoom into a fingertip-sphere interaction, and show the sphere-packed surface"). During A the
+    camera turns and zooms onto one fingertip's contact, seen side-on, where its pad spheres press into the object,
+    coloured by their normal force, with the rollout at a quarter of real time. Between the rollouts the object fades
+    out, the fingers return to A's open pose, the mounts slide on their stages to B's layout (the travel boxes and each
+    mount's x and y axes in teal), and B's object fades in. Subclips of the zoom and of the reconfiguration are written
+    beside the film for the talk's dynamics and morphology sections."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.collections import EllipseCollection
     from matplotlib.patches import Circle, FancyArrowPatch, Polygon
+    from scipy.spatial.transform import Rotation, Slerp
     plt.rcParams.update({"font.family": "Nimbus Sans", "mathtext.fontset": "cm"})
-    A = json.loads((OUT / "rows" / f"20261111-abstract_{a.task}.json").read_text())
+    A = json.loads((OUT / "rows" / f"20261115-abstract_{a.task}_{a.tag_a}.json").read_text())
     B = json.loads((OUT / "rows" / f"20261115-abstract_{a.task}_{a.tag}.json").read_text())
-    V = view()
-
-    def uv(P):
-        Q = np.asarray(P, float) @ V.T
-        return Q[..., 0], Q[..., 2], Q[..., 1]
-
+    V0 = view()
     fps, r = 25, A["r_mm"]
-    seq = []                                           # (segment, rec, frame index, blend) per output frame
-    for k in range(len(A["frames"])):
-        seq.append(("A", k, 0.0))
-    for k in range(int(0.8 * fps)):                    # object out, fingers back to A's open pose
-        seq.append(("open", k, _ease((k + 1) / (0.8 * fps))))
-    for k in range(int(0.6 * fps)):                    # hold: the stages light up
-        seq.append(("show", k, _ease((k + 1) / (0.6 * fps))))
-    for k in range(int(2.8 * fps)):                    # mounts slide to B's layout
-        seq.append(("move", k, _ease((k + 1) / (2.8 * fps))))
-    for k in range(int(0.8 * fps)):                    # B's object in
-        seq.append(("in", k, _ease((k + 1) / (0.8 * fps))))
+    # ---- timeline: (segment, rollout frame index as float, blend w, zoom s)
+    seq = []
+    kz = int(np.argmin([abs(fr["t"] - a.zoom_at) for fr in A["frames"]]))
+    for k in range(kz):
+        seq.append(("A", float(k), 0.0, 0.0))
+    ka, slow = float(kz), 0.25
+    n_in, n_hold, n_out = int(1.8 * fps), int(3.2 * fps), int(1.6 * fps)
+    for k in range(n_in + n_hold + n_out):
+        sz = _ease((k + 1) / n_in) if k < n_in else (1.0 if k < n_in + n_hold else 1.0 - _ease((k - n_in - n_hold + 1) / n_out))
+        seq.append(("Z", min(ka, len(A["frames"]) - 1), 0.0, sz))
+        ka += slow
+    for k in range(int(round(ka)), len(A["frames"])):
+        seq.append(("A", float(k), 0.0, 0.0))
+    i_morph = len(seq)
+    for k in range(int(0.8 * fps)):
+        seq.append(("open", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
+    for k in range(int(0.6 * fps)):
+        seq.append(("show", 0.0, _ease((k + 1) / (0.6 * fps)), 0.0))
+    for k in range(int(2.8 * fps)):
+        seq.append(("move", 0.0, _ease((k + 1) / (2.8 * fps)), 0.0))
+    for k in range(int(0.8 * fps)):
+        seq.append(("in", 0.0, _ease((k + 1) / (0.8 * fps)), 0.0))
+    i_morph_end = len(seq)
     for k in range(len(B["frames"])):
-        seq.append(("B", k, 0.0))
+        seq.append(("B", float(k), 0.0, 0.0))
     chain = lambda fr: {f: np.array(c, float) for f, c in fr["chain"].items()}  # noqa: E731
     A0, A1, B0 = chain(A["frames"][0]), chain(A["frames"][-1]), chain(B["frames"][0])
+    # ---- the full view's window, as a camera
     pts = [p for rec in (A, B) for fr in rec["frames"] for ch in fr["chain"].values() for p in ch]
     pts += [fr["obj_p"] for rec in (A, B) for fr in rec["frames"]] + [p for b in boxes() for p in b]
-    U, Vv, _ = uv(np.array(pts))
-    lim = (U.min() - r - 14, U.max() + r + 14, Vv.min() - r - 12, Vv.max() + 16)
+    Q = np.array(pts) @ V0.T
+    lim = (Q[:, 0].min() - r - 14, Q[:, 0].max() + r + 14, Q[:, 2].min() - r - 12, Q[:, 2].max() + 16)
+    aspect = (lim[3] - lim[2]) / (lim[1] - lim[0])
+    full = _camera(V0, V0.T @ np.array([(lim[0] + lim[1]) / 2, 0.0, (lim[2] + lim[3]) / 2]), (lim[1] - lim[0]) / 2)
+    # ---- the zoom's camera: the chosen finger's contact at the zoom frame, seen side-on
+    fz = a.zoom_finger
+    frz = A["frames"][kz]
+    tz = frz["tips"][fz]
+    padsL = np.array(A["pads_L_mm"][fz])
+    rp = A["pad_r_mm"]
+    Fz = frz["pad_F"][fz]
+    P = np.array(tz["p"]) + padsL @ np.array(tz["R"]).T
+    idx = np.array([int(i) for i in Fz])
+    wts = np.array([Fz[str(i)] for i in idx])
+    pc = (P[idx] * wts[:, None]).sum(0) / wts.sum()
+    nrm = pc - np.array(frz["obj_p"])
+    nrm /= np.linalg.norm(nrm)
+    Vz = _look_side(V0, nrm)
+    zoom = _camera(Vz, pc + 1.5 * nrm, a.zoom_halfwidth)
+    slerp = Slerp([0.0, 1.0], Rotation.from_matrix(np.stack([V0, Vz])))
+    track = []                                         # the zoomed finger's contact centroid and normal per frame of A
+    last = (pc, nrm)
+    for fr_ in A["frames"]:
+        Fd = fr_.get("pad_F", {}).get(fz) or {}
+        if Fd:
+            t_ = fr_["tips"][fz]
+            Pk = np.array(t_["p"]) + padsL @ np.array(t_["R"]).T
+            ii = np.array([int(i) for i in Fd])
+            ww = np.array([Fd[str(i)] for i in ii])
+            c_ = (Pk[ii] * ww[:, None]).sum(0) / ww.sum()
+            n_ = c_ - np.array(fr_["obj_p"])
+            last = (c_, n_ / np.linalg.norm(n_))
+        track.append(last)
+    track_c = np.array([t[0] for t in track])
+    track_n = np.array([t[1] for t in track])
+    ker = np.ones(7) / 7.0                             # a 7-frame moving average, so the camera does not shake
+    pad_ = lambda x: np.concatenate([np.repeat(x[:1], 3, 0), x, np.repeat(x[-1:], 3, 0)])  # noqa: E731
+    track_c = np.stack([np.convolve(pad_(track_c)[:, j], ker, mode="valid") for j in range(3)], 1)
+    track_n = np.stack([np.convolve(pad_(track_n)[:, j], ker, mode="valid") for j in range(3)], 1)
+    track_n /= np.linalg.norm(track_n, axis=1, keepdims=True)
+
+    def cam_at(sz, k=None):
+        if sz <= 0:
+            return full
+        ctr = zoom["ctr"] if k is None else track_c[k] + 1.5 * track_n[k]
+        return _camera(slerp([sz]).as_matrix()[0], (1 - sz) * full["ctr"] + sz * ctr,
+                       np.exp((1 - sz) * np.log(full["W"]) + sz * np.log(zoom["W"])))
+
     cmdA, achA = yaw_angles(A)
     cmdB, achB = yaw_angles(B)
     tmp = Path(tempfile.mkdtemp(prefix="abstract_rc_", dir=os.environ.get("TMPDIR", "/tmp")))
     L0, L1 = np.array(A["layout"], float), np.array(B["layout"], float)
-    for n, (seg, k, w) in enumerate(seq):
+    Fmax = 0.2
+    for n, (seg, kf, w, sz) in enumerate(seq):
+        cam = cam_at(sz, int(kf) if seg == "Z" else None)
+
+        def uv(Pp):
+            Qq = (np.asarray(Pp, float) - cam["ctr"]) @ cam["V"].T
+            return Qq[..., 0], Qq[..., 2], Qq[..., 1]
+
         fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
         ax = fig.add_axes([0.02, 0.04, 0.60, 0.80])
-        ax.set_xlim(lim[0], lim[1])
-        ax.set_ylim(lim[2], lim[3])
+        ax.set_xlim(-cam["W"], cam["W"])
+        ax.set_ylim(-cam["W"] * aspect, cam["W"] * aspect)
         ax.set_aspect("equal")
         ax.axis("off")
         mm = ax.transData.transform([[0, 0], [1, 0]])
-        ppm = (mm[1, 0] - mm[0, 0]) * 72.0 / fig.dpi
+        ppm_true = (mm[1, 0] - mm[0, 0]) * 72.0 / fig.dpi
+        ppm = ppm_true
+        sw = full["W"] / cam["W"]                       # zoom factor: line widths drawn in mm would grow with it
+        ppl = ppm / sw                                  # widths of the hand drawing stay as in the full view
         rec, row, obj, oalpha, forces = None, None, None, 1.0, True
-        if seg in ("A", "B"):
-            rec = A if seg == "A" else B
+        k = int(kf)
+        if seg in ("A", "B", "Z"):
+            rec = A if seg in ("A", "Z") else B
             fr = rec["frames"][k]
             row = rec["rows"][min(k * rec["frame_every"], len(rec["rows"]) - 1)]
             chains = chain(fr)
             obj = (np.array(fr["obj_p"]), np.array(fr["obj_R"]))
         else:
             forces = False
+            fr = None
             if seg == "open":
                 chains = {f: (1 - w) * A1[f] + w * A0[f] for f in A0}
-                fr = A["frames"][-1]
-                obj, oalpha = (np.array(fr["obj_p"]), np.array(fr["obj_R"])), 1.0 - w
+                frl = A["frames"][-1]
+                obj, oalpha = (np.array(frl["obj_p"]), np.array(frl["obj_R"])), 1.0 - w
             elif seg == "show":
                 chains = A0
             elif seg == "move":
                 chains = {f: (1 - w) * A0[f] + w * B0[f] for f in A0}
             else:
                 chains = B0
-                fr = B["frames"][0]
-                obj, oalpha = (np.array(fr["obj_p"]), np.array(fr["obj_R"])), w
-        hl = {"A": 0.0, "B": 0.0, "open": 0.0, "show": w, "move": 1.0, "in": 1.0 - w}[seg]   # morphology highlight
+                frb = B["frames"][0]
+                obj, oalpha = (np.array(frb["obj_p"]), np.array(frb["obj_R"])), w
+        hand_a = 1.0 - _ease(min(1.0, sz / 0.6))        # the drawing fades as the zoom closes in
+        pad_a = _ease((sz - 0.35) / 0.45) if sz > 0.35 else 0.0
+        hl = {"A": 0.0, "B": 0.0, "Z": 0.0, "open": 0.0, "show": w, "move": 1.0, "in": 1.0 - w}[seg]
         for b in boxes():
             u, v, _ = uv(b)
             ax.add_patch(Polygon(np.c_[u, v], closed=True, fc=PALE, ec=MORPH if hl > 0 else GREY,
-                                 lw=(0.6 + 1.6 * hl) * ppm, alpha=1.0, zorder=1))
+                                 lw=(0.6 + 1.6 * hl) * ppl, alpha=max(hand_a, 0.0), zorder=1))
             if hl > 0:
                 ax.add_patch(Polygon(np.c_[u, v], closed=True, fc=MORPH, ec="none", alpha=0.10 * hl, zorder=1.05))
-        if hl > 0:                                      # each mount's x and y stage axes
+        if hl > 0:
             for f, ch in chains.items():
                 m0 = ch[0]
                 for e in (np.array([1.0, 0, 0]), np.array([0, 1.0, 0])):
                     q0, q1 = uv(m0 - 16 * e), uv(m0 + 16 * e)
                     ax.add_patch(FancyArrowPatch((q0[0], q0[1]), (q1[0], q1[1]), arrowstyle="<|-|>", color=MORPH,
-                                                 lw=1.6 * ppm, mutation_scale=6.5 * ppm, alpha=hl, zorder=1.2))
+                                                 lw=1.6 * ppl, mutation_scale=6.5 * ppl, alpha=hl, zorder=1.2))
                 u0, v0, _ = uv(m0)
-                ax.add_patch(Circle((u0, v0), 3.2, fc=MORPH, ec="white", lw=0.6 * ppm, alpha=hl, zorder=1.3))
+                ax.add_patch(Circle((u0, v0), 3.2, fc=MORPH, ec="white", lw=0.6 * ppl, alpha=hl, zorder=1.3))
         items = [(float(uv(ch)[2].mean()), "finger", f, ch) for f, ch in chains.items()]
         if obj is not None:
             items.append((float(uv(obj[0])[2]), "object", None, None))
-        R0 = np.array((A if seg in ("A", "open", "show", "move") else B)["frames"][0]["obj_R"])
+        R0 = np.array((A if seg in ("A", "Z", "open", "show", "move") else B)["frames"][0]["obj_R"])
         kv = int(np.argmax(np.abs(R0[2])))
         kh = min((q for q in range(3) if q != kv), key=lambda q: abs(R0[2, q]))
         k3 = 3 - kv - kh
         z = 2
         for _dep, kind, f, ch in sorted(items, key=lambda x: -x[0]):
             if kind == "finger":
+                if hand_a <= 0.01:
+                    z += 1
+                    continue
                 u, v, _ = uv(ch)
-                ax.plot(u, v, color=LINK, lw=4.6 * ppm, solid_capstyle="round", solid_joinstyle="round", zorder=z)
-                ax.add_patch(Circle((u[-1], v[-1]), 4.4, fc=LINK, ec="none", zorder=z + 0.1))
+                ax.plot(u, v, color=LINK, lw=4.6 * ppl, solid_capstyle="round", solid_joinstyle="round",
+                        alpha=hand_a, zorder=z)
+                ax.add_patch(Circle((u[-1], v[-1]), 4.4, fc=LINK, ec="none", alpha=hand_a, zorder=z + 0.1))
                 for j in (1, 2, 4):
-                    ax.add_patch(Circle((u[j], v[j]), 3.6, fc="white", ec=NEW, lw=1.7 * ppm, zorder=z + 0.2))
-                if forces and row is not None:
+                    ax.add_patch(Circle((u[j], v[j]), 3.6, fc="white", ec=NEW, lw=1.7 * ppl, alpha=hand_a, zorder=z + 0.2))
+                if forces and row is not None and obj is not None:
                     F = float(row["F"].get(f) or 0.0)
                     cop = row["cop_obj_mm"].get(f)
-                    if cop is not None and F > 0.05 and obj is not None:
+                    if cop is not None and F > 0.05:
                         c, R = obj
-                        p = c + R @ np.array(cop)
-                        nrm = (c - p) / max(np.linalg.norm(c - p), 1e-9)
-                        q0, q1 = uv(p - 7.0 * F * nrm), uv(p)
+                        pp = c + R @ np.array(cop)
+                        nn = (c - pp) / max(np.linalg.norm(c - pp), 1e-9)
+                        q0, q1 = uv(pp - 7.0 * F * nn), uv(pp)
                         ax.add_patch(FancyArrowPatch((q0[0], q0[1]), (q1[0], q1[1]), arrowstyle="-|>", color=NEW,
-                                                     lw=1.5 * ppm, mutation_scale=5.5 * ppm, zorder=z + 0.3))
+                                                     lw=1.5 * ppl, mutation_scale=5.5 * ppl, alpha=hand_a, zorder=z + 0.3))
             else:
                 c, R = obj
                 u0, v0, d0 = uv(c)
-                ax.add_patch(Circle((u0, v0), r, fc="#E5E7EB", ec=GREY, lw=0.7 * ppm, alpha=oalpha, zorder=z))
-                tt = np.linspace(0, 2 * np.pi, 181)
+                ax.add_patch(Circle((u0, v0), r, fc="#E5E7EB", ec=INK if pad_a > 0 else GREY,
+                                    lw=(0.7 + 1.3 * pad_a) * ppl, alpha=oalpha, zorder=z))
+                tt = np.linspace(0, 2 * np.pi, 361)
                 for e0, e1 in ((kh, k3), (kh, kv)):
-                    P = c + r * (np.outer(np.cos(tt), R[:, e0]) + np.outer(np.sin(tt), R[:, e1]))
-                    u, v, dd = uv(P)
+                    Pq = c + r * (np.outer(np.cos(tt), R[:, e0]) + np.outer(np.sin(tt), R[:, e1]))
+                    u, v, dd = uv(Pq)
                     front = dd <= d0
                     for mask, sty, col in ((front, "-", INK), (~front, ":", GREY)):
                         ax.plot(np.where(mask, u, np.nan), np.where(mask, v, np.nan), sty, color=col,
-                                lw=0.45 * ppm, alpha=oalpha, zorder=z + 0.05)
+                                lw=0.45 * ppl, alpha=oalpha * (1.0 - pad_a), zorder=z + 0.05)
                 ut, vt, dt_ = uv(c + r * R[:, kh])
-                ax.add_patch(Circle((ut, vt), 2.6, fc=ACH if dt_ <= d0 else "none", ec=ACH, lw=0.5 * ppm,
+                ax.add_patch(Circle((ut, vt), 2.6, fc=ACH if dt_ <= d0 else "none", ec=ACH, lw=0.5 * ppl,
                                     alpha=oalpha, zorder=z + 0.06))
             z += 1
+        if pad_a > 0 and seg == "Z":                    # the zoomed finger's pad spheres, over the drawing
+            tip = fr["tips"][fz]
+            Pp = np.array(tip["p"]) + padsL @ np.array(tip["R"]).T
+            u, v, dd = uv(Pp)
+            Fp = np.zeros(len(Pp))
+            for i_, F_ in fr["pad_F"][fz].items():
+                Fp[int(i_)] = F_
+            d_cut = float(uv(track_c[k])[2])            # a slice through the contact, one pad thick, seen side-on
+            sl = np.abs(dd - d_cut) < a.slice_mm / 2
+            ctx = np.flatnonzero(~sl)
+            ax.add_collection(EllipseCollection(np.full(len(ctx), 2 * rp), np.full(len(ctx), 2 * rp), np.zeros(len(ctx)),
+                                                units="xy", offsets=np.c_[u[ctx], v[ctx]], offset_transform=ax.transData,
+                                                facecolors=(0.82, 0.84, 0.87, 0.05 * pad_a), edgecolors="none",
+                                                zorder=39))
+            order = np.flatnonzero(sl)
+            order = order[np.argsort(-dd[order])]
+            base = np.array([0.82, 0.84, 0.87])
+            hot = np.array([0.486, 0.227, 0.929])
+            tcol = np.clip(Fp[order] / Fmax, 0, 1)[:, None]
+            mix = 0.35 + 0.65 * tcol                    # lilac at no force to the purple of the force arrows at Fmax
+            cols = np.where(Fp[order, None] > 1e-4, mix * hot + (1 - mix) * np.array([0.93, 0.90, 0.99]), base)
+            ec = np.where(Fp[order, None] > 1e-4, hot * 0.8, np.array([0.55, 0.57, 0.61]))
+            ax.add_collection(EllipseCollection(np.full(len(order), 2 * rp), np.full(len(order), 2 * rp),
+                                                np.zeros(len(order)), units="xy", offsets=np.c_[u[order], v[order]],
+                                                offset_transform=ax.transData, facecolors=np.c_[cols, np.full(len(order), pad_a)],
+                                                edgecolors=np.c_[ec, np.full(len(order), pad_a)],
+                                                linewidths=0.4, zorder=40))
+            nc, Ft = int((Fp > 1e-4).sum()), float(Fp.sum())
+            if sz > 0.85:
+                x0, y0 = -cam["W"] * 0.92, -cam["W"] * aspect * 0.88
+                ax.plot([x0, x0 + 1.0], [y0, y0], color=INK, lw=3, zorder=50)
+                ax.text(x0 + 0.5, y0 + 0.2, "1 mm", ha="center", va="bottom", fontsize=17, color=INK, zorder=50)
+                fig.text(0.02, 0.862, f"A slice through the contact: {nc} of the {fz}'s pads touch the sphere, "
+                         f"{Ft:.2f} N in all (darker: more force).", fontsize=17, color=ACH, va="top")
         lay = L0 + (_ease(w) if seg == "move" else (1.0 if seg in ("in", "B") else 0.0)) * (L1 - L0)
-        if seg in ("A", "B"):
-            cmd, ach = (cmdA, achA) if seg == "A" else (cmdB, achB)
+        if seg in ("A", "B", "Z"):
+            cmd, ach = (cmdA, achA) if seg in ("A", "Z") else (cmdB, achB)
             t_rows = np.array([q["t"] for q in rec["rows"]])
             i = min(k * rec["frame_every"], len(rec["rows"]) - 1)
             ax2 = fig.add_axes([0.67, 0.50, 0.30, 0.30])
@@ -432,7 +590,8 @@ def render_reconfig(a):
             ax2.plot(t_rows[:i + 1], ach[:i + 1], color=ACH, lw=2.8, label="object")
             ax2.axvline(t_rows[i], color=GREY, lw=1.0)
             ax2.set_xlim(t_rows[0], t_rows[-1])
-            lo, hi = min(cmdA.min(), achA.min(), cmdB.min(), achB.min()), max(cmdA.max(), achA.max(), cmdB.max(), achB.max())
+            lo = min(cmdA.min(), achA.min(), cmdB.min(), achB.min())
+            hi = max(cmdA.max(), achA.max(), cmdB.max(), achB.max())
             ax2.set_ylim(lo - 0.1 * (hi - lo + 1), hi + 0.1 * (hi - lo + 1))
             ax2.set_xlabel("time (s)", fontsize=17)
             ax2.set_ylabel("turn about the vertical (deg)", fontsize=17)
@@ -442,7 +601,7 @@ def render_reconfig(a):
                 ax2.spines[sp].set_visible(False)
             ax3 = fig.add_axes([0.67, 0.23, 0.30, 0.17])
             Fs = [float(row["F"].get(f) or 0.0) for f in ("thumb", "index", "middle")]
-            ax3.barh(range(3), Fs, color=[NEW if v > 0.05 else GREY for v in Fs], height=0.55)
+            ax3.barh(range(3), Fs, color=[NEW if v_ > 0.05 else GREY for v_ in Fs], height=0.55)
             ax3.set_yticks(range(3))
             ax3.set_yticklabels(["thumb", "index", "middle"], fontsize=16)
             ax3.invert_yaxis()
@@ -456,7 +615,8 @@ def render_reconfig(a):
                      f"{1 - rec['track_err_rms_deg'] / rec['track_ref_rms_deg']:.2f},\nall three pads loaded "
                      f"{100 * rec['contact_all_frac']:.0f} % of the task", fontsize=17, color="#4B5563", va="center",
                      linespacing=1.4)
-            head = (f"Control: HOM moves the nine finger joints", NEW)
+            head = ((f"Dynamics: the {fz}'s pad, 1,018 spheres of {2 * rp:g} mm", ACH) if seg == "Z" and sz > 0.35
+                    else ("Control: HOM moves the nine finger joints", NEW))
         else:
             fig.text(0.67, 0.74, "Morphology", fontsize=30, color=MORPH, weight="bold", va="top")
             fig.text(0.67, 0.68, "Each finger's mount slides on two\nlead-screw stages, x and y:\nsix degrees of freedom "
@@ -467,21 +627,34 @@ def render_reconfig(a):
             head = ("Morphology: the stages move the finger mounts", MORPH)
         fig.text(0.02, 0.95, head[0], fontsize=30, color=head[1], weight="bold", va="top")
         fig.text(0.02, 0.895, f"Layout ({lay[0]:.0f}, {lay[1]:.0f}) mm: thumb to finger pair, and index to middle. "
-                 f"{NAME[a.task]} of a {A['d_mm']:g} mm {OBJ[a.task]}, CPU simulation, real time.", fontsize=19,
-                 color="#4B5563", va="top")
+                 f"{NAME[a.task]} of a {A['d_mm']:g} mm {OBJ[a.task]}, CPU simulation, "
+                 + ("a quarter of real time." if seg == "Z" else "real time."), fontsize=19, color="#4B5563", va="top")
         fig.savefig(tmp / f"f{n:05d}.png", facecolor="white")
         plt.close(fig)
     out = OUT / "media" / f"20261115-abstract_{a.task}_reconfig.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-i", str(tmp / "f%05d.png"), "-c:v",
-                    "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", "-movflags", "+faststart",
-                    str(out)], check=True)
-    pick = len(A["frames"]) + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps)       # mid-move
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp / f"f{pick:05d}.png"), "-q:v", "3",
-                    str(out.with_suffix(".jpg"))], check=True)
+
+    def enc(first, count, path):
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(fps), "-start_number", str(first), "-i",
+                        str(tmp / "f%05d.png"), "-frames:v", str(count), "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                        "-crf", "20", "-preset", "slow", "-movflags", "+faststart", str(path)], check=True)
+
+    def still(i, path):
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp / f"f{i:05d}.png"), "-q:v", "3", str(path)],
+                       check=True)
+
+    enc(0, len(seq), out)
+    still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), out.with_suffix(".jpg"))
+    zo = OUT / "media" / f"20261115-abstract_{a.task}_pads_zoom.mp4"           # the dynamics section's subclip
+    enc(kz, n_in + n_hold + n_out, zo)
+    still(kz + n_in + n_hold // 2, zo.with_suffix(".jpg"))
+    mo = OUT / "media" / f"20261115-abstract_{a.task}_morphology.mp4"          # the morphology section's subclip
+    enc(i_morph, i_morph_end - i_morph, mo)
+    still(i_morph + int(0.8 * fps) + int(0.6 * fps) + int(1.4 * fps), mo.with_suffix(".jpg"))
     for q in tmp.glob("f*.png"):
         q.unlink()
     tmp.rmdir()
-    print(f"{out.relative_to(ROOT)}: {len(seq)} frames ({len(seq) / fps:.1f} s)", flush=True)
+    print(f"{out.relative_to(ROOT)}: {len(seq)} frames ({len(seq) / fps:.1f} s); zoom {(n_in + n_hold + n_out) / fps:.1f} s "
+          f"at t {A['frames'][kz]['t']:.2f} s on the {fz}; morphology {(i_morph_end - i_morph) / fps:.1f} s", flush=True)
     return 0
 
 
@@ -496,11 +669,17 @@ def main():
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--rows", default="grid2dff_v4b_sv25r", help="grid rows that pick the grasp by the tracking score")
     r.add_argument("--tag", default="", help="a second rollout's name: rows/20261115-abstract_<task>_<tag>.json")
+    r.add_argument("--pads", action="store_true", help="also each tip's pose and every pad's contact force per frame")
     d = sp.add_parser("render")
     d.add_argument("--task", default="twist")
     c = sp.add_parser("reconfig", help="rollout A (the 20261111 rows), the reconfiguration, rollout B (--tag)")
     c.add_argument("--task", default="twist")
     c.add_argument("--tag", default="70_110")
+    c.add_argument("--tag-a", default="105_70_pads", help="rollout A's rows, recorded with --pads")
+    c.add_argument("--zoom-at", type=float, default=4.6, help="A's time (s) at which the zoom starts")
+    c.add_argument("--zoom-finger", default="thumb")
+    c.add_argument("--zoom-halfwidth", type=float, default=6.5, help="mm")
+    c.add_argument("--slice-mm", type=float, default=0.8, help="thickness of the slice of pads drawn in the zoom")
     a = ap.parse_args()
     return {"record": record, "render": render, "reconfig": render_reconfig}[a.cmd](a)
 
