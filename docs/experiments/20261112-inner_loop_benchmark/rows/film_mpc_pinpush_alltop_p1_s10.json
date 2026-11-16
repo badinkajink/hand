@@ -1,0 +1,56 @@
+{
+ "pair": {
+  "x": 75.0,
+  "y": 80.0,
+  "grasp": 13,
+  "by": "hom_top",
+  "J_hom": 0.4578,
+  "J_planner": 0.3136,
+  "grid_top": true
+ },
+ "seed": 10,
+ "plant_mu": 1.0,
+ "plant_model": "pads",
+ "methods": [
+  "hom",
+  "anneal@4,30,3,10,2,64"
+ ],
+ "clips": {
+  "hom": {
+   "J": 0.1591187270501836,
+   "held": true,
+   "track_err_rms_deg": 6.87,
+   "contact_all_frac": 1.0,
+   "link_mean_N": 2.3709404217697738e-08,
+   "link_max_N": 1.0132789611816406e-06,
+   "link_frac_1N": 0.0,
+   "pad_share": 1.0,
+   "grip_mean_N": 7.222352981567383,
+   "pad_max_N": 4.263165473937988,
+   "sat_frac": 0.3150617182254791,
+   "limit_frac": 1.0,
+   "cmd_rate_dps": 405.77532958984375,
+   "reversals_ps": 4.305865287780762,
+   "replan_s_mean": null
+  },
+  "anneal@4,30,3,10,2,64": {
+   "J": 0.3904528763769889,
+   "held": true,
+   "track_err_rms_deg": 4.98,
+   "contact_all_frac": 1.0,
+   "link_mean_N": 2.4636587880877414e-08,
+   "link_max_N": 7.748603820800781e-07,
+   "link_frac_1N": 0.0,
+   "pad_share": 1.0,
+   "grip_mean_N": 6.2899274826049805,
+   "pad_max_N": 3.9299540519714355,
+   "sat_frac": 0.11629629880189896,
+   "limit_frac": 1.0,
+   "cmd_rate_dps": 5.604133129119873,
+   "reversals_ps": 1.9549616575241089,
+   "replan_s_mean": 0.503002462701665
+  }
+ },
+ "plant": "kp0.72_kv0_fr0.18_fl0_dp0.0144",
+ "scenes": "logs/20261102-hom_servo_plant/scenes"
+}

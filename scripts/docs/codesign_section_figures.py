@@ -371,8 +371,8 @@ def cost_of_search():
             ("Steel hydroelastic (Newton), one GPU\n(its step cost on the twist, 1,024 worlds)", mjw * ratio, "#7a4fa6"),
             ("MuJoCo-Warp, 1 mm sphere pads,\none GPU, with HOM", mjw, "#d97706")]
     n_sim = len(rows)
-    for lab, k, col in (("Sampling MPC, DIAL 2 \u00d7 32 samples,\nin place of HOM (real time)", "rt", "#be185d"),
-                        ("Sampling MPC, DIAL 4 \u00d7 64 samples,\nin place of HOM", "full", "#9d174d")):
+    for lab, k, col in (("Annealed sampling, 2 \u00d7 32 samples,\nin place of HOM (real time)", "rt", "#be185d"),
+                        ("Full annealed sampling, 4 \u00d7 64 samples,\nin place of HOM", "full", "#9d174d")):
         if mpc.get(k):
             rows.append((lab, mjw * mpc[k]["ratio"], col))
     rows += [(f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
@@ -539,10 +539,10 @@ def controllers():
     import hom_inner_loop_page as HP
     import inner_loop_mpc_page as MP
     R, out = {}, {"tasks": {}, "cost": {}}
-    runs = [("hom", None, "HOM", "#d97706"), ("anneal", MP.CFG_PICK, "DIAL 2 × 32, real time", "#be185d"),
-            ("anneal", MP.CFG_RT30, "DIAL 2 × 16, 0.3 s ahead, real time", "#f472b6"),
+    runs = [("hom", None, "HOM", "#d97706"), ("anneal", MP.CFG_PICK, "Annealed sampling 2 × 32, real time", "#be185d"),
+            ("anneal", MP.CFG_RT30, "Annealed sampling 2 × 16, 0.3 s ahead, real time", "#f472b6"),
             ("grad", MP.CFG_PICK, "Gradient 2 × 32, real time", "#7c3aed"),
-            ("anneal", MP.CFG_FULL2, "DIAL 4 × 64, 6.3× real time", "#9d174d")]
+            ("anneal", MP.CFG_FULL2, "Full annealed sampling 4 × 64, 6.3× real time", "#9d174d")]
     tasks = [t for t in MP.TASKS4 if MP.load(MP.tstem("hom", t, "_rank"))]
     if not tasks:
         return None
@@ -579,7 +579,7 @@ def controllers():
         sc = HP.screen_numbers(R, t)
         out["tasks"][t]["screen"] = ({"d_max": sc["d_max"], "hom10": sc["scr"][9], "rand10": sc["rnd"][9],
                                       "rand10_lo": sc["lo"][9], "rand10_hi": sc["hi"][9], "shared10": sc["shared"],
-                                      "halves_full": sc["halves"].get("DIAL 4 &#215; 64"),
+                                      "halves_full": sc["halves"].get("Annealed sampling 4 &#215; 64"),
                                       **{f"{a}_med_{w}": float(np.median([sc["keys"][i][j] for i in sc[f"top_{w[0]}"]]))
                                          for j, a in enumerate(("xsep", "ysep")) for w in ("hom", "dial")}} if sc else None)
         c = MP.confirm_numbers(t)          # each controller's ten best again at seeds 10 and 11
@@ -600,23 +600,38 @@ def controllers():
                              "k_reach": G["k_reach"], "k_reach_rnd": G["k_reach_rnd"],
                              "fresh_dial": F["dial"], "fresh_hom": F["hom"], "fresh_diff": F["diff"],
                              "contact_hom": {w: F["contact"][("hom", w)] for w in ("d", "g")}}
+    Gs = HP.grids_numbers(R)            # full annealed sampling and HOM on every layout of each task's grid (HOM page)
+    out["grids"] = {t: {"n": G_["n"], "rho": G_["rho_hd"], "out50": G_["out50"], "in100": len(G_["in100"]),
+                        "first_rank": G_["first_g_rank"], "k_reach": G_["k_reach"], "k_reach_rnd": G_["k_reach_rnd"],
+                        "mean_h": G_["mean_h"], "mean_d": G_["mean_d"],
+                        **({"fresh_dial": G_["fresh"]["dial"], "fresh_hom": G_["fresh"]["hom"],
+                            "fresh_diff": G_["fresh"]["diff"], "drop_h": G_["fresh"]["drop_h"]} if G_.get("fresh") else {})}
+                    for t, G_ in Gs.items()}
+    F5 = {t: HP.five_numbers(R, t) for t in ("pinpush", "press")}   # grasps chosen at five placements (HOM page)
+    out["five"] = F5 if all(F5.values()) else None
     IL_ = HP.ilqr_numbers(R)            # iLQR on the 20 pairs of each task (HOM page, section iLQR)
     if IL_:
         out["ilqr"] = {"J": IL_["j20"], "hom": IL_["h20"], "full": IL_["f20"], "cost": IL_["gpu"],
                        "one_hand_s": IL_["one"],
                        "vs_hom": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in IL_["vs_hom"].items()},
                        "vs_full": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in IL_["vs_full"].items()}}
+        if IL_.get("pad"):
+            pd_ = IL_["pad"]
+            out["ilqr"]["pad"] = {"J": pd_["j20"], "cost": pd_["gpu"],
+                                  "vs_il": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in pd_["vs_il"].items()},
+                                  "vs_full": {t: {k: v[k] for k in ("d", "lo", "hi")} for t, v in pd_["vs_full"].items()},
+                                  "share": pd_["share"]}
     x = np.arange(len(tasks))
     S_ = [out["tasks"][t]["screen"] or {} for t in tasks]
     g = (lambda k: np.array([s_.get(k, np.nan) for s_ in S_]))
     ax[1].bar(x - 0.18, g("hom10"), 0.34, color="#d97706", label="HOM's ten best layouts")
     ax[1].bar(x + 0.18, g("rand10"), 0.34, color=GREY, yerr=[g("rand10") - g("rand10_lo"), g("rand10_hi") - g("rand10")],
-              error_kw={"lw": 1.2, "ecolor": INK}, label="ten random layouts (10-90 %)")
-    ax[1].scatter(x, g("d_max"), marker="_", s=900, lw=3, color="#9d174d", zorder=3, label="DIAL's best of the 100")
+              error_kw={"lw": 1.2, "ecolor": INK}, label="Ten random layouts (10-90 %)")
+    ax[1].scatter(x, g("d_max"), marker="_", s=900, lw=3, color="#9d174d", zorder=3, label="Full annealed sampling's best of the 100")
     ax[1].set_xticks(x)
     ax[1].set_xticklabels([MP.TNAME[t] for t in tasks], fontsize=16)
     ax[1].set_ylim(0, 1.15)
-    ax[1].set_ylabel("Best J under DIAL 4 × 64", fontsize=15)
+    ax[1].set_ylabel("Best J under full annealed sampling", fontsize=15)
     ax[1].legend(fontsize=12.5, frameon=False, loc="upper right", ncol=1)
     ax[1].set_title("(b) HOM's picks under the planner", loc="left", fontsize=17)
     for a in ax:

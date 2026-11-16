@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html: sampling MPC (predictive
-sampling, MPPI, CEM, iCEM, DIAL-MPC's annealing, SPIDER and its worst case) against HOM on the inner-loop benchmark's
+sampling, MPPI, CEM, iCEM, the annealed sampling of DIAL-MPC, SPIDER and its worst case) against HOM on the inner-loop benchmark's
 twist of the 40 mm sphere, on the hand-design talk's plant (owner, 2026-11-12: "let's try MPC"; 2026-11-13: "Are there
 videos / comparisons / a docpage hosting this for me to analyze?", HOM-space controls, MPC without the sphere-packed
 model, and "any reasonably fast and simple way to improve HOM performance?").
@@ -46,7 +46,7 @@ PERIOD_S = 0.01
 # (file stem after mpc_, label); the stems are inner_loop_mpc.py's rows names on the servo plant
 MAIN = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"),
         ("ps_twist", "Predictive sampling"), ("mppi_twist", "MPPI"), ("cem_twist", "CEM"), ("icem_twist", "iCEM"),
-        ("anneal_twist", "DIAL annealing"), ("spider_twist", "SPIDER"), ("spider_wc_twist", "SPIDER, worst case")]
+        ("anneal_twist", "Annealed sampling"), ("spider_twist", "SPIDER"), ("spider_wc_twist", "SPIDER, worst case")]
 REFS = [
     '[1] T. Howell, N. Gileadi, S. Tunyasuvunakool, K. Zakka, T. Erez and Y. Tassa, "Predictive Sampling: Real-time '
     'Behaviour Synthesis with MuJoCo", arXiv 2212.00541, 2022.',
@@ -118,6 +118,11 @@ def one_hand(T, n, iters, H, model="pads"):
     m = [r for r in T if r["plant_worlds"] == 1 and r["n"] == n and r.get("iters") == iters and r["H"] == H
          and r.get("model", "pads") == model and r.get("plan_dt") is None]
     return m[-1]["replan_s"] if m else None
+
+
+def lc(s):
+    """A label for use inside a sentence: "Annealed sampling ..." -> "annealed sampling ..."."""
+    return "a" + s[1:] if s.startswith("Annealed") else s
 
 
 def f2(x, d=2):
@@ -197,7 +202,7 @@ def one_hand_cfg(T, c, model="pads"):
 
 
 def rt_pick(R, T):
-    """The real-time DIAL configuration of the contact runs: the candidate whose point-contact plant rows exist (the
+    """The real-time annealed sampling configuration of the contact runs: the candidate whose point-contact plant rows exist (the
     lane's pick), else the real-time candidate with the highest mean J."""
     for c in RT_CANDS:
         if R.get(stem_of("anneal", c, plant="pt")):
@@ -224,12 +229,12 @@ def plt_setup():
 
 
 FIG_LABEL = {"hom_twist": "HOM", "ps_twist_r10h10k2i1": "PS, real time", "ps_twist": "PS", "mppi_twist": "MPPI",
-             "cem_twist": "CEM", "icem_twist": "iCEM", "anneal_twist": "DIAL", "spider_twist": "SPIDER",
-             "spider_wc_twist": "SPIDER, worst case", "hs_anneal_twist": "DIAL, HOM space"}
+             "cem_twist": "CEM", "icem_twist": "iCEM", "anneal_twist": "Annealed sampling", "spider_twist": "SPIDER",
+             "spider_wc_twist": "SPIDER, worst case", "hs_anneal_twist": "Annealed sampling, HOM space"}
 
 
 def fig_overview(S, out):
-    """J, grip and target reversals per controller, and the J of each pair under HOM and DIAL annealing."""
+    """J, grip and target reversals per controller, and the J of each pair under HOM and annealed sampling."""
     plt = plt_setup()
     stems = [stem for stem, _lab in MAIN if S.get(stem)] + [k for k in ("hs_anneal_twist",) if S.get(k)]
     labs = [FIG_LABEL.get(k, k) for k in stems]
@@ -278,9 +283,9 @@ def fig_pairs(rows_h, rows_m, label, out):
 def contact_lines(S, rt):
     """The lines of the contact-model figure: (label, colour, line style, {plant: stats})."""
     lines = [("HOM", "#555555", "-", {p: S.get(hom_stem(p)) for p, _ in PLANTS})]
-    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time",
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "Annealed sampling, real time",
                                                                                    "#3a6ea5"),
-                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+                                ("anneal", CFG_FULL, "Annealed sampling, 4\u00d764", "#1b3a63")):
         if cfg is None:
             continue
         for model, ls, ml in (("pads", "-", "pad model"), ("pt", "--", "point-contact model"), ("own", ":",
@@ -299,8 +304,8 @@ def fig_contact(S, R, rt, out):
     xs = {p: i for i, (p, _) in enumerate(PLANTS)}
     fig, (a1, a2) = plt.subplots(1, 2, figsize=(8.6, 6.2))
     left = [("HOM", "#555555", "-", "o", {p: S.get(hom_stem(p)) for p, _ in PLANTS})]
-    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time", "#3a6ea5"),
-                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "Annealed sampling, real time", "#3a6ea5"),
+                                ("anneal", CFG_FULL, "Annealed sampling, 4\u00d764", "#1b3a63")):
         if cfg is None:
             continue
         left.append((f"{lab}, pad model", col, "-", "o", {p: S.get(stem_of(meth, cfg, plant=p)) for p, _ in PLANTS}))
@@ -315,9 +320,9 @@ def fig_contact(S, R, rt, out):
                 ls=ls if len(P_) == len(PLANTS) else "none", label=lab)     # no line across plants not run
     a1.set_ylabel("Mean J over 40 runs")
     a1.set_title("Mean J", fontsize=13)
-    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "DIAL, real time",
+    for meth, cfg, lab, col in (("ps", CFG_PSRT, "PS, real time", "#c06a1a"), ("anneal", rt, "Annealed sampling, real time",
                                                                              "#3a6ea5"),
-                                ("anneal", CFG_FULL, "DIAL, 4\u00d764", "#1b3a63")):
+                                ("anneal", CFG_FULL, "Annealed sampling, 4\u00d764", "#1b3a63")):
         if cfg is None:
             continue
         pts = []
@@ -327,11 +332,11 @@ def fig_contact(S, R, rt, out):
                 pts.append((xs[p], d))
         if not pts:
             continue
-        off = {"PS, real time": -0.08, "DIAL, real time": 0.0}.get(lab, 0.08)
+        off = {"PS, real time": -0.08, "Annealed sampling, real time": 0.0}.get(lab, 0.08)
         a2.errorbar([x + off for x, _ in pts], [d["d"] for _, d in pts],
                     yerr=[[d["d"] - d["lo"] for _, d in pts], [d["hi"] - d["d"] for _, d in pts]], color=col, marker="s",
                     ms=5, capsize=3, lw=1.6, ls="-" if len(pts) == len(PLANTS) else "none",
-                    label=f"{lab}: pad minus point-contact model")
+                    label=f"Difference, {lc(lab)}")
     a2.axhline(0.0, color="#888888", lw=1)
     a2.set_ylabel("Difference in J")
     a2.set_title("Pad minus point-contact model", fontsize=13)
@@ -370,17 +375,17 @@ REV_RUNS = [("anneal", CFG_REV, "", "None (3 &#215; 16, 2 ms step)", "&#8212;"),
             ("anneal", CFG_PICK, "_acc2_db3", "Real-time pick: rate-change cost 2, dead band 3 deg", "cost"),
             ("ps", CFG_PSRT, "", "PS real time: none", "&#8212;"),
             ("ps", CFG_PSRT, "_extrap", "PS real time: slope continued", "sampling"),
-            ("anneal", CFG_FULL, "", "DIAL 4 &#215; 64: none", "&#8212;"),
-            ("anneal", CFG_FULL, "_lam1", "DIAL 4 &#215; 64: temperature 1.0", "sampling"),
-            ("anneal", CFG_FULL, "_acc1", "DIAL 4 &#215; 64: rate-change cost 1", "cost")]
-REV_REF = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "PS, real time"), ("anneal_twist", "DIAL"),
+            ("anneal", CFG_FULL, "", "Annealed sampling 4 &#215; 64: none", "&#8212;"),
+            ("anneal", CFG_FULL, "_lam1", "Annealed sampling 4 &#215; 64: temperature 1.0", "sampling"),
+            ("anneal", CFG_FULL, "_acc1", "Annealed sampling 4 &#215; 64: rate-change cost 1", "cost")]
+REV_REF = [("hom_twist", "HOM"), ("ps_twist_r10h10k2i1", "PS, real time"), ("anneal_twist", "Annealed sampling"),
            ("icem_twist", "iCEM"), ("spider_twist", "SPIDER"), ("mppi_twist", "MPPI"), ("cem_twist", "CEM"),
            ("ps_twist", "PS")]
 REV_LABEL_AT = {14: (-4, 7)}      # option number -> label offset (points) where a label would cover a marker
 
 
 def fig_reversals(S, out):
-    """Mean J against target reversals: the benchmark's controllers, and the reversal options on the real-time DIAL."""
+    """Mean J against target reversals: the benchmark's controllers, and the reversal options on the real-time annealed sampling."""
     plt = plt_setup()
     fig, ax = plt.subplots(figsize=(8.6, 5.4))
     for stem, lab in REV_REF:
@@ -388,7 +393,8 @@ def fig_reversals(S, out):
         if s:
             ax.plot(s["reversals_ps"], s["J"], "o", color="#555555" if stem == "hom_twist" else "#999999", ms=7)
             ax.annotate(lab, (s["reversals_ps"], s["J"]), textcoords="offset points",
-                        xytext={"PS": (-22, -4), "MPPI": (6, -4)}.get(lab, (5, 4)), fontsize=10, color="#555555")
+                        xytext={"PS": (-22, -4), "MPPI": (6, -4), "Annealed sampling": (-6, 4)}.get(lab, (5, 4)),
+                        fontsize=10, color="#555555", ha="right" if lab == "Annealed sampling" else "left")
     bases = {c: S.get(stem_of("anneal", c)) for c in (CFG_REV, CFG_PICK)}
     col = {"sampling": "#3a6ea5", "cost": "#c06a1a", "both": "#7a3a8a", "&#8212;": "#1b3a63"}
     k = 0
@@ -407,10 +413,10 @@ def fig_reversals(S, out):
                         arrowprops=dict(arrowstyle="->", color=col[kind], alpha=0.35, lw=1))
     ax.set_xlabel("Target reversals per joint per second (median over held runs)")
     ax.set_ylabel("Mean J over 40 runs")
-    ax.plot([], [], "^", color=col["sampling"], label="sampling options")
-    ax.plot([], [], "s", color=col["cost"], label="cost options")
-    ax.plot([], [], "D", color=col["both"], label="both")
-    ax.plot([], [], "s", color="#555555", mfc="white", mew=1.5, label="open: on the 2 × 32 pick")
+    ax.plot([], [], "^", color=col["sampling"], label="Sampling options")
+    ax.plot([], [], "s", color=col["cost"], label="Cost options")
+    ax.plot([], [], "D", color=col["both"], label="Both")
+    ax.plot([], [], "s", color="#555555", mfc="white", mew=1.5, label="Open: on the 2 × 32 pick")
     ax.legend(frameon=False, loc="lower right")
     ax.grid(alpha=0.3)
     fig.tight_layout()
@@ -430,7 +436,7 @@ def rt_rows(S, T):
 
 
 def fig_realtime(S, T, out):
-    """Mean J against the GPU time per second of control of one hand, for predictive sampling and DIAL annealing."""
+    """Mean J against the GPU time per second of control of one hand, for predictive sampling and annealed sampling."""
     plt = plt_setup()
     fig, ax = plt.subplots(figsize=(8.6, 5.0))
     pts = []
@@ -466,7 +472,7 @@ def fig_realtime(S, T, out):
     ax.set_xlabel("GPU time per second of control, one hand")
     ax.set_ylabel("Mean J over 40 runs")
     ax.plot([], [], "s", color="#c06a1a", label="Predictive sampling")
-    ax.plot([], [], "o", color="#3a6ea5", label="DIAL annealing")
+    ax.plot([], [], "o", color="#3a6ea5", label="Annealed sampling")
     ax.legend(frameon=False, loc="upper left")
     ax.grid(alpha=0.3, which="both")
     fig.tight_layout()
@@ -508,12 +514,12 @@ def sec_terms():
          "averaged within a pair (<code>sr2hand.numerics.stats.spearman</code>)", "-1 to 1; 1 is the same order"],
     ]
     return table(["Term", "Definition", "Unit or range"], rows, "Terms and metrics. Every metric is computed on the task "
-                 "phase, from HOM's handover at 2.4 s to the end of the schedule.", num_from=9)
+                 "phase, from HOM's handover at 2.0 s to the end of the schedule.", num_from=9)
 
 
 def sec_setup(S):
     return fill(r"""<p>The task is the inner-loop benchmark's twist of the 40 mm sphere (<a href="<<b>>">benchmark page</a>).
-HOM closes the hand, squeezes and lifts. From 2.4 s the controller under test drives the nine servo targets. The
+HOM closes the hand, squeezes and lifts. From 2.0 s the controller under test drives the nine servo targets. The
 schedule commands 40 deg/s about the vertical for 0.5 s and then back for 0.5 s. A 0.3 s rest and a 30 deg/s ramp
 for 3 s follow. The plant is the hand-design talk's. Each servo is the SCS0009 model of 0.72 N m/rad with a 0.18 N m
 limit, and the v4b tips are sphere pads at 2.5 MPa with friction 1.0. MuJoCo-Warp 3.6 steps the physics every 1 ms,
@@ -545,7 +551,7 @@ updated from the sampled costs:</p>"""
             ["MPPI [2]", "weights $\\exp(-(c - c_{\\min})/\\lambda)$ with $\\lambda = 0.03\\,\\mathrm{std}(c)$"],
             ["CEM", "the cheapest 15 % set the mean and the spread; the mean is executed"],
             ["iCEM [3]", "CEM with correlated knot noise (0.7); the two best kept into the next replanning"],
-            ["DIAL annealing [4]", "noise shrinking with the iteration and towards the first knot; an MPPI step per "
+            ["Annealed sampling, the planner of DIAL-MPC [4]", "noise shrinking with the iteration and towards the first knot; an MPPI step per "
              "iteration"],
             ["SPIDER [5]", "noise from 0.5 to 1.0 of its scale along the horizon, times $0.1^{i/I}$ in iteration $i$; a "
              "softmax at temperature 0.3 over the best 10 %"],
@@ -587,10 +593,9 @@ metrics are taken over the held runs.</p>""", h=f"{hs['J']:.3f}", hh=f"{100 * hs
     if figs.get("overview"):
         t += P.img(figs["overview"], "Mean J (bars: one standard error over the 40 runs), median grip and target "
                    "reversals per joint per second on the SCS0009 plant. HOM in grey, the planners over servo targets "
-                   "in blue, DIAL annealing in HOM's space in brown. PS: predictive sampling; DIAL: DIAL-MPC's "
-                   "annealing.")
+                   "in blue, annealed sampling in HOM's space in brown. PS: predictive sampling.")
     if figs.get("pairs"):
-        t += P.img(figs["pairs"], "J of each run under HOM and under DIAL annealing on the same pair and seed. Above "
+        t += P.img(figs["pairs"], "J of each run under HOM and under annealed sampling on the same pair and seed. Above "
                    "the diagonal the planner tracked better.")
     return t
 
@@ -607,10 +612,10 @@ def pair_j(rows, seed=None):
 def sec_rank(S, R, T):
     """HOM against the planners on mean J and on the order of the pairs."""
     runs = [("hom_twist", "HOM", None), ("ps_twist_r10h10k2i1", "Predictive sampling, real time", CFG_PSRT),
-            (stem_of("anneal", CFG_PICK), "DIAL, real-time pick (2 &#215; 32)", CFG_PICK),
-            (stem_of("anneal", CFG_PICK, sh="_acc1"), "DIAL, real-time pick, rate-change cost 1", CFG_PICK),
-            ("anneal_twist", "DIAL, 4 &#215; 64", CFG_FULL), ("icem_twist", "iCEM", CFG_FULL),
-            ("hs_anneal_twist", "DIAL in HOM's space", None)]
+            (stem_of("anneal", CFG_PICK), "Annealed sampling, real-time pick (2 &#215; 32)", CFG_PICK),
+            (stem_of("anneal", CFG_PICK, sh="_acc1"), "Annealed sampling, real-time pick, rate-change cost 1", CFG_PICK),
+            ("anneal_twist", "Annealed sampling, 4 &#215; 64", CFG_FULL), ("icem_twist", "iCEM", CFG_FULL),
+            ("hs_anneal_twist", "Annealed sampling in HOM's space", None)]
     if not all(R.get(stem) for stem in ("hom_twist", "anneal_twist", stem_of("anneal", CFG_PICK), "icem_twist")):
         return ""
     keys = sorted(pair_j(R["hom_twist"]))
@@ -633,15 +638,15 @@ def sec_rank(S, R, T):
     top_h, top_d = set(np.argsort(-h)[:5]), set(np.argsort(-dl)[:5])
     t = fill(r"""<p>On mean J the planners that run in real time were within the noise of HOM. Against HOM, the paired
 difference was <<dp>> for the real-time pick. It was <<dps>> for real-time predictive sampling. Planning one hand with
-DIAL at 4 &#215; 64 samples or with iCEM takes <<v>> s of GPU per second of control. Their J was above HOM's by <<dd>>
+annealed sampling at 4 &#215; 64 samples or with iCEM takes <<v>> s of GPU per second of control. Their J was above HOM's by <<dd>>
 and <<di>>.</p>
 <p>In the design search a controller scores each layout and grasp, so the order it gives the pairs matters there as
-much as its mean J. The 20 pairs were ranked under HOM nearly as under DIAL at 4 &#215; 64, with $\rho$ = <<rd>>
-(Table <<tn>>). DIAL's order was followed as closely by the real-time pick, at <<rp>>, and by iCEM, at <<ri>>. The
-order changed little between seeds: $\rho$ between seeds 0 and 1 was <<sh>> for HOM and <<sd>> for DIAL. DIAL's five
-best pairs included <<ov>> of HOM's five best. On HOM's best pair DIAL reached <<jhb>>. DIAL's own best pair scored
-<<jdb>> under DIAL and <<jhd>> under HOM.</p>
-<p>The 20 pairs are the ten test layouts with HOM's best J and the ten with UHAS's best J (Section 2). Under DIAL at
+much as its mean J. The 20 pairs were ranked under HOM nearly as under annealed sampling at 4 &#215; 64, with $\rho$ = <<rd>>
+(Table <<tn>>). Annealed sampling's order was followed as closely by the real-time pick, at <<rp>>, and by iCEM, at <<ri>>. The
+order changed little between seeds: $\rho$ between seeds 0 and 1 was <<sh>> for HOM and <<sd>> for annealed sampling. Annealed sampling's five
+best pairs included <<ov>> of HOM's five best. On HOM's best pair annealed sampling reached <<jhb>>. Annealed sampling's own best pair scored
+<<jdb>> under annealed sampling and <<jhd>> under HOM.</p>
+<p>The 20 pairs are the ten test layouts with HOM's best J and the ten with UHAS's best J (Section 2). Under annealed sampling at
 4 &#215; 64 their J spans <<lo>> to <<hi>>.</p>""",
              dp=fds(dd[stem_of("anneal", CFG_PICK)]), dps=fds(dd.get("ps_twist_r10h10k2i1")),
              v=f"{one_hand_cfg(T, CFG_FULL) / (CFG_FULL[3] * PERIOD_S):.1f}", dd=fds(dd["anneal_twist"]),
@@ -652,14 +657,14 @@ best pairs included <<ov>> of HOM's five best. On HOM's best pair DIAL reached <
              ov=("none", "one", "two", "three", "four", "all five")[len(top_h & top_d)],
              jhb=f"{dl[np.argmax(h)]:.3f}", jdb=f"{dl.max():.3f}", jhd=f"{h[np.argmax(dl)]:.3f}",
              lo=f"{dl.min():.2f}", hi=f"{dl.max():.2f}")
-    return t + table(["Controller", "Mean J", "J minus HOM's", "&#961; with HOM", "&#961; with DIAL 4 &#215; 64",
+    return t + table(["Controller", "Mean J", "J minus HOM's", "&#961; with HOM", "&#961; with annealed sampling 4 &#215; 64",
                       "&#961; between seeds 0 and 1", "Compute per second of control (s/s)"], rows,
                      "Mean J and the order of the 20 pairs under each controller, seeds 0 and 1 on the SCS0009 plant. "
                      "Compute: GPU time for one hand alone, for HOM the time of one CPU core.", num_from=1)
 
 
-FILM_NAME = {"hom": "HOM", "ps_rt": "predictive sampling at the real-time budget", "anneal": "DIAL annealing",
-             "hs_anneal": "DIAL annealing in HOM's space", "uhas": "UHAS"}
+FILM_NAME = {"hom": "HOM", "ps_rt": "predictive sampling at the real-time budget", "anneal": "Annealed sampling",
+             "hs_anneal": "Annealed sampling in HOM's space", "uhas": "UHAS"}
 FILM_STEM = {"hom": "hom_twist", "ps_rt": "ps_twist_r10h10k2i1", "anneal": "anneal_twist", "hs_anneal": "hs_anneal_twist"}
 TABLE_ROWS = {}
 
@@ -695,7 +700,7 @@ def sec_films():
                          + f", grip {c['grip_mean_N']:.1f} N, {c['reversals_ps']:.1f} reversals per joint per s")
         cap = (f"Layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}, the plant's fingertips "
                f"{'sphere pads' if plant == 'pads' else dict(PLANTS)[plant].lower()}, plant friction "
-               f"{info['plant_mu']:g}; the task phase from 2.4 s. " + ". ".join(parts) + ". A planner's run in the "
+               f"{info['plant_mu']:g}; the task phase from 2.0 s. " + ". ".join(parts) + ". A planner's run in the "
                "film draws other samples than its run in the table. Each frame gives each finger's pad force and the "
                "force through its rigid parts on the sphere (N); the links are drawn see-through and the sphere's "
                "axes as rods.")
@@ -780,8 +785,8 @@ cylinder between two spherical tips, so the value transfers to the v4b tip and t
 coefficients 0.5, 1 and 2 mm bracket it.</p>
 <p>HOM computes its commands from the contact geometry and rolls out no model, so only the plant changes for it. The
 planners rolled out the pad model or the point-contact model, and on the torsion plants also the plant's own model.
-Predictive sampling ran at the real-time budget on every plant. DIAL annealing ran on every plant at the real-time
-configuration with the highest mean J on the pads, from the section on annealed sampling at the real-time budget. DIAL
+Predictive sampling ran at the real-time budget on every plant. Annealed sampling ran on every plant at the real-time
+configuration with the highest mean J on the pads, from the section on annealed sampling at the real-time budget. Annealed sampling
 annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and the point-contact plants.</p>"""
     t = fill(t, tm=P.TAB[0] + 1)
     t += table(["Contact model", "Contact with the sphere", "Torque about the normal", "Used as"],
@@ -809,7 +814,7 @@ annealing at the benchmark's budget of 4 &#215; 64 rollouts ran on the pads and 
                 s = S.get(stem_of(meth, cfg, plant=p, model=p if model == "own" else model))
             row.append(f2(s["J"], 3) if s else "&#8212;")
         rows.append(row)
-    names = {"ps": "PS real time", "anneal": "DIAL"}
+    names = {"ps": "PS real time", "anneal": "Annealed sampling"}
     hdr = ["Plant"] + ["HOM"] + [f"{names[m]}{' 4 &#215; 64' if c == CFG_FULL else (' real time' if m == 'anneal' else '')}"
                                 f", {'pad' if mo == 'pads' else 'point' if mo == 'pt' else 'own'} model"
                                 for m, c, mo in cols[1:]]
@@ -876,7 +881,7 @@ def sec_contact_text(S, R, rt, tj, tm_, tp):
     if all(o):
         d = {p: paired(R.get(stem_of("anneal", rt, plant=p, model=p), []), R.get(stem_of("anneal", rt), []))
              for p in order[1:]}
-        p1.append(fill("With the plant's own model the real-time DIAL reached <<j0>> on the pads, <<j1>>, <<j2>> and "
+        p1.append(fill("With the plant's own model the real-time annealed sampling reached <<j0>> on the pads, <<j1>>, <<j2>> and "
                        "<<j3>> at 2, 1 and 0.5 mm, and <<j4>> on point contact. Down to 1 mm it was within <<k>> of its "
                        "J on the pads. It lost <<a>> at 0.5 mm and <<b>> on point contact.",
                        **{f"j{i}": f"{x['J']:.3f}" for i, x in enumerate(o)},
@@ -885,13 +890,13 @@ def sec_contact_text(S, R, rt, tj, tm_, tp):
     fo, fp = S.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt")), S.get("anneal_twist")
     if fo and fp:
         dfo = paired(R.get(stem_of("anneal", CFG_FULL, plant="pt", model="pt"), []), R.get("anneal_twist", []))
-        p1.append(fill("DIAL at 4 &#215; 64 with the point-contact model reached <<a>> on point contact, against <<b>> "
+        p1.append(fill("Annealed sampling at 4 &#215; 64 with the point-contact model reached <<a>> on point contact, against <<b>> "
                        "with the pad model on the pads, a paired difference of <<d>>.", a=f"{fo['J']:.3f}",
                        b=f"{fp['J']:.3f}", d=fds(dfo)))
     if p1:
         out.append("<p>" + " ".join(p1) + "</p>")
     sent = []
-    for meth, cfg, lab in (("anneal", CFG_FULL, "DIAL annealing at 4 &#215; 64"), ("anneal", rt, "the real-time DIAL"),
+    for meth, cfg, lab in (("anneal", CFG_FULL, "Annealed sampling at 4 &#215; 64"), ("anneal", rt, "the real-time annealed sampling"),
                            ("ps", CFG_PSRT, "real-time predictive sampling")):
         if cfg is None:
             continue
@@ -903,10 +908,10 @@ def sec_contact_text(S, R, rt, tj, tm_, tp):
             continue
         if len(rest) == 1:
             sent.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<b>> on the "
-                             "point-contact plant.", l=lab, a=fds(a), b=fds(rest[0])))
+                             "point-contact plant.", l=lc(lab), a=fds(a), b=fds(rest[0])))
         else:
             sent.append(fill("For <<l>> the pad model changed J by <<a>> on the pads plant and by <<lo>> to <<hi>> on "
-                             "the other four plants.", l=lab, a=fds(a), lo=f"{min(x['d'] for x in rest):+.3f}",
+                             "the other four plants.", l=lc(lab), a=fds(a), lo=f"{min(x['d'] for x in rest):+.3f}",
                              hi=f"{max(x['d'] for x in rest):+.3f}"))
     if sent:
         out.append("<p>" + " ".join(sent) + fill(" Table <<tm>> gives each plant's difference.</p>", tm=tm_))
@@ -914,12 +919,12 @@ def sec_contact_text(S, R, rt, tj, tm_, tp):
 
 
 def sec_realtime(S, T, R, rt, figs):
-    """DIAL annealing at budgets that run in real time for one hand."""
+    """Annealed sampling at budgets that run in real time for one hand."""
     full = one_hand_cfg(T, CFG_FULL)
     if not any(S.get(stem_of("anneal", c)) for c in RT_CANDS):
         return ""
     v16 = one_hand(T, 16, 4, 30)
-    t = fill(r"""<p>DIAL annealing at the benchmark's budget needed <<f>> s of GPU for one hand per 0.1 s of control.
+    t = fill(r"""<p>Annealed sampling at the benchmark's budget needed <<f>> s of GPU for one hand per 0.1 s of control.
 A planner runs in real time when one hand's replanning takes no longer than the replanning interval. A period of
 rollouts, ten physics steps of 1 ms, took <<p16>> ms for one hand at 16 samples and <<p64>> ms at 64. At a 0.1 s
 interval the iterations times the horizon must therefore stay near ten periods. Two changes double that budget. In
@@ -932,13 +937,13 @@ were run.</p>""",
     for num, (meth, cfg, s, v) in enumerate(rt_rows(S, T), 1):
         it, h, k, r, dt, n = cfg
         g = v / (r * PERIOD_S)
-        rows.append([f"{num}. " + ("PS" if meth == "ps" else "DIAL"), f"{it} &#215; {n}", f"{h * PERIOD_S:g}", str(k),
+        rows.append([f"{num}. " + ("PS" if meth == "ps" else "Annealed sampling"), f"{it} &#215; {n}", f"{h * PERIOD_S:g}", str(k),
                      f"{r * PERIOD_S:g}", f"{1e3 * (dt or 0.001):g}", f2(v, 3), f2(g, 2), f2(s["J"], 3),
                      f"{100 * s['held']:.0f}", f2(s["reversals_ps"])])
     t += table(["Planner", "Iterations &#215; samples", "Horizon (s)", "Knots", "Replanning interval (s)",
                 "Model's physics step (ms)", "Replanning, one hand (s)", "GPU time per second of control", "Mean J",
                 "Held (%)", "Target reversals (1/s)"], rows,
-               "Predictive sampling (PS) and DIAL annealing at several budgets, 40 runs each on the pads plant with the "
+               "Predictive sampling (PS) and annealed sampling at several budgets, 40 runs each on the pads plant with the "
                "pad model. One hand's replanning time is from <code>inner_loop_mpc.py timing --chunk 1</code> on the RTX "
                "4070 Ti SUPER; a GPU time per second of control of 1 or less runs in real time.", num_from=1)
     if figs.get("realtime"):
@@ -950,14 +955,14 @@ were run.</p>""",
     sf, sp = S.get("anneal_twist"), S.get(stem_of("ps", CFG_PSRT))
     if ok and sf:
         bj, bc = max(ok)
-        t += fill("<p>The best real-time DIAL configuration, <<c>>, reached <<j>>. DIAL at the benchmark's budget "
+        t += fill("<p>The best real-time annealed sampling configuration, <<c>>, reached <<j>>. Annealed sampling at the benchmark's budget "
                   "reached <<f>> and real-time predictive sampling <<p>>.</p>", c=cfg_text(bc), j=f"{bj:.3f}",
                   f=f"{sf['J']:.3f}", p=f"{sp['J']:.3f}" if sp else "&#8212;")
     if rt is not None:
         lat, said = [], []
         for meth, cfg, lab, slab in (("ps", CFG_PSRT, "PS, real time", "Real-time predictive sampling"),
-                                     ("anneal", rt, "DIAL, real time", "The real-time DIAL"),
-                                     ("anneal", CFG_FULL, "DIAL, 4 &#215; 64", "DIAL at 4 &#215; 64")):
+                                     ("anneal", rt, "Annealed sampling, real time", "The real-time annealed sampling"),
+                                     ("anneal", CFG_FULL, "Annealed sampling, 4 &#215; 64", "Annealed sampling at 4 &#215; 64")):
             cells = [lab]
             ss = [S.get(stem_of(meth, cfg, delay=dl)) for dl in ("", "_d4n", "_d14n")]
             for s in ss:
@@ -992,10 +997,10 @@ def sec_reversals(S, R, figs):
     if not any(S.get(stem_of(m, c, sh=sh)) for m, c, sh, _l, _k in REV_RUNS if sh):
         return ""
     hs, sd, si = S.get("hom_twist"), S.get("anneal_twist"), S.get("icem_twist")
-    t = fill(r"""<p>HOM's targets reversed <<h>> times per joint per second, DIAL annealing's <<d>> and iCEM's <<i>>.
+    t = fill(r"""<p>HOM's targets reversed <<h>> times per joint per second, annealed sampling's <<d>> and iCEM's <<i>>.
 A planner's targets are linear between two replannings, so they can reverse only at a replanning, at most ten times
 per second. Across the planners the reversals rose with the tracking accuracy (Figure <<f>>).</p>
-<p>Two parts of the planners were tested as causes. The first is the temperature of the MPPI step of MPPI and DIAL
+<p>Two parts of the planners were tested as causes. The first is the temperature of the MPPI step of MPPI and annealed sampling
 annealing, which weights the samples by $\exp(-(c - c_{\min})/\lambda)$ with $\lambda = 0.03\,\mathrm{std}(c)$. For
 normally distributed costs that gives an effective sample size of 1.1, at 16 and at 64 samples, and each iteration
 moves the plan by about 0.96 of one sample's noise. At $\lambda = 1.0\,\mathrm{std}(c)$ the effective sample size is
@@ -1005,8 +1010,8 @@ that change the cost little.</p>
 knot it holds the last knot. When the horizon equals the interval, as in every real-time configuration with two knots,
 the shifted plan is a constant target, so each replanning starts from a zero rate. The option <code>--warm extrap</code>
 continues the last segment's slope past the horizon.</p>
-<p>The options in Table <<tn>> were run on DIAL annealing at 3 &#215; 16 samples with a 2 ms model step, which
-needs 0.101 s of GPU per 0.1 s for one hand. Two were also run on the benchmark's DIAL and one on real-time predictive
+<p>The options in Table <<tn>> were run on annealed sampling at 3 &#215; 16 samples with a 2 ms model step, which
+needs 0.101 s of GPU per 0.1 s for one hand. Two were also run on the benchmark's annealed sampling and one on real-time predictive
 sampling. The rate-change cost and the dead band were then run on the real-time pick of 2 &#215; 32 samples, which
 needs 0.082 s. The cost options add, per joint $j$, with $\dot u_{j,0}$ the executed target's rate at the replanning,
 $\dot u_{j,k}$ the plan's rate in its $k$-th knot gap and $\dot u_s = 20$ deg/s:</p>
@@ -1017,7 +1022,7 @@ error.</p>""", h=f2(hs["reversals_ps"]) if hs else "&#8212;", d=f2(sd["reversals
              i=f2(si["reversals_ps"]) if si else "&#8212;", f=P.FIG[0] + 1, tn=P.TAB[0] + 1)
     if figs.get("reversals"):
         t = t.replace("</p>", "</p>" + P.img(figs["reversals"], "Mean J against target reversals per joint per second. "
-                                             "Grey: the benchmark's controllers. Coloured: the options on DIAL "
+                                             "Grey: the benchmark's controllers. Coloured: the options on annealed sampling "
                                              "annealing at 3 x 16 samples (filled) and on the real-time pick of 2 x 32 "
                                              "samples (open). They are numbered as in the table; each arrow starts at "
                                              "the same configuration without options."), 1)
@@ -1062,7 +1067,7 @@ def rev_text(S, R):
     if not all((b, l3, l1, ex, sg, a1, a4, rw, rv, db)):
         return ""
     base = stem_of("anneal", CFG_REV)
-    out = [fill(r"""<p>No sampling option lowered the reversals of the real-time DIAL. At temperatures 0.3 and 1.0 its
+    out = [fill(r"""<p>No sampling option lowered the reversals of the real-time annealed sampling. At temperatures 0.3 and 1.0 its
 targets reversed <<l3>> and <<l1>> times per joint per second, against <<b>> at 0.03. Steps of independent random sign
 would reverse at half the replannings, 5 times per second. With half the sampling noise the targets reversed <<sg>>
 times. The continued slope raised the target rate from <<rb>> to <<re>> deg/s, and the sphere fell in <<fe>> of the 40
@@ -1075,7 +1080,7 @@ runs against <<fb>>. Its J changed by <<de>>.""", l3=f2(l3["reversals_ps"]), l1=
                         "sphere fell in <<f>> of 40 runs.", a=f"{ps_['J']:.3f}", b=f"{pe['J']:.3f}",
                         f=round(40 * (1 - pe["held"]))))
     if fl and ff:
-        out.append(fill(" The benchmark's DIAL plans over 0.3 s, so its warm start keeps the previous plan's rates. On "
+        out.append(fill(" The benchmark's annealed sampling plans over 0.3 s, so its warm start keeps the previous plan's rates. On "
                         "it, temperature 1.0 lowered the reversals from <<a>> to <<b>> and changed J by <<c>>.",
                         a=f2(ff["reversals_ps"]), b=f2(fl["reversals_ps"]), c=d("anneal", CFG_FULL, "_lam1",
                                                                                  "anneal_twist")))
@@ -1091,7 +1096,7 @@ lowered J by <<jlo>> to <<jhi>>. With the knot-rate weight 4 the tracking error 
                     jlo=f"{min(b['J'] - x['J'] for x in (rw, a4, rv)):.3f}",
                     jhi=f"{max(b['J'] - x['J'] for x in (rw, a4, rv)):.3f}", eb=f2(b["err"], 1), erw=f2(rw["err"], 1)))
     if fa and ff:
-        out.append(fill(" On the benchmark's DIAL the rate-change cost at weight 1 lowered the reversals from <<a>> to "
+        out.append(fill(" On the benchmark's annealed sampling the rate-change cost at weight 1 lowered the reversals from <<a>> to "
                         "<<b>>, and J changed by <<c>>.", a=f2(ff["reversals_ps"]), b=f2(fa["reversals_ps"]),
                         c=d("anneal", CFG_FULL, "_acc1", "anneal_twist")))
     out.append("</p>")
@@ -1115,24 +1120,24 @@ def sec_pt(S):
     s, sp = S.get("anneal_twist_pt"), S.get("anneal_twist")
     if not s:
         return ""
-    rows = [["DIAL annealing, pads model", f2(sp["J"], 3) if sp else "&#8212;", f"{100 * sp['held']:.0f}" if sp else
+    rows = [["Annealed sampling, pads model", f2(sp["J"], 3) if sp else "&#8212;", f"{100 * sp['held']:.0f}" if sp else
              "&#8212;", f2(sp["grip_mean_N"], 1) if sp else "&#8212;", f2(sp["reversals_ps"]) if sp else "&#8212;",
              f2(sp["replan_s"], 2) if sp else "&#8212;"],
-            ["DIAL annealing, point-contact model", f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["grip_mean_N"], 1),
+            ["Annealed sampling, point-contact model", f2(s["J"], 3), f"{100 * s['held']:.0f}", f2(s["grip_mean_N"], 1),
              f2(s["reversals_ps"]), f2(s["replan_s"], 2)]]
     t = r"""<p>The point-contact model is the same hand with each v4b tip as one convex mesh, which touches the sphere at
 one point (the scene cache's <code>pt</code> model). The plant's tip is 1,018 sphere pads. The planner rolls out
 the point-contact model, and the plant keeps the pads.</p>"""
     t += table(["Planner", "Mean J", "Held (%)", "Grip (N)", "Target reversals (1/s)", "Replanning, 16 hands (s)"],
-               rows, "DIAL annealing with its own model of the fingertips, on the same 40 runs.")
+               rows, "Annealed sampling with its own model of the fingertips, on the same 40 runs.")
     return t
 
 
 def sec_hs(S):
     rows = []
-    for stem, lab in (("hom_twist", "HOM"), ("anneal_twist", "DIAL annealing, servo targets (18 numbers per plan)"),
-                      ("hs_anneal_twist", "DIAL annealing in HOM's space (24 numbers per plan), noise 0.3"),
-                      ("hs_anneal_twist_hs0.1", "DIAL annealing in HOM's space, noise 0.1"),
+    for stem, lab in (("hom_twist", "HOM"), ("anneal_twist", "Annealed sampling, servo targets (18 numbers per plan)"),
+                      ("hs_anneal_twist", "Annealed sampling in HOM's space (24 numbers per plan), noise 0.3"),
+                      ("hs_anneal_twist_hs0.1", "Annealed sampling in HOM's space, noise 0.1"),
                       ("hs_ps_twist", "Predictive sampling in HOM's space"), ("hs_icem_twist", "iCEM in HOM's space")):
         s_ = S.get(stem)
         if s_:
@@ -1170,7 +1175,7 @@ def sec_sensing(S):
             rows.append([desc[0].upper() + desc[1:], f2(s_["J"], 3), f"{100 * s_['held']:.0f}", f2(s_["err"], 1),
                          f2(s_["contact"]), f2(s_["grip_mean_N"], 1), f2(s_["reversals_ps"])])
     pl = []
-    for stem, lab in (("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"), ("anneal_twist", "DIAL annealing")):
+    for stem, lab in (("ps_twist_r10h10k2i1", "Predictive sampling, real-time budget"), ("anneal_twist", "Annealed sampling")):
         ex, nz = S.get(stem), S.get(stem.replace("_twist", "_twist_d4n") if stem == "anneal_twist" else
                                     "ps_twist_d4n_r10h10k2i1")
         if ex and nz:
@@ -1304,7 +1309,7 @@ The servos were at their torque limit in <<su>> % of the joint-periods.""", ju=f
 def sec_friction(S, R):
     rows = []
     runs = (("hom_twist_mu0.4", "HOM"), ("ps_twist_mu0.4_r10h10k2i1", "Predictive sampling, real-time budget"),
-            ("anneal_twist_mu0.4", "DIAL annealing"), ("spider_twist_mu0.4", "SPIDER"),
+            ("anneal_twist_mu0.4", "Annealed sampling"), ("spider_twist_mu0.4", "SPIDER"),
             ("spider_wc_twist_mu0.4", "SPIDER, worst case")) + tuple(
         (f"uhas_twist_mu0.4_{tag}", lab + ", trained at friction 1.0") for tag, _r, lab in UHAS_SV)
     for stem, lab in runs:
@@ -1360,23 +1365,23 @@ CFG_IL2 = (2, 30, 3, 10, 0.002, 64)       # iLQR (inner_loop_ilqr.py): 2 iterati
 CFG_IL4 = (4, 30, 3, 10, 0.002, 64)       # the same at 4 iterations (the row tag of the default schedule: none)
 # the configurations run on the tuning pairs (logs/20261114-mpc_tasks/tune_rt.sh, tune_rt2.sh): (method, cfg, label)
 TUNE = [("hom", None, "HOM"),
-        ("anneal", CFG_PICK, "DIAL 2 &#215; 32, 0.1 s ahead (the twist's real-time pick)"),
-        ("anneal", (1, 20, 3, 10, 0.002, 32), "DIAL 1 &#215; 32, 0.2 s ahead"),
-        ("anneal", (1, 20, 3, 10, 0.002, 48), "DIAL 1 &#215; 48, 0.2 s ahead"),
-        ("anneal", (2, 20, 3, 20, 0.002, 32), "DIAL 2 &#215; 32, 0.2 s ahead, every 0.2 s"),
-        ("anneal", CFG_RT7, "DIAL 2 &#215; 48, 0.2 s ahead, every 0.2 s"),
+        ("anneal", CFG_PICK, "Annealed sampling 2 &#215; 32, 0.1 s ahead (the twist's real-time pick)"),
+        ("anneal", (1, 20, 3, 10, 0.002, 32), "Annealed sampling 1 &#215; 32, 0.2 s ahead"),
+        ("anneal", (1, 20, 3, 10, 0.002, 48), "Annealed sampling 1 &#215; 48, 0.2 s ahead"),
+        ("anneal", (2, 20, 3, 20, 0.002, 32), "Annealed sampling 2 &#215; 32, 0.2 s ahead, every 0.2 s"),
+        ("anneal", CFG_RT7, "Annealed sampling 2 &#215; 48, 0.2 s ahead, every 0.2 s"),
         ("grad", CFG_PICK, "Gradient descent 2 &#215; 32, 0.1 s ahead"),
-        ("anneal", (1, 30, 3, 10, 0.002, 16), "DIAL 1 &#215; 16, 0.3 s ahead"),
-        ("anneal", (2, 30, 3, 20, 0.002, 16), "DIAL 2 &#215; 16, 0.3 s ahead, every 0.2 s"),
-        ("anneal", (2, 30, 3, 20, 0.002, 24), "DIAL 2 &#215; 24, 0.3 s ahead, every 0.2 s"),
-        ("anneal", (1, 30, 3, 15, 0.002, 32), "DIAL 1 &#215; 32, 0.3 s ahead, every 0.15 s"),
-        ("anneal", (2, 30, 3, 30, 0.002, 32), "DIAL 2 &#215; 32, 0.3 s ahead, every 0.3 s"),
-        ("anneal", (3, 20, 3, 10, 0.002, 32), "DIAL 3 &#215; 32, 0.2 s ahead"),
-        ("anneal", (4, 30, 3, 10, 0.002, 16), "DIAL 4 &#215; 16, 0.3 s ahead"),
-        ("anneal", (4, 30, 3, 10, 0.002, 32), "DIAL 4 &#215; 32, 0.3 s ahead"),
-        ("anneal", (2, 30, 3, 10, 0.002, 64), "DIAL 2 &#215; 64, 0.3 s ahead"),
-        ("anneal", CFG_FULL2, "DIAL 4 &#215; 64, 0.3 s ahead, 2 ms step"),
-        ("anneal", CFG_FULL, "DIAL 4 &#215; 64, 0.3 s ahead, 1 ms step (Section 4)"),
+        ("anneal", (1, 30, 3, 10, 0.002, 16), "Annealed sampling 1 &#215; 16, 0.3 s ahead"),
+        ("anneal", (2, 30, 3, 20, 0.002, 16), "Annealed sampling 2 &#215; 16, 0.3 s ahead, every 0.2 s"),
+        ("anneal", (2, 30, 3, 20, 0.002, 24), "Annealed sampling 2 &#215; 24, 0.3 s ahead, every 0.2 s"),
+        ("anneal", (1, 30, 3, 15, 0.002, 32), "Annealed sampling 1 &#215; 32, 0.3 s ahead, every 0.15 s"),
+        ("anneal", (2, 30, 3, 30, 0.002, 32), "Annealed sampling 2 &#215; 32, 0.3 s ahead, every 0.3 s"),
+        ("anneal", (3, 20, 3, 10, 0.002, 32), "Annealed sampling 3 &#215; 32, 0.2 s ahead"),
+        ("anneal", (4, 30, 3, 10, 0.002, 16), "Annealed sampling 4 &#215; 16, 0.3 s ahead"),
+        ("anneal", (4, 30, 3, 10, 0.002, 32), "Annealed sampling 4 &#215; 32, 0.3 s ahead"),
+        ("anneal", (2, 30, 3, 10, 0.002, 64), "Annealed sampling 2 &#215; 64, 0.3 s ahead"),
+        ("anneal", CFG_FULL2, "Annealed sampling 4 &#215; 64, 0.3 s ahead, 2 ms step"),
+        ("anneal", CFG_FULL, "Annealed sampling 4 &#215; 64, 0.3 s ahead, 1 ms step (Section 4)"),
         ("grad", CFG_FULL2, "Gradient descent 4 &#215; 64, 0.3 s ahead"),
         ("ilqr", CFG_IL2, "iLQR, 2 iterations, 0.3 s ahead"),
         ("ilqr", CFG_IL4, "iLQR, 4 iterations, 0.3 s ahead")]
@@ -1405,20 +1410,20 @@ def rt_ratio(T, c):
 
 
 def rank_ref(R, task):
-    """The planner that the ranking test compares HOM with on a task: full DIAL on the 100 pairs when its rows exist,
+    """The planner that the ranking test compares HOM with on a task: full annealed sampling on the 100 pairs when its rows exist,
     else the real-time pick. (stem, label)."""
-    for c, lab in ((CFG_FULL2, "DIAL 4 &#215; 64"), (CFG_FULL, "DIAL 4 &#215; 64"),
-                   (CFG_PICK, "DIAL 2 &#215; 32 (real time)")):
+    for c, lab in ((CFG_FULL2, "Annealed sampling 4 &#215; 64"), (CFG_FULL, "Annealed sampling 4 &#215; 64"),
+                   (CFG_PICK, "Annealed sampling 2 &#215; 32 (real time)")):
         st = tstem("anneal", task, "_rank", c)
         if len(R.get(st, [])) >= 100:
             return st, lab
     return None, None
 
 
-RANK_RUNS = [("hom", None, "HOM"), ("anneal", CFG_PICK, "DIAL 2 &#215; 32, 0.1 s ahead, real time"),
-             ("anneal", CFG_RT30, "DIAL 2 &#215; 16, 0.3 s ahead every 0.2 s, real time"),
+RANK_RUNS = [("hom", None, "HOM"), ("anneal", CFG_PICK, "Annealed sampling 2 &#215; 32, 0.1 s ahead, real time"),
+             ("anneal", CFG_RT30, "Annealed sampling 2 &#215; 16, 0.3 s ahead every 0.2 s, real time"),
              ("grad", CFG_PICK, "Gradient descent 2 &#215; 32, real time"),
-             ("anneal", CFG_FULL2, "DIAL 4 &#215; 64, 2 ms step")]
+             ("anneal", CFG_FULL2, "Annealed sampling 4 &#215; 64, 2 ms step")]
 
 
 def half(rows, task, by):
@@ -1428,9 +1433,25 @@ def half(rows, task, by):
     return [r for r in rows if key(r)[:3] in prs]
 
 
+HOM_PAGE = "../20261114-hom_inner_loop/20261114-hom_inner_loop_stability_variants_fusion.html"
+
+
+def ilqr_pad_text(R):
+    """One sentence on iLQR with the smooth pad term on the 20 pairs of each task (rows ..._rank20_pad_...), or empty."""
+    p20 = {k: load(tstem("ilqr", k, "_rank20", CFG_IL2, sh="_pad")) for k in TASKS4}
+    i20 = {k: load(tstem("ilqr", k, "_rank20", CFG_IL2)) for k in TASKS4}
+    if not all(len(v) >= 40 for v in list(p20.values()) + list(i20.values())):
+        return ""
+    m4 = (lambda d: float(np.mean([mean_j(d[k]) for k in TASKS4])))
+    return fill(""" With a smooth pad term in the model, whose Jacobian comes from the same differences, iLQR scored <<p>> on the
+20 pairs of each task against <<i>> without it, and <<pt>> against <<it>> on the twist (<a href="<<h>>">HOM page</a>,
+section on iLQR).""", p=f"{m4(p20):.3f}", i=f"{m4(i20):.3f}", pt=f"{mean_j(p20['twist']):.3f}",
+                it=f"{mean_j(i20['twist']):.3f}", h=HOM_PAGE)
+
+
 def ilqr_text(R, j, tn):
     """iLQR on the tuning pairs (inner_loop_ilqr.py, rows mpc_ilqr_<task>_tune_pdt2_r10h30k3i2 and the first run's
-    ..._first): the method and its mean J against DIAL 2 x 64 over 0.3 s, the planner nearest its rollouts per
+    ..._first): the method and its mean J against annealed sampling 2 x 64 over 0.3 s, the planner nearest its rollouts per
     replanning, and HOM (tn: the tuning table's number); empty while rows are missing."""
     il = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL2)) for k in TASKS4}
     il4 = {k: R.get(tstem("ilqr", k, "_tune", CFG_IL4)) for k in TASKS4}
@@ -1452,11 +1473,12 @@ are rolled out in parallel,
 $$u_t = \bar u_t + \alpha\, k_t + K_t\,(z_t \ominus \bar z_t), \qquad \alpha = 2^{-i},\ i = 0, \dots, 7,$$
 where $z_t$ is the state with the last target and $\ominus$ the difference in the tangent space. The cheapest under the
 full cost replaces the plan if it costs less. In two iterations the horizon is rolled out <<ro>> times per replanning.
-Under DIAL 2 &#215; 64 over 0.3 s it is rolled out 128 times. On the tuning pairs iLQR scored a mean of <<im>> over the
-four tasks, and <<im2>> in an earlier run of the same pairs (Table <<tn>>). DIAL 2 &#215; 64 scored <<dm>> and HOM <<hm>>.
+Under annealed sampling 2 &#215; 64 over 0.3 s it is rolled out 128 times. On the tuning pairs iLQR scored a mean of <<im>> over the
+four tasks, and <<im2>> in an earlier run of the same pairs (Table <<tn>>). Annealed sampling 2 &#215; 64 scored <<dm>> and HOM <<hm>>.
 <<i4>> The line search lowered the plan's cost in <<acc>> % of the iterations and took the full step in <<fs>> %. <<rts>>
 FDDP [8] differs from iLQR in its treatment of gaps in an infeasible initial guess; the plan here starts from a rollout,
-which has none.</p>""",
+which has none.<<pad>></p>""",
+                pad=ilqr_pad_text(R),
                 ro=f"{np.mean([r['rollouts_per_replan'] for r in rows]):.0f}", tn=tn, im=f"{m4(il):.3f}",
                 im2=f"{m4(il1):.3f}" if all(il1.values()) else "&#8212;",
                 dm=f"{np.mean([j('anneal', k, d64) for k in TASKS4]):.3f}",
@@ -1486,7 +1508,7 @@ thumb's pad in the roll, and for the cylinder the pinch between thumb and index.
 layouts per task, outside the ranking test's pairs (Table <<t1>>).</p>
 <p>The twist's real-time setting, two iterations of 32 samples over 0.1 s, failed on the roll and the pin-push.
 It scored <<cr>> on the roll and <<cp>> on the pin-push, against HOM's <<hr>> and <<hp>>. On the roll the
-horizon decided the outcome. Every DIAL setting that looked 0.3 s ahead scored <<fr>> there, from 16 to 64 samples
+horizon decided the outcome. Every annealed sampling setting that looked 0.3 s ahead scored <<fr>> there, from 16 to 64 samples
 per iteration. Every setting that looked 0.2 s ahead or less scored at most <<sr>>. Within the real-time budget a
 0.3 s horizon leaves room for two iterations of 16 samples every 0.2 s. That setting scored <<rr>> on the roll. The
 gradient planner, at the twist setting's budget, scored <<gr>> on the roll and <<gp>> on the pin-push.</p>""",
@@ -1503,7 +1525,7 @@ gradient planner, at the twist setting's budget, scored <<gr>> on the roll and <
     if all(hom_r.values()) and all(rt30.values()):
         dr = {k: paired(half(rt30[k], k, "random"), half(hom_r[k], k, "random")) for k in TASKS4}
         db = {k: paired(half(rt30[k], k, "hom_best"), half(hom_r[k], k, "hom_best")) for k in TASKS4}
-        t += fill(r"""<p>On each task's 100 pairs HOM scored <<hj>> (Table <<t2>>). The real-time DIAL setting with the
+        t += fill(r"""<p>On each task's 100 pairs HOM scored <<hj>> (Table <<t2>>). The real-time annealed sampling setting with the
 0.3 s horizon scored <<rj>>. On HOM's 50 best layouts it trailed HOM by <<db>>. On the 50 layouts drawn at random
 the paired difference from HOM ranged from <<dr>> (Table <<t4>>). The best half was chosen at seeds that these runs
 share, which favours HOM on it.</p>""",
@@ -1515,7 +1537,7 @@ share, which favours HOM on it.</p>""",
                   t2=tn0 + 2, t4=tn0 + 4)
         if all(full.values()):
             dfu = {k: paired(full[k], hom_r[k]) for k in TASKS4}
-            t += fill(r"""<p>DIAL with four iterations of 64 samples over 0.3 s needs 6.3 times real time. It scored
+            t += fill(r"""<p>Annealed sampling with four iterations of 64 samples over 0.3 s needs 6.3 times real time. It scored
 <<fj>>. Its paired difference from HOM was <<dd>> (Table <<t3>>), and it scored above HOM on <<wn>> of the 100
 pairs.</p>""",
                       fj=and_list([f"{mean_j(full[k]):.3f}" for k in TASKS4]),
@@ -1588,10 +1610,10 @@ def sec_tasks(R, T):
 
 
 # the controllers of the four tasks' films (inner_loop_mpc.py film --methods), by their spec
-FILM_SPEC = {"hom": "HOM", "anneal@2,10,2,10,2,32": "DIAL 2 &#215; 32, 0.1 s ahead, real time",
-             "anneal@2,30,3,20,2,16": "DIAL 2 &#215; 16, 0.3 s ahead, real time",
+FILM_SPEC = {"hom": "HOM", "anneal@2,10,2,10,2,32": "Annealed sampling 2 &#215; 32, 0.1 s ahead, real time",
+             "anneal@2,30,3,20,2,16": "Annealed sampling 2 &#215; 16, 0.3 s ahead, real time",
              "grad@2,10,2,10,2,32": "gradient planner 2 &#215; 32, real time",
-             "anneal@4,30,3,10,2,64": "DIAL 4 &#215; 64, 6.3 times real time"}
+             "anneal@4,30,3,10,2,64": "Annealed sampling 4 &#215; 64, 6.3 times real time"}
 
 
 def task_films(R, date="20261115"):
@@ -1614,14 +1636,14 @@ def task_films(R, date="20261115"):
             who = ["HOM's best layout by its grid" if p.stem.endswith("_p0_s0") else
                    {"hom_best": "one of HOM's 50 best layouts", "random": "a layout drawn at random"}.get(pr.get("by"), "")]
             if k == dbest:
-                who.append("full DIAL's best of the 100 pairs")
+                who.append("full annealed sampling's best of the 100 pairs")
             parts = []
             for spec, c in info["clips"].items():
                 nm = FILM_SPEC.get(spec, esc(spec))
                 parts.append(f"{nm[0].upper() + nm[1:]}: J {c['J']:.2f}, grip {c['grip_mean_N']:.1f} N"
                              + ("" if c.get("held") else ", dropped"))
             cap = (f"{TNAME[t]}: layout ({pr['x']:g}, {pr['y']:g}) mm, grasp {pr['grasp']}, seed {info['seed']}; "
-                   + ", ".join(x for x in who if x) + ". The task phase from 2.4 s. " + ". ".join(parts) + ". A "
+                   + ", ".join(x for x in who if x) + ". The task phase from 2.0 s. " + ". ".join(parts) + ". A "
                    "planner's run in the film draws other samples than its runs in the tables. Each frame gives each "
                    "finger's pad force and the force through its rigid parts (N); the links are drawn see-through.")
             out += P.film(p, cap)
@@ -1698,8 +1720,8 @@ def fig_rank100(N, out):
 def confirm_numbers(task):
     """The fresh-seed check of the ranking test (seeds 10 and 11 on each controller's ten best _rank pairs by its J at
     seeds 0 and 1): each set's mean J under both controllers at seeds 0-1 (the _rank rows) and 10-11, the difference of
-    the two sets' means by bootstrap over pairs, the episodes that held the object, and full DIAL's J at 10-11 on HOM's
-    first choice, on DIAL's own first choice and on the fused choice (DIAL's best of HOM's ten at seeds 0-1)."""
+    the two sets' means by bootstrap over pairs, the episodes that held the object, and full annealed sampling's J at 10-11 on HOM's
+    first choice, on annealed sampling's own first choice and on the fused choice (annealed sampling's best of HOM's ten at seeds 0-1)."""
     pf = ROWS / f"mpc_pairs_{task}_top.json"
     hr, dr = load(tstem("hom", task, "_top")), load(tstem("anneal", task, "_top", CFG_FULL2))
     if not pf.exists() or len(hr) < 20 or len(dr) < 20:
@@ -1761,43 +1783,43 @@ def sec_confirm():
     for t in low + high:
         s_.append(f"On the {TNAME[t].lower()} the difference was {fds(C[t]['d_dial'])}.")
     hl = [t for t, c in C.items() if c["d_hom"]["lo"] > 0]
-    own = (f" HOM's ten still scored above DIAL's ten under HOM on {tasks_list(hl)}, by "
+    own = (f" HOM's ten still scored above annealed sampling's ten under HOM on {tasks_list(hl)}, by "
            + and_list([fds(C[t]["d_hom"]) for t in hl]) + "." if hl else "")
     cyl = [t for t in ("pinpush", "press") if t in C]
     drops = " ".join(
         f"On the {TNAME[t].lower()} HOM dropped the cylinder in {C[t]['drop_hom'][0]} of the {C[t]['drop_hom'][1]} runs "
-        f"at seeds 10 and 11 and in {C[t]['drop_hom_s01'][0]} at seeds 0 and 1. Full DIAL dropped it in "
+        f"at seeds 10 and 11 and in {C[t]['drop_hom_s01'][0]} at seeds 0 and 1. Full annealed sampling dropped it in "
         + ("none of the same runs." if C[t]["drop_dial"][0] == C[t]["drop_dial_s01"][0] == 0 else
            f"{C[t]['drop_dial'][0]} and {C[t]['drop_dial_s01'][0]} of the same runs.") for t in cyl)
     gap = {t: c["first_d_dial"] - c["first_h_dial"] for t, c in C.items()}
     crit = (f"At seeds 10 and 11 HOM's first choice scored " + and_list([f"{gap[t]:.3f}" for t in C])
-            + f" below DIAL's first choice under full DIAL, on the {and_list([TNAME[t].lower() for t in C])}. The second "
+            + f" below annealed sampling's first choice under full annealed sampling, on the {and_list([TNAME[t].lower() for t in C])}. The second "
             f"outcome set in advance, a shortfall of more than 0.1, held on {tasks_list([t for t in C if gap[t] > 0.1])}.")
     same = [t for t, c in C.items() if c["fused_is"] == "planner"]
     other = [t for t in C if t not in same]
-    fu = (f"Among HOM's ten, full DIAL's best pair at seeds 0 and 1 was its own first choice of the 100 on "
+    fu = (f"Among HOM's ten, full annealed sampling's best pair at seeds 0 and 1 was its own first choice of the 100 on "
           f"{tasks_list(same)}. " if same else "")
-    fu += " ".join(f"On the {TNAME[t].lower()} that pair scored {C[t]['fused_dial']:.3f} at the new seeds, and DIAL's "
+    fu += " ".join(f"On the {TNAME[t].lower()} that pair scored {C[t]['fused_dial']:.3f} at the new seeds, and annealed sampling's "
                    f"own first choice {C[t]['first_d_dial']:.3f}." for t in other)
     text = fill(r"""<p>Each controller's ten best of the 100 pairs, by its J at seeds 0 and 1, were run again with both
-controllers at seeds 10 and 11 (Table <<tn>>). These seeds chose no pair. Under full DIAL, HOM's ten lost
-<<fh_lo>> to <<fh_hi>> of their mean J at the new seeds. DIAL's own ten lost up to <<fd_hi>>, on the <<tw>>; they had
-been chosen on DIAL's J at seeds 0 and 1. <<cmp>></p>
+controllers at seeds 10 and 11 (Table <<tn>>). These seeds chose no pair. Under full annealed sampling, HOM's ten lost
+<<fh_lo>> to <<fh_hi>> of their mean J at the new seeds. Annealed sampling's own ten lost up to <<fd_hi>>, on the <<tw>>; they had
+been chosen on annealed sampling's J at seeds 0 and 1. <<cmp>></p>
 <p>Under HOM both sets lost J at the new seeds, most on the cylinder tasks. <<drops>><<own>></p>
 <p><<crit>> In the search of the <a href="../20261114-hom_inner_loop/20261114-hom_inner_loop_stability_variants_fusion.html">HOM
-page</a>, full DIAL re-scores HOM's best layouts and chooses among them. <<fu>></p>""",
+page</a>, full annealed sampling re-scores HOM's best layouts and chooses among them. <<fu>></p>""",
                 tn=tn, fh_lo=f"{min(fall_h.values()):.3f}", fh_hi=f"{max(fall_h.values()):.3f}",
                 fd_hi=f"{fall_d[tw]:.3f}", tw=TNAME[tw].lower(), cmp=" ".join(s_), drops=drops, own=own, fu=fu,
                 crit=crit)
-    return text + table(["Task", "Pairs, HOM's / DIAL's ten", "HOM's ten under full DIAL, seeds 0-1 &#8594; 10-11",
-                         "DIAL's ten under full DIAL, seeds 0-1 &#8594; 10-11", "Difference at seeds 10-11 (95 % interval)",
-                         "HOM's ten under HOM, seeds 0-1 &#8594; 10-11", "DIAL's ten under HOM, seeds 0-1 &#8594; 10-11",
-                         "Full DIAL's J at seeds 10-11 on HOM's first choice / the fused choice / DIAL's first choice"],
+    return text + table(["Task", "Pairs, HOM's / annealed sampling's ten", "HOM's ten under full annealed sampling, seeds 0-1 &#8594; 10-11",
+                         "Annealed sampling's ten under full annealed sampling, seeds 0-1 &#8594; 10-11", "Difference at seeds 10-11 (95 % interval)",
+                         "HOM's ten under HOM, seeds 0-1 &#8594; 10-11", "Annealed sampling's ten under HOM, seeds 0-1 &#8594; 10-11",
+                         "Full annealed sampling's J at seeds 10-11 on HOM's first choice / the fused choice / annealed sampling's first choice"],
                         rows,
                         "The ranking test at fresh seeds: each controller's ten best of the 100 pairs (by its J at seeds 0 "
                         "and 1) run again under both controllers at seeds 10 and 11; mean J of each set. Difference: "
-                        "HOM's ten minus DIAL's ten under full DIAL, with the 95 % interval of 4,000 bootstrap resamples of "
-                        "each set's pairs. Fused choice: the pair of HOM's ten with full DIAL's best J at seeds 0 and 1.",
+                        "HOM's ten minus annealed sampling's ten under full annealed sampling, with the 95 % interval of 4,000 bootstrap resamples of "
+                        "each set's pairs. Fused choice: the pair of HOM's ten with full annealed sampling's best J at seeds 0 and 1.",
                         num_from=1)
 
 
@@ -1817,7 +1839,7 @@ def tasks_list(ts):
 
 
 def sec_rank100(R):
-    """The ranking test of 2026-11-14 (owner: "you can run the further test on running realtime DIAL"): HOM's order of
+    """The ranking test of 2026-11-14 (owner: "you can run the further test on running real-time annealed sampling"): HOM's order of
     each task's 100 pairs against a planner's; the figure is drawn here."""
     N, refs = {}, {}
     for t in TASKS4:
@@ -1844,7 +1866,7 @@ HOM's 50 best, HOM's scores at the two seeds agreed with $\rho$ <<shb>>, and the
 of the planner's best by <<gp>>. Two outcomes had been set in advance that would show that HOM cannot stand in for the
 planner. One is a $\rho$ below 0.6 over HOM's 50 best. The other is HOM's first choice more than 0.1 below the
 planner's best, in the planner's J. The first held on <<f1>>, the second on <<f2_>>.</p>""",
-                pl=refs[ts[0]], tn=tn, fn=fn, rho=lst("rho"), tl=and_list([TNAME[t].lower() for t in ts]),
+                pl=lc(refs[ts[0]]), tn=tn, fn=fn, rho=lst("rho"), tl=and_list([TNAME[t].lower() for t in ts]),
                 rb=lst("rho_best"), rr=lst("rho_rand"), ov=and_list([str(N[t]["top10"]) for t in ts]),
                 sh=lst("seed_hom"), sd=lst("seed_ref"),
                 rc=and_list([f2(N[t]["rho_dis"]) for t in ts]), fd_=lst("first_d", 3), bd=lst("best_d", 3),
@@ -1873,14 +1895,10 @@ planner's best, in the planner's J. The first held on <<f1>>, the second on <<f2
 
 def sec_future():
     items = [
-        "Full DIAL on every layout of the press's grid with HOM's best grasp, at seeds 0 and 1. The 369 layouts take "
-        "about 1.6 hours at 7.8 s of GPU per rollout; <code>inner_loop_mpc.py pairs --rule</code> needs a grid rule. If "
-        "more than five of the planner's ten best layouts lie outside HOM's 50 best, HOM's grid misses the planner's best "
-        "press layouts.",
-        "UHAS with a target-rate term in its reward (<code>uhas_sr2.py train --limits</code>, "
-        "<code>REW_LIMITS['rate']</code> from -0.04 upwards). The term should bring its reversals to the planners' 1 to "
-        "3 per joint per second. A test-split J at or below HOM's 0.085 at that rate would show that UHAS's lead over "
-        "HOM needs the saturated targets.",
+        "UHAS with a larger target-rate weight in its reward (<code>uhas_sr2.py train --limits</code>, "
+        "<code>REW_LIMITS['rate']</code> above 0.04). At weight 0.04 the reversals rose to 47.6 per joint per second "
+        "(Section on UHAS). A weight that brings them to the planners' 1 to 3 per joint per second, with a test-split J "
+        "at or below HOM's 0.085, would show that UHAS's lead over HOM needs the saturated targets.",
         "Planning from a state predicted over the latency, with the plan applied at the times it was computed for. The "
         "runs from a 140 ms old state apply the plan when it arrives, without that prediction "
         "(<code>measured</code> in <code>inner_loop_mpc.py</code>).",
@@ -1916,9 +1934,9 @@ def lede(S, T, R_=None):
         mj = {lab: float(np.mean([mean_j(R_[tstem(m, t, "_rank", c)]) for t in TASKS4])) for m, c, lab in done}
         rt = [v_ for lab, v_ in mj.items() if "real time" in lab] or [float("nan")]
         rho = [rank_numbers(R_, t, rank_ref(R_, t)[0])["rho"] for t in TASKS4]
-        parts.insert(0, fill("On the SR2 hand's four tasks, with 100 layout-grasp pairs each, HOM's mean J was <<h>>. DIAL "
+        parts.insert(0, fill("On the SR2 hand's four tasks, with 100 layout-grasp pairs each, HOM's mean J was <<h>>. Annealed sampling "
                              "at 4 x 64 samples, at 6.3 times real time, reached <<f>>, and the three real-time planners "
-                             "<<lo>> to <<hi>>. HOM ordered the pairs as full DIAL did with Spearman's rho <<r>> on the "
+                             "<<lo>> to <<hi>>. HOM ordered the pairs as full annealed sampling did with Spearman's rho <<r>> on the "
                              "twist, roll, pin-push and press.", h=f"{mj['HOM']:.3f}",
                              f=f"{mj[RANK_RUNS[-1][2]]:.3f}", lo=f"{min(rt):.3f}", hi=f"{max(rt):.3f}",
                              r=", ".join(f2(x) for x in rho)))
@@ -1927,7 +1945,7 @@ def lede(S, T, R_=None):
     if ok:
         bj, bc = max(ok)
         dh = paired(R_.get(stem_of("anneal", bc), []), R_.get("hom_twist", []))
-        parts.append(fill("DIAL annealing at <<n>> samples<<st>> runs in real time. It reached <<j>>, and the "
+        parts.append(fill("Annealed sampling at <<n>> samples<<st>> runs in real time. It reached <<j>>, and the "
                           "paired difference from HOM was <<d>>.", n=f"{bc[0]} x {bc[5]}", j=f"{bj:.3f}", d=fds(dh),
                           st=f" with a {1e3 * bc[4]:g} ms model step" if bc[4] else ""))
         b, a1 = S.get(stem_of("anneal", bc)), S.get(stem_of("anneal", bc, sh="_acc1"))
@@ -1990,7 +2008,7 @@ def main():
     if len(S) > 1:
         figs["overview"] = fig_overview(S, MEDIA / "20261113-mpc_overview.png")
     if R.get("anneal_twist") and R["hom_twist"]:
-        figs["pairs"] = fig_pairs(R["hom_twist"], R["anneal_twist"], "DIAL annealing", MEDIA / "20261113-mpc_pairs.png")
+        figs["pairs"] = fig_pairs(R["hom_twist"], R["anneal_twist"], "Annealed sampling", MEDIA / "20261113-mpc_pairs.png")
     T = timing_rows()
     rt = rt_pick(R, T)
     if S.get(hom_stem("pt")) or S.get(stem_of("ps", CFG_PSRT, model="pt")):

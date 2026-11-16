@@ -21,7 +21,7 @@
   "builder": "scripts/hom/hom_inner_loop_page.py",
   "artifact": "https://claude.ai/artifact/83AjHSqqWZXRuif4nTFjCa",
   "status": "current",
-  "mb": 4.5
+  "mb": 2.1
  },
  {
   "date": "2026-11-13",
@@ -81,7 +81,7 @@
   "builder": "scripts/hom/inner_loop_mpc_page.py",
   "artifact": "https://claude.ai/artifact/3m4bcPKugwFCtX5ZZLtd7f",
   "status": "current",
-  "mb": 7.6
+  "mb": 2.0
  },
  {
   "date": "2026-11-12",
