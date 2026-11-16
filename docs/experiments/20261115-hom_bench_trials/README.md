@@ -6,7 +6,7 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
 
 ## State on 2026-11-16 15:51: pick-up by controlled slip
 
-The owner, 15:2x: "carefully try to pick up the sphere and run a controlled slip to have it rotate to more level, and
+The owner, about 15:20: "carefully try to pick up the sphere and run a controlled slip to have it rotate to more level, and
 try placing it? would be a very interesting skill to build. controlled friction is the name of the game after all."
 `lab/pinch_pickup.py` does it for the sphere lying on its side. The film is
 `media/20261116-pinch_pickup_controlled_slip.mp4` (27.7 s, both cameras, people blurred).

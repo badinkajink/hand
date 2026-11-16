@@ -625,7 +625,7 @@ The 24 grasps 15 to 20° below the equator scored a mean J of 0.056 at 0.5, agai
 grasp 7, 12.5° below, ranks first under both models (J 0.603 at 0.5, 0.547 at 1.0); its plan and HOM server are ready.
 Those scores used servos that the load drives back freely. {rs}</p>
 <ul>
-<li>Test the servo model blind (owner, 16:1x: "we should keep running twist trials to verify our many, many real2sim
+<li>Test the servo model blind (owner, 16:0x: "we should keep running twist trials to verify our many, many real2sim
 calibration problems, and improve pick up as needed when the object falls"). Predict grasp 7 and three or four more
 twist grasps at (105, 70) with the no-backdrive servo, then run each twice on the hand. The pick-up recovers the sphere
 when a trial topples it.</li>
@@ -659,7 +659,7 @@ in <code>data/20261116-pinch_pickup/</code> (<code>lab/pinch_slip_table.py</code
            .replace("{{H1}}", "Sim-to-real reversal of HOM's sphere-twist grasps on the SR2 hand")
            .replace("{{LEDE}}", lede)
            .replace("{{BYLINE}}", "Corvus lab session with the workstation's HOM session (hand-4a); the owner supervised "
-                                  "until 13:25 and directed the pick-up from away at 15:2x")
+                                  "until 13:25 and directed the pick-up from away at about 15:20")
            .replace("{{FILM}}", "")
            .replace("{{TOC}}", toc)
            .replace("{{SECTIONS}}", body)
