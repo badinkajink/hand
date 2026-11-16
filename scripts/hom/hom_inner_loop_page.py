@@ -1446,6 +1446,16 @@ def size_slope(cs, f):
     return float(np.polyfit([c["d"] for c in cs], [f(c) for c in cs], 1)[0])
 
 
+def size_trend(S):
+    """Per task and controller: the size slope of the ten best's median x_sep, of the best pair's x_sep, and whether the
+    median rose at every step from the smallest size to the largest."""
+    sl = {t: {nm: size_slope(S[t], lambda c: c["top10_x_med"][nm]) for nm in "HA"} for t in S}
+    sb = {t: {nm: size_slope(S[t], lambda c: c["best"][nm]["x"]) for nm in "HA"} for t in S}
+    mono = {t: {nm: all(b["top10_x_med"][nm] > a["top10_x_med"][nm] for a, b in zip(S[t], S[t][1:])) for nm in "HA"}
+            for t in S}
+    return sl, sb, mono
+
+
 def size_films(S):
     """The other size whose two controllers' best pairs lie farthest apart (lane line size_films) and the films of HOM
     and full annealed sampling at seed 10 on each of the two pairs: (cell, [(controller, path, info)])."""
@@ -1498,22 +1508,27 @@ def sec_sizes(R):
     rn, rb = [c["rho"] for c in new], [base[t]["rho"] for t in ts]
     gain = [c["mean"]["A"] - c["mean"]["H"] for c in cells]
     below = [c for c in cells if c["mean"]["A"] <= c["mean"]["H"]]
-    sl = {t: {nm: size_slope(S[t], lambda c: c["top10_x_med"][nm]) for nm in "HA"} for t in ts}
-    sb = {t: {nm: size_slope(S[t], lambda c: c["best"][nm]["x"]) for nm in "HA"} for t in ts}
-    up = all(sl[t][nm] > 0 for t in ts for nm in "HA")
+    sl, sb, mono = size_trend(S)
+    upH, upA = [t for t in ts if mono[t]["H"]], [t for t in ts if mono[t]["A"]]
     rng = (lambda v, d=2: f"{min(v):.{d}f} to {max(v):.{d}f}")
     txt = ("<p>" + fill(r"""At the other object sizes the two controllers' J over the 100 pairs correlated at $\rho$ =
 <<rn>>, against <<rb>> at the benchmark's sizes (Table <<tn>>).""", rn=rng(rn), rb=rng(rb), tn=tn)
            + (f" Full annealed sampling's mean J was above HOM's on {MP.tasks_list(ts)} at every size, by "
-              f"{rng(gain, 3)}." if not below else
+              f"{rng(gain, 3)} (Table {tn + 1})." if not below else
               f" Full annealed sampling's mean J was above HOM's at {len(cells) - len(below)} of the {len(cells)} sizes "
               "and at or below it at " + al([f"the {TN[c['task']].lower()}'s {c['d']:g} mm" for c in below]) + ".")
            + (fill(r""" Under both controllers the ten best pairs lay at a larger $x_{\mathrm{sep}}$ for a larger
 object. Their median rose by <<h>> mm per mm of diameter under HOM and by <<a>> mm per mm under the planner (Table <<t3>>,
-Figure <<fn>>).""", h=rng([sl[t]["H"] for t in ts]), a=rng([sl[t]["A"] for t in ts]), t3=tn + 2, fn=fn) if up else
-              fill(r""" The median $x_{\mathrm{sep}}$ of the ten best pairs changed by <<h>> mm per mm of diameter under HOM
-and by <<a>> mm per mm under the planner (Table <<t3>>, Figure <<fn>>).""", h=rng([sl[t]["H"] for t in ts]),
-                   a=rng([sl[t]["A"] for t in ts]), t3=tn + 2, fn=fn)) + "</p>")
+Figure <<fn>>).""", h=rng([sl[t]["H"] for t in ts]), a=rng([sl[t]["A"] for t in ts]), t3=tn + 3, fn=fn)
+              if len(upH) == len(upA) == len(ts) else
+              fill(r""" The median $x_{\mathrm{sep}}$ of the ten best pairs rose with the diameter on <<ua>> under the
+planner and on <<uh>> under HOM (Table <<t3>>, Figure <<fn>>).""", ua=MP.tasks_list(upA), uh=MP.tasks_list(upH),
+                   t3=tn + 3, fn=fn)
+              + "".join(f" On the {TN[t].lower()} {'HOM' if nm == 'H' else 'the planner'}'s median was "
+                        + al([f"{c['top10_x_med'][nm]:g} mm with the {size_label(t, c['d'])}" for c in S[t]]) + "."
+                        for t in ts for nm in "HA" if not mono[t][nm])
+              + f" Where it rose, its slope was {rng([sl[t]['H'] for t in upH])} mm per mm under HOM and "
+                f"{rng([sl[t]['A'] for t in upA])} under the planner.") + "</p>")
     txt += fill(r"""<p>The sizes are those of the size study on the SCS0009 plant (<a href="<<sp>>">search-methods
 page</a>): <<os>>, beside the benchmark's spheres of 40 mm and cylinders of 25 mm. The spheres are the twist's and the
 roll's objects, the cylinders the pin-push's and the press's. At each size HOM ran every layout of the grid on the benchmark's plant at
@@ -1529,6 +1544,19 @@ correlation stayed below its ceiling at every size, by <<c0>> to <<c1>>.</p>""",
                     dg=f"{sgn(min(dg))} to {sgn(max(dg))}", dn=f"{sgn(min(dn))} to {sgn(max(dn))}",
                     c0=f2(min(c["ceiling"] - c["cross1"] for c in cells)),
                     c1=f2(max(c["ceiling"] - c["cross1"] for c in cells)))
+    gp = max(cells, key=lambda c_: c_["mean"]["A"] - c_["mean"]["H"])
+    gt = gp["task"]
+    if gt in G:
+        txt += fill(r"""<p>The two controllers' mean J lay farthest apart on the <<tk>> with the <<sz>>: <<jh>> under HOM and
+<<ja>> under the planner (Table <<t1>>). There HOM's J was 0 on <<zh>> of the 100 pairs and the planner's on <<za>>. HOM's
+held runs missed the commanded orientation by a median of <<eh>> deg, and the commanded rotation's RMS was <<er>> deg.
+The planner's missed it by <<ea>> deg. From the smallest <<ob>> to the largest the planner's mean J on the <<tk>> was
+<<pa>>, and HOM's <<ph>>.</p>""",
+                    tk=TN[gt].lower(), sz=size_label(gt, gp["d"]), jh=f"{gp['mean']['H']:.3f}",
+                    ja=f"{gp['mean']['A']:.3f}", t1=tn + 1, zh=gp["zero"]["H"], za=gp["zero"]["A"],
+                    eh=f"{gp['smooth']['H']['err_med']:.1f}", er=f"{G[gt]['e_ref']:.1f}",
+                    ea=f"{gp['smooth']['A']['err_med']:.1f}", ob="sphere" if gt in ("twist", "roll") else "cylinder",
+                    pa=al([f"{c['mean']['A']:.3f}" for c in S[gt]]), ph=al([f"{c['mean']['H']:.3f}" for c in S[gt]]))
     cf, F = size_films(S)
     far = cf if cf is not None else max(new, key=lambda c_: c_["best_dist_mm"])
     bh, ba = far["best"]["H"], far["best"]["A"]
@@ -1537,7 +1565,7 @@ correlation stayed below its ceiling at every size, by <<c0>> to <<c1>>.</p>""",
 HOM and <<ho>> under the planner. The planner's, (<<ax>>, <<ay>>) mm, scored <<aj>> under the planner and <<ao>> under
 HOM.</p>""",
                 tk=TN[far["task"]].lower(), sz=size_label(far["task"], far["d"]), dd=f"{far['best_dist_mm']:.0f}",
-                t2=tn + 1, hx=f"{bh['x']:g}", hy=f"{bh['y']:g}", hj=f2(bh["J"]), ho=f2(bh["J_other"]),
+                t2=tn + 2, hx=f"{bh['x']:g}", hy=f"{bh['y']:g}", hj=f2(bh["J"]), ho=f2(bh["J_other"]),
                 ax=f"{ba['x']:g}", ay=f"{ba['y']:g}", aj=f2(ba["J"]), ao=f2(ba["J_other"]))
     ins = [f"{sl[t]['H']:.2f}" + (" mm per mm" if i == 0 else "") + f" on the {TN[t].lower()}" for i, t in enumerate(ts)]
     tr = [f"{TRENDS_SLOPE[t]:.2f}" + (" mm per mm" if i == 0 else "") + f" on the {TN[t].lower()}"
@@ -1546,7 +1574,7 @@ HOM.</p>""",
 the same plant, HOM's searches over 9 or 10 sizes per task moved the centroid of their best layouts by <<tr>>. They were
 scored before J was adopted (<a href="<<tp>>">layout-trends page</a>, Table 2). A single best pair moved less regularly:
 its slope was <<bh>> under HOM and <<ba>> under the planner.</p>""",
-                ins=al(ins), t3=tn + 2, tr=al(tr), tp=TRENDS_PAGE,
+                ins=al(ins), t3=tn + 3, tr=al(tr), tp=TRENDS_PAGE,
                 bh=f"{sgn(min(sb[t]['H'] for t in ts))} to {sgn(max(sb[t]['H'] for t in ts))}",
                 ba=f"{sgn(min(sb[t]['A'] for t in ts))} to {sgn(max(sb[t]['A'] for t in ts))}")
     sm = [(c["smooth"]["H"], c["smooth"]["A"]) for c in cells]
@@ -1558,20 +1586,31 @@ against <<ra>> deg/s. HOM's targets reversed <<vh>> times per joint per second a
     for t in ts:
         for c in S[t]:
             g = G.get(t) if c["base"] else None
-            rows.append([TN[t], f"{c['d']:g}" + (" (benchmark)" if c["base"] else ""), str(c["grid"]["layouts"]),
-                         f2(c["rho"]), f"{f2(c['seed_rho']['H'])} / {f2(c['seed_rho']['A'])}",
-                         f"{f2(c['cross1'])} ({f2(c['ceiling'])})",
-                         f2(g["rho"]) if g else "&#8212;",
-                         f"{c['mean']['H']:.3f} / {c['mean']['A']:.3f}",
-                         f"{f2(c['smooth']['H']['reversals_ps'])} / {f2(c['smooth']['A']['reversals_ps'])}",
-                         f"{c['smooth']['H']['cmd_rate_dps']:.0f} / {c['smooth']['A']['cmd_rate_dps']:.0f}"])
-    txt += table(["Task", "Diameter (mm)", "Layouts in HOM's grid", "&#961;, HOM and planner, seeds averaged",
+            rows.append([TN[t], f"{c['d']:g}" + (" (benchmark)" if c["base"] else ""), f2(c["rho"]),
+                         f"{f2(c['seed_rho']['H'])} / {f2(c['seed_rho']['A'])}", f"{f2(c['cross1'])} ({f2(c['ceiling'])})",
+                         f2(g["rho"]) if g else "&#8212;"])
+    txt += table(["Task", "Diameter (mm)", "&#961;, HOM and planner, seeds averaged",
                   "&#961;, seeds 0 and 1: HOM / planner", "&#961;, HOM and planner at single seeds (ceiling)",
-                  "&#961; over the whole grid, seeds averaged", "Mean J: HOM / planner",
+                  "&#961; over the whole grid, seeds averaged"], rows,
+                 "Agreement of HOM and full annealed sampling (4 &#215; 64) on the 100 pairs of each task and object "
+                 "size, seeds 0 and 1. The whole grid was run under both controllers at the benchmark's sizes only "
+                 "(Table " + str(TAB_GAINS[0]) + ").", num_from=1)
+    rows = []
+    for t in ts:
+        for c in S[t]:
+            h, a = c["smooth"]["H"], c["smooth"]["A"]
+            rows.append([TN[t], f"{c['d']:g}", str(c["grid"]["layouts"]), f"{c['mean']['H']:.3f} / {c['mean']['A']:.3f}",
+                         f"{c['zero']['H']} / {c['zero']['A']}", f"{h['err_med']:.1f} / {a['err_med']:.1f}",
+                         f"{f2(h['contact'])} / {f2(a['contact'])}", f"{f2(h['reversals_ps'])} / {f2(a['reversals_ps'])}",
+                         f"{h['cmd_rate_dps']:.0f} / {a['cmd_rate_dps']:.0f}"])
+    eref = al([f"{G[t]['e_ref']:.1f}" + (" deg" if i == 0 else "") + f" on the {TN[t].lower()}"
+               for i, t in enumerate(ts) if t in G])
+    txt += table(["Task", "Diameter (mm)", "Layouts in HOM's grid", "Mean J: HOM / planner", "Pairs at J = 0: HOM / planner",
+                  "Median tracking error (deg): HOM / planner", "Three-pad share: HOM / planner",
                   "Target reversals (1/s): HOM / planner", "Target rate (deg/s): HOM / planner"], rows,
-                 "HOM and full annealed sampling (4 &#215; 64) on the 100 pairs of each task and object size, seeds 0 "
-                 "and 1. The whole grid was run under both controllers at the benchmark's sizes only (Table "
-                 + str(TAB_GAINS[0]) + "). Target reversals and target rate: medians over the held runs.", num_from=1)
+                 "Scores of the two controllers on the 100 pairs of each size, seeds 0 and 1. Over the held runs: the "
+                 "median tracking error, the mean three-pad share, and the median target reversals and target rate. "
+                 "The commanded rotation's RMS was the same at every size: " + eref + ".", num_from=2)
     rows = []
     for t in ts:
         for c in S[t]:
@@ -1610,6 +1649,7 @@ against <<ra>> deg/s. HOM's targets reversed <<vh>> times per joint per second a
                              + ". ".join(parts) + ". Each frame gives each finger's pad force and the force through "
                              "its rigid parts (N), in the order thumb, index, middle.")
     return txt
+
 
 def variant_effects(R):
     """Each variant's paired difference from HOM's defaults on its tasks' 20 pairs: [(tag, label, tasks, {task:
@@ -2200,11 +2240,16 @@ def lede(R, PK, GS):
         parts.append(f"With {other_sizes(Sz)} the two controllers' J over 100 pairs per size correlated at &#961; = "
                      f"{min(rn):.2f} to {max(rn):.2f}.")
         parts.append(f"At the benchmark's 40 mm spheres and 25 mm cylinders it was {min(rb):.2f} to {max(rb):.2f}.")
-        sl = {nm: [size_slope(Sz[t], lambda c: c["top10_x_med"][nm]) for t in Sz] for nm in "HA"}
-        if min(sl["H"] + sl["A"]) > 0:
-            parts.append("The median $x_{\\mathrm{sep}}$ of the ten best pairs rose with the object's diameter under both "
-                         f"controllers, by {min(sl['H']):.2f} to {max(sl['H']):.2f} mm per mm under HOM and by "
-                         f"{min(sl['A']):.2f} to {max(sl['A']):.2f} under full annealed sampling.")
+        sl, _sb, mono = size_trend(Sz)
+        said = False
+        for nm, who in (("A", "full annealed sampling"), ("H", "HOM")):
+            up_ = [t for t in Sz if mono[t][nm]]
+            if up_:
+                v = [sl[t][nm] for t in up_]
+                parts.append(f"Under {who} " + ("it" if said else "the median $x_{\\mathrm{sep}}$ of the ten best pairs")
+                             + f" rose with the object's diameter on {MP.tasks_list(up_)}, by {min(v):.2f} to "
+                             f"{max(v):.2f} mm per mm.")
+                said = True
     Q = {t: repeat_numbers(R, t) for t in PATCH_TASKS}
     if all(Q.values()):
         parts.append(f"Run twice at the same seeds, a layout's J differed by a mean of "

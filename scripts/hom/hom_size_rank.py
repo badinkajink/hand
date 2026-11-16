@@ -17,7 +17,9 @@ cylinders, have no _d<d>). Reported per (task, size), J of a pair the mean over 
   best_dist_mm  the distance between the two controllers' best pairs in (x_sep, y_sep)
   top10_x       the x_sep (mm) of each controller's ten best pairs
   smooth        each controller's share of held runs, and over its held runs the median target reversals per
-                joint per second and the median RMS target rate (deg/s)
+                joint per second, the median RMS target rate (deg/s), the median RMS tracking error (deg) and the mean
+                three-pad share
+  zero          the pairs at J = 0 under each controller, seeds averaged
   grid          the HOM grid at that size: layouts, mean J of each layout's best grasp, its best layout
 
     .venv/bin/python scripts/hom/hom_size_rank.py --json PATH [--fig PATH]
@@ -67,7 +69,8 @@ def smooth(D, keys):
     runs = [D[k][s] for k in keys for s in SEEDS]
     h = [r for r in runs if r.get("held")]
     md = (lambda k: float(np.median([r[k] for r in h if r.get(k) is not None])) if h else None)
-    return {"held": len(h) / len(runs), "reversals_ps": md("reversals_ps"), "cmd_rate_dps": md("cmd_rate_dps")}
+    return {"held": len(h) / len(runs), "reversals_ps": md("reversals_ps"), "cmd_rate_dps": md("cmd_rate_dps"),
+            "err_med": md("track_err_rms_deg"), "contact": float(np.mean([r["contact_all_frac"] for r in h])) if h else None}
 
 
 def grid_summary(task, d):
@@ -123,7 +126,8 @@ def cell(task, d):
     out.update({"rho": spearman(jm["H"], jm["A"]), "seed_rho": seed_rho,
                 "ceiling": float(np.sqrt(max(seed_rho["H"] * seed_rho["A"], 0.0))),
                 "cross1": float(np.mean([spearman(j1["H"][a], j1["A"][b]) for a in SEEDS for b in SEEDS])),
-                "mean": {nm: float(jm[nm].mean()) for nm in "HA"}, "smooth": {"H": smooth(H, keys), "A": smooth(A, keys)},
+                "mean": {nm: float(jm[nm].mean()) for nm in "HA"}, "zero": {nm: int((jm[nm] == 0).sum()) for nm in "HA"},
+                "smooth": {"H": smooth(H, keys), "A": smooth(A, keys)},
                 "best": best, "top10_x": top,
                 "top10_x_med": {nm: float(np.median(top[nm])) for nm in "HA"},
                 "best_dist_mm": float(np.hypot(best["H"]["x"] - best["A"]["x"], best["H"]["y"] - best["A"]["y"])),
@@ -193,7 +197,9 @@ def main() -> int:
             sm = c["smooth"]
             print(f"{'':16s}held H {sm['H']['held']:.2f} A {sm['A']['held']:.2f}; reversals/s H {sm['H']['reversals_ps']:.2f} "
                   f"A {sm['A']['reversals_ps']:.2f}; target rate H {sm['H']['cmd_rate_dps']:.1f} A "
-                  f"{sm['A']['cmd_rate_dps']:.1f} deg/s")
+                  f"{sm['A']['cmd_rate_dps']:.1f} deg/s; J = 0 H {c['zero']['H']} A {c['zero']['A']}; tracking error H "
+                  f"{sm['H']['err_med']:.1f} A {sm['A']['err_med']:.1f} deg; three pads H {sm['H']['contact']:.2f} A "
+                  f"{sm['A']['contact']:.2f}")
     if a.json:
         Path(a.json).write_text(json.dumps(R, indent=1, default=float) + "\n")
     if a.fig:
