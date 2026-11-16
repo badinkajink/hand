@@ -17,3 +17,7 @@ the corvus session's helper's; the others are hand-4a's. The rows they wrote are
   the index's and the middle's yaw gain (clutch2_stiff_kpyaw022_soft.json, clutch2_stiff_kpyaw035_soft.json; each file's
   free_air block is the sag those settings give);
   rev_trace_clutch2.py: one run's joint trace on that plant
+- rev_predict.py: blind predictions on the no-backdrive plant with HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011, HOM's servo
+  gain as on the bench server (predict_105_70_kp035.json: 22 grasps at (105, 70) within 12.5 deg of the equator;
+  predict_all055.json; predict_series_kp035.json). Every closed-loop run before it, the rev_closed.py runs included,
+  ran HOM with the servo gain 0.72 (inner_loop_plant's default HOS_PLANT=servo), where the bench's HOM uses 0.55.
