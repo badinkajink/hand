@@ -22,6 +22,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import numpy as np
+
 NAME = re.compile(r"^(\d{8}-\d{6})_(.+)_(\d{12})\.mp4$")
 LAYOUT = re.compile(r"x(\d+(?:\.\d+)?)_y(\d+(?:\.\d+)?)")
 TASK = re.compile(r"(twist|press|roll|pinpush)")
@@ -85,12 +87,63 @@ def caption(seg, speed, labels):
     return f"{STEP_TEXT.get(seg['step'], seg['step'])}{at}, {pace}"
 
 
-def chain(k, seg, speed, head_s):
-    """The filter for input k: drop head_s real seconds, re-time to real time over speed, 30 fps, 960 x 540."""
+def motion(seg):
+    """Each frame's local change from the one before: the third-largest mean absolute change of the 16 x 9 blocks of
+    the grey frame at 160 x 90, smoothed over 9 frames. A still scene reads 0.42-0.47, the gantries moving 0.6-3.4, the
+    arm 0.8-3 (camera 832412070344, 2026-11-16); the whole frame's mean diluted the hand's motion below the noise."""
+    if "motion" not in seg:
+        import cv2
+        cap, prev, d = cv2.VideoCapture(str(seg["file"])), None, [0.0]
+        while True:
+            ok, fr = cap.read()
+            if not ok:
+                break
+            g = cv2.resize(cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY), (160, 90), interpolation=cv2.INTER_AREA).astype(float)
+            if prev is not None:
+                b = np.abs(g - prev).reshape(9, 10, 16, 10).mean(axis=(1, 3))
+                d.append(float(np.sort(b.ravel())[-3]))         # the third-largest of 16 x 9 blocks: local motion
+            prev = g
+        d = np.asarray(d)
+        seg["motion"] = np.convolve(d, np.ones(9) / 9, mode="same") if len(d) > 9 else d
+    return seg["motion"]
+
+
+def keep_ranges(seg, thr, head_s, trial, pad_s=0.15, min_idle_s=0.5):
+    """Frame ranges [(n0, n1)] of the segment to show (owner, 2026-11-16: "we can cut the extreme dead time where
+    nothing moves so that the 6x is reasonable"): every run of still frames (motion below thr) longer than min_idle_s
+    real seconds is cut but for pad_s at each end; a trial (shown in real time) loses only its still head and tail."""
+    m = motion(seg)
+    fps = timing(seg)[0] or nominal_fps(seg["file"])
+    n_head = int(round(head_s * fps))
+    moving = m > thr
+    moving[:n_head] = False
+    idx = np.flatnonzero(moving)
+    if len(idx) == 0:
+        return [(n_head, min(len(m) - 1, n_head + int(fps)))]            # a still segment: one second of it
+    pad, gap = int(round(pad_s * fps)), int(round(min_idle_s * fps))
+    if trial:
+        return [(max(n_head, idx[0] - 3 * pad), min(len(m) - 1, idx[-1] + 3 * pad))]
+    out, a, b = [], idx[0], idx[0]
+    for n in idx[1:]:
+        if n - b > gap:
+            out.append((a, b))
+            a = n
+        b = n
+    out.append((a, b))
+    return [(max(n_head, a - pad), min(len(m) - 1, b + pad)) for a, b in out]
+
+
+def chain(k, seg, speed, head_s, ranges=None):
+    """The filter for input k: drop head_s real seconds (or keep only the frame ranges), re-time to real time over
+    speed, 30 fps, 960 x 540."""
     fps, _ = timing(seg)
     nom = nominal_fps(seg["file"])
     fps = fps or nom
     f = nom / fps / speed
+    if ranges:
+        sel = "+".join(f"between(n\\,{a}\\,{b})" for a, b in ranges)
+        return (f"[{k}:v]select='{sel}',setpts=N/({nom:g}*TB),setpts=PTS*{f:.5f},fps=30,"
+                f"scale=960:540,format=yuv420p")
     return (f"[{k}:v]trim=start={head_s * fps / nom:.3f},setpts=PTS-STARTPTS,setpts=PTS*{f:.5f},fps=30,"
             f"scale=960:540,format=yuv420p")
 
@@ -106,10 +159,22 @@ def main():
     ap.add_argument("--trial-x", type=float, default=1.0, help="the speed of the trials")
     ap.add_argument("--head-s", type=float, default=0.5, help="real seconds dropped from each segment's start")
     ap.add_argument("--label", action="append", default=[], help="STAMP=TEXT: a segment's caption")
+    ap.add_argument("--trim-idle", action="store_true",
+                    help="cut the still stretches (motion under --idle-k x the camera's noise floor)")
+    ap.add_argument("--idle-k", type=float, default=1.25)
+    ap.add_argument("--blur", action="append", default=[],
+                    help="STAMP=X:Y:W:H: smear that rectangle (pixels of the 960 x 540 frame) in the segment, as for a "
+                         "person in view (people are blurred in published frames)")
     ap.add_argument("--list", action="store_true", help="list the segments only")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     labels = dict(x.split("=", 1) for x in a.label)
+    blurs = {}
+    for x in a.blur:
+        k, v = x.split("=", 1)
+        bx, by, bw, bh = (int(t) for t in v.split(":"))
+        blurs.setdefault(k, []).append(f"delogo=x={max(1, bx)}:y={max(1, by)}:w={min(bw, 958 - max(1, bx))}:"
+                                       f"h={min(bh, 538 - max(1, by))}")
     segs = segments(a.dir, a.camera, a.t_from, a.t_to)
     if a.both:
         other = {s["stamp"] + s["step"]: s for s in segments(a.dir, [s for s in SERIALS if s != a.camera][0],
@@ -118,11 +183,20 @@ def main():
     if not segs:
         sys.exit(f"no segments of camera {a.camera} in {a.dir}")
     total = 0.0
+    thr = None
+    if a.trim_idle:
+        floor = float(np.percentile(np.concatenate([motion(s)[5:] for s in segs]), 10))
+        thr = a.idle_k * floor
+        print(f"still below {thr:.3f} (the noise floor {floor:.3f} x {a.idle_k:g})")
     for s in segs:
         speed = a.trial_x if s["step"] == "trial" else a.fast
         fps, span = timing(s)
         s["speed"] = speed
         out_s = None if span is None else max(0.0, span - a.head_s) / speed
+        if thr is not None:
+            s["ranges"] = keep_ranges(s, thr, a.head_s, s["step"] == "trial")
+            n = sum(b - a_ + 1 for a_, b in s["ranges"])
+            out_s = n / (fps or nominal_fps(s["file"])) / speed
         total += out_s or 0.0
         print(f"{s['stamp']} {s['step']:8s} {s['rest'][:48]:48s} "
               + (f"{span:6.1f} s at {fps:4.1f} fps -> {out_s:5.1f} s at {speed:g}x" if span else "no _frames.csv")
@@ -141,11 +215,14 @@ def main():
             part = Path(tmp) / f"part{i:03d}.mp4"
             if a.both and s.get("pair"):
                 inputs = ["-i", str(s["file"]), "-i", str(s["pair"]["file"])]
-                fc = (f"{chain(0, s, s['speed'], a.head_s)}[a];{chain(1, s['pair'], s['speed'], a.head_s)}[b];"
+                fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))}[a];"
+                      f"{chain(1, s['pair'], s['speed'], a.head_s, s.get('ranges'))}[b];"
                       f"[a][b]hstack=inputs=2:shortest=1,{text}[v]")
             else:
                 inputs = ["-i", str(s["file"])]
-                fc = f"{chain(0, s, s['speed'], a.head_s)},{'pad=1920:540:0:0,' if a.both else ''}{text}[v]"
+                bl = "".join(f"{b}," for b in blurs.get(s["stamp"], []))
+                fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))},{bl}{'pad=1920:540:0:0,' if a.both else ''}"
+                      f"{text}[v]")
             subprocess.run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", fc, "-map", "[v]", "-an",
                             "-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-r", "30", str(part)], check=True)
             parts.append(part)

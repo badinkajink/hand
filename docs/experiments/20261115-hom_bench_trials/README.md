@@ -4,6 +4,37 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 13:21
+
+**The ground-clear grasps transfer.** The grid2dgr twist grasps put the contacts 2-5 deg below the sphere's equator,
+with the palm about 9 mm higher. On the real hand both twisted the sphere more than 40 deg over the full 8.3 s. The
+sphere drifted about 10 mm and was not pushed up into the hand. The film grasps (18-20 deg below the equator) pushed it
+up 13-30 mm. Simulation had scored the ground-clear grasps 0.15-0.17, against 0.64-0.76 for the film grasps. The film
+is `media/20261116-real_hand_twist_ground_clear.mp4`: 27.0 s from one continuous recording, the controls in real time
+and the rest at 10x with still stretches cut (`lab/film_session.py --trim-idle --blur`); a person at the right edge is
+blurred in its last three segments.
+
+No ground-clear press grasp exists: the toy's press pose puts the middle finger 30-45 deg below the cylinder's axis.
+`plans/20261116-press_x70_y110_lat0_plan.json` is the generalist press with the thumb-index pinch raised to the axis's
+height; simulation scores it 0.17. On the real hand it held the cylinder through the full 6 s, where the generalist
+press dropped it. That last trial recorded the fingertip boards (mux channels 0, 1 and 3, 160.6 records/s) with
+`reskin5x_mux.py`, into `logs/20261116-three_finger_mux/20261116-131831-mux.bin`. No other trial recorded them.
+
+`putdown` now ends with `letgo`: release, straighten, lift. The fingers straighten when every finger part either moves
+away from the object or keeps 3 mm. `letgo` also runs on its own.
+
+| record | plan | outcome |
+|---|---|---|
+| 125922 | twist, ground-clear grasp 0, (70, 110) | twist -0.4 to +42.5 deg; full 8.3 s; drift about 10 mm |
+| 130318 | twist, ground-clear grasp 13, (105, 70) | twist -12.3 to +32.2 deg; full 8.3 s; drift about 11 mm |
+| 131239 | press, generalist, (70, 110) | drift guard at about 6 s (30.6 mm); the cylinder dropped |
+| 131927 | press, pinch at the axis (lat0), (70, 110) | full 6 s, held; the cylinder ended turned 22.6 deg about the vertical |
+
+The trials recorded joints, HOM targets, object pose, arm pose and the HEX-E's wrench at 50 Hz. That is enough for a
+first sim-to-real comparison of HOM and a first replay fit of the contact model, but with one or two runs per plan
+there is no spread. Calibrating the magnetic fingertips needs those boards recorded in every trial and a force
+reference, such as presses against a force sensor.
+
 ## State on 2026-11-16 12:57
 
 The afternoon session (owner at the UR5) added these:
