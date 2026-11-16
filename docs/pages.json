@@ -1,6 +1,18 @@
 [
  {
   "date": "2026-11-15",
+  "file": "docs/experiments/20261115-hom_bench_trials/20261116-hom_twist_sim_real_reversal.html",
+  "title": "Sim-to-real reversal of HOM's sphere-twist grasps on the SR2 hand",
+  "page_title": "Sim-to-real reversal of HOM's sphere-twist grasps on the SR2 hand",
+  "topic": "mechanisms",
+  "summary": "Real SR2 twists: contacts 2-8° below the sphere's equator tracked 0.38-0.42 with ≤3.8 mm rise; the film grasps (18-20° below) 0.00-0.29 with 14-27 mm climb, the reverse of simulation (0.64-0.76 vs 0.15-0.17). Simulation with the real object at friction 0.5 (or soft tangential contact at 1.0) reproduces the reversal.",
+  "builder": "scripts/hom/hom_twist_sim_real_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.4
+ },
+ {
+  "date": "2026-11-15",
   "file": "docs/experiments/20261115-gantry_travel/20261115-gantry_travel_dip_tags.html",
   "title": "Gantry travel of the SR2 hand from AprilTags on the DIP links",
   "page_title": "Gantry travel of the SR2 hand from AprilTags on the DIP links",
