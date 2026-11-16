@@ -187,7 +187,10 @@ The pattern, followed by every page in `docs/experiments/INDEX.md`:
 
 1. **A builder script** `scripts/<topic>_page.py` + `scripts/<topic>_page.template.html`. The
    builder reads the study's own JSON and substitutes `{{PLACEHOLDER}}`s, so the page regenerates
-   from data and cannot drift from it. Media are inlined as data URIs — the artifact is one file.
+   from data and cannot drift from it. Figures are inlined as data URIs; films are linked from the page folder's
+   `media/` (owner, 2026-11-15: "we can switch to linking films vs. embeddings"). `retro_style` links any inlined film
+   at the builder's exit, so a rebuild uploads a small page to LFS, not every film again. An artifact publish of a page
+   passes its films as `files` (`python3 scripts/docs/page_films.py files PAGE`).
    Mathematics and algorithms are LaTeX rendered to inline SVG by `scripts/docs/texsvg.py`, cached beside
    the page (`contact_overview_page.render_tex` shows the `$...$` / `$$...$$` convention); never a
    monospace font (global rule "Mathematics and algorithms").
@@ -234,7 +237,7 @@ committing it.
 - **`docs/index.html` = the readable docs** (owner, 2026-10-09): the home page links the topic
   overviews `docs/overviews/<topic>.html`, and they link the dated result pages. A visitor opens it
   in a browser from a clone; nothing is served or built. Every page under `docs/` must open from
-  the file system: relative links, media inlined as data URIs, no `fetch()` of data files. The home
+  the file system: relative links, figures inlined as data URIs, films in the folder's `media/`, no `fetch()` of data files. The home
   page and the overviews are ordinary git files and open in a plain clone; the result pages are LFS
   files. `webpaper/`, the earlier Typst site, is retired: nothing new goes into it, and it moves to
   `docs/archive/webpaper/`.

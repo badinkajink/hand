@@ -11,7 +11,10 @@ the variables and flattens the components; LaTeX SVGs, figures, videos and chart
 Builders call apply(html) on the finished page before writing it. The first call also schedules, for the end of the
 builder's process, a refresh of the documentation's indices if the process wrote a result page under docs/experiments/
 (scripts/docs/docs_index.py: the page's docs-* tags, INDEX.md, the home page, the page index, the overviews' tables);
-DOCS_REFRESH=0 turns it off.
+DOCS_REFRESH=0 turns it off. Before that, films inlined in a written page as data URIs become links to files in the
+page folder's media/ (link_films; owner, 2026-11-15: "we can switch to linking films vs. embeddings. we have media
+folders anyway"), so a rebuild uploads a small page to Git LFS instead of every film again; DOCS_LINK_FILMS=0 keeps them
+inlined. scripts/docs/page_films.py links the films of existing pages and lists a page's films for an artifact publish.
 """
 from __future__ import annotations
 
@@ -51,6 +54,71 @@ def _refresh_indices():
         print(f"docs_index: indices not refreshed ({type(e).__name__}: {e}); run python3 scripts/docs/docs_index.py", flush=True)
 
 
+_FILM_RE = re.compile(r'src="data:video/(mp4|webm);base64,([A-Za-z0-9+/=\s]+)"')
+
+
+def link_films(page: str) -> tuple:
+    """Films inlined in a page as data URIs become links to files in the page folder's media/: a film whose bytes equal
+    a file there links to it, any other is written there as <page stem>-film<k>.<ext>. Returns (linked, written)."""
+    import base64
+    import hashlib
+    with open(page, encoding="utf-8") as fh:
+        html = fh.read()
+    if "data:video/" not in html:
+        return 0, 0
+    media = os.path.join(os.path.dirname(page), "media")
+    stem = os.path.splitext(os.path.basename(page))[0]
+    known, n = {}, [0, 0]
+
+    def index():
+        if not known:
+            for f in glob.glob(os.path.join(media, "*.mp4")) + glob.glob(os.path.join(media, "*.webm")):
+                with open(f, "rb") as fh:
+                    known[hashlib.sha256(fh.read()).hexdigest()] = os.path.basename(f)
+            known.setdefault("", "")
+
+    def sub(m):
+        ext, data = m.group(1), base64.b64decode(re.sub(r"\s", "", m.group(2)))
+        index()
+        h = hashlib.sha256(data).hexdigest()
+        name = known.get(h)
+        if not name:
+            os.makedirs(media, exist_ok=True)
+            k = 1
+            while os.path.exists(os.path.join(media, f"{stem}-film{k}.{ext}")):
+                k += 1
+            name = f"{stem}-film{k}.{ext}"
+            with open(os.path.join(media, name), "wb") as fh:
+                fh.write(data)
+            known[h] = name
+            n[1] += 1
+        n[0] += 1
+        return f'src="media/{name}"'
+
+    out = _FILM_RE.sub(sub, html)
+    tmp = page + ".films.tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        fh.write(out)
+    os.replace(tmp, page)
+    return n[0], n[1]
+
+
+def _link_written_films():
+    """At the end of a builder's process, before the indices: link the films of every page it wrote."""
+    if os.environ.get("DOCS_LINK_FILMS", "1") == "0":
+        return
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pages = [p for p in glob.glob(os.path.join(root, "docs", "experiments", "*", "*.html"))
+             + glob.glob(os.path.join(root, "docs", "overviews", "*.html")) if os.path.getmtime(p) >= _T0]
+    for p in pages:
+        try:
+            k, w = link_films(p)
+            if k:
+                print(f"films: {k} linked in {os.path.relpath(p, root)} ({w} written to its media/)", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"films: not linked in {p} ({type(e).__name__}: {e})", flush=True)
+
+
 def _prose_check(here, pages):
     """One line per written page from scripts/docs/prose_lint.py --brief (sentence length, grade, flags against the targets
     of the plain-language passes, owner 2026-10-22: automate the rough checks). Printed, never raised; PROSE_CHECK=0
@@ -72,6 +140,7 @@ def _hook():
     global _HOOKED
     if not _HOOKED:
         atexit.register(_refresh_indices)
+        atexit.register(_link_written_films)          # atexit runs last-in first: the films are linked first
         _HOOKED = True
 
 RETRO_CSS = r"""

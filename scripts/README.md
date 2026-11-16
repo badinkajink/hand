@@ -257,7 +257,7 @@ Finger layouts and their search: the morphology generators, IK retargeting of th
 | `retarget_keyframe_ik.py` | Retarget the 'about-to-contact' open keyframe across morphologies via fingertip IK. |
 | `sweep_perp_thumb.py` | Can a perp morphology recruit the THUMB onto the reoriented shaft — without losing the swing? |
 
-## docs/ (34)
+## docs/ (35)
 
 Builders of the home page, the topic overviews and the page indices, and the parts every page builder uses: the page style, LaTeX to SVG, the prose check and the figure check.
 
@@ -289,6 +289,7 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `overview_mechanisms_text.py` | Text of the topic overview docs/overviews/reorientation.html (builder: scripts/docs/topic_overview_page.py). |
 | `overview_policies_text.py` | Text of the topic overview docs/overviews/rl_policies.html (builder: scripts/docs/topic_overview_page.py). |
 | `page_figure_check.py` | Figure check for the result pages: one screenshot per figure with the page's own styles, and the chart text as displayed, in headless Chrome. |
+| `page_films.py` | Films of the result pages as files beside them (owner, 2026-11-15: "we can switch to linking films vs. |
 | `prose_gate.py` | Mechanical gate of a wording pass over a built page (owner, 2026-10-22: a cheaper model edits prose only "if we can automate the checks well"). |
 | `prose_lint.py` | Flag the phrasings the owner's Writing rules (~/.claude/CLAUDE.md) ban, and count words, in a page or a text file; measure a page's sentences and flag the ones to rewrite under the elements of style. |
 | `reorganize_videos.py` | Reorganize docs/rl/videos into TIMESTAMPED experiment folders, temporally ordered. |
@@ -637,7 +638,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `inner_loop_benchmark_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html: published inner-loop evaluators against HOM on the SR2 layout lattice, each judged by the J of the hand it would pick and by its w |
 | `inner_loop_ilqr.py` | iLQR on the SR2 hand in MuJoCo-Warp, method ilqr of inner_loop_mpc.py (owner, 2026-11-15: "did we also try ilqr/ddp/feasibleddp on top of the gradient search?"). |
 | `inner_loop_mpc.py` | Sampling MPC on the SR2 hand in MuJoCo-Warp: the training-free baselines of the inner-loop benchmark (owner, 2026-11-12: "let's try MPC. |
-| `inner_loop_mpc_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html: sampling MPC (predictive sampling, MPPI, CEM, iCEM, DIAL-MPC's annealing, SPIDER and its worst case) against HOM on the inner-loop  |
+| `inner_loop_mpc_page.py` | Builds docs/experiments/20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html: sampling MPC (predictive sampling, MPPI, CEM, iCEM, the annealed sampling of DIAL-MPC, SPIDER and its worst case) against HOM on th |
 | `inner_loop_plant.py` | The inner-loop benchmark's plant: the hand-design talk's, as its grid grid2dff_v4b_sv25r was run (the SCS0009 servo plant, 0.72 N m/rad and 0.18 N m, and the 2.5 MPa pads of the scene cache logs/20261102-hom_servo_plant/ |
 | `inner_loop_usability.py` | Usability of an inner-loop controller on the SR2 hand: the forces, joint states and commands a controller needs for the task, scored the same way for HOM and for a trained UHAS policy (scripts/hom/uhas_sr2.py) on the sam |
 | `karma_sr2.py` | KaRMA (Peticco and Agrawal, arXiv 2605.15548, 2026) on the SR2 hand's layout lattice, the kinematic inner-loop evaluator of the inner-loop benchmark (owner, 2026-11-12: "evaluate some of the other inner loop controls we  |
