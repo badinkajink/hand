@@ -318,6 +318,7 @@ def rl_run_times():
 
 STEEL = ROOT / "docs/experiments/20261113-steel_solver/data/20261113-steel_solver.json"
 MPC_ROWS = ROOT / "docs/experiments/20261112-inner_loop_benchmark/rows"
+NEWTON = "nt_mjc_hydro"          # the Steel page's Newton row: SolverMuJoCo with Newton's SDF hydroelastic contact
 
 
 def planner_cost(rec):
@@ -341,17 +342,65 @@ def planner_cost(rec):
     return out
 
 
+def human(sec):
+    return (f"{sec / 86400 / 365:.1f} years" if sec > 400 * 86400 else f"{sec / 86400:.0f} days" if sec > 3 * 86400
+            else f"{sec / 3600:.0f} hours" if sec > 3 * 3600 else f"{sec / 60:.0f} minutes")
+
+
+def cost_chart(rows, title, name, show=None, split=None):
+    """One bar per row (label, seconds, colour) on a log time axis from 1 hour to 1 year, the time written at the bar's
+    end. Rows from index split on sit below a dashed line; only the first show rows are drawn (the axes and labels of
+    the rest stay, for a build-up). Both cost charts use it, so they share their scale and layout. Returns {first line of
+    the label: seconds}."""
+    show = len(rows) if show is None else show
+    fig, ax = plt.subplots(figsize=(13.0, 1.6 + 0.74 * len(rows)))
+    gap = (lambda k: 0.0 if split is None or k < split else -0.35)
+    ys = [len(rows) - 1 - k + gap(k) for k in range(len(rows))]
+    out = {}
+    for k, (lab, sec, col) in enumerate(rows):
+        vis = k < show
+        ax.barh(ys[k], sec, color=col if vis else "none", height=0.58)
+        ax.text(sec * 1.25, ys[k], human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
+        out[lab.split("\n")[0]] = round(sec)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([r[0] for r in rows], fontsize=14.5)
+    if split is not None:
+        ax.axhline(0.5 * (ys[split - 1] + ys[split]), color=LINE, lw=1.0, ls=(0, (4, 3)))
+    ax.set_xscale("log")
+    ax.set_xticks([3600, 86400, 30 * 86400, 365 * 86400])
+    ax.set_xticklabels(["1 hour", "1 day", "30 days", "1 year"], fontsize=14)
+    ax.set_xlim(3000, 5e8 if max(r[1] for r in rows) < 4e8 else 3e9)
+    ax.set_ylim(min(ys) - 0.65, len(rows) - 0.45)
+    ax.set_title(title, loc="left", fontsize=17)
+    for sp in ("top", "right"):
+        ax.spines[sp].set_visible(False)
+    for sp in ("left", "bottom"):
+        ax.spines[sp].set_color(LINE)
+    ax.grid(axis="x", color="#eef0f3")
+    save(fig, name)
+    return out
+
+
 def cost_of_search():
     """The time to CEM-refine grasp and HOM on every layout of the twist, the roll and the press (1,423 layouts x 768
-    rollouts, the workload of the compute chart, codesign_formulation_figures.py compute) on four simulators, and the time
-    to train one policy per layout instead (owner, 2026-11-11: "update the 'how long would the search take' plots to be
-    consistent with this timing chart"; "add an axis for RL training as well ... the ~10 minutes, at best, it would take
-    to train a policy would make evaluation really, really hard"). MuJoCo-Warp: the chart's estimate. One CPU core: the
-    CPU runner's time per rollout with every contact (score-levels page, Table 18: 3.31, 1.72 and 2.09 s). Drake: those
-    times the step-cost ratio on the hand, 2,082 / 106 us (contact overview, Table 1). Newton's SDF hydroelastic contact:
-    the MuJoCo-Warp time times the ratio of the two throughputs at 4,096 worlds (contact overview, Figure 12). RL: one PPO
-    policy per layout on the same GPU, at 10 min (best case) and at the median of our trainings (rl_run_times). Two
-    images: Drake alone, then every row."""
+    rollouts, the workload of the compute chart, codesign_formulation_figures.py compute), in two charts of one layout
+    (owner, 2026-11-16: "we replaced newton with steel, but steel performs worse/slower than newton's own hydroelastic sdf
+    solver"; "the planner comparisons should also go on a different chart, albeit near identical in structure"; "put the
+    RL comparison on this separate chart too, that way we isolate the contact model throughput comparison vs the control
+    throughput comparison").
+
+    Simulators, each with HOM (20261110-slide_cost_drake.png: Drake alone, 20261110-slide_cost_all.png: all four).
+    MuJoCo-Warp: the compute chart's estimate. One CPU core: the CPU runner's time per rollout with every contact
+    (score-levels page, Table 18: 3.31, 1.72 and 2.09 s). Drake: those times the step-cost ratio on the hand, 2,082 / 106
+    us (contact overview, Table 1). Newton's SDF hydroelastic contact under its MuJoCo solver: the MuJoCo-Warp time times
+    the ratio of the two step costs measured on the twist at 1,024 worlds (Steel page, 2026-11-13: 5.00 and 2.76 us per
+    world-step). Until 2026-11-16 that row was Steel's compliant hydroelastic contact (9.17 us, 3.32 times the pads).
+
+    Controllers, each on MuJoCo-Warp with the pads on one GPU (20261116-slide_cost_control.png): HOM; in its place the
+    gradient planner and annealed sampling at the real-time budget, annealed sampling on HOM's servo targets (the
+    residual), iLQR and full annealed sampling, at their GPU time per twist rollout over HOM's in the search's batches
+    (planner_cost; figures.json controllers_track cost, residual_cost, ilqr cost); one PPO policy per layout on the same
+    GPU at the median of our trainings (rl_run_times) and at 10 min, the best case."""
     path = OUT / "20261110-figures.json"
     fi = json.loads(path.read_text())
     rec = fi["compute_track" if VARIANT == "track" else "compute"]
@@ -363,58 +412,139 @@ def cost_of_search():
     cpu_roll = {t: float(thr["cpu"][t]["plant_p1"]["wall_s"]) for t in lay}
     cpu = sum(lay[t] * 768 * cpu_roll[t] for t in lay)
     mjw = float(rec["cem"]["s"])
-    sp = json.loads(STEEL.read_text())["speed"]
-    ratio = sp["steel_hydro"]["1024"]["us_per_world_step"] / sp["mjw_pads"]["1024"]["us_per_world_step"]
-    mpc = planner_cost(rec)
-    rows = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", cpu * 2082.0 / 106.0, "#6b7280"),
+    st = json.loads(STEEL.read_text())
+    sp = st["speed"]
+    us = {k: sp[k]["1024"]["us_per_world_step"] for k in ("mjw_pads", NEWTON, "steel_hydro")}
+    newton = us[NEWTON] / us["mjw_pads"]
+    work = f"{n_lay:,} layouts \u00d7 768 rollouts = {n_roll / 1e6:.2f} M rollouts"
+    sims = [("Drake hydroelastic, one CPU core\n(estimated from its step cost)", cpu * 2082.0 / 106.0, "#6b7280"),
             ("MuJoCo, 1 mm sphere pads,\none CPU core", cpu, "#f59e0b"),
-            ("Steel hydroelastic (Newton), one GPU\n(its step cost on the twist, 1,024 worlds)", mjw * ratio, "#7a4fa6"),
-            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU, with HOM", mjw, "#d97706")]
-    n_sim = len(rows)
-    for lab, k, col in (("Annealed sampling, 2 \u00d7 32 samples,\nin place of HOM (real time)", "rt", "#be185d"),
-                        ("Full annealed sampling, 4 \u00d7 64 samples,\nin place of HOM", "full", "#9d174d")):
-        if mpc.get(k):
-            rows.append((lab, mjw * mpc[k]["ratio"], col))
-    rows += [(f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
-              n_lay * 60.0 * rl["min_median"], "#0f766e"),
-             (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
-              "#14b8a6")]
-
-    def human(sec):
-        return (f"{sec / 86400 / 365:.1f} years" if sec > 400 * 86400 else f"{sec / 86400:.0f} days" if sec > 3 * 86400
-                else f"{sec / 3600:.0f} hours" if sec > 3 * 3600 else f"{sec / 60:.0f} minutes")
-    out = {}
-    for name, show in (("20261110-slide_cost_drake.png", 1), ("20261110-slide_cost_all.png", len(rows))):
-        fig, ax = plt.subplots(figsize=(13.0, 6.4 + 0.55 * (len(rows) - 6)))
-        for k, (lab, sec, col) in enumerate(rows):
-            y = len(rows) - 1 - k + (0.0 if k < n_sim else -0.35)
-            vis = k < show
-            ax.barh(y, sec, color=col if vis else "none", height=0.58)
-            ax.text(sec * 1.25, y, human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
-            out[lab.split("\n")[0]] = round(sec)
-        ys = [len(rows) - 1 - k + (0.0 if k < n_sim else -0.35) for k in range(len(rows))]
-        ax.set_yticks(ys)
-        ax.set_yticklabels([r[0] for r in rows], fontsize=14.5)
-        ax.axhline(0.5 * (ys[n_sim - 1] + ys[n_sim]), color=LINE, lw=1.0, ls=(0, (4, 3)))
-        ax.set_xscale("log")
-        ax.set_xticks([3600, 86400, 30 * 86400, 365 * 86400])
-        ax.set_xticklabels(["1 hour", "1 day", "30 days", "1 year"], fontsize=14)
-        ax.set_xlim(3000, 5e8)
-        ax.set_ylim(-1.0, len(rows) - 0.45)
-        ax.set_title(f"Every layout of three tasks: {n_lay:,} layouts \u00d7 768 rollouts = {n_roll / 1e6:.2f} M "
-                     "rollouts,\nunder HOM or a sampling planner, or one trained policy per layout", loc="left", fontsize=17)
-        ax.set_xlim(3000, 5e8 if max(r[1] for r in rows) < 4e8 else 3e9)
-        for sp in ("top", "right"):
-            ax.spines[sp].set_visible(False)
-        for sp in ("left", "bottom"):
-            ax.spines[sp].set_color(LINE)
-        ax.grid(axis="x", color="#eef0f3")
-        save(fig, name)
+            ("Newton hydroelastic (SDF), one GPU\n(its step cost on the twist, 1,024 worlds)", mjw * newton, "#7a4fa6"),
+            ("MuJoCo-Warp, 1 mm sphere pads,\none GPU", mjw, "#d97706")]
+    title = f"Every layout of three tasks with HOM: {work},\non four simulators"
+    cost_chart(sims, title, "20261110-slide_cost_drake.png", show=1)
+    out = cost_chart(sims, title, "20261110-slide_cost_all.png")
+    mpc = planner_cost(rec)
+    ct = fi.get("controllers_track", {})
+    cc = ct.get("cost", {})
+    ctl = [("HOM", mjw, "#d97706")]
+    for lab, ratio, col in (
+            ("Gradient descent, 2 \u00d7 32 rollouts,\nin place of HOM (real time)", cc.get("Gradient 2 \u00d7 32, real time"),
+             "#7c3aed"),
+            ("Annealed sampling, 2 \u00d7 32 samples,\nin place of HOM (real time)", mpc.get("rt", {}).get("ratio"), "#be185d"),
+            ("Annealed sampling on HOM\u2019s targets,\n2 \u00d7 32 samples (a residual)", ct.get("residual_cost"), "#db2777"),
+            ("iLQR, 2 iterations over 0.3 s,\nin place of HOM", ct.get("ilqr", {}).get("cost"), "#5b21b6"),
+            ("Full annealed sampling, 4 \u00d7 64 samples,\nin place of HOM", mpc.get("full", {}).get("ratio"), "#9d174d")):
+        if ratio:
+            ctl.append((lab, mjw * float(ratio), col))
+    n_plan = len(ctl)
+    ctl += [(f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
+             n_lay * 60.0 * rl["min_median"], "#0f766e"),
+            (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
+             "#14b8a6")]
+    out.update(cost_chart(ctl, f"The same {n_roll / 1e6:.2f} M rollouts on MuJoCo-Warp with the pads, one GPU,\n"
+                               "under HOM, a planner in its place, or one trained policy per layout",
+                          "20261116-slide_cost_control.png", split=n_plan))
     res = {"rows_s": out, "layouts": n_lay, "rollouts": n_roll, "cpu_s_per_rollout": cpu_roll,
-           "steel_ratio": round(float(ratio), 3), "drake_ratio": round(2082.0 / 106.0, 2), "mpc": mpc}
+           "newton_ratio": round(float(newton), 3), "steel_ratio": round(float(us["steel_hydro"] / us["mjw_pads"]), 3),
+           "us_per_world_step_1024": {k: round(float(v), 3) for k, v in us.items()},
+           "hom_on_twist": {k: {"mean_J": round(float(st["hom"][k]["mean_J"]), 4), "held": st["hom"][k]["held"],
+                                "n": st["hom"][k]["n"]} for k in ("mjc_pads", NEWTON, "steel_hydro") if k in st["hom"]},
+           "drake_ratio": round(2082.0 / 106.0, 2), "mpc": mpc,
+           "sim_rows": [r[0].split("\n")[0] for r in sims], "control_rows": [r[0].split("\n")[0] for r in ctl]}
     fi["cost_search" + ("_track" if VARIANT == "track" else "")] = res
     path.write_text(json.dumps(fi, indent=1, default=float))
     return res
+
+
+BENCH = [("hom_twist", "HOM", "#d97706"),
+         ("ps_twist_r10h10k2i1", "Predictive sampling,\nreal time", "#f472b6"),
+         ("anneal_twist", "Annealed sampling,\n4 \u00d7 64 samples", "#9d174d"),
+         ("spider_twist", "SPIDER", "#be185d"),
+         ("spider_wc_twist", "SPIDER, worst case\nover friction", "#db2777"),
+         ("uhas_twist_sv_published_s0", "UHAS policy (RL)", "#0f766e"),
+         ("uhas_twist_sv_limits_tau0.02_cap0_s0", "UHAS policy (RL),\nwith limit terms", "#14b8a6")]
+
+
+def mu04(stem):
+    """The stem of the same controller's runs at plant friction 0.4."""
+    if stem.startswith("uhas_twist_"):
+        return stem.replace("uhas_twist_", "uhas_twist_mu0.4_")
+    if stem == "ps_twist_r10h10k2i1":
+        return "ps_twist_mu0.4_r10h10k2i1"
+    return stem + "_mu0.4"
+
+
+def controller_benchmark():
+    """The controllers of the inner-loop benchmark's twist on four measures (owner, 2026-11-16: "an additional chart(s)
+    that neatly compares the performance of these controllers, in raw J, and then maybe also in reversals / other
+    sim2real / qualitative benchmarks that help differentiate the methods"). The same 20 pairs of layout and grasp at
+    seeds 0 and 1, 40 runs per controller, on the SCS0009 plant with 2.5 MPa pads (scripts/hom/inner_loop_mpc.py, sampling
+    MPC page): (a) mean J and its standard error; (b) mean J with the plant's friction at 0.4, the value measured for TPU
+    on bare PLA, while every controller's model keeps 1.0 (SPIDER's worst case samples 0.4, 0.7 and 1.0; UHAS was trained
+    at 1.0); (c) the median rate of target reversals per joint per second over the held runs (inner_loop_usability:
+    sign changes of a servo target's rate above 1 deg/s); (d) the median share of joint-periods with the servo torque at
+    95 % of its limit or more. Writes 20261116-slide_controller_benchmark.png and figures.json controller_benchmark."""
+    import inner_loop_mpc_page as MP
+    S = {}
+    for stem, lab, col in BENCH:
+        a, b = MP.load(stem), MP.load(mu04(stem))
+        if a and b:
+            S[stem] = (lab, col, MP.stats(a), MP.stats(b))
+    if not S:
+        return None
+    rows = [S[s] for s, _l, _c in BENCH if s in S]
+    fig, ax = plt.subplots(1, 4, figsize=(17.0, 5.6), sharey=True,
+                           gridspec_kw={"width_ratios": [1.0, 1.0, 1.15, 1.0], "wspace": 0.12})
+    y = np.arange(len(rows))[::-1]
+    cols = [r[1] for r in rows]
+
+    def bars(a, v, txt, err=None, pad=0.015):
+        """Bars with their values written past the bar's end and its error bar (pad in the axis's units; a log axis
+        places the text at 1.18 times the value)."""
+        a.barh(y, v, color=cols, height=0.62, xerr=err, error_kw={"ecolor": INK, "lw": 1.2, "capsize": 3})
+        for k, (yi, vi, ti) in enumerate(zip(y, v, txt)):
+            x = vi * 1.18 if a.get_xscale() == "log" else vi + (err[k] if err else 0.0) + pad
+            a.text(x, yi, ti, va="center", fontsize=14, color=INK)
+
+    ax[0].set_xlim(0, 0.62)
+    bars(ax[0], [r[2]["J"] for r in rows], [f"{r[2]['J']:.2f}" for r in rows], err=[r[2]["J_se"] for r in rows])
+    ax[0].set_title("Mean J, plant friction 1.0", loc="left", fontsize=16)
+    ax[1].set_xlim(0, 0.62)
+    bars(ax[1], [r[3]["J"] for r in rows], [f"{r[3]['J']:.2f}" for r in rows], err=[r[3]["J_se"] for r in rows])
+    ax[1].set_title("Mean J, plant friction 0.4", loc="left", fontsize=16)
+    ax[2].set_xscale("log")
+    ax[2].set_xlim(0.2, 300)
+    bars(ax[2], [r[2]["reversals_ps"] for r in rows], [f"{r[2]['reversals_ps']:.1f}" for r in rows])
+    ax[2].set_title("Target reversals per joint per s", loc="left", fontsize=16)
+    ax[3].set_xlim(0, 100)
+    bars(ax[3], [100 * r[2]["sat_frac"] for r in rows], [f"{100 * r[2]['sat_frac']:.0f} %" for r in rows], pad=2.5)
+    ax[3].set_title("Joint time at the torque limit", loc="left", fontsize=16)
+    ax[0].set_yticks(y)
+    ax[0].set_yticklabels([r[0] for r in rows], fontsize=14.5)
+    for a in ax:
+        for sp_ in ("top", "right"):
+            a.spines[sp_].set_visible(False)
+        for sp_ in ("left", "bottom"):
+            a.spines[sp_].set_color(LINE)
+        a.grid(axis="x", color="#eef0f3")
+        a.tick_params(axis="x", labelsize=13)
+        a.set_axisbelow(True)
+    ax[2].set_xticks([1, 10, 100])
+    ax[2].set_xticklabels(["1", "10", "100"])
+    ax[3].set_xticks([0, 50, 100])
+    ax[3].set_xticklabels(["0", "50", "100 %"])
+    out = {"image": str(save(fig, "20261116-slide_controller_benchmark.png").relative_to(ROOT)),
+           "runs": {s: {"label": lab.replace("\n", " "), "n": a["n"], "J": a["J"], "J_se": a["J_se"], "held": a["held"],
+                        "J_mu04": b["J"], "held_mu04": b["held"], "reversals_ps": a["reversals_ps"],
+                        "cmd_rate_dps": a["cmd_rate_dps"], "sat_frac": a["sat_frac"], "grip_mean_N": a["grip_mean_N"],
+                        "link_mean_N": a["link_mean_N"], "contact": a["contact"], "replan_s": a["replan_s"]}
+                    for s, (lab, _c, a, b) in S.items()}}
+    path = OUT / "20261110-figures.json"
+    fi = json.loads(path.read_text())
+    fi["controller_benchmark" + ("_track" if VARIANT == "track" else "")] = out
+    path.write_text(json.dumps(fi, indent=1, default=float))
+    return out
 
 
 def cost_per_landscape():
@@ -690,6 +820,10 @@ def main():
     if "cost" in sys.argv[1:]:          # only the search-time charts (owner, 11-11), for the deck or with --track for v2
         VARIANT = "track" if "--track" in sys.argv else ""
         print(json.dumps(cost_of_search(), default=float), flush=True)
+        return 0
+    if "benchmark" in sys.argv[1:]:     # the controllers on the twist benchmark's four measures (owner, 11-16), v2 only
+        VARIANT = "track"
+        print(json.dumps(controller_benchmark(), default=float)[:3000], flush=True)
         return 0
     if "--track" in sys.argv:
         return main_track()

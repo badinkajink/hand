@@ -1127,9 +1127,13 @@
   "rows_s": {
    "Drake hydroelastic, one CPU core": 51547728,
    "MuJoCo, 1 mm sphere pads,": 2624428,
-   "Steel hydroelastic (Newton), one GPU": 153481,
+   "Newton hydroelastic (SDF), one GPU": 83635,
    "MuJoCo-Warp, 1 mm sphere pads,": 46201,
+   "HOM": 46201,
+   "Gradient descent, 2 \u00d7 32 rollouts,": 1193347,
    "Annealed sampling, 2 \u00d7 32 samples,": 1284388,
+   "Annealed sampling on HOM\u2019s targets,": 2103444,
+   "iLQR, 2 iterations over 0.3 s,": 4405100,
    "Full annealed sampling, 4 \u00d7 64 samples,": 9665249,
    "RL: a policy per layout, 36 min each": 3048066,
    "RL: a policy per layout,": 853800
@@ -1141,7 +1145,30 @@
    "roll": 1.717,
    "press": 2.087
   },
+  "newton_ratio": 1.81,
   "steel_ratio": 3.322,
+  "us_per_world_step_1024": {
+   "mjw_pads": 2.76,
+   "nt_mjc_hydro": 4.997,
+   "steel_hydro": 9.17
+  },
+  "hom_on_twist": {
+   "mjc_pads": {
+    "mean_J": 0.3823,
+    "held": 40,
+    "n": 40
+   },
+   "nt_mjc_hydro": {
+    "mean_J": 0.1171,
+    "held": 15,
+    "n": 40
+   },
+   "steel_hydro": {
+    "mean_J": 0.2857,
+    "held": 36,
+    "n": 40
+   }
+  },
   "drake_ratio": 19.64,
   "mpc": {
    "rt": {
@@ -1156,7 +1183,23 @@
     "stem": "mpc_anneal_twist_rank_pdt2",
     "hands_per_batch": 16
    }
-  }
+  },
+  "sim_rows": [
+   "Drake hydroelastic, one CPU core",
+   "MuJoCo, 1 mm sphere pads,",
+   "Newton hydroelastic (SDF), one GPU",
+   "MuJoCo-Warp, 1 mm sphere pads,"
+  ],
+  "control_rows": [
+   "HOM",
+   "Gradient descent, 2 \u00d7 32 rollouts,",
+   "Annealed sampling, 2 \u00d7 32 samples,",
+   "Annealed sampling on HOM\u2019s targets,",
+   "iLQR, 2 iterations over 0.3 s,",
+   "Full annealed sampling, 4 \u00d7 64 samples,",
+   "RL: a policy per layout, 36 min each",
+   "RL: a policy per layout,"
+  ]
  },
  "pinch_film": {
   "frames": 140,
@@ -2447,5 +2490,122 @@
    }
   },
   "image": "docs/experiments/20261110-codesign_formulation/media/20261114-slide_controllers_track.png"
+ },
+ "controller_benchmark_track": {
+  "image": "docs/experiments/20261110-codesign_formulation/media/20261116-slide_controller_benchmark_track.png",
+  "runs": {
+   "hom_twist": {
+    "label": "HOM",
+    "n": 40,
+    "J": 0.38755157327948847,
+    "J_se": 0.04525719719393738,
+    "held": 0.975,
+    "J_mu04": 0.08131590106007067,
+    "held_mu04": 0.35,
+    "reversals_ps": 0.6333,
+    "cmd_rate_dps": 14.7332,
+    "sat_frac": 0.1613,
+    "grip_mean_N": 7.7111,
+    "link_mean_N": 1.8905,
+    "contact": 0.5543589743589744,
+    "replan_s": null
+   },
+   "ps_twist_r10h10k2i1": {
+    "label": "Predictive sampling, real time",
+    "n": 40,
+    "J": 0.3347321933366986,
+    "J_se": 0.03409554905774335,
+    "held": 0.925,
+    "J_mu04": 0.07098106175332324,
+    "held_mu04": 0.25,
+    "reversals_ps": 0.4606,
+    "cmd_rate_dps": 14.3529,
+    "sat_frac": 0.0736,
+    "grip_mean_N": 5.543,
+    "link_mean_N": 1.059,
+    "contact": 0.494972972972973,
+    "replan_s": 0.48561999999999994
+   },
+   "anneal_twist": {
+    "label": "Annealed sampling, 4 \u00d7 64 samples",
+    "n": 40,
+    "J": 0.4611049680296147,
+    "J_se": 0.05056494201662355,
+    "held": 0.975,
+    "J_mu04": 0.03520151018004375,
+    "held_mu04": 0.175,
+    "reversals_ps": 2.015,
+    "cmd_rate_dps": 8.0652,
+    "sat_frac": 0.005,
+    "grip_mean_N": 4.7459,
+    "link_mean_N": 0.942,
+    "contact": 0.5205641025641026,
+    "replan_s": 5.60556
+   },
+   "spider_twist": {
+    "label": "SPIDER",
+    "n": 40,
+    "J": 0.44741974591956923,
+    "J_se": 0.0477027933382158,
+    "held": 0.975,
+    "J_mu04": 0.03324581019687027,
+    "held_mu04": 0.1,
+    "reversals_ps": 1.9574,
+    "cmd_rate_dps": 10.2515,
+    "sat_frac": 0.0084,
+    "grip_mean_N": 4.9681,
+    "link_mean_N": 1.0065,
+    "contact": 0.5221538461538462,
+    "replan_s": 5.64204
+   },
+   "spider_wc_twist": {
+    "label": "SPIDER, worst case over friction",
+    "n": 40,
+    "J": 0.31503136883728755,
+    "J_se": 0.040083078694595486,
+    "held": 0.925,
+    "J_mu04": 0.12998684586908968,
+    "held_mu04": 0.525,
+    "reversals_ps": 2.8785,
+    "cmd_rate_dps": 16.9453,
+    "sat_frac": 0.046,
+    "grip_mean_N": 5.8415,
+    "link_mean_N": 1.4227,
+    "contact": 0.4156216216216216,
+    "replan_s": 6.116020000000001
+   },
+   "uhas_twist_sv_published_s0": {
+    "label": "UHAS policy (RL)",
+    "n": 40,
+    "J": 0.4377140880026923,
+    "J_se": 0.04523528231940923,
+    "held": 0.85,
+    "J_mu04": 0.009407824331145885,
+    "held_mu04": 0.025,
+    "reversals_ps": 37.55515,
+    "cmd_rate_dps": 8037.0459,
+    "sat_frac": 0.85385,
+    "grip_mean_N": 7.05775,
+    "link_mean_N": 0.15715,
+    "contact": 0.5538529411764705,
+    "replan_s": null
+   },
+   "uhas_twist_sv_limits_tau0.02_cap0_s0": {
+    "label": "UHAS policy (RL), with limit terms",
+    "n": 40,
+    "J": 0.34239041309103146,
+    "J_se": 0.044722625730020026,
+    "held": 1.0,
+    "J_mu04": 0.04396506814740031,
+    "held_mu04": 0.125,
+    "reversals_ps": 46.066,
+    "cmd_rate_dps": 5165.5205000000005,
+    "sat_frac": 0.5635,
+    "grip_mean_N": 6.037100000000001,
+    "link_mean_N": 0.42515000000000003,
+    "contact": 0.3661,
+    "replan_s": null
+   }
+  }
  }
 }
