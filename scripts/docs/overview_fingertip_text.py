@@ -625,9 +625,8 @@ tip or one indenter held out. A linear law refitted on IDs 1 and 2 was tested on
 and the spring&#8217;s compliance was 0.29&#8202;mm/N. With that spring, the ratio on the held-out tip was 0.98 to 1.16
 from 1 to 5&#8202;N. When the spring and modulus were fitted on the sphere&#8217;s holds, the ratio on the rod&#8217;s
 holds was 0.62 at 0.25&#8202;N and 1.64 at 8&#8202;N. Only the HEX-E&#8217;s deflection was removed from the
-indenter&#8217;s position, so the fitted spring includes any other give of the rig
-(<code>scripts/fingertip/v3_pad_law_refit.py</code>; the fits are in
-<code>docs/experiments/20261115-pad_law_refit/data/</code>).</p>
+indenter&#8217;s position, so the fitted spring includes any other give of the rig. The fits are in the same page&#8217;s
+[section on the laws of each pad](exp:20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html#laws).</p>
 <p>In simulation, the HOM controller&#8217;s inputs from each fingertip are one contact point and one normal force. Its
 fingertip model adds the errors measured on the UR5 to each true contact. A fixed offset of 0.4&#8202;mm and random noise
 are added to the point. The noise&#8217;s sigma is 0.4&#8202;mm at 1.5&#8202;N and over, 0.7&#8202;mm from 0.5&#8202;N and 1.3&#8202;mm below. A
