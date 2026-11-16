@@ -1,4 +1,14 @@
-Status: active in window 8955e04e (autopilot stopped 17:22 with `ap disarm --stop`; the window took the task back)
+Status: active (armed for the autopilot on colorado from window 8955e04e, 11-15 17:44; the owner left for the night)
+State 11-15 17:44: for the autopilot. Lane logs/20261115-followups runs all_f2_pinpush (all_hom_pinpush done
+  16:21), then the pin-push and twist grids; it ends with `finish` (finish.sh commits the rows), about 21:00-23:00. While
+  it runs: no GPU work; `ap snooze` (max 240 min) and check queue.log for "finish rc 0". Then step 28 (HOM page v5, MPC
+  page v10, deck notes; this login, colorado, owns both artifacts). Steps 2-7: the 11-12 KaRMA/UHAS page
+  (20261112-inner_loop_benchmark.html) was never built or committed (no file, no git history; its media exist with
+  _work10 names); build it per the steps, CPU only, any time. Step 15 (a) and (b) are done (11-13 tracker throughput
+  page, the UDP link); (c) the fingertip CoP filter is open. Step 29 done; step 30 waits on the owner (objects, tag maps,
+  masses, live read-back). Bench state: station running since 17:42, homed by adoption, servo torque off; J4's motor
+  was unplugged (replugged 17:38); gantry page docs/experiments/20261115-gantry_travel/20261115-gantry_travel_dip_tags.html
+  (https://claude.ai/artifact/DbxLVrunj4EAWHC3YJJuUc); corvus at 1d543b7af plus nothing newer.
 State 11-15 16:41: owner 16:0x: CB1 go (patch applied ~16:12 with git apply, backups ~/backups/20261115-stream_read_back/,
   station restarted, unhomed, torque off since 16:38 for the tags); pin-push layout (75, 56.8) (plans rewritten and
   verified, SIL 0.373/0.764/0.364/0.421); DIP-link tags 14 mm ids 24-26 (assets/tracking/20261115-dip_link_tags,
@@ -203,13 +213,15 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 26. Owner 11-15 09:4x 'sure go ahead': full DIAL (anneal 4x64, --plan-dt 0.002) and HOM on every press layout (36… Done 11-15 12:54: Done 11-15 12:55: full DIAL and HOM on all 369 press layouts (seeds 0-1): rho 0.65; criterion met (9 of DIAL's ten best outside HOM's 50 best, 7 inside its 100 best); at seeds 10-11 DIAL's ten +0.067 (+0.017 to +0.115) over the grid's ten under DIAL, 0.384 below under HOM (three pads 52 vs 97 % of the task); one hand: residual 0.25 s, DIAL 2x32 0.08 s per 0.1 s; HOM page v4 (press grid, J = 0 causes), hand c93a1a9c0 + 6ccfed345, contact 0efd93e
 - [x] 27. Owner 11-15 10:0x: 'did we also try ilqr/ddp/feasibleddp on top of the gradient search?' (no: only the FD gra… Done 11-15 12:54: Done 11-15 12:55: iLQR (inner_loop_ilqr.py; Joseph-form backward pass after NaN gains) on the 20 pairs per task at seeds 0-1: 0.383/0.449/0.276/0.491, mean 0.399 (HOM 0.281, full DIAL 0.425), within full DIAL's interval on roll/pin-push/press, -0.160 on the twist (three-pad share 0.45 vs 0.60); 95x HOM's GPU per twist rollout (full DIAL 209x); one hand 0.29 s; 4 iterations no gain; repeat 0.006-0.091. HOM page v4 section iLQR, MPC page v9 tuning rows; hand 63a4e8fd9 + 6ccfed345
 - [ ] 28. Owner 11-15 13:0x 'sure go ahead' on the HOM page's future work: lane logs/20261115-followups (finish.sh commits rows): grasps at five placements on pin-push/press (done 13:56: over 100 pairs at seeds 10-11 drops 26.5->24.5 % and 31->27 %, none on the 24/22 layouts whose grasp changed), iLQR with the smooth pad term on the 20 pairs (twist 0.383->0.496, roll 0.449->0.450; pin-push, press pending), then full DIAL and HOM on the twist, roll and pin-push grids with fresh seeds (~8 h, ends ~22-23 h). Then: HOM page (press-grid section generalised to the other grids, five placements, iLQR pad term), MPC page, deck notes; republish HOM v5 and MPC v10.
-- [ ] 29. Owner 11-15 13:0x: 'make sure we are ready to start collecting data and calibrating from real trials of HOM' (owner assembling the HOM objects). Runbook docs/experiments/20261115-hom_bench_trials/README.md: hom_server (serve/sil/nominal), lab/hom_trial.py (check/trial/return), 14 plans, object_tag_map.py, tracker capture-time arm pose; corvus synced to b729cd928. Waiting on owner: go for the CB1 read-back patch (cb1/20261115-stream_read_back.patch; HOM needs measured joints), the pin-push layout ((75,56.8) or more stepper travel), tag-map views of each printed block, object masses. Trial scorer and replay calibrator: background builder (src/sr2hand/control/trial_score.py, scripts/hardware/sr2_hom_replay.py).
+- [x] 29. Owner 11-15 13:0x: 'make sure we are ready to start collecting data and calibrating from real trials of HOM' … Done 11-15 17:43: Done 11-15 17:4x: software ready for real HOM trials and their calibration. CB1 read-back patch applied ~16:12 (git apply), station restarted 17:42 with a motionless start (cb1/20261115-servo_hold.py) and the home adopted (all six stages homed at their stops, J4's unplugged motor replugged 17:38); pin-push layout (75,56.8) plans verified (SIL 0.373/0.764/0.364/0.421); trial_score merge/score, sr2_hom_replay replay/fit checked in simulation; hom_trial.py plan loads plans inline; DIP-link tags 24-26 and the gantry travel page (docs/experiments/20261115-gantry_travel, stages 0.99-1.00 with both cameras, hand ~2 deg yaw off P). Physical items left: step 30.
+- [?] 30. Waiting on owner (11-15 17:4x): before a first real HOM trial, the printed HOM objects (the print stalled 11-… Waiting on owner: Physical items for the owner: printed HOM objects, tag maps of their blocks, masses, grip tape, and the first live read-back stream with the owner present. Nothing here for the autopilot.
 Standing directions (for every step):
 - Owner 11-12 17:40: KaRMA and UHAS are not fair comparisons; UHAS is less usable for many reasons, to be codified and quantified. The page reports UHAS's higher J and its usability numbers side by side.
 - Owner 11-12 21:1x: the UHAS films look jittery and implausible; HOM is smoother than every method tried. Report smoothness with the scorecard (target reversals per joint per second, RMS target rate) for every controller, beside J
 <!-- /ap:steps -->
 Claimed: scripts/hom/hom_search_qd.py, karma_sr2.py, uhas_sr2*.py, inner_loop_benchmark_page.py,
-docs/experiments/20261112-inner_loop_benchmark/, logs/20261112-*.
+docs/experiments/20261112-inner_loop_benchmark/, logs/20261112-*, scripts/hom/hom_inner_loop_page.py,
+scripts/hom/inner_loop_mpc_page.py, docs/experiments/20261114-hom_inner_loop/, logs/20261115-followups/.
 Waiting on owner: whether to run Bayesian optimization live as the outer loop (size study's sizes, ~3 h GPU).
 Do not: GPU jobs beside the running queue (they share the card); git lfs push --all; change the talk decks without the
 owner; edit uhas_sr2*.py or hom_gpu.py while a queue step that imports them is starting.

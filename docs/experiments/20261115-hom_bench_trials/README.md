@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 17:41
+## State on 2026-11-15 17:42
 
 Built and checked without hardware:
 
@@ -56,8 +56,9 @@ Blocking a real trial:
    moved nothing: its motor was unplugged at the CB1's stepper board, and a home that ends on its timeout (result 3)
    reports homed whether the axis moved or not. Plugged back in at 17:38, J4 moved 4.93 mm toward +y_P for a 5 mm
    command, the station's direction, and homed to its -85 end (tag at y_P -86.93, 0.04 mm from its earlier home). All
-   six stages are homed at their stops (counters 0, checked against the tags); the station is stopped, waiting for the
-   owner, and a restart turns the servos on before the home is adopted. By the owner's hand check, the index's palm-y
+   six stages are homed at their stops (counters 0, checked against the tags). The station runs again since 17:42 (the
+   owner's go): homed by adoption, every mount at its home (thumb -80,-55; index 80,85; middle 80,-85), servo torque
+   off. By the owner's hand check, the index's palm-y
    stage J2 reaches about 1.2 mm past the station's limit at y 25 (to about 23.8 mm), and the other stages end at their
    commanded limits. With both cameras the stages travelled 0.99 to 1.00 times their command (index x 59.50 of 60 mm,
    thumb y 109.92 and 109.85 of 110, thumb x 60.07 of 60), and every jointly solved axis turned 1.3 to 2.3 deg
@@ -110,9 +111,12 @@ server then holds its last targets and stops the trial.
 
 ## Before a session
 
-- The station turns the servos on when it starts. A finger posed by hand past a joint's goal limit snaps back to it
-  (on 11-15 the index's MCP servo sat at 149.7 deg against its 143.6 deg limit, a 6 deg snap). Pose the fingers inside
-  their limits, or keep hands clear, before `~/run_control_station.sh start`.
+- The station turns the servos on when it starts, and each servo then drives to its goal register. To make a restart
+  motionless, stop the station and, with torque off, set every servo's goal to its present position and its goal speed
+  to 40 (`cb1/20261115-servo_hold.py`, the lab session's script of 11-15: copy it to the CB1, then
+  `cd ~/hand/src/morphohand/driver/manta/host && .venv/bin/python /tmp/20261115-servo_hold.py`). On 11-15 at 17:42 the
+  start that followed turned torque on with no motion and zero load on all nine servos, although the index's MCP servo
+  sat at 149.7 deg against its 143.6 deg goal limit.
 - Weigh each object with its stem and block; the simulation takes the measured mass.
 - Grip tape on the surfaces HOM grips (the HOM results use friction 1.0; bare PLA gives 0.37-0.44, under which the
   twist fell from 0.91 to 0.08 in simulation).
