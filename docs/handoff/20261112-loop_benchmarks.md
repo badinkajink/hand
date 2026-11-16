@@ -1,4 +1,9 @@
 Status: active (armed for the autopilot on colorado from window 8955e04e, 11-15 17:44; the owner left for the night)
+State 11-16 03:10 (autopilot): step 40, cell 1 of 8 done (twist 67 mm, 03:07): --d checked (HOM's runs at 67 mm
+  reproduce the grid, rho 0.97); 100 pairs: rho 0.66 (0.81 at 40 mm), single seed 0.59 vs ceiling 0.80, mean J HOM 0.288,
+  planner 0.402; best pair HOM (150, 55) 0.74 (planner 0.34 there), planner (95, 105) 0.88 (HOM 0.33); ten-best median
+  x_sep HOM 132.5, planner 120 mm (100 and 90 at 40 mm). Planner replanning 2.8-2.9 s per replan at 67 mm; cell 63 min.
+  Roll 67 mm running; grid rows (25 MB) stay out of git like the base grids.
 State 11-16 02:09 (autopilot): steps 7 and 39 done; step 40 runs. Step 7: open-hand UHAS (SCS0009) held 0 of
   5,232 test rollouts, J 0.000, every training episode dropped; benchmark page 808ccdfdb, artifact 6Pen2iF2bpC4YTWh13eBrb
   v2. Step 39: HOM page v7 section 6 (9e9e63c84, artifact 83AjHSqqWZXRuif4nTFjCa v7): gain mostly tracking on all four
