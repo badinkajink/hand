@@ -1,0 +1,29 @@
+{
+ "family": "tag36h11",
+ "size_mm": 14.0,
+ "corners_mm": {
+  "24": [
+   [
+    7.0,
+    -7.0,
+    0.0
+   ],
+   [
+    -7.0,
+    -7.0,
+    0.0
+   ],
+   [
+    -7.0,
+    7.0,
+    0.0
+   ],
+   [
+    7.0,
+    7.0,
+    0.0
+   ]
+  ]
+ },
+ "what": "the thumb's DIP sticker alone (tag 24, 14 mm) in its own frame: right x, down y, centre at 0"
+}

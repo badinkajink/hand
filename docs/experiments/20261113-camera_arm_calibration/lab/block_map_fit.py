@@ -39,9 +39,29 @@ LENS = json.load(open(lens_f))["cams"]
 HE = json.load(open(he_f))["cams"]
 SNS = sorted(HE)
 AF = 29.985
-NOM = HexBlock(across_flats=AF, tag_size=13.0).tag_map()
-N133 = HexBlock(across_flats=AF, tag_size=13.33).tag_map()
-OPP = [(10, 13), (11, 14), (12, 15)]
+# the block's ids of faces 0-5 from block_views.py's session.json (--ids; 16-21 on the sphere's block), else 10-15
+_ses = Path(views_dir) / "session.json" if Path(views_dir).is_dir() else Path(views_dir).with_name("session.json")
+IDS = tuple(json.load(open(_ses))["ids"]) if _ses.exists() else (10, 11, 12, 13, 14, 15)
+NOM = HexBlock(across_flats=AF, tag_size=13.0, ids=IDS).tag_map()
+N133 = HexBlock(across_flats=AF, tag_size=13.33, ids=IDS).tag_map()
+OPP = [(IDS[k], IDS[k + 3]) for k in range(3)]
+# the object's other tags recorded with the block's (block_views.py --extra-ids): the cylinder's end tags 22 and 23,
+# started in B where the as-assembled CAD puts them (object_tracking_mjcf.assembled_map: on 2026-11-16 the cylinder
+# carries the sphere's block, ids 16-21) and freed by the adjustment, which so measures where the cylinder sits on its
+# block
+EXTRA = tuple(json.load(open(_ses)).get("extra_ids", ())) if _ses.exists() else ()
+if EXTRA:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "scripts"))
+    import _paths  # noqa: E402,F401  every folder of scripts/ on sys.path
+    import object_tracking_mjcf as OM  # noqa: E402
+    _cyl = OM.assembled_map("cylinder", end_ids=EXTRA)
+    if set(_cyl.ids()) - set(EXTRA) != set(IDS):
+        sys.exit(f"extra ids {EXTRA} are the cylinder's end tags, but its block as assembled has "
+                 f"{sorted(set(_cyl.ids()) - set(EXTRA))}, not {list(IDS)}")
+    _ends = _cyl.transformed(tf_inv(OM.T_OB(OM.OBJECTS["cylinder"]["r_mm"], OM.assembled_stem_mm("cylinder"))))
+    for _M in (NOM, N133):
+        for _i in EXTRA:
+            _M.corners[_i], _M.frames[_i] = _ends.corners[_i], _ends.frames[_i]
 
 
 def camera(sn):
@@ -90,7 +110,7 @@ print("views seeing each tag (" + ", ".join(SNS) + "): " + ", ".join(f"{i}: {a}/
 
 
 def fit(idx, lengths=()):
-    return tp.bundle_adjust_multi([views[v] for v in idx], NOM, CAMS, T_PC, [T0s[v] for v in idx], fixed=10,
+    return tp.bundle_adjust_multi([views[v] for v in idx], NOM, CAMS, T_PC, [T0s[v] for v in idx], fixed=IDS[0],
                                   lengths=lengths, loss="linear" if lengths else "soft_l1")
 
 

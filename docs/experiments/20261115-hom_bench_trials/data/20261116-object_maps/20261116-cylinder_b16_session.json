@@ -1,0 +1,25 @@
+{
+ "map": "HexBlock(29.985, 13.0)",
+ "ids": [
+  16,
+  17,
+  18,
+  19,
+  20,
+  21
+ ],
+ "extra_ids": [
+  22,
+  23
+ ],
+ "settings": {
+  "enable_auto_exposure": 0,
+  "enable_auto_white_balance": 0,
+  "exposure": 166,
+  "gain": 64,
+  "white_balance": 4600
+ },
+ "lens": "docs/experiments/20261113-camera_arm_calibration/data/fits/20261113-lens_board_k3_arm.json",
+ "handeye": "docs/experiments/20261113-camera_arm_calibration/data/fits/20261113-handeye_tcp_fitted_lens_moved836.json",
+ "start": 1794851268.4801316
+}
