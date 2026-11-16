@@ -646,7 +646,10 @@ by the share of the task with all three pads above 0.05&#8202;N. A run in which 
 of the sphere twist, HOM&#8217;s mean tracking score was 0.283 without fingertip sensing and 0.302 with the fingertip
 model. With the exact state it was 0.375. In further runs the tracked pose was predicted from the commanded rotation and
 pulled toward each tracker frame with a time constant of 0.2&#8202;s. With that filter and the fingertip model, the mean
-score was 0.318
+score was 0.318. The fingertips&#8217; measured contact points were then smoothed as well. While a finger stayed in
+contact, its estimated contact point moved toward each new measurement with the same time constant. Each joint&#8217;s
+servo target then reversed direction 2.7 times a second on average, against 7.4 without this smoothing. The mean score
+fell to 0.220. The sphere was held in 57&#8202;% of the runs, against 95&#8202;%
 ([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#sensing), sections on measured
 state and on the [pose filter](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#filter)).</p>
 <p>In the same benchmark, the tip&#8217;s contact model in the simulated hand was varied. The controller was given the
