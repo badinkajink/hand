@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 16:30
+## State on 2026-11-15 17:19
 
 Built and checked without hardware:
 
@@ -51,6 +51,15 @@ Done since 14:15:
 
 Blocking a real trial:
 
+0. The middle finger's palm-y stepper J4 moves nothing (the owner's gantry session with the DIP tags, 16:53-17:13, lab
+   commit b8cb7824d, `lab/gantry_follow.py`): it counted 60 mm both ways with no motion and no sound, and turns freely by
+   hand, so the motor looks unpowered (plug, cable or driver). Its counter was reset to 0, so the middle sits at its home
+   end, palm y -85 mm. Every plan needs the middle's palm y between -25.0 and -81.6 mm (the roll layout's -81.6 is the
+   nearest), so no layout can be set until J4 moves. Homing cannot catch it: an axis that homes on its timeout (result
+   3) reports homed whether or not it moved. In the same session the other five axes reached 59.2, 58.6 and 58.7 mm
+   (index x, index y, middle x) of 60, 61.3 mm (thumb x) of 60 and 111.6 mm (thumb y) of 110, each tag solved alone per
+   camera, and all five axes appeared turned 1-3 deg clockwise about the palm normal, which puts the hand about 2 deg in
+   yaw off the tool chain's P (or the hand-eye off); the hand's tag 6 can check which.
 1. Joint angles during a stream (resolved at 16:12: the CB1 is patched). The station does not read the servos while a policy stream runs
    (`manta_hand/runtime.py`, `_telemetry_loop`). Without measured angles HOM fails: in the simulated loop on the cad_v1
    hand it dropped the sphere on the twist and the roll (J 0 against 0.352 and 0.315 with the angles), whether its
