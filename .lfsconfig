@@ -1,2 +1,2 @@
 [lfs]
-	fetchexclude = *
+	fetchinclude = docs/**/*.html,docs/**/*.mp4,docs/**/*.webm,docs/**/*.gif,docs/**/*.png,docs/**/*.jpg,docs/**/*.jpeg,docs/**/*.pdf

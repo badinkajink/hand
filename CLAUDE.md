@@ -61,8 +61,9 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   on a captured PID — the launcher forks transient PIDs).
 - **Git LFS (2026-10-09).** Media and detailed result pages under `docs/` are LFS files by the patterns in
   `.gitattributes` (data files were too until 2026-11-09; see the next bullet); commit them as usual and git-lfs stores them. Overview pages listed
-  with `!filter` in `.gitattributes` stay ordinary files. `.lfsconfig` makes fresh clones skip LFS content; this
-  workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
+  with `!filter` in `.gitattributes` stay ordinary files. Since 2026-11-15 (owner: films did not load on the laptop)
+  `.lfsconfig` makes clones fetch only the pages and media under `docs/` (html, mp4, webm, gif, png, jpg, pdf; about
+  1.7 GB of the 27 GB of LFS content); this workstation's clone has `lfs.fetchexclude` cleared in `.git/config`. History before the 2026-10-09 rewrite (commit
   hashes cited in older pages and notes, the tracked `results/` runs, retired branches) is in
   `badinkajink/hand-archive` and `~/backups/hand-20261009-full.bundle`.
 - **GitHub's LFS stores the pages and their media only (owner, 2026-11-06).** The repository was deleted and re-pushed
@@ -81,9 +82,9 @@ and **RL manipulation** (lift → in-hand reorient of a flat screwdriver to vert
   `git lfs smudge < FILE > OUT` gives its content from the local store. STEP, 3mf and zipped CAD files (owner:
   "remove the cad files, particularly the 3mf files"), the earlier data files and raw recordings stay on the
   workstation; on GitHub they are pointers without content, and they move between machines by rsync over Tailscale (the
-  workstation is `humanoid-desktop`). `docs/**/*.bin` is in `.gitignore`. Fresh clones skip LFS content by `.lfsconfig`;
-  `git config lfs.fetchexclude ''` and `git config lfs.fetchinclude 'docs/**/*.html'` make a clone's checkouts fetch the
-  pages, and `git lfs pull` fetches them once. The 1,464 objects that only the old repository had are lost, old versions
+  workstation is `humanoid-desktop`). `docs/**/*.bin` is in `.gitignore`. A clone whose own `.git/config` sets `lfs.fetchinclude`
+  or `lfs.fetchexclude` overrides `.lfsconfig` (`git config --unset-all` both to follow it), and `git lfs pull` replaces
+  the pointer files already checked out. The 1,464 objects that only the old repository had are lost, old versions
   of 84 pages among them (`docs/notes/20261106-lfs_objects_only_on_github.tsv`).
 
 ## Hardware — two hosts, and which one owns what
