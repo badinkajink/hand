@@ -104,42 +104,6 @@ def fig_turn(M):
     plt.close(fig)
 
 
-def j4_watch():
-    """Tag 26's (and the other tags') position in P over the lab session's J4 homing run of 17:20 (watch log)."""
-    from sr2hand.geometry.rotations import tf_inv
-    from sr2hand.robot.tool_chain import SR2Hand
-    path = LOGS / "20261115-172024_watch.jsonl"
-    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-    T_PB = tf_inv(np.asarray(rows[0]["T_BE"], float) @ SR2Hand.load().T_E_P())
-    fr = [r for r in rows if "sn" in r and r["sn"] == SNS[0]]
-    t0 = min(r["t"] for r in fr)
-    out = {}
-    for tag in (24, 25, 26):
-        f = [r for r in fr if r["tag"] == tag]
-        if f:
-            P = np.array([(T_PB @ np.asarray(r["T_BT"], float))[:3, 3] for r in f])
-            out[tag] = (np.array([r["t"] for r in f]) - t0, P)
-    return out
-
-
-def fig_j4(W):
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=(11, 4.2))
-    t, P = W[26]
-    ax.plot(t, P[:, 1], ".", ms=2.5, color="tab:green", label="middle's tag 26")
-    ax.axhline(-86.6, color="tab:red", ls="--", lw=1)
-    ax.text(t.max(), -86.0, "start of the home, y_P -86.6 mm (lab, from the session's reference)", ha="right", va="bottom",
-            fontsize=12, color="tab:red")
-    ax.set_xlabel(f"time from the start of the watch (s), camera {SNS[0]}")
-    ax.set_ylabel("y_P (mm)")
-    ax.set_ylim(-92, -40)
-    ax.grid(alpha=0.3)
-    ax.legend(loc="center right", fontsize=11, markerscale=4)
-    fig.tight_layout()
-    fig.savefig(MEDIA / "20261115-j4_home_watch.png", dpi=100)
-    plt.close(fig)
-
-
 def film(M, speed=8.0, fps=30):
     """Top view of P: each move's tags as the better camera saw them, the moving finger's reachable box drawn through
     its tag, at speed times real time."""
@@ -226,7 +190,6 @@ def figs():
     M = moves()
     fig_traces(M)
     fig_turn(M)
-    fig_j4(j4_watch())
     film(M)
     print("figures written to", MEDIA)
 

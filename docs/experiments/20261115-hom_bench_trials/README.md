@@ -4,7 +4,7 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
-## State on 2026-11-15 17:29
+## State on 2026-11-15 17:41
 
 Built and checked without hardware:
 
@@ -51,18 +51,18 @@ Done since 14:15:
 
 Blocking a real trial:
 
-0. The middle finger's palm-y stage J4 (gantry page `docs/experiments/20261115-gantry_travel/
-   20261115-gantry_travel_dip_tags.html`). In the owner's DIP-tag session (16:53-17:13) it moved nothing when commanded
-   60 mm each way. At 17:20 the owner found its carriage binding and freed it by turning the coupler by hand. Homed
-   alone on the stepper board under the tags (17:20-17:22), it then ran about 39.5 mm toward +y_P (from palm y about
-   -86.6 to -47.0 mm), the opposite way from the station's model, whose home for J4 is the -85 end, and stopped there
-   until the home's timeout (result 3). So J4's direction is reversed against the model, or the middle's palm-y mapping
-   is mirrored. The board zeroed J4 near -47 mm: do not adopt a home or apply a layout until the binding is freed, J4's
-   direction is checked with a short jog under the tags, and J4 is homed again. Every plan needs the middle's palm y
-   between -25.0 and -81.6 mm. A home that ends on its timeout reports homed whether the axis moved or not. With both
-   cameras, the other stages travelled 0.99 to 1.00 times their command (index x 59.50 of 60 mm, thumb y 109.92 and
-   109.85 of 110, thumb x 60.07 of 60), and every jointly solved axis turned 1.3 to 2.3 deg clockwise about z_P: the
-   hand sits about 2 deg in yaw off the tool chain's P, or the hand-eye does; the hand's tag 6 can tell which.
+0. The gantries (resolved at 17:38; gantry page `docs/experiments/20261115-gantry_travel/
+   20261115-gantry_travel_dip_tags.html`). In the owner's DIP-tag session (16:53-17:13) the middle's palm-y stage J4
+   moved nothing: its motor was unplugged at the CB1's stepper board, and a home that ends on its timeout (result 3)
+   reports homed whether the axis moved or not. Plugged back in at 17:38, J4 moved 4.93 mm toward +y_P for a 5 mm
+   command, the station's direction, and homed to its -85 end (tag at y_P -86.93, 0.04 mm from its earlier home). All
+   six stages are homed at their stops (counters 0, checked against the tags); the station is stopped, waiting for the
+   owner, and a restart turns the servos on before the home is adopted. By the owner's hand check, the index's palm-y
+   stage J2 reaches about 1.2 mm past the station's limit at y 25 (to about 23.8 mm), and the other stages end at their
+   commanded limits. With both cameras the stages travelled 0.99 to 1.00 times their command (index x 59.50 of 60 mm,
+   thumb y 109.92 and 109.85 of 110, thumb x 60.07 of 60), and every jointly solved axis turned 1.3 to 2.3 deg
+   clockwise about z_P: the hand sits about 2 deg in yaw off the tool chain's P, or the hand-eye does; the hand's tag 6
+   can tell which.
 1. Joint angles during a stream (resolved at 16:12: the CB1 is patched). The station does not read the servos while a policy stream runs
    (`manta_hand/runtime.py`, `_telemetry_loop`). Without measured angles HOM fails: in the simulated loop on the cad_v1
    hand it dropped the sphere on the twist and the roll (J 0 against 0.352 and 0.315 with the angles), whether its

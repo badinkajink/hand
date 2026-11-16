@@ -5,11 +5,11 @@
   "title": "Gantry travel of the SR2 hand from AprilTags on the DIP links",
   "page_title": "Gantry travel of the SR2 hand from AprilTags on the DIP links",
   "topic": "hardware",
-  "summary": "Gantry travel from DIP-link tags, both cameras: index x 59.50 of 60 mm, thumb y 109.92/109.85 of 110, thumb x 60.07 of 60; the middle's palm-y stage J4 was binding, and freed, it homed the opposite way from the station's model; the axes turned -2.3 to -1.3° about the palm normal (the hand about 2° in yaw off P).",
+  "summary": "Gantry travel from DIP-link tags, both cameras: index x 59.50 of 60 mm, thumb y 109.92/109.85 of 110, thumb x 60.07 of 60; the middle's palm-y stage J4 moved nothing with its motor unplugged, and 4.93 mm of 5 once plugged in; the axes turned -2.3 to -1.3° about the palm normal (the hand about 2° in yaw off P).",
   "builder": "scripts/hardware/gantry_travel_page.py",
   "artifact": "https://claude.ai/artifact/DbxLVrunj4EAWHC3YJJuUc",
   "status": "current",
-  "mb": 1.3
+  "mb": 1.2
  },
  {
   "date": "2026-11-14",
