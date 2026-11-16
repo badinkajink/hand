@@ -26,6 +26,8 @@ sys.path.insert(0, str(D))
 import rev_gear as RG  # noqa: E402
 
 STIFF = False                                      # rev_trace_clutch2 --stiff and rev_clutch2 --stiff set it
+KP_YAW_IM = None                                   # --kp-yaw-im: the index's and the middle's yaw servo gain (N m/rad)
+BREAKAWAY = 0.0                                    # --breakaway: a floor under the forward gear friction (N m)
 
 
 def clutch_class():
@@ -42,6 +44,11 @@ def clutch_class():
             if STIFF:                              # MuJoCo's dry friction creeps under a steady load; stiffen it
                 self.m.dof_solref[self.vadr9] = (2.0 * float(self.m.opt.timestep), 1.0)
                 self.m.dof_solimp[self.vadr9, :2] = (0.99, 0.999)
+            if KP_YAW_IM:                          # the two yaw servos whose free-air sag is 2.5x the plant's
+                for f in ("index", "middle"):
+                    a_ = int(self.act[f][0])
+                    self.m.actuator_gainprm[a_, 0] = KP_YAW_IM
+                    self.m.actuator_biasprm[a_, 1] = -KP_YAW_IM
 
         def advance(self, t1: float):
             m, d = self.m, self.d
@@ -57,7 +64,7 @@ def clutch_class():
                     qc = J[rows].T @ np.asarray(d.efc_force[:n])[rows]
                 ext = qc[self.vadr9] - d.qfrc_bias[self.vadr9]           # contacts and gravity on each joint
                 hold = (ext * tau < 0.0) & (np.abs(ext) > np.abs(tau))  # the load would drive it against its servo
-                fl = self.c * np.abs(tau)
+                fl = np.maximum(self.c * np.abs(tau), BREAKAWAY)
                 m.dof_frictionloss[self.vadr9] = np.where(hold, np.maximum(fl, np.abs(ext)), fl)
                 self.n_locked += int(hold.sum())
                 super().advance(min(t1, d.time + h))
@@ -70,9 +77,11 @@ def main():
     ap.add_argument("--c", type=float, nargs="+", default=[0.0, 0.6])
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--stiff", action="store_true", help="joint friction with solref 2 ms and solimp 0.99-0.999")
+    ap.add_argument("--kp-yaw-im", type=float, default=None, help="the index's and the middle's yaw gain (N m/rad)")
+    ap.add_argument("--breakaway", type=float, default=0.0, help="a floor under the forward gear friction (N m)")
     a = ap.parse_args()
-    global STIFF
-    STIFF = a.stiff
+    global STIFF, KP_YAW_IM, BREAKAWAY
+    STIFF, KP_YAW_IM, BREAKAWAY = a.stiff, a.kp_yaw_im, a.breakaway
     RG.gear_class = clutch_class                        # rev_gear's checks, run on the clutch plant
     out = {"free_air": {}, "series": []}
     for c in a.c:

@@ -13,5 +13,7 @@ the corvus session's helper's; the others are hand-4a's. The rows they wrote are
 - rev_fric.py, rev_fric2.py, rev_kp.py: constant friction and softer gains (fric_soft.json, fric2_soft.json, kp_soft.json)
 - rev_gear.py: friction c x |servo torque| (gear_soft.json)
 - rev_clutch.py (a kinematic reset; it broke the grasps), rev_clutch2.py: servos the load cannot backdrive, with
-  `--stiff` for a joint friction that does not creep (clutch2_soft.json, clutch2_stiff_soft.json);
+  `--stiff` for a joint friction that does not creep (clutch2_soft.json, clutch2_stiff_soft.json), and `--kp-yaw-im` for
+  the index's and the middle's yaw gain (clutch2_stiff_kpyaw022_soft.json, clutch2_stiff_kpyaw035_soft.json; each file's
+  free_air block is the sag those settings give);
   rev_trace_clutch2.py: one run's joint trace on that plant
