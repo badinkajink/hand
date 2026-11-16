@@ -16,6 +16,8 @@ cylinders, have no _d<d>). Reported per (task, size), J of a pair the mean over 
   best          each controller's best pair, with its J, the other controller's J there and its index in the pair file
   best_dist_mm  the distance between the two controllers' best pairs in (x_sep, y_sep)
   top10_x       the x_sep (mm) of each controller's ten best pairs
+  smooth        each controller's share of held runs, and over its held runs the median target reversals per
+                joint per second and the median RMS target rate (deg/s)
   grid          the HOM grid at that size: layouts, mean J of each layout's best grasp, its best layout
 
     .venv/bin/python scripts/hom/hom_size_rank.py --json PATH [--fig PATH]
@@ -52,11 +54,20 @@ def load(path):
 
 
 def by_pair(rows):
-    """{(x_sep, y_sep, grasp): {seed: J}}, the last row of a world kept."""
+    """{(x_sep, y_sep, grasp): {seed: row}}, the last row of a world kept."""
     out = {}
     for r in rows:
-        out.setdefault((r["x_sep"], r["y_sep"], r["grasp"]), {})[r["seed"]] = float(r["J"])
+        out.setdefault((r["x_sep"], r["y_sep"], r["grasp"]), {})[r["seed"]] = r
     return out
+
+
+def smooth(D, keys):
+    """Share of held runs over the pairs and seeds, and over the held runs the median target reversals per joint per
+    second and the median RMS target rate."""
+    runs = [D[k][s] for k in keys for s in SEEDS]
+    h = [r for r in runs if r.get("held")]
+    md = (lambda k: float(np.median([r[k] for r in h if r.get(k) is not None])) if h else None)
+    return {"held": len(h) / len(runs), "reversals_ps": md("reversals_ps"), "cmd_rate_dps": md("cmd_rate_dps")}
 
 
 def grid_summary(task, d):
@@ -98,8 +109,8 @@ def cell(task, d):
            "grid": grid_summary(task, d)}
     if len(keys) < 10:
         return out
-    jm = {nm: np.array([np.mean([D[k][s] for s in SEEDS]) for k in keys]) for nm, D in (("H", H), ("A", A))}
-    j1 = {nm: {s: np.array([D[k][s] for k in keys]) for s in SEEDS} for nm, D in (("H", H), ("A", A))}
+    jm = {nm: np.array([np.mean([float(D[k][s]["J"]) for s in SEEDS]) for k in keys]) for nm, D in (("H", H), ("A", A))}
+    j1 = {nm: {s: np.array([float(D[k][s]["J"]) for k in keys]) for s in SEEDS} for nm, D in (("H", H), ("A", A))}
     seed_rho = {nm: spearman(j1[nm][0], j1[nm][1]) for nm in "HA"}
     xs = np.array([k[0] for k in keys])
     best, top = {}, {}
@@ -112,7 +123,8 @@ def cell(task, d):
     out.update({"rho": spearman(jm["H"], jm["A"]), "seed_rho": seed_rho,
                 "ceiling": float(np.sqrt(max(seed_rho["H"] * seed_rho["A"], 0.0))),
                 "cross1": float(np.mean([spearman(j1["H"][a], j1["A"][b]) for a in SEEDS for b in SEEDS])),
-                "mean": {nm: float(jm[nm].mean()) for nm in "HA"}, "best": best, "top10_x": top,
+                "mean": {nm: float(jm[nm].mean()) for nm in "HA"}, "smooth": {"H": smooth(H, keys), "A": smooth(A, keys)},
+                "best": best, "top10_x": top,
                 "top10_x_med": {nm: float(np.median(top[nm])) for nm in "HA"},
                 "best_dist_mm": float(np.hypot(best["H"]["x"] - best["A"]["x"], best["H"]["y"] - best["A"]["y"])),
                 "top10_overlap": int(len(set(np.argsort(-jm["H"], kind="stable")[:10])
@@ -126,8 +138,9 @@ def figure(R, out):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    plt.rcParams.update({"font.family": "serif", "font.size": 12, "axes.titlesize": 13, "axes.labelsize": 12.5,
-                         "xtick.labelsize": 11.5, "ytick.labelsize": 11.5, "legend.fontsize": 12})
+    # shown at 828 px of 1,144, so 12.5 pt at 110 dpi is 13.8 px on the page
+    plt.rcParams.update({"font.family": "serif", "font.size": 13, "axes.titlesize": 14, "axes.labelsize": 13.5,
+                         "xtick.labelsize": 12.5, "ytick.labelsize": 12.5, "legend.fontsize": 13})
     TN = {"twist": "Twist", "roll": "Roll", "pinpush": "Pin-push", "press": "Press"}
     CH, CA = "#2563eb", "#f97316"
     fig, ax = plt.subplots(2, 2, figsize=(10.4, 7.4), layout="constrained")
@@ -146,7 +159,7 @@ def figure(R, out):
         g.set_title(TN[t])
         g.set_xlabel("Object diameter (mm)")
         g.set_xticks(SIZES[t])
-        g.set_ylabel("$x_{sep}$ (mm)")
+        g.set_ylabel("$x_{\\mathrm{sep}}$ (mm)")
         for sp in ("top", "right"):
             g.spines[sp].set_visible(False)
     h, lab = ax[0].get_legend_handles_labels()
@@ -177,6 +190,10 @@ def main() -> int:
                   f" {c['best']['H']['J']:.2f}/{c['best']['H']['J_other']:.2f}, A ({c['best']['A']['x']:g}, "
                   f"{c['best']['A']['y']:g}) {c['best']['A']['J']:.2f}/{c['best']['A']['J_other']:.2f}; ten best x_sep "
                   f"median H {c['top10_x_med']['H']:g} A {c['top10_x_med']['A']:g}; overlap {c['top10_overlap']}; {gs}")
+            sm = c["smooth"]
+            print(f"{'':16s}held H {sm['H']['held']:.2f} A {sm['A']['held']:.2f}; reversals/s H {sm['H']['reversals_ps']:.2f} "
+                  f"A {sm['A']['reversals_ps']:.2f}; target rate H {sm['H']['cmd_rate_dps']:.1f} A "
+                  f"{sm['A']['cmd_rate_dps']:.1f} deg/s")
     if a.json:
         Path(a.json).write_text(json.dumps(R, indent=1, default=float) + "\n")
     if a.fig:
