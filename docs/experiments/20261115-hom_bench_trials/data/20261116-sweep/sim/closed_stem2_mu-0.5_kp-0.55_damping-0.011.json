@@ -1,0 +1,302 @@
+[
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.0433,
+  "track": 0.331,
+  "held": true,
+  "err": 39.75,
+  "ref": 59.4,
+  "contact_all": 0.131,
+  "rise_max": 30.74,
+  "rise_end": 25.95,
+  "lat_end": 24.3,
+  "twist_end": 40.88,
+  "tilt_end": 26.26,
+  "dropped": false,
+  "tilt_max": 28.02,
+  "pad_frac": {
+   "thumb": 0.63,
+   "index": 0.56,
+   "middle": 0.13
+  },
+  "wall_s": 3.4
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.0304,
+  "track": 0.091,
+  "held": true,
+  "err": 54.0,
+  "ref": 59.4,
+  "contact_all": 0.334,
+  "rise_max": 22.18,
+  "rise_end": 22.18,
+  "lat_end": 26.79,
+  "twist_end": 8.37,
+  "tilt_end": 14.04,
+  "dropped": false,
+  "tilt_max": 18.59,
+  "pad_frac": {
+   "thumb": 0.99,
+   "index": 0.33,
+   "middle": 1.0
+  },
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.0296,
+  "track": 0.09,
+  "held": true,
+  "err": 54.08,
+  "ref": 59.4,
+  "contact_all": 0.331,
+  "rise_max": 23.23,
+  "rise_end": 23.23,
+  "lat_end": 27.58,
+  "twist_end": 5.49,
+  "tilt_end": 20.0,
+  "dropped": false,
+  "tilt_max": 20.53,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.33,
+   "middle": 0.99
+  },
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.0226,
+  "track": 0.054,
+  "held": true,
+  "err": 56.18,
+  "ref": 59.4,
+  "contact_all": 0.417,
+  "rise_max": 22.56,
+  "rise_end": 22.56,
+  "lat_end": 26.33,
+  "twist_end": 8.8,
+  "tilt_end": 19.42,
+  "dropped": false,
+  "tilt_max": 22.55,
+  "pad_frac": {
+   "thumb": 0.99,
+   "index": 0.42,
+   "middle": 1.0
+  },
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.1949,
+  "track": 0.698,
+  "held": true,
+  "err": 17.91,
+  "ref": 59.4,
+  "contact_all": 0.279,
+  "rise_max": 3.46,
+  "rise_end": -0.81,
+  "lat_end": 9.68,
+  "twist_end": 80.29,
+  "tilt_end": 20.1,
+  "dropped": false,
+  "tilt_max": 26.52,
+  "pad_frac": {
+   "thumb": 0.99,
+   "index": 0.29,
+   "middle": 0.96
+  },
+  "wall_s": 3.7
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.1275,
+  "track": 0.462,
+  "held": true,
+  "err": 31.96,
+  "ref": 59.4,
+  "contact_all": 0.276,
+  "rise_max": 0.3,
+  "rise_end": -4.17,
+  "lat_end": 11.35,
+  "twist_end": 53.31,
+  "tilt_end": 12.43,
+  "dropped": false,
+  "tilt_max": 16.65,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.28,
+   "middle": 0.98
+  },
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.1765,
+  "track": 0.692,
+  "held": true,
+  "err": 18.28,
+  "ref": 59.4,
+  "contact_all": 0.255,
+  "rise_max": 0.34,
+  "rise_end": -2.48,
+  "lat_end": 7.34,
+  "twist_end": 62.51,
+  "tilt_end": 5.51,
+  "dropped": false,
+  "tilt_max": 14.94,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.26,
+   "middle": 0.98
+  },
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.2207,
+  "track": 0.728,
+  "held": true,
+  "err": 16.14,
+  "ref": 59.4,
+  "contact_all": 0.303,
+  "rise_max": 2.8,
+  "rise_end": 0.99,
+  "lat_end": 6.41,
+  "twist_end": 78.77,
+  "tilt_end": 14.23,
+  "dropped": false,
+  "tilt_max": 19.7,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.3,
+   "middle": 1.0
+  },
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.2691,
+  "track": 0.749,
+  "held": true,
+  "err": 14.88,
+  "ref": 59.4,
+  "contact_all": 0.359,
+  "rise_max": 5.03,
+  "rise_end": -1.5,
+  "lat_end": 6.57,
+  "twist_end": 85.19,
+  "tilt_end": 4.16,
+  "dropped": false,
+  "tilt_max": 20.85,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.36,
+   "middle": 1.0
+  },
+  "wall_s": 3.5
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 0.5,
+   "kp": 0.55,
+   "damping": 0.011
+  },
+  "J": 0.2142,
+  "track": 0.731,
+  "held": true,
+  "err": 15.98,
+  "ref": 59.4,
+  "contact_all": 0.293,
+  "rise_max": 2.49,
+  "rise_end": 1.89,
+  "lat_end": 5.51,
+  "twist_end": 75.2,
+  "tilt_end": 17.13,
+  "dropped": false,
+  "tilt_max": 19.66,
+  "pad_frac": {
+   "thumb": 1.0,
+   "index": 0.29,
+   "middle": 1.0
+  },
+  "wall_s": 3.6
+ }
+]

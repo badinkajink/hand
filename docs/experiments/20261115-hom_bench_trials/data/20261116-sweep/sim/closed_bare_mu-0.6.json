@@ -1,0 +1,215 @@
+[
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.6245,
+  "track": 0.689,
+  "held": true,
+  "err": 18.5,
+  "ref": 59.4,
+  "contact_all": 0.907,
+  "rise_max": 6.58,
+  "rise_end": 6.58,
+  "lat_end": 10.55,
+  "twist_end": 69.97,
+  "tilt_end": 9.55,
+  "dropped": false,
+  "tilt_max": 31.25,
+  "wall_s": 4.0
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 0.6
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.6304,
+  "track": 0.679,
+  "held": true,
+  "err": 19.05,
+  "ref": 59.4,
+  "contact_all": 0.928,
+  "rise_max": 6.97,
+  "rise_end": 6.97,
+  "lat_end": 10.03,
+  "twist_end": 67.65,
+  "tilt_end": 9.5,
+  "dropped": false,
+  "tilt_max": 33.2,
+  "wall_s": 4.0
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1061,
+  "track": 0.22,
+  "held": true,
+  "err": 46.35,
+  "ref": 59.4,
+  "contact_all": 0.483,
+  "rise_max": 17.99,
+  "rise_end": 17.94,
+  "lat_end": 26.89,
+  "twist_end": 36.58,
+  "tilt_end": 39.18,
+  "dropped": false,
+  "tilt_max": 40.93,
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 0.6
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 0.6
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1101,
+  "track": 0.444,
+  "held": true,
+  "err": 33.02,
+  "ref": 59.4,
+  "contact_all": 0.248,
+  "rise_max": 2.92,
+  "rise_end": -4.5,
+  "lat_end": 17.42,
+  "twist_end": 54.77,
+  "tilt_end": 25.02,
+  "dropped": false,
+  "tilt_max": 52.7,
+  "wall_s": 3.9
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1205,
+  "track": 0.492,
+  "held": true,
+  "err": 30.19,
+  "ref": 59.4,
+  "contact_all": 0.245,
+  "rise_max": 3.04,
+  "rise_end": -6.9,
+  "lat_end": 9.74,
+  "twist_end": 56.28,
+  "tilt_end": 17.55,
+  "dropped": false,
+  "tilt_max": 50.53,
+  "wall_s": 4.0
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1159,
+  "track": 0.455,
+  "held": true,
+  "err": 32.4,
+  "ref": 59.4,
+  "contact_all": 0.255,
+  "rise_max": 0.47,
+  "rise_end": -4.61,
+  "lat_end": 7.18,
+  "twist_end": 53.4,
+  "tilt_end": 12.55,
+  "dropped": false,
+  "tilt_max": 44.98,
+  "wall_s": 3.9
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1597,
+  "track": 0.652,
+  "held": true,
+  "err": 20.68,
+  "ref": 59.4,
+  "contact_all": 0.245,
+  "rise_max": 1.91,
+  "rise_end": 1.35,
+  "lat_end": 2.26,
+  "twist_end": 71.56,
+  "tilt_end": 17.76,
+  "dropped": false,
+  "tilt_max": 24.51,
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1891,
+  "track": 0.645,
+  "held": true,
+  "err": 21.06,
+  "ref": 59.4,
+  "contact_all": 0.293,
+  "rise_max": 2.41,
+  "rise_end": 1.25,
+  "lat_end": 3.15,
+  "twist_end": 75.4,
+  "tilt_end": 17.87,
+  "dropped": false,
+  "tilt_max": 27.24,
+  "wall_s": 3.6
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 0.6
+  },
+  "J": 0.1383,
+  "track": 0.659,
+  "held": true,
+  "err": 20.27,
+  "ref": 59.4,
+  "contact_all": 0.21,
+  "rise_max": 2.29,
+  "rise_end": 1.38,
+  "lat_end": 3.96,
+  "twist_end": 69.45,
+  "tilt_end": 20.24,
+  "dropped": false,
+  "tilt_max": 27.03,
+  "wall_s": 3.6
+ }
+]

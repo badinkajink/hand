@@ -1,6 +1,6 @@
 [
  {
-  "label": "gen_S3_am1",
+  "label": "gen_113700",
   "plan": "../plans/20261115-generalist_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-113700_twist_corvus.jsonl",
   "twist_min_deg": -26.2,
@@ -16,7 +16,7 @@
   "track_ratio": null
  },
  {
-  "label": "gen_S3_am2",
+  "label": "gen_114300",
   "plan": "../plans/20261115-generalist_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-114300_twist_corvus.jsonl",
   "twist_min_deg": -25.2,
@@ -32,7 +32,7 @@
   "track_ratio": 0.192
  },
  {
-  "label": "gen_S3_am3",
+  "label": "gen_115709",
   "plan": "../plans/20261115-generalist_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-115709_twist_corvus.jsonl",
   "twist_min_deg": -18.9,
@@ -48,7 +48,7 @@
   "track_ratio": 0.013
  },
  {
-  "label": "gen_S3_am4",
+  "label": "gen_120037",
   "plan": "../plans/20261115-generalist_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-120037_twist_corvus.jsonl",
   "twist_min_deg": -33.4,
@@ -64,7 +64,7 @@
   "track_ratio": 0.0
  },
  {
-  "label": "film_g10_a",
+  "label": "g10_120945",
   "plan": "../plans/20261116-film_x105_y70_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-120945_twist_corvus.jsonl",
   "twist_min_deg": -5.6,
@@ -80,7 +80,7 @@
   "track_ratio": 0.0
  },
  {
-  "label": "film_g11_a",
+  "label": "g11_121248",
   "plan": "../plans/20261116-film_x70_y110_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-121248_twist_corvus.jsonl",
   "twist_min_deg": -0.2,
@@ -96,7 +96,7 @@
   "track_ratio": 0.187
  },
  {
-  "label": "film_g10_b",
+  "label": "g10_124945",
   "plan": "../plans/20261116-film_x105_y70_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-124945_twist_corvus.jsonl",
   "twist_min_deg": -0.1,
@@ -112,7 +112,7 @@
   "track_ratio": 0.08
  },
  {
-  "label": "film_g11_b",
+  "label": "g11_125501",
   "plan": "../plans/20261116-film_x70_y110_twist_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-125501_twist_corvus.jsonl",
   "twist_min_deg": -0.5,
@@ -128,7 +128,7 @@
   "track_ratio": 0.102
  },
  {
-  "label": "gr_g0_a",
+  "label": "g0gr_125922",
   "plan": "../plans/20261116-film_x70_y110_twist_gr_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-125922_twist_corvus.jsonl",
   "twist_min_deg": -0.4,
@@ -144,7 +144,7 @@
   "track_ratio": 0.383
  },
  {
-  "label": "gr_g13_a",
+  "label": "g13gr_130318",
   "plan": "../plans/20261116-film_x105_y70_twist_gr_plan.json",
   "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-130318_twist_corvus.jsonl",
   "twist_min_deg": -12.3,
@@ -160,9 +160,9 @@
   "track_ratio": 0.395
  },
  {
-  "label": "film_g10_c",
+  "label": "g10_133958",
   "plan": "../plans/20261116-film_x105_y70_twist_plan.json",
-  "record": "/home/will/workspace/hand/logs/20261116-hom_trials/20261116-133958_twist_corvus.jsonl",
+  "record": "/home/will/workspace/hand/docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-133958_twist_corvus.jsonl",
   "twist_min_deg": -3.7,
   "twist_max_deg": 32.5,
   "rise_max_mm": 14.4,
@@ -174,5 +174,69 @@
   "track_err_rms_deg": 44.43,
   "track_ref_rms_deg": 62.66,
   "track_ratio": 0.291
+ },
+ {
+  "label": "g13gr_134843",
+  "plan": "../plans/20261116-film_x105_y70_twist_gr_plan.json",
+  "record": "/home/will/workspace/hand/logs/20261116-hom_trials/20261116-134843_twist_corvus.jsonl",
+  "twist_min_deg": -5.3,
+  "twist_max_deg": 34.9,
+  "rise_max_mm": 1.8,
+  "drift_end_mm": 10.0,
+  "stop": "controller",
+  "periods": 417,
+  "latitude_deg": -2.4,
+  "server": "/home/will/workspace/hand/logs/20261116-hom_trials/server_records/20261116-134847_twist_d40_trial000.jsonl",
+  "track_err_rms_deg": 39.18,
+  "track_ref_rms_deg": 62.66,
+  "track_ratio": 0.375
+ },
+ {
+  "label": "lat4_134957",
+  "plan": "../plans/20261116-film_x105_y70_twist_g10_lat4_plan.json",
+  "record": "/home/will/workspace/hand/logs/20261116-hom_trials/20261116-134957_twist_corvus.jsonl",
+  "twist_min_deg": -6.4,
+  "twist_max_deg": 39.3,
+  "rise_max_mm": 2.4,
+  "drift_end_mm": 9.6,
+  "stop": "controller",
+  "periods": 416,
+  "latitude_deg": -4.0,
+  "server": "/home/will/workspace/hand/logs/20261116-hom_trials/server_records/20261116-135001_twist_d40_trial000.jsonl",
+  "track_err_rms_deg": 36.35,
+  "track_ref_rms_deg": 62.66,
+  "track_ratio": 0.42
+ },
+ {
+  "label": "lat8_135314",
+  "plan": "../plans/20261116-film_x105_y70_twist_g10_lat8_plan.json",
+  "record": "/home/will/workspace/hand/logs/20261116-hom_trials/20261116-135314_twist_corvus.jsonl",
+  "twist_min_deg": -0.3,
+  "twist_max_deg": 38.5,
+  "rise_max_mm": 3.8,
+  "drift_end_mm": 4.0,
+  "stop": "controller",
+  "periods": 416,
+  "latitude_deg": -8.0,
+  "server": "/home/will/workspace/hand/logs/20261116-hom_trials/server_records/20261116-135318_twist_d40_trial000.jsonl",
+  "track_err_rms_deg": 38.66,
+  "track_ref_rms_deg": 62.66,
+  "track_ratio": 0.383
+ },
+ {
+  "label": "lat12_135517",
+  "plan": "../plans/20261116-film_x105_y70_twist_g10_lat12_plan.json",
+  "record": "/home/will/workspace/hand/logs/20261116-hom_trials/20261116-135517_twist_corvus.jsonl",
+  "twist_min_deg": -0.0,
+  "twist_max_deg": 44.6,
+  "rise_max_mm": 11.1,
+  "drift_end_mm": 20.2,
+  "stop": "controller",
+  "periods": 417,
+  "latitude_deg": -12.0,
+  "server": "/home/will/workspace/hand/logs/20261116-hom_trials/server_records/20261116-135521_twist_d40_trial000.jsonl",
+  "track_err_rms_deg": 43.58,
+  "track_ref_rms_deg": 62.66,
+  "track_ratio": 0.305
  }
 ]

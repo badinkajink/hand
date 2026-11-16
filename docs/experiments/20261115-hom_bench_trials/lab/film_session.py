@@ -165,11 +165,16 @@ def main():
     ap.add_argument("--blur", action="append", default=[],
                     help="STAMP=X:Y:W:H: smear that rectangle (pixels of the 960 x 540 frame) in the segment, as for a "
                          "person in view (people are blurred in published frames)")
+    ap.add_argument("--blur-all", default=None, help="X:Y:W:H smeared in every segment (a side where people pass)")
+    ap.add_argument("--clock", action="store_true", help="each caption starts with the segment's clock time")
     ap.add_argument("--list", action="store_true", help="list the segments only")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     labels = dict(x.split("=", 1) for x in a.label)
     blurs = {}
+    if a.blur_all:
+        bx, by, bw, bh = (int(t) for t in a.blur_all.split(":"))
+        blurs["*"] = [f"delogo=x={max(1, bx)}:y={max(1, by)}:w={min(bw, 958 - max(1, bx))}:h={min(bh, 538 - max(1, by))}"]
     for x in a.blur:
         k, v = x.split("=", 1)
         bx, by, bw, bh = (int(t) for t in v.split(":"))
@@ -209,7 +214,8 @@ def main():
         parts = []
         for i, s in enumerate(segs):
             cap = Path(tmp) / f"cap{i}.txt"
-            cap.write_text(caption(s, s["speed"], labels))
+            cap.write_text((f"{s['stamp'][9:11]}:{s['stamp'][11:13]}  " if a.clock else "")
+                           + caption(s, s["speed"], labels))
             text = (f"drawtext=fontfile={FONT}:textfile={cap}:x=20:y=18:fontsize=26:fontcolor=white:box=1:"
                     "boxcolor=black@0.55:boxborderw=8")
             part = Path(tmp) / f"part{i:03d}.mp4"
@@ -220,7 +226,7 @@ def main():
                       f"[a][b]hstack=inputs=2:shortest=1,{text}[v]")
             else:
                 inputs = ["-i", str(s["file"])]
-                bl = "".join(f"{b}," for b in blurs.get(s["stamp"], []))
+                bl = "".join(f"{b}," for b in blurs.get(s["stamp"], []) + blurs.get("*", []))
                 fc = (f"{chain(0, s, s['speed'], a.head_s, s.get('ranges'))},{bl}{'pad=1920:540:0:0,' if a.both else ''}"
                       f"{text}[v]")
             subprocess.run(["ffmpeg", "-y", "-v", "error", *inputs, "-filter_complex", fc, "-map", "[v]", "-an",

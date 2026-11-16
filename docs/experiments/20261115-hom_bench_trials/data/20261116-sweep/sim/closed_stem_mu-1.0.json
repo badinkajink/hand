@@ -1,0 +1,254 @@
+[
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.7781,
+  "track": 0.778,
+  "held": true,
+  "err": 13.18,
+  "ref": 59.4,
+  "contact_all": 1.0,
+  "rise_max": 5.72,
+  "rise_end": 5.72,
+  "lat_end": 8.68,
+  "twist_end": 73.38,
+  "tilt_end": 3.79,
+  "dropped": false,
+  "tilt_max": 18.6,
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.78,
+  "track": 0.78,
+  "held": true,
+  "err": 13.07,
+  "ref": 59.4,
+  "contact_all": 1.0,
+  "rise_max": 6.03,
+  "rise_end": 6.03,
+  "lat_end": 8.67,
+  "twist_end": 74.31,
+  "tilt_end": 3.82,
+  "dropped": false,
+  "tilt_max": 18.6,
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "film_g10_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.7726,
+  "track": 0.773,
+  "held": true,
+  "err": 13.51,
+  "ref": 59.4,
+  "contact_all": 1.0,
+  "rise_max": 5.61,
+  "rise_end": 5.61,
+  "lat_end": 8.34,
+  "twist_end": 72.39,
+  "tilt_end": 3.79,
+  "dropped": false,
+  "tilt_max": 18.6,
+  "wall_s": 3.8
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.7524,
+  "track": 0.752,
+  "held": true,
+  "err": 14.71,
+  "ref": 59.4,
+  "contact_all": 1.0,
+  "rise_max": 4.83,
+  "rise_end": 4.82,
+  "lat_end": 9.19,
+  "twist_end": 70.55,
+  "tilt_end": 16.35,
+  "dropped": false,
+  "tilt_max": 17.29,
+  "wall_s": 4.0
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.7705,
+  "track": 0.771,
+  "held": true,
+  "err": 13.63,
+  "ref": 59.4,
+  "contact_all": 1.0,
+  "rise_max": 4.22,
+  "rise_end": 4.18,
+  "lat_end": 8.11,
+  "twist_end": 68.23,
+  "tilt_end": 13.55,
+  "dropped": false,
+  "tilt_max": 15.07,
+  "wall_s": 4.0
+ },
+ {
+  "grasp": "film_g11_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.4004,
+  "track": 0.667,
+  "held": true,
+  "err": 19.76,
+  "ref": 59.4,
+  "contact_all": 0.6,
+  "rise_max": 4.76,
+  "rise_end": 4.36,
+  "lat_end": 18.06,
+  "twist_end": 76.14,
+  "tilt_end": 25.31,
+  "dropped": false,
+  "tilt_max": 27.73,
+  "wall_s": 3.9
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.1711,
+  "track": 0.698,
+  "held": true,
+  "err": 17.91,
+  "ref": 59.4,
+  "contact_all": 0.245,
+  "rise_max": 0.27,
+  "rise_end": -0.01,
+  "lat_end": 5.54,
+  "twist_end": 69.07,
+  "tilt_end": 14.41,
+  "dropped": false,
+  "tilt_max": 19.33,
+  "wall_s": 3.4
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.1932,
+  "track": 0.758,
+  "held": true,
+  "err": 14.39,
+  "ref": 59.4,
+  "contact_all": 0.255,
+  "rise_max": 0.9,
+  "rise_end": 0.51,
+  "lat_end": 4.64,
+  "twist_end": 76.65,
+  "tilt_end": 15.06,
+  "dropped": false,
+  "tilt_max": 16.1,
+  "wall_s": 3.5
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.1388,
+  "track": 0.583,
+  "held": true,
+  "err": 24.77,
+  "ref": 59.4,
+  "contact_all": 0.238,
+  "rise_max": 0.73,
+  "rise_end": 0.28,
+  "lat_end": 12.23,
+  "twist_end": 72.2,
+  "tilt_end": 20.21,
+  "dropped": false,
+  "tilt_max": 40.34,
+  "wall_s": 3.7
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.1863,
+  "track": 0.685,
+  "held": true,
+  "err": 18.71,
+  "ref": 59.4,
+  "contact_all": 0.272,
+  "rise_max": 1.36,
+  "rise_end": 0.29,
+  "lat_end": 1.47,
+  "twist_end": 74.42,
+  "tilt_end": 16.21,
+  "dropped": false,
+  "tilt_max": 20.54,
+  "wall_s": 3.5
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.2221,
+  "track": 0.701,
+  "held": true,
+  "err": 17.79,
+  "ref": 59.4,
+  "contact_all": 0.317,
+  "rise_max": 1.35,
+  "rise_end": 0.18,
+  "lat_end": 2.2,
+  "twist_end": 74.3,
+  "tilt_end": 13.63,
+  "dropped": false,
+  "tilt_max": 19.54,
+  "wall_s": 3.5
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "mu": 1.0
+  },
+  "J": 0.1828,
+  "track": 0.679,
+  "held": true,
+  "err": 19.04,
+  "ref": 59.4,
+  "contact_all": 0.269,
+  "rise_max": 1.22,
+  "rise_end": 0.15,
+  "lat_end": 0.32,
+  "twist_end": 75.6,
+  "tilt_end": 17.36,
+  "dropped": false,
+  "tilt_max": 19.41,
+  "wall_s": 3.5
+ }
+]

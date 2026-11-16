@@ -81,6 +81,8 @@ def main():
     ap.add_argument("--max-drift-mm", type=float, default=30.0)
     ap.add_argument("--max-off", type=float, default=3.0)
     ap.add_argument("--max-yaw", type=float, default=5.0)
+    ap.add_argument("--upright-deg", type=float, default=8.0,
+                    help="after a tilted release, go on when the object stands within this of vertical")
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
     common = ["--object", a.object, "--map", a.map]
@@ -114,16 +116,27 @@ def main():
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
-        with open(a.out, "a") as f:
-            f.write(json.dumps(row) + "\n")
+        if rc == 0 and "LET GO" in out:
+            with open(a.out, "a") as f:
+                f.write(json.dumps(row) + "\n")
         if rc != 0 or "LET GO" not in out:
             if "is not seated" in out:
                 # the object held tilted past --seat-deg: let go of it rather than hold it for hours under the servos'
                 # load, though it may topple (13:41, 2026-11-16), and stop: a person must stand it up again
                 rc2, out2 = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--go",
                                  "--video-dir", a.video_dir], 300)
+                # released at 19.0 deg the sphere settled at 5.2 deg (13:50); at 21.6 deg it toppled (13:41): go on
+                # when it stands within --upright-deg after the release
+                t = re.findall(r"released: .*?tilt ([\d.]+) deg", out2)
+                row["putdown"] = f"tilted; letgo --tilt-ok; settled at {t[-1] if t else '?'} deg"
+                with open(a.out, "a") as f:
+                    f.write(json.dumps(row) + "\n")
+                if "LET GO" in out2 and t and float(t[-1]) <= a.upright_deg:
+                    print(f"   {label}: released tilted, settled at {t[-1]} deg: going on", flush=True)
+                    continue
                 sys.exit(f"STOP: {label} ended tilted; released with letgo --tilt-ok "
-                         f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}): stand the object up to go on")
+                         f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
+                         f"{t[-1] if t else '?'} deg): stand the object up to go on")
             sys.exit(f"STOP: putdown did not finish for {label}: {row['putdown']}")
     print(f"\n=== {time.strftime('%H:%M:%S')} series done", flush=True)
     return 0

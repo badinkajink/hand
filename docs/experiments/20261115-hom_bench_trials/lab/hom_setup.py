@@ -64,7 +64,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "src/sr2hand/driver/reskin5x/host"), str(HERE)]
 import hom_trial as HT  # noqa: E402  open_ft, start_tracker, ur_pose, ROBOT
-from sr2hand.geometry.rotations import (quat_conj, quat_from_rotvec, quat_mul, quat_to_mat, quat_to_rotvec,  # noqa: E402
+from sr2hand.geometry.rotations import (mat_to_quat, quat_conj, quat_from_rotvec, quat_mul, quat_to_mat, quat_to_rotvec,  # noqa: E402
                                         rot_between, rot_z, tf, tf_from_ur, tf_inv, tf_to_ur)
 from sr2hand.robot.tool_chain import SR2Hand, ToolChain  # noqa: E402
 
@@ -75,6 +75,8 @@ CB1 = "irlab@10.99.99.2"
 CB1_HOST_DIR = "~/hand/src/morphohand/driver/manta/host"
 LOG = ROOT / "logs/20261116-hom_setup"
 T_EP = SR2Hand.load().T_E_P()
+ROT_N_PER_DEG = 0.9            # N of the guard's allowance per degree an arm move turns the hand (Arm.move)
+ROT_N_CAP = 12.0               # N: the largest guard limit a turn may reach
 HAND = SR2Hand.load()
 FINGERS = ("thumb", "index", "middle")
 ZERO = {f: {k: 0.0 for k in ("yaw", "mcp", "pip")} for f in FINGERS}
@@ -242,7 +244,14 @@ class Arm:
         guard = stop_n is not None
         F0 = self.force_mean(0.4) if guard else None
         src = ("UR TCP force" if self.ur_ft else "HEX-E") if guard else "no force guard"
-        p0 = self.T_BE()[:3, 3]
+        T0 = self.T_BE()
+        p0 = T0[:3, 3]
+        turn = math.degrees(float(np.linalg.norm(quat_to_rotvec(mat_to_quat(T0[:3, :3].T @ T_BE_goal[:3, :3])))))
+        if guard and turn > 0.5:
+            # the HEX-E turns with the hand, so the hand's weight shifts in its frame as the hand turns: 0.45-0.8 N a
+            # degree on 2026-11-16 (a 6.4 deg levelling stopped at 2.11 N, a re-level at 3.0 N, both in free air)
+            stop_n = min(stop_n + ROT_N_PER_DEG * turn, ROT_N_CAP)
+            print(f"   {label}: a {turn:.1f} deg turn: the force limit {stop_n:.1f} N", flush=True)
         self.c.moveL(tf_to_ur(T_BE_goal).tolist(), v, acc, True)
         t0, fmax, why = time.time(), 0.0, None
         time.sleep(0.02)
@@ -1022,6 +1031,33 @@ def cmd_putdown(a):
     try:
         p_m, q_m, info = meas.pose(a.measure_s, settle=0.0)
         report("held", p_m, q_m, p_n, q_n, shape, info)
+        # a minor turn of the hand about the object's centre toward a level putdown (owner, 2026-11-16: "really minor
+        # wrist reorientation to get a more level putdown ... dont have to get perfectly level, the slow release once
+        # we get touchdown will probably do the trick"): a share --level-frac of the axis' tilt, at most --level-max
+        up = quat_to_mat(np.asarray(info["q_B"], float))[:, 1]
+        tilt0 = math.degrees(math.acos(float(np.clip(up[2], -1.0, 1.0))))
+        lev = min(a.level_frac * tilt0, a.level_max) if a.level_max > 0 and tilt0 > a.level_min else 0.0
+        if lev > 0.0:
+            ax = np.cross(up, [0.0, 0.0, 1.0])
+            ax /= np.linalg.norm(ax)
+            c = np.asarray(info["p_B"], float)
+            T_turn = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(lev))), None) @ tf(None, -c)
+            print(f"   the object's axis {tilt0:.1f} deg from vertical: the hand turns {lev:.1f} deg about its centre "
+                  f"toward level (to {tilt0 - lev:.1f} deg)", flush=True)
+            if a.go:
+                arm.connect(a.stop_n is not None)
+                ref = meas.latest(5, 0.5)
+                if ref is None:
+                    raise SystemExit("the tracker does not see the object: not moving")
+                # its own force limit: the HEX-E turns with the hand, so the hand's weight shifts in the sensor's frame
+                # by about its weight x the turn (2.11 N stopped a 6.4 deg turn at 13:53, 2026-11-16, in free air)
+                why, _ = arm.move(T_turn @ arm.T_BE(), a.v, a.acc, a.level_stop_n if a.stop_n is not None else None,
+                                  12.0, f"level {lev:.1f} deg", check=meas.watch_touch(ref[0], 2.0, 2.0))
+                if why:
+                    raise SystemExit(f"the levelling stopped: {why}; look before anything else")
+                p_m, q_m, info = meas.pose(a.measure_s)
+                report("levelled", p_m, q_m, p_n, q_n, shape, info)
+                note({"cmd": "putdown", "step": "level", "tilt0_deg": tilt0, "turn_deg": lev})
         d = float(info["p_B"][2]) - h - a.table_z
         print(f"the block's bottom {d:.1f} mm above the table (the centre at z_B {info['p_B'][2]:.1f} mm, {h:.1f} mm "
               f"over the block's bottom; the table at z_B {a.table_z:g}): the touchdown expected {d:.1f} mm down",
@@ -1044,7 +1080,8 @@ def cmd_putdown(a):
         print("the release after a touchdown at the expected height: " + rel["text"], flush=True)
         if not a.go:
             return 0
-        arm.connect(a.stop_n is not None)
+        if arm.c is None:
+            arm.connect(a.stop_n is not None)
         touched, total = None, 0.0
         for name, dist, v, zmm in legs:
             ref = meas.latest(5, 0.5)
@@ -1398,6 +1435,12 @@ def main():
             p.add_argument("--touch-window", type=float, default=4.0,
                            help="mm short of the expected touchdown within which the HEX-E's backstop counts as one")
             p.add_argument("--seat-mm", type=float, default=3.0)
+            p.add_argument("--level-frac", type=float, default=0.5, help="the share of the tilt the levelling takes out")
+            p.add_argument("--level-max", type=float, default=8.0, help="deg: the largest levelling turn (0: none)")
+            p.add_argument("--level-min", type=float, default=6.0, help="deg: no levelling below this tilt")
+            p.add_argument("--level-stop-n", type=float, default=6.0,
+                           help="N of force change that stops the levelling turn (the hand's weight turns in the "
+                                "HEX-E's frame)")
             p.add_argument("--seat-deg", type=float, default=14.0,
                            help="the object's tilt allowed at the touchdown: released at 13.5 deg the sphere settled "
                                 "upright (owner: \"the sphere probably settles on the open\"), at 21.6 deg it toppled "
@@ -1451,7 +1494,8 @@ def _letgo_args(p):
     p.add_argument("--clear", type=float, default=30.0, help="mm over the grasp's height the lift takes the palm to")
     p.add_argument("--lift-still-mm", type=float, default=3.0,
                    help="the object's motion in B that stops the lift (the fingers straight, nothing should touch it)")
-    p.add_argument("--max-level", type=float, default=5.0, help="deg of z_P tilt the lift levels out")
+    p.add_argument("--max-level", type=float, default=10.0,
+                   help="deg of z_P tilt the lift levels out (putdown's levelling turns the hand up to 8 deg)")
     p.add_argument("--max-dz", type=float, default=160.0, help="mm the lift may take at most")
 
 
