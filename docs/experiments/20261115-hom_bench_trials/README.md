@@ -4,6 +4,36 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 12:57
+
+The afternoon session (owner at the UR5) added these:
+
+- **Putdown, zero and recording.** `putdown` now needs `--object` and `--map`. It measures the object and predicts the
+  touchdown from the block's height above the table. It descends at 10 mm/s, then at 2 mm/s, and the tracker stops it
+  when the object moves 0.8 mm against the hand. At 12:13 the HEX-E alone had let the hand go 66 mm down with the
+  sphere sliding up into it. Then it checks the seat and, on the hand's model, the release path. It releases slowly,
+  rises with the fingers open while the tracker watches the object, straightens the fingers and rises again. `zero`
+  refuses to straighten the fingers while they are round the object, unless given `--unchecked`. Every moving command
+  takes `--video-dir`, and `hom_trial.py trial` takes `--video-dir --label`. `lab/film_session.py` joins a session
+  folder into one film, with the trials at 1x and the rest at 6x.
+- **Fingertip tags** (`lab/fingertip_tag_check.py`, at the (70,110) layout). The index and middle DIP tags (25, 26)
+  agree with the hand model to 3.2-4.3 mm and 7.0-7.1 mm at the zero, open and grip poses. Their normals agree to
+  1.9-3.4 deg. The thumb agrees to 3.2 mm. Across the camera's view the error is 2-3 mm; the rest lies along the one
+  camera's depth. Placement does not explain the 7-30 mm the sphere is pushed up in the hand. These tags face away from
+  both cameras; the check turned the wrist -135 deg, which the owner does not want repeated.
+- **MCP readings past about 62-68 deg flexion are wrong.** There the servo's potentiometer is out of range and the
+  reading jumps by about -110 deg. Never turn torque on with a finger curled that far. The flexion signs are right.
+- **Ground-clear grasps** (grid2dgr, contacts 2-5 deg below the equator, `plans/20261116-film_*_gr_plan.json`). In
+  simulation they hold the sphere but barely twist: track 0.15 and 0.17, against 0.756 and 0.643 for the film grasps.
+  HOM's twist in the simulation needs contacts below the equator.
+- **The continuous film's trials.** The film is `media/20261116-real_hand_twist_continuous.mp4`, 48.7 s, from camera
+  832412070344, which has no people in view. Its segments are in `logs/20261116-hom_trials/20261116-1248_session/`.
+
+| record | layout | twist | ended |
+|---|---|---|---|
+| 124945 | (105, 70) | up to +22.7 deg | drift guard at 3.5 s: 33.6 mm, the sphere 30 mm up in the hand |
+| 125501 | (70, 110) | up to +17.9 deg | full length, 8.3 s; drift about 21 mm |
+
 ## State on 2026-11-16 12:20
 
 The first live trials ran on 2026-11-16 with the owner supervising at the UR5. The set-up is one command
