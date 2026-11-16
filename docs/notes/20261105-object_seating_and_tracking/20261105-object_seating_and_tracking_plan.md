@@ -113,7 +113,9 @@ was cancelled after 4 min: the project files left the one-part objects without a
 window put them on filament 1, mapped to the black spool, and the slice made 359 filament changes in 12 h instead of 67
 in 3.9 h. The projects now put black on filament 1 and white on 2. Its map is then its block's, placed by the seat and key,
 as for the sphere. A plate pressed on the face of tag 10 or 13 lies parallel to its axis, and equal gaps to the
-cylinder at both ends set its turn when it is glued. The sphere is two
+cylinder at both ends set its turn when it is glued. The blocks' second version (owner, 2026-11-16;
+`assets/tracking/20261116-tag_blocks/`) widens the stem's root to 6 mm, tapering to the stem over 10 mm, with a 3 mm
+fillet to the block's top. In the replayed rollouts no finger came within 6.8 mm of it on the series' layouts. The sphere is two
 hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The
 measured servo's best layouts (grids of 2026-11-10, press, roll and twist) reach 18.5 mm below the cylinder and 10.7 mm
 below the sphere (`rows/stem_sv25_sv55db.json`), so the cylinder's stem stays at 35.6 mm and the sphere's grows by

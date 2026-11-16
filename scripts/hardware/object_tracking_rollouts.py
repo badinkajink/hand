@@ -429,6 +429,79 @@ def cmd_run(a):
     return 0
 
 
+BLOCKS_V2 = ROOT / "assets/tracking/20261116-tag_blocks/20261116-tag_blocks.json"
+
+
+def cmd_rootclear(a):
+    """Finger clearance of the tag blocks' second-version stem root (owner, 2026-11-16) over the recorded rollouts. The
+    root is drawn by two cylinders that enclose it: ROOT_D across from the block's top up to ROOT_H, and the fillet's
+    foot across up to FILLET_R. They are added to each rollout's built scene, every recorded period is set and
+    collided, and contacts within CLEAR_RANGE give the distance to the nearest finger geom, as in the rollouts."""
+    import mujoco
+    root_cfg = json.loads(BLOCKS_V2.read_text())["root"]
+    rows = [json.loads(x) for x in (ROWS / "rollouts.jsonl").read_text().splitlines() if x.strip()]
+    rows = [r for r in rows if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()]
+    models, out = {}, []
+    for r in rows:
+        z = np.load(ROOT / r["traj"])
+        r_mm, stem_mm, scene = float(z["r_mm"]), float(z["stem_mm"]), ROOT / str(z["scene"])
+        key = (scene, r_mm, stem_mm)
+        if key not in models:
+            xml = ET.parse(scene).getroot()
+            ob = xml.find(f".//body[@name='{S.OBJ}']")
+            stem = xml.find(".//geom[@name='otrack_stem']")
+            top = -(r_mm + stem_mm)                         # the block's top on y_O (mm); the stem runs along y_O
+            for name, rad, h in (("otrack_root", root_cfg["root_d_mm"] / 2, root_cfg["root_h_mm"]),
+                                 ("otrack_foot", root_cfg["foot_d_mm"] / 2, root_cfg["fillet_r_mm"])):
+                ET.SubElement(ob, "geom", name=name, type="cylinder", size=f"{rad / 1000.0:g}",
+                              fromto=f"0 {top / 1000.0:g} 0 0 {(top + h) / 1000.0:g} 0", mass="0", group="3",
+                              contype=stem.get("contype", "1"), conaffinity=stem.get("conaffinity", "1"),
+                              margin=f"{CLEAR_RANGE:g}", gap=f"{CLEAR_RANGE:g}")
+            tmp = scene.with_name(f"{scene.stem}.root{os.getpid()}.xml")
+            ET.ElementTree(xml).write(tmp)
+            try:
+                m = mujoco.MjModel.from_xml_path(str(tmp))
+            finally:
+                tmp.unlink()
+            fing = finger_geoms(m)
+            fname = {g: next(f for f in HG.FINGERS if m.body(m.geom_bodyid[g]).name.startswith(f + "_"))
+                     for g in np.flatnonzero(fing)}
+            ids = {nm: m.geom(nm).id for nm in ("otrack_root", "otrack_foot", "otrack_stem")}
+            models[key] = (m, mujoco.MjData(m), fing, fname, ids)
+        m, d, fing, fname, ids = models[key]
+        S.set_palm(m, z["palm"])
+        for f, p in zip(HG.FINGERS, z["mounts"]):
+            m.body_pos[m.body(f"{f}_mount").id] = p
+        best = {"root": (CLEAR_RANGE, None, None), "stem": (CLEAR_RANGE, None, None)}
+        for t, q in zip(z["t"], z["qpos"]):
+            d.qpos[:] = q
+            mujoco.mj_fwdPosition(m, d)
+            n = d.ncon
+            if not n:
+                continue
+            g, dist = d.contact.geom[:n], d.contact.dist[:n]
+            for part, sel in (("root", (ids["otrack_root"], ids["otrack_foot"])), ("stem", (ids["otrack_stem"],))):
+                hit = (np.isin(g[:, 0], sel) & fing[g[:, 1]]) | (np.isin(g[:, 1], sel) & fing[g[:, 0]])
+                if hit.any():
+                    k = int(np.argmin(np.where(hit, dist, np.inf)))
+                    if dist[k] < best[part][0]:
+                        other = g[k, 1] if g[k, 0] in sel else g[k, 0]
+                        best[part] = (float(dist[k]), fname[int(other)], float(t))
+        row = {k: r[k] for k in ("task", "xy", "role", "config", "seed", "stem_mm", "clear_min_mm")}
+        for part, (dist, f, t) in best.items():
+            row.update({f"{part}_min_mm": round(1e3 * dist, 2), f"{part}_finger": f,
+                        f"{part}_t": None if t is None else round(t, 2)})
+        out.append(row)
+        print({k: row[k] for k in ("task", "xy", "config", "seed", "root_min_mm", "stem_min_mm", "clear_min_mm")},
+              flush=True)
+    res = {"what": "finger clearance of the second-version stem root over the recorded rollouts (mm; 10 = none "
+                   "within CLEAR_RANGE)", "root": root_cfg, "configs": a.configs, "rows": out}
+    dst = BLOCKS_V2.with_name("20261116-root_clearance.json")
+    dst.write_text(json.dumps(res, indent=1))
+    print("root min", min(x["root_min_mm"] for x in out), "mm over", len(out), "rollouts ->", dst.relative_to(ROOT))
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -442,7 +515,11 @@ def main():
     p.add_argument("--lift", type=float, default=40.0, help="the arm's lift at 1.6 s (mm)")
     p.add_argument("--part", type=int, default=0)
     p.add_argument("--parts", type=int, default=1)
+    p = sub.add_parser("rootclear", help="finger clearance of the tag blocks' second-version root (2026-11-16)")
+    p.add_argument("--configs", nargs="+", default=["built", "flat"])
     a = ap.parse_args()
+    if a.cmd == "rootclear":
+        return cmd_rootclear(a)
     if S.PLANT != S.SERVO_PLANT:
         raise SystemExit("run with HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25")
     return cmd_stem(a) if a.cmd == "stem" else cmd_run(a)

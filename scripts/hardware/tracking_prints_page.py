@@ -47,6 +47,7 @@ BRD = "assets/tracking/20261112-charuco_board"
 TAGP = "assets/tracking/20261107-tag_prints"
 STEM_ROWS = "docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db.json"
 PAPER = "assets/tracking/20261113-paper_board"
+BLK2 = "assets/tracking/20261116-tag_blocks"
 
 
 def rel(path):
@@ -69,6 +70,8 @@ def load():
     J["views"] = json.loads((D / "rows/views.json").read_text())
     J["he"] = json.loads((D / "rows/handeye_rotation.json").read_text())
     J["paper"] = json.loads((ROOT / f"{PAPER}/20261113-paper_boards.json").read_text())
+    J["blk2"] = json.loads((ROOT / f"{BLK2}/20261116-tag_blocks.json").read_text())
+    J["rc"] = json.loads((ROOT / f"{BLK2}/20261116-root_clearance.json").read_text())
     return J
 
 
@@ -127,7 +130,7 @@ def sec_terms():
 
 def sec_files(J):
     O, B, T = J["obj"], J["brd"], J["tag"]
-    op = O["parts"]
+    op, b2 = O["parts"], J["blk2"]["parts"]
 
     def stls(name, folder=OBJ, colours=("white", "black")):
         date = Path(folder).name[:8]
@@ -138,6 +141,10 @@ def sec_files(J):
          "glued to the cylinder's flat and slot"),
         ("Sphere's tag block and stem (ids 16 to 21)", stls("sphere_block"), f"{op['sphere_block']['height_mm']:.1f}",
          "glued to the lower hemisphere's flat and slot"),
+        ("Cylinder's tag block, second version (2026-11-16): the stem's root widened and filleted",
+         stls("cylinder_block", BLK2), f"{b2['cylinder_block']['height_mm']:.1f}", "in place of the first version"),
+        ("Sphere's tag block, second version (2026-11-16)", stls("sphere_block", BLK2),
+         f"{b2['sphere_block']['height_mm']:.1f}", "in place of the first version"),
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
         ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
          "printed standing; grip tape on its side"),
@@ -164,16 +171,21 @@ def sec_files(J):
                "as one object with two parts and give the black part the black filament. Every file lies in its print "
                "orientation on z = 0.", num_from=2)
     def row(path, what, q):
-        f, u = q.get("filament", {"white": 2, "black": 3}), q["used_g"]
-        return (flink(path, github=False), what, hours(q["prediction_s"]), f"{u.get(str(f['white']), 0):.1f}",
-                f"{u.get(str(f['black']), 0):.1f}", f"{f['white']}, {f['black']}", str(q["filament_loads"]))
+        f, u, s_, n = q.get("filament", {"white": 2, "black": 3}), q["used_g"], q["prediction_s"], q["filament_loads"]
+        if "reslice" in q:                      # the saved project sliced again, as the window opens it
+            rs = q["reslice"]
+            u, s_, n = rs["used_g"], 3600 * rs["hours"], sum(rs["loads"].values())
+        return (flink(path, github=False), what, hours(s_), f"{u.get(str(f['white']), 0):.1f}",
+                f"{u.get(str(f['black']), 0):.1f}", f"{f['white']}, {f['black']}", str(n))
 
     proj = [row(f"{OBJ}/20261112-objects_p1s.3mf", "all nine object parts", O["bambu"])] + [
         row(f"{OBJ}/20261112-objects_p1s_{v}.3mf", what, q)
         for v, what in (("cylinder_tag23", "the same, the cylinder with end tag 23 only"),
                         ("cylinder_plain", "the same, the cylinder without end tags; printed 2026-11-13"))
         if (q := O.get("bambu_variants", {}).get(v))
-    ] + [row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
+    ] + [row(f"{BLK2}/20261116-tag_blocks_p1s.3mf", "the two tag blocks, second version (2026-11-16)",
+             J["blk2"]["bambu"]),
+         row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
          row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
     t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
                 "Loads"], proj,
@@ -286,7 +298,46 @@ def sec_stems(J):
          "1.6 mm or more. The sphere rolls in the HOM tripod, and its stem touched a finger at three of the five "
          "layouts. The sphere therefore runs at the generalist (70, 110) and the pin-push specialist (75, 55) "
          "only.</p>")
-    return p + t
+    return p + t + sec_root(J)
+
+
+def sec_root(J):
+    """The blocks' second version (2026-11-16): the stem's root widened and filleted, and its finger clearance in the
+    replayed rollouts."""
+    B2, rows = J["blk2"], J["rc"]["rows"]
+    rt, bd, bp = B2["root"], B2["bending_mpa_per_n"], B2["parts"]
+    cyl = [x for x in rows if x["task"] in ("pinpush", "press")]
+    sph = [x for x in rows if x["task"] in ("roll", "twist")]
+    run = [x for x in sph if tuple(x["xy"]) in ((70.0, 110.0), (75.0, 55.0))]
+    out = [x for x in sph if x not in run]
+    f = img(MEDIA / "20261116-stem_root.png",
+            "The cylinder block's stem root in the two versions, cut through the stem's axis in the print frame (the "
+            "block's top 17 mm above the bed). The plane misses the tags' black cells. Dimensions in mm.")
+    n = P.FIG[0]
+    p1 = (f"<p>In the first blocks the {OM.STEM_D:g} mm stem met the block's top face at a square corner (Figure {n}, "
+          "left). A side force on the object bends the stem about that corner. The lever arm from the block's top to "
+          f"the object's centre is {bd['cylinder']['arm_mm']:.1f} mm on the cylinder and {bd['sphere']['arm_mm']:.1f} mm "
+          f"on the sphere. Per newton of side force the nominal stress at the corner is {bd['cylinder']['v1_root']:.1f} "
+          f"and {bd['sphere']['v1_root']:.1f} MPa, and the corner roughly doubles it. In the second version "
+          f"(2026-11-16; owner: \"we probably shouldve filleted the mounting point between the rod and the base of the "
+          f"apriltag hex block\") the root is {rt['root_d_mm']:g} mm across at the block's top. It tapers to the stem "
+          f"over {rt['root_h_mm']:g} mm and meets the top face in a fillet of {rt['fillet_r_mm']:g} mm radius, "
+          f"{rt['foot_d_mm']:.1f} mm across at its foot (Figure {n}, right). The largest nominal stress then lies where "
+          f"the taper meets the stem: {bd['cylinder']['v2_cone_top']:.1f} and {bd['sphere']['v2_cone_top']:.1f} MPa "
+          f"per newton, without a corner. The root adds {bp['cylinder_block']['added_g']:.2f} g to each block. No stem "
+          "had broken. The tags, the stem's length, the seat and the key are those of the first version, and so are "
+          "the tag maps.</p>")
+    p2 = (f"<p>The root adds material only within {rt['root_h_mm']:g} mm of the block's top. At the open and touch "
+          "poses no finger comes within 15 mm of that face (table above). The rollouts of 2026-11-05 with the seat "
+          f"and the arm's lift ({len(rows)} rollouts) were replayed with the root drawn by two cylinders that enclose "
+          "it, and every recorded period was collided again. On the cylinder's tasks no finger came within "
+          f"{min(x['root_min_mm'] for x in cyl):.1f} mm of them at any of the five layouts. On the sphere at the "
+          "generalist and pin-push layouts, where it runs, none came within "
+          f"{min(x['root_min_mm'] for x in run):.1f} mm. At the other three layouts the stem itself already overlapped "
+          f"a finger by up to {-min(x['stem_min_mm'] for x in out):.2f} mm, and the enclosing cylinders by up to "
+          f"{-min(x['root_min_mm'] for x in out):.2f} mm. Files: <a href=\"{rel(BLK2 + '/README.md')}\">"
+          f"<code>{BLK2}/</code></a>; replay: <code>object_tracking_rollouts.py rootclear</code>.</p>")
+    return p1 + f + p2
 
 
 def sec_board(J, viewer):
@@ -528,19 +579,29 @@ def sec_scripts():
 
 
 # ------------------------------------------------------------------------------------------------ page
+def root_gap(J):
+    """The least finger distance to the second-version root on the series' layouts: the cylinder's tasks at all five,
+    the sphere's at the generalist and pin-push layouts (mm)."""
+    return min(x["root_min_mm"] for x in J["rc"]["rows"]
+               if x["task"] in ("pinpush", "press") or tuple(x["xy"]) in ((70.0, 110.0), (75.0, 55.0)))
+
+
 def lede_and_summary(J):
     stem = J["stem"]["stem_mm"]
     he = {(r["rotation"], r["range_deg"]): r for r in J["he"]["rows"]}
     lede = (f"The two HOM objects and their tag blocks are ready to print. Each block prints in one piece with its "
             f"stem, {stem['cylinder']:.1f} mm on the cylinder and {stem['sphere']:.1f} mm on the sphere. Its top then "
             f"lies 15 mm below the lowest finger point of both layout sets. All 14 tags decode from the print files, "
-            f"0.022 mm RMS from the tracker's map. For the cameras' calibration a paper ChArUco board fits the owner's "
+            f"0.022 mm RMS from the tracker's map. A second version of the two blocks (2026-11-16) widens and "
+            f"fillets the stem's root. In the simulated rollouts on the trial series' layouts no finger came within "
+            f"{root_gap(J):.1f} mm of it. For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
             f"in the camera to {he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS in simulation.")
     summary = (f"Print files of the HOM cylinder and sphere on tag-block stems ({stem['cylinder']:.1f} and "
                f"{stem['sphere']:.1f} mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at "
-               f"0.022 mm RMS), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
+               f"0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within "
+               f"{root_gap(J):.1f} mm of it in the rollouts), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
                f"position undetermined; turns of +-10 deg about three axes give "
                f"{he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS for the palm in the camera in "
@@ -585,8 +646,7 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(body, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in enumerate(body, 1))
     lede, summary = lede_and_summary(J)
-    byline = ("Print files of 2026-11-07 and 2026-11-12, checked in CAD and in the slicer; nothing printed or measured "
-              "yet. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
+    byline = ("Print files of 2026-11-07, 2026-11-12 and 2026-11-16, checked in CAD and in the slicer. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
               "<code>scripts/hardware/tracking_prints_page.py</code>; figures and viewers: "
               "<code>scripts/hardware/tracking_prints_media.py</code>.")
     page = TEMPLATE.read_text()

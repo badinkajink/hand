@@ -16,9 +16,12 @@ servo's five best per task).
 
 Files lie in print orientation on z = 0, each two-colour part as a white body and its black cells in one frame. `build`
 (femtip, manifold3d) writes them; `check` (camera stack) draws every tag face of the black bodies and detects it against
-the map; `bambu` writes one Bambu Studio project of all parts (white on filament 2, black on 3). `build` also writes two
+the map; `bambu` writes one Bambu Studio project of all parts (black on filament 1, white on 2). `build` also writes two
 alternatives of the cylinder, with end tag 23 only and without end tags (owner, 2026-11-13: the end tags "cause a lot of
 pla usage"), and `bambu --cylinder NAME` slices the plate with one of them in a project of its own.
+
+`blocks build|check|bambu` writes the blocks' second version into assets/tracking/20261116-tag_blocks/: the stem's root
+widened to ROOT_D and filleted to the block's top (owner, 2026-11-16), the rest as in the first version.
 
     ~/.claude/bin/resguard.sh run --mem 3G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
         ~/miniconda3/envs/femtip/bin/python scripts/hardware/tracking_objects_print.py build
@@ -32,7 +35,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
+import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -56,6 +62,18 @@ PIN_D, PIN_HOLE_D, PIN_R, PIN_DEPTH = 2.9, 3.1, 10.0, 4.0   # mm: the sphere's d
 PIN_ANGLES = (90.0, 210.0, 330.0)
 SEG = 160                       # segments of the round surfaces
 PLA, MASS_G = 1.24e-3, 25.0     # g/mm^3; the HOM objects' mass with stem, block and tape
+# the blocks' second version (owner, 2026-11-16: "we probably shouldve filleted the mounting point between the rod and
+# the base of the apriltag hex block"; "no breaks, just anticipating problems"): the stem's root widens to ROOT_D at the
+# block's top and tapers to the stem over ROOT_H, joined to the top face by a concave fillet of FILLET_R. It stays 5 mm
+# below the lowest finger point, so the clearances, the tag faces and the maps are those of the first version.
+ROOT_D, ROOT_H, FILLET_R = 6.0, 10.0, 3.0      # mm
+FINGER_GAP = 15.0               # mm from the block's top up to the lowest finger point (the stems' design, above)
+BLOCKS_DATE = "20261116"
+BLOCKS_OUT = ROOT / f"assets/tracking/{BLOCKS_DATE}-tag_blocks"
+BLOCKS_REPORT = BLOCKS_OUT / f"{BLOCKS_DATE}-tag_blocks.json"
+BLOCKS_PROJECT = BLOCKS_OUT / f"{BLOCKS_DATE}-tag_blocks_p1s.3mf"
+BLOCKS = ("cylinder_block", "sphere_block")
+SPHERE_LAYOUTS = ((70.0, 110.0), (75.0, 55.0))   # the sphere's layouts in the series (plan, decision 2)
 # O to print: the cylinder stands on its -z_O end; the hemispheres lie on the equator, the lower one pole up
 R_PRINT = {"cylinder": np.array([[1.0, 0, 0], [0, 1.0, 0], [0, 0, 1.0]]),
            "sphere_lower": np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]]),
@@ -74,8 +92,23 @@ def m4(R, t=(0.0, 0.0, 0.0)):
     return np.hstack([np.asarray(R, float), np.asarray(t, float)[:, None]])
 
 
-def block_stem(shape):
-    """(white, black) of the block and its stem in the block frame B moved up by half the block (print frame)."""
+def stem_root():
+    """(the stem's root of the second version on z = 0, the block's top; its foot's radius on the top face, mm): a cone
+    from ROOT_D at z = 0 to the stem at ROOT_H, joined to the top face by a concave fillet of FILLET_R, revolved from
+    its (r, z) profile. It reaches 0.5 mm below the top face, as the stem does."""
+    import manifold3d as M
+    r0, rs, R = ROOT_D / 2, OM.STEM_D / 2, FILLET_R
+    n = np.array([ROOT_H, r0 - rs]) / math.hypot(ROOT_H, r0 - rs)      # the cone's outward normal in (r, z)
+    c = np.array([r0 + R * (1.0 - n[1]) / n[0], R])                     # the fillet's centre: R from the face and the cone
+    arc = [c + R * np.array([math.cos(t), math.sin(t)])
+           for t in np.linspace(-math.pi / 2, math.atan2(-n[1], -n[0]), 48)]
+    pts = [(0.0, -0.5), (float(c[0]), -0.5)] + [(float(p[0]), float(p[1])) for p in arc] + [(rs, ROOT_H), (0.0, ROOT_H)]
+    return M.Manifold.revolve(M.CrossSection([pts]), SEG), float(c[0])
+
+
+def block_stem(shape, root=False):
+    """(white, black) of the block and its stem in the block frame B moved up by half the block (print frame); `root`
+    adds the second version's root (stem_root)."""
     import manifold3d as M
     B, o = OM.BLOCK, OM.OBJECTS[shape]
     _r, _d, seat_y = seat(shape)
@@ -86,7 +119,8 @@ def block_stem(shape):
         [0.0, 0.0, B.height / 2 - 0.5])
     cone = M.Manifold.cylinder(CONE_H, OM.STEM_D / 2, SEAT_D / 2, SEG).translate([0.0, 0.0, z_seat - CONE_H])
     key = M.Manifold.cube([KEY[0], KEY[1], KEY[2]]).translate([-KEY[0] / 2, -KEY[1] / 2, z_seat])
-    S = M.Manifold.batch_boolean([prism, stem, cone, key], M.OpType.Add)
+    parts = [prism, stem, cone, key] + ([stem_root()[0].translate([0.0, 0.0, B.height / 2])] if root else [])
+    S = M.Manifold.batch_boolean(parts, M.OpType.Add)
     cells = OP.black_cells(OM.block_map(shape), OP.BLOCK_DEPTH)
     lift = np.eye(3), (0.0, 0.0, B.height / 2)
     return (S - cells).transform(m4(*lift)), (S ^ cells).transform(m4(*lift)), z_seat + B.height / 2
@@ -196,28 +230,36 @@ def cmd_build(a):
     for name, (w, b) in bodies.items():
         info = rep["parts"].setdefault(name, {})
         info["what"] = {**PARTS, **ALTERNATIVES}[name]
-        vol = {"white": w.volume(), "black": b.volume() if b is not None else 0.0}
-        if b is not None:
-            vol["overlap"] = (w ^ b).volume()
-            ok &= vol["overlap"] < 1e-6
-        info["volume_mm3"] = {k: round(v, 3) for k, v in vol.items()}
-        info["solid_pla_g"] = round((vol["white"] + vol["black"]) * PLA, 2)
-        for colour, m in (("white", w), ("black", b)):
-            if m is None:
-                continue
-            t = OP.to_trimesh(m)
-            good = bool(t.is_watertight and t.is_winding_consistent and t.volume > 0)
-            ok &= good
-            t.export(stl(name, colour))
-            info[colour] = {"file": str(stl(name, colour).relative_to(ROOT)), "triangles": int(len(t.faces)),
-                            "watertight": good, "shells": len(t.split(only_watertight=False)),
-                            "bounds_mm": np.round(t.bounds, 3).tolist()}
-        print(name, "ok" if ok else "FAILED", info["volume_mm3"], info.get("white", {}).get("bounds_mm"), flush=True)
+        ok &= export_part(info, w, b, lambda c, n=name: stl(n, c))
     rep["ok"] = bool(ok)
     REPORT.write_text(json.dumps(rep, indent=1))
     print("wrote", REPORT.relative_to(ROOT))
     if not ok:
         raise SystemExit(1)
+
+
+def export_part(info, w, b, path):
+    """Write a part's white and black bodies to path(colour) and its volumes, mass and meshes into `info`; True when
+    the colours do not overlap and every mesh is a closed, consistently wound solid."""
+    ok = True
+    vol = {"white": w.volume(), "black": b.volume() if b is not None else 0.0}
+    if b is not None:
+        vol["overlap"] = (w ^ b).volume()
+        ok &= vol["overlap"] < 1e-6
+    info["volume_mm3"] = {k: round(v, 3) for k, v in vol.items()}
+    info["solid_pla_g"] = round((vol["white"] + vol["black"]) * PLA, 2)
+    for colour, m in (("white", w), ("black", b)):
+        if m is None:
+            continue
+        t = OP.to_trimesh(m)
+        good = bool(t.is_watertight and t.is_winding_consistent and t.volume > 0)
+        ok &= good
+        t.export(path(colour))
+        info[colour] = {"file": str(path(colour).relative_to(ROOT)), "triangles": int(len(t.faces)),
+                        "watertight": good, "shells": len(t.split(only_watertight=False)),
+                        "bounds_mm": np.round(t.bounds, 3).tolist()}
+    print(info["what"], "ok" if ok else "FAILED", info["volume_mm3"], info.get("white", {}).get("bounds_mm"), flush=True)
+    return ok
 
 
 def print_maps():
@@ -235,28 +277,35 @@ def print_maps():
     return out
 
 
-def cmd_check(a):
+def check_tags(path, tms, part, tiles):
+    """(rows, ok) of one black body's tag faces, each drawn from the mesh and detected against its print-frame map."""
     import trimesh
     from sr2hand.tracking import pose as TP
+    mesh = trimesh.load(path, force="mesh")
+    rows, ok = [], True
+    for tm in tms:
+        det = TP.detector(tm.family)
+        for tid, (c, r, d, n) in tm.frames.items():
+            cell = OP.edge(tm, tid) / TG.n_cells(tm.family)
+            half = OP.edge(tm, tid) / 2 + 2 * cell
+            img = OP.draw(OP.in_plane(mesh, c, n), c, r, d, half)
+            found = TP.detect(det, img)
+            want = OP.to_px(tm.corners[tid], c, r, d, half)
+            err = float(np.sqrt(((found[tid] - want) ** 2).sum(1).mean())) / OP.PPM if tid in found else None
+            rows.append({"id": tid, "found": sorted(found), "corner_rms_mm": None if err is None else round(err, 4)})
+            tiles.append((f"{part} {tid}", img, found.get(tid), want))
+            ok &= sorted(found) == [tid] and err is not None and err < 0.05
+    print(part, rows, flush=True)
+    return rows, ok
+
+
+def cmd_check(a):
     rep = json.loads(REPORT.read_text())
     tiles, ok = [], True
     for part, tms in print_maps().items():
-        mesh = trimesh.load(stl(part, "black"), force="mesh")
-        rows = []
-        for tm in tms:
-            det = TP.detector(tm.family)
-            for tid, (c, r, d, n) in tm.frames.items():
-                cell = OP.edge(tm, tid) / TG.n_cells(tm.family)
-                half = OP.edge(tm, tid) / 2 + 2 * cell
-                img = OP.draw(OP.in_plane(mesh, c, n), c, r, d, half)
-                found = TP.detect(det, img)
-                want = OP.to_px(tm.corners[tid], c, r, d, half)
-                err = float(np.sqrt(((found[tid] - want) ** 2).sum(1).mean())) / OP.PPM if tid in found else None
-                rows.append({"id": tid, "found": sorted(found), "corner_rms_mm": None if err is None else round(err, 4)})
-                tiles.append((f"{part} {tid}", img, found.get(tid), want))
-                ok &= sorted(found) == [tid] and err is not None and err < 0.05
+        rows, good = check_tags(stl(part, "black"), tms, part, tiles)
         rep["parts"][part]["check"] = rows
-        print(part, rows, flush=True)
+        ok &= good
     rep["check_ok"] = bool(ok)
     REPORT.write_text(json.dumps(rep, indent=1))
     if a.preview:
@@ -302,6 +351,202 @@ def cmd_bambu(a):
     print("problems:", q["problems"] or "none")
     if q["problems"]:
         raise SystemExit(1)
+
+
+def blocks_stl(name, colour="white"):
+    return BLOCKS_OUT / f"{BLOCKS_DATE}-{name}_{colour}.stl"
+
+
+def bending(shape):
+    """Nominal bending stress in the stem per newton of side force at the object's centre (MPa/N), M / (pi d^3 / 32):
+    at the first version's root, and at the second version's root and at the top of its cone, where its largest
+    nominal stress lies. The first version's square corner raises its value by a factor of about 2."""
+    o = OM.OBJECTS[shape]
+    arm = o["r_mm"] + o["stem_mm"]                  # mm from the block's top to the object's centre
+
+    def s(d, a):
+        return round(32.0 * a / (math.pi * d ** 3), 2)
+    return {"arm_mm": arm, "v1_root": s(OM.STEM_D, arm), "v2_root": s(ROOT_D, arm),
+            "v2_cone_top": s(OM.STEM_D, arm - ROOT_H)}
+
+
+def cmd_blocks_build(a):
+    BLOCKS_OUT.mkdir(parents=True, exist_ok=True)
+    root, foot = stem_root()
+    rep = {"what": "the tag blocks of the tracked cylinder and sphere, second version: the stem's root widened and "
+                   "filleted (owner, 2026-11-16)",
+           "script": "scripts/hardware/tracking_objects_print.py blocks", "first_version": str(OUT.relative_to(ROOT)),
+           "root": {"root_d_mm": ROOT_D, "root_h_mm": ROOT_H, "fillet_r_mm": FILLET_R, "foot_d_mm": round(2 * foot, 3),
+                    "below_lowest_finger_mm": round(FINGER_GAP - ROOT_H, 1)},
+           "bending_mpa_per_n": {s: bending(s) for s in ("cylinder", "sphere")}, "parts": {}}
+    if BLOCKS_REPORT.exists():
+        old = json.loads(BLOCKS_REPORT.read_text())
+        rep.update({k: old[k] for k in ("bambu",) if k in old})
+    bodies = {"cylinder": cylinder_body(())[0], "sphere": sphere_halves()[0]}
+    ok, hexagon = True, 3 * OM.BLOCK.face_width * OM.BLOCK.across_flats / 2 * OM.BLOCK.height
+    rep["assembly_overlap_mm3"] = {}
+    for shape in ("cylinder", "sphere"):
+        o, name = OM.OBJECTS[shape], f"{shape}_block"
+        w, b, top = block_stem(shape, root=True)
+        w1, b1, _ = block_stem(shape)
+        info = rep["parts"][name] = {"what": PARTS[name] + ", root widened and filleted", "height_mm": round(top + KEY[2], 3)}
+        info["stem_solid_g"] = round(((w + b).volume() - hexagon) * PLA, 2)
+        info["added_g"] = round(((w + b).volume() - (w1 + b1).volume()) * PLA, 3)
+        info["black_unchanged_mm3"] = round(abs(b.volume() - b1.volume()) + abs((b ^ b1).volume() - b1.volume()), 6)
+        ok &= info["black_unchanged_mm3"] < 1e-6
+        R = R_PRINT["cylinder" if shape == "cylinder" else "sphere_lower"]
+        shift = np.array([0.0, 0.0, -o["length_mm"] / 2 if shape == "cylinder" else 0.0])
+        blk = (w + b).transform(m4(OM.R_OB, OM.block_centre_O(o["r_mm"], o["stem_mm"])
+                                   - OM.R_OB @ np.array([0.0, 0.0, OM.BLOCK.height / 2])))
+        rep["assembly_overlap_mm3"][shape] = abs(round((blk ^ bodies[shape].transform(m4(R.T, shift))).volume(), 6))
+        ok &= rep["assembly_overlap_mm3"][shape] < 1e-6
+        ok &= export_part(info, w, b, lambda c, n=name: blocks_stl(n, c))
+    rep["ok"] = bool(ok)
+    BLOCKS_REPORT.write_text(json.dumps(rep, indent=1))
+    write_blocks_readme(rep)
+    print("wrote", BLOCKS_REPORT.relative_to(ROOT), "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+def cmd_blocks_check(a):
+    rep = json.loads(BLOCKS_REPORT.read_text())
+    tiles, ok, maps = [], True, print_maps()
+    for part in BLOCKS:
+        rows, good = check_tags(blocks_stl(part, "black"), maps[part], part, tiles)
+        rep["parts"][part]["check"] = rows
+        ok &= good
+    rep["check_ok"] = bool(ok)
+    BLOCKS_REPORT.write_text(json.dumps(rep, indent=1))
+    if a.preview:
+        OP.sheet(tiles, a.preview)
+    write_blocks_readme(rep)
+    print("check", "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+def reslice(project, work):
+    """The saved project sliced again by the command line, as the window opens it (owner, 2026-11-13: a project that
+    sliced right before its filaments were written on the objects opened wrong in the window): hours, filament loads
+    and grams per filament (1-based)."""
+    work.mkdir(parents=True, exist_ok=True)
+    r = subprocess.run(["flatpak", "run", "--command=bambu-studio", "com.bambulab.BambuStudio", "--slice", "0",
+                        "--outputdir", str(work), "--export-3mf", "resliced.3mf", str(project)],
+                       capture_output=True, text=True)
+    (work / "cli.log").write_text(r.stdout + r.stderr)
+    with zipfile.ZipFile(work / "resliced.3mf") as z:
+        gcode = z.read("Metadata/plate_1.gcode").decode(errors="replace")
+        info = z.read("Metadata/slice_info.config").decode()
+    loads = {}
+    for v in re.findall(r"^\s*M620 S(\d+)A", gcode, re.M):
+        loads[str(int(v) + 1)] = loads.get(str(int(v) + 1), 0) + 1
+    pred = re.search(r'key="prediction" value="(\d+)"', info)
+    return {"hours": round(int(pred.group(1)) / 3600, 2), "loads": dict(sorted(loads.items())),
+            "used_g": {k: float(v) for k, v in re.findall(r'<filament id="(\d+)"[^>]*used_g="([^"]+)"', info)}}
+
+
+def cmd_blocks_bambu(a):
+    items = [{"name": n, "white": blocks_stl(n), "black": blocks_stl(n, "black"), "place": PLACE[n]} for n in BLOCKS]
+    work = ROOT / f"logs/{BLOCKS_DATE}-tag_blocks"
+    q = OP.bambu_project(items, BLOCKS_PROJECT, work / "bambu", "tag blocks", tower=TOWER, colours=COLOURS,
+                         filament=FILAMENTS)
+    q["reslice"] = reslice(BLOCKS_PROJECT, work / "reslice")
+    if sorted(q["reslice"]["loads"]) != sorted(str(f) for f in FILAMENTS.values()):
+        q["problems"].append(f"re-slice loads {q['reslice']['loads']}")
+    rep = json.loads(BLOCKS_REPORT.read_text())
+    rep["bambu"] = q
+    BLOCKS_REPORT.write_text(json.dumps(rep, indent=1))
+    write_blocks_readme(rep)
+    print(f"{BLOCKS_PROJECT.relative_to(ROOT)}: {q['prediction_s'] / 3600:.1f} h, {q['layers']} layers, "
+          f"{q['filament_loads']} filament loads, used {q['used_g']} g")
+    print("problems:", q["problems"] or "none")
+    if q["problems"]:
+        raise SystemExit(1)
+
+
+def write_blocks_readme(rep):
+    P, rt, bd = rep["parts"], rep["root"], rep["bending_mpa_per_n"]
+    first = json.loads(REPORT.read_text())["parts"] if REPORT.exists() else {}
+    L = [f"# Tag blocks of the tracked cylinder and sphere, second version, {BLOCKS_DATE}",
+         "",
+         "The two block-and-stem parts of `assets/tracking/20261112-objects/` with the stem's root widened and filleted "
+         "(owner, 2026-11-16: \"we probably shouldve filleted the mounting point between the rod and the base of the "
+         "apriltag hex block\"; no stem had broken). Written by `scripts/hardware/tracking_objects_print.py blocks`. "
+         "They replace the first version's blocks; the cylinder body, the sphere's halves and the dowels stay those of "
+         "2026-11-12.",
+         "",
+         "| Part | Files | Print |",
+         "|---|---|---|"]
+    for name in BLOCKS:
+        p = P[name]
+        files = ", ".join(f"`{Path(p[c]['file']).name}`" for c in ("white", "black") if c in p)
+        L.append(f"| {p['what']} | {files} | upright, block on the bed |")
+    L += ["",
+          f"Geometry. In the first version the {OM.STEM_D:g} mm stem met the block's top face at a square corner and "
+          f"reached 0.5 mm into it. Here its root is {rt['root_d_mm']:g} mm across at the top face and tapers to the "
+          f"stem over {rt['root_h_mm']:g} mm. A concave fillet of {rt['fillet_r_mm']:g} mm joins the taper to the face, "
+          f"so the root's foot is {rt['foot_d_mm']:.1f} mm across. The block, its tags, the stem's length, the cone, "
+          f"the seat and the key are unchanged, and so are the tag maps. The root ends {rt['root_h_mm']:g} mm above "
+          f"the block's top, {rt['below_lowest_finger_mm']:g} mm below the lowest finger point of the plan's five "
+          "layouts and the measured servo's five best per task, at the grasps' open and touch poses. The simulation's "
+          "stem stays a plain cylinder.",
+          "",
+          "Bending. A side force on the object bends the stem about its root. The lever arm from the block's top to "
+          f"the object's centre is {bd['cylinder']['arm_mm']:.1f} mm on the cylinder and {bd['sphere']['arm_mm']:.1f} "
+          "mm on the sphere. Per newton of side force, the nominal stress at the first version's root was "
+          f"{bd['cylinder']['v1_root']:.1f} MPa on the cylinder and {bd['sphere']['v1_root']:.1f} MPa on the sphere, "
+          "and the square corner raised it by a factor of about 2. In this version the largest nominal stress lies "
+          f"where the taper meets the stem: {bd['cylinder']['v2_cone_top']:.1f} and {bd['sphere']['v2_cone_top']:.1f} "
+          f"MPa per newton, without a corner. At the root it is {bd['cylinder']['v2_root']:.1f} and "
+          f"{bd['sphere']['v2_root']:.1f} MPa per newton.",
+          "",
+          f"Mass. The root adds {P['cylinder_block']['added_g']:.2f} g (cylinder) and "
+          f"{P['sphere_block']['added_g']:.2f} g (sphere) of solid PLA. The stem with its root, cone and key is "
+          f"{P['cylinder_block']['stem_solid_g']} g and {P['sphere_block']['stem_solid_g']} g"
+          + (f", against {first['cylinder_block']['stem_solid_g']} g and {first['sphere_block']['stem_solid_g']} g "
+             "in the first version" if first else "") + ". Weigh each assembled object; the simulation takes the "
+          "measured mass.",
+          "",
+          "Checks. The black cells are those of the first version (shared volume equal to their volume). In the CAD "
+          f"assembly the parts share {rep['assembly_overlap_mm3']['cylinder']:g} mm3 with the cylinder and "
+          f"{rep['assembly_overlap_mm3']['sphere']:g} mm3 with the sphere."]
+    if "check_ok" in rep:
+        rms = [r["corner_rms_mm"] for n in BLOCKS for r in P[n].get("check", [])]
+        span = f"{min(rms):.3f}" if f"{min(rms):.3f}" == f"{max(rms):.3f}" else f"{min(rms):.3f} to {max(rms):.3f}"
+        L[-1] += (f" Every tag face of the black bodies, drawn at {OP.PPM:.0f} px/mm from the mesh, decodes as its own id "
+                  f"with corners {span} mm RMS from the map.")
+    rc_path = BLOCKS_OUT / f"{BLOCKS_DATE}-root_clearance.json"
+    if rc_path.exists():
+        rows = json.loads(rc_path.read_text())["rows"]
+        sph = [x for x in rows if x["task"] in ("roll", "twist")]
+        run = [x for x in sph if tuple(x["xy"]) in SPHERE_LAYOUTS]
+        out = [x for x in sph if tuple(x["xy"]) not in SPHERE_LAYOUTS]
+        cyl = [x for x in rows if x["task"] in ("pinpush", "press")]
+        L += ["",
+              "Clearance in the rollouts. The rollouts of 2026-11-05 with the seat and the arm's lift (configurations "
+              f"built and flat, {len(rows)} rollouts; `object_tracking_rollouts.py rootclear`) were replayed with the "
+              f"root drawn by two cylinders that enclose it: {rt['root_d_mm']:g} mm across up to {rt['root_h_mm']:g} mm "
+              f"and {rt['foot_d_mm']:.1f} mm across up to {rt['fillet_r_mm']:g} mm. On the cylinder's tasks at all five "
+              f"layouts no finger came within {min(x['root_min_mm'] for x in cyl):.1f} mm of them ({len(cyl)} "
+              f"rollouts). On the sphere at the generalist (70, 110) and pin-push (75, 55) layouts, where the sphere runs, "
+              f"none came within {min(x['root_min_mm'] for x in run):.1f} mm ({len(run)} rollouts); the trial series "
+              "runs the pin-push layout at (75, 56.8). At the other three layouts the 4 mm "
+              f"stem already overlapped a finger by up to {-min(x['stem_min_mm'] for x in out):.2f} mm, and the enclosing "
+              f"cylinders by up to {-min(x['root_min_mm'] for x in out):.2f} mm. Those rollouts used the sphere's earlier "
+              "25.2 mm stem, which put the root 0.5 mm nearer the fingers than the printed 25.7 mm."]
+    if "bambu" in rep:
+        q, fil = rep["bambu"], rep["bambu"].get("filament", FILAMENTS)
+        rs = q.get("reslice") or {"hours": q["prediction_s"] / 3600, "used_g": q["used_g"],
+                                  "loads": {"all": q["filament_loads"]}}
+        u, w, b = rs["used_g"], str(fil["white"]), str(fil["black"])
+        L += ["", f"Bambu Studio project: `{Path(q['project']).name}`, both blocks on one plate, the black on filament "
+                  f"{b} and the white on filament {w}, written on each object. Map them to the black and white spools "
+                  "when sending. The saved project, sliced again by the command line: "
+                  f"{rs['hours']:.1f} h, {u.get(w, 0):.1f} g white and {u.get(b, 0):.1f} g black, "
+                  f"{sum(rs['loads'].values())} filament loads ({rs['loads'].get(b, 0)} black, "
+                  f"{rs['loads'].get(w, 0)} white). Not in git; `tracking_objects_print.py blocks bambu` rebuilds it."]
+    (BLOCKS_OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
 def write_readme(rep):
@@ -391,6 +636,9 @@ def write_readme(rep):
         for v, qv in rep.get("bambu_variants", {}).items():
             s += f" With {phrase[v]} in its place, `{Path(qv['project']).name}`: {sliced(qv)}."
         L += ["", s + " Not in git; `tracking_objects_print.py bambu [--cylinder NAME]` rebuilds them."]
+    if BLOCKS_REPORT.exists():
+        L += ["", f"Second version of the two blocks (owner, 2026-11-16), with the stem's root widened to {ROOT_D:g} mm "
+                  f"and filleted to the block's top: `{BLOCKS_OUT.relative_to(ROOT)}/`."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -403,7 +651,13 @@ def main():
     p = sub.add_parser("bambu")
     p.add_argument("--cylinder", choices=list(CYLINDERS), default="cylinder",
                    help="the cylinder on the plate; an alternative writes its own project beside the default one")
+    p = sub.add_parser("blocks", help=f"the blocks' second version ({BLOCKS_OUT.relative_to(ROOT)})")
+    p.add_argument("step", choices=("build", "check", "bambu"))
+    p.add_argument("--preview")
     a = ap.parse_args()
+    if a.cmd == "blocks":
+        {"build": cmd_blocks_build, "check": cmd_blocks_check, "bambu": cmd_blocks_bambu}[a.step](a)
+        return
     {"build": cmd_build, "check": cmd_check, "bambu": cmd_bambu}[a.cmd](a)
 
 

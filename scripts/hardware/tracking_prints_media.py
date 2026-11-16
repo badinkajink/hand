@@ -9,7 +9,8 @@ frame A, fingers in the CAD's modelled pose). The cameras are the plan's: portra
 task, at its height, at azimuths 0 and 260 deg from x_P, aimed as in object_tracking_sim.py (`visibility`). The palm's
 height in the task is the generalist's pin-push rollout of 2026-11-05 plus the 40 mm lift.
 
-    drawings  section drawings of the joints and a drawing of the board (femtip: manifold3d, matplotlib)
+    drawings  section drawings of the joints, of the blocks' two stem roots and of the board (femtip: manifold3d,
+              matplotlib; --only stem_root for the roots alone)
     renders   MuJoCo renders of the objects, the mount and the cameras' views, and the page's rows/views.json
               (camera stack)
     viewers   the MJCF models of the page's two viewers in logs/20261113-tracking_prints/viewer (camera stack)
@@ -547,10 +548,54 @@ def fig_board():
     print("wrote", p.relative_to(ROOT), flush=True)
 
 
+def fig_stem_root():
+    """The stem's root of the two block versions cut through the stem's axis (print frame, the block's top at z = 17 mm),
+    with the second version's dimensions (owner, 2026-11-16: the root filleted)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    plt.rcParams.update({"font.family": "serif", "font.size": 14, "xtick.labelsize": 13, "ytick.labelsize": 13})
+    R = np.array([[0, 1.0, 0], [0, 0, 1.0], [1.0, 0, 0]])          # the plane x = 0 onto z' = 0, (y, z) onto (x', y')
+    files = (("First version (2026-11-12)", lambda c: OBJ / f"{TO.DATE}-cylinder_block_{c}.stl"),
+             ("Second version (2026-11-16)", lambda c: TO.BLOCKS_OUT / f"{TO.BLOCKS_DATE}-cylinder_block_{c}.stl"))
+    fig, axs = plt.subplots(1, 2, figsize=(10.8, 6.4))
+    top, rt = OM.BLOCK.height, json.loads(TO.BLOCKS_REPORT.read_text())["root"]
+    for ax, (title, path) in zip(axs, files):
+        for c in ("white", "black"):
+            rings = [np.asarray(q) for q in to_manifold(path(c), R, np.zeros(3)).slice(0.0).to_polygons()]
+            if rings:                                   # the plane may miss every black cell
+                draw_rings(ax, rings, COL["black"] if c == "black" else COL["block"])
+        ax.set_xlim(-16, 16)
+        ax.set_ylim(top - 9, top + 17)
+        ax.set_aspect("equal")
+        ax.set_xlabel("$y$ (mm)")
+        ax.set_ylabel("$z$ above the bed (mm)")
+        ax.set_title(title, fontsize=15)
+        ax.grid(alpha=0.2, lw=0.5)
+    a = axs[1]
+    h, f = rt["root_h_mm"], rt["foot_d_mm"] / 2
+    dim(a, (-f, top - 1.6), (f, top - 1.6), f"foot {2 * f:.1f}", off=(0, -0.4), va="top", fs=13)
+    dim(a, (7.0, top), (7.0, top + h), f"taper {h:g},\n{rt['root_d_mm']:g} to {OM.STEM_D:g}", off=(0.4, 0),
+        ha="left", va="center", fs=13)
+    a.annotate(f"fillet R{rt['fillet_r_mm']:g}", xy=(-3.7, top + 0.8), xytext=(-15.0, top + 6.0), fontsize=13,
+               arrowprops=dict(arrowstyle="->", lw=0.9, color="#000000"))
+    a.text(2.6, top + 14.0, f"stem {OM.STEM_D:g}", ha="left", va="center", fontsize=13)
+    fig.tight_layout()
+    MEDIA.mkdir(parents=True, exist_ok=True)
+    p = MEDIA / f"{TO.BLOCKS_DATE}-stem_root.png"
+    fig.savefig(p, dpi=100, facecolor="white", bbox_inches="tight")
+    plt.close(fig)
+    print("wrote", p.relative_to(ROOT), flush=True)
+
+
 def cmd_drawings(a):
     MEDIA.mkdir(parents=True, exist_ok=True)
+    if a.only:
+        fig_stem_root()
+        return 0
     fig_sections()
     fig_board()
+    fig_stem_root()
     return 0
 
 
@@ -639,7 +684,8 @@ def cmd_viewers(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("drawings")
+    d = sub.add_parser("drawings")
+    d.add_argument("--only", choices=("stem_root",), help="one drawing: the blocks' stem root of 2026-11-16")
     r = sub.add_parser("renders")
     r.add_argument("--only", nargs="*", choices=("objects", "mount", "views"))
     sub.add_parser("viewers")

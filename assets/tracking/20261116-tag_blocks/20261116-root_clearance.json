@@ -1,0 +1,3616 @@
+{
+ "what": "finger clearance of the second-version stem root over the recorded rollouts (mm; 10 = none within CLEAR_RANGE)",
+ "root": {
+  "root_d_mm": 6.0,
+  "root_h_mm": 10.0,
+  "fillet_r_mm": 3.0,
+  "foot_d_mm": 11.43,
+  "below_lowest_finger_mm": 5.0
+ },
+ "configs": [
+  "built",
+  "flat"
+ ],
+ "rows": [
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 5.56,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 5.56,
+   "stem_finger": "middle",
+   "stem_t": 3.06
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.72,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.72,
+   "stem_finger": "middle",
+   "stem_t": 1.89
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 6.21,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 6.21,
+   "stem_finger": "middle",
+   "stem_t": 3.06
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 5.94,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 5.94,
+   "stem_finger": "middle",
+   "stem_t": 3.06
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 5.69,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 5.69,
+   "stem_finger": "middle",
+   "stem_t": 3.06
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 5.3,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 5.3,
+   "stem_finger": "middle",
+   "stem_t": 3.06
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 5.69,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 6.78,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 6.78,
+   "stem_finger": "middle",
+   "stem_t": 1.47
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 2.48,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.83,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.86,
+   "stem_finger": "thumb",
+   "stem_t": 2.21
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": -1.62,
+   "root_min_mm": 8.74,
+   "root_finger": "middle",
+   "root_t": 5.06,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": -0.31,
+   "root_min_mm": 9.21,
+   "root_finger": "middle",
+   "root_t": 4.58,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.18,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.18,
+   "stem_finger": "middle",
+   "stem_t": 3.05
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.85,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.85,
+   "stem_finger": "middle",
+   "stem_t": 3.05
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.51,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.51,
+   "stem_finger": "middle",
+   "stem_t": 3.05
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.4,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.4,
+   "stem_finger": "middle",
+   "stem_t": 3.05
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.21,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.21,
+   "stem_finger": "middle",
+   "stem_t": 3.05
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 1.6,
+   "root_min_mm": 6.82,
+   "root_finger": "middle",
+   "root_t": 3.46,
+   "stem_min_mm": 6.15,
+   "stem_finger": "middle",
+   "stem_t": 3.28
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 6.48,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": -2.25,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.98,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.24,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.24,
+   "stem_finger": "middle",
+   "stem_t": 3.09
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.1,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.1,
+   "stem_finger": "middle",
+   "stem_t": 4.13
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.35,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.35,
+   "stem_finger": "middle",
+   "stem_t": 4.12
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 7.34,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.34,
+   "stem_finger": "middle",
+   "stem_t": 4.13
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.69,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.69,
+   "stem_finger": "middle",
+   "stem_t": 3.09
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.51,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.51,
+   "stem_finger": "middle",
+   "stem_t": 3.09
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.65,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.65,
+   "stem_finger": "middle",
+   "stem_t": 3.12
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.45,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.45,
+   "stem_finger": "middle",
+   "stem_t": 3.11
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.97,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.97,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.53,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.53,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 9.09,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.09,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.01,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.01,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.49,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.49,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.74,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.74,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 8.89,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.89,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 35.6,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.93,
+   "root_min_mm": 9.39,
+   "root_finger": "thumb",
+   "root_t": 3.9,
+   "stem_min_mm": 7.93,
+   "stem_finger": "thumb",
+   "stem_t": 3.9
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.94,
+   "root_min_mm": 9.46,
+   "root_finger": "thumb",
+   "root_t": 3.89,
+   "stem_min_mm": 7.94,
+   "stem_finger": "thumb",
+   "stem_t": 1.61
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.01,
+   "root_min_mm": 9.53,
+   "root_finger": "thumb",
+   "root_t": 1.61,
+   "stem_min_mm": 8.01,
+   "stem_finger": "thumb",
+   "stem_t": 1.61
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.51,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.51,
+   "stem_finger": "thumb",
+   "stem_t": 1.62
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 9.03,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.03,
+   "stem_finger": "thumb",
+   "stem_t": 1.62
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.36,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.36,
+   "stem_finger": "thumb",
+   "stem_t": 1.16
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 9.21,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.21,
+   "stem_finger": "thumb",
+   "stem_t": 1.28
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.35,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.35,
+   "stem_finger": "thumb",
+   "stem_t": 1.2
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.24,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.24,
+   "stem_finger": "thumb",
+   "stem_t": 1.2
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.05,
+   "root_min_mm": 2.22,
+   "root_finger": "middle",
+   "root_t": 4.05,
+   "stem_min_mm": -0.0,
+   "stem_finger": "middle",
+   "stem_t": 4.09
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.13,
+   "root_min_mm": 2.77,
+   "root_finger": "middle",
+   "root_t": 1.41,
+   "stem_min_mm": -0.13,
+   "stem_finger": "middle",
+   "stem_t": 3.83
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 9.19,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.19,
+   "stem_finger": "thumb",
+   "stem_t": 1.3
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.17,
+   "root_min_mm": 2.84,
+   "root_finger": "middle",
+   "root_t": 1.39,
+   "stem_min_mm": -0.17,
+   "stem_finger": "middle",
+   "stem_t": 3.66
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.16,
+   "root_min_mm": 1.28,
+   "root_finger": "middle",
+   "root_t": 4.56,
+   "stem_min_mm": -0.18,
+   "stem_finger": "middle",
+   "stem_t": 3.67
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.17,
+   "root_min_mm": 2.81,
+   "root_finger": "middle",
+   "root_t": 1.38,
+   "stem_min_mm": -0.16,
+   "stem_finger": "middle",
+   "stem_t": 3.83
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.24,
+   "root_min_mm": -0.65,
+   "root_finger": "index",
+   "root_t": 4.21,
+   "stem_min_mm": -0.06,
+   "stem_finger": "middle",
+   "stem_t": 3.72
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.21,
+   "root_min_mm": 0.72,
+   "root_finger": "index",
+   "root_t": 3.86,
+   "stem_min_mm": -0.25,
+   "stem_finger": "middle",
+   "stem_t": 1.37
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.17,
+   "root_min_mm": 2.4,
+   "root_finger": "middle",
+   "root_t": 1.47,
+   "stem_min_mm": -0.19,
+   "stem_finger": "middle",
+   "stem_t": 1.33
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.22,
+   "root_min_mm": 2.5,
+   "root_finger": "middle",
+   "root_t": 1.74,
+   "stem_min_mm": -0.23,
+   "stem_finger": "middle",
+   "stem_t": 1.35
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.2,
+   "root_min_mm": 3.26,
+   "root_finger": "middle",
+   "root_t": 3.14,
+   "stem_min_mm": -0.21,
+   "stem_finger": "middle",
+   "stem_t": 4.15
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 0.86,
+   "root_min_mm": 5.76,
+   "root_finger": "thumb",
+   "root_t": 3.9,
+   "stem_min_mm": 0.87,
+   "stem_finger": "thumb",
+   "stem_t": 0.94
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.07,
+   "root_min_mm": 2.71,
+   "root_finger": "thumb",
+   "root_t": 3.55,
+   "stem_min_mm": -0.07,
+   "stem_finger": "thumb",
+   "stem_t": 3.65
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.14,
+   "root_min_mm": 2.85,
+   "root_finger": "thumb",
+   "root_t": 3.9,
+   "stem_min_mm": -0.13,
+   "stem_finger": "thumb",
+   "stem_t": 0.94
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 0.79,
+   "root_min_mm": 5.78,
+   "root_finger": "thumb",
+   "root_t": 3.82,
+   "stem_min_mm": 0.8,
+   "stem_finger": "thumb",
+   "stem_t": 0.94
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.04,
+   "root_min_mm": 3.09,
+   "root_finger": "thumb",
+   "root_t": 4.2,
+   "stem_min_mm": -0.04,
+   "stem_finger": "thumb",
+   "stem_t": 3.84
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.05,
+   "root_min_mm": 2.95,
+   "root_finger": "thumb",
+   "root_t": 3.83,
+   "stem_min_mm": -0.05,
+   "stem_finger": "thumb",
+   "stem_t": 3.83
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.06,
+   "root_min_mm": 3.92,
+   "root_finger": "thumb",
+   "root_t": 4.07,
+   "stem_min_mm": -0.06,
+   "stem_finger": "thumb",
+   "stem_t": 3.45
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.05,
+   "root_min_mm": 2.69,
+   "root_finger": "thumb",
+   "root_t": 3.89,
+   "stem_min_mm": -0.05,
+   "stem_finger": "thumb",
+   "stem_t": 3.79
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.05,
+   "root_min_mm": 4.53,
+   "root_finger": "thumb",
+   "root_t": 4.06,
+   "stem_min_mm": -0.05,
+   "stem_finger": "thumb",
+   "stem_t": 3.52
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.57,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.56,
+   "stem_finger": "middle",
+   "stem_t": 0.93
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.06,
+   "root_min_mm": 4.24,
+   "root_finger": "thumb",
+   "root_t": 4.06,
+   "stem_min_mm": -0.05,
+   "stem_finger": "thumb",
+   "stem_t": 4.06
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.63,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.63,
+   "stem_finger": "middle",
+   "stem_t": 0.94
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.09,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.09,
+   "stem_finger": "middle",
+   "stem_t": 0.95
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.16,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.16,
+   "stem_finger": "middle",
+   "stem_t": 0.95
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.75,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.75,
+   "stem_finger": "middle",
+   "stem_t": 0.93
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.11,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.11,
+   "stem_finger": "middle",
+   "stem_t": 3.63
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.61,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.61,
+   "stem_finger": "middle",
+   "stem_t": 0.95
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.13,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.13,
+   "stem_finger": "middle",
+   "stem_t": 3.64
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.02,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.02,
+   "stem_finger": "middle",
+   "stem_t": 3.64
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.06,
+   "root_min_mm": 1.21,
+   "root_finger": "thumb",
+   "root_t": 6.52,
+   "stem_min_mm": -0.07,
+   "stem_finger": "thumb",
+   "stem_t": 5.68
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.25,
+   "root_min_mm": 5.53,
+   "root_finger": "thumb",
+   "root_t": 7.8,
+   "stem_min_mm": -0.24,
+   "stem_finger": "thumb",
+   "stem_t": 5.65
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 8.26,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 8.26,
+   "stem_finger": "middle",
+   "stem_t": 0.96
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.26,
+   "root_min_mm": 0.88,
+   "root_finger": "middle",
+   "root_t": 5.74,
+   "stem_min_mm": -0.28,
+   "stem_finger": "thumb",
+   "stem_t": 5.58
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 2.25,
+   "root_min_mm": 6.09,
+   "root_finger": "thumb",
+   "root_t": 5.9,
+   "stem_min_mm": 2.25,
+   "stem_finger": "thumb",
+   "stem_t": 5.85
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 0.65,
+   "root_min_mm": 4.76,
+   "root_finger": "middle",
+   "root_t": 6.01,
+   "stem_min_mm": 0.65,
+   "stem_finger": "thumb",
+   "stem_t": 5.95
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.11,
+   "root_min_mm": -0.04,
+   "root_finger": "middle",
+   "root_t": 5.81,
+   "stem_min_mm": -0.13,
+   "stem_finger": "thumb",
+   "stem_t": 5.67
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.12,
+   "root_min_mm": -1.09,
+   "root_finger": "middle",
+   "root_t": 6.02,
+   "stem_min_mm": -0.11,
+   "stem_finger": "middle",
+   "stem_t": 6.93
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.07,
+   "root_min_mm": -0.1,
+   "root_finger": "middle",
+   "root_t": 5.78,
+   "stem_min_mm": -0.07,
+   "stem_finger": "thumb",
+   "stem_t": 5.77
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.13,
+   "root_min_mm": -0.36,
+   "root_finger": "middle",
+   "root_t": 5.83,
+   "stem_min_mm": -0.1,
+   "stem_finger": "thumb",
+   "stem_t": 5.83
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.19,
+   "root_min_mm": 1.99,
+   "root_finger": "thumb",
+   "root_t": 6.4,
+   "stem_min_mm": -0.2,
+   "stem_finger": "thumb",
+   "stem_t": 5.66
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.26,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 7.26,
+   "stem_finger": "middle",
+   "stem_t": 2.47
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.14,
+   "root_min_mm": -1.1,
+   "root_finger": "middle",
+   "root_t": 6.09,
+   "stem_min_mm": -0.13,
+   "stem_finger": "middle",
+   "stem_t": 6.86
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.14,
+   "root_min_mm": -1.13,
+   "root_finger": "middle",
+   "root_t": 7.76,
+   "stem_min_mm": -0.14,
+   "stem_finger": "middle",
+   "stem_t": 7.76
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.1,
+   "root_min_mm": 0.87,
+   "root_finger": "thumb",
+   "root_t": 6.31,
+   "stem_min_mm": -0.1,
+   "stem_finger": "thumb",
+   "stem_t": 6.31
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 1.04,
+   "root_min_mm": 0.1,
+   "root_finger": "middle",
+   "root_t": 5.27,
+   "stem_min_mm": 1.04,
+   "stem_finger": "middle",
+   "stem_t": 5.27
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 7.2,
+   "root_min_mm": 8.6,
+   "root_finger": "middle",
+   "root_t": 4.2,
+   "stem_min_mm": 7.2,
+   "stem_finger": "middle",
+   "stem_t": 2.45
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.02,
+   "root_min_mm": -1.01,
+   "root_finger": "middle",
+   "root_t": 5.05,
+   "stem_min_mm": -0.01,
+   "stem_finger": "middle",
+   "stem_t": 5.05
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 6.21,
+   "root_min_mm": 6.42,
+   "root_finger": "middle",
+   "root_t": 5.2,
+   "stem_min_mm": 6.51,
+   "stem_finger": "middle",
+   "stem_t": 5.21
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 0.05,
+   "root_min_mm": -0.97,
+   "root_finger": "middle",
+   "root_t": 5.04,
+   "stem_min_mm": 0.03,
+   "stem_finger": "middle",
+   "stem_t": 5.04
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 3.92,
+   "root_min_mm": 3.38,
+   "root_finger": "middle",
+   "root_t": 5.53,
+   "stem_min_mm": 3.93,
+   "stem_finger": "middle",
+   "stem_t": 4.8
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -1.08,
+   "root_min_mm": -1.62,
+   "root_finger": "middle",
+   "root_t": 2.12,
+   "stem_min_mm": -1.0,
+   "stem_finger": "middle",
+   "stem_t": 2.12
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.2,
+   "root_min_mm": 5.56,
+   "root_finger": "middle",
+   "root_t": 5.09,
+   "stem_min_mm": 6.21,
+   "stem_finger": "middle",
+   "stem_t": 5.08
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.38,
+   "root_min_mm": 5.87,
+   "root_finger": "middle",
+   "root_t": 5.22,
+   "stem_min_mm": 8.44,
+   "stem_finger": "index",
+   "stem_t": 3.69
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.31,
+   "root_min_mm": 5.75,
+   "root_finger": "middle",
+   "root_t": 5.01,
+   "stem_min_mm": 8.72,
+   "stem_finger": "middle",
+   "stem_t": 5.01
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.18,
+   "root_min_mm": 5.24,
+   "root_finger": "middle",
+   "root_t": 5.09,
+   "stem_min_mm": 7.65,
+   "stem_finger": "middle",
+   "stem_t": 5.05
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.34,
+   "root_min_mm": 5.91,
+   "root_finger": "middle",
+   "root_t": 5.08,
+   "stem_min_mm": 8.59,
+   "stem_finger": "middle",
+   "stem_t": 5.07
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.29,
+   "root_min_mm": 4.92,
+   "root_finger": "middle",
+   "root_t": 5.03,
+   "stem_min_mm": 7.66,
+   "stem_finger": "middle",
+   "stem_t": 5.03
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.27,
+   "root_min_mm": 5.52,
+   "root_finger": "middle",
+   "root_t": 5.06,
+   "stem_min_mm": 8.23,
+   "stem_finger": "middle",
+   "stem_t": 5.06
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.41,
+   "root_min_mm": 4.35,
+   "root_finger": "middle",
+   "root_t": 5.09,
+   "stem_min_mm": 7.38,
+   "stem_finger": "middle",
+   "stem_t": 5.08
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 25.2,
+   "clear_min_mm": -0.3,
+   "root_min_mm": 5.72,
+   "root_finger": "middle",
+   "root_t": 4.92,
+   "stem_min_mm": 7.74,
+   "stem_finger": "thumb",
+   "stem_t": 6.36
+  }
+ ]
+}
