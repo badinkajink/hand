@@ -84,6 +84,18 @@
   "mb": 7.6
  },
  {
+  "date": "2026-11-12",
+  "file": "docs/experiments/20261112-inner_loop_benchmark/20261112-inner_loop_benchmark.html",
+  "title": "HOM, KaRMA and UHAS as inner-loop evaluators of SR2 hand layouts",
+  "page_title": "HOM, KaRMA and UHAS as inner-loop evaluators of SR2 hand layouts",
+  "topic": "design",
+  "summary": "KaRMA's first choice scored 0.18 to 0.61 below each task's best J under HOM, at 379 to 620 s per layout against HOM's 1.7 to 2.8 s. UHAS, trained for 142 min, reached a mean J of 0.50 per test layout of the twist against HOM's 0.25. Its servo targets reversed 37.8 times per joint per second against HOM's 2.6.",
+  "builder": "scripts/hom/inner_loop_benchmark_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.5
+ },
+ {
   "date": "2026-11-11",
   "file": "docs/experiments/20261111-sphere_pad_implementation/20261111-sphere_pad_implementation.html",
   "title": "Implementation of the sphere-pad contact model on a convex fingertip surface",
@@ -297,7 +309,7 @@
   "builder": "scripts/fingertip/v3_tip_contact_model_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 1.1
+  "mb": 1.2
  },
  {
   "date": "2026-10-30",

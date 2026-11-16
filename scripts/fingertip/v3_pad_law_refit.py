@@ -21,7 +21,10 @@ holds of IDs 1 and 2 (both indenters) and tested on ID 3's; and fitted on one in
 other. Reported per fit: the parameters, the RMS of the log ratio on the fit and test holds, the median ratio by force
 level and the share of test holds within 25 %.
 
-    ~/.claude/bin/resguard.sh run --mem 2G -- .venv/bin/python scripts/fingertip/v3_pad_law_refit.py [--json OUT]
+    ~/.claude/bin/resguard.sh run --mem 2G -- .venv/bin/python scripts/fingertip/v3_pad_law_refit.py \
+        --json docs/experiments/20261030-v3_tip_contact_model/data/20261115-pad_law_refit.json
+
+The v3 page shows the results in its section "Per-pad force laws" (scripts/fingertip/v3_tip_contact_model_page.py).
 """
 from __future__ import annotations
 

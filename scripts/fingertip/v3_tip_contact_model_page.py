@@ -195,7 +195,8 @@ def sections(d, N):
             f"compliance scale stays within {min(fe_rng):.2f}&#8211;{max(fe_rng):.2f} at every level. A softer pad needs a longer "
             "contact time constant in MuJoCo; scaled as $1/\\sqrt{E}$, it keeps the solver&#8217;s settings, and the held tool of "
             "the hand&#8217;s replays creeps "
-            f"{R25['creep']:.0f}&#8202;&#181;m/s at {E_SCENE:g}&#8202;MPa against {R10['creep']:.0f}&#8202;&#181;m/s at 10&#8202;MPa.")
+            f"{R25['creep']:.0f}&#8202;&#181;m/s at {E_SCENE:g}&#8202;MPa against {R10['creep']:.0f}&#8202;&#181;m/s at 10&#8202;MPa."
+            " Refitted on 15 November, no per-pad force law fitted both indenters with one set of parameters.")
     summary = (f"One pad modulus, {Ep:.2f} MPa, fits the presses of three four-magnet v3 fingertips under the 5 mm sphere and "
                f"the 12.5 mm rod ({rng(tips).replace('&#8211;', '-')} MPa per tip); the scenes now run {E_SCENE:g} MPa with a "
                f"{TR_SCENE:g} s relaxation time. At 1-2 N the median force ratio is {med_mid:.2f} and at 8 N {hi_p:.2f}; the FE "
@@ -366,6 +367,57 @@ def sections(d, N):
             "on tip 0 (0.20 and 0.10&#8202;mm/N), so most of the extra give arises at the contact. The scenes keep one modulus "
             "without a spring.</p>")))
 
+    # ---- per-pad force laws, refitted on 15 November (scripts/fingertip/v3_pad_law_refit.py)
+    lf = DATA / "20261115-pad_law_refit.json"
+    if lf.exists():
+        R = json.loads(lf.read_text())
+        H3, SR, RS = R["fits"]["IDs 1-2 -> ID 3"], R["fits"]["sphere -> rod"], R["fits"]["rod -> sphere"]
+        levels = ("0.25", "1.0", "2.0", "3.5", "5.0", "8.0")
+        names = {"linear": "Linear (the scenes&#8217;)", "spring": "Linear with a series spring",
+                 "saturating": "Saturating", "power": "Power", "sat_spring": "Saturating with a series spring"}
+
+        def par(pp):
+            u = {"E": ("$E$", "MPa", 2), "c": ("$c$", "mm/N", 3), "o_s": ("$o_s$", "mm", 3), "m": ("$m$", "", 2)}
+            return ", ".join(f"{u[k][0]} {v:.{u[k][2]}f}" + (f"&#8202;{u[k][1]}" if u[k][1] else "") for k, v in pp.items())
+        lrows = [[names[k], par(v["params"]), f"{v['test']['rms_log']:.2f}", f"{100 * v['test']['within25']:.0f}"]
+                 + [f"{v['test']['ratio_by_level'][L]:.2f}" for L in levels] for k, v in H3.items()]
+        tl = P.table(["Law", "Fitted on IDs 1 and 2", "RMS log ratio", "Within 25&#8202;% (%)"]
+                     + [f"{float(L):g}&#8202;N" for L in levels], lrows, num_cols=(2, 3, 4, 5, 6, 7, 8, 9), n=4,
+                     caption="Per-pad force laws fitted to v3 ID 1 and ID 2 under both indenters and tested on v3 "
+                     "ID 3&#8217;s holds: the RMS of the log force ratio, the share of holds within 25&#8202;%, and the "
+                     "median measured over model force by load level.").replace(
+                         "<th class=n>", '<th class=n style="white-space:normal">')
+        sp_t = {k: SR[k]["test"]["ratio_by_level"] for k in SR}
+        rs_t = {k: RS[k]["test"]["ratio_by_level"] for k in RS}
+        lin, spr, pw = H3["linear"]["test"], H3["spring"], H3["power"]
+        S_.append(("laws", "Per-pad force laws", (
+            "<p>On 15 November the force law of each pad was refitted to the same presses, 3,553 holds of the three v3 "
+            f"tips under the low sphere and the rod ({P.code('scripts/fingertip/v3_pad_law_refit.py')}). For one pad of "
+            "stiffness $E k_i$ at overlap $o$ with the indenter, five laws were fitted: the scenes&#8217; linear law "
+            "$f=E k_i o$; the linear law behind a series spring of compliance $c$; a saturating law "
+            "$f=E k_i o_s(1-e^{-o/o_s})$; a power law $f=E k_i o_r (o/o_r)^m$ with $o_r=0.1$&#8202;mm; and the saturating "
+            "law behind the spring. Each was fitted by least squares on the log of measured over model force, on v3 ID 1 "
+            "and ID 2, and tested on ID 3 (Table&#160;4). The RMS log ratio is the root mean square of that log over the "
+            "test holds.</p>"
+            f"<p>On ID 3 the linear law&#8217;s ratio falls from {lin['ratio_by_level']['0.25']:.2f} at 0.25&#8202;N to "
+            f"{lin['ratio_by_level']['8.0']:.2f} at 8&#8202;N. Stiff pads behind a {spr['params']['c']:.2f}&#8202;mm/N spring "
+            f"keep it at {min(spr['test']['ratio_by_level'][L] for L in ('1.0', '2.0', '3.5', '5.0')):.2f}&#8211;"
+            f"{max(spr['test']['ratio_by_level'][L] for L in ('1.0', '2.0', '3.5', '5.0')):.2f} from 1 to 5&#8202;N"
+            + (f" (fitted to the depths in Section&#160;4, the spring was {sp['joint']['c_mm_N']:.3f}&#8202;mm/N in front of "
+               f"{sp['joint']['E_MPa']:.2f}&#8202;MPa pads)" if sp else "") + ". The power "
+            f"law fits $m={pw['params']['m']:.2f}$, close to a force that grows with the number of pads in contact, and "
+            f"stays within {min(pw['test']['ratio_by_level'][L] for L in levels[1:]):.2f}&#8211;"
+            f"{max(pw['test']['ratio_by_level'][L] for L in levels[1:]):.2f} from 1 to 8&#8202;N. The saturating fits run "
+            "to the edge of their range, where they become the same count of pads.</p>"
+            "<p>No law transfers between the indenters. Fitted on the sphere and tested on the rod, the spring law runs "
+            f"from {sp_t['spring']['0.25']:.2f} at 0.25&#8202;N to {sp_t['spring']['8.0']:.2f} at 8&#8202;N, and the power law "
+            f"from {sp_t['power']['0.25']:.2f} to {sp_t['power']['8.0']:.2f}. Fitted on the rod and tested on the sphere, the "
+            f"spring law runs from {rs_t['spring']['0.25']:.2f} to {rs_t['spring']['8.0']:.2f}, and the power law from "
+            f"{rs_t['power']['0.25']:.2f} to {rs_t['power']['8.0']:.2f}. The give that depends on the contact&#8217;s size is "
+            "not a property of each pad alone. The registered depths remove only the HEX-E&#8217;s deflection, so part of "
+            "the fitted spring may be the arm&#8217;s, the mount&#8217;s or the DIP link&#8217;s. The scenes keep the linear "
+            "law.</p>" + tl)))
+
     # ---- patch and torsion
     t5row = []
     for key, name in (("low_1", "Sphere, 1&#8202;N level"), ("low_2.5", "Sphere, 2.5&#8202;N level"), ("low_5", "Sphere, 5&#8202;N level"),
@@ -376,7 +428,7 @@ def sections(d, N):
                           f"{x['pads']:.2f}", f"{x['field']:.2f}"])
     t4 = P.table(["Twist", "Pairs", "Normal force (N)", "Torsion, median (N&#8202;mm)", "Torsion, quartiles (N&#8202;mm)",
                   "Pads, $\\mu F\\bar r$ (N&#8202;mm)", "Field, $\\mu F\\bar r$ (N&#8202;mm)"], t5row,
-                 num_cols=(1, 2, 3, 4, 5, 6), n=4,
+                 num_cols=(1, 2, 3, 4, 5, 6), n=5,
                  caption="Twist torsion of the three v3 tips against the friction torque at full slip of the pads and the "
                  "field. Each model is at its joint modulus and at the twist&#8217;s measured normal force.").replace(
                      "<th class=n>", '<th class=n style="white-space:normal">')
@@ -393,7 +445,7 @@ def sections(d, N):
         f"differ by at most {patch5:.0f}&#8202;%. Below 2&#8202;N the FE&#8217;s surface nodes, 1&#8202;mm apart, are too coarse to "
         "resolve its patch.</p>"
         "<p>The friction torque at full slip measures $\\bar r$. The UR5 twists of the three v3 tips do not resolve it "
-        f"(Table&#160;4, Figure&#160;3b). In the twists of the 5&#8202;N level, at a median normal force of {t5['f_n']:.1f}&#8202;N, "
+        f"(Table&#160;5, Figure&#160;3b). In the twists of the 5&#8202;N level, at a median normal force of {t5['f_n']:.1f}&#8202;N, "
         f"the torsion under the sphere is {t5['M_median']:.2f}&#8202;N&#8202;mm, near the pads&#8217; {t5['pads']:.2f}&#8202;N&#8202;mm. "
         f"The quartiles of the pairs span {t5['M_p25']:.2f}&#8211;{t5['M_p75']:.2f}&#8202;N&#8202;mm, and single pairs reach "
         f"{t5['M_min']:.1f} and {t5['M_max']:.1f}&#8202;N&#8202;mm. In these twists the face&#8217;s normal lies "
@@ -411,14 +463,14 @@ def sections(d, N):
              rng(tang[ind], 2), rng(cen[ind], 0), rng(cen_f[ind], 0)] for ind in ("low", "rod")]
     t5t = P.table(["Indenter", "Measured force to the surface normal (&#176;)", "Measured force to the pads&#8217; force (&#176;)",
                    "Shear over normal force", "Pads&#8217; centre to contact point (&#181;m)", "Field&#8217;s centre to contact point (&#181;m)"],
-                  rows, num_cols=(1, 2, 3, 4, 5), n=5,
+                  rows, num_cols=(1, 2, 3, 4, 5), n=6,
                   caption="Contact pose at the registered positions: medians over the press holds of v3 ID 1 to 3, as "
                   "ranges over the three tips. Distances in the plane normal to the contact.").replace(
                       "<th class=n>", '<th class=n style="white-space:normal">')
     S_.append(("pose", "Contact location and force direction", (
         "<p>The registered contact point is the pad&#8217;s surface point under the indenter&#8217;s centre. The pads place "
         f"their pressure centre {rng(cen['low'] + cen['rod'], 0)}&#8202;&#181;m from it, and Drake&#8217;s field "
-        f"{rng(cen_f['low'] + cen_f['rod'], 0)}&#8202;&#181;m (Table&#160;5). Both come from the same surface, so this compares the "
+        f"{rng(cen_f['low'] + cen_f['rod'], 0)}&#8202;&#181;m (Table&#160;6). Both come from the same surface, so this compares the "
         "models with the geometry. On the print the contact location is known only through the registration, to "
         "0.04&#8211;0.07&#8202;mm RMS.</p>"
         f"<p>The measured force lies {rng(ang_geo['low'] + ang_geo['rod'], 1)}&#176; from the surface normal. The pads&#8217; force "
@@ -446,7 +498,7 @@ def sections(d, N):
         ["Scripted grasp, MuJoCo-Warp: worlds held", h10g, h25g],
         ["Scripted grasp, MuJoCo-Warp: slip, &#181;m/s", s10g, s25g],
         ["MuJoCo-Warp cost, &#181;s per world-step", rng(G10g["us"], 1), rng(G25g["us"], 1)],
-    ], num_cols=(), n=6, caption="The two pad settings under the policy trainer&#8217;s numerics at impratio 10, on pads of this "
+    ], num_cols=(), n=7, caption="The two pad settings under the policy trainer&#8217;s numerics at impratio 10, on pads of this "
         "tip&#8217;s shape (rows in " + P.code("docs/experiments/20261026-shear_friction_impratio/data/") + ", from "
         + P.code("scripts/ur5/ur5_shear_impratio.py") + "). Ranges at 10&#8202;MPa are over the repeated runs of 26 October.")
     S_.append(("hand", "The fitted modulus in the scenes", (
@@ -465,7 +517,7 @@ def sections(d, N):
         f"At the joint modulus the change is {rng(grip_dev_fit, 0)}&#8202;%. The patch changes more. At 2.5&#8202;N the "
         f"10&#8202;MPa pads had {rng(arm10, 2)} of the patch radius at the joint modulus, and the friction torque at full slip "
         "scales with that radius.</p>"
-        "<p>Table&#160;6 compares the two settings under the policy trainer&#8217;s numerics: a 2&#8202;ms step, the "
+        "<p>Table&#160;7 compares the two settings under the policy trainer&#8217;s numerics: a 2&#8202;ms step, the "
         "implicitfast integrator, the elliptic cone, Newton&#8217;s method with 10 iterations and impratio 10 "
         f"({shear}, Section 3). In the 24 D1&#8211;D8 replays at {E_SCENE:g}&#8202;MPa, {R25['held']} held the tool to the end, "
         f"against {R10['held']} at 10&#8202;MPa. Hands {' and '.join(ej_hands)} drop the tool at both moduli. In "
@@ -514,6 +566,14 @@ def sections(d, N):
         ("Creep against the bench.", "Compare the tool&#8217;s drift in the bench&#8217;s held phases, tracked by AprilTags "
          f"({shear}, Future work), with the replays&#8217; {R25['creep']:.0f}&#8202;&#181;m/s at {E_SCENE:g}&#8202;MPa. A bench "
          "drift under 20&#8202;&#181;m/s calls for noslip in CPU evaluation."),
+        ("The rig&#8217;s own compliance.", "Press a rigid stand-in for the pad (the cassette with a PLA block in the "
+         "pad&#8217;s place) under both indenters at 0.5&#8211;8&#8202;N on the UR5, and record the registered depth "
+         "against force. That give is the rig&#8217;s. Subtract it from the presses and refit the per-pad force laws. A "
+         "rig compliance above 0.15&#8202;mm/N puts part of the pads&#8217; misfit in the rig."),
+        ("Contact laws on recorded HOM trials.", "Replay recorded HOM trials on the SR2 hand open loop with the linear "
+         "pads, the spring law and point contact ("
+         + P.code("scripts/hardware/sr2_hom_replay.py") + "). The law with the smallest held-out error in the object&#8217;s "
+         "pose and the joints is the one to keep for manipulation."),
         ("An elastic contact model at the task level.", "The FE&#8217;s surface compliance with one scale follows the measured "
          "load trend. Its contact solve took about 1&#8202;ms per press on one CPU core here. Run the D1&#8211;D8 replays with "
          "that solve in place of the pads at one fingertip. Keep it only if the tool&#8217;s trajectory moves by more than "
