@@ -1,0 +1,1886 @@
+[
+ {
+  "grasp": "lat18.2",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.777,
+  "thumb_pip_min": -18.6,
+  "thumb_pip_below0": 0.631,
+  "thumb_pip_below10": 0.607,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.6,
+    8.3
+   ],
+   "thumb.fe1": [
+    13.4,
+    17.2
+   ],
+   "thumb.fe2": [
+    5.7,
+    13.2
+   ],
+   "index.aa": [
+    15.3,
+    16.5
+   ],
+   "index.fe1": [
+    4.2,
+    10.2
+   ],
+   "index.fe2": [
+    1.0,
+    4.4
+   ],
+   "middle.aa": [
+    -8.6,
+    14.5
+   ],
+   "middle.fe1": [
+    8.2,
+    9.8
+   ],
+   "middle.fe2": [
+    3.7,
+    4.8
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.9,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.777,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below0": 0.648,
+  "thumb_pip_below10": 0.614,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.0,
+    8.4
+   ],
+   "thumb.fe1": [
+    13.2,
+    17.2
+   ],
+   "thumb.fe2": [
+    5.5,
+    14.3
+   ],
+   "index.aa": [
+    15.3,
+    17.0
+   ],
+   "index.fe1": [
+    4.6,
+    10.4
+   ],
+   "index.fe2": [
+    1.1,
+    4.5
+   ],
+   "middle.aa": [
+    -8.6,
+    14.4
+   ],
+   "middle.fe1": [
+    7.9,
+    9.8
+   ],
+   "middle.fe2": [
+    3.8,
+    5.0
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.6,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.774,
+  "thumb_pip_min": -18.6,
+  "thumb_pip_below0": 0.624,
+  "thumb_pip_below10": 0.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.6,
+    8.4
+   ],
+   "thumb.fe1": [
+    13.9,
+    17.6
+   ],
+   "thumb.fe2": [
+    5.7,
+    12.6
+   ],
+   "index.aa": [
+    15.3,
+    16.3
+   ],
+   "index.fe1": [
+    4.2,
+    10.2
+   ],
+   "index.fe2": [
+    0.8,
+    4.4
+   ],
+   "middle.aa": [
+    -8.3,
+    14.5
+   ],
+   "middle.fe1": [
+    8.7,
+    10.2
+   ],
+   "middle.fe2": [
+    3.8,
+    4.7
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.7,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.762,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below0": 0.607,
+  "thumb_pip_below10": 0.583,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.4,
+    9.4
+   ],
+   "thumb.fe1": [
+    13.9,
+    15.7
+   ],
+   "thumb.fe2": [
+    5.8,
+    10.9
+   ],
+   "index.aa": [
+    16.6,
+    17.4
+   ],
+   "index.fe1": [
+    3.8,
+    10.2
+   ],
+   "index.fe2": [
+    1.0,
+    4.7
+   ],
+   "middle.aa": [
+    -9.2,
+    14.8
+   ],
+   "middle.fe1": [
+    9.4,
+    11.5
+   ],
+   "middle.fe2": [
+    4.5,
+    5.8
+   ]
+  },
+  "periods": 290,
+  "wall_s": 4.0,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.763,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below0": 0.617,
+  "thumb_pip_below10": 0.59,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.7,
+    9.2
+   ],
+   "thumb.fe1": [
+    13.8,
+    15.6
+   ],
+   "thumb.fe2": [
+    5.8,
+    11.2
+   ],
+   "index.aa": [
+    16.7,
+    17.2
+   ],
+   "index.fe1": [
+    3.6,
+    10.1
+   ],
+   "index.fe2": [
+    0.9,
+    4.4
+   ],
+   "middle.aa": [
+    -9.4,
+    15.0
+   ],
+   "middle.fe1": [
+    9.4,
+    11.3
+   ],
+   "middle.fe2": [
+    4.4,
+    5.8
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.4,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.764,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below0": 0.593,
+  "thumb_pip_below10": 0.566,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.2,
+    9.1
+   ],
+   "thumb.fe1": [
+    13.9,
+    15.8
+   ],
+   "thumb.fe2": [
+    5.9,
+    10.5
+   ],
+   "index.aa": [
+    16.1,
+    17.1
+   ],
+   "index.fe1": [
+    4.1,
+    10.0
+   ],
+   "index.fe2": [
+    1.1,
+    5.2
+   ],
+   "middle.aa": [
+    -9.4,
+    14.5
+   ],
+   "middle.fe1": [
+    9.7,
+    11.5
+   ],
+   "middle.fe2": [
+    4.5,
+    5.9
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.5,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.749,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.624,
+  "thumb_pip_below10": 0.593,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.8,
+    9.7
+   ],
+   "thumb.fe1": [
+    14.4,
+    16.1
+   ],
+   "thumb.fe2": [
+    5.6,
+    11.4
+   ],
+   "index.aa": [
+    16.2,
+    17.0
+   ],
+   "index.fe1": [
+    3.9,
+    9.9
+   ],
+   "index.fe2": [
+    0.9,
+    4.3
+   ],
+   "middle.aa": [
+    -8.4,
+    14.9
+   ],
+   "middle.fe1": [
+    10.3,
+    11.8
+   ],
+   "middle.fe2": [
+    4.8,
+    6.9
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.5,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.734,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.624,
+  "thumb_pip_below10": 0.59,
+  "gap_median_max": {
+   "thumb.aa": [
+    8.7,
+    10.0
+   ],
+   "thumb.fe1": [
+    13.5,
+    15.4
+   ],
+   "thumb.fe2": [
+    5.3,
+    10.7
+   ],
+   "index.aa": [
+    17.4,
+    17.8
+   ],
+   "index.fe1": [
+    3.7,
+    9.6
+   ],
+   "index.fe2": [
+    0.9,
+    4.0
+   ],
+   "middle.aa": [
+    -9.3,
+    15.3
+   ],
+   "middle.fe1": [
+    9.2,
+    11.5
+   ],
+   "middle.fe2": [
+    4.5,
+    7.2
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.6,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.747,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.607,
+  "thumb_pip_below10": 0.576,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.3,
+    9.7
+   ],
+   "thumb.fe1": [
+    14.0,
+    15.9
+   ],
+   "thumb.fe2": [
+    5.6,
+    10.7
+   ],
+   "index.aa": [
+    16.1,
+    17.4
+   ],
+   "index.fe1": [
+    4.5,
+    9.8
+   ],
+   "index.fe2": [
+    1.2,
+    4.4
+   ],
+   "middle.aa": [
+    -8.8,
+    14.9
+   ],
+   "middle.fe1": [
+    10.0,
+    11.7
+   ],
+   "middle.fe2": [
+    4.8,
+    6.7
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.6,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.767,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below0": 0.572,
+  "thumb_pip_below10": 0.534,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.5,
+    10.5
+   ],
+   "thumb.fe1": [
+    12.5,
+    14.5
+   ],
+   "thumb.fe2": [
+    5.5,
+    8.5
+   ],
+   "index.aa": [
+    17.7,
+    19.7
+   ],
+   "index.fe1": [
+    5.2,
+    8.8
+   ],
+   "index.fe2": [
+    1.8,
+    5.2
+   ],
+   "middle.aa": [
+    -9.7,
+    15.4
+   ],
+   "middle.fe1": [
+    9.0,
+    11.1
+   ],
+   "middle.fe2": [
+    4.5,
+    5.5
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.756,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below0": 0.579,
+  "thumb_pip_below10": 0.541,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.3,
+    10.5
+   ],
+   "thumb.fe1": [
+    12.7,
+    14.8
+   ],
+   "thumb.fe2": [
+    5.7,
+    8.4
+   ],
+   "index.aa": [
+    17.1,
+    18.6
+   ],
+   "index.fe1": [
+    5.2,
+    8.6
+   ],
+   "index.fe2": [
+    2.0,
+    4.9
+   ],
+   "middle.aa": [
+    -9.5,
+    14.9
+   ],
+   "middle.fe1": [
+    9.2,
+    11.1
+   ],
+   "middle.fe2": [
+    4.7,
+    6.4
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.763,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below0": 0.566,
+  "thumb_pip_below10": 0.528,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    10.5
+   ],
+   "thumb.fe1": [
+    12.9,
+    14.7
+   ],
+   "thumb.fe2": [
+    5.6,
+    8.3
+   ],
+   "index.aa": [
+    17.0,
+    19.4
+   ],
+   "index.fe1": [
+    5.0,
+    8.6
+   ],
+   "index.fe2": [
+    1.9,
+    5.0
+   ],
+   "middle.aa": [
+    -9.3,
+    15.1
+   ],
+   "middle.fe1": [
+    9.2,
+    11.4
+   ],
+   "middle.fe2": [
+    4.8,
+    5.8
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')",
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.331,
+  "thumb_pip_min": -19.6,
+  "thumb_pip_below0": 0.731,
+  "thumb_pip_below10": 0.583,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.0,
+    5.1
+   ],
+   "thumb.fe1": [
+    3.6,
+    22.4
+   ],
+   "thumb.fe2": [
+    1.2,
+    32.8
+   ],
+   "index.aa": [
+    4.7,
+    15.8
+   ],
+   "index.fe1": [
+    4.4,
+    15.9
+   ],
+   "index.fe2": [
+    1.3,
+    6.9
+   ],
+   "middle.aa": [
+    -9.6,
+    14.3
+   ],
+   "middle.fe1": [
+    1.9,
+    10.9
+   ],
+   "middle.fe2": [
+    0.6,
+    4.7
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.4,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')",
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.803,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below0": 0.617,
+  "thumb_pip_below10": 0.59,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    10.2
+   ],
+   "thumb.fe1": [
+    13.9,
+    17.0
+   ],
+   "thumb.fe2": [
+    5.9,
+    11.1
+   ],
+   "index.aa": [
+    15.0,
+    16.4
+   ],
+   "index.fe1": [
+    3.5,
+    10.1
+   ],
+   "index.fe2": [
+    0.9,
+    4.6
+   ],
+   "middle.aa": [
+    -8.0,
+    14.4
+   ],
+   "middle.fe1": [
+    9.8,
+    10.9
+   ],
+   "middle.fe2": [
+    4.6,
+    5.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.7,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.801,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below0": 0.641,
+  "thumb_pip_below10": 0.614,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.8,
+    10.0
+   ],
+   "thumb.fe1": [
+    13.5,
+    16.3
+   ],
+   "thumb.fe2": [
+    5.5,
+    11.9
+   ],
+   "index.aa": [
+    15.4,
+    17.1
+   ],
+   "index.fe1": [
+    3.8,
+    10.4
+   ],
+   "index.fe2": [
+    0.9,
+    4.4
+   ],
+   "middle.aa": [
+    -8.2,
+    14.9
+   ],
+   "middle.fe1": [
+    9.3,
+    10.5
+   ],
+   "middle.fe2": [
+    4.6,
+    5.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.6,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.797,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below0": 0.61,
+  "thumb_pip_below10": 0.583,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    10.0
+   ],
+   "thumb.fe1": [
+    14.0,
+    17.1
+   ],
+   "thumb.fe2": [
+    5.9,
+    10.9
+   ],
+   "index.aa": [
+    15.0,
+    16.2
+   ],
+   "index.fe1": [
+    3.7,
+    10.0
+   ],
+   "index.fe2": [
+    0.9,
+    4.5
+   ],
+   "middle.aa": [
+    -7.9,
+    14.2
+   ],
+   "middle.fe1": [
+    9.8,
+    10.9
+   ],
+   "middle.fe2": [
+    4.6,
+    5.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.7,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": false,
+  "track": 0.0,
+  "thumb_pip_min": -11.6,
+  "thumb_pip_below0": 0.39,
+  "thumb_pip_below10": 0.014,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.3,
+    4.7
+   ],
+   "thumb.fe1": [
+    -3.5,
+    52.0
+   ],
+   "thumb.fe2": [
+    1.8,
+    80.9
+   ],
+   "index.aa": [
+    -1.9,
+    20.6
+   ],
+   "index.fe1": [
+    0.4,
+    58.5
+   ],
+   "index.fe2": [
+    0.0,
+    70.2
+   ],
+   "middle.aa": [
+    -1.9,
+    11.8
+   ],
+   "middle.fe1": [
+    1.7,
+    56.4
+   ],
+   "middle.fe2": [
+    -9.9,
+    88.3
+   ]
+  },
+  "periods": 290,
+  "wall_s": 2.7,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "error": "LinAlgError('SVD did not converge in Linear Least Squares')",
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": false,
+  "track": 0.0,
+  "thumb_pip_min": -13.2,
+  "thumb_pip_below0": 0.379,
+  "thumb_pip_below10": 0.031,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.7,
+    10.1
+   ],
+   "thumb.fe1": [
+    12.4,
+    48.2
+   ],
+   "thumb.fe2": [
+    6.0,
+    83.0
+   ],
+   "index.aa": [
+    -0.7,
+    17.0
+   ],
+   "index.fe1": [
+    6.7,
+    58.8
+   ],
+   "index.fe2": [
+    -4.0,
+    64.7
+   ],
+   "middle.aa": [
+    -2.5,
+    13.8
+   ],
+   "middle.fe1": [
+    6.0,
+    61.4
+   ],
+   "middle.fe2": [
+    2.2,
+    83.0
+   ]
+  },
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.734,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below0": 0.61,
+  "thumb_pip_below10": 0.576,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.9,
+    12.7
+   ],
+   "thumb.fe1": [
+    12.4,
+    16.7
+   ],
+   "thumb.fe2": [
+    5.0,
+    11.2
+   ],
+   "index.aa": [
+    14.1,
+    17.6
+   ],
+   "index.fe1": [
+    5.5,
+    10.0
+   ],
+   "index.fe2": [
+    1.8,
+    4.6
+   ],
+   "middle.aa": [
+    -3.9,
+    14.8
+   ],
+   "middle.fe1": [
+    9.6,
+    24.2
+   ],
+   "middle.fe2": [
+    3.4,
+    52.2
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.9,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.689,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below0": 0.61,
+  "thumb_pip_below10": 0.572,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.3,
+    13.4
+   ],
+   "thumb.fe1": [
+    11.7,
+    16.5
+   ],
+   "thumb.fe2": [
+    5.1,
+    10.9
+   ],
+   "index.aa": [
+    14.1,
+    17.4
+   ],
+   "index.fe1": [
+    6.4,
+    10.5
+   ],
+   "index.fe2": [
+    1.9,
+    5.1
+   ],
+   "middle.aa": [
+    -3.7,
+    15.1
+   ],
+   "middle.fe1": [
+    9.0,
+    27.4
+   ],
+   "middle.fe2": [
+    2.9,
+    60.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.9,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 0.5
+  },
+  "held": true,
+  "track": 0.752,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below0": 0.6,
+  "thumb_pip_below10": 0.566,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.0,
+    12.7
+   ],
+   "thumb.fe1": [
+    12.2,
+    16.9
+   ],
+   "thumb.fe2": [
+    5.1,
+    11.0
+   ],
+   "index.aa": [
+    14.1,
+    17.0
+   ],
+   "index.fe1": [
+    5.5,
+    10.1
+   ],
+   "index.fe2": [
+    1.7,
+    4.9
+   ],
+   "middle.aa": [
+    -3.9,
+    14.7
+   ],
+   "middle.fe1": [
+    9.5,
+    23.2
+   ],
+   "middle.fe2": [
+    3.5,
+    51.3
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.9,
+  "model": "mu 0.5",
+  "scene": "sph040_stem_block.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.336,
+  "thumb_pip_min": -19.9,
+  "thumb_pip_below0": 0.71,
+  "thumb_pip_below10": 0.569,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.2,
+    8.0
+   ],
+   "thumb.fe1": [
+    10.7,
+    28.8
+   ],
+   "thumb.fe2": [
+    4.7,
+    41.6
+   ],
+   "index.aa": [
+    8.0,
+    14.3
+   ],
+   "index.fe1": [
+    8.9,
+    17.5
+   ],
+   "index.fe2": [
+    2.7,
+    5.4
+   ],
+   "middle.aa": [
+    -11.3,
+    15.4
+   ],
+   "middle.fe1": [
+    2.4,
+    11.9
+   ],
+   "middle.fe2": [
+    1.0,
+    3.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.4,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.386,
+  "thumb_pip_min": -19.6,
+  "thumb_pip_below0": 0.728,
+  "thumb_pip_below10": 0.617,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.1,
+    8.2
+   ],
+   "thumb.fe1": [
+    8.2,
+    21.6
+   ],
+   "thumb.fe2": [
+    2.6,
+    33.3
+   ],
+   "index.aa": [
+    9.6,
+    18.3
+   ],
+   "index.fe1": [
+    8.0,
+    12.3
+   ],
+   "index.fe2": [
+    1.6,
+    5.4
+   ],
+   "middle.aa": [
+    -7.8,
+    13.8
+   ],
+   "middle.fe1": [
+    -1.2,
+    7.3
+   ],
+   "middle.fe2": [
+    0.2,
+    3.7
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat18.2",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.343,
+  "thumb_pip_min": -19.5,
+  "thumb_pip_below0": 0.69,
+  "thumb_pip_below10": 0.631,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.0,
+    8.5
+   ],
+   "thumb.fe1": [
+    12.0,
+    24.9
+   ],
+   "thumb.fe2": [
+    4.9,
+    33.3
+   ],
+   "index.aa": [
+    8.1,
+    15.7
+   ],
+   "index.fe1": [
+    5.3,
+    17.9
+   ],
+   "index.fe2": [
+    1.7,
+    5.4
+   ],
+   "middle.aa": [
+    -10.5,
+    16.0
+   ],
+   "middle.fe1": [
+    3.8,
+    10.2
+   ],
+   "middle.fe2": [
+    1.0,
+    3.5
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.3,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.431,
+  "thumb_pip_min": -19.4,
+  "thumb_pip_below0": 0.645,
+  "thumb_pip_below10": 0.579,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.9,
+    9.5
+   ],
+   "thumb.fe1": [
+    11.3,
+    25.5
+   ],
+   "thumb.fe2": [
+    4.7,
+    40.0
+   ],
+   "index.aa": [
+    9.1,
+    18.3
+   ],
+   "index.fe1": [
+    7.7,
+    16.9
+   ],
+   "index.fe2": [
+    2.9,
+    5.2
+   ],
+   "middle.aa": [
+    -9.9,
+    16.9
+   ],
+   "middle.fe1": [
+    2.2,
+    8.9
+   ],
+   "middle.fe2": [
+    1.2,
+    5.1
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.4,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.502,
+  "thumb_pip_min": -19.5,
+  "thumb_pip_below0": 0.659,
+  "thumb_pip_below10": 0.586,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.8,
+    10.8
+   ],
+   "thumb.fe1": [
+    9.2,
+    26.0
+   ],
+   "thumb.fe2": [
+    3.8,
+    40.7
+   ],
+   "index.aa": [
+    10.5,
+    18.6
+   ],
+   "index.fe1": [
+    8.6,
+    16.0
+   ],
+   "index.fe2": [
+    3.0,
+    4.9
+   ],
+   "middle.aa": [
+    -6.7,
+    14.7
+   ],
+   "middle.fe1": [
+    1.2,
+    9.0
+   ],
+   "middle.fe2": [
+    0.6,
+    5.3
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat12",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.432,
+  "thumb_pip_min": -19.4,
+  "thumb_pip_below0": 0.645,
+  "thumb_pip_below10": 0.576,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.0,
+    10.1
+   ],
+   "thumb.fe1": [
+    10.9,
+    26.2
+   ],
+   "thumb.fe2": [
+    4.5,
+    37.3
+   ],
+   "index.aa": [
+    9.8,
+    19.1
+   ],
+   "index.fe1": [
+    8.1,
+    17.0
+   ],
+   "index.fe2": [
+    2.9,
+    5.3
+   ],
+   "middle.aa": [
+    -9.2,
+    16.5
+   ],
+   "middle.fe1": [
+    1.7,
+    8.8
+   ],
+   "middle.fe2": [
+    0.9,
+    5.0
+   ]
+  },
+  "periods": 290,
+  "wall_s": 4.1,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.389,
+  "thumb_pip_min": -16.3,
+  "thumb_pip_below0": 0.638,
+  "thumb_pip_below10": 0.614,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.9,
+    11.3
+   ],
+   "thumb.fe1": [
+    7.1,
+    17.7
+   ],
+   "thumb.fe2": [
+    3.4,
+    13.6
+   ],
+   "index.aa": [
+    12.0,
+    19.3
+   ],
+   "index.fe1": [
+    10.8,
+    13.3
+   ],
+   "index.fe2": [
+    3.1,
+    4.7
+   ],
+   "middle.aa": [
+    -6.9,
+    12.3
+   ],
+   "middle.fe1": [
+    -0.0,
+    10.5
+   ],
+   "middle.fe2": [
+    2.0,
+    6.6
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.459,
+  "thumb_pip_min": -15.6,
+  "thumb_pip_below0": 0.638,
+  "thumb_pip_below10": 0.607,
+  "gap_median_max": {
+   "thumb.aa": [
+    8.2,
+    11.8
+   ],
+   "thumb.fe1": [
+    8.7,
+    16.4
+   ],
+   "thumb.fe2": [
+    3.4,
+    12.5
+   ],
+   "index.aa": [
+    9.9,
+    19.1
+   ],
+   "index.fe1": [
+    11.1,
+    13.7
+   ],
+   "index.fe2": [
+    3.6,
+    4.8
+   ],
+   "middle.aa": [
+    -7.8,
+    12.6
+   ],
+   "middle.fe1": [
+    -1.3,
+    9.4
+   ],
+   "middle.fe2": [
+    1.6,
+    6.0
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.6,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.394,
+  "thumb_pip_min": -19.0,
+  "thumb_pip_below0": 0.662,
+  "thumb_pip_below10": 0.603,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.5,
+    11.5
+   ],
+   "thumb.fe1": [
+    7.5,
+    24.3
+   ],
+   "thumb.fe2": [
+    3.4,
+    35.9
+   ],
+   "index.aa": [
+    9.4,
+    19.1
+   ],
+   "index.fe1": [
+    11.2,
+    15.7
+   ],
+   "index.fe2": [
+    3.3,
+    6.9
+   ],
+   "middle.aa": [
+    -9.2,
+    14.0
+   ],
+   "middle.fe1": [
+    -1.0,
+    10.9
+   ],
+   "middle.fe2": [
+    1.9,
+    6.8
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.688,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.628,
+  "thumb_pip_below10": 0.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.0,
+    12.2
+   ],
+   "thumb.fe1": [
+    11.8,
+    16.4
+   ],
+   "thumb.fe2": [
+    4.6,
+    11.5
+   ],
+   "index.aa": [
+    14.4,
+    16.8
+   ],
+   "index.fe1": [
+    7.8,
+    10.2
+   ],
+   "index.fe2": [
+    3.1,
+    5.1
+   ],
+   "middle.aa": [
+    -5.0,
+    14.2
+   ],
+   "middle.fe1": [
+    7.9,
+    23.6
+   ],
+   "middle.fe2": [
+    3.3,
+    56.9
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.685,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.634,
+  "thumb_pip_below10": 0.603,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.0,
+    11.8
+   ],
+   "thumb.fe1": [
+    11.6,
+    16.2
+   ],
+   "thumb.fe2": [
+    4.6,
+    11.4
+   ],
+   "index.aa": [
+    14.3,
+    17.0
+   ],
+   "index.fe1": [
+    7.9,
+    9.9
+   ],
+   "index.fe2": [
+    3.4,
+    5.0
+   ],
+   "middle.aa": [
+    -5.0,
+    14.5
+   ],
+   "middle.fe1": [
+    7.9,
+    25.5
+   ],
+   "middle.fe2": [
+    2.5,
+    59.9
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.9,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ },
+ {
+  "grasp": "lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.718,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below0": 0.61,
+  "thumb_pip_below10": 0.579,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.9,
+    12.6
+   ],
+   "thumb.fe1": [
+    12.2,
+    17.2
+   ],
+   "thumb.fe2": [
+    4.8,
+    11.0
+   ],
+   "index.aa": [
+    14.5,
+    16.3
+   ],
+   "index.fe1": [
+    7.0,
+    10.0
+   ],
+   "index.fe2": [
+    2.6,
+    4.9
+   ],
+   "middle.aa": [
+    -5.5,
+    14.3
+   ],
+   "middle.fe1": [
+    9.6,
+    11.6
+   ],
+   "middle.fe2": [
+    5.1,
+    20.1
+   ]
+  },
+  "periods": 290,
+  "wall_s": 3.5,
+  "model": "mu 1.0, impratio 1",
+  "scene": "sph040_stem_block_tape0_imp1.xml"
+ }
+]

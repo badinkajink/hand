@@ -1,0 +1,3614 @@
+[
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.389,
+  "rise_max": 12.45,
+  "twist_end": 73.3,
+  "tilt_end": 40.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.9,
+    11.3
+   ],
+   "thumb.fe1": [
+    7.1,
+    17.7
+   ],
+   "thumb.fe2": [
+    3.4,
+    13.6
+   ],
+   "index.aa": [
+    12.0,
+    19.3
+   ],
+   "index.fe1": [
+    10.8,
+    13.3
+   ],
+   "index.fe2": [
+    3.1,
+    4.7
+   ],
+   "middle.aa": [
+    -6.9,
+    12.3
+   ],
+   "middle.fe1": [
+    -0.0,
+    10.5
+   ],
+   "middle.fe2": [
+    2.0,
+    6.6
+   ]
+  },
+  "middle_aa_measured": -29.0,
+  "middle_aa_target": -31.8,
+  "thumb_pip_median": -12.0,
+  "thumb_pip_min": -16.3,
+  "thumb_pip_below10": 0.614,
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.459,
+  "rise_max": 14.11,
+  "twist_end": 70.7,
+  "tilt_end": 34.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    8.2,
+    11.8
+   ],
+   "thumb.fe1": [
+    8.7,
+    16.4
+   ],
+   "thumb.fe2": [
+    3.4,
+    12.5
+   ],
+   "index.aa": [
+    9.9,
+    19.1
+   ],
+   "index.fe1": [
+    11.1,
+    13.7
+   ],
+   "index.fe2": [
+    3.6,
+    4.8
+   ],
+   "middle.aa": [
+    -7.8,
+    12.6
+   ],
+   "middle.fe1": [
+    -1.3,
+    9.4
+   ],
+   "middle.fe2": [
+    1.6,
+    6.0
+   ]
+  },
+  "middle_aa_measured": -23.9,
+  "middle_aa_target": -32.2,
+  "thumb_pip_median": -11.6,
+  "thumb_pip_min": -15.6,
+  "thumb_pip_below10": 0.607,
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.394,
+  "rise_max": 16.44,
+  "twist_end": 62.0,
+  "tilt_end": 17.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.5,
+    11.5
+   ],
+   "thumb.fe1": [
+    7.5,
+    24.3
+   ],
+   "thumb.fe2": [
+    3.4,
+    35.9
+   ],
+   "index.aa": [
+    9.4,
+    19.1
+   ],
+   "index.fe1": [
+    11.2,
+    15.7
+   ],
+   "index.fe2": [
+    3.3,
+    6.9
+   ],
+   "middle.aa": [
+    -9.2,
+    14.0
+   ],
+   "middle.fe1": [
+    -1.0,
+    10.9
+   ],
+   "middle.fe2": [
+    1.9,
+    6.8
+   ]
+  },
+  "middle_aa_measured": -27.5,
+  "middle_aa_target": -31.3,
+  "thumb_pip_median": -11.5,
+  "thumb_pip_min": -19.0,
+  "thumb_pip_below10": 0.603,
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.688,
+  "rise_max": 9.96,
+  "twist_end": 75.2,
+  "tilt_end": 18.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.0,
+    12.2
+   ],
+   "thumb.fe1": [
+    11.8,
+    16.4
+   ],
+   "thumb.fe2": [
+    4.6,
+    11.5
+   ],
+   "index.aa": [
+    14.4,
+    16.8
+   ],
+   "index.fe1": [
+    7.8,
+    10.2
+   ],
+   "index.fe2": [
+    3.1,
+    5.1
+   ],
+   "middle.aa": [
+    -5.0,
+    14.2
+   ],
+   "middle.fe1": [
+    7.9,
+    23.6
+   ],
+   "middle.fe2": [
+    3.3,
+    56.9
+   ]
+  },
+  "middle_aa_measured": -23.8,
+  "middle_aa_target": -27.9,
+  "thumb_pip_median": -12.8,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.6,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.685,
+  "rise_max": 9.77,
+  "twist_end": 76.3,
+  "tilt_end": 13.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    10.0,
+    11.8
+   ],
+   "thumb.fe1": [
+    11.6,
+    16.2
+   ],
+   "thumb.fe2": [
+    4.6,
+    11.4
+   ],
+   "index.aa": [
+    14.3,
+    17.0
+   ],
+   "index.fe1": [
+    7.9,
+    9.9
+   ],
+   "index.fe2": [
+    3.4,
+    5.0
+   ],
+   "middle.aa": [
+    -5.0,
+    14.5
+   ],
+   "middle.fe1": [
+    7.9,
+    25.5
+   ],
+   "middle.fe2": [
+    2.5,
+    59.9
+   ]
+  },
+  "middle_aa_measured": -24.1,
+  "middle_aa_target": -28.2,
+  "thumb_pip_median": -12.7,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.603,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.718,
+  "rise_max": 10.27,
+  "twist_end": 75.4,
+  "tilt_end": 11.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.9,
+    12.6
+   ],
+   "thumb.fe1": [
+    12.2,
+    17.2
+   ],
+   "thumb.fe2": [
+    4.8,
+    11.0
+   ],
+   "index.aa": [
+    14.5,
+    16.3
+   ],
+   "index.fe1": [
+    7.0,
+    10.0
+   ],
+   "index.fe2": [
+    2.6,
+    4.9
+   ],
+   "middle.aa": [
+    -5.5,
+    14.3
+   ],
+   "middle.fe1": [
+    9.6,
+    11.6
+   ],
+   "middle.fe2": [
+    5.1,
+    20.1
+   ]
+  },
+  "middle_aa_measured": -23.0,
+  "middle_aa_target": -27.2,
+  "thumb_pip_median": -14.5,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.579,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.746,
+  "rise_max": 7.74,
+  "twist_end": 78.4,
+  "tilt_end": 11.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.0,
+    15.1
+   ],
+   "thumb.fe1": [
+    15.3,
+    17.8
+   ],
+   "thumb.fe2": [
+    6.6,
+    9.4
+   ],
+   "index.aa": [
+    14.1,
+    17.0
+   ],
+   "index.fe1": [
+    6.2,
+    15.1
+   ],
+   "index.fe2": [
+    0.7,
+    5.6
+   ],
+   "middle.aa": [
+    -2.8,
+    15.3
+   ],
+   "middle.fe1": [
+    8.7,
+    25.9
+   ],
+   "middle.fe2": [
+    3.7,
+    41.5
+   ]
+  },
+  "middle_aa_measured": -25.0,
+  "middle_aa_target": -28.4,
+  "thumb_pip_median": 19.4,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.372,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.705,
+  "rise_max": 8.11,
+  "twist_end": 76.4,
+  "tilt_end": 19.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    16.4
+   ],
+   "thumb.fe1": [
+    16.1,
+    18.2
+   ],
+   "thumb.fe2": [
+    7.0,
+    9.5
+   ],
+   "index.aa": [
+    13.3,
+    16.9
+   ],
+   "index.fe1": [
+    6.9,
+    12.1
+   ],
+   "index.fe2": [
+    2.3,
+    5.5
+   ],
+   "middle.aa": [
+    -3.9,
+    13.5
+   ],
+   "middle.fe1": [
+    8.0,
+    30.9
+   ],
+   "middle.fe2": [
+    3.5,
+    68.0
+   ]
+  },
+  "middle_aa_measured": -25.9,
+  "middle_aa_target": -29.4,
+  "thumb_pip_median": 13.3,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.379,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.793,
+  "rise_max": 9.36,
+  "twist_end": 77.1,
+  "tilt_end": 7.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    8.7,
+    14.4
+   ],
+   "thumb.fe1": [
+    15.8,
+    18.1
+   ],
+   "thumb.fe2": [
+    7.1,
+    9.1
+   ],
+   "index.aa": [
+    14.5,
+    15.9
+   ],
+   "index.fe1": [
+    5.3,
+    10.5
+   ],
+   "index.fe2": [
+    0.1,
+    5.8
+   ],
+   "middle.aa": [
+    -4.1,
+    12.5
+   ],
+   "middle.fe1": [
+    10.6,
+    22.9
+   ],
+   "middle.fe2": [
+    4.2,
+    29.7
+   ]
+  },
+  "middle_aa_measured": -24.5,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": 17.3,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.39,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.691,
+  "rise_max": 6.98,
+  "twist_end": 72.2,
+  "tilt_end": 18.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.4,
+    13.3
+   ],
+   "thumb.fe1": [
+    12.7,
+    14.7
+   ],
+   "thumb.fe2": [
+    5.2,
+    7.3
+   ],
+   "index.aa": [
+    18.3,
+    19.1
+   ],
+   "index.fe1": [
+    3.8,
+    8.5
+   ],
+   "index.fe2": [
+    1.5,
+    6.4
+   ],
+   "middle.aa": [
+    -4.6,
+    15.9
+   ],
+   "middle.fe1": [
+    10.2,
+    20.2
+   ],
+   "middle.fe2": [
+    4.5,
+    40.2
+   ]
+  },
+  "middle_aa_measured": -33.0,
+  "middle_aa_target": -38.3,
+  "thumb_pip_median": 26.8,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below10": 0.321,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.706,
+  "rise_max": 6.85,
+  "twist_end": 71.3,
+  "tilt_end": 17.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.4,
+    12.9
+   ],
+   "thumb.fe1": [
+    12.3,
+    14.3
+   ],
+   "thumb.fe2": [
+    5.0,
+    7.7
+   ],
+   "index.aa": [
+    18.6,
+    19.9
+   ],
+   "index.fe1": [
+    4.3,
+    8.1
+   ],
+   "index.fe2": [
+    1.3,
+    5.8
+   ],
+   "middle.aa": [
+    -4.5,
+    15.6
+   ],
+   "middle.fe1": [
+    9.6,
+    21.0
+   ],
+   "middle.fe2": [
+    4.0,
+    44.2
+   ]
+  },
+  "middle_aa_measured": -33.8,
+  "middle_aa_target": -39.1,
+  "thumb_pip_median": 21.1,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.362,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.692,
+  "rise_max": 7.15,
+  "twist_end": 72.2,
+  "tilt_end": 18.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    9.0,
+    13.5
+   ],
+   "thumb.fe1": [
+    13.1,
+    14.9
+   ],
+   "thumb.fe2": [
+    5.5,
+    7.5
+   ],
+   "index.aa": [
+    18.1,
+    19.2
+   ],
+   "index.fe1": [
+    4.0,
+    9.0
+   ],
+   "index.fe2": [
+    1.7,
+    6.9
+   ],
+   "middle.aa": [
+    -4.1,
+    16.0
+   ],
+   "middle.fe1": [
+    10.6,
+    19.6
+   ],
+   "middle.fe2": [
+    3.8,
+    36.5
+   ]
+  },
+  "middle_aa_measured": -33.1,
+  "middle_aa_target": -37.8,
+  "thumb_pip_median": 28.0,
+  "thumb_pip_min": -17.4,
+  "thumb_pip_below10": 0.307,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.55"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.692,
+  "rise_max": 9.13,
+  "twist_end": 73.0,
+  "tilt_end": 15.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.5,
+    9.8
+   ],
+   "thumb.fe1": [
+    13.3,
+    17.6
+   ],
+   "thumb.fe2": [
+    4.9,
+    13.0
+   ],
+   "index.aa": [
+    14.7,
+    17.7
+   ],
+   "index.fe1": [
+    6.1,
+    10.1
+   ],
+   "index.fe2": [
+    2.3,
+    4.7
+   ],
+   "middle.aa": [
+    -7.4,
+    14.9
+   ],
+   "middle.fe1": [
+    7.2,
+    10.8
+   ],
+   "middle.fe2": [
+    4.0,
+    6.8
+   ]
+  },
+  "middle_aa_measured": -20.8,
+  "middle_aa_target": -28.2,
+  "thumb_pip_median": -15.2,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.579,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.699,
+  "rise_max": 9.13,
+  "twist_end": 74.2,
+  "tilt_end": 16.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    9.9
+   ],
+   "thumb.fe1": [
+    13.2,
+    17.8
+   ],
+   "thumb.fe2": [
+    4.9,
+    13.3
+   ],
+   "index.aa": [
+    14.8,
+    17.9
+   ],
+   "index.fe1": [
+    6.1,
+    10.2
+   ],
+   "index.fe2": [
+    2.4,
+    4.7
+   ],
+   "middle.aa": [
+    -8.0,
+    15.0
+   ],
+   "middle.fe1": [
+    7.3,
+    10.7
+   ],
+   "middle.fe2": [
+    4.0,
+    6.8
+   ]
+  },
+  "middle_aa_measured": -21.1,
+  "middle_aa_target": -29.1,
+  "thumb_pip_median": -14.9,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.586,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.72,
+  "rise_max": 9.16,
+  "twist_end": 73.3,
+  "tilt_end": 7.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.0,
+    9.7
+   ],
+   "thumb.fe1": [
+    14.2,
+    18.0
+   ],
+   "thumb.fe2": [
+    5.4,
+    11.4
+   ],
+   "index.aa": [
+    14.7,
+    16.8
+   ],
+   "index.fe1": [
+    5.9,
+    9.5
+   ],
+   "index.fe2": [
+    1.2,
+    4.9
+   ],
+   "middle.aa": [
+    -7.8,
+    14.1
+   ],
+   "middle.fe1": [
+    8.1,
+    10.5
+   ],
+   "middle.fe2": [
+    4.5,
+    6.8
+   ]
+  },
+  "middle_aa_measured": -18.0,
+  "middle_aa_target": -25.8,
+  "thumb_pip_median": -18.0,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.541,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.732,
+  "rise_max": 7.36,
+  "twist_end": 75.7,
+  "tilt_end": 17.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.8,
+    10.3
+   ],
+   "thumb.fe1": [
+    14.2,
+    17.6
+   ],
+   "thumb.fe2": [
+    5.0,
+    11.6
+   ],
+   "index.aa": [
+    15.2,
+    17.4
+   ],
+   "index.fe1": [
+    5.7,
+    9.7
+   ],
+   "index.fe2": [
+    1.6,
+    5.4
+   ],
+   "middle.aa": [
+    -8.3,
+    14.9
+   ],
+   "middle.fe1": [
+    8.6,
+    11.3
+   ],
+   "middle.fe2": [
+    4.5,
+    7.3
+   ]
+  },
+  "middle_aa_measured": -20.1,
+  "middle_aa_target": -28.4,
+  "thumb_pip_median": -18.0,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.569,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.714,
+  "rise_max": 6.82,
+  "twist_end": 74.2,
+  "tilt_end": 18.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.7,
+    10.6
+   ],
+   "thumb.fe1": [
+    13.6,
+    16.6
+   ],
+   "thumb.fe2": [
+    5.0,
+    11.4
+   ],
+   "index.aa": [
+    15.3,
+    18.1
+   ],
+   "index.fe1": [
+    5.7,
+    9.6
+   ],
+   "index.fe2": [
+    1.8,
+    5.3
+   ],
+   "middle.aa": [
+    -8.3,
+    15.1
+   ],
+   "middle.fe1": [
+    7.8,
+    11.1
+   ],
+   "middle.fe2": [
+    4.1,
+    7.0
+   ]
+  },
+  "middle_aa_measured": -20.3,
+  "middle_aa_target": -28.6,
+  "thumb_pip_median": -17.1,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.566,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.705,
+  "rise_max": 6.96,
+  "twist_end": 75.7,
+  "tilt_end": 18.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.8,
+    10.5
+   ],
+   "thumb.fe1": [
+    14.1,
+    17.9
+   ],
+   "thumb.fe2": [
+    5.1,
+    11.4
+   ],
+   "index.aa": [
+    14.7,
+    17.1
+   ],
+   "index.fe1": [
+    5.8,
+    9.7
+   ],
+   "index.fe2": [
+    1.8,
+    5.1
+   ],
+   "middle.aa": [
+    -7.3,
+    14.8
+   ],
+   "middle.fe1": [
+    8.2,
+    11.4
+   ],
+   "middle.fe2": [
+    4.3,
+    7.9
+   ]
+  },
+  "middle_aa_measured": -20.7,
+  "middle_aa_target": -28.0,
+  "thumb_pip_median": -17.6,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.552,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.721,
+  "rise_max": 1.44,
+  "twist_end": 69.9,
+  "tilt_end": 10.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.5,
+    13.1
+   ],
+   "thumb.fe1": [
+    15.8,
+    18.1
+   ],
+   "thumb.fe2": [
+    7.6,
+    9.1
+   ],
+   "index.aa": [
+    13.8,
+    15.5
+   ],
+   "index.fe1": [
+    7.4,
+    10.5
+   ],
+   "index.fe2": [
+    0.9,
+    6.9
+   ],
+   "middle.aa": [
+    -5.5,
+    12.8
+   ],
+   "middle.fe1": [
+    9.1,
+    32.5
+   ],
+   "middle.fe2": [
+    3.7,
+    56.0
+   ]
+  },
+  "middle_aa_measured": -22.7,
+  "middle_aa_target": -28.2,
+  "thumb_pip_median": 16.6,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.366,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.726,
+  "rise_max": 2.76,
+  "twist_end": 71.2,
+  "tilt_end": 8.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.6,
+    14.5
+   ],
+   "thumb.fe1": [
+    15.9,
+    17.4
+   ],
+   "thumb.fe2": [
+    7.5,
+    9.3
+   ],
+   "index.aa": [
+    13.5,
+    16.3
+   ],
+   "index.fe1": [
+    7.5,
+    10.3
+   ],
+   "index.fe2": [
+    2.4,
+    7.0
+   ],
+   "middle.aa": [
+    -5.4,
+    12.6
+   ],
+   "middle.fe1": [
+    9.0,
+    32.7
+   ],
+   "middle.fe2": [
+    3.6,
+    64.2
+   ]
+  },
+  "middle_aa_measured": -23.5,
+  "middle_aa_target": -29.1,
+  "thumb_pip_median": 14.0,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.383,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.742,
+  "rise_max": 1.68,
+  "twist_end": 70.1,
+  "tilt_end": 10.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.5,
+    13.9
+   ],
+   "thumb.fe1": [
+    15.9,
+    18.3
+   ],
+   "thumb.fe2": [
+    7.7,
+    9.0
+   ],
+   "index.aa": [
+    14.0,
+    15.7
+   ],
+   "index.fe1": [
+    7.5,
+    11.1
+   ],
+   "index.fe2": [
+    0.5,
+    6.9
+   ],
+   "middle.aa": [
+    -5.3,
+    12.9
+   ],
+   "middle.fe1": [
+    9.5,
+    29.5
+   ],
+   "middle.fe2": [
+    3.8,
+    49.9
+   ]
+  },
+  "middle_aa_measured": -22.4,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": 18.2,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.362,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.698,
+  "rise_max": 2.83,
+  "twist_end": 69.6,
+  "tilt_end": 16.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.1,
+    11.9
+   ],
+   "thumb.fe1": [
+    12.9,
+    14.8
+   ],
+   "thumb.fe2": [
+    6.0,
+    7.8
+   ],
+   "index.aa": [
+    19.5,
+    20.4
+   ],
+   "index.fe1": [
+    4.0,
+    8.3
+   ],
+   "index.fe2": [
+    1.6,
+    7.9
+   ],
+   "middle.aa": [
+    -8.7,
+    16.5
+   ],
+   "middle.fe1": [
+    8.4,
+    21.5
+   ],
+   "middle.fe2": [
+    3.6,
+    30.3
+   ]
+  },
+  "middle_aa_measured": -30.9,
+  "middle_aa_target": -38.5,
+  "thumb_pip_median": 30.0,
+  "thumb_pip_min": -13.7,
+  "thumb_pip_below10": 0.272,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.703,
+  "rise_max": 2.88,
+  "twist_end": 70.1,
+  "tilt_end": 17.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.6,
+    12.2
+   ],
+   "thumb.fe1": [
+    13.1,
+    15.0
+   ],
+   "thumb.fe2": [
+    5.8,
+    8.0
+   ],
+   "index.aa": [
+    19.4,
+    20.7
+   ],
+   "index.fe1": [
+    4.1,
+    8.1
+   ],
+   "index.fe2": [
+    1.6,
+    7.7
+   ],
+   "middle.aa": [
+    -8.1,
+    16.4
+   ],
+   "middle.fe1": [
+    7.9,
+    23.2
+   ],
+   "middle.fe2": [
+    3.8,
+    35.0
+   ]
+  },
+  "middle_aa_measured": -31.9,
+  "middle_aa_target": -39.1,
+  "thumb_pip_median": 28.6,
+  "thumb_pip_min": -14.4,
+  "thumb_pip_below10": 0.283,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.25,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.692,
+  "rise_max": 2.97,
+  "twist_end": 69.4,
+  "tilt_end": 16.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.4,
+    12.2
+   ],
+   "thumb.fe1": [
+    13.1,
+    14.7
+   ],
+   "thumb.fe2": [
+    6.3,
+    7.9
+   ],
+   "index.aa": [
+    19.4,
+    20.3
+   ],
+   "index.fe1": [
+    4.0,
+    8.4
+   ],
+   "index.fe2": [
+    1.7,
+    7.9
+   ],
+   "middle.aa": [
+    -9.2,
+    16.5
+   ],
+   "middle.fe1": [
+    9.0,
+    21.6
+   ],
+   "middle.fe2": [
+    3.8,
+    28.3
+   ]
+  },
+  "middle_aa_measured": -30.3,
+  "middle_aa_target": -38.3,
+  "thumb_pip_median": 30.7,
+  "thumb_pip_min": -12.7,
+  "thumb_pip_below10": 0.266,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.25"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.711,
+  "rise_max": 7.39,
+  "twist_end": 69.5,
+  "tilt_end": 9.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.4,
+    8.6
+   ],
+   "thumb.fe1": [
+    14.5,
+    18.7
+   ],
+   "thumb.fe2": [
+    5.3,
+    12.7
+   ],
+   "index.aa": [
+    15.2,
+    17.8
+   ],
+   "index.fe1": [
+    6.4,
+    9.9
+   ],
+   "index.fe2": [
+    1.4,
+    5.2
+   ],
+   "middle.aa": [
+    -9.3,
+    14.6
+   ],
+   "middle.fe1": [
+    8.3,
+    10.7
+   ],
+   "middle.fe2": [
+    4.7,
+    7.1
+   ]
+  },
+  "middle_aa_measured": -17.8,
+  "middle_aa_target": -27.1,
+  "thumb_pip_median": -17.9,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.559,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.707,
+  "rise_max": 7.96,
+  "twist_end": 71.7,
+  "tilt_end": 16.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.2,
+    9.4
+   ],
+   "thumb.fe1": [
+    13.9,
+    18.0
+   ],
+   "thumb.fe2": [
+    5.1,
+    13.1
+   ],
+   "index.aa": [
+    15.3,
+    18.4
+   ],
+   "index.fe1": [
+    6.2,
+    10.0
+   ],
+   "index.fe2": [
+    1.9,
+    5.1
+   ],
+   "middle.aa": [
+    -9.4,
+    15.0
+   ],
+   "middle.fe1": [
+    7.8,
+    10.8
+   ],
+   "middle.fe2": [
+    4.1,
+    7.0
+   ]
+  },
+  "middle_aa_measured": -19.8,
+  "middle_aa_target": -29.2,
+  "thumb_pip_median": -16.6,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.569,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.68,
+  "rise_max": 6.71,
+  "twist_end": 68.5,
+  "tilt_end": 9.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.0,
+    8.1
+   ],
+   "thumb.fe1": [
+    14.7,
+    18.8
+   ],
+   "thumb.fe2": [
+    5.8,
+    11.8
+   ],
+   "index.aa": [
+    15.5,
+    17.1
+   ],
+   "index.fe1": [
+    6.1,
+    9.4
+   ],
+   "index.fe2": [
+    1.7,
+    5.6
+   ],
+   "middle.aa": [
+    -9.3,
+    13.9
+   ],
+   "middle.fe1": [
+    8.9,
+    10.4
+   ],
+   "middle.fe2": [
+    4.8,
+    7.3
+   ]
+  },
+  "middle_aa_measured": -16.9,
+  "middle_aa_target": -26.1,
+  "thumb_pip_median": -16.0,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.534,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.667,
+  "rise_max": 5.01,
+  "twist_end": 70.3,
+  "tilt_end": 20.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.9,
+    9.9
+   ],
+   "thumb.fe1": [
+    14.2,
+    16.2
+   ],
+   "thumb.fe2": [
+    5.6,
+    11.1
+   ],
+   "index.aa": [
+    16.4,
+    18.1
+   ],
+   "index.fe1": [
+    6.5,
+    9.4
+   ],
+   "index.fe2": [
+    2.4,
+    6.1
+   ],
+   "middle.aa": [
+    -10.2,
+    14.9
+   ],
+   "middle.fe1": [
+    8.0,
+    10.8
+   ],
+   "middle.fe2": [
+    4.3,
+    7.1
+   ]
+  },
+  "middle_aa_measured": -18.6,
+  "middle_aa_target": -28.7,
+  "thumb_pip_median": -13.6,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.534,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.676,
+  "rise_max": 4.82,
+  "twist_end": 68.7,
+  "tilt_end": 19.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.4,
+    10.0
+   ],
+   "thumb.fe1": [
+    13.8,
+    15.5
+   ],
+   "thumb.fe2": [
+    5.5,
+    11.3
+   ],
+   "index.aa": [
+    16.7,
+    18.6
+   ],
+   "index.fe1": [
+    6.5,
+    9.4
+   ],
+   "index.fe2": [
+    2.4,
+    6.1
+   ],
+   "middle.aa": [
+    -10.5,
+    15.1
+   ],
+   "middle.fe1": [
+    7.7,
+    10.7
+   ],
+   "middle.fe2": [
+    4.1,
+    6.7
+   ]
+  },
+  "middle_aa_measured": -18.5,
+  "middle_aa_target": -29.0,
+  "thumb_pip_median": -13.3,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.538,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.665,
+  "rise_max": 4.82,
+  "twist_end": 70.5,
+  "tilt_end": 20.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.7,
+    9.9
+   ],
+   "thumb.fe1": [
+    14.3,
+    16.6
+   ],
+   "thumb.fe2": [
+    5.6,
+    11.1
+   ],
+   "index.aa": [
+    16.2,
+    17.9
+   ],
+   "index.fe1": [
+    6.5,
+    9.4
+   ],
+   "index.fe2": [
+    2.5,
+    6.0
+   ],
+   "middle.aa": [
+    -9.9,
+    14.8
+   ],
+   "middle.fe1": [
+    8.2,
+    11.0
+   ],
+   "middle.fe2": [
+    4.4,
+    7.1
+   ]
+  },
+  "middle_aa_measured": -18.7,
+  "middle_aa_target": -28.6,
+  "thumb_pip_median": -14.0,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.531,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.714,
+  "rise_max": 1.03,
+  "twist_end": 68.1,
+  "tilt_end": 10.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.5,
+    13.2
+   ],
+   "thumb.fe1": [
+    15.4,
+    18.5
+   ],
+   "thumb.fe2": [
+    7.6,
+    9.3
+   ],
+   "index.aa": [
+    14.0,
+    16.0
+   ],
+   "index.fe1": [
+    7.6,
+    10.8
+   ],
+   "index.fe2": [
+    1.8,
+    7.0
+   ],
+   "middle.aa": [
+    -6.1,
+    13.1
+   ],
+   "middle.fe1": [
+    9.2,
+    31.9
+   ],
+   "middle.fe2": [
+    3.9,
+    51.6
+   ]
+  },
+  "middle_aa_measured": -22.6,
+  "middle_aa_target": -28.5,
+  "thumb_pip_median": 18.0,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below10": 0.355,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.717,
+  "rise_max": 1.74,
+  "twist_end": 70.4,
+  "tilt_end": 7.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.9,
+    13.4
+   ],
+   "thumb.fe1": [
+    16.0,
+    17.9
+   ],
+   "thumb.fe2": [
+    7.6,
+    9.7
+   ],
+   "index.aa": [
+    13.5,
+    16.1
+   ],
+   "index.fe1": [
+    7.9,
+    10.1
+   ],
+   "index.fe2": [
+    2.6,
+    6.7
+   ],
+   "middle.aa": [
+    -5.9,
+    12.8
+   ],
+   "middle.fe1": [
+    8.7,
+    31.0
+   ],
+   "middle.fe2": [
+    3.6,
+    55.8
+   ]
+  },
+  "middle_aa_measured": -23.4,
+  "middle_aa_target": -29.4,
+  "thumb_pip_median": 11.8,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.393,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.718,
+  "rise_max": 0.76,
+  "twist_end": 67.0,
+  "tilt_end": 11.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.4,
+    13.2
+   ],
+   "thumb.fe1": [
+    15.3,
+    18.5
+   ],
+   "thumb.fe2": [
+    7.5,
+    9.0
+   ],
+   "index.aa": [
+    14.0,
+    15.9
+   ],
+   "index.fe1": [
+    7.6,
+    11.3
+   ],
+   "index.fe2": [
+    1.4,
+    7.1
+   ],
+   "middle.aa": [
+    -6.1,
+    13.2
+   ],
+   "middle.fe1": [
+    9.1,
+    29.7
+   ],
+   "middle.fe2": [
+    3.9,
+    49.2
+   ]
+  },
+  "middle_aa_measured": -22.2,
+  "middle_aa_target": -28.3,
+  "thumb_pip_median": 20.3,
+  "thumb_pip_min": -17.3,
+  "thumb_pip_below10": 0.341,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.687,
+  "rise_max": 1.73,
+  "twist_end": 68.1,
+  "tilt_end": 15.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.0,
+    11.1
+   ],
+   "thumb.fe1": [
+    12.8,
+    14.7
+   ],
+   "thumb.fe2": [
+    6.3,
+    8.0
+   ],
+   "index.aa": [
+    19.9,
+    20.7
+   ],
+   "index.fe1": [
+    4.2,
+    8.6
+   ],
+   "index.fe2": [
+    1.5,
+    8.3
+   ],
+   "middle.aa": [
+    -10.7,
+    17.3
+   ],
+   "middle.fe1": [
+    8.5,
+    19.6
+   ],
+   "middle.fe2": [
+    3.7,
+    23.7
+   ]
+  },
+  "middle_aa_measured": -29.5,
+  "middle_aa_target": -39.2,
+  "thumb_pip_median": 30.7,
+  "thumb_pip_min": -12.6,
+  "thumb_pip_below10": 0.259,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.69,
+  "rise_max": 1.91,
+  "twist_end": 68.0,
+  "tilt_end": 15.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.2,
+    11.2
+   ],
+   "thumb.fe1": [
+    12.9,
+    14.6
+   ],
+   "thumb.fe2": [
+    6.2,
+    7.9
+   ],
+   "index.aa": [
+    19.9,
+    21.0
+   ],
+   "index.fe1": [
+    4.3,
+    8.4
+   ],
+   "index.fe2": [
+    1.6,
+    8.4
+   ],
+   "middle.aa": [
+    -10.7,
+    17.2
+   ],
+   "middle.fe1": [
+    7.6,
+    21.5
+   ],
+   "middle.fe2": [
+    3.8,
+    26.6
+   ]
+  },
+  "middle_aa_measured": -30.0,
+  "middle_aa_target": -39.7,
+  "thumb_pip_median": 29.6,
+  "thumb_pip_min": -13.4,
+  "thumb_pip_below10": 0.269,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.2,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.686,
+  "rise_max": 1.88,
+  "twist_end": 67.4,
+  "tilt_end": 15.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.9,
+    11.2
+   ],
+   "thumb.fe1": [
+    12.9,
+    14.9
+   ],
+   "thumb.fe2": [
+    6.5,
+    8.0
+   ],
+   "index.aa": [
+    19.9,
+    20.7
+   ],
+   "index.fe1": [
+    4.2,
+    8.8
+   ],
+   "index.fe2": [
+    1.6,
+    8.4
+   ],
+   "middle.aa": [
+    -10.4,
+    17.4
+   ],
+   "middle.fe1": [
+    8.8,
+    20.0
+   ],
+   "middle.fe2": [
+    3.8,
+    22.8
+   ]
+  },
+  "middle_aa_measured": -29.6,
+  "middle_aa_target": -39.1,
+  "thumb_pip_median": 31.8,
+  "thumb_pip_min": -11.5,
+  "thumb_pip_below10": 0.252,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.20"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.658,
+  "rise_max": 4.64,
+  "twist_end": 64.6,
+  "tilt_end": 11.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.1,
+    6.9
+   ],
+   "thumb.fe1": [
+    14.9,
+    19.3
+   ],
+   "thumb.fe2": [
+    6.4,
+    12.5
+   ],
+   "index.aa": [
+    16.8,
+    18.0
+   ],
+   "index.fe1": [
+    6.7,
+    9.4
+   ],
+   "index.fe2": [
+    2.2,
+    6.3
+   ],
+   "middle.aa": [
+    -10.6,
+    14.2
+   ],
+   "middle.fe1": [
+    9.1,
+    10.5
+   ],
+   "middle.fe2": [
+    4.9,
+    7.9
+   ]
+  },
+  "middle_aa_measured": -15.6,
+  "middle_aa_target": -26.2,
+  "thumb_pip_median": -15.7,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below10": 0.528,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.672,
+  "rise_max": 4.79,
+  "twist_end": 66.6,
+  "tilt_end": 10.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.1,
+    7.5
+   ],
+   "thumb.fe1": [
+    14.9,
+    19.1
+   ],
+   "thumb.fe2": [
+    6.1,
+    13.0
+   ],
+   "index.aa": [
+    16.7,
+    18.5
+   ],
+   "index.fe1": [
+    6.9,
+    9.7
+   ],
+   "index.fe2": [
+    2.0,
+    6.0
+   ],
+   "middle.aa": [
+    -10.8,
+    14.6
+   ],
+   "middle.fe1": [
+    8.8,
+    10.7
+   ],
+   "middle.fe2": [
+    4.9,
+    7.9
+   ]
+  },
+  "middle_aa_measured": -16.7,
+  "middle_aa_target": -27.5,
+  "thumb_pip_median": -15.3,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below10": 0.538,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.655,
+  "rise_max": 4.76,
+  "twist_end": 64.1,
+  "tilt_end": 9.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.7,
+    6.4
+   ],
+   "thumb.fe1": [
+    15.2,
+    19.5
+   ],
+   "thumb.fe2": [
+    6.5,
+    12.4
+   ],
+   "index.aa": [
+    16.8,
+    17.9
+   ],
+   "index.fe1": [
+    6.5,
+    9.6
+   ],
+   "index.fe2": [
+    2.2,
+    6.5
+   ],
+   "middle.aa": [
+    -10.4,
+    13.9
+   ],
+   "middle.fe1": [
+    9.3,
+    10.6
+   ],
+   "middle.fe2": [
+    5.0,
+    7.8
+   ]
+  },
+  "middle_aa_measured": -15.2,
+  "middle_aa_target": -25.5,
+  "thumb_pip_median": -16.2,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below10": 0.521,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.619,
+  "rise_max": 3.78,
+  "twist_end": 67.8,
+  "tilt_end": 22.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.9,
+    8.6
+   ],
+   "thumb.fe1": [
+    14.3,
+    15.8
+   ],
+   "thumb.fe2": [
+    6.2,
+    11.3
+   ],
+   "index.aa": [
+    17.9,
+    18.9
+   ],
+   "index.fe1": [
+    7.6,
+    9.1
+   ],
+   "index.fe2": [
+    2.6,
+    7.2
+   ],
+   "middle.aa": [
+    -10.9,
+    15.8
+   ],
+   "middle.fe1": [
+    8.0,
+    10.7
+   ],
+   "middle.fe2": [
+    4.4,
+    8.1
+   ]
+  },
+  "middle_aa_measured": -17.1,
+  "middle_aa_target": -27.9,
+  "thumb_pip_median": -12.4,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.514,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.632,
+  "rise_max": 3.73,
+  "twist_end": 66.6,
+  "tilt_end": 20.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.0,
+    8.7
+   ],
+   "thumb.fe1": [
+    14.2,
+    15.8
+   ],
+   "thumb.fe2": [
+    6.2,
+    11.7
+   ],
+   "index.aa": [
+    17.9,
+    19.0
+   ],
+   "index.fe1": [
+    7.7,
+    9.1
+   ],
+   "index.fe2": [
+    2.7,
+    7.1
+   ],
+   "middle.aa": [
+    -11.1,
+    15.7
+   ],
+   "middle.fe1": [
+    7.9,
+    10.4
+   ],
+   "middle.fe2": [
+    4.3,
+    7.9
+   ]
+  },
+  "middle_aa_measured": -16.8,
+  "middle_aa_target": -27.9,
+  "thumb_pip_median": -12.1,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.521,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.607,
+  "rise_max": 3.78,
+  "twist_end": 68.7,
+  "tilt_end": 22.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.7,
+    8.5
+   ],
+   "thumb.fe1": [
+    14.7,
+    16.5
+   ],
+   "thumb.fe2": [
+    6.3,
+    11.1
+   ],
+   "index.aa": [
+    17.7,
+    18.9
+   ],
+   "index.fe1": [
+    7.6,
+    9.6
+   ],
+   "index.fe2": [
+    2.5,
+    7.4
+   ],
+   "middle.aa": [
+    -10.7,
+    15.7
+   ],
+   "middle.fe1": [
+    8.2,
+    10.9
+   ],
+   "middle.fe2": [
+    4.5,
+    8.3
+   ]
+  },
+  "middle_aa_measured": -16.9,
+  "middle_aa_target": -27.6,
+  "thumb_pip_median": -11.4,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.503,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.674,
+  "rise_max": 0.26,
+  "twist_end": 65.0,
+  "tilt_end": 12.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.6,
+    11.6
+   ],
+   "thumb.fe1": [
+    15.3,
+    19.0
+   ],
+   "thumb.fe2": [
+    7.7,
+    9.4
+   ],
+   "index.aa": [
+    13.9,
+    16.3
+   ],
+   "index.fe1": [
+    8.0,
+    11.7
+   ],
+   "index.fe2": [
+    1.9,
+    7.7
+   ],
+   "middle.aa": [
+    -7.5,
+    14.0
+   ],
+   "middle.fe1": [
+    8.5,
+    30.6
+   ],
+   "middle.fe2": [
+    3.7,
+    47.4
+   ]
+  },
+  "middle_aa_measured": -21.9,
+  "middle_aa_target": -29.3,
+  "thumb_pip_median": 19.2,
+  "thumb_pip_min": -17.5,
+  "thumb_pip_below10": 0.341,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.679,
+  "rise_max": 0.31,
+  "twist_end": 67.2,
+  "tilt_end": 9.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.8,
+    11.3
+   ],
+   "thumb.fe1": [
+    15.4,
+    18.4
+   ],
+   "thumb.fe2": [
+    7.7,
+    9.6
+   ],
+   "index.aa": [
+    13.6,
+    16.3
+   ],
+   "index.fe1": [
+    8.2,
+    11.3
+   ],
+   "index.fe2": [
+    2.6,
+    7.7
+   ],
+   "middle.aa": [
+    -7.4,
+    13.7
+   ],
+   "middle.fe1": [
+    8.7,
+    32.1
+   ],
+   "middle.fe2": [
+    3.5,
+    52.3
+   ]
+  },
+  "middle_aa_measured": -22.6,
+  "middle_aa_target": -30.1,
+  "thumb_pip_median": 16.7,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below10": 0.355,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.673,
+  "rise_max": 0.29,
+  "twist_end": 64.1,
+  "tilt_end": 13.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.7,
+    11.9
+   ],
+   "thumb.fe1": [
+    15.4,
+    19.2
+   ],
+   "thumb.fe2": [
+    7.6,
+    9.5
+   ],
+   "index.aa": [
+    14.2,
+    16.6
+   ],
+   "index.fe1": [
+    8.1,
+    11.8
+   ],
+   "index.fe2": [
+    2.1,
+    7.9
+   ],
+   "middle.aa": [
+    -7.5,
+    14.2
+   ],
+   "middle.fe1": [
+    8.5,
+    28.5
+   ],
+   "middle.fe2": [
+    3.8,
+    42.9
+   ]
+  },
+  "middle_aa_measured": -21.6,
+  "middle_aa_target": -28.9,
+  "thumb_pip_median": 20.3,
+  "thumb_pip_min": -17.1,
+  "thumb_pip_below10": 0.334,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.68,
+  "rise_max": 0.47,
+  "twist_end": 65.4,
+  "tilt_end": 14.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.4,
+    9.8
+   ],
+   "thumb.fe1": [
+    12.9,
+    15.2
+   ],
+   "thumb.fe2": [
+    6.5,
+    8.4
+   ],
+   "index.aa": [
+    20.6,
+    21.7
+   ],
+   "index.fe1": [
+    4.6,
+    9.5
+   ],
+   "index.fe2": [
+    1.4,
+    9.3
+   ],
+   "middle.aa": [
+    -12.3,
+    18.5
+   ],
+   "middle.fe1": [
+    8.2,
+    15.3
+   ],
+   "middle.fe2": [
+    3.9,
+    14.3
+   ]
+  },
+  "middle_aa_measured": -28.7,
+  "middle_aa_target": -40.4,
+  "thumb_pip_median": 31.2,
+  "thumb_pip_min": -11.9,
+  "thumb_pip_below10": 0.248,
+  "periods": 290,
+  "wall_s": 2.8,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.662,
+  "rise_max": 0.75,
+  "twist_end": 65.2,
+  "tilt_end": 15.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.6,
+    9.7
+   ],
+   "thumb.fe1": [
+    12.9,
+    15.1
+   ],
+   "thumb.fe2": [
+    6.4,
+    8.3
+   ],
+   "index.aa": [
+    20.5,
+    21.5
+   ],
+   "index.fe1": [
+    4.4,
+    8.9
+   ],
+   "index.fe2": [
+    1.3,
+    9.1
+   ],
+   "middle.aa": [
+    -12.4,
+    18.3
+   ],
+   "middle.fe1": [
+    8.4,
+    14.0
+   ],
+   "middle.fe2": [
+    4.0,
+    12.3
+   ]
+  },
+  "middle_aa_measured": -29.2,
+  "middle_aa_target": -41.0,
+  "thumb_pip_median": 29.5,
+  "thumb_pip_min": -13.6,
+  "thumb_pip_below10": 0.262,
+  "periods": 290,
+  "wall_s": 2.7,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.15,
+   "damping": 0.011,
+   "mu": 1.0
+  },
+  "held": true,
+  "track": 0.683,
+  "rise_max": 0.55,
+  "twist_end": 65.5,
+  "tilt_end": 14.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.4,
+    10.0
+   ],
+   "thumb.fe1": [
+    12.8,
+    15.1
+   ],
+   "thumb.fe2": [
+    6.6,
+    8.4
+   ],
+   "index.aa": [
+    20.6,
+    21.7
+   ],
+   "index.fe1": [
+    4.6,
+    9.4
+   ],
+   "index.fe2": [
+    1.4,
+    9.3
+   ],
+   "middle.aa": [
+    -11.7,
+    18.7
+   ],
+   "middle.fe1": [
+    8.1,
+    16.0
+   ],
+   "middle.fe2": [
+    3.9,
+    15.5
+   ]
+  },
+  "middle_aa_measured": -29.1,
+  "middle_aa_target": -40.2,
+  "thumb_pip_median": 32.2,
+  "thumb_pip_min": -10.4,
+  "thumb_pip_below10": 0.031,
+  "periods": 290,
+  "wall_s": 2.7,
+  "model": "soft, kp 0.15"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.714,
+  "rise_max": 17.4,
+  "twist_end": 59.7,
+  "tilt_end": 7.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.0,
+    9.4
+   ],
+   "thumb.fe1": [
+    11.9,
+    15.2
+   ],
+   "thumb.fe2": [
+    5.7,
+    9.7
+   ],
+   "index.aa": [
+    12.6,
+    15.9
+   ],
+   "index.fe1": [
+    6.3,
+    12.1
+   ],
+   "index.fe2": [
+    0.7,
+    5.7
+   ],
+   "middle.aa": [
+    -16.4,
+    20.4
+   ],
+   "middle.fe1": [
+    5.6,
+    7.2
+   ],
+   "middle.fe2": [
+    2.6,
+    4.4
+   ]
+  },
+  "middle_aa_measured": -11.1,
+  "middle_aa_target": -26.5,
+  "thumb_pip_median": -17.3,
+  "thumb_pip_min": -18.6,
+  "thumb_pip_below10": 0.541,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.728,
+  "rise_max": 16.79,
+  "twist_end": 61.1,
+  "tilt_end": 9.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.3,
+    9.4
+   ],
+   "thumb.fe1": [
+    11.3,
+    15.3
+   ],
+   "thumb.fe2": [
+    5.5,
+    9.6
+   ],
+   "index.aa": [
+    12.9,
+    16.0
+   ],
+   "index.fe1": [
+    6.1,
+    12.2
+   ],
+   "index.fe2": [
+    0.8,
+    6.0
+   ],
+   "middle.aa": [
+    -16.5,
+    20.1
+   ],
+   "middle.fe1": [
+    5.2,
+    7.2
+   ],
+   "middle.fe2": [
+    2.5,
+    4.2
+   ]
+  },
+  "middle_aa_measured": -11.8,
+  "middle_aa_target": -26.8,
+  "thumb_pip_median": -17.5,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below10": 0.555,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.724,
+  "rise_max": 17.46,
+  "twist_end": 59.2,
+  "tilt_end": 6.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.6,
+    8.7
+   ],
+   "thumb.fe1": [
+    12.7,
+    15.5
+   ],
+   "thumb.fe2": [
+    5.8,
+    9.5
+   ],
+   "index.aa": [
+    12.5,
+    15.6
+   ],
+   "index.fe1": [
+    5.5,
+    12.1
+   ],
+   "index.fe2": [
+    0.0,
+    6.2
+   ],
+   "middle.aa": [
+    -16.3,
+    21.0
+   ],
+   "middle.fe1": [
+    5.9,
+    7.2
+   ],
+   "middle.fe2": [
+    2.7,
+    4.4
+   ]
+  },
+  "middle_aa_measured": -10.9,
+  "middle_aa_target": -25.9,
+  "thumb_pip_median": -16.4,
+  "thumb_pip_min": -18.6,
+  "thumb_pip_below10": 0.514,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.737,
+  "rise_max": 11.7,
+  "twist_end": 67.0,
+  "tilt_end": 12.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    6.8,
+    9.2
+   ],
+   "thumb.fe1": [
+    11.5,
+    14.2
+   ],
+   "thumb.fe2": [
+    5.6,
+    8.5
+   ],
+   "index.aa": [
+    14.4,
+    15.5
+   ],
+   "index.fe1": [
+    6.7,
+    11.8
+   ],
+   "index.fe2": [
+    2.4,
+    6.2
+   ],
+   "middle.aa": [
+    -16.6,
+    21.8
+   ],
+   "middle.fe1": [
+    5.6,
+    7.4
+   ],
+   "middle.fe2": [
+    3.2,
+    4.4
+   ]
+  },
+  "middle_aa_measured": -10.1,
+  "middle_aa_target": -26.8,
+  "thumb_pip_median": -13.7,
+  "thumb_pip_min": -18.1,
+  "thumb_pip_below10": 0.524,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.736,
+  "rise_max": 11.32,
+  "twist_end": 68.1,
+  "tilt_end": 12.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.3,
+    9.1
+   ],
+   "thumb.fe1": [
+    11.2,
+    14.0
+   ],
+   "thumb.fe2": [
+    5.6,
+    7.9
+   ],
+   "index.aa": [
+    14.4,
+    15.3
+   ],
+   "index.fe1": [
+    6.6,
+    11.6
+   ],
+   "index.fe2": [
+    2.4,
+    6.0
+   ],
+   "middle.aa": [
+    -16.1,
+    21.2
+   ],
+   "middle.fe1": [
+    5.5,
+    7.2
+   ],
+   "middle.fe2": [
+    3.2,
+    4.4
+   ]
+  },
+  "middle_aa_measured": -10.7,
+  "middle_aa_target": -26.8,
+  "thumb_pip_median": -13.7,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.531,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.785,
+  "rise_max": 14.03,
+  "twist_end": 69.9,
+  "tilt_end": 8.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.9,
+    9.7
+   ],
+   "thumb.fe1": [
+    12.5,
+    14.7
+   ],
+   "thumb.fe2": [
+    5.5,
+    7.9
+   ],
+   "index.aa": [
+    14.5,
+    16.3
+   ],
+   "index.fe1": [
+    7.3,
+    12.2
+   ],
+   "index.fe2": [
+    1.9,
+    6.5
+   ],
+   "middle.aa": [
+    -17.3,
+    22.6
+   ],
+   "middle.fe1": [
+    6.0,
+    8.4
+   ],
+   "middle.fe2": [
+    3.5,
+    4.6
+   ]
+  },
+  "middle_aa_measured": -9.2,
+  "middle_aa_target": -26.6,
+  "thumb_pip_median": -5.0,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below10": 0.49,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.741,
+  "rise_max": 7.43,
+  "twist_end": 61.3,
+  "tilt_end": 9.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.4,
+    7.9
+   ],
+   "thumb.fe1": [
+    13.3,
+    16.1
+   ],
+   "thumb.fe2": [
+    6.6,
+    7.6
+   ],
+   "index.aa": [
+    9.6,
+    12.2
+   ],
+   "index.fe1": [
+    5.3,
+    10.5
+   ],
+   "index.fe2": [
+    0.0,
+    7.8
+   ],
+   "middle.aa": [
+    -10.2,
+    20.3
+   ],
+   "middle.fe1": [
+    10.0,
+    14.5
+   ],
+   "middle.fe2": [
+    3.8,
+    7.7
+   ]
+  },
+  "middle_aa_measured": -17.9,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": 30.1,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.279,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.748,
+  "rise_max": 9.08,
+  "twist_end": 64.8,
+  "tilt_end": 9.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.2,
+    8.6
+   ],
+   "thumb.fe1": [
+    13.5,
+    15.6
+   ],
+   "thumb.fe2": [
+    6.4,
+    7.9
+   ],
+   "index.aa": [
+    11.9,
+    13.4
+   ],
+   "index.fe1": [
+    6.3,
+    10.6
+   ],
+   "index.fe2": [
+    0.0,
+    7.6
+   ],
+   "middle.aa": [
+    -11.5,
+    20.5
+   ],
+   "middle.fe1": [
+    9.6,
+    13.5
+   ],
+   "middle.fe2": [
+    3.4,
+    7.2
+   ]
+  },
+  "middle_aa_measured": -17.8,
+  "middle_aa_target": -28.6,
+  "thumb_pip_median": 28.1,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.324,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.74,
+  "rise_max": 6.52,
+  "twist_end": 61.3,
+  "tilt_end": 9.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.7,
+    6.8
+   ],
+   "thumb.fe1": [
+    13.4,
+    16.6
+   ],
+   "thumb.fe2": [
+    6.6,
+    8.9
+   ],
+   "index.aa": [
+    9.4,
+    11.5
+   ],
+   "index.fe1": [
+    4.5,
+    10.6
+   ],
+   "index.fe2": [
+    0.0,
+    6.3
+   ],
+   "middle.aa": [
+    -11.9,
+    20.9
+   ],
+   "middle.fe1": [
+    10.2,
+    15.1
+   ],
+   "middle.fe2": [
+    4.0,
+    7.5
+   ]
+  },
+  "middle_aa_measured": -15.9,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": 31.3,
+  "thumb_pip_min": -13.0,
+  "thumb_pip_below10": 0.238,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.264,
+  "rise_max": 6.41,
+  "twist_end": 58.3,
+  "tilt_end": 52.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.3,
+    12.9
+   ],
+   "thumb.fe1": [
+    15.1,
+    19.3
+   ],
+   "thumb.fe2": [
+    8.6,
+    12.3
+   ],
+   "index.aa": [
+    5.6,
+    19.6
+   ],
+   "index.fe1": [
+    13.2,
+    40.5
+   ],
+   "index.fe2": [
+    0.1,
+    67.6
+   ],
+   "middle.aa": [
+    -17.7,
+    29.8
+   ],
+   "middle.fe1": [
+    8.8,
+    16.3
+   ],
+   "middle.fe2": [
+    4.4,
+    10.8
+   ]
+  },
+  "middle_aa_measured": -17.4,
+  "middle_aa_target": -34.6,
+  "thumb_pip_median": 32.0,
+  "thumb_pip_min": 22.6,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.425,
+  "rise_max": 6.15,
+  "twist_end": 56.7,
+  "tilt_end": 30.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    7.6,
+    13.9
+   ],
+   "thumb.fe1": [
+    15.9,
+    25.8
+   ],
+   "thumb.fe2": [
+    7.7,
+    13.1
+   ],
+   "index.aa": [
+    10.5,
+    21.2
+   ],
+   "index.fe1": [
+    9.2,
+    29.6
+   ],
+   "index.fe2": [
+    0.1,
+    28.9
+   ],
+   "middle.aa": [
+    -2.9,
+    30.5
+   ],
+   "middle.fe1": [
+    8.9,
+    17.6
+   ],
+   "middle.fe2": [
+    3.8,
+    15.4
+   ]
+  },
+  "middle_aa_measured": -31.6,
+  "middle_aa_target": -35.5,
+  "thumb_pip_median": 26.0,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below10": 0.29,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "kp_middle_aa": 0.2
+  },
+  "held": true,
+  "track": 0.398,
+  "rise_max": 7.28,
+  "twist_end": 69.6,
+  "tilt_end": 27.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.3,
+    12.4
+   ],
+   "thumb.fe1": [
+    13.8,
+    21.6
+   ],
+   "thumb.fe2": [
+    7.7,
+    12.5
+   ],
+   "index.aa": [
+    9.1,
+    19.9
+   ],
+   "index.fe1": [
+    8.3,
+    40.4
+   ],
+   "index.fe2": [
+    0.1,
+    41.2
+   ],
+   "middle.aa": [
+    -16.5,
+    30.4
+   ],
+   "middle.fe1": [
+    9.4,
+    15.9
+   ],
+   "middle.fe2": [
+    4.2,
+    11.4
+   ]
+  },
+  "middle_aa_measured": -19.9,
+  "middle_aa_target": -35.8,
+  "thumb_pip_median": 35.1,
+  "thumb_pip_min": 21.4,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, middle yaw kp 0.20"
+ }
+]

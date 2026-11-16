@@ -1,0 +1,2930 @@
+[
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.639,
+  "rise_max": 18.05,
+  "twist_end": 61.2,
+  "tilt_end": 4.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.4,
+    6.2
+   ],
+   "thumb.fe1": [
+    12.8,
+    15.0
+   ],
+   "thumb.fe2": [
+    5.4,
+    8.8
+   ],
+   "index.aa": [
+    14.1,
+    15.9
+   ],
+   "index.fe1": [
+    5.9,
+    11.4
+   ],
+   "index.fe2": [
+    1.8,
+    5.7
+   ],
+   "middle.aa": [
+    -13.7,
+    18.1
+   ],
+   "middle.fe1": [
+    5.6,
+    7.5
+   ],
+   "middle.fe2": [
+    2.2,
+    5.2
+   ]
+  },
+  "middle_aa_measured": -15.7,
+  "middle_aa_target": -29.7,
+  "thumb_pip_median": -16.9,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below10": 0.569,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.636,
+  "rise_max": 17.78,
+  "twist_end": 60.8,
+  "tilt_end": 3.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.3,
+    6.9
+   ],
+   "thumb.fe1": [
+    12.5,
+    17.8
+   ],
+   "thumb.fe2": [
+    5.3,
+    15.5
+   ],
+   "index.aa": [
+    13.4,
+    15.1
+   ],
+   "index.fe1": [
+    7.2,
+    11.5
+   ],
+   "index.fe2": [
+    2.1,
+    5.8
+   ],
+   "middle.aa": [
+    -13.4,
+    17.6
+   ],
+   "middle.fe1": [
+    5.0,
+    7.1
+   ],
+   "middle.fe2": [
+    2.4,
+    5.0
+   ]
+  },
+  "middle_aa_measured": -16.9,
+  "middle_aa_target": -30.4,
+  "thumb_pip_median": -15.6,
+  "thumb_pip_min": -18.6,
+  "thumb_pip_below10": 0.593,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.626,
+  "rise_max": 18.66,
+  "twist_end": 60.7,
+  "tilt_end": 5.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.1,
+    5.6
+   ],
+   "thumb.fe1": [
+    13.0,
+    15.2
+   ],
+   "thumb.fe2": [
+    5.5,
+    8.9
+   ],
+   "index.aa": [
+    14.2,
+    15.9
+   ],
+   "index.fe1": [
+    5.3,
+    11.6
+   ],
+   "index.fe2": [
+    1.6,
+    5.5
+   ],
+   "middle.aa": [
+    -14.0,
+    18.4
+   ],
+   "middle.fe1": [
+    5.6,
+    7.9
+   ],
+   "middle.fe2": [
+    2.3,
+    5.1
+   ]
+  },
+  "middle_aa_measured": -14.9,
+  "middle_aa_target": -29.0,
+  "thumb_pip_median": -17.0,
+  "thumb_pip_min": -18.0,
+  "thumb_pip_below10": 0.555,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.714,
+  "rise_max": 16.29,
+  "twist_end": 72.1,
+  "tilt_end": 2.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.9,
+    9.4
+   ],
+   "thumb.fe1": [
+    12.8,
+    15.5
+   ],
+   "thumb.fe2": [
+    5.5,
+    8.3
+   ],
+   "index.aa": [
+    14.7,
+    15.9
+   ],
+   "index.fe1": [
+    5.7,
+    10.9
+   ],
+   "index.fe2": [
+    1.7,
+    5.0
+   ],
+   "middle.aa": [
+    -13.4,
+    18.6
+   ],
+   "middle.fe1": [
+    7.4,
+    8.8
+   ],
+   "middle.fe2": [
+    3.8,
+    5.4
+   ]
+  },
+  "middle_aa_measured": -15.0,
+  "middle_aa_target": -28.4,
+  "thumb_pip_median": -15.8,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.517,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.743,
+  "rise_max": 15.69,
+  "twist_end": 76.0,
+  "tilt_end": 2.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    5.4,
+    10.3
+   ],
+   "thumb.fe1": [
+    12.7,
+    15.0
+   ],
+   "thumb.fe2": [
+    5.4,
+    8.5
+   ],
+   "index.aa": [
+    14.5,
+    15.3
+   ],
+   "index.fe1": [
+    6.1,
+    11.2
+   ],
+   "index.fe2": [
+    1.9,
+    5.2
+   ],
+   "middle.aa": [
+    -13.0,
+    18.0
+   ],
+   "middle.fe1": [
+    7.1,
+    8.3
+   ],
+   "middle.fe2": [
+    3.3,
+    5.6
+   ]
+  },
+  "middle_aa_measured": -16.1,
+  "middle_aa_target": -29.1,
+  "thumb_pip_median": -15.3,
+  "thumb_pip_min": -18.3,
+  "thumb_pip_below10": 0.538,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.701,
+  "rise_max": 16.76,
+  "twist_end": 71.8,
+  "tilt_end": 0.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.6,
+    9.0
+   ],
+   "thumb.fe1": [
+    13.0,
+    16.3
+   ],
+   "thumb.fe2": [
+    5.7,
+    8.2
+   ],
+   "index.aa": [
+    14.6,
+    16.1
+   ],
+   "index.fe1": [
+    5.7,
+    10.5
+   ],
+   "index.fe2": [
+    1.7,
+    5.1
+   ],
+   "middle.aa": [
+    -13.5,
+    18.8
+   ],
+   "middle.fe1": [
+    7.5,
+    9.5
+   ],
+   "middle.fe2": [
+    3.9,
+    5.3
+   ]
+  },
+  "middle_aa_measured": -14.2,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": -8.7,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below10": 0.497,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.659,
+  "rise_max": 11.44,
+  "twist_end": 67.1,
+  "tilt_end": 13.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.3,
+    9.3
+   ],
+   "thumb.fe1": [
+    15.3,
+    19.8
+   ],
+   "thumb.fe2": [
+    7.2,
+    8.5
+   ],
+   "index.aa": [
+    13.9,
+    14.4
+   ],
+   "index.fe1": [
+    6.4,
+    12.3
+   ],
+   "index.fe2": [
+    0.2,
+    5.9
+   ],
+   "middle.aa": [
+    -12.4,
+    17.2
+   ],
+   "middle.fe1": [
+    8.5,
+    14.7
+   ],
+   "middle.fe2": [
+    3.8,
+    7.7
+   ]
+  },
+  "middle_aa_measured": -20.5,
+  "middle_aa_target": -31.3,
+  "thumb_pip_median": 22.6,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.359,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.677,
+  "rise_max": 10.91,
+  "twist_end": 69.2,
+  "tilt_end": 12.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.2,
+    10.6
+   ],
+   "thumb.fe1": [
+    14.6,
+    18.7
+   ],
+   "thumb.fe2": [
+    7.0,
+    8.0
+   ],
+   "index.aa": [
+    13.7,
+    14.7
+   ],
+   "index.fe1": [
+    6.6,
+    13.0
+   ],
+   "index.fe2": [
+    2.0,
+    5.9
+   ],
+   "middle.aa": [
+    -12.7,
+    17.3
+   ],
+   "middle.fe1": [
+    8.2,
+    13.7
+   ],
+   "middle.fe2": [
+    3.8,
+    7.6
+   ]
+  },
+  "middle_aa_measured": -20.7,
+  "middle_aa_target": -32.1,
+  "thumb_pip_median": 22.1,
+  "thumb_pip_min": -18.2,
+  "thumb_pip_below10": 0.359,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.638,
+  "rise_max": 10.53,
+  "twist_end": 66.0,
+  "tilt_end": 16.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    2.6,
+    9.1
+   ],
+   "thumb.fe1": [
+    15.3,
+    21.1
+   ],
+   "thumb.fe2": [
+    7.3,
+    8.9
+   ],
+   "index.aa": [
+    13.6,
+    14.3
+   ],
+   "index.fe1": [
+    5.8,
+    14.1
+   ],
+   "index.fe2": [
+    0.1,
+    6.2
+   ],
+   "middle.aa": [
+    -11.9,
+    17.2
+   ],
+   "middle.fe1": [
+    8.3,
+    15.5
+   ],
+   "middle.fe2": [
+    3.6,
+    8.4
+   ]
+  },
+  "middle_aa_measured": -20.7,
+  "middle_aa_target": -30.8,
+  "thumb_pip_median": 26.5,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.331,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.652,
+  "rise_max": 11.21,
+  "twist_end": 66.5,
+  "tilt_end": 13.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    4.1,
+    7.4
+   ],
+   "thumb.fe1": [
+    12.6,
+    13.6
+   ],
+   "thumb.fe2": [
+    5.8,
+    6.5
+   ],
+   "index.aa": [
+    20.6,
+    22.0
+   ],
+   "index.fe1": [
+    4.8,
+    9.6
+   ],
+   "index.fe2": [
+    1.6,
+    7.2
+   ],
+   "middle.aa": [
+    -16.2,
+    22.2
+   ],
+   "middle.fe1": [
+    8.7,
+    11.1
+   ],
+   "middle.fe2": [
+    4.3,
+    6.1
+   ]
+  },
+  "middle_aa_measured": -27.6,
+  "middle_aa_target": -43.3,
+  "thumb_pip_median": 34.5,
+  "thumb_pip_min": -15.9,
+  "thumb_pip_below10": 0.276,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.63,
+  "rise_max": 10.65,
+  "twist_end": 65.2,
+  "tilt_end": 13.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.3,
+    7.5
+   ],
+   "thumb.fe1": [
+    12.6,
+    13.7
+   ],
+   "thumb.fe2": [
+    5.8,
+    6.7
+   ],
+   "index.aa": [
+    20.7,
+    22.1
+   ],
+   "index.fe1": [
+    4.9,
+    9.2
+   ],
+   "index.fe2": [
+    1.5,
+    6.9
+   ],
+   "middle.aa": [
+    -16.8,
+    21.5
+   ],
+   "middle.fe1": [
+    8.3,
+    11.1
+   ],
+   "middle.fe2": [
+    4.1,
+    6.3
+   ]
+  },
+  "middle_aa_measured": -27.4,
+  "middle_aa_target": -43.6,
+  "thumb_pip_median": 32.5,
+  "thumb_pip_min": -17.5,
+  "thumb_pip_below10": 0.286,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.05
+  },
+  "held": true,
+  "track": 0.661,
+  "rise_max": 12.09,
+  "twist_end": 69.0,
+  "tilt_end": 19.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    2.5,
+    7.0
+   ],
+   "thumb.fe1": [
+    12.5,
+    13.4
+   ],
+   "thumb.fe2": [
+    5.8,
+    6.9
+   ],
+   "index.aa": [
+    19.8,
+    21.5
+   ],
+   "index.fe1": [
+    4.7,
+    9.2
+   ],
+   "index.fe2": [
+    1.7,
+    7.0
+   ],
+   "middle.aa": [
+    -17.2,
+    21.9
+   ],
+   "middle.fe1": [
+    8.3,
+    14.6
+   ],
+   "middle.fe2": [
+    3.6,
+    14.3
+   ]
+  },
+  "middle_aa_measured": -26.7,
+  "middle_aa_target": -42.8,
+  "thumb_pip_median": 36.7,
+  "thumb_pip_min": -10.9,
+  "thumb_pip_below10": 0.017,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.05 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.565,
+  "rise_max": 17.79,
+  "twist_end": 62.8,
+  "tilt_end": 10.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.0,
+    3.4
+   ],
+   "thumb.fe1": [
+    13.5,
+    24.2
+   ],
+   "thumb.fe2": [
+    5.7,
+    24.5
+   ],
+   "index.aa": [
+    13.9,
+    16.1
+   ],
+   "index.fe1": [
+    7.3,
+    12.0
+   ],
+   "index.fe2": [
+    2.5,
+    6.1
+   ],
+   "middle.aa": [
+    -15.2,
+    19.0
+   ],
+   "middle.fe1": [
+    4.7,
+    7.2
+   ],
+   "middle.fe2": [
+    2.7,
+    5.2
+   ]
+  },
+  "middle_aa_measured": -12.1,
+  "middle_aa_target": -27.4,
+  "thumb_pip_median": -13.9,
+  "thumb_pip_min": -19.3,
+  "thumb_pip_below10": 0.597,
+  "periods": 290,
+  "wall_s": 3.2,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.577,
+  "rise_max": 17.78,
+  "twist_end": 63.2,
+  "tilt_end": 6.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.9,
+    4.6
+   ],
+   "thumb.fe1": [
+    13.4,
+    25.4
+   ],
+   "thumb.fe2": [
+    5.8,
+    25.4
+   ],
+   "index.aa": [
+    13.6,
+    15.8
+   ],
+   "index.fe1": [
+    7.9,
+    12.0
+   ],
+   "index.fe2": [
+    2.8,
+    6.1
+   ],
+   "middle.aa": [
+    -15.1,
+    18.3
+   ],
+   "middle.fe1": [
+    4.3,
+    7.1
+   ],
+   "middle.fe2": [
+    2.3,
+    4.9
+   ]
+  },
+  "middle_aa_measured": -13.2,
+  "middle_aa_target": -28.7,
+  "thumb_pip_median": -14.1,
+  "thumb_pip_min": -19.2,
+  "thumb_pip_below10": 0.631,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.55,
+  "rise_max": 18.65,
+  "twist_end": 61.6,
+  "tilt_end": 10.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.5,
+    2.9
+   ],
+   "thumb.fe1": [
+    13.5,
+    23.3
+   ],
+   "thumb.fe2": [
+    5.7,
+    23.4
+   ],
+   "index.aa": [
+    14.0,
+    16.3
+   ],
+   "index.fe1": [
+    6.8,
+    12.1
+   ],
+   "index.fe2": [
+    2.5,
+    6.2
+   ],
+   "middle.aa": [
+    -15.4,
+    19.3
+   ],
+   "middle.fe1": [
+    4.8,
+    7.1
+   ],
+   "middle.fe2": [
+    2.6,
+    5.1
+   ]
+  },
+  "middle_aa_measured": -11.7,
+  "middle_aa_target": -27.1,
+  "thumb_pip_median": -14.3,
+  "thumb_pip_min": -19.2,
+  "thumb_pip_below10": 0.59,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.636,
+  "rise_max": 13.98,
+  "twist_end": 70.1,
+  "tilt_end": 8.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    2.4,
+    6.7
+   ],
+   "thumb.fe1": [
+    13.0,
+    15.3
+   ],
+   "thumb.fe2": [
+    6.0,
+    8.7
+   ],
+   "index.aa": [
+    14.3,
+    16.5
+   ],
+   "index.fe1": [
+    7.2,
+    10.8
+   ],
+   "index.fe2": [
+    2.6,
+    5.6
+   ],
+   "middle.aa": [
+    -15.9,
+    19.6
+   ],
+   "middle.fe1": [
+    5.6,
+    9.6
+   ],
+   "middle.fe2": [
+    2.9,
+    5.6
+   ]
+  },
+  "middle_aa_measured": -11.7,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": -14.6,
+  "thumb_pip_min": -16.8,
+  "thumb_pip_below10": 0.521,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.648,
+  "rise_max": 13.84,
+  "twist_end": 70.8,
+  "tilt_end": 6.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.3,
+    7.6
+   ],
+   "thumb.fe1": [
+    12.8,
+    15.5
+   ],
+   "thumb.fe2": [
+    6.0,
+    9.1
+   ],
+   "index.aa": [
+    13.9,
+    16.0
+   ],
+   "index.fe1": [
+    8.0,
+    11.2
+   ],
+   "index.fe2": [
+    2.8,
+    5.7
+   ],
+   "middle.aa": [
+    -15.1,
+    18.8
+   ],
+   "middle.fe1": [
+    5.3,
+    8.1
+   ],
+   "middle.fe2": [
+    2.9,
+    5.5
+   ]
+  },
+  "middle_aa_measured": -12.8,
+  "middle_aa_target": -28.3,
+  "thumb_pip_median": -14.5,
+  "thumb_pip_min": -16.1,
+  "thumb_pip_below10": 0.541,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.638,
+  "rise_max": 14.7,
+  "twist_end": 70.8,
+  "tilt_end": 9.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.8,
+    6.3
+   ],
+   "thumb.fe1": [
+    13.1,
+    15.5
+   ],
+   "thumb.fe2": [
+    5.9,
+    8.7
+   ],
+   "index.aa": [
+    14.5,
+    16.8
+   ],
+   "index.fe1": [
+    6.9,
+    10.8
+   ],
+   "index.fe2": [
+    2.6,
+    5.7
+   ],
+   "middle.aa": [
+    -16.1,
+    20.0
+   ],
+   "middle.fe1": [
+    5.7,
+    10.0
+   ],
+   "middle.fe2": [
+    3.0,
+    5.5
+   ]
+  },
+  "middle_aa_measured": -11.3,
+  "middle_aa_target": -27.4,
+  "thumb_pip_median": -4.7,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.49,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.586,
+  "rise_max": 11.09,
+  "twist_end": 63.7,
+  "tilt_end": 12.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.6,
+    6.6
+   ],
+   "thumb.fe1": [
+    15.5,
+    23.0
+   ],
+   "thumb.fe2": [
+    7.4,
+    8.9
+   ],
+   "index.aa": [
+    12.8,
+    14.2
+   ],
+   "index.fe1": [
+    6.7,
+    15.7
+   ],
+   "index.fe2": [
+    1.5,
+    5.7
+   ],
+   "middle.aa": [
+    -13.5,
+    17.7
+   ],
+   "middle.fe1": [
+    7.3,
+    13.3
+   ],
+   "middle.fe2": [
+    3.4,
+    8.5
+   ]
+  },
+  "middle_aa_measured": -19.0,
+  "middle_aa_target": -32.3,
+  "thumb_pip_median": 26.4,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below10": 0.293,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.612,
+  "rise_max": 10.22,
+  "twist_end": 66.1,
+  "tilt_end": 13.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.3,
+    8.1
+   ],
+   "thumb.fe1": [
+    14.8,
+    21.6
+   ],
+   "thumb.fe2": [
+    7.0,
+    8.7
+   ],
+   "index.aa": [
+    13.3,
+    14.5
+   ],
+   "index.fe1": [
+    6.9,
+    16.8
+   ],
+   "index.fe2": [
+    2.2,
+    5.6
+   ],
+   "middle.aa": [
+    -13.5,
+    17.7
+   ],
+   "middle.fe1": [
+    7.3,
+    13.0
+   ],
+   "middle.fe2": [
+    3.5,
+    8.1
+   ]
+  },
+  "middle_aa_measured": -19.4,
+  "middle_aa_target": -32.7,
+  "thumb_pip_median": 24.9,
+  "thumb_pip_min": -18.4,
+  "thumb_pip_below10": 0.314,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.534,
+  "rise_max": 10.76,
+  "twist_end": 60.4,
+  "tilt_end": 14.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.3,
+    5.7
+   ],
+   "thumb.fe1": [
+    16.2,
+    25.4
+   ],
+   "thumb.fe2": [
+    8.0,
+    10.5
+   ],
+   "index.aa": [
+    11.3,
+    14.3
+   ],
+   "index.fe1": [
+    6.0,
+    17.2
+   ],
+   "index.fe2": [
+    0.3,
+    5.9
+   ],
+   "middle.aa": [
+    -13.2,
+    17.7
+   ],
+   "middle.fe1": [
+    7.7,
+    13.6
+   ],
+   "middle.fe2": [
+    3.4,
+    9.6
+   ]
+  },
+  "middle_aa_measured": -18.8,
+  "middle_aa_target": -31.6,
+  "thumb_pip_median": 30.2,
+  "thumb_pip_min": -4.3,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.558,
+  "rise_max": 10.16,
+  "twist_end": 58.1,
+  "tilt_end": 7.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.5,
+    4.8
+   ],
+   "thumb.fe1": [
+    12.9,
+    17.6
+   ],
+   "thumb.fe2": [
+    6.0,
+    20.3
+   ],
+   "index.aa": [
+    21.5,
+    22.9
+   ],
+   "index.fe1": [
+    6.6,
+    11.0
+   ],
+   "index.fe2": [
+    1.5,
+    7.6
+   ],
+   "middle.aa": [
+    -21.4,
+    23.1
+   ],
+   "middle.fe1": [
+    6.8,
+    11.7
+   ],
+   "middle.fe2": [
+    3.6,
+    6.6
+   ]
+  },
+  "middle_aa_measured": -23.8,
+  "middle_aa_target": -44.0,
+  "thumb_pip_median": 31.5,
+  "thumb_pip_min": -16.6,
+  "thumb_pip_below10": 0.228,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.554,
+  "rise_max": 9.61,
+  "twist_end": 59.0,
+  "tilt_end": 8.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.1,
+    5.3
+   ],
+   "thumb.fe1": [
+    13.2,
+    19.7
+   ],
+   "thumb.fe2": [
+    6.2,
+    26.2
+   ],
+   "index.aa": [
+    21.9,
+    23.2
+   ],
+   "index.fe1": [
+    6.4,
+    10.8
+   ],
+   "index.fe2": [
+    1.5,
+    7.6
+   ],
+   "middle.aa": [
+    -20.8,
+    22.6
+   ],
+   "middle.fe1": [
+    6.8,
+    12.1
+   ],
+   "middle.fe2": [
+    3.7,
+    6.2
+   ]
+  },
+  "middle_aa_measured": -24.4,
+  "middle_aa_target": -44.0,
+  "thumb_pip_median": 30.6,
+  "thumb_pip_min": -18.9,
+  "thumb_pip_below10": 0.259,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.1
+  },
+  "held": true,
+  "track": 0.557,
+  "rise_max": 10.68,
+  "twist_end": 56.4,
+  "tilt_end": 7.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.2,
+    4.5
+   ],
+   "thumb.fe1": [
+    12.5,
+    15.3
+   ],
+   "thumb.fe2": [
+    5.9,
+    12.6
+   ],
+   "index.aa": [
+    21.2,
+    22.6
+   ],
+   "index.fe1": [
+    6.5,
+    10.7
+   ],
+   "index.fe2": [
+    1.5,
+    7.5
+   ],
+   "middle.aa": [
+    -21.4,
+    23.0
+   ],
+   "middle.fe1": [
+    6.7,
+    11.6
+   ],
+   "middle.fe2": [
+    3.5,
+    6.2
+   ]
+  },
+  "middle_aa_measured": -23.7,
+  "middle_aa_target": -43.9,
+  "thumb_pip_median": 33.5,
+  "thumb_pip_min": -13.0,
+  "thumb_pip_below10": 0.031,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.602,
+  "rise_max": 14.29,
+  "twist_end": 67.8,
+  "tilt_end": 16.0,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.1,
+    4.6
+   ],
+   "thumb.fe1": [
+    13.4,
+    27.5
+   ],
+   "thumb.fe2": [
+    4.7,
+    64.2
+   ],
+   "index.aa": [
+    15.1,
+    17.4
+   ],
+   "index.fe1": [
+    6.4,
+    12.6
+   ],
+   "index.fe2": [
+    2.4,
+    6.8
+   ],
+   "middle.aa": [
+    -16.4,
+    20.9
+   ],
+   "middle.fe1": [
+    4.7,
+    9.6
+   ],
+   "middle.fe2": [
+    2.4,
+    5.0
+   ]
+  },
+  "middle_aa_measured": -10.8,
+  "middle_aa_target": -27.3,
+  "thumb_pip_median": -13.2,
+  "thumb_pip_min": -19.7,
+  "thumb_pip_below10": 0.662,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.393,
+  "rise_max": 12.36,
+  "twist_end": 60.3,
+  "tilt_end": 19.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.1,
+    6.4
+   ],
+   "thumb.fe1": [
+    13.4,
+    29.0
+   ],
+   "thumb.fe2": [
+    5.3,
+    71.1
+   ],
+   "index.aa": [
+    11.7,
+    15.6
+   ],
+   "index.fe1": [
+    7.4,
+    16.3
+   ],
+   "index.fe2": [
+    0.1,
+    11.0
+   ],
+   "middle.aa": [
+    -14.3,
+    20.5
+   ],
+   "middle.fe1": [
+    4.7,
+    8.4
+   ],
+   "middle.fe2": [
+    2.4,
+    5.0
+   ]
+  },
+  "middle_aa_measured": -12.5,
+  "middle_aa_target": -28.4,
+  "thumb_pip_median": -17.2,
+  "thumb_pip_min": -19.9,
+  "thumb_pip_below10": 0.893,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.582,
+  "rise_max": 15.57,
+  "twist_end": 65.8,
+  "tilt_end": 17.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.4,
+    4.0
+   ],
+   "thumb.fe1": [
+    13.3,
+    27.7
+   ],
+   "thumb.fe2": [
+    5.3,
+    61.9
+   ],
+   "index.aa": [
+    15.3,
+    17.5
+   ],
+   "index.fe1": [
+    6.1,
+    12.2
+   ],
+   "index.fe2": [
+    2.2,
+    6.7
+   ],
+   "middle.aa": [
+    -16.1,
+    20.9
+   ],
+   "middle.fe1": [
+    5.2,
+    9.8
+   ],
+   "middle.fe2": [
+    2.6,
+    5.1
+   ]
+  },
+  "middle_aa_measured": -10.7,
+  "middle_aa_target": -26.7,
+  "thumb_pip_median": -13.3,
+  "thumb_pip_min": -19.5,
+  "thumb_pip_below10": 0.638,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.668,
+  "rise_max": 12.28,
+  "twist_end": 72.5,
+  "tilt_end": 7.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    2.7,
+    6.6
+   ],
+   "thumb.fe1": [
+    12.6,
+    25.9
+   ],
+   "thumb.fe2": [
+    5.6,
+    25.8
+   ],
+   "index.aa": [
+    15.2,
+    17.0
+   ],
+   "index.fe1": [
+    7.8,
+    11.7
+   ],
+   "index.fe2": [
+    2.9,
+    6.1
+   ],
+   "middle.aa": [
+    -17.0,
+    20.8
+   ],
+   "middle.fe1": [
+    5.1,
+    9.8
+   ],
+   "middle.fe2": [
+    2.6,
+    5.5
+   ]
+  },
+  "middle_aa_measured": -10.6,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": -10.9,
+  "thumb_pip_min": -19.1,
+  "thumb_pip_below10": 0.541,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.707,
+  "rise_max": 10.86,
+  "twist_end": 75.5,
+  "tilt_end": 5.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    3.7,
+    7.8
+   ],
+   "thumb.fe1": [
+    12.5,
+    27.7
+   ],
+   "thumb.fe2": [
+    5.4,
+    28.5
+   ],
+   "index.aa": [
+    15.2,
+    16.8
+   ],
+   "index.fe1": [
+    8.0,
+    12.7
+   ],
+   "index.fe2": [
+    2.8,
+    6.6
+   ],
+   "middle.aa": [
+    -16.7,
+    20.6
+   ],
+   "middle.fe1": [
+    4.3,
+    9.4
+   ],
+   "middle.fe2": [
+    2.3,
+    5.0
+   ]
+  },
+  "middle_aa_measured": -11.2,
+  "middle_aa_target": -27.9,
+  "thumb_pip_median": -10.1,
+  "thumb_pip_min": -19.1,
+  "thumb_pip_below10": 0.51,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.65,
+  "rise_max": 13.44,
+  "twist_end": 71.5,
+  "tilt_end": 8.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    2.1,
+    6.1
+   ],
+   "thumb.fe1": [
+    12.8,
+    23.5
+   ],
+   "thumb.fe2": [
+    5.8,
+    22.5
+   ],
+   "index.aa": [
+    15.0,
+    17.2
+   ],
+   "index.fe1": [
+    7.5,
+    11.1
+   ],
+   "index.fe2": [
+    2.7,
+    5.9
+   ],
+   "middle.aa": [
+    -16.9,
+    20.9
+   ],
+   "middle.fe1": [
+    5.9,
+    9.9
+   ],
+   "middle.fe2": [
+    2.9,
+    5.6
+   ]
+  },
+  "middle_aa_measured": -10.5,
+  "middle_aa_target": -27.4,
+  "thumb_pip_median": -11.4,
+  "thumb_pip_min": -19.0,
+  "thumb_pip_below10": 0.521,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.516,
+  "rise_max": 10.37,
+  "twist_end": 61.1,
+  "tilt_end": 14.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    -1.0,
+    5.3
+   ],
+   "thumb.fe1": [
+    16.3,
+    27.0
+   ],
+   "thumb.fe2": [
+    7.9,
+    11.4
+   ],
+   "index.aa": [
+    11.6,
+    14.3
+   ],
+   "index.fe1": [
+    7.0,
+    16.4
+   ],
+   "index.fe2": [
+    1.6,
+    5.7
+   ],
+   "middle.aa": [
+    -13.6,
+    17.7
+   ],
+   "middle.fe1": [
+    7.3,
+    12.8
+   ],
+   "middle.fe2": [
+    3.3,
+    10.5
+   ]
+  },
+  "middle_aa_measured": -19.0,
+  "middle_aa_target": -33.2,
+  "thumb_pip_median": 26.4,
+  "thumb_pip_min": -15.7,
+  "thumb_pip_below10": 0.259,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.555,
+  "rise_max": 9.44,
+  "twist_end": 64.4,
+  "tilt_end": 14.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.3,
+    6.5
+   ],
+   "thumb.fe1": [
+    16.1,
+    26.4
+   ],
+   "thumb.fe2": [
+    6.9,
+    8.9
+   ],
+   "index.aa": [
+    12.7,
+    14.6
+   ],
+   "index.fe1": [
+    7.6,
+    17.8
+   ],
+   "index.fe2": [
+    2.3,
+    5.6
+   ],
+   "middle.aa": [
+    -13.9,
+    18.1
+   ],
+   "middle.fe1": [
+    7.2,
+    12.0
+   ],
+   "middle.fe2": [
+    3.4,
+    8.8
+   ]
+  },
+  "middle_aa_measured": -19.3,
+  "middle_aa_target": -33.7,
+  "thumb_pip_median": 24.8,
+  "thumb_pip_min": -18.5,
+  "thumb_pip_below10": 0.293,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.409,
+  "rise_max": 8.41,
+  "twist_end": 48.5,
+  "tilt_end": 19.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    -1.8,
+    4.3
+   ],
+   "thumb.fe1": [
+    16.1,
+    28.9
+   ],
+   "thumb.fe2": [
+    8.1,
+    9.9
+   ],
+   "index.aa": [
+    11.4,
+    14.4
+   ],
+   "index.fe1": [
+    6.9,
+    17.6
+   ],
+   "index.fe2": [
+    0.4,
+    5.9
+   ],
+   "middle.aa": [
+    -13.3,
+    17.7
+   ],
+   "middle.fe1": [
+    7.3,
+    28.6
+   ],
+   "middle.fe2": [
+    2.8,
+    66.3
+   ]
+  },
+  "middle_aa_measured": -18.7,
+  "middle_aa_target": -32.2,
+  "thumb_pip_median": 30.2,
+  "thumb_pip_min": 9.9,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.555,
+  "rise_max": 10.22,
+  "twist_end": 58.6,
+  "tilt_end": 5.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.2,
+    4.6
+   ],
+   "thumb.fe1": [
+    12.9,
+    17.4
+   ],
+   "thumb.fe2": [
+    6.0,
+    20.1
+   ],
+   "index.aa": [
+    21.5,
+    23.0
+   ],
+   "index.fe1": [
+    6.6,
+    11.1
+   ],
+   "index.fe2": [
+    1.5,
+    7.7
+   ],
+   "middle.aa": [
+    -21.5,
+    23.1
+   ],
+   "middle.fe1": [
+    6.6,
+    11.6
+   ],
+   "middle.fe2": [
+    3.6,
+    6.5
+   ]
+  },
+  "middle_aa_measured": -23.7,
+  "middle_aa_target": -44.1,
+  "thumb_pip_median": 31.4,
+  "thumb_pip_min": -16.2,
+  "thumb_pip_below10": 0.238,
+  "periods": 290,
+  "wall_s": 2.9,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.553,
+  "rise_max": 9.47,
+  "twist_end": 60.8,
+  "tilt_end": 7.8,
+  "gap_median_max": {
+   "thumb.aa": [
+    1.2,
+    5.3
+   ],
+   "thumb.fe1": [
+    13.1,
+    20.3
+   ],
+   "thumb.fe2": [
+    6.1,
+    24.9
+   ],
+   "index.aa": [
+    22.1,
+    23.3
+   ],
+   "index.fe1": [
+    6.5,
+    11.2
+   ],
+   "index.fe2": [
+    1.5,
+    7.8
+   ],
+   "middle.aa": [
+    -20.7,
+    22.8
+   ],
+   "middle.fe1": [
+    6.6,
+    12.2
+   ],
+   "middle.fe2": [
+    3.6,
+    6.2
+   ]
+  },
+  "middle_aa_measured": -24.4,
+  "middle_aa_target": -44.1,
+  "thumb_pip_median": 29.8,
+  "thumb_pip_min": -19.1,
+  "thumb_pip_below10": 0.286,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "yaw_fl": 0.2
+  },
+  "held": true,
+  "track": 0.552,
+  "rise_max": 10.84,
+  "twist_end": 56.3,
+  "tilt_end": 5.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    -0.2,
+    4.3
+   ],
+   "thumb.fe1": [
+    12.3,
+    14.9
+   ],
+   "thumb.fe2": [
+    5.9,
+    8.1
+   ],
+   "index.aa": [
+    21.2,
+    22.9
+   ],
+   "index.fe1": [
+    6.5,
+    10.8
+   ],
+   "index.fe2": [
+    1.5,
+    7.6
+   ],
+   "middle.aa": [
+    -21.5,
+    23.1
+   ],
+   "middle.fe1": [
+    6.5,
+    11.5
+   ],
+   "middle.fe2": [
+    3.5,
+    6.2
+   ]
+  },
+  "middle_aa_measured": -23.6,
+  "middle_aa_target": -44.0,
+  "thumb_pip_median": 33.6,
+  "thumb_pip_min": -9.8,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, yaw friction 0.20 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.435,
+  "rise_max": 16.57,
+  "twist_end": 54.0,
+  "tilt_end": 14.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    -1.0,
+    3.1
+   ],
+   "thumb.fe1": [
+    23.3,
+    30.5
+   ],
+   "thumb.fe2": [
+    0.6,
+    8.7
+   ],
+   "index.aa": [
+    11.4,
+    16.3
+   ],
+   "index.fe1": [
+    16.2,
+    22.7
+   ],
+   "index.fe2": [
+    -1.6,
+    10.1
+   ],
+   "middle.aa": [
+    -14.2,
+    17.8
+   ],
+   "middle.fe1": [
+    4.2,
+    11.5
+   ],
+   "middle.fe2": [
+    3.7,
+    14.3
+   ]
+  },
+  "middle_aa_measured": -12.4,
+  "middle_aa_target": -29.3,
+  "thumb_pip_median": 7.9,
+  "thumb_pip_min": -14.9,
+  "thumb_pip_below10": 0.338,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.396,
+  "rise_max": 13.09,
+  "twist_end": 54.6,
+  "tilt_end": 17.7,
+  "gap_median_max": {
+   "thumb.aa": [
+    -0.2,
+    3.6
+   ],
+   "thumb.fe1": [
+    23.1,
+    30.5
+   ],
+   "thumb.fe2": [
+    -0.2,
+    8.8
+   ],
+   "index.aa": [
+    11.0,
+    15.8
+   ],
+   "index.fe1": [
+    17.7,
+    24.8
+   ],
+   "index.fe2": [
+    -2.7,
+    9.5
+   ],
+   "middle.aa": [
+    -14.5,
+    17.1
+   ],
+   "middle.fe1": [
+    2.8,
+    11.3
+   ],
+   "middle.fe2": [
+    3.3,
+    13.7
+   ]
+  },
+  "middle_aa_measured": -14.2,
+  "middle_aa_target": -29.7,
+  "thumb_pip_median": 4.2,
+  "thumb_pip_min": -14.6,
+  "thumb_pip_below10": 0.334,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat8",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.452,
+  "rise_max": 17.56,
+  "twist_end": 55.7,
+  "tilt_end": 13.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    -1.5,
+    3.0
+   ],
+   "thumb.fe1": [
+    22.0,
+    30.4
+   ],
+   "thumb.fe2": [
+    0.7,
+    9.0
+   ],
+   "index.aa": [
+    12.0,
+    16.7
+   ],
+   "index.fe1": [
+    15.8,
+    20.4
+   ],
+   "index.fe2": [
+    -1.9,
+    10.6
+   ],
+   "middle.aa": [
+    -15.0,
+    18.4
+   ],
+   "middle.fe1": [
+    5.0,
+    11.6
+   ],
+   "middle.fe2": [
+    3.9,
+    14.3
+   ]
+  },
+  "middle_aa_measured": -11.2,
+  "middle_aa_target": -28.3,
+  "thumb_pip_median": 12.9,
+  "thumb_pip_min": -14.5,
+  "thumb_pip_below10": 0.307,
+  "periods": 290,
+  "wall_s": 3.1,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.482,
+  "rise_max": 12.25,
+  "twist_end": 61.2,
+  "tilt_end": 16.6,
+  "gap_median_max": {
+   "thumb.aa": [
+    -0.5,
+    5.0
+   ],
+   "thumb.fe1": [
+    23.0,
+    30.5
+   ],
+   "thumb.fe2": [
+    0.8,
+    8.4
+   ],
+   "index.aa": [
+    13.2,
+    16.6
+   ],
+   "index.fe1": [
+    18.1,
+    22.9
+   ],
+   "index.fe2": [
+    -1.9,
+    8.5
+   ],
+   "middle.aa": [
+    -15.4,
+    19.1
+   ],
+   "middle.fe1": [
+    5.7,
+    11.8
+   ],
+   "middle.fe2": [
+    2.1,
+    15.5
+   ]
+  },
+  "middle_aa_measured": -11.1,
+  "middle_aa_target": -28.0,
+  "thumb_pip_median": 8.9,
+  "thumb_pip_min": -15.6,
+  "thumb_pip_below10": 0.321,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.469,
+  "rise_max": 11.19,
+  "twist_end": 61.8,
+  "tilt_end": 16.9,
+  "gap_median_max": {
+   "thumb.aa": [
+    0.2,
+    5.3
+   ],
+   "thumb.fe1": [
+    23.5,
+    30.4
+   ],
+   "thumb.fe2": [
+    0.5,
+    8.4
+   ],
+   "index.aa": [
+    12.5,
+    16.2
+   ],
+   "index.fe1": [
+    17.9,
+    24.7
+   ],
+   "index.fe2": [
+    -1.7,
+    9.0
+   ],
+   "middle.aa": [
+    -14.7,
+    18.2
+   ],
+   "middle.fe1": [
+    5.2,
+    11.6
+   ],
+   "middle.fe2": [
+    2.0,
+    15.2
+   ]
+  },
+  "middle_aa_measured": -12.6,
+  "middle_aa_target": -28.8,
+  "thumb_pip_median": 7.7,
+  "thumb_pip_min": -15.7,
+  "thumb_pip_below10": 0.334,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "g10_lat4",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.48,
+  "rise_max": 12.33,
+  "twist_end": 60.4,
+  "tilt_end": 17.1,
+  "gap_median_max": {
+   "thumb.aa": [
+    -0.7,
+    4.9
+   ],
+   "thumb.fe1": [
+    22.8,
+    30.5
+   ],
+   "thumb.fe2": [
+    0.8,
+    8.4
+   ],
+   "index.aa": [
+    13.3,
+    16.7
+   ],
+   "index.fe1": [
+    18.2,
+    23.1
+   ],
+   "index.fe2": [
+    -1.9,
+    8.3
+   ],
+   "middle.aa": [
+    -15.6,
+    19.2
+   ],
+   "middle.fe1": [
+    5.8,
+    11.9
+   ],
+   "middle.fe2": [
+    2.1,
+    15.6
+   ]
+  },
+  "middle_aa_measured": -10.6,
+  "middle_aa_target": -27.7,
+  "thumb_pip_median": 10.8,
+  "thumb_pip_min": -15.4,
+  "thumb_pip_below10": 0.307,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.427,
+  "rise_max": 7.18,
+  "twist_end": 52.4,
+  "tilt_end": 14.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    -2.8,
+    6.1
+   ],
+   "thumb.fe1": [
+    20.0,
+    29.3
+   ],
+   "thumb.fe2": [
+    5.9,
+    11.1
+   ],
+   "index.aa": [
+    11.7,
+    14.9
+   ],
+   "index.fe1": [
+    22.1,
+    28.1
+   ],
+   "index.fe2": [
+    -2.7,
+    7.4
+   ],
+   "middle.aa": [
+    -15.1,
+    17.6
+   ],
+   "middle.fe1": [
+    8.6,
+    13.7
+   ],
+   "middle.fe2": [
+    2.9,
+    9.2
+   ]
+  },
+  "middle_aa_measured": -16.7,
+  "middle_aa_target": -33.5,
+  "thumb_pip_median": 23.9,
+  "thumb_pip_min": 12.4,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.414,
+  "rise_max": 6.09,
+  "twist_end": 51.8,
+  "tilt_end": 13.3,
+  "gap_median_max": {
+   "thumb.aa": [
+    -2.4,
+    5.2
+   ],
+   "thumb.fe1": [
+    20.8,
+    29.7
+   ],
+   "thumb.fe2": [
+    5.6,
+    9.7
+   ],
+   "index.aa": [
+    11.4,
+    14.7
+   ],
+   "index.fe1": [
+    22.1,
+    29.7
+   ],
+   "index.fe2": [
+    -2.8,
+    7.3
+   ],
+   "middle.aa": [
+    -14.7,
+    17.2
+   ],
+   "middle.fe1": [
+    8.3,
+    12.9
+   ],
+   "middle.fe2": [
+    2.4,
+    8.6
+   ]
+  },
+  "middle_aa_measured": -17.3,
+  "middle_aa_target": -33.6,
+  "thumb_pip_median": 23.4,
+  "thumb_pip_min": 8.1,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g13_x105_y70",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.432,
+  "rise_max": 8.23,
+  "twist_end": 52.8,
+  "tilt_end": 13.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    -3.0,
+    6.5
+   ],
+   "thumb.fe1": [
+    19.5,
+    28.0
+   ],
+   "thumb.fe2": [
+    6.0,
+    11.5
+   ],
+   "index.aa": [
+    11.8,
+    15.0
+   ],
+   "index.fe1": [
+    21.3,
+    27.4
+   ],
+   "index.fe2": [
+    -2.5,
+    7.4
+   ],
+   "middle.aa": [
+    -15.3,
+    17.8
+   ],
+   "middle.fe1": [
+    8.7,
+    13.5
+   ],
+   "middle.fe2": [
+    2.9,
+    9.6
+   ]
+  },
+  "middle_aa_measured": -16.4,
+  "middle_aa_target": -33.4,
+  "thumb_pip_median": 25.0,
+  "thumb_pip_min": 15.0,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 0,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.433,
+  "rise_max": 12.97,
+  "twist_end": 56.4,
+  "tilt_end": 10.2,
+  "gap_median_max": {
+   "thumb.aa": [
+    -2.0,
+    4.5
+   ],
+   "thumb.fe1": [
+    17.5,
+    25.0
+   ],
+   "thumb.fe2": [
+    2.8,
+    7.3
+   ],
+   "index.aa": [
+    19.2,
+    21.3
+   ],
+   "index.fe1": [
+    14.5,
+    19.5
+   ],
+   "index.fe2": [
+    -0.7,
+    10.0
+   ],
+   "middle.aa": [
+    -21.3,
+    22.6
+   ],
+   "middle.fe1": [
+    5.9,
+    11.8
+   ],
+   "middle.fe2": [
+    1.7,
+    13.2
+   ]
+  },
+  "middle_aa_measured": -22.9,
+  "middle_aa_target": -44.6,
+  "thumb_pip_median": 36.6,
+  "thumb_pip_min": 19.8,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 1,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.434,
+  "rise_max": 12.41,
+  "twist_end": 57.0,
+  "tilt_end": 14.5,
+  "gap_median_max": {
+   "thumb.aa": [
+    -1.2,
+    4.8
+   ],
+   "thumb.fe1": [
+    18.7,
+    26.8
+   ],
+   "thumb.fe2": [
+    1.7,
+    7.3
+   ],
+   "index.aa": [
+    19.6,
+    21.7
+   ],
+   "index.fe1": [
+    14.5,
+    19.6
+   ],
+   "index.fe2": [
+    -0.8,
+    9.9
+   ],
+   "middle.aa": [
+    -20.7,
+    22.1
+   ],
+   "middle.fe1": [
+    6.0,
+    12.2
+   ],
+   "middle.fe2": [
+    1.7,
+    13.2
+   ]
+  },
+  "middle_aa_measured": -23.8,
+  "middle_aa_target": -44.7,
+  "thumb_pip_median": 35.5,
+  "thumb_pip_min": 15.0,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ },
+ {
+  "grasp": "gr_g0_x70_y110",
+  "seed": 2,
+  "params": {
+   "kp": 0.55,
+   "damping": 0.011,
+   "mu": 1.0,
+   "frictionloss": 0.1
+  },
+  "held": true,
+  "track": 0.435,
+  "rise_max": 13.19,
+  "twist_end": 56.2,
+  "tilt_end": 10.4,
+  "gap_median_max": {
+   "thumb.aa": [
+    -2.2,
+    4.6
+   ],
+   "thumb.fe1": [
+    17.5,
+    25.0
+   ],
+   "thumb.fe2": [
+    3.0,
+    7.2
+   ],
+   "index.aa": [
+    19.1,
+    21.1
+   ],
+   "index.fe1": [
+    14.4,
+    19.4
+   ],
+   "index.fe2": [
+    -0.8,
+    9.9
+   ],
+   "middle.aa": [
+    -21.2,
+    22.6
+   ],
+   "middle.fe1": [
+    6.0,
+    11.9
+   ],
+   "middle.fe2": [
+    1.8,
+    13.5
+   ]
+  },
+  "middle_aa_measured": -22.9,
+  "middle_aa_target": -44.5,
+  "thumb_pip_median": 36.7,
+  "thumb_pip_min": 20.3,
+  "thumb_pip_below10": 0.0,
+  "periods": 290,
+  "wall_s": 3.0,
+  "model": "soft, joint friction 0.10 N m"
+ }
+]
