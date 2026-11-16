@@ -8,7 +8,7 @@ State 11-15 17:44: for the autopilot. Lane logs/20261115-followups runs all_f2_p
   page, the UDP link); (c) the fingertip CoP filter is open. Step 29 done; step 30 waits on the owner (objects, tag maps,
   masses, live read-back). Bench state: station running since 17:42, homed by adoption, servo torque off; J4's motor
   was unplugged (replugged 17:38); gantry page docs/experiments/20261115-gantry_travel/20261115-gantry_travel_dip_tags.html
-  (https://claude.ai/artifact/DbxLVrunj4EAWHC3YJJuUc); corvus at 1d543b7af plus nothing newer.
+  (https://claude.ai/artifact/DbxLVrunj4EAWHC3YJJuUc); corvus at 96bfe1111.
 State 11-15 16:41: owner 16:0x: CB1 go (patch applied ~16:12 with git apply, backups ~/backups/20261115-stream_read_back/,
   station restarted, unhomed, torque off since 16:38 for the tags); pin-push layout (75, 56.8) (plans rewritten and
   verified, SIL 0.373/0.764/0.364/0.421); DIP-link tags 14 mm ids 24-26 (assets/tracking/20261115-dip_link_tags,
