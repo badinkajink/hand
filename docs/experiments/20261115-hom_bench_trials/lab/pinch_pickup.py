@@ -27,6 +27,9 @@ vertical, e being the pinch axis' height above the ball's centre at the grasp (r
     slip     the controlled slip: the PIPs' squeeze lowered in --step-deg steps while the object hangs more than
              --tilt-goal deg from vertical; stops at the goal, when the ball slides down the pads (--slip-mm), or at
              --min-squeeze
+    unturn   after the putdown and letgo: the hand up until its straight fingers clear the object, then turned back
+             by the plan's wrist turn (plan --turn: joint 6 turned first so the stem lies across x_P; owner,
+             2026-11-16 16:4x: "next time we can just rotate the wrist first")
     status   the object, the joints and the loads, the HEX-E
 
 Then hom_setup.py putdown --plan <the plan file> (tracked touchdown, seat check, release check, release, straighten,
@@ -266,6 +269,21 @@ def descent_clear(m, pose, c):
     return out
 
 
+def wrap180(deg):
+    return (deg + 180.0) % 360.0 - 180.0
+
+
+def turn_across(stem_P):
+    """(psi deg, stem in the turned P): the least turn of the hand about the vertical (joint 6) that puts the object's
+    stem across x_P, at azimuth +-90 deg in P. hom_setup.correction(p, c, psi) turns the object by -psi in P, so a
+    direction at azimuth az goes to az - psi."""
+    az = math.degrees(math.atan2(float(stem_P[1]), float(stem_P[0])))
+    psi = min((wrap180(az - 90.0), wrap180(az + 90.0)), key=abs)
+    c, s_ = math.cos(math.radians(-psi)), math.sin(math.radians(-psi))
+    st = np.asarray(stem_P, float)
+    return psi, np.array([c * st[0] - s_ * st[1], s_ * st[0] + c * st[1], st[2]])
+
+
 def finger_pair(stem_P):
     """(pinch partner, third finger): the partner on the block's side of y_P, so the third finger stays away from it."""
     return ("middle", "index") if stem_P[1] < 0 else ("index", "middle")
@@ -362,7 +380,7 @@ def write_plan(sol, path, base_plan, h):
                              "pinch": {"c_P_mm": c.tolist(), "partner": sol["partner"], "third": sol["third"],
                                        "lat_deg": sol["lat_deg"], "gap_mm": sol["gap"], "squeeze_deg": sol["squeeze"],
                                        "table_mm": sol["table_mm"], "margin_deg": sol["margin_deg"],
-                                       "descent_mm": sol["descent_mm"],
+                                       "descent_mm": sol["descent_mm"], "turn_deg": sol.get("turn_deg", 0.0),
                                        "h_mm": h}}}}
     Path(path).write_text(json.dumps(plan, indent=1) + "\n")
     return plan
@@ -548,10 +566,20 @@ def cmd_plan(a):
           f"from vertical; the stem in P {np.round(stem_P, 3).tolist()} ({off:.1f} deg off across x_P)", flush=True)
     if tilt < 60.0:
         raise SystemExit("the object is not lying on its side: this skill picks up a lying object")
-    if off > a.max_axis_deg:
+    psi = 0.0
+    stem_used = stem_P
+    if a.turn and off > a.no_turn_deg:
+        # owner, 2026-11-16 16:4x: "next time we can just rotate the wrist first" (translation only left 28 deg locked)
+        psi, stem_used = turn_across(stem_P)
+        if abs(psi) > a.max_turn:
+            raise SystemExit(f"the turn that puts the stem across x_P is {psi:+.1f} deg (limit {a.max_turn:g})")
+        print(f"   the wrist (joint 6) turns {psi:+.1f} deg about the ball first: the stem then lies at "
+              f"{math.degrees(math.atan2(stem_used[1], stem_used[0])):+.1f} deg in P", flush=True)
+    elif off > a.max_axis_deg:
         raise SystemExit(f"the object's axis is {off:.1f} deg off across x_P (limit {a.max_axis_deg:g}): a pinch along "
-                         "x_P would not let it turn upright")
-    sol = plan_pinch(base["meta"]["hom"]["d6_P_mm"], p, stem_P, above, h, a.lat_deg, a.gap, a.squeeze)
+                         "x_P would not let it turn upright; --turn turns the wrist first")
+    sol = plan_pinch(base["meta"]["hom"]["d6_P_mm"], p, stem_used, above, h, a.lat_deg, a.gap, a.squeeze)
+    sol["turn_deg"] = psi
     c = sol["c"]
     e = R_TAPED * math.sin(math.radians(a.lat_deg))
     print(f"pinch: thumb-{sol['partner']}, centre in P {np.round(c, 1).tolist()} mm, contacts {a.lat_deg:g} deg above "
@@ -630,20 +658,33 @@ def cmd_grasp(a):
         stream.mark("open")
         why, _ = ramp(st, j0, poses["open"], a.open_s, a.speed)
         time.sleep(1.0)
-        # lateral: the ball's centre under the pinch's centre, at this height
+        # lateral: the ball's centre under the pinch's centre, at this height; with a planned turn the hand turns about
+        # the ball's vertical (joint 6) so the stem lies across x_P (owner, 16:4x: "rotate the wrist first")
+        turn = float(pp.get("turn_deg", 0.0))
         for leg in ("lateral", "fine"):
             p, q, info, stem_P, tilt = measure_object(meas, a)
             d = p - c
             lat = float(np.hypot(d[0], d[1]))
-            if leg == "fine" and lat < 0.5:
+            psi = 0.0
+            if turn != 0.0:
+                az = math.degrees(math.atan2(float(stem_P[1]), float(stem_P[0])))
+                target = turn if leg == "lateral" else 0.0
+                psi = min((wrap180(az - 90.0), wrap180(az + 90.0)), key=lambda x: abs(x - target))
+                if leg == "lateral" and abs(psi - turn) > 10.0:
+                    raise SystemExit(f"the turn is now {psi:+.1f} deg against the plan's {turn:+.1f}: the object has "
+                                     "turned since the plan; plan again")
+                if leg == "fine" and abs(psi) < 1.0:
+                    psi = 0.0
+            if leg == "fine" and lat < 0.5 and psi == 0.0:
                 break
-            if leg == "fine" and lat > 4.0:
-                raise SystemExit(f"still {lat:.1f} mm off after the lateral move")
-            C = tf(None, [d[0], d[1], 0.0])
+            if leg == "fine" and (lat > 4.0 or abs(psi) > 5.0):
+                raise SystemExit(f"still {lat:.1f} mm and {psi:+.1f} deg off after the lateral move")
+            C, _ = HS.correction(p, c, math.radians(psi))
             stream.mark(leg)
             # high over the object no finger can touch it; the hand passing a camera shifts the estimate 1-2 mm (16:32)
-            why, _ = arm.move(arm.T_BP() @ C @ tf_inv(T_EP), a.v_lat, a.acc, a.stop_n, lat / (1e3 * a.v_lat) + 6.0,
-                              f"{leg} {lat:.1f} mm", check=obj_watch(meas, info, a.lat_watch_mm))
+            why, _ = arm.move(arm.T_BP() @ C @ tf_inv(T_EP), a.v_lat, a.acc, a.stop_n,
+                              lat / (1e3 * a.v_lat) + 6.0 + 0.5 * abs(psi), f"{leg} {lat:.1f} mm, turn {psi:+.1f} deg",
+                              check=obj_watch(meas, info, a.lat_watch_mm))
             if why:
                 raise SystemExit(f"the {leg} move stopped: {why}")
         # the descent: fast to --slow-mm over the grasp's height, then slowly, each leg watched
@@ -847,6 +888,51 @@ def cmd_slip(a):
     return 0
 
 
+def cmd_unturn(a):
+    """After the putdown and letgo: the hand up until its straight fingers clear the object's top by --clear-mm, then
+    turned back about its own vertical axis by the plan's turn (owner: "reversal is fine")."""
+    plan = HS.load_plan(a.plan)
+    pp, _ = load_sol(plan)
+    turn = float(pp.get("turn_deg", 0.0))
+    if abs(turn) < 0.5:
+        print("the plan made no turn: nothing to undo")
+        return 0
+    st = HS.Station(a.station, a.token_file)
+    j = HS.sim_joints(st.state())
+    if j is None or max(abs(j[f][k]) for f in j for k in j[f]) > 5.0:
+        raise SystemExit("the fingers are not straight: run hom_setup.py letgo first")
+    arm = HS.Arm(a.ur_ft, a.blank_s)
+    meas = HS.Measure(a, video=HS.recorder(a, "pinch_unturn"))
+    try:
+        p, q, info, stem_P, tilt = measure_object(meas, a)
+        T_BP = arm.T_BP()
+        low = min(pt[2] - rad for f in HS.FINGERS for pt, rad in HS.finger_pts(plan, f, HS.ZERO))
+        top = float(info["p_B"][2]) + R_TAPED if tilt < 45.0 else float(info["p_B"][2]) + HS.BLOCK_R
+        rise = max(0.0, top + a.clear_mm - (T_BP[2, 3] + low))
+        print(f"the straight fingers' lowest point {T_BP[2, 3] + low - top:+.1f} mm from the object's top: up "
+              f"{rise:.1f} mm, then the hand turns {-turn:+.1f} deg about its vertical axis", flush=True)
+        if not a.go:
+            return 0
+        arm.connect(a.stop_n is not None)
+        if rise > 0.5:
+            T_goal = arm.T_BE()
+            T_goal[2, 3] += rise
+            why, _ = arm.move(T_goal, a.v, a.acc, a.stop_n, rise / (1e3 * a.v) + 6.0, f"up {rise:.1f} mm",
+                              check=HS.Measure.watch_still(meas, np.asarray(info["p_B"], float), 3.0))
+            if why:
+                raise SystemExit(f"the rise stopped: {why}")
+        T_goal = arm.T_BP() @ tf(HS.rot_z(math.radians(-turn)), None) @ tf_inv(T_EP)
+        why, _ = arm.move(T_goal, a.v, a.acc, a.stop_n, 6.0 + 0.6 * abs(turn), f"unturn {-turn:+.1f} deg")
+        if why:
+            raise SystemExit(f"the turn back stopped: {why}")
+        note({"cmd": "unturn", "turn_deg": -turn, "rise_mm": rise})
+        print(f"UNTURNED: the hand back by {-turn:+.1f} deg", flush=True)
+    finally:
+        meas.stop()
+        arm.close()
+    return 0
+
+
 def cmd_status(a):
     st = HS.Station(a.station, a.token_file)
     s = st.state()
@@ -890,6 +976,11 @@ def main():
     p.add_argument("--gap", type=float, default=10.0, help="mm the pads stand off the ball in the open pose")
     p.add_argument("--squeeze", type=float, default=8.0, help="deg the PIPs go past touch in the grip")
     p.add_argument("--max-axis-deg", type=float, default=10.0)
+    p.add_argument("--turn", action="store_true",
+                   help="turn the wrist (joint 6) first so the stem lies across x_P (owner, 2026-11-16: \"next time we "
+                        "can just rotate the wrist first\"); grasp makes the turn, unturn undoes it")
+    p.add_argument("--max-turn", type=float, default=45.0, help="deg: the largest wrist turn --turn may plan")
+    p.add_argument("--no-turn-deg", type=float, default=3.0, help="deg off across x_P below which no turn is made")
     p.add_argument("--out", default=None)
     p = sub.add_parser("grasp")
     common(p)
@@ -931,10 +1022,16 @@ def main():
     p.add_argument("--swing-only", action="store_true",
                    help="the goal on the swing across the pinch axis alone (the part along it is locked in the pinch; "
                         "level it with putdown's turn)")
+    p = sub.add_parser("unturn")
+    common(p)
+    p.add_argument("--plan", required=True)
+    p.add_argument("--clear-mm", type=float, default=25.0, help="mm the straight fingers keep over the object's top")
+    p.add_argument("--v", type=float, default=0.01)
     p = sub.add_parser("status")
     common(p)
     a = ap.parse_args()
-    return {"plan": cmd_plan, "grasp": cmd_grasp, "lift": cmd_lift, "slip": cmd_slip, "status": cmd_status}[a.cmd](a)
+    return {"plan": cmd_plan, "grasp": cmd_grasp, "lift": cmd_lift, "slip": cmd_slip, "unturn": cmd_unturn,
+            "status": cmd_status}[a.cmd](a)
 
 
 if __name__ == "__main__":
