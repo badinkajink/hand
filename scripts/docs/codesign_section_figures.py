@@ -337,7 +337,8 @@ def hom_layout(xy, task="twist", size=40.0):
             r = hom_rows.rescale_metrics(json.loads(x))
             if r.get("status", "ok") == "ok" and int(r["call"]) == call:
                 sc.setdefault(int(r.get("grasp", 0)), []).append(L.track_score(task, r))
-    return call, {g: float(np.mean(v)) for g, v in sorted(sc.items())}
+    return call, {g: float(np.mean(v)) for g, v in sorted(sc.items())}, float(np.mean([np.std(v, ddof=1)
+                                                                                     for v in sc.values()]))
 
 
 def uhas_runs():
@@ -373,16 +374,64 @@ def uhas_runs():
             gm = {k: float(np.mean(v)) for k, v in sorted(g.items())}
             key = f"{xy[0]:g},{xy[1]:g}"
             if key not in hom:
-                call, hg = hom_layout(xy)
+                call, hg, hsd = hom_layout(xy)
                 hb = max(hg, key=hg.get)
                 hom[key] = {"call": call, "grasps": hg, "J_mean": float(np.mean(list(hg.values()))), "J_best": hg[hb],
-                            "best_grasp": hb}
+                            "best_grasp": hb, "eval_sd": hsd}
             b = max(gm, key=gm.get)
             run.update(grasps=gm, rollouts=len(rs), held=int(sum(bool(r.get("held")) for r in rs)),
                        J_mean=float(np.mean(list(gm.values()))), J_best=gm[b], best_grasp=b,
-                       J_on_hom_best=gm.get(hom[key]["best_grasp"]), checkpoint=rs[0].get("checkpoint"))
+                       J_on_hom_best=gm.get(hom[key]["best_grasp"]), checkpoint=rs[0].get("checkpoint"),
+                       eval_sd=float(np.mean([np.std(v, ddof=1) for v in g.values()])))  # a grasp's SD over eval seeds
             out[d.name] = run
     return out, hom
+
+
+UHAS_SHARED = "20261113-2115_twist_s0"          # the controller benchmark's UHAS policy (uhas_twist_sv_published_s0)
+
+
+def uhas_shared(hom):
+    """The shared UHAS policy of the controller benchmark, trained across the training split's layouts, on the hands of
+    UHAS_LAYOUTS that its test split holds out: its training time and each hand's scores as in uhas_runs."""
+    d = UHAS_RUNS / UHAS_SHARED
+    rows_f = MPC_ROWS / f"uhas_twist_{UHAS_SHARED}_test.jsonl"
+    if not d.exists() or not rows_f.exists():
+        return {}
+    sp = json.loads((d / "split.json").read_text())
+    prog = [json.loads(x) for x in (d / "progress.jsonl").read_text().splitlines() if x.strip()]
+    out = {"run": UHAS_SHARED, "minutes": prog[-1]["minutes"], "iterations": prog[-1]["iteration"],
+           "train_layouts": len(sp["train"]), "test_layouts": len(sp["test"]), "hands": {}}
+    rs = [json.loads(x) for x in rows_f.read_text().splitlines() if x.strip()]
+    for key, h in hom.items():
+        g = {}
+        for r in rs:
+            if int(r["call"]) == h["call"]:
+                g.setdefault(int(r["grasp"]), []).append(float(r["J"]))
+        if g:
+            gm = {k: float(np.mean(v)) for k, v in sorted(g.items())}
+            b = max(gm, key=gm.get)
+            out["hands"][key] = {"grasps": gm, "J_mean": float(np.mean(list(gm.values()))), "J_best": gm[b],
+                                 "best_grasp": b, "J_on_hom_best": gm.get(h["best_grasp"])}
+    return out
+
+
+def uhas_spread(ur):
+    """Per hand, how far apart its trained policies score: the mean over grasps of |J_i - J_j| between two policies
+    (each grasp's mean over evaluation seeds 0-2), averaged over the pairs of policies, against what the evaluation
+    noise alone gives two means of three, sqrt(2/3) sigma sqrt(2/pi) with sigma a policy's SD over evaluation seeds."""
+    out = {}
+    for xy in UHAS_LAYOUTS:
+        rs = [v for v in ur.values() if tuple(v["layout"]) == xy]
+        if len(rs) < 2:
+            continue
+        pairs = [(a, b) for i, a in enumerate(rs) for b in rs[i + 1:]]
+        d = [float(np.mean([abs(a["grasps"][g] - b["grasps"][g]) for g in a["grasps"] if g in b["grasps"]]))
+             for a, b in pairs]
+        sig = float(np.mean([v["eval_sd"] for v in rs]))
+        out[f"{xy[0]:g},{xy[1]:g}"] = {"policies": len(rs), "pair_diff": float(np.mean(d)), "pair_diff_max": max(d),
+                                       "eval_sd": sig, "noise_diff": float(np.sqrt(2 / 3) * sig * np.sqrt(2 / np.pi)),
+                                       "J_best": [v["J_best"] for v in rs]}
+    return out
 
 
 def uhas_seeds():
@@ -395,6 +444,8 @@ def uhas_seeds():
     path = OUT / "20261110-figures.json"
     fi = json.loads(path.read_text())
     fi["uhas_runs"], fi["uhas_hom"] = ur, hom
+    fi["uhas_shared"] = uhas_shared(hom)
+    fi["uhas_spread"] = uhas_spread(ur)
     path.write_text(json.dumps(fi, indent=1, default=float))
     lays = [xy for xy in UHAS_LAYOUTS if f"{xy[0]:g},{xy[1]:g}" in hom]
     if not lays:
@@ -413,7 +464,7 @@ def uhas_seeds():
             a.plot(x + 0.12 * (k - 1), [v["grasps"].get(g, np.nan) for g in order], mk, color=col, ms=7, mec=INK,
                    mew=0.5, label=f"UHAS, seed {v['seed']}", zorder=2)
         best = ", ".join(f"{v['J_best']:.2f}" for v in runs)
-        a.set_title(f"Hand {name}, {xy[0]:.0f} × {xy[1]:.0f} mm\nbest grasp: HOM {h['J_best']:.2f}; UHAS {best}",
+        a.set_title(f"Hand {name}, ({xy[0]:.0f}, {xy[1]:.0f}) mm\nbest grasp: HOM {h['J_best']:.2f}; UHAS {best}",
                     loc="left", fontsize=15)
         a.set_xticks(x)
         a.set_xticklabels([str(g) for g in order], fontsize=12)

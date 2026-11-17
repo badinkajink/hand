@@ -65,7 +65,10 @@ class Film:
 
     def __init__(self, plant, setup, w=480, h=400):
         import mujoco
+        g = plant.m.vis.global_                       # the offscreen framebuffer must hold the frame
+        g.offwidth, g.offheight = max(int(g.offwidth), w), max(int(g.offheight), h)
         self.r = mujoco.Renderer(plant.m, h, w)
+        self.font = round(11 * w / 480)
         self.cam = mujoco.MjvCamera()
         self.cam.lookat[:] = [0.0, 0.0, S.Z_OBJ + 0.004]
         cyl = setup["shape"] == "cylinder"
@@ -92,7 +95,7 @@ class Film:
         L_ = self.r_obj + 0.012                           # rods through the object, 12 mm out on both sides
         for k, c in AXES[:3 if self.sphere else 2]:
             arrow(self.r.scene, o - L_ * R[:, k], o + L_ * R[:, k], c, width=0.0015, kind="capsule")
-        return HR.annotate_bottom(self.r.render().copy(), line, size=11)
+        return HR.annotate_bottom(self.r.render().copy(), line, size=self.font)
 
     def close(self):
         self.r.close()
@@ -106,10 +109,11 @@ def find(task, kind, d_mm, call, grasp):
     raise KeyError(f"{task} {kind} {d_mm:g} mm: call {call} grasp {grasp} not found")
 
 
-def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=False, render=True):
+def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=False, render=True, w=480, h=400):
     """One CPU rollout filmed: (frames with the label on top, the rollout's result with the fingers' smallest gap at the
-    touch pose, gap_mm). In the label, {cpu} becomes the filmed run's score. gpu_filter: the GPU evaluator's collision
-    filter (pads and rigid spheres under 2 mm meet the object only). render=False: the rollout alone, no frames."""
+    touch pose, gap_mm). In the label, {cpu} becomes the filmed run's score and {J} its tracking score. gpu_filter: the
+    GPU evaluator's collision filter (pads and rigid spheres under 2 mm meet the object only). render=False: the rollout
+    alone, no frames. w, h: the frame size (px); the labels scale with w."""
     import re
     import mujoco
     import hom_contact_rig as HR
@@ -134,7 +138,7 @@ def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=Fa
     S.set_palm(m_pt, setup["palm"])
     fs, os_ = T.sr2_specs(setup)
     mirror = H.Mirror(m_pt, fs, os_)
-    film = Film(plant, setup) if render else None
+    film = Film(plant, setup, w=w, h=h) if render else None
     over, noise = T.VARIANTS[var]
     try:
         res, _trace, frames = T.rollout(task, setup, plant, mirror, q_open, seed, T.PRM,
@@ -143,9 +147,9 @@ def clip(task, kind, d_mm, call, grasp, label, seed=0, var="base", gpu_filter=Fa
     finally:
         if film is not None:
             film.close()
-    label = label.replace("{cpu}", f"{score(task, res):.2f}")
+    label = label.replace("{cpu}", f"{score(task, res):.2f}").replace("{J}", f"{L.track_score(task, res):.2f}")
     res = dict(res, gap_mm=min(gaps.values()), gaps_mm=gaps)
-    return [HR.annotate(f, label, size=14) for f in frames], res
+    return [HR.annotate(f, label, size=round(14 * w / 480)) for f in frames], res
 
 
 def compose(clips, out, grid=None):
@@ -476,7 +480,30 @@ def film_sizes_one(task, sizes, xy=(70.0, 110.0)):
     return info
 
 
-FILMS = {"overlap": film_overlap, "grasp_twist": lambda: film_grasp("twist", 40.0), "grasp_pinpush": lambda: film_grasp("pinpush", 25.0),
+def film_deployed(xy=(105.0, 70.0), grasp=13, w=960, h=800):
+    """The second hand run on the SR2 hand on 2026-11-16 (owner, 2026-11-16: "can i get a mujoco video of the second
+    deployed hand in the real/abstract clip? the current video uses a generalist which is quite bad on the sphere
+    twist"): the twist of the 40 mm sphere at layout (105, 70) mm from ground-clear grasp 13 (grid2dgr: the grasps held
+    clear of a ground at the sphere's lowest point), seed 0, filmed close up at w x h. Run with the abstract film's plant
+    (HOS_PLANT=servo HOS_SCENES=logs/20261102-hom_servo_plant/scenes HOM_ROWS_TAG=_sv25), it is the rollout drawn in
+    media/20261116-abstract_twist_ground_clear_x105_y70.mp4 of the co-design folder, where this film goes too."""
+    import hom_contact_rig as HR
+    from PIL import Image
+    L.GRID_SRC = "grid2dgr"
+    task, d = "twist", 40.0
+    call = call_at(task, d, *xy)
+    label = f"Layout ({xy[0]:.0f}, {xy[1]:.0f}) mm, ground-clear grasp {grasp}, J {{J}}"
+    fr, res = clip(task, "grid2dgr_size", d, call, grasp, label, w=w, h=h)
+    out = ROOT / "docs/experiments/20261110-codesign_formulation/media" / \
+        f"20261116-mujoco_twist_ground_clear_x{xy[0]:g}_y{xy[1]:g}.mp4"
+    HR.write_mp4(fr, out, fps=25)
+    Image.fromarray(fr[int(0.75 * len(fr))]).convert("RGB").save(out.with_suffix(".jpg"), quality=85)
+    print("wrote", out.relative_to(ROOT), f"({len(fr)} frames)", flush=True)
+    return dict(res_brief(task, res), J=round(float(L.track_score(task, res)), 3), layout=list(xy), call=call,
+                grasp=grasp, plant=os.environ.get("HOS_PLANT", "work"), film=str(out.relative_to(ROOT)))
+
+
+FILMS = {"overlap": film_overlap, "deployed_twist": film_deployed, "grasp_twist": lambda: film_grasp("twist", 40.0), "grasp_pinpush": lambda: film_grasp("pinpush", 25.0),
          "post": film_post, "local": film_local, "sizes": film_sizes, "four": film_four, "reanchor": film_reanchor,
          "four_ff": film_four_ff, "contact_ff": film_contact_ff,
          "sizes_twist": lambda: film_sizes_ea("twist", (25.0, 45.0, 80.0)),

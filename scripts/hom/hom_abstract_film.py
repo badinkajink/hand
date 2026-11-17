@@ -27,6 +27,10 @@ some de-sync on the one slide that has them side by side"):
     .venv/bin/python scripts/hom/hom_abstract_film.py reconfig --tag-a 70_110_gr_pads --tag 105_70_gr_pads --zoom-at 4.8 \\
         --sync docs/experiments/20261110-codesign_formulation/rows/20261116-abstract_sync_ground_clear.json \\
         --out-stem 20261116-abstract_twist_ground_clear       # also the drawing beside the hand's film (abstract_vs_hand)
+One twist on a ground-clear grasp alone (owner, 2026-11-16: "can you create an abstract video that has just the twist
+control with the ground clearance?"), each of the two rollouts above:
+    .venv/bin/python scripts/hom/hom_abstract_film.py render --tag 105_70_gr_pads --label ", ground-clear grasp" \\
+        --out-stem 20261116-abstract_twist_ground_clear_x105_y70             # and 70_110_gr_pads, ..._x70_y110
 """
 from __future__ import annotations
 
@@ -196,7 +200,8 @@ def render(a):
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle, FancyArrowPatch, Polygon
     plt.rcParams.update({"font.family": "Nimbus Sans", "mathtext.fontset": "cm"})
-    rec = json.loads((OUT / "rows" / f"20261111-abstract_{a.task}.json").read_text())
+    rows_name = f"20261111-abstract_{a.task}.json" if not a.tag else f"20261115-abstract_{a.task}_{a.tag}.json"
+    rec = json.loads((OUT / "rows" / rows_name).read_text())
     V = view()
 
     def uv(P):
@@ -298,7 +303,8 @@ def render(a):
             ax3.spines[sp].set_visible(False)
         fig.text(0.02, 0.95, f"HOM on the SR2 hand: {NAME[rec['task']].lower()} of a {rec['d_mm']:g} mm {OBJ[rec['task']]}",
                  fontsize=30, color=INK, weight="bold", va="top")
-        fig.text(0.02, 0.895, f"Layout ({rec['layout'][0]:.0f}, {rec['layout'][1]:.0f}) mm, CPU simulation, real time. "
+        fig.text(0.02, 0.895, f"Layout ({rec['layout'][0]:.0f}, {rec['layout'][1]:.0f}) mm{a.label}, CPU simulation, "
+                 "real time. "
                  f"Purple arrows: pad forces; orange dot: a point on the {OBJ[rec['task']]}.", fontsize=19, color="#4B5563",
                  va="top")
         fig.text(0.67, 0.86, f"t = {row['t']:.2f} s   {row['phase']}", fontsize=19, color=INK, va="top")
@@ -308,7 +314,7 @@ def render(a):
                  linespacing=1.4)
         fig.savefig(tmp / f"f{k:05d}.png", facecolor="white")
         plt.close(fig)
-    out = OUT / "media" / f"20261111-abstract_{rec['task']}.mp4"
+    out = OUT / "media" / (f"{a.out_stem}.mp4" if a.out_stem else f"20261111-abstract_{rec['task']}.mp4")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "25", "-i", str(tmp / "f%05d.png"), "-c:v",
                     "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "slow", "-movflags", "+faststart",
                     str(out)], check=True)
@@ -862,6 +868,9 @@ def main():
     r.add_argument("--pads", action="store_true", help="also each tip's pose and every pad's contact force per frame")
     d = sp.add_parser("render")
     d.add_argument("--task", default="twist")
+    d.add_argument("--tag", default="", help="a rollout recorded with --tag: rows/20261115-abstract_<task>_<tag>.json")
+    d.add_argument("--label", default="", help="text after the layout in the subtitle, e.g. ', ground-clear grasp'")
+    d.add_argument("--out-stem", default=None, help="the film's name stem under media/ (default 20261111-abstract_<task>)")
     c = sp.add_parser("reconfig", help="rollout A (the 20261111 rows), the reconfiguration, rollout B (--tag)")
     c.add_argument("--task", default="twist")
     c.add_argument("--tag", default="70_110_pads", help="rollout B's rows (recorded with --pads to zoom in B)")

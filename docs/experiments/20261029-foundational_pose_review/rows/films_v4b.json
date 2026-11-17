@@ -1170,5 +1170,22 @@
    "call": 162
   },
   "when": "2026-11-09 17:05"
+ },
+ "deployed_twist": {
+  "held": true,
+  "ramp_three_pads_max_deg": 9.07,
+  "w_rmse_ratio": 1.574,
+  "gap_mm": 2.319,
+  "score": 0.101,
+  "J": 0.15,
+  "layout": [
+   105.0,
+   70.0
+  ],
+  "call": 329,
+  "grasp": 13,
+  "plant": "servo",
+  "film": "docs/experiments/20261110-codesign_formulation/media/20261116-mujoco_twist_ground_clear_x105_y70.mp4",
+  "when": "2026-11-16 19:10"
  }
 }
