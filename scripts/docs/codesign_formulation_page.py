@@ -309,6 +309,34 @@ def sec_v2():
     if film.exists():
         out.append(P.film(film, "The three hands of the press landscape under the tracking score: A (70, 65) mm, B "
                                 "(70, 110) mm and C (125, 55) mm, each from its best grasp, CPU plant at seed 0."))
+    tw = tr.get("landscape_twist")
+    if tw and (MEDIA / "20261110-slide_landscape_twist_track.png").exists():
+        tf, ts = fi.get("film_three_hands_twist_track", {}), fi.get("ea_snapshots_twist_track", {})
+        hit = ts.get("hands_to_within_002", {})
+        out.append(
+            "<p><b>The morphology section on the sphere twist</b> (owner, 2026-11-16: \"since we are centering everything "
+            "around the sphere twist now, can we regenerate the morphology optimization section to highlight the sphere "
+            "twist and not the cylinder press?\"). The v2 deck's morphology section now shows the twist of the 40 mm "
+            "sphere, and the press figures above moved to its backup. The figures are drawn by "
+            "<code>codesign_section_figures.py twist</code> and <code>codesign_formulation_figures.py --track --twist</code>; "
+            f"their numbers are in <code>media/20261110-figures.json</code>. Of the 625 hands, {tw['reached']} reach a "
+            f"twist grasp, and the best, ({tw['best'][0]:.0f}, {tw['best'][1]:.0f}) mm, scores {tw['score']:.2f}.</p>")
+        for name, cap in [
+                ("20261110-slide_landscape_twist_track.png", "The twist landscape of the 40 mm sphere under the tracking "
+                 "score. A, B and C are the three hands of the film below, with scores "
+                 + ", ".join(f"{tw['filmed'][k][2]:.2f}" for k in "AB") + f" and {tw['filmed']['C'][2]:.2f}; C at "
+                 "(115, 85) mm is 18 mm from the best hand."),
+                ("20261110-ea_anatomy_twist_track.png", "One generation of the evolutionary search on the twist landscape."),
+                ("20261110-ea_snapshots_twist_track.png", "The search against random search on the twist landscape, median "
+                 "of 200 searches" + (f": within 0.02 of the best after {hit.get('EA, population 16')} hands, random search "
+                                      f"after {hit.get('random search')}." if hit else "."))]:
+            out.append(fig(name, cap))
+        film_t = MEDIA / "20261110-film_three_hands_twist_track.mp4"
+        if film_t.exists() and tf:
+            out.append(P.film(film_t, "The three hands of the twist landscape: A (105, 70) mm, B (70, 110) mm and C "
+                                      "(115, 85) mm, each from its best grasp, CPU plant at seed 0; CPU scores "
+                                      f"{tf['A']['cpu_score']:.2f}, {tf['B']['cpu_score']:.2f} and "
+                                      f"{tf['C']['cpu_score']:.2f}. C loses its index pad during the twist."))
     tv = fi.get("tuning_track", {}).get("val")
     if tv:
         xy = lambda v: f"({v[0]:.0f}, {v[1]:.0f})"

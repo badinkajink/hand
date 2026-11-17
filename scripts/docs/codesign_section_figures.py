@@ -111,18 +111,21 @@ def star(ax, x, y, size=520):
 
 FILMED = (("A", (70.0, 150.0)), ("B", (70.0, 110.0)), ("C", (125.0, 55.0)))   # film_three_hands, left to right
 FILMED_TRACK = (("A", (70.0, 65.0)), ("B", (70.0, 110.0)), ("C", (125.0, 55.0)))  # its tracking-score version
+FILMED_TWIST = (("A", (105.0, 70.0)), ("B", (70.0, 110.0)), ("C", (115.0, 85.0)))  # the twist's film (owner, 11-16)
 
 
-def landscape(filmed=True, name="20261110-slide_landscape.png"):
+def landscape(filmed=True, name="20261110-slide_landscape.png", task="press", size=25.0, hands=None):
     """Every hand on the lattice for one task and size; the best starred. filmed: letter the hands of the grasp film (owner,
-    11-10 night, asked what A, B and C denote: the A stood off its star, over another hand's cell)."""
+    11-10 night, asked what A, B and C denote: the A stood off its star, over another hand's cell). task, size and hands:
+    the twist on the 40 mm sphere with FILMED_TWIST for the twist's morphology section (owner, 2026-11-16)."""
     from matplotlib import patheffects
-    xs, ys, B = grid("press", 25.0)
+    hands = hands or (FILMED_TRACK if VARIANT == "track" else FILMED)
+    xs, ys, B = grid(task, size)
     j, i = np.unravel_index(np.nanargmax(B), B.shape)
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
     im = plane(ax, xs, ys, B, 0.85)
     star(ax, xs[i], ys[j])
-    for lab, (x, y) in (FILMED_TRACK if VARIANT == "track" else FILMED) if filmed else ():
+    for lab, (x, y) in hands if filmed else ():
         if (x, y) == (xs[i], ys[j]):                           # the best hand: its letter sits on the star's top point
             ax.text(x, y + 4.6, lab, ha="center", va="bottom", fontsize=15, weight="bold", color=INK, zorder=6,
                     path_effects=[patheffects.withStroke(linewidth=4, foreground="white")])
@@ -130,13 +133,14 @@ def landscape(filmed=True, name="20261110-slide_landscape.png"):
             ax.scatter([x], [y], s=330, facecolors="white", edgecolors=INK, linewidths=1.8, zorder=5)
             ax.text(x, y, lab, ha="center", va="center", fontsize=13, weight="bold", color=INK, zorder=6)
     cb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cb.set_label("press score")
+    cb.set_label(f"{task} score" if task != "pinpush" else "pin-push score")
     cb.outline.set_edgecolor(LINE)
-    ax.set_title("Press, 25 mm cylinder: 625 hands", loc="left")
+    ax.set_title({"press": "Press, 25 mm cylinder", "twist": "Twist, 40 mm sphere"}.get(task, task) + ": 625 hands",
+                 loc="left")
     return save(fig, name), dict(best=[float(xs[i]), float(ys[j])], score=float(B[j, i]),
                                  reached=int(np.isfinite(B).sum()),
                                  filmed={lab: [*xy, round(float(B[list(ys).index(xy[1]), list(xs).index(xy[0])]), 4)]
-                                         for lab, xy in (FILMED_TRACK if VARIANT == "track" else FILMED)})
+                                         for lab, xy in hands})
 
 
 def tasks(marks=None, name="20261110-slide_tasks.png"):
@@ -820,6 +824,18 @@ def main():
     if "cost" in sys.argv[1:]:          # only the search-time charts (owner, 11-11), for the deck or with --track for v2
         VARIANT = "track" if "--track" in sys.argv else ""
         print(json.dumps(cost_of_search(), default=float), flush=True)
+        return 0
+    if "twist" in sys.argv[1:]:         # the morphology section on the sphere twist (owner, 11-16), v2 only
+        VARIANT = "track"
+        info = {}
+        _, info["landscape_twist"] = landscape(name="20261110-slide_landscape_twist.png", task="twist", size=40.0,
+                                               hands=FILMED_TWIST)
+        landscape(filmed=False, name="20261110-slide_landscape_best_twist.png", task="twist", size=40.0, hands=FILMED_TWIST)
+        path = OUT / "20261110-figures.json"
+        fi = json.loads(path.read_text())
+        fi.setdefault("section_figures_track", {}).update(info)
+        path.write_text(json.dumps(fi, indent=1, default=float))
+        print(json.dumps(info, default=float), flush=True)
         return 0
     if "benchmark" in sys.argv[1:]:     # the controllers on the twist benchmark's four measures (owner, 11-16), v2 only
         VARIANT = "track"

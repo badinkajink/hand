@@ -387,6 +387,31 @@
    "roll": 9,
    "pinpush": 8,
    "press": 8
+  },
+  "landscape_twist": {
+   "best": [
+    105.0,
+    70.0
+   ],
+   "score": 0.7559626451287228,
+   "reached": 527,
+   "filmed": {
+    "A": [
+     105.0,
+     70.0,
+     0.756
+    ],
+    "B": [
+     70.0,
+     110.0,
+     0.6428
+    ],
+    "C": [
+     115.0,
+     85.0,
+     0.0161
+    ]
+   }
   }
  },
  "film_three_hands_track": {
@@ -2606,6 +2631,57 @@
     "contact": 0.3661,
     "replan_s": null
    }
+  }
+ },
+ "ea_anatomy_twist_track": {
+  "seed": 7,
+  "generation": 1,
+  "parents": [
+   [
+    75.0,
+    70.0
+   ],
+   [
+    75.0,
+    100.0
+   ]
+  ],
+  "best": 0.573
+ },
+ "ea_snapshots_twist_track": {
+  "best_on_grid": 0.756,
+  "hands_to_within_002": {
+   "EA, population 16": 47,
+   "random search": 181
+  }
+ },
+ "film_three_hands_twist_track": {
+  "A": {
+   "layout": [
+    105.0,
+    70.0
+   ],
+   "grasp": 10,
+   "grid_score": 0.756,
+   "cpu_score": 0.77
+  },
+  "B": {
+   "layout": [
+    70.0,
+    110.0
+   ],
+   "grasp": 11,
+   "grid_score": 0.6428,
+   "cpu_score": 0.724
+  },
+  "C": {
+   "layout": [
+    115.0,
+    85.0
+   ],
+   "grasp": 8,
+   "grid_score": 0.0161,
+   "cpu_score": 0.0
   }
  }
 }

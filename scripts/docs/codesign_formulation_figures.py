@@ -45,6 +45,16 @@ plt.rcParams.update({"font.family": "Lato", "font.size": 15, "axes.titlesize": 1
 
 
 VARIANT = ""      # "track" (--track): hom_landscape ranks by the tracking score on the rerun grids; files *_track.*
+INFIX, TASKLABEL = "", "press"    # --twist: the twist on the 40 mm sphere, files *_twist[_track].* (owner, 2026-11-16)
+TWIST_FILMED = ((105.0, 70.0), (70.0, 110.0), (115.0, 85.0))   # the twist's best hand, the films' hand, a failing neighbour
+
+
+def use_twist():
+    """The morphology section on the sphere twist (owner, 2026-11-16: "since we are centering everything around the
+    sphere twist now, can we regenerate the morphology optimization section to highlight the sphere twist and not the
+    cylinder press?"): the grid, the EA, the film and every label on the twist of the 40 mm sphere; outputs *_twist*."""
+    global TASK, SIZE, INFIX, TASKLABEL
+    TASK, SIZE, INFIX, TASKLABEL = "twist", 40.0, "_twist", "twist"
 
 
 def use_track():
@@ -80,6 +90,7 @@ def cell(xs, ys, M, x, y):
 
 
 def save(fig, name):
+    name = name.replace(".png", INFIX + ".png")
     name = name.replace(".png", "_track.png") if VARIANT == "track" else name
     fig.savefig(OUT / name, bbox_inches="tight", facecolor="white", dpi=160)
     plt.close(fig)
@@ -158,7 +169,7 @@ def layout_space():
         ax.scatter([px], [py], s=260, facecolors="white", edgecolors=INK, linewidths=2, zorder=4)
         ax.text(px, py, lab, ha="center", va="center", fontsize=12, weight="bold", color=INK, zorder=5)
     cb = fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
-    cb.set_label("press score", fontsize=12)
+    cb.set_label(f"{TASKLABEL} score", fontsize=12)
     info = {}
     for j, (lab, xy) in enumerate(picks):
         img, g, res = still(xy, view=BELOW)
@@ -187,8 +198,7 @@ def film_three_hands(picks=((70.0, 150.0), (70.0, 110.0), (125.0, 55.0))):
                           seed=0, var="hold" if VARIANT == "track" else "base", render=True)
         clips.append(fr)
         info[lab] = dict(layout=list(xy), grasp=int(g), grid_score=round(sc, 4), cpu_score=round(float(HF.score(TASK, res)), 3))
-    HF.compose(clips, OUT / ("20261110-film_three_hands_track.mp4" if VARIANT == "track" else
-                             "20261110-film_three_hands.mp4"))
+    HF.compose(clips, OUT / (f"20261110-film_three_hands{INFIX}" + ("_track" if VARIANT == "track" else "") + ".mp4"))
     return info
 
 
@@ -216,7 +226,7 @@ def ea_anatomy(seed=7, gen=1):
     ax.set_xlim(0, 1.32)
     ax.set_xticks([0, 0.2, 0.4, 0.6, 0.8])
     ax.set_box_aspect(1.0)
-    ax.set_xlabel("fitness: press score")
+    ax.set_xlabel(f"fitness: {TASKLABEL} score")
     for yv, txt, c in ((1.5, "top eighth: parents", PAR), (7.5, "top half: kept", "#b45309"),
                        (15.5, "lower half: dropped", GREY)):
         ax.axhline(yv, color=c, lw=1.2, ls="--")
@@ -1060,9 +1070,12 @@ def main_film():
     """Only the three-hands film (python ... film): the rest of the figures are unchanged."""
     path = OUT / "20261110-figures.json"
     info = json.loads(path.read_text()) if path.exists() else {}
-    key = "film_three_hands" + ("_track" if VARIANT == "track" else "")
-    info[key] = film_three_hands(((70.0, 65.0), (70.0, 110.0), (125.0, 55.0))) if VARIANT == "track" else film_three_hands()
-    info["film_three_hands"] = info[key] if VARIANT != "track" else info.get("film_three_hands")
+    key = "film_three_hands" + INFIX + ("_track" if VARIANT == "track" else "")
+    if INFIX:
+        info[key] = film_three_hands(TWIST_FILMED)
+    else:
+        info[key] = film_three_hands(((70.0, 65.0), (70.0, 110.0), (125.0, 55.0))) if VARIANT == "track" else film_three_hands()
+        info["film_three_hands"] = info[key] if VARIANT != "track" else info.get("film_three_hands")
     path.write_text(json.dumps(info, indent=1, default=float))
     print(json.dumps(info[key]), flush=True)
     return 0
@@ -1070,10 +1083,10 @@ def main_film():
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    only = [x for x in sys.argv[1:] if x != "--track"]
+    only = [x for x in sys.argv[1:] if x not in ("--track", "--twist")]
     path = OUT / "20261110-figures.json"
     info = json.loads(path.read_text()) if path.exists() else {}
-    sfx = "_track" if VARIANT == "track" else ""
+    sfx = INFIX + ("_track" if VARIANT == "track" else "")
     jobs = {"ea_anatomy": ea_anatomy, "ea_snapshots": ea_snapshots, "gpu": gpu_rate,
             "tuning": tuning_track if VARIANT == "track" else tuning, "compute": compute_cost,
             "contact_force": contact_force, "pinch_film": pinch_film, "drake_hydro": drake_hydro,
@@ -1093,4 +1106,6 @@ def main():
 if __name__ == "__main__":
     if "--track" in sys.argv:
         use_track()
-    sys.exit(main_film() if [x for x in sys.argv[1:] if x != "--track"] == ["film"] else main())
+    if "--twist" in sys.argv:
+        use_twist()
+    sys.exit(main_film() if [x for x in sys.argv[1:] if x not in ("--track", "--twist")] == ["film"] else main())
