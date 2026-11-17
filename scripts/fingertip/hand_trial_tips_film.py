@@ -244,7 +244,7 @@ def video_frames(stem, cam):
     return files[:n], np.array([float(r["t_host_ms"]) / 1e3 for r in rows[:n]])
 
 
-def trace_image(D, T, size):
+def trace_image(D, T, size, ylabel="estimated normal force (N)"):
     """The three fingers' estimated normal force over the film (0 without a contact), drawn once; returns the image and
     the x pixel of each film frame."""
     import matplotlib
@@ -264,7 +264,7 @@ def trace_image(D, T, size):
     ax.set_xlim(0, x[-1])
     ax.set_ylim(0, max(1.0, 1.15 * max([rw[f]["fn"] or 0 for rw in rows for f in SHOW if rw[f]["contact"]] or [1])))
     ax.set_xlabel("film time (s)")
-    ax.set_ylabel("estimated normal force (N)")
+    ax.set_ylabel(ylabel)
     ax.legend(loc="upper left", frameon=False, ncol=3, fontsize=12)
     for sp in ("top", "right"):
         ax.spines[sp].set_visible(False)
@@ -358,6 +358,277 @@ def wrap(text, font, width):
     return lines + [cur]
 
 
+# ------------------------------------------------------------------------------------------------ palm
+# owner, 2026-11-17 00:1x: "for the press fingertips video, can we try being fancy and visualizing the fingertips overlaid
+# on the fingertips, with a eye-in-palm perspective? the cylinder can be semi-transparent". The viewer's tip frame (x out of
+# the palmar face, y across, z from the mount end to the tip end, mm) onto the model's tip body (m): a turn of 180 deg
+# about x for the thumb and about y for the index and middle, whose palmar faces point along -x in their bodies, and
+# 10.9 mm along z. Fitted on the 1,018 pad centres of each tip against the viewer's 812 vertices: median distance 0.75 mm
+# for all three, the pads' radius.
+TIP_MAP = {"thumb": np.diag([1.0, -1.0, -1.0]), "index": np.diag([-1.0, 1.0, -1.0]), "middle": np.diag([-1.0, 1.0, -1.0])}
+TIP_Z0 = 10.9
+PLAN = {"press": ("docs/experiments/20261115-hom_bench_trials/plans/20261116-press_x70_y110_lat0_plan.json",
+                  "20261116-131927_press_corvus", 25.0)}
+
+
+def viewer_to_body(f, p_mm):
+    """A point of the viewer's tip frame (mm) in the model's tip body (m)."""
+    return 1e-3 * (TIP_MAP[f] @ np.asarray(p_mm, float) + np.array([0.0, 0.0, TIP_Z0]))
+
+
+PAD_GREY = (0.84, 0.85, 0.89, 0.28)                    # untouched pads translucent, so a patch behind them shows
+
+
+def pressure_rgba(kpa):
+    """Pressure to 300 kPa from light to dark purple (the pad zoom's: darker, more force), light grey below 2 kPa."""
+    w = np.clip(kpa / 300.0, 0.0, 1.0)[:, None] ** 0.6
+    c = np.c_[(1 - w) * np.array([[0.78, 0.66, 0.98]]) + w * np.array([[0.33, 0.04, 0.70]]), np.ones(len(kpa))]
+    c[kpa < 2.0] = PAD_GREY
+    return c
+
+
+def pad_sizes(base, kpa):
+    """Pressed pads drawn 1.8 times larger than the rest."""
+    return base * np.where(kpa >= 2.0, 1.8, 1.0)[:, None]
+
+
+CHAIN = ("mount", "yaw_frame", "mcp_frame", "len_frame", "pip_frame")   # hom_abstract_film.CHAIN
+LINK_RGBA = np.array([0.69, 0.71, 0.75, 1.0], np.float32)                 # the abstract films' LINK, #B0B5BF
+JOINT_RGBA = np.array([0.49, 0.23, 0.93, 1.0], np.float32)                # their NEW, #7C3AED
+
+
+def add_geom(scn, kind, rgba, width, p0, p1):
+    """A sphere at p0 (radius width) or a connector from p0 to p1 (radius width) appended to the scene."""
+    import mujoco
+    if scn.ngeom >= scn.maxgeom:
+        return
+    g = scn.geoms[scn.ngeom]
+    if p1 is None:
+        mujoco.mjv_initGeom(g, kind, np.array([width, width, width]), np.asarray(p0, float), np.eye(3).ravel(), rgba)
+    else:
+        mujoco.mjv_initGeom(g, kind, np.zeros(3), np.zeros(3), np.zeros(9), rgba)
+        mujoco.mjv_connector(g, kind, width, np.asarray(p0, float), np.asarray(p1, float))
+    scn.ngeom += 1
+
+
+def palm(a):
+    """The press replayed in the sphere-pad scene from a camera in the palm: the measured joints, the tracked cylinder
+    (translucent), each tip's pads coloured by its board's estimated pressure and the estimated force as an arrow; beside
+    the camera's crop, with the force traces."""
+    import os
+    os.environ.setdefault("MUJOCO_GL", "egl")
+    import mujoco
+    from PIL import Image, ImageDraw, ImageFont
+    from scipy.spatial import cKDTree
+    from sr2hand.control import hom_server as HS
+    HS.configure("measured", "cad_v2")
+    from sr2hand.control import hom_bench as HB
+    from sr2hand.control.link import StateMsg
+    plan, rec_stem, d_mm = PLAN[a.trial]
+    b = HB.HomBench.from_plan(str(ROOT / plan), a.trial, d_mm)
+    m = mujoco.MjModel.from_xml_path(str(b.p_pads))
+    mp = b.mirror.m                                    # HomBench's own model: the palm and the mounts as the bench set them
+    for name in ["palm_pose"] + [f"{f}_mount" for f in SHOW]:
+        m.body_pos[m.body(name).id] = mp.body_pos[mp.body(name).id]
+        m.body_quat[m.body(name).id] = mp.body_quat[mp.body(name).id]
+    dd = mujoco.MjData(m)
+    T = trial(a.trial)
+    D = json.load(open(WORK / f"{a.trial}_frames.json"))
+    rows = D["rows"]
+    rec = [json.loads(x) for x in (BENCH / "runs_corvus" / f"{rec_stem}.jsonl").read_text().splitlines() if x.strip()]
+    rec = [r for r in rec if "t_ms" in r and r.get("joints") is not None]
+    tj = np.array([r.get("t_joints_ms", r["t_ms"]) for r in rec]) / 1e3
+    to = np.array([(r.get("obj") or {}).get("t_capture_ms", r["t_ms"]) for r in rec]) / 1e3
+    # the scene: pads only on the tips (no tip meshes), the cylinder translucent, the post hidden
+    m.vis.global_.offwidth, m.vis.global_.offheight = 1400, 1200
+    obj = m.body("screwdriver_medium").id
+    pads, tree = {}, {}
+    for f in SHOW:
+        tb = m.body(f"{f}_tip").id
+        g = np.array([i for i in range(m.ngeom) if m.geom_bodyid[i] == tb and m.geom_type[i] == mujoco.mjtGeom.mjGEOM_SPHERE])
+        pads[f] = g
+        V = np.array(D["scenes"][f]["verts"])
+        Q = (TIP_MAP[f].T @ (1e3 * m.geom_pos[g] - np.array([0.0, 0.0, TIP_Z0])).T).T     # pad centres in the viewer's frame
+        tree[f] = cKDTree(V).query(Q)[1]
+        m.geom_rgba[g] = PAD_GREY
+        m.geom_size[g] *= 1.25                         # drawn a little larger, so that the pads read as a surface
+    size0 = {f: m.geom_size[pads[f]].copy() for f in SHOW}
+    padset = set(np.concatenate(list(pads.values())).tolist())
+    for i in range(m.ngeom):
+        if m.geom_bodyid[i] == obj:
+            m.geom_rgba[i] = (0.35, 0.60, 0.95, 0.13)
+        elif m.geom_bodyid[i] == m.body("post").id or m.geom_type[i] == mujoco.mjtGeom.mjGEOM_PLANE:
+            m.geom_rgba[i] = (0, 0, 0, 0)
+        elif i not in padset:                          # the links are drawn as the abstract films' (owner: "the dip
+            m.geom_rgba[i] = (0, 0, 0, 0)              # link clutters everything")
+    opt = mujoco.MjvOption()
+    opt.geomgroup[:] = 0
+    opt.geomgroup[0] = 1
+    opt.geomgroup[2] = 1
+    for k in range(len(opt.sitegroup)):
+        opt.sitegroup[k] = 0
+    for t in range(m.ntex):                            # a white sky, as the abstract films
+        if m.tex_type[t] == mujoco.mjtTexture.mjTEXTURE_SKYBOX:
+            n = int(m.tex_width[t] * m.tex_height[t] * m.tex_nchannel[t])
+            m.tex_data[m.tex_adr[t]:m.tex_adr[t] + n] = 255
+    W_, H_ = 1020, 680
+    ren = mujoco.Renderer(m, H_, W_)
+    cam = mujoco.MjvCamera()
+    cam.type = mujoco.mjtCamera.mjCAMERA_FREE
+    m.vis.global_.fovy = a.fovy
+
+    def pose(tt):
+        k = int(np.argmin(np.abs(tj - tt)))
+        q = HB.sim_from_servo(StateMsg(seq=0, t_ms=0.0, joints=np.array(rec[k]["joints"], float)).joints_dict())
+        for f in SHOW:
+            for i, j in enumerate(("yaw", "mcp", "pip")):
+                dd.qpos[m.jnt_qposadr[m.joint(f"{f}_{j}").id]] = q[f][i]
+        o = rec[int(np.argmin(np.abs(to - tt)))].get("obj") or {}
+        if o.get("p_PO") is not None:
+            dd.qpos[0:3] = b.palm + 1e-3 * np.asarray(o["p_PO"], float)
+            dd.qpos[3:7] = np.asarray(o["q_PO"], float)
+        mujoco.mj_kinematics(m, dd)
+
+    # the camera: in the palm, 8 mm out of it, looking at the three tips' centre at the first frame with a contact
+    i0 = next((i for i, rw in enumerate(rows) if any(rw[f]["contact"] for f in SHOW)), 0)
+    pose(rows[i0]["t"])
+    tips = np.mean([dd.xpos[m.body(f"{f}_tip").id] for f in SHOW], 0)
+    fwd = tips - b.palm
+    fwd /= np.linalg.norm(fwd)
+    eye = b.palm + a.eye_mm * 1e-3 * fwd
+    cam.lookat[:] = tips
+    cam.distance = float(np.linalg.norm(tips - eye))
+    cam.azimuth = float(np.degrees(np.arctan2(fwd[1], fwd[0])))
+    cam.elevation = float(np.degrees(np.arcsin(fwd[2])))
+    # the y sign of the map, checked: the mapped contacts should lie on the cylinder's surface
+    chk = {f: [] for f in SHOW}
+    for i, rw in enumerate(rows[::5]):
+        pose(rw["t"])
+        R, c = dd.xmat[obj].reshape(3, 3), dd.xpos[obj]
+        for f in SHOW:
+            mm = D["msgs"][f][5 * i]
+            if mm.get("contact"):
+                tb = m.body(f"{f}_tip").id
+                x = dd.xpos[tb] + dd.xmat[tb].reshape(3, 3) @ viewer_to_body(f, mm["p"])
+                u = R.T @ (x - c)
+                chk[f].append(abs(np.hypot(u[0], u[1]) - 1e-3 * d_mm / 2) * 1e3)
+    print("mapped contact to the cylinder's surface, median mm: " + ", ".join(
+        f"{f} {np.median(v):.1f}" for f, v in chk.items() if v), flush=True)
+    fy = 0.5 * H_ / np.tan(np.radians(a.fovy) / 2)
+    right = np.cross(fwd, [0.0, 0.0, 1.0])
+    right /= np.linalg.norm(right)
+    up = np.cross(right, fwd)
+
+    def project(x):
+        """A world point's pixel in the palm camera's image."""
+        dv = np.asarray(x) - eye
+        zc = dv @ fwd
+        return (float(W_ / 2 + fy * (dv @ right) / zc), float(H_ / 2 - fy * (dv @ up) / zc))
+
+    labels = []
+    out = WORK / f"{a.trial}_palm"
+    out.mkdir(exist_ok=True)
+    for f in out.glob("*.png"):
+        f.unlink()
+    for i, rw in enumerate(rows):
+        pose(rw["t"])
+        arrows = []
+        for f in SHOW:                                 # the pads' colours first: update_scene copies them
+            mm = D["msgs"][f][i]
+            g = pads[f]
+            if mm.get("contact") and mm.get("pr") is not None:
+                kp = np.asarray(mm["pr"], float)[tree[f]]
+                m.geom_rgba[g] = pressure_rgba(kp)
+                m.geom_size[g] = pad_sizes(size0[f], kp)
+                tb = m.body(f"{f}_tip").id
+                Rb = dd.xmat[tb].reshape(3, 3)
+                x = dd.xpos[tb] + Rb @ viewer_to_body(f, mm["p"])
+                F = Rb @ (TIP_MAP[f] @ np.asarray(mm["f"], float))
+                if np.linalg.norm(F) > 1e-3:
+                    arrows.append((x, F))
+            else:
+                m.geom_rgba[g] = PAD_GREY
+                m.geom_size[g] = size0[f]
+        ren.update_scene(dd, cam, opt)
+        for f in SHOW:                                 # the abstract hand: grey links, joints at yaw, MCP and PIP
+            ch = [dd.xpos[m.body(f"{f}_{k}").id].copy() for k in CHAIN]
+            pc = dd.geom_xpos[pads[f]].mean(axis=0)
+            d_ = pc - ch[-1]
+            ch.append(ch[-1] + d_ * max(0.0, 1.0 - 0.012 / np.linalg.norm(d_)))   # stops 12 mm short of the pads' centre
+            for p0, p1 in zip(ch[:-1], ch[1:]):
+                if np.linalg.norm(p1 - p0) > 1e-4:
+                    add_geom(ren.scene, mujoco.mjtGeom.mjGEOM_CAPSULE, LINK_RGBA, 2.2e-3, p0, p1)
+            for j in (1, 2, 4):
+                add_geom(ren.scene, mujoco.mjtGeom.mjGEOM_SPHERE, JOINT_RGBA, 3.4e-3, ch[j], None)
+        for x, F in arrows:                            # the estimated force on the pad, ending at the contact
+            L = 1e-3 * a.arrow * np.linalg.norm(F)
+            if ren.scene.ngeom < ren.scene.maxgeom:
+                gg = ren.scene.geoms[ren.scene.ngeom]
+                mujoco.mjv_initGeom(gg, mujoco.mjtGeom.mjGEOM_ARROW, np.zeros(3), np.zeros(3), np.zeros(9),
+                                    np.array([0.05, 0.30, 1.0, 1.0], np.float32))
+                mujoco.mjv_connector(gg, mujoco.mjtGeom.mjGEOM_ARROW, 0.8e-3, x - L * F / np.linalg.norm(F), x)
+                ren.scene.ngeom += 1
+        Image.fromarray(ren.render()).save(out / f"r{i:05d}.png")
+        labels.append({f: project(dd.xpos[m.body(f"{f}_tip").id]) for f in SHOW})
+    ren.close()
+    print(f"{len(rows)} renders in {out.relative_to(ROOT)}", flush=True)
+    palm_film(a, T, D, out, labels)
+
+
+def palm_film(a, T, D, rdir, labels):
+    """The palm film: the camera's crop on the left; on the right the palm view, each tip labelled with its estimated
+    normal force, and the force traces under it."""
+    from PIL import Image, ImageDraw, ImageFont
+    rows = D["rows"]
+    vids = [video_frames(stem, T["cam"]) for stem, *_ in T["segs"]]
+    F = {s_: ImageFont.truetype(FONT, s_) for s_ in (17, 24)}
+    FB = {s_: ImageFont.truetype(FONT_B, s_) for s_ in (22, 30)}
+    trace, (x0, x1), _ax = trace_image(D, T, (1020, 240), ylabel="force (N)")
+    head = wrap(T["title"].split(", ", 1)[1] + ". Replayed in the simulator from the trial's record: the measured joints "
+                "and the tracked cylinder (blue), "
+                "seen from a camera in the palm. Each tip's pads are coloured by its magnet board's estimated pressure "
+                "(the fingertip viewer's physical model fitted at rest before the close; darker: more pressure) and the "
+                "estimated force is the blue arrow. Not calibrated on the hand.", F[17], 975)
+    out = WORK / f"{a.trial}_palm_film"
+    out.mkdir(exist_ok=True)
+    for f in out.glob("*.png"):
+        f.unlink()
+    x, y, w, h = T["crop"]
+    for i, rw in enumerate(rows):
+        im = Image.new("RGB", (1920, 1080), "white")
+        files, tv = vids[rw["seg"]]
+        j = int(np.argmin(np.abs(tv - rw["t"])))
+        im.paste(Image.open(files[j]).convert("RGB").crop((x, y, x + w, y + h)).resize((900, 1080), Image.LANCZOS), (0, 0))
+        dr = ImageDraw.Draw(im)
+        dr.rectangle((0, 0, 900, 40), fill="white")
+        dr.text((12, 7), "the hand, real time", font=F[24], fill="#141414")
+        dr.text((930, 12), T["title"].split(",")[0] + ", seen from the palm", font=FB[30], fill="#0f766e")
+        for k, line in enumerate(head):
+            dr.text((930, 54 + 21 * k), line, font=F[17], fill="#374151")
+        y0 = 60 + 21 * len(head)
+        im.paste(Image.open(rdir / f"r{i:05d}.png").convert("RGB"), (900, y0))
+        for k, f in enumerate(SHOW):
+            u, v = labels[i][f]
+            m_ = rw[f]
+            txt = f"{f} {m_['fn']:.1f} N" if m_["contact"] and m_["fn"] is not None else f"{f}"
+            tx, ty = 900 + u + (18 if u < 510 else -18 - FB[22].getlength(txt)), y0 + v - 46
+            tx, ty = min(max(tx, 905), 1910 - FB[22].getlength(txt)), min(max(ty, y0 + 4), y0 + 646)
+            dr.rectangle((tx - 4, ty - 2, tx + FB[22].getlength(txt) + 4, ty + 26), fill="white")
+            dr.text((tx, ty), txt, font=FB[22], fill=COLS[k])
+        ty0 = 1080 - 240
+        im.paste(trace, (900, ty0))
+        px = 900 + x0 + (x1 - x0) * i / max(1, len(rows) - 1)
+        dr.line((px, ty0 + 8, px, ty0 + 240 - 30), fill="#111827", width=2)
+        im.save(out / f"{i:05d}.png")
+    film = MEDIA / f"20261116-fingertips_{a.trial}_palm.mp4"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-framerate", str(FPS), "-i", str(out / "%05d.png"), "-c:v", "libx264",
+                    "-crf", "20", "-preset", "slow", "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(film)],
+                   check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{len(rows) / 2 / FPS:.2f}", "-i", str(film), "-frames:v", "1",
+                    "-q:v", "3", str(film.with_suffix(".jpg"))], check=True)
+    print(f"wrote {film.relative_to(ROOT)} ({len(rows) / FPS:.1f} s)", flush=True)
+
+
 def VIEW_BOX(k):
     """The k-th board's 3D view in the viewer's 1200 x 1800 page, its middle 590 px, below its name line and above its
     pressure legend (the boards' panels start every 582 px below the page's controls)."""
@@ -367,7 +638,7 @@ def VIEW_BOX(k):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for c in ("frames", "capture", "compose"):
+    for c in ("frames", "capture", "compose", "palm"):
         p = sub.add_parser(c)
         p.add_argument("--trial", required=True, choices=("press", "twist", "pickup"))
     cp = sub.choices["capture"]
@@ -377,8 +648,12 @@ def main():
     cp.add_argument("--arrow", type=float, default=2.0)
     cp.add_argument("--n", type=int, default=None)
     cp.add_argument("--every", type=int, default=1)
+    pp = sub.choices["palm"]
+    pp.add_argument("--fovy", type=float, default=62.0)
+    pp.add_argument("--eye-mm", type=float, default=8.0, help="the camera's distance out of the palm toward the tips")
+    pp.add_argument("--arrow", type=float, default=4.0, help="mm per N")
     a = ap.parse_args()
-    return {"frames": frames, "capture": capture, "compose": compose}[a.cmd](a)
+    return {"frames": frames, "capture": capture, "compose": compose, "palm": palm}[a.cmd](a)
 
 
 if __name__ == "__main__":
