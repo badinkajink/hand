@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task: 2026-11-16 23:4x, owner: "lets make sure the next time we run trials we have the fingertip sensing going. ideally
 with pose tracking, closed loop control too. that can be churned away on overnight to be ready for evaluation". Every HOM
 bench trial records the three fingertip boards and feeds their contact estimates to HOM beside the tracked pose, tested
@@ -59,7 +59,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 4. hom_server: a --tips flag with which HomBench uses the measured contacts (as the tip variant does in simulati… Done 11-17 00:32: hom_server serve --tips off|on|raw (off default: contacts recorded, not used; on: tip variant floor 0.25 N; raw: sil), header tips + floor, per-period gcf source/dist; sil press with raw: UDP = loopback 0.0 deg, float64 0.0008 deg, J 0.1419
 - [x] 5. Offline test, no hardware: replay the 11-16 press (runs_corvus 131927 + 131831 mux) and the first pick-up thr… Done 11-17 00:32: lab/tips_offline_check.py + tips_live_check.py, data/20261117-tip_contacts/: press thumb 2.8 N gap -4.0 mm (apex +1.3), index 2.4 N -8.7 (apex -8.2), middle 0.53 N +3.3; pick-up thumb 1.29 N +0.3 mm, middle 1.26 N +1.6, index none; one core: estimate 7.5 ms, link period 20.0 ms (max 22.9), estimate age 7.8 ms, data age 41 ms; HOM off = 11-16 targets to 0.017 deg, contacts change nothing; on: 0.86 deg median, 18 max (middle MCP/PIP)
 - [x] 6. A section "Trials with the fingertips (from 2026-11-17)" in the bench README: the commands (mux logger, rest,… Done 11-17 00:35: README section 'Trials with the fingertips (from 2026-11-17)': terms, estimator, commands (logger, rest, server --tips, trial, trial_cycle.sh), the records, the server's switch, the offline numbers (press, pick-up, timing, HOM dry runs), the evaluation (g13, g12, press lat0; off/on/on/off; tracking score, drift, contact traces) and two Future work items; prose lint 16 words mean, 2.1 % over 30
-- [ ] 7. Commit by path (never git commit -a); push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+- [x] 7. Commit by path (never git commit -a); push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop. Done 11-17 00:36: committed 8f6486513 and 6763eb197 by path; pushed to origin main (ce6432295..6763eb197) on the first try
 - [x] 8. Own-pose crosstalk: a per-board GP on the finger's own three joint angles (from the 11-04/05 crosstalk rows) … Done 11-17 00:13: OwnPose GP (data/20261117-tip_contacts/20261117-own_pose_gp.npz, 598 KB) default on: press 13:19 middle's approach change 28-31 uT predicted 35-37 uT, chi2 20 -> <2, first contact 1.20 -> 1.68 s at 0.43-0.64 N; thumb/index change < 0.15 N
 <!-- /ap:steps -->
 Claimed: docs/experiments/20261115-hom_bench_trials/lab/ (hom_trial.py, pinch_pickup.py, trial_cycle.sh, new files),
