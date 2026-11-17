@@ -5,12 +5,13 @@ the twist ..., the press, the pick up from dropped, (maybe all of them) just so 
 center crop on the core manipulation ... and then show just the critical visualization of the contact sensors").
 
 Three boards sit under the SR2 hand's v3 tips (mux channels 0 middle, 1 index, 3 thumb; logs/20261116-three_finger_mux/
-*-mux.bin, copied from corvus). Each board runs through the fingertip viewer's own App (src/sr2hand/driver/reskin5x/host/
-wrench_viewer.py, case four_05R4) with the physical model fitted to the rest just before the fingers close, as the viewer
-does live, and no re-zero during the trial. Nothing on the hand calibrates these tips: the estimates are the viewer's
-uncalibrated ones, and a moving finger's magnets reach the other boards (the SR2 crosstalk page). The viewer's page draws
-each tip; this script crops its 3D views and sets them beside a crop of the trial's camera, frame by frame on corvus's
-clock, which the mux records, the trial records and the cameras' frame times all carry.
+*-mux.bin, copied from corvus). Each board's contact comes from the trials' estimator (src/sr2hand/driver/reskin5x/host/
+tip_contacts.py Tip, as hom_trial.py runs it from 2026-11-17; owner, 2026-11-17: "yes, please re-render those films"):
+the tip's calibration of 11-02 or a new fit at the rest before the close, whichever fits the rest better, the UR5 board
+GP for the point and the force, and the change its own finger's pose makes to the reading taken off. The viewer's page
+(wrench_viewer.py) draws each tip from it. Until 02:2x on 11-17 the films drew the viewer's own uncalibrated estimate, the
+physical model fitted at the rest. This script crops the page's 3D views and sets them beside a crop of the trial's
+camera, frame by frame on corvus's clock, which the mux records, the trial records and the cameras' frame times carry.
 
     ~/miniconda3/bin/python scripts/fingertip/hand_trial_tips_film.py frames --trial press     (the viewer's messages)
     .venv/bin/python scripts/fingertip/hand_trial_tips_film.py capture --trial press          (headless Chrome)
@@ -115,49 +116,114 @@ def first_change(t, r, after, quiet_uT=8.0):
 
 
 # ------------------------------------------------------------------------------------------------ frames
+def joints_of(T, a_trial):
+    """The fingers' joints over the trial (simulator degrees per finger, yaw, mcp, pip) and their times (corvus's clock,
+    s): the trial record's servo readings (tip_contacts.sim_deg), or the pick-up's telemetry."""
+    import tip_contacts as TC
+    if a_trial == "pickup":
+        rows = []
+        for n_ in ("20261116-154328_pinch_grasp_telemetry.jsonl", "20261116-154429_pinch_lift_telemetry.jsonl",
+                   "20261116-154534_pinch_slip_telemetry.jsonl"):
+            rows += [json.loads(x) for x in (BENCH / "data/20261116-pinch_pickup" / n_).read_text().splitlines()
+                     if x.strip()]
+        rows = [r for r in rows if r.get("joints")]
+        tq = np.array([r["t"] for r in rows])
+        q = {f: np.array([[r["joints"][f][j] for j in ("yaw", "mcp", "pip")] for r in rows], float) for f in SHOW}
+        return tq, q
+    stem = {"press": "20261116-131927_press_corvus", "twist": "20261116-161252_twist_corvus"}[a_trial]
+    rows = [json.loads(x) for x in (BENCH / "runs_corvus" / f"{stem}.jsonl").read_text().splitlines() if x.strip()]
+    rows = [r for r in rows if "t_ms" in r and r.get("joints") is not None]
+    tq = np.array([r.get("t_joints_ms", r["t_ms"]) for r in rows]) / 1e3
+    sd = [TC.sim_deg(np.asarray(r["joints"], float)) for r in rows]
+    return tq, {f: np.array([s_[f] for s_ in sd], float) for f in SHOW}
+
+
+def tip_message(app, m, e):
+    """The viewer's message m for its page with the trial estimator's contact e in place of the viewer's own: the point,
+    normal and force, and from them the page's pressure and deformation (wrench_viewer.App.frame's)."""
+    import wrench_viewer as WV
+    m = {k: v for k, v in m.items() if k not in ("p", "n", "t1", "t2", "f", "fn", "ft", "sd", "ell", "u", "pr", "pmax",
+                                                "where", "gp_w", "corrected")}
+    m["contact"] = bool(e.get("contact"))
+    if not m["contact"]:
+        return m
+    p, n, f = (np.asarray(e[k], float) for k in ("p", "n", "f"))
+    fn = float(e["f_n"])
+    t1 = np.cross(n, [0.0, 0.0, 1.0])
+    t1 = t1 if np.linalg.norm(t1) > 1e-3 else np.cross(n, [0.0, 1.0, 0.0])
+    t1 /= np.linalg.norm(t1)
+    t2 = np.cross(n, t1)
+    pres = app.pads.press(p, n, fn, app.R_ind)
+    dist, idx = app.tree.query(p, k=6)
+    w = np.where(app.basis["normals"][idx] @ n > 0.3, 1 / np.maximum(dist, 1e-3) ** 2, 0.0)
+    w = w / w.sum() if w.sum() > 0 else np.full(len(w), 1.0 / len(w))
+    U = np.einsum("p,pkvc,k->vc", w, app.disp_u[idx].astype(np.float32), f)
+    m.update(p=np.round(p, 3).tolist(), n=np.round(n, 4).tolist(), t1=np.round(t1, 4).tolist(), t2=np.round(t2, 4).tolist(),
+             f=np.round(f, 3).tolist(), fn=round(fn, 3), ft=[round(float(f @ t1), 3), round(float(f @ t2), 3)],
+             sd=[0.0] * 6, ell=[0.35, 0.35, 0.0], u=np.round(U.ravel(), 1).tolist(), pr=np.round(pres, 1).tolist(),
+             pmax=float(pres.max()), where=WV.region(n), gp_w=e.get("w"))
+    return m
+
+
 def frames(a):
-    """The viewer's messages for every film frame, one App per board on the trial's raw records."""
+    """Every film frame's contact per board from the trial estimator (src/sr2hand/driver/reskin5x/host/tip_contacts.py,
+    as the trials of 2026-11-17 on: each tip's calibration of 11-02 against a new fit at the rest, the UR5 board GP, the
+    own-pose term from the finger's measured joints), drawn by the viewer's page: the viewer's App gives the page's
+    other fields."""
     from viewer_roll_film import Clock, viewer_args
     sys.path.insert(0, str(VIEWER))
+    import tip_contacts as TC
     import wrench_viewer as WV
     T = trial(a.trial)
     ft = film_times(T)
-    lo = min(s[1] for s in T["segs"]) - 6.0
-    hi = max(s[2] for s in T["segs"]) + 1.0
+    lo = min(s_[1] for s_ in T["segs"]) - 6.0
+    hi = max(s_[2] for s_ in T["segs"]) + 1.0
     t, r = mux_window(T, lo - (60.0 if T.get("rest_after") else 0.0), hi)
     rest = T["rest"]
     if rest is None:                                   # the pick-up: the rest just before the close
         rest = first_change(t, r, T["rest_after"]) - 0.3
+    tq, Q = joints_of(T, a.trial)
+
+    def q_at(f, tt):
+        return Q[f][int(np.argmin(np.abs(tq - tt)))]
+
+    basis, row, kappa = TC.W.load_basis(TC.W.basis_path(TC.CASE)), TC.W.fe_row(TC.CASE), TC.W.load_thermal()
+    gp, own = TC.BoardGP(), TC.OwnPose()
     print(f"{a.trial}: {len(ft)} frames, {len(t)} records, rest at {time.strftime('%H:%M:%S', time.localtime(rest))}",
           flush=True)
-    apps = {}
+    apps, tips, info = {}, {}, {}
     for f in SHOW:
         src = Clock(t, r[:, BOARD[f]], keep=3.0)
         app = WV.App(viewer_args(auto_zero=0.0), src=src, name=f, board_gp=None)
         src.now = rest
         app.calibrate()
-        print(f, app.status, flush=True)
         apps[f] = app
+        tips[f] = TC.Tip(f, basis, row, gp, kappa, None, own=own)
+        sel = (t > rest - 1.0) & (t <= rest)
+        info[f] = tips[f].set_rest(r[sel, BOARD[f]], refit=True, q=q_at(f, rest))
+        print(f, {k: info[f][k] for k in ("model", "saved_fit_mT", "new_fit_mT", "calib") if k in info[f]}, flush=True)
     msgs = {f: [] for f in SHOW}
     rows = []
     for k, tt in ft:
-        row = dict(seg=k, t=round(tt, 3))
-        for f, app in apps.items():
-            app.src.now = float(tt)
-            m = app.frame()
-            msgs[f].append(m)
-            row[f] = dict(contact=bool(m.get("contact")), fn=m.get("fn"), p=m.get("p"), db=float(np.linalg.norm(
-                m.get("db", [0.0]))) if m.get("db") is not None else None)
-        rows.append(row)
+        row_ = dict(seg=k, t=round(tt, 3))
+        sel = (t > tt - TC.KEEP_S) & (t <= tt)
+        for f in SHOW:
+            apps[f].src.now = float(tt)
+            e = tips[f].estimate(t[sel], r[sel, BOARD[f]], q=q_at(f, tt))
+            m_ = tip_message(apps[f], apps[f].frame(), e)
+            msgs[f].append(m_)
+            row_[f] = dict(contact=bool(e.get("contact")), fn=e.get("f_n"), p=e.get("p"), w=e.get("w"),
+                           own_uT=e.get("own_uT"), d_uT=e.get("d_uT"))
+        rows.append(row_)
     WORK.mkdir(parents=True, exist_ok=True)
     out = WORK / f"{a.trial}_frames.json"
-    json.dump(dict(scenes={f: app.scene() for f, app in apps.items()}, msgs=msgs, rows=rows, rest=rest,
-                   status={f: app.status for f, app in apps.items()}), open(out, "w"))
+    json.dump(dict(scenes={f: app.scene() for f, app in apps.items()}, msgs=msgs, rows=rows, rest=rest, rest_info=info,
+                   estimator="tip_contacts.Tip: saved calibration or new fit, board GP, own pose"), open(out, "w"))
     for f in SHOW:
-        n = sum(rw[f]["contact"] for rw in rows)
+        n_ = sum(rw[f]["contact"] for rw in rows)
         fn = [rw[f]["fn"] for rw in rows if rw[f]["contact"]]
-        print(f"{f}: contact in {n} of {len(rows)} frames" + (f", normal force median {np.median(fn):.2f} N, max "
-                                                             f"{max(fn):.2f} N" if fn else ""), flush=True)
+        print(f"{f}: contact in {n_} of {len(rows)} frames" + (f", normal force median {np.median(fn):.2f} N, max "
+                                                              f"{max(fn):.2f} N" if fn else ""), flush=True)
     print(f"wrote {out.relative_to(ROOT)}", flush=True)
 
 
@@ -305,9 +371,9 @@ def compose(a):
         f.unlink()
     x, y, w, h = T["crop"]
     names = SEG_NAMES.get(a.trial)
-    head = wrap(T["sub"] + " Each tip: the fingertip viewer's estimate from its board, the physical model fitted at rest "
-                "before the close. Colour: pad pressure to 300 kPa; blue arrow: the estimated force. Not calibrated on "
-                "the hand.", F[17], 975)
+    head = wrap(T["sub"] + " Each tip: the trials' contact estimate from its magnet board (the tip's UR5 calibration and "
+                "board GP, its own finger's crosstalk taken off), drawn by the fingertip viewer. Colour: pad pressure to "
+                "300 kPa; blue arrow: the estimated force.", F[17], 975)
     for i, rw in enumerate(rows):
         im = Image.new("RGB", (W_, H_), "white")
         files, tv = vids[rw["seg"]]
@@ -360,20 +426,27 @@ def wrap(text, font, width):
 
 # ------------------------------------------------------------------------------------------------ palm
 # owner, 2026-11-17 00:1x: "for the press fingertips video, can we try being fancy and visualizing the fingertips overlaid
-# on the fingertips, with a eye-in-palm perspective? the cylinder can be semi-transparent". The viewer's tip frame (x out of
-# the palmar face, y across, z from the mount end to the tip end, mm) onto the model's tip body (m): a turn of 180 deg
-# about x for the thumb and about y for the index and middle, whose palmar faces point along -x in their bodies, and
-# 10.9 mm along z. Fitted on the 1,018 pad centres of each tip against the viewer's 812 vertices: median distance 0.75 mm
-# for all three, the pads' radius.
-TIP_MAP = {"thumb": np.diag([1.0, -1.0, -1.0]), "index": np.diag([-1.0, 1.0, -1.0]), "middle": np.diag([-1.0, 1.0, -1.0])}
-TIP_Z0 = 10.9
+# on the fingertips, with a eye-in-palm perspective? the cylinder can be semi-transparent". The pad frame of the fingertip
+# calibrations (the viewer's and the estimator's: x out of the palmar face, y across, z from the mount end to the tip
+# end, mm) onto the model's tip body by tip_contacts.T_tip_pad: x_tip = s (x + 2.05), y_tip = -s y, z_tip = 10.86 - z,
+# s the finger's face sign (+1 thumb, -1 index and middle). Until 01:1x on 11-17 the films used a map fitted here on
+# the pad centres (the same turn and z, without the 2.05 mm along x).
 PLAN = {"press": ("docs/experiments/20261115-hom_bench_trials/plans/20261116-press_x70_y110_lat0_plan.json",
                   "20261116-131927_press_corvus", 25.0)}
 
 
+def tip_map(f):
+    """(R, t): the pad frame (mm) in the model's tip body (mm), tip_contacts.T_tip_pad."""
+    sys.path.insert(0, str(VIEWER))
+    import tip_contacts as TC
+    Tm = TC.T_tip_pad(f)
+    return Tm[:3, :3], Tm[:3, 3]
+
+
 def viewer_to_body(f, p_mm):
-    """A point of the viewer's tip frame (mm) in the model's tip body (m)."""
-    return 1e-3 * (TIP_MAP[f] @ np.asarray(p_mm, float) + np.array([0.0, 0.0, TIP_Z0]))
+    """A point of the pad frame (mm) in the model's tip body (m)."""
+    R, t = tip_map(f)
+    return 1e-3 * (R @ np.asarray(p_mm, float) + t)
 
 
 PAD_GREY = (0.84, 0.85, 0.89, 0.28)                    # untouched pads translucent, so a patch behind them shows
@@ -448,7 +521,8 @@ def palm(a):
         g = np.array([i for i in range(m.ngeom) if m.geom_bodyid[i] == tb and m.geom_type[i] == mujoco.mjtGeom.mjGEOM_SPHERE])
         pads[f] = g
         V = np.array(D["scenes"][f]["verts"])
-        Q = (TIP_MAP[f].T @ (1e3 * m.geom_pos[g] - np.array([0.0, 0.0, TIP_Z0])).T).T     # pad centres in the viewer's frame
+        Rf, tf = tip_map(f)
+        Q = (Rf.T @ (1e3 * m.geom_pos[g] - tf).T).T     # pad centres in the pad frame
         tree[f] = cKDTree(V).query(Q)[1]
         m.geom_rgba[g] = PAD_GREY
         m.geom_size[g] *= 1.25                         # drawn a little larger, so that the pads read as a surface
@@ -543,7 +617,7 @@ def palm(a):
                 tb = m.body(f"{f}_tip").id
                 Rb = dd.xmat[tb].reshape(3, 3)
                 x = dd.xpos[tb] + Rb @ viewer_to_body(f, mm["p"])
-                F = Rb @ (TIP_MAP[f] @ np.asarray(mm["f"], float))
+                F = Rb @ (tip_map(f)[0] @ np.asarray(mm["f"], float))
                 if np.linalg.norm(F) > 1e-3:
                     arrows.append((x, F))
             else:
@@ -587,8 +661,8 @@ def palm_film(a, T, D, rdir, labels):
     head = wrap(T["title"].split(", ", 1)[1] + ". Replayed in the simulator from the trial's record: the measured joints "
                 "and the tracked cylinder (blue), "
                 "seen from a camera in the palm. Each tip's pads are coloured by its magnet board's estimated pressure "
-                "(the fingertip viewer's physical model fitted at rest before the close; darker: more pressure) and the "
-                "estimated force is the blue arrow. Not calibrated on the hand.", F[17], 975)
+                "(the trials' estimator: the tip's UR5 calibration and board GP, its own finger's crosstalk taken off; "
+                "darker: more pressure), and the estimated force is the blue arrow.", F[17], 975)
     out = WORK / f"{a.trial}_palm_film"
     out.mkdir(exist_ok=True)
     for f in out.glob("*.png"):
