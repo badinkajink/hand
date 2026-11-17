@@ -320,6 +320,70 @@ def rl_run_times():
             "source": "results/rl/*/tensorboard event files, 0.5 min to 24 h"}
 
 
+UHAS_RUNS = ROOT / "results/uhas_sr2"
+UHAS_LAYOUTS = ((105.0, 70.0), (70.0, 110.0))      # hand A of the twist and the twist's best hand on the servo grid
+
+
+def hom_layout(xy, task="twist", size=40.0):
+    """HOM's score of each of a layout's 16 grasps on the servo-plant grid (GRID_TRACK, mean of seeds 0-2): the
+    layout's call and {grasp: J}."""
+    import hom_landscape as L
+    import hom_rows
+    L.GRID_SRC = "grid2dff"
+    call = next(c for c, (x, y, _r) in L.grid_poses(task, size).items() if (float(x), float(y)) == tuple(xy))
+    sc = {}
+    for x in (L.ROWS / GRID_TRACK / f"{task}_d{size:g}.jsonl").read_text().splitlines():
+        if x.strip():
+            r = hom_rows.rescale_metrics(json.loads(x))
+            if r.get("status", "ok") == "ok" and int(r["call"]) == call:
+                sc.setdefault(int(r.get("grasp", 0)), []).append(L.track_score(task, r))
+    return call, {g: float(np.mean(v)) for g, v in sorted(sc.items())}
+
+
+def uhas_runs():
+    """UHAS's single-layout runs on the twist (owner, 2026-11-16: "can we really quickly train some bespoke policies on
+    these tasks with the comparable environment to see how it does (let's say three seeds)"): scripts/hom/uhas_sr2.py
+    train --only X Y --minutes 30 on the SCS0009 plant at 2.5 MPa, at the layouts of UHAS_LAYOUTS. Per run its training
+    wall time, from the TensorBoard event file (its name carries the start) to the last write of its checkpoints, and,
+    once evaluated (uhas_sr2.py eval: the layout's 16 grasps at seeds 0-2), the score of each grasp and HOM's at the same
+    layout. A run counts once evaluated, so that a training in progress is left out. Kept in figures.json (uhas_runs,
+    uhas_hom), since results/ is not in git."""
+    import glob
+    import re as _re
+    out, hom = {}, {}
+    for xy in UHAS_LAYOUTS:
+        for d in sorted(UHAS_RUNS.glob(f"*_twist_x{xy[0]:g}_y{xy[1]:g}_s*")):
+            ev = glob.glob(str(d / "events.out.tfevents.*"))
+            ck = list(d.glob("model_*.pt"))
+            split = d / "split.json"
+            rows_f = MPC_ROWS / f"uhas_twist_{d.name}_test.jsonl"
+            if not ev or not ck or not split.exists() or '"kp0.72' not in split.read_text() or not rows_f.exists():
+                continue
+            t0 = min(int(_re.search(r"tfevents\.(\d+)", e).group(1)) for e in ev)
+            run = {"layout": list(xy), "seed": int(d.name.rsplit("_s", 1)[1]),
+                   "minutes": round((max(c.stat().st_mtime for c in ck) - t0) / 60.0, 1),
+                   "iterations": max(int(c.stem.split("_")[1]) for c in ck)}
+            prog = [json.loads(x) for x in (d / "progress.jsonl").read_text().splitlines() if x.strip()]
+            run["J_proxy_end"] = prog[-1]["J_proxy"] if prog else None
+            rs = [json.loads(x) for x in rows_f.read_text().splitlines() if x.strip()]
+            g = {}
+            for r in rs:
+                g.setdefault(int(r["grasp"]), []).append(float(r["J"]))
+            gm = {k: float(np.mean(v)) for k, v in sorted(g.items())}
+            key = f"{xy[0]:g},{xy[1]:g}"
+            if key not in hom:
+                call, hg = hom_layout(xy)
+                hb = max(hg, key=hg.get)
+                hom[key] = {"call": call, "grasps": hg, "J_mean": float(np.mean(list(hg.values()))), "J_best": hg[hb],
+                            "best_grasp": hb}
+            b = max(gm, key=gm.get)
+            run.update(grasps=gm, rollouts=len(rs), held=int(sum(bool(r.get("held")) for r in rs)),
+                       J_mean=float(np.mean(list(gm.values()))), J_best=gm[b], best_grasp=b,
+                       J_on_hom_best=gm.get(hom[key]["best_grasp"]), checkpoint=rs[0].get("checkpoint"))
+            out[d.name] = run
+    return out, hom
+
+
 STEEL = ROOT / "docs/experiments/20261113-steel_solver/data/20261113-steel_solver.json"
 MPC_ROWS = ROOT / "docs/experiments/20261112-inner_loop_benchmark/rows"
 NEWTON = "nt_mjc_hydro"          # the Steel page's Newton row: SolverMuJoCo with Newton's SDF hydroelastic contact
@@ -442,10 +506,17 @@ def cost_of_search():
         if ratio:
             ctl.append((lab, mjw * float(ratio), col))
     n_plan = len(ctl)
-    ctl += [(f"RL: a policy per layout, {rl['min_median']:.0f} min each\n(the median of our {rl['runs']} trainings)",
-             n_lay * 60.0 * rl["min_median"], "#0f766e"),
-            (f"RL: a policy per layout,\n{rl['best_case_min']:.0f} min each at best", n_lay * 60.0 * rl["best_case_min"],
-             "#14b8a6")]
+    # owner, 2026-11-16: "update the control throughput slides with the real UHAS timing instead of the hypothetical RL
+    # training": one UHAS policy trained per layout, at the measured training time of its single-layout runs
+    if UHAS_RUNS.exists():
+        fi["uhas_runs"], fi["uhas_hom"] = uhas_runs()
+    ur = fi.get("uhas_runs", {})
+    if ur:
+        um = float(np.median([v["minutes"] for v in ur.values()]))
+        n_xy = len({tuple(v["layout"]) for v in ur.values()})
+        how = (f"the median of {len(ur)} trainings on {n_xy} layout" + ("s" if n_xy > 1 else "") if len(ur) > 1
+               else "measured, 1 training on one layout")
+        ctl += [(f"UHAS (RL): a policy per layout, {um:.0f} min each\n({how})", n_lay * 60.0 * um, "#0f766e")]
     out.update(cost_chart(ctl, f"The same {n_roll / 1e6:.2f} M rollouts on MuJoCo-Warp with the pads, one GPU,\n"
                                "under HOM, a planner in its place, or one trained policy per layout",
                           "20261116-slide_cost_control.png", split=n_plan))
