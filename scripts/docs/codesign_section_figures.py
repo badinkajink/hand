@@ -693,19 +693,19 @@ BENCH_A = [("hom", ("hom_twist_handA",), "HOM", "#d97706"),
 
 
 def controller_benchmark_hand_a():
-    """The controllers of the search-time chart on hand A's twist, on the four measures of controller_benchmark: mean J
-    with its standard error over the runs, mean J at plant friction 0.4 (every controller's model, and UHAS's training,
-    at 1.0), the median target reversals per joint per second and the median share of joint-periods at the torque limit
-    over the held runs. Per-hand PPO pools its three policies' runs. Writes 20261116-slide_controller_benchmark_handA.png
+    """The controllers of the search-time chart on hand A's twist, on three measures of controller_benchmark: mean J with
+    its standard error over the runs, the median target reversals per joint per second and the median share of
+    joint-periods at the torque limit over the held runs; mean J at plant friction 0.4 (every controller's model, and
+    UHAS's training, at 1.0) in figures.json where it was run, not drawn. Per-hand PPO pools its three policies' runs. Writes 20261116-slide_controller_benchmark_handA.png
     and figures.json controller_benchmark_handA."""
     import inner_loop_mpc_page as MP
     S = {}
     for key, stems, lab, col in BENCH_A:
         a = sum((MP.load(s) for s in stems), [])
-        b = sum((MP.load(s.replace("_handA", "_handA_mu0.4")) for s in stems), [])
-        if a and b:
-            S[key] = (lab, col, MP.stats(a), MP.stats(b), [round(float(np.mean([r["J"] for r in MP.load(s)])), 3)
-                                                           for s in stems])
+        b = sum((MP.load(s.replace("_handA", "_handA_mu0.4")) for s in stems), [])     # friction 0.4: not drawn
+        if a:
+            S[key] = (lab, col, MP.stats(a), MP.stats(b) if b else {"J": None, "held": None},
+                      [round(float(np.mean([r["J"] for r in MP.load(s)])), 3) for s in stems])
     rows = [S[k] for k, *_ in BENCH_A if k in S]
     if not rows:
         return None
@@ -724,9 +724,12 @@ def controller_benchmark_hand_a():
 
 
 def _benchmark_figure(rows, name):
-    """The four panels of controller_benchmark for rows (label, colour, stats at friction 1.0, stats at 0.4, ...)."""
-    fig, ax = plt.subplots(1, 4, figsize=(17.0, 0.8 + 0.68 * len(rows)), sharey=True,
-                           gridspec_kw={"width_ratios": [1.0, 1.0, 1.15, 1.0], "wspace": 0.12})
+    """Three panels for rows (label, colour, stats at friction 1.0, stats at 0.4, ...): mean J with its standard error,
+    the median target reversals per joint per second and the median joint time at the torque limit (owner, 2026-11-16
+    23:5x: "we can also drop the chart for friction =0.4 its just not informative"; on hand A no controller kept J above
+    0.03 there)."""
+    fig, ax = plt.subplots(1, 3, figsize=(14.0, 0.8 + 0.68 * len(rows)), sharey=True,
+                           gridspec_kw={"width_ratios": [1.0, 1.15, 1.0], "wspace": 0.12})
     y = np.arange(len(rows))[::-1]
     cols = [r[1] for r in rows]
 
@@ -736,21 +739,17 @@ def _benchmark_figure(rows, name):
             x = vi * 1.18 if a.get_xscale() == "log" else vi + (err[k] if err else 0.0) + pad
             a.text(x, yi, ti, va="center", fontsize=14, color=INK)
 
-    jmax = max(0.62, 1.25 * max(r[2]["J"] + r[2]["J_se"] for r in rows))
-    ax[0].set_xlim(0, jmax)
+    ax[0].set_xlim(0, max(0.62, 1.25 * max(r[2]["J"] + r[2]["J_se"] for r in rows)))
     bars(ax[0], [r[2]["J"] for r in rows], [f"{r[2]['J']:.2f}" for r in rows], err=[r[2]["J_se"] for r in rows])
-    ax[0].set_title("Mean J, plant friction 1.0", loc="left", fontsize=16)
-    ax[1].set_xlim(0, jmax)
-    bars(ax[1], [r[3]["J"] for r in rows], [f"{r[3]['J']:.2f}" for r in rows], err=[r[3]["J_se"] for r in rows])
-    ax[1].set_title("Mean J, plant friction 0.4", loc="left", fontsize=16)
-    ax[2].set_xscale("log")
-    ax[2].set_xlim(0.2, 300)
+    ax[0].set_title("Mean J", loc="left", fontsize=16)
+    ax[1].set_xscale("log")
+    ax[1].set_xlim(0.2, 300)
     rv = [max(r[2]["reversals_ps"], 0.21) if np.isfinite(r[2]["reversals_ps"]) else 0.21 for r in rows]
-    bars(ax[2], rv, [f"{r[2]['reversals_ps']:.1f}" for r in rows])
-    ax[2].set_title("Target reversals per joint per s", loc="left", fontsize=16)
-    ax[3].set_xlim(0, 100)
-    bars(ax[3], [100 * r[2]["sat_frac"] for r in rows], [f"{100 * r[2]['sat_frac']:.0f} %" for r in rows], pad=2.5)
-    ax[3].set_title("Joint time at the torque limit", loc="left", fontsize=16)
+    bars(ax[1], rv, [f"{r[2]['reversals_ps']:.1f}" for r in rows])
+    ax[1].set_title("Target reversals per joint per s", loc="left", fontsize=16)
+    ax[2].set_xlim(0, 100)
+    bars(ax[2], [100 * r[2]["sat_frac"] for r in rows], [f"{100 * r[2]['sat_frac']:.0f} %" for r in rows], pad=2.5)
+    ax[2].set_title("Joint time at the torque limit", loc="left", fontsize=16)
     ax[0].set_yticks(y)
     ax[0].set_yticklabels([r[0] for r in rows], fontsize=14.5)
     for a in ax:
@@ -761,10 +760,10 @@ def _benchmark_figure(rows, name):
         a.grid(axis="x", color="#eef0f3")
         a.tick_params(axis="x", labelsize=13)
         a.set_axisbelow(True)
-    ax[2].set_xticks([1, 10, 100])
-    ax[2].set_xticklabels(["1", "10", "100"])
-    ax[3].set_xticks([0, 50, 100])
-    ax[3].set_xticklabels(["0", "50", "100 %"])
+    ax[1].set_xticks([1, 10, 100])
+    ax[1].set_xticklabels(["1", "10", "100"])
+    ax[2].set_xticks([0, 50, 100])
+    ax[2].set_xticklabels(["0", "50", "100 %"])
     return save(fig, name)
 
 

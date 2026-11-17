@@ -3369,7 +3369,6 @@
    2
   ],
   "missing": [
-   "ilqr",
    "anneal_full"
   ],
   "runs": {
@@ -3425,6 +3424,24 @@
     "replan_s": 0.299,
     "J_by_policy": [
      0.392
+    ]
+   },
+   "ilqr": {
+    "label": "iLQR",
+    "n": 48,
+    "J": 0.336659879970834,
+    "J_se": 0.04317076787581192,
+    "held": 0.9583333333333334,
+    "J_mu04": null,
+    "held_mu04": null,
+    "reversals_ps": 0.9275500000000001,
+    "cmd_rate_dps": 7.76615,
+    "sat_frac": 0.0,
+    "grip_mean_N": 5.77335,
+    "contact": 0.3935434782608695,
+    "replan_s": 1.405,
+    "J_by_policy": [
+     0.337
     ]
    },
    "uhas": {
