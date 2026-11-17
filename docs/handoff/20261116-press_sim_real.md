@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task: 2026-11-16 23:0x, owner: "sure, send off a background autopilot run to churn on the press task calibration". After
 the blind twists and the pick-up hang, compare the hand's two press trials of 11-16 with simulation under the calibrated
 servo, per fingertip contact variant (1 mm sphere pads or point contact; soft or stiff tangential contact; noslip), as the
@@ -52,7 +52,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HO… Done 11-16 23:38: press_predict.py run: 144 closed-loop runs (8 scenes x 2 plans x seeds 0-2, station on/off, mu 1.0 and 0.5) and 6 pipeline runs: no variant fits both trials (stiff holds, generalist 0.73-0.77 vs hand 0.469, lat0 0.09-0.18 vs 0.452; soft drops lat0 at the lift); pipeline 0.91/0.23
 - [x] 4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS… Done 11-16 23:38: scripts/hardware/hom_press_compare.py -> data/20261116-press/20261116-press_contact_compare.json and media/20261116-press_sim_vs_hand.png (checked at 900 px); rows and scripts copied to data/20261116-press/sim/
 - [x] 5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does… Done 11-16 23:43: README section 'State on 2026-11-16 23:45: the press against simulation' (stamped from date; prose_lint within targets) and 9 lines in the memory file, its outdated 'not yet done' line replaced
-- [ ] 6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+- [x] 6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop. Done 11-16 23:45: Committed by path (f9f2bbb3d step 1, edd1616cb the comparison) and pushed: 127321710..edd1616cb on the first try
 - [x] 7. Replay the hand's applied targets open loop on each scene variant (press_predict.py replay): HOM's frames tha… Done 11-16 23:38: press_predict.py replay, 48 runs: soft tangential contact follows the hand's press (mean |track error| 0.16 vs 0.30-0.36 stiff); point contact, soft, mu 0.5 follows both traces within 2.6 and 3.7 deg RMS, the generalist falling at 5.14 s (hand 5.05 s)
 - [?] 8. resguard watchdog, 2026-11-16 23:34:54 (PSI full 26.5, MemAvailable 13.8 GB): killed the four HOM twist serve… Waiting on owner: Relaunch the four HOM twist servers 47035-47038 that the resguard watchdog killed at 23:34:54 (commands in resguard.log lines 27370-27373), or leave them down until the next bench session?
 <!-- /ap:steps -->
