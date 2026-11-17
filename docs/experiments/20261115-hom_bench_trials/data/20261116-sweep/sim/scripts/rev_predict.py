@@ -52,9 +52,10 @@ def main():
     ap.add_argument("--scene", default=None, help="the plant's scene in scenes/ (default rev_fric2's soft-contact scene)")
     ap.add_argument("--torque-budget", type=float, default=None,
                     help="N m: HOM's targets under hom_bench.torque_budget, as the bench server's --torque-budget")
+    ap.add_argument("--trace", action="store_true", help="keep each run's twist about z_P every 0.1 s")
     a = ap.parse_args()
     RC2.STIFF, RC2.KP_YAW_IM, RC2.BREAKAWAY = True, a.kp_yaw_im, a.breakaway
-    RG.BUDGET = a.torque_budget
+    RG.BUDGET, RG.TRACE = a.torque_budget, a.trace
     if a.scene:
         RG.RF.SCENE = D / "scenes" / a.scene
     RG.gear_class = RC2.clutch_class

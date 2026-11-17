@@ -3174,5 +3174,70 @@
     0.28273487015536486
    ]
   }
+ },
+ "blind_twists": {
+  "image": "docs/experiments/20261115-hom_bench_trials/media/20261116-blind_twists_sim_vs_hand.png",
+  "mean_abs_error": {
+   "pipeline": 0.248,
+   "calibrated": 0.06
+  },
+  "grasps": {
+   "13": {
+    "blind": false,
+    "hand": 0.378,
+    "hand_partial": false,
+    "hand_window_s": [
+     2.0,
+     7.78
+    ],
+    "hand_twist_deg": 37.03,
+    "calibrated": 0.298,
+    "pipeline": 0.629,
+    "pipeline_twist_deg": 79.7,
+    "calibrated_twist_deg": 33.8
+   },
+   "4": {
+    "blind": true,
+    "hand": 0.379,
+    "hand_partial": true,
+    "hand_window_s": [
+     2.0,
+     5.98
+    ],
+    "hand_twist_deg": 22.62,
+    "calibrated": 0.428,
+    "pipeline": 0.48,
+    "pipeline_twist_deg": 81.1,
+    "calibrated_twist_deg": 55.8
+   },
+   "12": {
+    "blind": true,
+    "hand": 0.326,
+    "hand_partial": false,
+    "hand_window_s": [
+     2.0,
+     7.78
+    ],
+    "hand_twist_deg": 36.79,
+    "calibrated": 0.331,
+    "pipeline": 0.768,
+    "pipeline_twist_deg": 79.0,
+    "calibrated_twist_deg": 36.7
+   },
+   "8": {
+    "blind": true,
+    "hand": 0.0,
+    "hand_partial": true,
+    "hand_window_s": [
+     2.0,
+     5.82
+    ],
+    "hand_twist_deg": 15.88,
+    "calibrated": 0.105,
+    "pipeline": 0.2,
+    "pipeline_twist_deg": 61.0,
+    "calibrated_twist_deg": 18.5
+   }
+  }
  }
 }

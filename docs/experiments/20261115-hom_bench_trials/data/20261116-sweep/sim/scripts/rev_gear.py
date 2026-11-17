@@ -27,6 +27,7 @@ import rev_rescore as RR  # noqa: E402
 
 _G = {}
 BUDGET = None          # N m: hom_bench.torque_budget on HOM's targets, as the bench server's --torque-budget (rev_predict)
+TRACE = False          # keep each run's twist about z_P over time, every 0.1 s (rev_predict --trace)
 
 
 def gear_class():
@@ -128,8 +129,17 @@ def _run(name, src, call, k, seed, c):
     gap = (lambda fi, j: round(float(np.median([float(s["targets"][fi][j]) - float(s["joints"][fi][j]) for s in task])), 1))
     err, ref = res.get("track_err_rms_deg"), res.get("track_ref_rms_deg")
     bs = [float(s["budget_scale"]) for s in stream if s.get("budget_scale") is not None]
+    trace = None
+    if TRACE:                                   # the twist about z_P from the first sample, as the hand's records give it
+        from scipy.spatial.transform import Rotation as Rot
+        ok = np.isfinite(P).all(1) & (np.linalg.norm(Q, axis=1) > 0.5)
+        R = Rot.from_quat(Q[ok][:, [1, 2, 3, 0]])
+        tw = np.degrees((R * R[0].inv()).as_rotvec()[:, 2])
+        tt = t[ok]
+        keep = np.arange(0, len(tt), 5)
+        trace = {"t": tt[keep].round(3).tolist(), "twist_deg": tw[keep].round(2).tolist()}
     return {"grasp": name, "seed": seed, "c": c, "held": bool(res.get("held")),
-            "budget_scale_min": round(min(bs), 3) if bs else None,
+            "budget_scale_min": round(min(bs), 3) if bs else None, "trace": trace,
             "budget_scale_median": round(float(np.median(bs)), 3) if bs else None,
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
             "twist_end": round(float(f["twist_end"]), 1), "rise_max": round(float(f["rise_max"]), 2),
