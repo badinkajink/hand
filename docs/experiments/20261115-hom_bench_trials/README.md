@@ -4,6 +4,93 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 23:45: the press against simulation
+
+With HOM in the loop, no simulated contact model reproduced both press trials of 13:12 and 13:19. On the trial with the
+pinch at the axis, the station had refused 153 of 301 frames, so the commands that reached the hand's servos were
+different from HOM's. Replayed open loop, those commands pressed the simulated cylinder as the hand did when the
+tangential contact was soft. Point contact at friction 0.5 stayed within 2.6 and 3.7 deg RMS of the two press-angle
+traces. In the generalist's replay it let the cylinder fall from 5.14 s; the hand's fell from 5.05 s. The owner asked
+for this comparison at 23:0x ("sure, send off a background autopilot run to churn on the press task calibration").
+
+The press angle is the turn of the cylinder's axis about x_P from its first tracked pose, in degrees, positive in the
+sense of HOM's command theta_ref. The command rises from 0 to 20 deg between 2 and 3 s and stays there for 1 s. It
+returns to 0 at 5 s and stays there to 5.5 s. The tracking score is max(0, 1 - err/ref) over 2.0-5.5 s, as
+`scripts/hardware/hom_trial_tracking.py` computes it. Here err is the RMS angle between the axis and its 2.0 s pose
+turned by -theta_ref about x_P, and ref is the RMS of theta_ref, 13.8 deg. The trace RMS is the RMS difference between a
+simulated press angle and the hand's, taken at the hand's capture times from 0 to 5.5 s. Soft and stiff tangential
+contact are MuJoCo's impratio 1 (the twists' calibration) and 100 (the scenes'). Noslip is MuJoCo's noslip solver at 30
+iterations, which removes the soft contact's creep.
+
+The simulated object is the one on the hand (`logs/20261116-sim_real_reversal/press_stem.py`): the 25 mm cylinder with
+the sphere's stem and tag block glued under its middle, 30.1 g in all as weighed. Its centre of mass lies 10.3 mm below
+the axis and 38.2 mm from the pinch line toward the middle finger. Gravity therefore turns it about that line with
+11.3 mN m. It stands on its block on a table, which is removed at 1.6 s, when the arm lifted the hand. The servo model
+is the twists' (`rev_clutch2.py --stiff`): gears that the load cannot backdrive, kp 0.55, the index's and middle's yaw
+at 0.35. Each of eight contact variants (pads or point contact, impratio 1 or 100, noslip or not) ran in two ways
+(`press_predict.py`). In the closed loop HOM drove the simulated hand as the bench server drove the real one, seeds 0-2.
+In the replay the targets that reached the hand's servos were applied open loop from the hand's start pose. The design
+pipeline's model (HOM and servo at 0.72, stiff pads, the bare cylinder on its post) ran for reference. Rows, scripts and
+the comparison are in `data/20261116-press/` (`scripts/hardware/hom_press_compare.py`), the figure is
+`media/20261116-press_sim_vs_hand.png`.
+
+| Model | Contact | Track, pinch at the axis (hand 0.452) | Track, generalist (hand 0.469) | Trace RMS, axis / generalist (deg) |
+|---|---|---|---|---|
+| Design pipeline | pads, stiff | 0.235 | 0.905 | 3.6 / 10.3 |
+| Closed loop | pads, soft | 0, dropped at the lift | 0, fell at 4.5-5.1 s | 65.9 / 25.9 |
+| Closed loop | point, soft | 0, dropped at the lift | 0.421, fell at 5.0 and 5.4 s in 2 of 3 | 63.8 / 12.3 |
+| Closed loop | stiff or noslip, 6 variants | 0.09-0.18 | 0.73-0.77 | 4.0-5.5 / 10.4-11.4 |
+| Replay | pads, soft | 0.247 | 0.593 | 2.3 / 8.6 |
+| Replay | point, soft | 0.303 | 0.645 | 3.3 / 6.6 |
+| Replay | stiff or noslip, 6 variants | 0.06-0.12 | 0.74-0.83 | 4.1-5.3 / 8.1-8.7 |
+| Replay, friction 0.5 | pads, soft | 0.244 | 0.443 | 2.2 / 9.2 |
+| Replay, friction 0.5 | point, soft | 0.300 | 0.238, fell at 5.14 s | 2.6 / 3.7 |
+
+The station's refusals shaped the trial with the pinch at the axis. HOM sets a joint at its limit in the model's units,
+-16.110026 deg for the middle PIP. The station's range ends at -16.11 deg, and it refuses the whole frame. In that trial
+153 of 301 targets lay at the limit, from 0.94 s on. Every one failed: 102 were refused and 51 were lost with a dropped
+connection. Of the other 148, 147 arrived. HOM then ran on its own reference joints in 69 of the task's 175 periods, and
+its middle PIP target cycled: three periods at the limit, two near 0 deg. The servos received only the second kind. The
+hand's middle PIP therefore rose from -15 deg to about 0 deg between 1.2 and 1.6 s. The cylinder was then pressed
+9.4 deg at most. In simulation HOM's target for that PIP stayed at -16 to -14 deg, just short of the limit. With the
+station's rule applied, 0 to 3 frames were refused per run (78 in one run of 48). The closed loop gave the same scores
+with and without it. The generalist's trial reached the limit only at 5.10 s, after its press.
+
+On the generalist the closed loop commanded the hand's squeeze. HOM's target exceeded the measured joint by
+13.5-13.9 deg at the thumb's MCP, against 11.6 deg on the hand. At the index's MCP the excess was 10.8-11.5 deg, against
+10.9 deg. Soft tangential contact reproduced the fall after the release: the pads in all three seeds at 4.5-5.1 s, point
+contact in two seeds at 5.0 and 5.4 s. The hand's cylinder was 5 mm low at 5.05 s. With stiff or noslip contact the
+cylinder was held and pressed 19-20 deg, where the hand reached 15.8 deg. Its tracking score was 0.73-0.77. On the pinch
+at the axis the cylinder was lost with soft contact once the table went, in all six runs. On the pads it swung 76 deg
+down about the pinch line; under point contact it fell. With stiff contact it was held and pressed 1-4 deg, where the
+hand reached 9.4 deg. The middle MCP's target exceeded its angle by 0-8 deg in simulation and by 20.8 deg on the hand.
+
+In the replay the simulated joints stayed within 6 deg RMS of the hand's at every finger, the middle's farthest at
+1.7-5.9 deg. With soft tangential contact the simulated press on the pinch at the axis stayed within 2.2-3.3 deg RMS of
+the hand's. At friction 1.0 the stiff and noslip variants turned it at most 1.3 deg from its 2.0 s pose and missed the
+hand's trace by 4.1-5.3 deg RMS. At friction 0.5 the generalist's cylinder fell under point contact after the release,
+from 5.14 s. Its press angle at 5.5 s was -34.8 deg, the hand's -32.9 deg. No soft replay brought the pinch at the axis
+back with the command during the release: it stayed at 8-11 deg at 5.5 s, the hand's at 3.6 deg. At friction 0.5 the
+closed loop with soft contact dropped both cylinders at the lift, which the hand did not. The pick-up hang of 21:5x
+favoured the opposite setting: the hanging sphere was held only by pads with creep-free stiff contact.
+
+The close differed before any pressing. On the hand the closing fingers slid the cylinder 8.4 and 9.5 mm toward the
+thumb and turned its axis 17 and 22 deg about the vertical before the lift. In the replays the same targets slid it
+1.3-4.5 mm and turned it 4-8 deg. Lowering the friction of the table, stem and block from 1.0 to 0.35 changed the slide
+by at most 0.7 mm.
+
+Future work:
+
+-  Clip HOM's targets exactly to the station's servo range, in `HomBench.step` (it clips only beyond 1e-3 deg) or in
+  `lab/hom_trial.py` before posting. Then repeat the press with the pinch at the axis. The calibrated closed loop with
+  soft contact predicts that the cylinder swings down at the lift (six of six runs, `press_predict.py run`). A cylinder
+  that stays level on the hand falsifies that contact model for the pinch's hold.
+-  Look at the two trials' films on corvus (`logs/20261116-hom_trials/20261116-1258_session/20261116-131239_*` and
+  `20261116-131927_*`) for the 9 mm slide and 20 deg turn during the close. If they are real, measure the index's and
+  middle's fingertips at the touch pose; their DIP tags sat 3-7 mm from the model on 11-16.
+-  Measure the pads' friction on the cylinder's grip tape (UR5 and HEX-E drag). Friction 0.5 fits the replays best but
+  drops both cylinders at the lift in the closed loop, where at friction 1.0 the generalist's was kept.
+
 ## State on 2026-11-16 20:10: blind twists under a torque budget, the sphere carried to the table's centre
 
 The owner, 19:5x: "i think we can try again with the capped targets. we should also re-center the sphere on the table.

@@ -35,31 +35,32 @@ State:
   0.94 s (106 of 175 in the task), 147 of 301 frames reached the hand, HOM ran on its reference joints in 69 of 175
   task periods; the hand's middle PIP stayed at -7..+4 deg (median -0.4) where HOM commanded -16.1; HOM's target cycled
   3 periods at the limit, 2 near 0. Generalist: first at 5.10 s, after the stroke (the fall).
+- Step 2 done: press_stem.py, 8 scenes (30.1 g, centre of mass 10.3 mm below the axis, 38.2 mm from the pinch line).
+- Steps 3, 7, 4, 5 done (23:2x-23:45): press_predict.py run (144 closed-loop runs: station on/off, mu 1.0 and 0.5),
+  replay (48: the hand's accepted targets open loop, table mu 1.0/0.35, mu 0.5), pipeline (6); rows and script copies in
+  docs/experiments/20261115-hom_bench_trials/data/20261116-press/sim/, comparison 20261116-press_contact_compare.json,
+  figure media/20261116-press_sim_vs_hand.png, README section "State on 2026-11-16 23:45". Closed loop fits neither
+  trial; replay favours soft contact (point, mu 0.5: 2.6 / 3.7 deg RMS, generalist falls 5.14 s vs hand 5.05 s).
+- The deploy bug found: HomBench.step clips only beyond 1e-3 deg, the model's joint limits lie 2.5e-5 deg past the
+  station's, and the station refuses the whole frame (owner's call; hom_bench.py is outside this job's claim).
+- 23:34:54 the resguard watchdog killed the four HOM twist servers 47035-47038 and another session's inner_loop_mpc run
+  (not this job's); step 8 waits on the owner for their relaunch.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press … Done 11-16 23:14: Both trials read: press angle generalist 15.2 deg mean over the hold then a fall from 5.1 s; lat0 7.7 deg, held; lat0's frames refused by the station whenever HOM set the middle PIP at its limit (153 of 301)
-- [ ] 2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; geometry in
-    object_tracking_mjcf) as rev_stem.build does for the sphere, in pads and point-contact versions at impratio 1 and
-    100, with and without noslip (30). The arm's 40 mm lift at 1.6 s is modelled as in rev_stem.py for the twist: a table
-    under the block, removed at the lift as the post is. Masses as weighed: cylinder 23.6 g, block 6.5 g, stem about
-    0.6 g (rev_stem's sphere: 28.1 g in all). Check the centre of mass.
-- [ ] 3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HOM's press
-    on the calibrated plant (rev_clutch2 --stiff, yaw 0.35, HOM converting at 0.55, no budget) for both trials' plans and
-    grasps, seeds 0-2, per scene variant; per run the tracking score as hom_trial_tracking.py defines it for the press,
-    the press-angle trace every 0.1 s, held, and the object's drop. Also the design pipeline's model (backdrivable servo at
-    0.72, stiff contact, as logs/20261116-sim_real_reversal/blind_pipeline.py does for the twist).
-- [ ] 4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS),
-    writing docs/experiments/20261115-hom_bench_trials/data/20261116-press/20261116-press_contact_compare.json and
-    media/20261116-press_sim_vs_hand.png (bench folder), on the pattern of hom_blind_compare.py. Look at the figure at its
-    displayed size before committing.
-- [ ] 5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does not,
-    with numbers; stamp times from `date`), and 3-5 lines in the memory file project_hom_sim_real_reversal_2026_11_16.md.
+- [x] 2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; g… Done 11-16 23:25: 8 scenes logs/20261116-sim_real_reversal/scenes/cyl025_stem_block_{pads,pt}_imp{1,100}[_ns30].xml (press_stem.py): 30.1 g, centre of mass 10.29 mm below the axis at mid-length, 38.2 mm from the pinch line toward the middle (gravity 11.3 mN m about it); table under the block off at 1.6 s
+- [x] 3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HO… Done 11-16 23:38: press_predict.py run: 144 closed-loop runs (8 scenes x 2 plans x seeds 0-2, station on/off, mu 1.0 and 0.5) and 6 pipeline runs: no variant fits both trials (stiff holds, generalist 0.73-0.77 vs hand 0.469, lat0 0.09-0.18 vs 0.452; soft drops lat0 at the lift); pipeline 0.91/0.23
+- [x] 4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS… Done 11-16 23:38: scripts/hardware/hom_press_compare.py -> data/20261116-press/20261116-press_contact_compare.json and media/20261116-press_sim_vs_hand.png (checked at 900 px); rows and scripts copied to data/20261116-press/sim/
+- [x] 5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does… Done 11-16 23:43: README section 'State on 2026-11-16 23:45: the press against simulation' (stamped from date; prose_lint within targets) and 9 lines in the memory file, its outdated 'not yet done' line replaced
 - [ ] 6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+- [x] 7. Replay the hand's applied targets open loop on each scene variant (press_predict.py replay): HOM's frames tha… Done 11-16 23:38: press_predict.py replay, 48 runs: soft tangential contact follows the hand's press (mean |track error| 0.16 vs 0.30-0.36 stiff); point contact, soft, mu 0.5 follows both traces within 2.6 and 3.7 deg RMS, the generalist falling at 5.14 s (hand 5.05 s)
+- [?] 8. resguard watchdog, 2026-11-16 23:34:54 (PSI full 26.5, MemAvailable 13.8 GB): killed the four HOM twist serve… Waiting on owner: Relaunch the four HOM twist servers 47035-47038 that the resguard watchdog killed at 23:34:54 (commands in resguard.log lines 27370-27373), or leave them down until the next bench session?
 <!-- /ap:steps -->
 Claimed: logs/20261116-sim_real_reversal/press_*, scripts/hardware/hom_press_compare.py,
 docs/experiments/20261115-hom_bench_trials/data/20261116-press/, docs/experiments/20261115-hom_bench_trials/media/20261116-press_*,
 docs/experiments/20261115-hom_bench_trials/README.md (a new section only)
-Waiting on owner: none
+Waiting on owner: step 8 (relaunch the HOM servers 47035-47038, or leave them down); the clip fix in HomBench.step or
+lab/hom_trial.py, and a rerun of the lat0 press on the hand (README section 23:45, Future work).
 Do not: edit the talk deck (the contact repository's talks/20261117-hand_design/ or build_talk.py; the talk is 11-17
 at 12:00 and hand-4a owns it); touch the hardware, corvus or the CB1 (the HOM servers on ports 47035-47038 may stay up);
 run GPU jobs; change the outputs of the existing rev_*, pickup_* or hom_*_compare scripts (copy them into new press_*

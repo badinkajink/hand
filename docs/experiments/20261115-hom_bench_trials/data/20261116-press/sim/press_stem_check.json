@@ -1,0 +1,183 @@
+{
+ "parts": {
+  "mass_g": 30.1,
+  "com_O_mm": [
+   0.0,
+   -10.289,
+   0.0
+  ],
+  "inertia_g_mm2": [
+   31188.9,
+   20797.6,
+   12920.6
+  ]
+ },
+ "scenes": {
+  "cyl025_stem_block_pads_imp1.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 1.0,
+   "noslip_iterations": 0,
+   "pads": 3054
+  },
+  "cyl025_stem_block_pads_imp1_ns30.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 1.0,
+   "noslip_iterations": 30,
+   "pads": 3054
+  },
+  "cyl025_stem_block_pads_imp100.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 100.0,
+   "noslip_iterations": 0,
+   "pads": 3054
+  },
+  "cyl025_stem_block_pads_imp100_ns30.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 100.0,
+   "noslip_iterations": 30,
+   "pads": 3054
+  },
+  "cyl025_stem_block_pt_imp1.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 1.0,
+   "noslip_iterations": 0,
+   "pads": 0
+  },
+  "cyl025_stem_block_pt_imp1_ns30.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 1.0,
+   "noslip_iterations": 30,
+   "pads": 0
+  },
+  "cyl025_stem_block_pt_imp100.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 100.0,
+   "noslip_iterations": 0,
+   "pads": 0
+  },
+  "cyl025_stem_block_pt_imp100_ns30.xml": {
+   "mass_g": 30.1,
+   "com_O_mm": [
+    0.0,
+    -10.289,
+    0.0
+   ],
+   "inertia_g_mm2": [
+    12920.6,
+    20797.6,
+    31188.9
+   ],
+   "impratio": 100.0,
+   "noslip_iterations": 30,
+   "pads": 0
+  }
+ },
+ "plans": {
+  "generalist": {
+   "centre_P_mm": [
+    -1.67,
+    -18.55,
+    -68.23
+   ],
+   "com_P_mm": [
+    -1.67,
+    -18.55,
+    -78.52
+   ],
+   "pinch_line_to_centre_mm": 38.75,
+   "com_from_pinch_line_along_axis_mm": 38.19,
+   "com_below_pinch_line_mm": 3.69,
+   "gravity_torque_about_pinch_line_mNm": 11.28,
+   "pinch_lat_deg": 15.9,
+   "pusher_lat_deg": 30.1
+  },
+  "lat0": {
+   "centre_P_mm": [
+    -1.67,
+    -18.55,
+    -74.54
+   ],
+   "com_P_mm": [
+    -1.67,
+    -18.55,
+    -84.83
+   ],
+   "pinch_line_to_centre_mm": 38.19,
+   "com_from_pinch_line_along_axis_mm": 38.19,
+   "com_below_pinch_line_mm": 10.29,
+   "gravity_torque_about_pinch_line_mNm": 11.28,
+   "pinch_lat_deg": 0.0,
+   "pusher_lat_deg": 30.1
+  }
+ }
+}
