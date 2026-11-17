@@ -5456,5 +5456,152 @@
  "mean_abs_error": {
   "pipeline": 0.248,
   "calibrated": 0.06
- }
+ },
+ "variants": {
+  "pads_soft": {
+   "what": "1 mm sphere pads, soft tangential contact (impratio 1)",
+   "scene": "sph040_stem_block_tape0_imp1.xml",
+   "grasps": {
+    "13": {
+     "track": 0.298,
+     "held": 3,
+     "twist_end": 33.76666666666667,
+     "rise_max": 4.62,
+     "trace_rms_deg": 3.520937184903909
+    },
+    "4": {
+     "track": 0.428,
+     "held": 3,
+     "twist_end": 55.800000000000004,
+     "rise_max": 8.11,
+     "trace_rms_deg": 14.76079614298766
+    },
+    "12": {
+     "track": 0.33066666666666666,
+     "held": 3,
+     "twist_end": 36.699999999999996,
+     "rise_max": 6.509999999999999,
+     "trace_rms_deg": 5.223129270026975
+    },
+    "8": {
+     "track": 0.10466666666666667,
+     "held": 3,
+     "twist_end": 18.46666666666667,
+     "rise_max": 0.7166666666666667,
+     "trace_rms_deg": 8.983364265781956
+    }
+   },
+   "mean_abs_error": 0.06,
+   "trace_rms_deg_mean": 8.1
+  },
+  "point_soft": {
+   "what": "one tip mesh, point contact, impratio 1",
+   "scene": "sph040_stem_block_pt_imp1.xml",
+   "grasps": {
+    "13": {
+     "track": 0.3213333333333333,
+     "held": 3,
+     "twist_end": 34.23333333333333,
+     "rise_max": 3.766666666666667,
+     "trace_rms_deg": 2.8904216678292145
+    },
+    "4": {
+     "track": 0.34600000000000003,
+     "held": 3,
+     "twist_end": 62.833333333333336,
+     "rise_max": 12.026666666666666,
+     "trace_rms_deg": 15.571031172154347
+    },
+    "12": {
+     "track": 0.32233333333333336,
+     "held": 3,
+     "twist_end": 35.13333333333333,
+     "rise_max": 5.216666666666667,
+     "trace_rms_deg": 5.828125877176262
+    },
+    "8": {
+     "track": 0.152,
+     "held": 3,
+     "twist_end": 27.666666666666668,
+     "rise_max": 0.54,
+     "trace_rms_deg": 6.385316414283224
+    }
+   },
+   "mean_abs_error": 0.061,
+   "trace_rms_deg_mean": 7.7
+  },
+  "pads_stiff": {
+   "what": "1 mm sphere pads, impratio 100",
+   "scene": "sph040_stem_block_tape0_imp100.xml",
+   "grasps": {
+    "13": {
+     "track": 0.1466666666666667,
+     "held": 3,
+     "twist_end": 16.466666666666665,
+     "rise_max": 0.20666666666666667,
+     "trace_rms_deg": 10.668535392398496
+    },
+    "4": {
+     "track": 0.08733333333333333,
+     "held": 3,
+     "twist_end": 26.96666666666667,
+     "rise_max": 2.5533333333333332,
+     "trace_rms_deg": 16.210844799021654
+    },
+    "12": {
+     "track": 0.2916666666666667,
+     "held": 3,
+     "twist_end": 31.066666666666663,
+     "rise_max": 0.4266666666666667,
+     "trace_rms_deg": 6.185786922768519
+    },
+    "8": {
+     "track": 0.05033333333333334,
+     "held": 2,
+     "twist_end": -19.733333333333334,
+     "rise_max": 0.14666666666666667,
+     "trace_rms_deg": 8.21064894036362
+    }
+   },
+   "mean_abs_error": 0.152,
+   "trace_rms_deg_mean": 10.3
+  },
+  "point_stiff": {
+   "what": "one tip mesh, point contact, impratio 100",
+   "scene": "sph040_stem_block_pt_mirror.xml",
+   "grasps": {
+    "13": {
+     "track": 0.10466666666666667,
+     "held": 3,
+     "twist_end": 10.833333333333334,
+     "rise_max": 0.06666666666666667,
+     "trace_rms_deg": 13.398837077581954
+    },
+    "4": {
+     "track": 0.035333333333333335,
+     "held": 3,
+     "twist_end": 5.7,
+     "rise_max": 0.15333333333333335,
+     "trace_rms_deg": 16.667757998683786
+    },
+    "12": {
+     "track": 0.30466666666666664,
+     "held": 3,
+     "twist_end": 32.5,
+     "rise_max": 0.3333333333333333,
+     "trace_rms_deg": 6.306640698045691
+    },
+    "8": {
+     "track": 0.0,
+     "held": 0,
+     "twist_end": 12.466666666666667,
+     "rise_max": 0.13333333333333333,
+     "trace_rms_deg": 8.320017555563396
+    }
+   },
+   "mean_abs_error": 0.16,
+   "trace_rms_deg_mean": 11.2
+  }
+ },
+ "pipeline_trace_rms_deg_mean": 25.1
 }

@@ -52,6 +52,24 @@ def hand_trace(stamp):
     return {"t": t[keep].round(3).tolist(), "twist_deg": tw[keep].round(2).tolist(), "cmd_deg": cmd[keep].round(2).tolist()}
 
 
+VARIANTS = (("pads_soft", "predict_budget084_kp035_trace.json", "1 mm sphere pads, soft tangential contact (impratio 1)"),
+            ("point_soft", "predict_budget084_kp035_pt_trace.json", "one tip mesh, point contact, impratio 1"),
+            ("pads_stiff", "predict_budget084_kp035_pads_imp100_trace.json", "1 mm sphere pads, impratio 100"),
+            ("point_stiff", "predict_budget084_kp035_pt_imp100_trace.json", "one tip mesh, point contact, impratio 100"))
+
+
+def trace_rms(hand, traces):
+    """The RMS difference (deg) of each simulated twist trace from the hand's, from 0 s to the hand's last sample,
+    averaged over the traces."""
+    th, yh = np.array(hand["t"]), np.array(hand["twist_deg"])
+    out = []
+    for s in traces:
+        ts, ys = np.array(s["t"]), np.array(s["twist_deg"])
+        tt = np.arange(0.0, min(ts[-1], th[-1]), 0.1)
+        out.append(float(np.sqrt(np.mean((np.interp(tt, ts, ys) - np.interp(tt, th, yh)) ** 2))))
+    return float(np.mean(out)) if out else None
+
+
 def build():
     tracking = {t["stamp"]: t for t in json.loads((BENCH / "data/20261116-trial_tracking.json").read_text())["trials"]}
     cal = json.loads((REV / "predict_budget084_kp035_trace.json").read_text())
@@ -74,6 +92,28 @@ def build():
     mae = {k: float(np.mean([abs(np.mean(v[k]["track"]) - v["hand"]["track"]) for v in out["grasps"].values()]))
            for k in ("pipeline", "calibrated")}
     out["mean_abs_error"] = {k: round(v, 3) for k, v in mae.items()}
+    # the calibrated servo with another contact (owner, 2026-11-16 21:1x: "can we now compare with a point contact
+    # model"): the fingertip as one mesh with point contact in place of the pads, and the scenes' stiff tangential
+    # contact (impratio 100) in place of the soft one (impratio 1), each as rev_predict.py --scene runs it
+    out["variants"] = {}
+    for key, fname, what in VARIANTS:
+        d = json.loads((REV / fname).read_text())
+        per = {}
+        for g in HAND:
+            rs = [r for r in d["rows"] if r["grasp"] == f"grid2dgr_c329_g{g}" and "error" not in r]
+            per[str(g)] = {"track": float(np.mean([r["track"] or 0.0 for r in rs])), "held": sum(r["held"] for r in rs),
+                           "twist_end": float(np.mean([r["twist_end"] for r in rs])),
+                           "rise_max": float(np.mean([r["rise_max"] for r in rs])),
+                           "trace_rms_deg": trace_rms(out["grasps"][str(g)]["hand"]["trace"],
+                                                      [r["trace"] for r in rs if r.get("trace")])}
+        out["variants"][key] = {"what": what, "scene": d["meta"]["scene"], "grasps": per,
+                                "mean_abs_error": round(float(np.mean([abs(per[str(g)]["track"]
+                                                                           - out["grasps"][str(g)]["hand"]["track"])
+                                                                       for g in HAND])), 3),
+                                "trace_rms_deg_mean": round(float(np.mean([per[str(g)]["trace_rms_deg"]
+                                                                           for g in HAND])), 1)}
+    out["pipeline_trace_rms_deg_mean"] = round(float(np.mean([trace_rms(v["hand"]["trace"], v["pipeline"]["traces"])
+                                                              for v in out["grasps"].values()])), 1)
     OUT.write_text(json.dumps(out, indent=1) + "\n")
     return out
 
@@ -138,6 +178,10 @@ def main():
     d = build()
     figure(d)
     summ = {"image": str(FIG.relative_to(ROOT)), "mean_abs_error": d["mean_abs_error"],
+            "variants": {k: {"mean_abs_error": v["mean_abs_error"], "trace_rms_deg_mean": v["trace_rms_deg_mean"],
+                             "track": {g: round(x["track"], 3) for g, x in v["grasps"].items()}}
+                         for k, v in d["variants"].items()},
+            "pipeline_trace_rms_deg_mean": d["pipeline_trace_rms_deg_mean"],
             "grasps": {g: {"blind": v["blind"], "hand": v["hand"]["track"], "hand_partial": v["hand"]["partial"],
                            "hand_window_s": v["hand"]["window_s"],
                            "hand_twist_deg": v["hand"]["trace"]["twist_deg"][-1],   # from the first sample, as simulated
