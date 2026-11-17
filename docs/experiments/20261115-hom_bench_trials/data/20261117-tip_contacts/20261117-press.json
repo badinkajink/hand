@@ -1,0 +1,239 @@
+{
+ "record": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-131927_press_corvus.jsonl",
+ "mux": "logs/20261116-three_finger_mux/20261116-131831-mux.bin",
+ "rest": "1.0 s ending 0.2 s before t = 0, the first row's joints",
+ "own_pose": {
+  "thumb": {
+   "periods": 301,
+   "with_contact": 280,
+   "first_t": 0.4428,
+   "f_n_N": [
+    2.475,
+    2.776,
+    2.937
+   ],
+   "gap_mm": [
+    -5.07,
+    -4.02,
+    -2.86
+   ],
+   "gap_abs_median_mm": 4.02
+  },
+  "index": {
+   "periods": 301,
+   "with_contact": 259,
+   "first_t": 0.8628,
+   "f_n_N": [
+    2.226,
+    2.379,
+    2.494
+   ],
+   "gap_mm": [
+    -9.78,
+    -8.7,
+    -7.79
+   ],
+   "gap_abs_median_mm": 8.7
+  },
+  "middle": {
+   "periods": 301,
+   "with_contact": 137,
+   "first_t": 1.6828,
+   "f_n_N": [
+    0.425,
+    0.525,
+    0.638
+   ],
+   "gap_mm": [
+    2.36,
+    3.25,
+    5.0
+   ],
+   "gap_abs_median_mm": 3.25
+  },
+  "est_ms": [
+   7.4,
+   8.51,
+   18.52
+  ],
+  "apex_gap_mm": {
+   "thumb": [
+    0.29,
+    1.33,
+    2.77
+   ],
+   "index": [
+    -9.19,
+    -8.16,
+    -7.3
+   ],
+   "middle": [
+    4.63,
+    5.52,
+    6.44
+   ]
+  },
+  "rest": {
+   "thumb": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.1964,
+    "new_fit_mT": 0.2645,
+    "q_rest": [
+     16.99,
+     -11.13,
+     55.08
+    ]
+   },
+   "index": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.2579,
+    "new_fit_mT": 0.3461,
+    "q_rest": [
+     -27.83,
+     -11.13,
+     22.85
+    ]
+   },
+   "middle": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.0999,
+    "new_fit_mT": 0.2194,
+    "q_rest": [
+     2.34,
+     13.48,
+     0.0
+    ]
+   }
+  },
+  "middle_own_pose_uT_0.5_to_1.3_s": [
+   32.8,
+   35.3,
+   36.3
+  ],
+  "middle_d_uT_0.5_to_1.3_s": [
+   5.7,
+   9.4,
+   11.3
+  ],
+  "middle_e_0.5_to_1.3_s": [
+   0.1,
+   0.8,
+   4.6
+  ]
+ },
+ "no_own_pose": {
+  "thumb": {
+   "periods": 301,
+   "with_contact": 280,
+   "first_t": 0.4428,
+   "f_n_N": [
+    2.598,
+    2.92,
+    3.05
+   ],
+   "gap_mm": [
+    -5.01,
+    -3.95,
+    -2.81
+   ],
+   "gap_abs_median_mm": 3.95
+  },
+  "index": {
+   "periods": 301,
+   "with_contact": 259,
+   "first_t": 0.8628,
+   "f_n_N": [
+    2.333,
+    2.436,
+    2.564
+   ],
+   "gap_mm": [
+    -9.76,
+    -8.69,
+    -7.82
+   ],
+   "gap_abs_median_mm": 8.69
+  },
+  "middle": {
+   "periods": 301,
+   "with_contact": 148,
+   "first_t": 1.2028,
+   "f_n_N": [
+    0.798,
+    1.339,
+    1.777
+   ],
+   "gap_mm": [
+    3.52,
+    5.12,
+    11.69
+   ],
+   "gap_abs_median_mm": 5.12
+  },
+  "est_ms": [
+   7.26,
+   8.22,
+   9.41
+  ],
+  "apex_gap_mm": {
+   "thumb": [
+    0.29,
+    1.33,
+    2.77
+   ],
+   "index": [
+    -9.19,
+    -8.16,
+    -7.3
+   ],
+   "middle": [
+    4.53,
+    5.5,
+    6.44
+   ]
+  },
+  "rest": {
+   "thumb": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.1964,
+    "new_fit_mT": 0.2645,
+    "q_rest": [
+     16.99,
+     -11.13,
+     55.08
+    ]
+   },
+   "index": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.2579,
+    "new_fit_mT": 0.3461,
+    "q_rest": [
+     -27.83,
+     -11.13,
+     22.85
+    ]
+   },
+   "middle": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.0999,
+    "new_fit_mT": 0.2194,
+    "q_rest": [
+     2.34,
+     13.48,
+     0.0
+    ]
+   }
+  },
+  "middle_d_uT_0.5_to_1.3_s": [
+   25.4,
+   30.2,
+   33.8
+  ],
+  "middle_e_0.5_to_1.3_s": [
+   7.7,
+   18.0,
+   23.1
+  ]
+ },
+ "seconds": 9.9
+}

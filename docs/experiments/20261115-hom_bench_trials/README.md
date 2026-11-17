@@ -4,6 +4,161 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## Trials with the fingertips (from 2026-11-17)
+
+Every HOM trial now records the three fingertip boards and sends their contact estimates to the HOM server. Whether HOM
+uses them is set by the server's `--tips` switch. On the pick-up of 2026-11-16 the estimates placed the pinch's contacts
+0.3 and 1.6 mm (medians) outside the tracked sphere's surface. On the press of 13:19 they found the thumb at 2.8 N and
+the index at 2.4 N. Fed the press's recorded states, HOM with `--tips on` moved its targets by 0.86 deg (median) and 18
+deg at most. With `--tips off` the targets were those of 11-16 to 0.017 deg. The owner asked for this at 23:4x on 11-16:
+"lets make sure the next time we run trials we have the fingertip sensing going. ideally with pose tracking, closed loop
+control too. that can be churned away on overnight to be ready for evaluation".
+
+Terms and metrics:
+
+- A board is one fingertip's ReSkin 5X with five magnetometer chips, read through one I2C mux:
+
+  | Finger | Tip | Mux channel |
+  |---|---|---|
+  | thumb | v3 ID 1 | 3 |
+  | index | v3 ID 3 | 1 |
+  | middle | v3 ID 2 | 0 |
+
+- The splitter is `src/sr2hand/driver/reskin5x/host/reskin5x_mux.py`. It reads the mux at 160.6 records/s and logs every
+  record to `logs/<date>-three_finger_mux/<start>-mux.bin`. Each board's records also go to a pseudo-terminal at
+  `/tmp/reskin5x_mux/ch<channel>`, from which the trial reads them.
+- The rest is a board's mean reading over 1 s with the fingers still at the trial's open pose, before t = 0.
+- A contact estimate is a point on the pad (mm, in the palm frame P) and the normal force there (N). A finger counts as
+  touching from 0.25 N, the boards' floor.
+- The gap is the distance from an estimated contact point to the tracked object's surface in P, negative inside the
+  object. The apex gap is the same for the pad's apex, where the hand's model puts the contact without the boards.
+- The data age is the time from a board's newest record to the state that sends its estimate.
+
+The estimator, `src/sr2hand/driver/reskin5x/host/tip_contacts.py`, runs the contact viewer's estimate on each board
+(`wrench_viewer.py --board-gp`). The chips' readings are corrected for their temperature, and the change from the rest
+is averaged over 50 ms. Whether there is a contact is decided by the physical model of the tip's magnets. That model is
+the tip's calibration of 11-02, kept when it fits the rest at least as well as a new fit. The point and the force then
+come from the UR5 board GP of the v3 tips. One term is new. A board's reading changes with its own finger's pose by up
+to 166 uT with nothing touching, the reading of a 5.8 N press (crosstalk sweep of 11-04/05). A GP on the finger's three
+joint angles, fitted to that sweep, predicts the change between the rest's pose and the present pose. That change is
+taken off first (`data/20261117-tip_contacts/20261117-own_pose_gp.npz`; `--no-own-pose` leaves it out). The point goes
+from the pad frame to the hand's tip frame (x_tip = s (x + 2.05), y_tip = -s y, z_tip = 10.86 - z, with s the finger's
+face sign). The tool chain then places it in P at the measured joints and the plan's mounts.
+
+On corvus, from the repository, the first command shows the splitter's state; a trial starts the splitter when it is
+not running. The second, at the open pose after `ready`, takes the rests and prints a few seconds of estimates. Nothing
+moves, and no contact should show:
+
+    /usr/bin/python3 src/sr2hand/driver/reskin5x/host/tip_contacts.py logger --start
+    /usr/bin/python3 src/sr2hand/driver/reskin5x/host/tip_contacts.py rest --plan PLAN --station http://10.99.99.2:8765
+
+The HOM server on the workstation, with `--tips off` (the default) or `--tips on`:
+
+    .venv/bin/python -m sr2hand.control.hom_server serve --task twist --d 40 --plant measured --torque-budget 0.84 \
+        --plan PLAN --listen PORT --reply CORVUS_TAILSCALE_IP:47001 \
+        --log-dir docs/experiments/20261115-hom_bench_trials/runs --tips on
+
+The trial, with the fingertips unless `--no-tips`; `--plan` places their contacts in P. The cycle passes `--plan` and
+`TIP_FLAGS`:
+
+    /usr/bin/python3 lab/hom_trial.py trial --task twist --controller 100.65.73.59:PORT --object sphere --map MAP \
+        --plan PLAN --station http://10.99.99.2:8765 --live --arm --ft --out-dir OUT
+    lab/trial_cycle.sh PLAN PORT LABEL [MAX_DRIFT_MM]                  # TIP_FLAGS=--no-tips: without the boards
+
+A trial attaches to the splitter or starts it. It refuses to start unless all three boards stream at 100 records/s or
+more. It then prints "fingertip boards: ..." and `trial_cycle.sh` stops with exit 4, the hand at the open pose. Every
+record from 2 s before t = 0 goes to `OUT/<stamp>_<task>_tip_<finger>.bin`: host time (f8, the trial's clock), then 5 x
+(t x y z) (f4), read by `tip_contacts.read_stream`. After the rests the estimator runs in a thread of its own, every 20
+ms at most. Each state sends the newest estimate in StateMsg.cop, placed with the joints that state sends. The trial's
+record has, per period, "tips" (the point, normal and force in P, the pad-frame point, the GP's weight) and
+"tips_age_ms". Its header has the rests, its end line the estimator's timing. The server's record keeps what arrived
+under "contacts" and each finger's contact frame as HOM took it under "gcf" (source and distance). `pinch_pickup.py`'s
+grasp, lift and slip read the boards the same way (`--no-tips` without them). They print the field change of 11-16 and
+the contacts beside it, and write the records beside each step's telemetry. Only one program may read the
+pseudo-terminals at a time: the viewer must not run on them during a trial.
+
+The server's switch:
+
+- `--tips off` (default): the contacts are recorded, and HOM takes every contact frame from witness points on its model,
+  as on 11-16.
+- `--tips on`: a finger pressing with 0.25 N or more takes its contact frame from its centre of pressure
+  (hom.Mirror.gcf_from_cop), as hom_tasks' tip variant does in simulation.
+- `--tips raw`: the plan's own floor. `sil` runs its server so, since its simulated hand sends the plant's contacts. On
+  the press plan the UDP run's targets equalled the in-process loop's (0.0 deg) and the float64 run's to 0.0008 deg.
+
+The checks without hardware are `lab/tips_offline_check.py` (press, pickup, hom) and `lab/tips_live_check.py`, with
+their summaries in `data/20261117-tip_contacts/`. The press with the pinch at the axis (13:19:27) through the
+estimator, over 301 periods (10th, 50th and 90th percentiles):
+
+| Finger | Periods with a contact | First (s) | Force (N) | Gap (mm) | Apex gap (mm) |
+|---|---|---|---|---|---|
+| thumb | 280 | 0.44 | 2.48, 2.78, 2.94 | -5.1, -4.0, -2.9 | 0.3, 1.3, 2.8 |
+| index | 259 | 0.86 | 2.23, 2.38, 2.49 | -9.8, -8.7, -7.8 | -9.2, -8.2, -7.3 |
+| middle | 137 | 1.68 | 0.43, 0.53, 0.64 | 2.4, 3.3, 5.0 | 4.6, 5.5, 6.4 |
+
+The first pick-up (15:43-15:46: grasp, lift and slip), over 1,174 periods at 20 Hz, times from the close's start:
+
+| Finger | Periods with a contact | First (s) | Force (N) | Gap (mm) | Apex gap (mm) |
+|---|---|---|---|---|---|
+| thumb | 888 | 4.06 | 0.91, 1.29, 1.46 | 0.0, 0.3, 1.0 | 1.6, 1.9, 2.5 |
+| index | 0 | | | | |
+| middle | 996 | 4.16 | 0.67, 1.26, 1.40 | 1.1, 1.6, 2.7 | 3.2, 3.7, 4.5 |
+
+In the pick-up the contacts lay nearer the tracked sphere than the apex did, on the pads' distal halves. The index,
+curled away, showed none. The pinch's median forces were 1.37 and 1.34 N in the lift (thumb, middle). They fell to 1.11
+and 0.98 N as the slip lowered the squeeze. In the press the index's contact lay 8.7 mm inside the tracked cylinder, and
+its apex 8.2 mm. There the hand's model and the tracked pose disagree by about 8 mm. The thumb's contact lay 5 mm deeper
+than its apex. The own-pose term changed the middle finger. During the approach, from 0.5 to 1.3 s, its apex stayed 4-10
+mm from the cylinder. Its board changed by 30 uT, and the term's prediction was 35 uT. The explained chi-square fell
+from 18 to 0.8 (medians). Without the term the middle counted as touching from 1.20 s, at 1.34 N (median); with it, from
+1.68 s, at 0.53 N. The thumb's and the index's median forces changed by 0.14 and 0.06 N.
+
+The timing was measured on one core, under corvus's Python 3.10 with numpy 1.26.4 and scipy 1.12.0. The estimate for
+the three boards took 7.4 ms (median) and 8.5 ms (95th percentile) in the replays. `tips_live_check.py` ran
+`hom_trial.py trial` on a played log with the estimator's thread, a stand-in station and a local server. There:
+
+| Quantity (ms) | Median | 95th percentile | Most |
+|---|---|---|---|
+| Link period | 20.0 | 20.3 | 22.9 |
+| Estimate | 7.5 | 8.8 | 9.6 |
+| Estimate's age at its state | 7.8 | 17.4 | 20.2 |
+| Data age | 41 | 65 | |
+
+Most of the data age is the splitter's 50 ms batches. HOM's step time was 4.0 ms on corvus on 11-13 and 3.1 ms here
+on 11-16. An estimate there should therefore take about 10 ms.
+
+HOM was then fed the press's recorded states again (`hom_trial.py replay`, three servers in turn):
+
+| Server | Contacts sent | Compared with | Most (deg) | Median (deg) |
+|---|---|---|---|---|
+| `--tips off` | none | the server record of 11-16 | 0.017 | 0.0001 |
+| `--tips off` | the estimates | `--tips off` without them | 0.000 | 0.000 |
+| `--tips on` | the estimates | `--tips off` with them | 18.0 | 0.86 |
+
+With `--tips on` the contact frame came from the centre of pressure in 280, 259 and 137 of the 301 periods (thumb,
+index, middle). The middle finger's MCP and PIP targets moved most, by 3.8 and 4.7 deg RMS. In the press, the hold
+and the release they moved up to 10.6, 14.3 and 18.0 deg. The thumb's moved 1.1 deg RMS at most. HOM's step time was
+2.7 ms either way.
+
+The evaluation for the next session compares HOM with and without the fingertips on the same grasps:
+
+1. Grasps: the twists g13 and g12 at (105, 70), and the press with the pinch at the axis. Both twists ran their full
+   8.3 s under the torque budget on 11-16. The press waits until HOM's targets are clipped to the station's range
+   (Future work of 23:45).
+2. Two trials per grasp and setting, in the order off, on, on, off, from the same `ready` and the same server plan.
+3. Metrics: the tracking score (`scripts/hardware/hom_trial_tracking.py`) and the object's drift. Beside them, the
+   contact traces: each finger's force and point in P over time, from the trial's "tips". They are compared with HOM's
+   commanded force and the server's "gcf" sources.
+4. Each grasp's change in tracking score between the settings is compared with the gap between its two trials at one
+   setting. A change within that gap shows no gain from the contacts as HOM now uses them.
+
+Future work:
+
+- The index's 8 mm: measure the index's and middle's tips with their DIP tags at the press's touch pose
+  (`lab/fingertip_tag_check.py`). A tag within 2 mm of the model puts the error in the cylinder's tracked pose.
+- Forces on the hand: press each tip against the HEX-E at the open pose and compare the estimate's normal force with
+  the HEX-E's. Errors over 20 % at 1-3 N falsify the UR5 GP's transfer to the hand.
+
 ## State on 2026-11-16 23:45: the press against simulation
 
 With HOM in the loop, no simulated contact model reproduced both press trials of 13:12 and 13:19. On the trial with the

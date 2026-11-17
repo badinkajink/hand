@@ -21,10 +21,20 @@ time, the object's pose in P with its capture time, flags and tag count), the ar
 the HEX-E's wrench at that time, the target applied (sim degrees, its sequence, age and round trip), the station's
 status and the lift's phase. The controller's own record (hom_server) holds the same periods by sequence number.
 
+The fingertips (from 2026-11-17; owner, 2026-11-16: "lets make sure the next time we run trials we have the fingertip
+sensing going"). A trial attaches to the boards' splitter (reskin5x_mux.py), or starts it, and refuses to start unless
+all three boards stream at 100 records/s or more; --no-tips runs without them. Every board record from 2 s before t = 0
+goes into OUT_DIR/<stamp>_<task>_tip_<finger>.bin (host time f8 on the trial's clock, 5 x (t x y z) f4;
+tip_contacts.read_stream). Before t = 0, with the fingers still at the open pose, each board's rest is taken over
+--rest-s; from then on tip_contacts.TipContacts estimates the contacts in a thread of its own, and every state sends
+the newest in StateMsg.cop (per finger the point in P, mm, and the normal force, N; NaN without a contact), placed with
+the joints that state sends and the mounts of --plan. Each period's record has them under "tips". Whether HOM uses them
+is the server's choice (hom_server serve --tips).
+
     /usr/bin/python3 hom_trial.py plan --plan ../plans/20261115-generalist_press_plan.json
     /usr/bin/python3 hom_trial.py check --object cylinder --map MAP.json
     /usr/bin/python3 hom_trial.py trial --task press --controller 100.x.y.z:47002 --object cylinder --map MAP.json
-        [--station http://10.99.99.2:8765 --live] [--arm] [--ft] --out-dir OUT
+        --plan PLAN [--station http://10.99.99.2:8765 --live] [--arm] [--ft] --out-dir OUT [--no-tips]
     /usr/bin/python3 hom_trial.py return [--lift-mm 40]
 
 Defaults are the cautious ones: no --live, no --arm, no --ft, so a bare `trial` moves nothing and logs what it would
@@ -344,6 +354,37 @@ def start_tracker(a, on_sample, on_frame=None):
     return arm, tracker.start()
 
 
+def open_tips(a, stem):
+    """The fingertip boards for a trial: the splitter attached to or started, its three streams checked, every record
+    from 2 s back written to <stem>_<finger>.bin, and the estimator built on the plan's mounts. Exits with the reason
+    when a board does not stream (--no-tips runs the trial without them). Returns (TipContacts, Outlets, files)."""
+    import tip_contacts as TC
+    if not a.plan:
+        sys.exit("the fingertips need --plan (the mounts in P that place their contacts), or --no-tips")
+    outlets, why = None, None
+    try:
+        if a.tips_links:                                  # a test feed (tip_contacts.py play), not the splitter
+            pids, how = [], f"not checked (test links {a.tips_links})"
+            outlets = TC.Outlets(a.tips_links)
+        else:
+            pids, how = TC.ensure_splitter(start=True)
+            outlets = TC.Outlets()
+        outlets.start()
+        why = TC.check_streams(outlets, 1.0)
+    except (RuntimeError, OSError) as e:
+        why = f"{type(e).__name__}: {e}"
+    if why:
+        if outlets is not None:
+            outlets.close()
+        sys.exit(f"fingertip boards: {why}; --no-tips runs the trial without them")
+    files = outlets.record(str(stem), since=time.time() - 2.0)
+    tips = TC.TipContacts(outlets, TC.load_plan_d6(a.plan), gp=not a.no_tips_gp, own_pose=not a.no_own_pose)
+    print(f"{time.strftime('%H:%M:%S')} fingertips: splitter {how} (pids {pids}), boards at "
+          + ", ".join(f"{f} {v:.0f}/s" for f, v in outlets.rates(1.0).items()) + f"; records -> {stem}_<finger>.bin",
+          flush=True)
+    return tips, outlets, files
+
+
 def pose_error(p_mm, q, nominal):
     """(distance mm, angle deg) of the tracked pose in P from the grasp's nominal one (hom_server nominal)."""
     from sr2hand.geometry.rotations import quat_angle
@@ -396,6 +437,9 @@ def cmd_trial(a):
     out.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime('%Y%m%d-%H%M%S')
     path = out / f"{stamp}_{a.task}_corvus.jsonl"
+    tips = outlets = tip_files = tips_rest = None
+    if a.tips:
+        tips, outlets, tip_files = open_tips(a, out / f"{stamp}_{a.task}_tip")
     if not a.no_tracker:
         if a.video:
             # with --video-dir, the session's folder of hom_setup.py's recordings (film_session.py joins them)
@@ -408,6 +452,16 @@ def cmd_trial(a):
         time.sleep(a.settle_s)                                   # the cameras' first frames
     ft = "ur" if a.ur_ft else open_ft(a.ft)
     rtde = Lift.connect() if (a.arm and a.lift_mm > 0) else None
+
+    def joints_now():
+        return None if station is None or station.joints is None else np.array(station.joints, float)
+    if tips is not None:
+        # each board's rest with the fingers still at the open pose, before the close; then the estimator's thread
+        tips_rest = tips.rest(time.time(), a.rest_s, refit=not a.no_tips_refit, joints_servo=joints_now())
+        tips.start(1.0 / a.hz, joints=joints_now)
+        print(f"{time.strftime('%H:%M:%S')} fingertip rests: " + "; ".join(
+            f"{f} {r['model']} ({r['saved_fit_mT']:.2f} mT" + (f", new fit {r['new_fit_mT']:.2f}" if "new_fit_mT" in r else "")
+            + ")" for f, r in tips_rest.items()), flush=True)
     log = open(path, "w")
     rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     rx.bind(("0.0.0.0", a.listen))
@@ -422,7 +476,10 @@ def cmd_trial(a):
     log.write(json.dumps({"kind": "header", "task": a.task, "object": a.object, "map": a.map, "controller": a.controller,
                           "live": a.live, "arm": a.arm, "ft": "ur" if a.ur_ft else a.ft, "hz": a.hz, "t0_ms": t0 * 1000.0,
                           "lift": {"at_s": a.lift_at, "mm": a.lift_mm, "v_mps": a.lift_v, "a_mps2": a.lift_a,
-                                   "stop_N": a.stop_n}, "host": socket.gethostname(),
+                                   "stop_N": a.stop_n}, "host": socket.gethostname(), "plan": a.plan,
+                          "tips": None if tips is None else {
+                              "files": tip_files, "rest_s": a.rest_s, "rest": tips_rest, "gp": not a.no_tips_gp,
+                              "own_pose": not a.no_own_pose, "refit": not a.no_tips_refit},
                           "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
     if lift is not None:
         lift.start()
@@ -440,6 +497,14 @@ def cmd_trial(a):
             if m is not None:
                 st.t_capture_ms, st.p_PO, st.q_PO, st.obj_flags, st.n_tags = (m.t_capture_ms, m.p_PO, m.q_PO, m.flags,
                                                                               m.n_tags)
+            trec = t_est = None
+            if tips is not None:
+                # the newest estimate, placed in P with the joints this state sends
+                t_est, est = tips.get()
+                jj = np.asarray(st.joints, float)
+                st.cop, trec = tips.to_P(est, jj.reshape(3, 3) if np.all(np.isfinite(jj)) else None)
+                if "error" in est:
+                    trec = {"error": est["error"]}
             tx.sendto(st.pack(), ctrl)
             sent[seq] = now
             sent.pop(seq - 500, None)
@@ -466,6 +531,9 @@ def cmd_trial(a):
                    "arm": None if T_BE is None else ur_pose(T_BE), "ft": w, "t_ft_ms": t_ft,
                    "servo_polling_suspended": None if station is None else station.suspended,
                    "lift": None if lift is None else lift.phase, "status": status}
+            if tips is not None:
+                row["tips"] = trec
+                row["tips_age_ms"] = round(now - 1e3 * t_est, 1) if t_est is not None and math.isfinite(t_est) else None
             now2 = time.time() * 1000.0
             if m is not None and np.all(np.isfinite(m.p_PO)):
                 if p_obj0 is None:
@@ -520,6 +588,16 @@ def cmd_trial(a):
             tracker = None
         if video is not None:
             vid = video.close()
+        tips_end = None
+        if tips is not None:
+            tips.stop()
+            cm = np.array(tips.compute_ms, float)
+            tips_end = {"files": tip_files, "records": dict(outlets.count), "outlet_error": outlets.error,
+                        "estimates": int(len(cm)),
+                        "compute_ms": np.round(np.percentile(cm, [50, 95, 100]), 2).tolist() if len(cm) else None}
+            outlets.close()
+            print(f"fingertips: {tips_end['estimates']} estimates, {tips_end['compute_ms']} ms (median, p95, max); "
+                  f"records {tips_end['records']}", flush=True)
         diag = None
         if station is not None and station.live and (station.error or station.errors):
             # after a station error, once (owner, 2026-11-16: "we dont need to poll this all the time, it's just a
@@ -530,7 +608,7 @@ def cmd_trial(a):
                   f"{ {k: v / 10.0 for k, v in (diag.get('voltage') or {}).items() if v is not None} }, rebooted "
                   f"{diag.get('suspected_resets')}, no answer {diag.get('no_answer')}", flush=True)
         log.write(json.dumps({"kind": "end", "states": seq, "last_target": last_seq, "status": status, "video": vid,
-                              "servo_diagnostics": diag,
+                              "servo_diagnostics": diag, "tips": tips_end,
                               "frames_posted": None if station is None else station.n_frames,
                               "frames_with_joints": None if station is None else station.n_read,
                               "frame_errors": None if station is None else station.errors,
@@ -545,6 +623,86 @@ def cmd_trial(a):
         print(f"{time.strftime('%H:%M:%S')} trial done: {seq} states, last target {last_seq}, status {status}, lift "
               f"{None if lift is None else lift.phase} -> {path}", flush=True)
         os._exit(0)
+
+
+def cmd_replay(a):
+    """A recorded trial (this script's corvus record) sent again to a controller state by state, offline: the same
+    sequence numbers, times, joints and object poses, and StateMsg.cop from the fingertips' estimates on the splitter's
+    log of that trial (tip_contacts.MuxLog; the rest over --rest-s before t = 0, the record's first joints as its pose),
+    or NaN with --no-tips. Each state waits for its answer. Writes OUT_DIR/<stamp>_<task>_replay_corvus.jsonl in the
+    record's format. Nothing moves; no station, cameras or arm."""
+    import tip_contacts as TC
+    lines = [json.loads(x) for x in Path(a.corvus).read_text().splitlines() if x.strip()]
+    head, rows = lines[0], [x for x in lines[1:] if "seq" in x]
+    t0 = head["t0_ms"] / 1000.0
+    tips = rest = None
+    if a.tips:
+        if not (a.mux and a.plan):
+            sys.exit("replay with the fingertips needs --mux and --plan (or --no-tips)")
+        feed = TC.MuxLog(a.mux, t0 - a.rest_s - TC.KEEP_S - 1.0, rows[-1]["t_ms"] / 1000.0 + 1.0)
+        tips = TC.TipContacts(feed, TC.load_plan_d6(a.plan), gp=not a.no_tips_gp, own_pose=not a.no_own_pose)
+        j0 = next((np.asarray(r["joints"], float).reshape(3, 3) for r in rows if r.get("joints")), None)
+        rest = tips.rest(t0 + a.rest_end, a.rest_s, refit=not a.no_tips_refit, joints_servo=j0)
+    ctrl = (a.controller.rsplit(":", 1)[0], int(a.controller.rsplit(":", 1)[1]))
+    rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    rx.bind(("0.0.0.0", a.listen))
+    rx.settimeout(a.wait_s)
+    tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    out = Path(a.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"{time.strftime('%Y%m%d-%H%M%S')}_{head['task']}_replay_corvus.jsonl"
+    est_ms = []
+    with open(path, "w") as log:
+        log.write(json.dumps({**head, "kind": "header", "replay_of": a.corvus, "mux": a.mux, "plan": a.plan,
+                              "tips": None if tips is None else {"rest": rest, "rest_s": a.rest_s, "rest_end_s": a.rest_end,
+                                                                 "gp": not a.no_tips_gp, "own_pose": not a.no_own_pose,
+                                                                 "refit": not a.no_tips_refit}}) + "\n")
+        last, n_ans = -1, 0
+        for r in rows:
+            st = StateMsg(seq=r["seq"], t_ms=r["t_ms"], last_target_seq=max(last, 0), status=r.get("status", 0))
+            j = None
+            if r.get("joints"):
+                j = np.asarray(r["joints"], float)
+                st.joints, st.t_joints_ms = j, r["t_joints_ms"] if r.get("t_joints_ms") is not None else float("nan")
+            o = r.get("obj")
+            if o:
+                st.t_capture_ms, st.p_PO, st.q_PO = o["t_capture_ms"], np.asarray(o["p_PO"]), np.asarray(o["q_PO"])
+                st.obj_flags, st.n_tags = o.get("flags", 0), o.get("n_tags", 0)
+            trec = None
+            if tips is not None:
+                tc = time.perf_counter()
+                est = tips.estimate(r["t_ms"] / 1000.0, None if j is None else j.reshape(3, 3))
+                st.cop, trec = tips.to_P(est, None if j is None else j.reshape(3, 3))
+                est_ms.append(1e3 * (time.perf_counter() - tc))
+            tg = None
+            for _try in range(3):                     # resent until answered (the server may still be building)
+                tx.sendto(st.pack(), ctrl)
+                try:
+                    while True:
+                        m = TargetMsg.unpack(rx.recv(256))
+                        if m is not None and m.state_seq == r["seq"]:
+                            tg = m
+                            break
+                except socket.timeout:
+                    continue
+                break
+            row = {"seq": r["seq"], "t_ms": r["t_ms"], "t": r.get("t"), "joints": r.get("joints"), "obj": o,
+                   "tips": trec, "status": r.get("status")}
+            if tg is not None:
+                n_ans += 1
+                last = tg.seq
+                row.update(target=tg.seq, target_sim_deg=np.round(tg.targets, 4).tolist(), stop=bool(tg.flags & STOP))
+            log.write(json.dumps(row) + "\n")
+            if tg is None:
+                print(f"no answer to state {r['seq']}: stopping the replay", flush=True)
+                break
+            if tg.flags & STOP:
+                break
+        log.write(json.dumps({"kind": "end", "states": len(rows), "answered": n_ans,
+                              "estimate_ms": None if not est_ms else np.round(np.percentile(est_ms, [50, 95, 100]), 2).tolist()})
+                  + "\n")
+    print(f"replay: {n_ans} of {len(rows)} states answered -> {path}", flush=True)
+    return 0
 
 
 def cmd_return(a):
@@ -669,11 +827,39 @@ def main():
                     help="stop the trial (the station holds the last goals) when the tracked object moves this far from "
                          "its first pose in P; 0 turns it off (owner, 2026-11-16: keep the sphere in the usable "
                          "workspace)")
+    pt.add_argument("--plan", default=None, help="the trial's plan: its mounts (meta.hom.d6_P_mm) place the fingertips' "
+                                                 "contacts in P (needed with the fingertips)")
+    pt.add_argument("--no-tips", dest="tips", action="store_false",
+                    help="without the fingertip boards (by default a trial refuses to start unless all three stream)")
+    pt.add_argument("--rest-s", type=float, default=1.0, help="s of the boards' rest before t = 0, at the open pose")
+    pt.add_argument("--no-tips-gp", action="store_true", help="the boards' physical model alone, without the UR5 board GP")
+    pt.add_argument("--no-own-pose", action="store_true", help="without the boards' own-pose term")
+    pt.add_argument("--no-tips-refit", action="store_true",
+                    help="keep each tip's saved model, re-zeroed at the rest (no new fit competing with it)")
+    pt.add_argument("--tips-links", default=None,
+                    help="test only: the boards' pseudo-terminals in this folder (tip_contacts.py play), without the "
+                         "splitter's check")
     pr = sub.add_parser("return")
     pr.add_argument("--lift-mm", type=float, default=40.0)
     pr.add_argument("--stop-n", type=float, default=3.0)
     pr.add_argument("--ur-ft", action="store_true", help="the UR's own TCP force as the force stop")
+    pl = sub.add_parser("replay", help="a recorded trial sent again to a controller, offline")
+    pl.add_argument("--corvus", required=True, help="the trial's record (<stamp>_<task>_corvus.jsonl)")
+    pl.add_argument("--controller", required=True, help="the HOM server's HOST:PORT")
+    pl.add_argument("--listen", type=int, default=47001)
+    pl.add_argument("--out-dir", required=True)
+    pl.add_argument("--mux", default=None, help="the splitter's .bin over the trial (reskin5x_mux.py)")
+    pl.add_argument("--plan", default=None, help="the trial's plan (the mounts in P)")
+    pl.add_argument("--no-tips", dest="tips", action="store_false", help="StateMsg.cop NaN, as on 2026-11-16")
+    pl.add_argument("--rest-s", type=float, default=1.0)
+    pl.add_argument("--rest-end", type=float, default=-0.2, help="s of the trial's clock at which the rest ends")
+    pl.add_argument("--no-tips-gp", action="store_true")
+    pl.add_argument("--no-own-pose", action="store_true")
+    pl.add_argument("--no-tips-refit", action="store_true")
+    pl.add_argument("--wait-s", type=float, default=60.0, help="longest wait for an answer (the server's build)")
     a = ap.parse_args()
+    if a.cmd == "replay":
+        return cmd_replay(a)
     if a.cmd == "trial":
         if a.arm and not (a.ft or a.ur_ft):
             sys.exit("--arm needs --ft (or --ur-ft): the lift is stopped by a force change")

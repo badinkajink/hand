@@ -1,0 +1,119 @@
+{
+ "states": 302,
+ "period_ms": [
+  19.69,
+  20.0,
+  20.29,
+  22.94
+ ],
+ "rest": {
+  "thumb": {
+   "model": "saved, re-zeroed",
+   "saved_fit_mT": 0.1966,
+   "new_fit_mT": 0.2648,
+   "q_rest": [
+    16.99,
+    -11.13,
+    55.08
+   ]
+  },
+  "index": {
+   "model": "saved, re-zeroed",
+   "saved_fit_mT": 0.258,
+   "new_fit_mT": 0.3462,
+   "q_rest": [
+    -27.83,
+    -11.13,
+    22.85
+   ]
+  },
+  "middle": {
+   "model": "saved, re-zeroed",
+   "saved_fit_mT": 0.1,
+   "new_fit_mT": 0.2194,
+   "q_rest": [
+    2.34,
+    13.48,
+    0.0
+   ]
+  }
+ },
+ "tips_end": {
+  "files": {
+   "thumb": "/home/humanoid/Programs/hand/logs/20261117-tip_contacts/live_check/20261117-002408_press_tip_thumb.bin",
+   "index": "/home/humanoid/Programs/hand/logs/20261117-tip_contacts/live_check/20261117-002408_press_tip_index.bin",
+   "middle": "/home/humanoid/Programs/hand/logs/20261117-tip_contacts/live_check/20261117-002408_press_tip_middle.bin"
+  },
+  "records": {
+   "thumb": 1380,
+   "index": 1380,
+   "middle": 1380
+  },
+  "outlet_error": null,
+  "estimates": 300,
+  "compute_ms": [
+   7.51,
+   8.82,
+   9.61
+  ]
+ },
+ "estimate_age_ms": [
+  0.0,
+  7.8,
+  17.4,
+  20.2
+ ],
+ "thumb": {
+  "periods_with_contact": 233,
+  "first_t": 1.3804,
+  "f_n_N": [
+   2.437,
+   2.792,
+   2.893
+  ],
+  "data_age_ms": [
+   40.9,
+   65.2
+  ]
+ },
+ "index": {
+  "periods_with_contact": 214,
+  "first_t": 1.7619,
+  "f_n_N": [
+   2.241,
+   2.418,
+   2.538
+  ],
+  "data_age_ms": [
+   40.9,
+   65.2
+  ]
+ },
+ "middle": {
+  "periods_with_contact": 137,
+  "first_t": 2.5801,
+  "f_n_N": [
+   0.427,
+   0.502,
+   0.588
+  ],
+  "data_age_ms": [
+   34.2,
+   57.8
+  ]
+ },
+ "server": {
+  "periods": 302,
+  "tips": "on",
+  "contact_force_min_N": 0.25,
+  "periods_with_contacts": {
+   "thumb": 233,
+   "index": 214,
+   "middle": 137
+  }
+ },
+ "corvus": "/home/humanoid/Programs/hand/logs/20261117-tip_contacts/live_check/20261117-002408_press_corvus.jsonl",
+ "server_record": "/home/humanoid/Programs/hand/logs/20261117-tip_contacts/live_check/server/20261117-002411_press_d25_trial000.jsonl",
+ "trial_python": "/tmp/claude-1001/-home-humanoid-Programs-hand/220623e7-9cc1-4a6c-9fc0-a1fbd1972f54/scratchpad/corvus_env/bin/python",
+ "cpu": 5
+}

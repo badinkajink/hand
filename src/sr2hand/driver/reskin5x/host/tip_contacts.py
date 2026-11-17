@@ -9,7 +9,7 @@ on the middle finger (mux channel 0), v3 ID 3 on the index (channel 1) and v3 ID
 every record to logs/<date>-three_finger_mux/<start>-mux.bin and writes each board's records to a pseudo-terminal
 linked at /tmp/reskin5x_mux/ch<channel>. The live feed here (Outlets) reads those three pseudo-terminals. They get each
 batch of records as the splitter reads it from the mux, about every 50 ms. The .bin log reaches the disk in 8 KB
-blocks, about every 0.2 s, and serves replays (MuxLog). No other program may read the pseudo-terminals during a trial,
+blocks, about every 0.2 s; replays read it (MuxLog). No other program may read the pseudo-terminals during a trial,
 or the two readers split the records between them.
 
 The estimate, per board, is the viewer's (wrench_viewer.App with --board-gp, mode "board gp"). Every reading is divided
@@ -316,6 +316,28 @@ class TipContacts:
             out[f] = tip.set_rest(r, refit, q.get(f))
         return out
 
+    def rest_state(self):
+        """Each board's rest, its pose and its model (the new fit's parameters, or None for the saved one), as JSON:
+        load_rest_state takes it in another process (pinch_pickup.py's lift and slip after its grasp)."""
+        from dataclasses import asdict
+        return {f: dict(base=None if tip.base is None else np.asarray(tip.base).tolist(),
+                        q_rest=None if tip.q_rest is None else np.asarray(tip.q_rest).tolist(),
+                        cal=None if tip.cal is tip.cal0 else asdict(tip.cal), info=tip.rest_info)
+                for f, tip in self.tips.items()}
+
+    def load_rest_state(self, state):
+        for f, s in state.items():
+            tip = self.tips[f]
+            tip.cal, tip.model, tip.est, tip.tree = tip.saved
+            if s.get("cal"):
+                c = dict(s["cal"])
+                for key in ("poles", "perm", "g_uT"):
+                    c[key] = tuple(c[key])
+                tip.use(W.Calib(**c))
+            tip.base = None if s.get("base") is None else np.asarray(s["base"], float)
+            tip.q_rest = None if s.get("q_rest") is None else np.asarray(s["q_rest"], float)
+            tip.rest_info, tip.shown = s.get("info"), False
+
     def estimate(self, t_end=None, joints_servo=None):
         """{finger: Tip.estimate} from each board's records up to t_end (the newest without), at the joints then."""
         q = self._q(joints_servo)
@@ -323,13 +345,18 @@ class TipContacts:
 
     def to_P(self, est, joints_servo):
         """(cop (12,) for StateMsg.cop, {finger: record}) of the estimates est at the measured joints (servo degrees,
-        (3, 3)): each contact's point (mm), normal and force (N) in P; NaN and None for a finger without one."""
+        (3, 3)): each contact's point (mm), normal and force (N) in P; NaN and None for a finger without one. Without
+        joints a contact keeps its pad-frame values, p_P None and NaN in cop."""
         cop, rec = np.full(12, np.nan), {}
-        q = sim_deg(joints_servo) if joints_servo is not None and np.all(np.isfinite(joints_servo)) else None
+        q = self._q(joints_servo) or None
         for k, f in enumerate(FINGERS):
             e = est.get(f) or {}
-            if not e.get("contact") or q is None:
+            if not e.get("contact"):
                 rec[f] = None
+                continue
+            if q is None:
+                rec[f] = dict(p_P=None, f_n=round(e["f_n"], 4), p_pad=np.round(e["p"], 3).tolist(), w=e.get("w"),
+                              e=e["e"], t=e["t"])
                 continue
             c, _ = self.hand.box(f)
             m = self.mounts[f]
@@ -631,8 +658,11 @@ def cmd_logger(a):
 
 def cmd_rest(a):
     """The rest at the open pose, then live estimates in P at the station's joints (no motion)."""
-    ensure_splitter(start=a.start)
-    o = Outlets()
+    if a.links:                                           # a test feed (play), not the splitter
+        o = Outlets(a.links)
+    else:
+        ensure_splitter(start=a.start)
+        o = Outlets()
     o.start()
     why = check_streams(o, 1.0)
     if why:
@@ -664,6 +694,44 @@ def cmd_rest(a):
             for f, e in est.items()), flush=True)
     o.close()
     return 0
+
+
+def play(mux, t_from, seconds=None, links=LINKS, stop=None, quiet=False):
+    """A splitter's log written into pseudo-terminals at its own pace, as the splitter writes them (a test feed for the
+    live path; no mux is read): the records from t_from (s, the log's clock) for `seconds`, each board's to the
+    pseudo-terminal linked at links/ch<channel>, in batches every 50 ms. Runs until the log's end or stop is set."""
+    import tty
+    log = MuxLog(mux, t_from, None if seconds is None else t_from + seconds)
+    outs = {}
+    for f in FINGERS:
+        master, slave = os.openpty()
+        tty.setraw(slave)
+        os.set_blocking(master, False)
+        link = Path(links) / f"ch{CHANNEL[f]}"
+        link.parent.mkdir(parents=True, exist_ok=True)
+        if link.is_symlink() or link.exists():
+            link.unlink()
+        link.symlink_to(os.ttyname(slave))
+        outs[f] = (master, slave)
+    t_log0, t_wall0, i, n = float(log.t[0]), time.time(), 0, len(log.t)
+    if not quiet:
+        print(f"playing {n} records ({log.t[-1] - t_log0:.1f} s) of {Path(mux).name} into {links}", flush=True)
+    try:
+        while i < n and not (stop is not None and stop.is_set()):
+            j = int(np.searchsorted(log.t, t_log0 + time.time() - t_wall0, side="right"))
+            j = max(j, i)
+            for f in FINGERS:
+                b = b"".join(np.asarray(log.r[f][k], "<f4").tobytes() + b"\r\n" for k in range(i, j))
+                try:
+                    os.write(outs[f][0], b)
+                except (BlockingIOError, OSError):
+                    pass
+            i = j
+            time.sleep(0.05)
+    finally:
+        for master, slave in outs.values():
+            os.close(master)
+            os.close(slave)
 
 
 def _obj_gap(p, obj, shape, R_mm):
@@ -765,6 +833,7 @@ def main():
     p.add_argument("--no-refit", action="store_true", help="keep the saved models, re-zeroed (no new fit at rest)")
     p.add_argument("--no-gp", action="store_true", help="the physical model alone, without the board GP")
     p.add_argument("--no-own-pose", action="store_true", help="without the own-pose term")
+    p.add_argument("--links", default=None, help="test only: the pseudo-terminals of play, without the splitter's check")
     p = sub.add_parser("replay", help="a recorded trial through the estimator")
     p.add_argument("--corvus", required=True, help="hom_trial.py's record (<stamp>_<task>_corvus.jsonl)")
     p.add_argument("--mux", required=True, help="the splitter's .bin over the trial")
@@ -779,9 +848,19 @@ def main():
     p.add_argument("--out", default=None, help="JSON lines: a header with the rest and the summary, then one per period")
     p = sub.add_parser("own-pose-fit", help="the OwnPose GPs from the crosstalk sweep's rows (workstation)")
     p.add_argument("--out", default=str(OWN_POSE))
+    p = sub.add_parser("play", help="a splitter's log into pseudo-terminals at its own pace (a test feed)")
+    p.add_argument("--mux", required=True)
+    p.add_argument("--from", dest="t_from", type=float, required=True, help="s of the log's clock (corvus's epoch)")
+    p.add_argument("--seconds", type=float, default=None)
+    p.add_argument("--links", required=True, help="a folder of its own (never the splitter's /tmp/reskin5x_mux)")
     a = ap.parse_args()
     if a.cmd == "own-pose-fit":
         print(json.dumps(fit_own_pose(a.out)))
+        return 0
+    if a.cmd == "play":
+        if Path(a.links).resolve() == LINKS.resolve():
+            raise SystemExit(f"{LINKS} is the splitter's: give the test feed a folder of its own")
+        play(a.mux, a.t_from, a.seconds, a.links)
         return 0
     return {"logger": cmd_logger, "rest": cmd_rest, "replay": cmd_replay}[a.cmd](a)
 

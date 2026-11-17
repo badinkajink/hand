@@ -8,8 +8,11 @@
 # a second putdown that levels it fully. Stops at the first step that fails, with the hand where it is.
 # Run from docs/experiments/20261115-hom_bench_trials:
 #     lab/trial_cycle.sh PLAN PORT LABEL [MAX_DRIFT_MM]
+# The trial records the fingertip boards and sends their contacts to the HOM server (from 2026-11-17; README, "Trials with
+# the fingertips"): it attaches to the boards' splitter or starts it, and stops the cycle before the trial unless all three
+# boards stream. TIP_FLAGS passes more flags to the trial, e.g. TIP_FLAGS=--no-tips to run without the boards.
 set -u
-P=$1; PORT=$2; LABEL=$3; DRIFT=${4:-35}
+P=$1; PORT=$2; LABEL=$3; DRIFT=${4:-35}; TIP_FLAGS=${TIP_FLAGS:-}
 M=maps/20261116-sphere_fitted_map_O.json
 V=../../../logs/20261116-hom_trials/20261116-budget_twists
 PY=/usr/bin/python3
@@ -34,8 +37,11 @@ for guard in "" "--watch-mm 6 --watch-deg 15"; do
 done
 echo "$OUT" | grep -q "READY for the trial" || { log "NOT READY: stopping"; exit 2; }
 step "trial $LABEL" $PY lab/hom_trial.py trial --task twist --controller 100.65.73.59:$PORT --object sphere --map $M \
-    --station http://10.99.99.2:8765 --live --arm --ft --out-dir $V --video-dir $V --label $LABEL --max-drift-mm $DRIFT
+    --station http://10.99.99.2:8765 --live --arm --ft --out-dir $V --video-dir $V --label $LABEL --max-drift-mm $DRIFT \
+    --plan $P $TIP_FLAGS
+echo "$OUT" | grep -E "fingertip" | tail -3
 echo "$OUT" | tail -3
+echo "$OUT" | grep -q "fingertip boards:" && { log "TRIAL REFUSED: the fingertip boards (TIP_FLAGS=--no-tips runs without them)"; exit 4; }
 step putdown $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V --touch-lat 3
 echo "$OUT" | grep -E "carried|touchdown:|  down |not seated|LET GO|STOPPED|tracker does not" | tail -5
 if [ $RC -ne 0 ] && echo "$OUT" | grep -q "is not seated"; then

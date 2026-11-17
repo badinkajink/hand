@@ -32,7 +32,15 @@ again. The record says which source each period used.
 Record (JSON lines, one file per trial in --log-dir): a header line {"kind": "header", ...}, one line per period in the
 stream format of hom_bench.simulate (t, joints, obj_pos_mm, obj_quat, contacts, targets in servo degrees, phase,
 clipped) with the link's sequence numbers and times, the object's tracker flags, the sim-degree targets sent, the
-controller's compute time and the schedule's references, and an end line {"kind": "end", ...}.
+controller's compute time and the schedule's references, each finger's generalized contact frame as HOM took it (gcf:
+its source, cop or witness, and the bodies' distance in mm), and an end line {"kind": "end", ...}.
+
+The fingertips (--tips, 2026-11-17). corvus fills StateMsg.cop from the three boards (hom_trial.py, tip_contacts.py),
+and every period's record keeps what arrived under "contacts". With --tips off (the default) HOM gets none of them and
+takes every finger's contact frame from witness points on its model, as in the trials of 2026-11-16. With --tips on HOM
+gets them as hom_tasks' tip variant does in simulation: a finger with 0.25 N or more (hom_tasks.TIP_F_MIN, the boards'
+floor) takes its contact frame from its centre of pressure (hom.Mirror.gcf_from_cop). With --tips raw HOM gets them at
+the plan's own floor; sil runs its server so, because the simulated hand sends the plant's contacts, as before.
 
     .venv/bin/python -m sr2hand.control.hom_server serve --task press --d 25 [--plan PLAN.json] [--plant measured]
         --listen 47002 --reply CORVUS:47001 --log-dir docs/experiments/20261115-hom_bench_trials/runs
@@ -70,10 +78,14 @@ def configure(plant: str = "measured", hand: str = "cad_v2"):
 
 def _bench(a):
     configure(a.plant, a.hand)
+    from dataclasses import replace
     from . import hom_bench as HB
     kw = {"torque_budget": getattr(a, "torque_budget", None)}
     b = (HB.HomBench.from_plan(a.plan, a.task, a.d, a.dt, **kw) if a.plan
          else HB.HomBench.from_design(a.task, a.d, dt=a.dt, **kw))
+    if getattr(a, "tips", "off") == "on":                 # the tip variant's floor (hom_tasks.VARIANTS["tip"])
+        b.prm = replace(b.prm, contact_force_min=b.T.TIP_F_MIN)
+        b.reset()
     return HB, b
 
 
@@ -142,7 +154,8 @@ class Server:
                 "object_mass_kg": None if self.a.object_mass_g is None else self.a.object_mass_g / 1000.0,
                 "git": _git(), "host": socket.gethostname(),
                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "t0_ms": self.t0_ms,
-                "joints_mode": self.a.joints, "max_joint_age_ms": self.a.max_joint_age_ms}
+                "joints_mode": self.a.joints, "max_joint_age_ms": self.a.max_joint_age_ms,
+                "tips": self.a.tips, "contact_force_min_N": b.prm.contact_force_min}
         self.fh.write(json.dumps(head, default=_jsonable) + "\n")
         self.trials += 1
         print(f"trial {self.trials}: {self.path}", flush=True)
@@ -189,12 +202,14 @@ class Server:
         self.n_src[src] += 1
         if np.all(np.isfinite(s.p_PO)) and np.all(np.isfinite(s.q_PO)):
             self.last_obj = (np.asarray(s.p_PO, float), np.asarray(s.q_PO, float))
+        contacts = _contacts(s.cop)
         if self.last_obj is None:                                       # no pose yet: hold the open pose
             out, info = self.HB.servo_from_sim(b.q_open), {"phase": "no object", "clipped": [], "schedule": {}}
         else:
             tc = time.perf_counter()
             try:
-                out, info = b.step(t, joints, self.last_obj[0], self.last_obj[1], _contacts(s.cop))
+                out, info = b.step(t, joints, self.last_obj[0], self.last_obj[1],
+                                   contacts if self.a.tips != "off" else None)
             except Exception as e:             # noqa: BLE001  e.g. a least-squares solve on a diverged state
                 out = self.last_out if self.last_out is not None else self.HB.servo_from_sim(b.q_open)
                 info = {"phase": "controller error", "clipped": [], "schedule": {}, "error": repr(e)}
@@ -215,7 +230,9 @@ class Server:
                "joints_src": src, "joint_age_ms": round(age, 2) if math.isfinite(age) else None,
                "obj_pos_mm": None if self.last_obj is None else self.last_obj[0],
                "obj_quat": None if self.last_obj is None else self.last_obj[1], "t_capture_ms": s.t_capture_ms,
-               "obj_flags": s.obj_flags, "n_tags": s.n_tags, "contacts": _contacts(s.cop), "status": s.status,
+               "obj_flags": s.obj_flags, "n_tags": s.n_tags, "contacts": contacts, "status": s.status,
+               "gcf": {f: [hom[f]["source"], round(1e3 * float(hom[f]["dist"]), 3)] for f in self.HB.FINGERS
+                       if f in hom and "source" in hom[f]},
                "targets": out, "targets_sim_deg": sim_deg, "phase": info["phase"], "clipped": info["clipped"],
                "budget_scale": info.get("budget_scale"),
                "compute_ms": round(info.get("compute_ms", float("nan")), 3),
@@ -397,7 +414,7 @@ def cmd_sil(a):
     srv = [sys.executable, "-m", "sr2hand.control.hom_server", "serve", "--task", a.task, "--d", str(a.d),
            "--plant", a.plant, "--hand", a.hand, "--dt", str(a.dt), "--listen", str(a.port_out),
            "--reply", f"127.0.0.1:{a.port_in}", "--log-dir", a.log_dir, "--once", "--joints", a.server_joints,
-           "--tail-s", "0"] + (["--plan", a.plan] if a.plan else [])
+           "--tail-s", "0", "--tips", "raw"] + (["--plan", a.plan] if a.plan else [])
     proc = subprocess.Popen(srv, cwd=str(ROOT), env=dict(os.environ, PYTHONPATH=str(ROOT / "src")))
     try:
         t0 = time.time()
@@ -467,6 +484,10 @@ def main() -> int:
             p.add_argument("--once", action="store_true", help="exit after one trial")
             p.add_argument("--object-mass-g", type=float, default=None,
                            help="the object's measured mass with stem and block, for the record")
+            p.add_argument("--tips", default="off", choices=("off", "on", "raw"),
+                           help="the fingertips' contacts (StateMsg.cop): off, recorded and not given to HOM (as on "
+                                "2026-11-16); on, given to HOM as hom_tasks' tip variant does (a finger counts from "
+                                "0.25 N); raw, given at the plan's own floor (sil's simulated hand)")
         elif name != "nominal":
             p.add_argument("--seed", type=int, default=0)
             p.add_argument("--port-out", type=int, default=47102)

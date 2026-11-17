@@ -39,22 +39,26 @@ State:
   itself -7 to -10 mm inside at the measured joints (hand model/tracker offset, not the estimator). Live path reads the
   pty outlets (one reader at a time). Next: hom_trial integration (tips default on, --no-tips), then hom_server --tips
   {off,on,raw} (raw keeps sil's in-process equality), then the replays and the README.
+- (steps 3-4 written, 11-17 00:4x, uncommitted) hom_trial.py: open_tips (attach/start splitter, refuse unless 3 boards
+  >= 100/s, records OUT/<stamp>_<task>_tip_<finger>.bin from 2 s back), rest before t0, estimator thread, StateMsg.cop,
+  row "tips"/"tips_age_ms"; new `replay` (a record + its mux log -> a server, offline) and test-only --tips-links.
+  pinch_pickup.py Pads now on the live pty feed + TipContacts (rest state in REST json for lift/slip), --no-tips alias.
+  trial_cycle.sh: --plan $P $TIP_FLAGS, exit 4 on a refusal. hom_server: --tips off|on|raw, header + per-period "gcf".
+  tip_contacts.py: play (a .bin into ptys), rest_state/load_rest_state. lab/tips_live_check.py: the live path offline
+  (played .bin, stand-in station, local server); first run: 155 rec/s per board, 7.6 ms median estimate on one core.
+- (steps 3-6 done, 11-17 00:4x) Offline numbers in the README section "Trials with the fingertips (from 2026-11-17)" and
+  data/20261117-tip_contacts/*.json (lab/tips_offline_check.py press|pickup|hom, lab/tips_live_check.py). Live path on one
+  core: link period 20.0 ms (max 22.9), estimate 7.5 ms, data age 41 ms. HOM --tips off reproduces 11-16's targets to
+  0.017 deg and ignores contacts; --tips on moves them 0.86 deg median, 18 max. sil with --tips raw: UDP = loopback.
+  Step 7 (commit, push) next; nothing waits on the owner until the bench session (README's evaluation list).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Read the files above. Write into State how the mux logger is started on corvus, its record format and clock, … Done 11-17 00:03: State lines: logger command, .bin format and clock (corvus epoch, 1/150 s back-dating), tips ID1 thumb ch3 / ID3 index ch1 / ID2 middle ch0, HomBench.step's CoP GCF; hom_server already forwards any finite cop
 - [x] 2. A contact estimator for the three boards (new src/sr2hand/driver/reskin5x/host/tip_contacts.py): per board th… Done 11-17 00:13: src/sr2hand/driver/reskin5x/host/tip_contacts.py: viewer's estimator per board (saved v3 calib, rest refit rule, board GP blend), pad->tip->P transform, pty-outlet reader, .bin replay; runs under py3.10/numpy 1.26/scipy 1.12; 6.3 ms median for 3 boards on one core
-- [ ] 3. hom_trial.py (and pinch_pickup.py) start or attach to the mux logger for every trial, refuse to start unless all three
-    boards stream (override --no-tips), write the raw board records into the trial's run folder on the trial's clock, and
-    fill StateMsg.cop from the estimator every period. trial_cycle.sh passes the flags.
-- [ ] 4. hom_server: a --tips flag with which HomBench uses the measured contacts (as the tip variant does in simulation) and
-    records them per period. Default off, so 11-16's behaviour is unchanged.
-- [ ] 5. Offline test, no hardware: replay the 11-16 press (runs_corvus 131927 + 131831 mux) and the first pick-up through the
-    estimator and a local hom_server dry run with --tips on and off. Check the frames (contacts on the tip surfaces and
-    within a few mm of the tracked object's surface in P), the timing (estimator and message inside the 20 ms period on
-    one core) and the server's targets. Report the numbers in the runbook section of step 6.
-- [ ] 6. A section "Trials with the fingertips (from 2026-11-17)" in the bench README: the commands (mux logger, rest, trial
-    with tips, trial_cycle.sh), the checks, and the evaluation for the next session (HOM with and without --tips on the
-    same grasps, two trials each, the tracking score and the contact traces).
+- [x] 3. hom_trial.py (and pinch_pickup.py) start or attach to the mux logger for every trial, refuse to start unless … Done 11-17 00:32: hom_trial.py (open_tips: attach/start splitter, refuse unless 3 boards >= 100/s, records OUT/<stamp>_<task>_tip_<finger>.bin, rest before t0, estimator thread, StateMsg.cop, row tips; replay command), pinch_pickup.py Pads on the live feed + TipContacts (--no-tips), trial_cycle.sh --plan $P $TIP_FLAGS (exit 4 on refusal)
+- [x] 4. hom_server: a --tips flag with which HomBench uses the measured contacts (as the tip variant does in simulati… Done 11-17 00:32: hom_server serve --tips off|on|raw (off default: contacts recorded, not used; on: tip variant floor 0.25 N; raw: sil), header tips + floor, per-period gcf source/dist; sil press with raw: UDP = loopback 0.0 deg, float64 0.0008 deg, J 0.1419
+- [x] 5. Offline test, no hardware: replay the 11-16 press (runs_corvus 131927 + 131831 mux) and the first pick-up thr… Done 11-17 00:32: lab/tips_offline_check.py + tips_live_check.py, data/20261117-tip_contacts/: press thumb 2.8 N gap -4.0 mm (apex +1.3), index 2.4 N -8.7 (apex -8.2), middle 0.53 N +3.3; pick-up thumb 1.29 N +0.3 mm, middle 1.26 N +1.6, index none; one core: estimate 7.5 ms, link period 20.0 ms (max 22.9), estimate age 7.8 ms, data age 41 ms; HOM off = 11-16 targets to 0.017 deg, contacts change nothing; on: 0.86 deg median, 18 max (middle MCP/PIP)
+- [x] 6. A section "Trials with the fingertips (from 2026-11-17)" in the bench README: the commands (mux logger, rest,… Done 11-17 00:35: README section 'Trials with the fingertips (from 2026-11-17)': terms, estimator, commands (logger, rest, server --tips, trial, trial_cycle.sh), the records, the server's switch, the offline numbers (press, pick-up, timing, HOM dry runs), the evaluation (g13, g12, press lat0; off/on/on/off; tracking score, drift, contact traces) and two Future work items; prose lint 16 words mean, 2.1 % over 30
 - [ ] 7. Commit by path (never git commit -a); push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
 - [x] 8. Own-pose crosstalk: a per-board GP on the finger's own three joint angles (from the 11-04/05 crosstalk rows) … Done 11-17 00:13: OwnPose GP (data/20261117-tip_contacts/20261117-own_pose_gp.npz, 598 KB) default on: press 13:19 middle's approach change 28-31 uT predicted 35-37 uT, chi2 20 -> <2, first contact 1.20 -> 1.68 s at 0.43-0.64 N; thumb/index change < 0.15 N
 <!-- /ap:steps -->

@@ -1,0 +1,197 @@
+{
+ "bench_record": "docs/experiments/20261115-hom_bench_trials/runs/20261116-131932_press_d25_trial000.jsonl",
+ "off_nocop_vs_bench": {
+  "periods": 301,
+  "max_deg": 0.0169,
+  "median_deg": 0.0001,
+  "rms_deg_per_joint": [
+   0.001,
+   0.001,
+   0.001,
+   0.002,
+   0.001,
+   0.001,
+   0.0,
+   0.001,
+   0.001
+  ],
+  "share_periods_over_1deg": 0.0
+ },
+ "off_cop_vs_off_nocop": {
+  "periods": 301,
+  "max_deg": 0.0,
+  "median_deg": 0.0,
+  "rms_deg_per_joint": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "share_periods_over_1deg": 0.0
+ },
+ "on_cop_vs_off_cop": {
+  "periods": 301,
+  "max_deg": 17.9743,
+  "median_deg": 0.8613,
+  "rms_deg_per_joint": [
+   0.83,
+   0.802,
+   1.122,
+   2.394,
+   2.448,
+   1.893,
+   1.361,
+   3.796,
+   4.652
+  ],
+  "share_periods_over_1deg": 0.87
+ },
+ "off_cop_gcf_source_periods": {
+  "thumb": {
+   "witness": 301
+  },
+  "index": {
+   "witness": 301
+  },
+  "middle": {
+   "witness": 301
+  }
+ },
+ "off_cop_compute_ms_median": 2.69,
+ "on_cop_gcf_source_periods": {
+  "thumb": {
+   "witness": 21,
+   "cop": 280
+  },
+  "index": {
+   "witness": 42,
+   "cop": 259
+  },
+  "middle": {
+   "witness": 164,
+   "cop": 137
+  }
+ },
+ "on_cop_compute_ms_median": 2.71,
+ "on_vs_off_max_deg_by_phase": {
+  "open": {
+   "periods": 4,
+   "max": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "close": {
+   "periods": 35,
+   "max": [
+    0.08,
+    0.05,
+    0.03,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "squeeze": {
+   "periods": 40,
+   "max": [
+    3.04,
+    1.38,
+    1.44,
+    1.02,
+    3.92,
+    2.72,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "lift": {
+   "periods": 20,
+   "max": [
+    0.76,
+    0.47,
+    1.07,
+    1.0,
+    3.92,
+    3.1,
+    0.23,
+    1.37,
+    1.97
+   ]
+  },
+  "press": {
+   "periods": 50,
+   "max": [
+    0.73,
+    0.82,
+    1.35,
+    5.6,
+    3.99,
+    3.12,
+    2.49,
+    7.68,
+    10.57
+   ]
+  },
+  "hold up": {
+   "periods": 50,
+   "max": [
+    0.59,
+    0.7,
+    1.27,
+    7.62,
+    2.92,
+    2.34,
+    3.64,
+    8.4,
+    14.32
+   ]
+  },
+  "release": {
+   "periods": 51,
+   "max": [
+    1.14,
+    1.18,
+    1.56,
+    6.83,
+    3.12,
+    2.7,
+    2.13,
+    11.1,
+    17.97
+   ]
+  },
+  "hold": {
+   "periods": 51,
+   "max": [
+    1.58,
+    1.61,
+    1.82,
+    1.62,
+    3.49,
+    2.9,
+    0.19,
+    4.9,
+    9.29
+   ]
+  }
+ },
+ "joints_order": "thumb yaw mcp pip, index yaw mcp pip, middle yaw mcp pip (sim degrees)",
+ "seconds": 72.9
+}

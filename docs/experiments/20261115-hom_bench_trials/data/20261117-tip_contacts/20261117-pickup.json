@@ -1,0 +1,140 @@
+{
+ "telemetry": [
+  "docs/experiments/20261115-hom_bench_trials/data/20261116-pinch_pickup/20261116-154328_pinch_grasp_telemetry.jsonl",
+  "docs/experiments/20261115-hom_bench_trials/data/20261116-pinch_pickup/20261116-154429_pinch_lift_telemetry.jsonl",
+  "docs/experiments/20261115-hom_bench_trials/data/20261116-pinch_pickup/20261116-154534_pinch_slip_telemetry.jsonl"
+ ],
+ "mux": "logs/20261116-three_finger_mux/20261116-154014-mux.bin",
+ "rest": "0.6 s ending at pinch_pads_rest.json's time (the close's start), the nearest row's joints",
+ "summary": {
+  "thumb": {
+   "periods": 1174,
+   "with_contact": 888,
+   "first_t": 4.058,
+   "f_n_N": [
+    0.911,
+    1.294,
+    1.462
+   ],
+   "gap_mm": [
+    -0.0,
+    0.33,
+    0.95
+   ],
+   "gap_abs_median_mm": 0.33
+  },
+  "index": {
+   "periods": 1174,
+   "with_contact": 0,
+   "first_t": null,
+   "f_n_N": null,
+   "gap_mm": null,
+   "gap_abs_median_mm": null
+  },
+  "middle": {
+   "periods": 1174,
+   "with_contact": 996,
+   "first_t": 4.158,
+   "f_n_N": [
+    0.671,
+    1.257,
+    1.402
+   ],
+   "gap_mm": [
+    1.11,
+    1.62,
+    2.69
+   ],
+   "gap_abs_median_mm": 1.62
+  },
+  "est_ms": [
+   7.15,
+   8.36,
+   19.24
+  ],
+  "apex_gap_mm": {
+   "thumb": [
+    1.56,
+    1.92,
+    2.52
+   ],
+   "index": null,
+   "middle": [
+    3.23,
+    3.74,
+    4.47
+   ]
+  },
+  "rest": {
+   "thumb": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.1963,
+    "new_fit_mT": 0.2618,
+    "q_rest": [
+     -11.43,
+     -7.32,
+     34.86
+    ]
+   },
+   "index": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.2578,
+    "new_fit_mT": 0.3436,
+    "q_rest": [
+     29.0,
+     43.65,
+     58.89
+    ]
+   },
+   "middle": {
+    "model": "saved, re-zeroed",
+    "saved_fit_mT": 0.0996,
+    "new_fit_mT": 0.2152,
+    "q_rest": [
+     9.67,
+     -7.32,
+     34.57
+    ]
+   }
+  }
+ },
+ "f_n_by_step_N": {
+  "grasp": {
+   "thumb": [
+    0.66,
+    1.28,
+    1.42
+   ],
+   "middle": [
+    0.54,
+    0.91,
+    1.31
+   ]
+  },
+  "lift": {
+   "thumb": [
+    1.25,
+    1.37,
+    1.5
+   ],
+   "middle": [
+    1.26,
+    1.34,
+    1.45
+   ]
+  },
+  "slip": {
+   "thumb": [
+    0.82,
+    1.11,
+    1.3
+   ],
+   "middle": [
+    0.64,
+    0.98,
+    1.26
+   ]
+  }
+ },
+ "seconds": 11.4
+}

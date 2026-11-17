@@ -36,7 +36,9 @@ vertical, e being the pinch axis' height above the ball's centre at the grasp (r
 
 Then hom_setup.py putdown --plan <the plan file> (tracked touchdown, seat check, release check, release, straighten,
 lift). Logs: logs/20261116-hom_setup/<date>_pinch_pickup.jsonl (steps) and logs/20261116-hom_trials/<stamp>_pinch_<step>
-_telemetry.jsonl (streams). Every command takes --video-dir (both cameras).
+_telemetry.jsonl (streams), with the fingertip boards' records beside them in <stamp>_pinch_<step>_tip_<finger>.bin
+and their contact estimates in P in the streams (Pads; grasp, lift and slip refuse to start unless all three boards
+stream, --no-tips runs without them). Every command takes --video-dir (both cameras).
 
     /usr/bin/python3 pinch_pickup.py plan --object sphere --map ../maps/20261116-sphere_fitted_map_O.json
     /usr/bin/python3 pinch_pickup.py grasp --plan PLAN --object sphere --map MAP --go --video-dir DIR
@@ -81,58 +83,70 @@ def note(rec):
 
 # ------------------------------------------------------------------------------------------------ the fingertip boards
 
-MUX_DIR = HS.ROOT / "logs/20261116-three_finger_mux"
-BOARD = {"middle": 0, "index": 1, "thumb": 2}       # boards in the splitter's log: mux channels 0, 1, 3 (ch3 the thumb)
+BOARD = {"middle": 0, "index": 1, "thumb": 2}       # rows of Pads' fields: mux channels 0, 1, 3 (ch3 the thumb)
 NB = 3
-REC = 8 + 80 * NB                                   # reskin5x_mux.py's log: host time f64, then 5 x (t x y z) f32 a board
 REST = HS.LOG / "pinch_pads_rest.json"
 
 
 class Pads:
-    """The splitter's newest log (reskin5x_mux.py, started apart), tailed: each board's 15 field components and its
-    change from a rest (|B - B_rest| over the 15 components, the mean of the last --pad-avg records)."""
+    """The fingertip boards (tip_contacts.py, 2026-11-17): the splitter reskin5x_mux.py attached to or started, its three
+    boards read live from its pseudo-terminals and checked (all three at 100 records/s or more, else the command stops;
+    --no-tips runs without them), every record from 2 s back written to <stem>_tip_<finger>.bin beside the step's
+    telemetry (tip_contacts.read_stream), each board's 15 field components and their change from a rest (|B - B_rest|
+    over the 15 components, the mean of the last `avg` records; the readout of 11-16), and the contact estimates of
+    tip_contacts.TipContacts placed in P on the plan's mounts. Until 11-16 Pads tailed the splitter's .bin, which reaches
+    the disk in 8 KB blocks, about every 0.2 s."""
 
-    def __init__(self, avg=8):
-        logs = sorted(MUX_DIR.glob("*-mux.bin"), key=lambda q: q.stat().st_mtime)
-        if not logs or time.time() - logs[-1].stat().st_mtime > 5.0:
-            raise SystemExit("no fingertip board log written in the last 5 s: start reskin5x_mux.py")
-        self.path, self.avg = logs[-1], avg
-        self.f = open(self.path, "rb")
-        size = self.path.stat().st_size
-        self.f.seek(max(0, size - size % REC - REC * 200))
-        self.buf, self.last, self.rest, self.lock = b"", None, None, threading.Lock()
-        self.hist = []
-        self.read()
+    def __init__(self, stem, d6, avg=8):
+        import tip_contacts as TC
+        self.TC, self.avg, self.rest, self.last = TC, avg, None, None
+        self.o, why = None, None
+        try:
+            TC.ensure_splitter(start=True)
+            self.o = TC.Outlets()
+            self.o.start()
+            why = TC.check_streams(self.o, 1.0)
+        except (RuntimeError, OSError) as e:
+            why = f"{type(e).__name__}: {e}"
+        if why:
+            if self.o is not None:
+                self.o.close()
+            raise SystemExit(f"fingertip boards: {why}; --no-tips runs without them")
+        Path(stem).parent.mkdir(parents=True, exist_ok=True)
+        self.files = self.o.record(f"{stem}_tip", since=time.time() - 2.0)
+        self.tips = TC.TipContacts(self.o, d6)
 
     def read(self):
-        """Read what is new; returns the newest mean field (NB, 15) or None."""
-        with self.lock:
-            self.buf += self.f.read()
-            n = len(self.buf) // REC
-            if n:
-                raw = np.frombuffer(self.buf[:n * REC], dtype=np.uint8).reshape(n, REC)
-                self.buf = self.buf[n * REC:]
-                t = raw[:, :8].copy().view(np.float64)[:, 0]
-                v = raw[:, 8:].copy().view(np.float32).reshape(n, NB, 5, 4)[:, :, :, 1:].reshape(n, NB, 15)
-                self.hist.extend(zip(t, v))
-                self.hist = self.hist[-200:]
-            if len(self.hist) < self.avg:
+        """The newest mean field (NB, 15) uT, rows by BOARD, or None."""
+        out = np.zeros((NB, 15))
+        for f, k in BOARD.items():
+            _t, r = self.o.window(f, None, 1.0)
+            r = r[self.TC.valid(r)]
+            if len(r) < self.avg:
                 return None
-            self.last = np.mean([h[1] for h in self.hist[-self.avg:]], axis=0)
-            return self.last
+            out[k] = r[-self.avg:, :, 1:].reshape(-1, 15).mean(0)
+        self.last = out
+        return out
 
-    def set_rest(self, seconds=0.5):
+    def set_rest(self, seconds=0.5, joints=None):
+        """The rest: the mean over the next `seconds` of each board's field, and the estimator's rest there (joints:
+        the station's servo degrees, (3, 3)); both kept in REST for the next command."""
         time.sleep(seconds)
-        self.read()
-        with self.lock:
-            k = max(self.avg, int(160 * seconds))
-            self.rest = np.mean([h[1] for h in self.hist[-k:]], axis=0)
-        REST.write_text(json.dumps({"t": time.time(), "log": str(self.path), "rest": self.rest.tolist()}))
+        rest = np.zeros((NB, 15))
+        for f, k in BOARD.items():
+            _t, r = self.o.window(f, None, seconds)
+            rest[k] = r[self.TC.valid(r)][:, :, 1:].reshape(-1, 15).mean(0)
+        self.rest = rest
+        info = self.tips.rest(time.time(), seconds, refit=True, joints_servo=joints)
+        REST.write_text(json.dumps({"t": time.time(), "rest": self.rest.tolist(), "tips": self.tips.rest_state()}))
+        print("   fingertip rests: " + "; ".join(f"{f} {v['model']}" for f, v in info.items()), flush=True)
         return self.rest
 
     def load_rest(self):
         r = json.loads(REST.read_text())
         self.rest = np.asarray(r["rest"], float)
+        if r.get("tips"):
+            self.tips.load_rest_state(r["tips"])
         return time.time() - r["t"]
 
     def change(self):
@@ -142,9 +156,35 @@ class Pads:
             return None
         return {f: float(np.linalg.norm(b[k] - self.rest[k])) for f, k in BOARD.items()}
 
+    def contacts(self, joints):
+        """{finger: record or None}: the contact estimates in P at the station's joints (servo degrees, (3, 3))."""
+        return self.tips.to_P(self.tips.estimate(None, joints), joints)[1]
+
+    def close(self):
+        self.o.close()
+
+
+def servo_joints(state):
+    """The station's measured joints in servo degrees, (3, 3), rows thumb, index, middle, columns aa, fe1, fe2; None
+    without them."""
+    sv = (state.get("telemetry") or {}).get("servos") or {}
+    try:
+        return np.array([[sv[str(k)][j] for j in ("aa", "fe1", "fe2")] for k in range(3)], float)
+    except (KeyError, TypeError):
+        return None
+
 
 def pads_text(d):
     return "pads " + ("(none)" if d is None else " ".join(f"{f} {d[f]:.0f}" for f in ("thumb", "index", "middle"))) + " uT"
+
+
+def tips_text(rec):
+    """The contact estimates of Pads.contacts in a line."""
+    if rec is None:
+        return "contacts (no boards)"
+    return "contacts " + "  ".join(f"{f} " + ("none" if rec.get(f) is None else f"{rec[f]['f_n']:.2f} N"
+                                                + (f" at P {np.round(rec[f]['p_P'], 1).tolist()}" if rec[f].get('p_P') else ""))
+                                   for f in ("thumb", "index", "middle"))
 
 
 # ------------------------------------------------------------------------------------------------ the hand's model
@@ -410,6 +450,7 @@ class Stream:
             while self.run:
                 t0 = time.time()
                 rec = {"t": t0}
+                s = None
                 try:
                     s = self.st.state()
                     tel = s.get("telemetry", {})
@@ -441,6 +482,7 @@ class Stream:
                             d = self.pads.change()
                             if d is not None:
                                 rec["pads_dB"] = {f: round(v, 1) for f, v in d.items()}
+                        rec["tips"] = self.pads.contacts(None if s is None else servo_joints(s))
                     except Exception as e:                  # noqa: BLE001
                         rec["pads_error"] = str(e)[:120]
                 while self.marks:
@@ -629,7 +671,8 @@ def cmd_grasp(a):
         raise SystemExit("servo torque is off")
     j0 = HS.sim_joints(s)
     print("   " + HS.show_pose("measured", j0))
-    pads = None if a.no_pads else Pads()
+    stamp = time.strftime('%Y%m%d-%H%M%S')
+    pads = None if a.no_pads else Pads(STREAMS / f"{stamp}_pinch_grasp", plan["meta"]["hom"]["d6_P_mm"])
     arm = HS.Arm(a.ur_ft, a.blank_s)
     meas = HS.Measure(a, video=HS.recorder(a, "pinch_grasp"))
     stream = None
@@ -655,7 +698,7 @@ def cmd_grasp(a):
         if not a.go:
             return 0
         arm.connect(a.stop_n is not None)
-        stream = Stream(st, meas, arm, STREAMS / f"{time.strftime('%Y%m%d-%H%M%S')}_pinch_grasp_telemetry.jsonl",
+        stream = Stream(st, meas, arm, STREAMS / f"{stamp}_pinch_grasp_telemetry.jsonl",
                         pads=pads)
         stream.mark("open")
         why, _ = ramp(st, j0, poses["open"], a.open_s, a.speed)
@@ -719,7 +762,7 @@ def cmd_grasp(a):
                 raise SystemExit(f"the fine move stopped: {why}")
         # the close: open -> touch in small steps (the object watched: a finger arriving first pushes it), then the squeeze
         if pads is not None:
-            pads.set_rest(0.6)                            # the pads' rest: the fingers open round the ball, nothing touching
+            pads.set_rest(0.6, servo_joints(st.state()))  # the pads' rest: the fingers open round the ball, nothing touching
         p0 = obj_now(meas)
         jo = HS.sim_joints(st.state())
         stream.mark("close")
@@ -735,7 +778,8 @@ def cmd_grasp(a):
             print(f"   the close stopped: {why}; holding there", flush=True)
             raise SystemExit("look before anything else")
         time.sleep(0.8)
-        print("   at touch: " + pads_text(None if pads is None else pads.change()), flush=True)
+        print("   at touch: " + pads_text(None if pads is None else pads.change()) + "; "
+              + tips_text(None if pads is None else pads.contacts(servo_joints(st.state()))), flush=True)
         grip = {f: {k: poses["touch"][f][k] + (a.squeeze if (k == "pip" and f in ("thumb", pp["partner"])) else 0.0)
                     for k in J} for f in HS.FINGERS}
         stream.mark("squeeze")
@@ -745,7 +789,8 @@ def cmd_grasp(a):
         j1 = HS.sim_joints(st.state())
         load = st.state().get("telemetry", {}).get("servo_load")
         dB = None if pads is None else pads.change()
-        print("   " + HS.show_pose("gripped", j1) + f"\n   loads {load}; " + pads_text(dB), flush=True)
+        print("   " + HS.show_pose("gripped", j1) + f"\n   loads {load}; " + pads_text(dB) + "; "
+              + tips_text(None if pads is None else pads.contacts(servo_joints(st.state()))), flush=True)
         if p1 is not None and p0 is not None:
             print(f"   the object moved {np.round(p1[0] - p0[0], 2).tolist()} mm in P over the close; tilt {p1[2]:.1f} deg",
                   flush=True)
@@ -755,6 +800,8 @@ def cmd_grasp(a):
     finally:
         if stream is not None:
             stream.stop()
+        if pads is not None:
+            pads.close()
         meas.stop()
         arm.close()
     return 0
@@ -762,12 +809,13 @@ def cmd_grasp(a):
 
 def cmd_lift(a):
     plan = HS.load_plan(a.plan)
+    stamp = time.strftime('%Y%m%d-%H%M%S')
     pp, poses = load_sol(plan)
     h = HS.map_height(a.map)
     st = HS.Station(a.station, a.token_file)
     pads = None
     if not a.no_pads:
-        pads = Pads()
+        pads = Pads(STREAMS / f"{stamp}_pinch_lift", plan["meta"]["hom"]["d6_P_mm"])
         print(f"   pads: the rest taken {pads.load_rest():.0f} s ago; " + pads_text(pads.change()), flush=True)
     arm = HS.Arm(a.ur_ft, a.blank_s)
     meas = HS.Measure(a, video=HS.recorder(a, "pinch_lift"))
@@ -783,7 +831,7 @@ def cmd_lift(a):
         if not a.go:
             return 0
         arm.connect(a.stop_n is not None)
-        stream = Stream(st, meas, arm, STREAMS / f"{time.strftime('%Y%m%d-%H%M%S')}_pinch_lift_telemetry.jsonl",
+        stream = Stream(st, meas, arm, STREAMS / f"{stamp}_pinch_lift_telemetry.jsonl",
                         pads=pads)
         z_ref = float(p[2])
 
@@ -806,13 +854,16 @@ def cmd_lift(a):
               f"the table, z_P {p[2] - z_ref:+.1f} mm in the pinch, tilt {tilt:.1f} deg; the block's bottom "
               f"{above - h:+.1f} mm from the table if upright", flush=True)
         dB = None if pads is None else pads.change()
-        print("   " + pads_text(dB), flush=True)
+        print("   " + pads_text(dB) + "; " + tips_text(None if pads is None else pads.contacts(servo_joints(st.state()))),
+              flush=True)
         note({"cmd": "lift", "moved": moved, "stopped": why, "tilt": tilt, "above": above, "dz_pinch": float(p[2] - z_ref),
               "pads_dB": dB})
         print(f"{'LIFTED' if not why else 'LIFT STOPPED'}: tilt {tilt:.1f} deg", flush=True)
     finally:
         if stream is not None:
             stream.stop()
+        if pads is not None:
+            pads.close()
         meas.stop()
         arm.close()
     return 0
@@ -820,11 +871,12 @@ def cmd_lift(a):
 
 def cmd_slip(a):
     plan = HS.load_plan(a.plan)
+    stamp = time.strftime('%Y%m%d-%H%M%S')
     pp, poses = load_sol(plan)
     st = HS.Station(a.station, a.token_file)
     pads = None
     if not a.no_pads:
-        pads = Pads()
+        pads = Pads(STREAMS / f"{stamp}_pinch_slip", plan["meta"]["hom"]["d6_P_mm"])
         print(f"   pads: the rest taken {pads.load_rest():.0f} s ago; " + pads_text(pads.change()), flush=True)
     meas = HS.Measure(a, video=HS.recorder(a, "pinch_slip"))
     stream = None
@@ -842,7 +894,7 @@ def cmd_slip(a):
               f"{a.step_deg:g} deg every {a.dwell_s:g} s down to {a.min_squeeze:g}", flush=True)
         if not a.go or (abs(sw) if a.swing_only else tilt) <= a.tilt_goal:
             return 0
-        stream = Stream(st, meas, None, STREAMS / f"{time.strftime('%Y%m%d-%H%M%S')}_pinch_slip_telemetry.jsonl",
+        stream = Stream(st, meas, None, STREAMS / f"{stamp}_pinch_slip_telemetry.jsonl",
                         pads=pads)
         z_ref = float(p[2])
         hist = []
@@ -859,8 +911,8 @@ def cmd_slip(a):
             dz = float(o[0][2] - z_ref)
             dB = None if pads is None else pads.change()
             hist.append((sq, o[2], dz, dB))
-            print(f"   squeeze {sq:5.2f} deg: tilt {o[2]:5.1f} deg, the ball {dz:+.2f} mm along z_P; " + pads_text(dB),
-                  flush=True)
+            print(f"   squeeze {sq:5.2f} deg: tilt {o[2]:5.1f} deg, the ball {dz:+.2f} mm along z_P; " + pads_text(dB)
+                  + "; " + tips_text(None if pads is None else pads.contacts(servo_joints(st.state()))), flush=True)
             if abs(dz) > a.slip_mm:
                 back = sq + 2 * a.step_deg
                 cmd = {f: {k: target[f][k] + (back if (k == "pip" and f in pinch) else 0.0) for k in J}
@@ -886,6 +938,8 @@ def cmd_slip(a):
     finally:
         if stream is not None:
             stream.stop()
+        if pads is not None:
+            pads.close()
         meas.stop()
     return 0
 
@@ -1033,7 +1087,9 @@ def main():
         p.add_argument("--acc", type=float, default=0.05)
         p.add_argument("--speed", type=int, default=40)
         p.add_argument("--video-dir", default=None)
-        p.add_argument("--no-pads", action="store_true", help="without the fingertip boards' log")
+        p.add_argument("--no-tips", "--no-pads", dest="no_pads", action="store_true",
+                       help="without the fingertip boards (by default grasp, lift and slip refuse to start unless all three "
+                            "stream)")
 
     p = sub.add_parser("plan")
     common(p)
