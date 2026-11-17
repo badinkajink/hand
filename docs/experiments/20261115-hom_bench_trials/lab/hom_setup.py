@@ -90,6 +90,10 @@ STEM_R = 5.0                   # the stem between the object's body and its bloc
 ZERO_MARGIN = 3.0              # mm the fingers' path to zero keeps from the object (zero_guard, putdown)
 VIDEO_MAP = HERE.parent / "maps/20261116-sphere_fitted_map_O.json"   # any map serves a tracker that only records
 VIDEO_DIR = ROOT / "logs/20261116-hom_trials"
+# The table's centre for the object (owner, 2026-11-16 19:5x: "we should also re-center the sphere on the table. let's
+# try to do this generally in each trial reset"): the sphere's centre in B, mm, at the start of the ground-clear trials of
+# 12:49-13:03 on 2026-11-16 (-149.8, -375.4 to -144.7, -378.2), which both cameras covered with four tags.
+TABLE_CENTRE_B = (-150.0, -375.0)
 
 
 def note(rec):
@@ -664,6 +668,22 @@ def ssh(cmd, timeout=60):
     return r.returncode, out
 
 
+def cmd_diag(a):
+    """The station's one read of each servo (POST /api/v1/servos/diagnostics; owner, 2026-11-16: "it's just a useful
+    diagnostic"): supply voltage, temperature, torque_enable, status byte, the servos that look rebooted. No motion."""
+    st = Station(a.station, a.token_file)
+    d = st.call("POST", "/api/v1/servos/diagnostics")
+    v = {k: x / 10.0 for k, x in (d.get("voltage") or {}).items() if x is not None}
+    print(f"servo volts {v}" + (f" (min {min(v.values()):.1f} V)" if v else ""))
+    print(f"   temperature {d.get('temperature')}\n   torque_enable {d.get('torque_enable')} (commanded "
+          f"{d.get('servo_torque_commanded')}), status {d.get('status')}\n   rebooted {d.get('suspected_resets')}, no "
+          f"answer {d.get('no_answer')}, bus {d.get('servo_bus', {}).get('timeouts')} timeouts in "
+          f"{d.get('servo_bus', {}).get('transactions')} transactions")
+    note({"cmd": "diag", **{k: d.get(k) for k in ("voltage", "temperature", "torque_enable", "status",
+                                                   "suspected_resets", "no_answer")}})
+    return 0
+
+
 def cmd_torque_on(a):
     st = Station(a.station, a.token_file)
     s = st.state()
@@ -977,6 +997,60 @@ def cmd_ready(a):
     return 0
 
 
+def carry_to_centre(a, arm, meas, info, what="putdown"):
+    """The held object carried over the table's centre before it goes down (owner, 2026-11-16: "re-center the sphere on
+    the table ... generally in each trial reset"): when its centre lies more than --centre-tol mm from --centre in the
+    base's xy, the hand rises --carry-rise mm and then translates in x and y at --v-carry, each move stopped by the
+    HEX-E's change past --stop-n and by the object moving in the hand (the tracker, 2 mm along z_P or in P's xy). Returns
+    the object's measurement after the carry (or the one given, when no carry is needed or without --go)."""
+    if a.centre is None:
+        return info
+    c = np.asarray(info["p_B"], float)
+    dx, dy = a.centre[0] - c[0], a.centre[1] - c[1]
+    dist = math.hypot(dx, dy)
+    if dist <= a.centre_tol:
+        print(f"the object's centre is {dist:.1f} mm from the table's centre {list(a.centre)}: no carry", flush=True)
+        return info
+    print(f"carry: the object's centre at {np.round(c[:2], 1).tolist()} mm in B, {dist:.1f} mm from the table's centre "
+          f"{list(a.centre)}: up {a.carry_rise:g} mm, then {dx:+.1f}, {dy:+.1f} mm at {1e3 * a.v_carry:g} mm/s", flush=True)
+    if dist > a.max_carry:
+        raise SystemExit(f"{dist:.1f} mm is more than --max-carry {a.max_carry:g}: carry it by hand or raise the limit")
+    if not a.go:
+        return info
+    if arm.c is None:
+        arm.connect(a.stop_n is not None)
+    for leg, (mx, my, mz) in (("rise", (0.0, 0.0, a.carry_rise)), ("carry", (dx, dy, 0.0))):
+        if math.hypot(mx, math.hypot(my, mz)) < 0.1:
+            continue
+        ref = meas.latest(5, 0.5)
+        if ref is None:
+            raise SystemExit("the tracker does not see the object: not moving")
+        T_goal = arm.T_BE()
+        T_goal[:3, 3] += [mx, my, mz]
+        L = math.hypot(mx, math.hypot(my, mz))
+        why, moved = arm.move(T_goal, a.v_carry, a.acc, a.stop_n, L / (1e3 * a.v_carry) + 6.0,
+                              f"{what}: {leg} {L:.1f} mm", check=meas.watch_touch(ref[0], 2.0, 2.0))
+        if why:
+            raise SystemExit(f"the {leg} stopped after {moved:.1f} mm: {why}; look before anything else")
+    p_m, q_m, info = meas.pose(getattr(a, "measure_s", 0.5))
+    c1 = np.asarray(info["p_B"], float)
+    print(f"   carried: the object's centre at {np.round(c1[:2], 1).tolist()} mm in B, "
+          f"{math.hypot(a.centre[0] - c1[0], a.centre[1] - c1[1]):.1f} mm from the table's centre", flush=True)
+    note({"cmd": what, "step": "carry", "from_B": c.tolist(), "to_B": c1.tolist(), "centre_B": list(a.centre),
+          "rise_mm": a.carry_rise})
+    return info
+
+
+def _centre_args(p):
+    p.add_argument("--centre", type=float, nargs=2, default=TABLE_CENTRE_B,
+                   help="the table's centre in B (mm) the object is carried over before it goes down")
+    p.add_argument("--no-centre", dest="centre", action="store_const", const=None, help="put it down where it is")
+    p.add_argument("--centre-tol", type=float, default=5.0, help="mm from the centre within which no carry runs")
+    p.add_argument("--carry-rise", type=float, default=30.0, help="mm up before the carry")
+    p.add_argument("--v-carry", type=float, default=0.02, help="m/s of the carry")
+    p.add_argument("--max-carry", type=float, default=300.0, help="mm: a longer carry is refused")
+
+
 def cmd_putdown(a):
     """After a trial, the hand holding the object up (owner, 2026-11-16: "the robot arm moved the hand quite low before
     it tried to release, i had to manually extract the hex block"; "make sure that the z-height is high enough to allow
@@ -1058,7 +1132,9 @@ def cmd_putdown(a):
                 p_m, q_m, info = meas.pose(a.measure_s)
                 report("levelled", p_m, q_m, p_n, q_n, shape, info)
                 note({"cmd": "putdown", "step": "level", "tilt0_deg": tilt0, "turn_deg": lev})
-        d = float(info["p_B"][2]) - h - a.table_z
+        info = carry_to_centre(a, arm, meas, info, "putdown")
+        d = float(info["p_B"][2]) - h - a.table_z + (a.carry_rise if a.centre is not None and not a.go and math.hypot(
+            a.centre[0] - float(info["p_B"][0]), a.centre[1] - float(info["p_B"][1])) > a.centre_tol else 0.0)
         print(f"the block's bottom {d:.1f} mm above the table (the centre at z_B {info['p_B'][2]:.1f} mm, {h:.1f} mm "
               f"over the block's bottom; the table at z_B {a.table_z:g}): the touchdown expected {d:.1f} mm down",
               flush=True)
@@ -1371,6 +1447,8 @@ def main():
                        help="record both cameras while the command moves, into "
                             "DIR/<stamp>_<step>_<plan stem>_<serial>.mp4 (film_session.py joins a session's folder)")
 
+    p = sub.add_parser("diag")
+    common(p, plan=False)
     p = sub.add_parser("status")
     common(p, plan=False)
     p.add_argument("--plan", default=None)
@@ -1457,6 +1535,7 @@ def main():
                            help="--rise-open: mm the path to zero must keep from the object to straighten first")
             p.add_argument("--clear-up", type=float, default=60.0, help="--rise-open: mm up along z_P after zero")
             _letgo_args(p)
+            _centre_args(p)
     p = sub.add_parser("letgo")
     common(p)
     p.add_argument("--object", choices=("cylinder", "sphere"), required=True)
@@ -1478,7 +1557,7 @@ def main():
     common(p, station=False)
     _approach_args(p)
     a = ap.parse_args()
-    return {"status": cmd_status, "torque-on": cmd_torque_on, "open": cmd_open, "zero": cmd_zero, "layout": cmd_layout,
+    return {"status": cmd_status, "diag": cmd_diag, "torque-on": cmd_torque_on, "open": cmd_open, "zero": cmd_zero, "layout": cmd_layout,
             "place": cmd_place, "approach": cmd_approach, "release": cmd_release, "ready": cmd_ready,
             "putdown": cmd_putdown, "letgo": cmd_letgo}[a.cmd](a)
 

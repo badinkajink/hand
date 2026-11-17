@@ -1,0 +1,92 @@
+--- src/morphohand/driver/manta/host/manta_hand/runtime.py	2026-11-16 19:38:58.169838229 -0700
++++ src/morphohand/driver/manta/host/manta_hand/runtime.py	2026-11-16 19:42:57.038613742 -0700
+@@ -226,6 +226,38 @@
+     def set_servo_torque(self, state: int) -> dict:
+         return self.servos.set_torque_all(state)
+ 
++    def servo_diagnostics(self) -> dict:
++        """One read of each servo's supply voltage, temperature, torque_enable and status byte, servo by servo: a
++        diagnosis on request, not telemetry (owner, 2026-11-16: "we dont need to poll this all the time, it's just a
++        useful diagnostic"). On 2026-11-16 the blind twists' nine servos all read torque 0 after a bus timeout mid-lift;
++        these fields tell a reboot (torque_enable at its power-on default 0), a sagging supply (voltage, as rustypot
++        returns it) and a servo's own latched fault (status) apart. A servo that does not answer one read is skipped
++        for the fields after it."""
++        reads = (("voltage", "read_present_voltage"), ("temperature", "read_present_temperature"),
++                 ("torque_enable", "read_torque_enable"), ("status", "read_status"))
++        ids = sorted(sid for joints in FINGER_JOINTS.values() for sid, _zero, _limits in joints.values())
++        out: dict = {"t": time.time()}
++        dead: set[int] = set()
++        for name, attr in reads:
++            fn = getattr(self.servos._c, attr, None)
++            if fn is None:
++                out[name] = None
++                continue
++            values: dict[int, float | None] = {}
++            for sid in ids:
++                if sid in dead:
++                    values[sid] = None
++                    continue
++                try:
++                    values[sid] = float(self.servos.servo(sid)._call(fn)[0])
++                except Exception:  # noqa: BLE001 - a servo that does not answer is the finding
++                    values[sid] = None
++                    dead.add(sid)
++            out[name] = values
++        out["no_answer"] = sorted(dead)
++        out["servo_bus"] = self.servos.health()
++        return out
++
+     def read_telemetry(self, include_servos: bool = True) -> dict:
+         step = self.guard(self.driver.get_all_status)[:6]
+         out = {
+@@ -388,6 +420,12 @@
+             out["servo_torque"] = {sid: self.torque for sid in range(9)}
+         return out
+ 
++    def servo_diagnostics(self) -> dict:
++        return {"t": time.time(), "voltage": {sid: 60.0 for sid in range(9)},
++                "temperature": {sid: 30.0 for sid in range(9)},
++                "torque_enable": {sid: float(self.torque) for sid in range(9)},
++                "status": {sid: 0.0 for sid in range(9)}, "no_answer": [], "servo_bus": {}}
++
+     def stop(self) -> None:
+         return None
+ 
+@@ -985,6 +1023,26 @@
+         self._event("warning", f"servo torque set to {state}", {"readback": result})
+         return result
+ 
++    def servo_diagnostics(self) -> dict:
++        """The backend's one read of each servo (RealHardwareBackend.servo_diagnostics), logged as an event. Refused
++        during a policy stream, whose frames own the bus. suspected_resets: servos at torque_enable 0, the power-on
++        default, while the station holds torque on."""
++        with self._lock:
++            self._require_link()
++            if self._operation == "policy stream":
++                raise RuntimeErrorState("servo diagnostics are not read during a policy stream")
++            commanded = self._servo_torque
++        fn = getattr(self.backend, "servo_diagnostics", None)
++        if fn is None:
++            raise RuntimeErrorState(f"the {self.backend.kind} backend has no servo diagnostics")
++        res = dict(fn(), servo_torque_commanded=commanded)
++        te = res.get("torque_enable") or {}
++        res["suspected_resets"] = sorted(sid for sid, v in te.items()
++                                         if v is not None and int(v) == TORQUE_UNSET and commanded == TORQUE_ON)
++        bad = res["suspected_resets"] or res.get("no_answer")
++        self._event("warning" if bad else "info", "servo diagnostics", res)
++        return res
++
+     def disable_motors(self) -> dict:
+         """Stop and de-energise everything. Invalidates the home: a disabled stepper is
+         free to be moved by hand or by the mechanism, so its step counter no longer
+--- src/morphohand/driver/manta/host/manta_hand/web.py	2026-11-16 19:38:58.157837788 -0700
++++ src/morphohand/driver/manta/host/manta_hand/web.py	2026-11-16 19:42:57.038613742 -0700
+@@ -320,6 +320,8 @@
+                     raise ValueError(f"state must be one of {sorted(names)}")
+                 return self._json(HTTPStatus.OK,
+                                   {"readback": rt.set_servo_torque(names[requested])})
++            if path == "/api/v1/servos/diagnostics":   # one read of every servo, on request (2026-11-16)
++                return self._json(HTTPStatus.OK, rt.servo_diagnostics())
+             if path == "/api/v1/reconnect":
+                 return self._json(HTTPStatus.OK, rt.reconnect())
+             if path == "/api/v1/stream/start":

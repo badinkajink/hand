@@ -71,7 +71,9 @@ def configure(plant: str = "measured", hand: str = "cad_v2"):
 def _bench(a):
     configure(a.plant, a.hand)
     from . import hom_bench as HB
-    b = (HB.HomBench.from_plan(a.plan, a.task, a.d, a.dt) if a.plan else HB.HomBench.from_design(a.task, a.d, dt=a.dt))
+    kw = {"torque_budget": getattr(a, "torque_budget", None)}
+    b = (HB.HomBench.from_plan(a.plan, a.task, a.d, a.dt, **kw) if a.plan
+         else HB.HomBench.from_design(a.task, a.d, dt=a.dt, **kw))
     return HB, b
 
 
@@ -136,6 +138,7 @@ class Server:
                 "design": b.setup.get("design"), "mounts_mm": {f: (1e3 * np.asarray(b.setup["mounts"][f][:2])).tolist()
                                                                for f in self.HB.FINGERS},
                 "q_open_rad": b.q_open, "palm_m": b.palm, "prm": b.task_prm, "hold_s": b.hold_s,
+                "torque_budget": b.torque_budget,
                 "object_mass_kg": None if self.a.object_mass_g is None else self.a.object_mass_g / 1000.0,
                 "git": _git(), "host": socket.gethostname(),
                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "t0_ms": self.t0_ms,
@@ -214,6 +217,7 @@ class Server:
                "obj_quat": None if self.last_obj is None else self.last_obj[1], "t_capture_ms": s.t_capture_ms,
                "obj_flags": s.obj_flags, "n_tags": s.n_tags, "contacts": _contacts(s.cop), "status": s.status,
                "targets": out, "targets_sim_deg": sim_deg, "phase": info["phase"], "clipped": info["clipped"],
+               "budget_scale": info.get("budget_scale"),
                "compute_ms": round(info.get("compute_ms", float("nan")), 3),
                "ref": {k: sch[k] for k in ("w_ref", "v_ref", "theta_ref") if k in sch}, "error": info.get("error")}
         self.fh.write(json.dumps(rec, default=_jsonable) + "\n")
@@ -444,6 +448,9 @@ def main() -> int:
         p.add_argument("--plant", default="measured", help="measured (0.55 N m/rad), servo (0.72) or a HOS_PLANT spec")
         p.add_argument("--hand", default="cad_v2")
         p.add_argument("--dt", type=float, default=0.02)
+        p.add_argument("--torque-budget", type=float, default=None,
+                       help="N m: the servos' estimated torques summed over the nine kept at or under this "
+                            "(hom_bench.torque_budget; 0.84 after the blind twists of 2026-11-16)")
         if name in ("serve", "sil"):
             p.add_argument("--log-dir", required=True)
         if name == "nominal":

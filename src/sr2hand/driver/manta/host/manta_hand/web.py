@@ -338,6 +338,8 @@ class ControlRequestHandler(BaseHTTPRequestHandler):
                     raise ValueError(f"state must be one of {sorted(names)}")
                 return self._json(HTTPStatus.OK,
                                   {"readback": rt.set_servo_torque(names[requested])})
+            if path == "/api/v1/servos/diagnostics":   # one read of every servo, on request (2026-11-16)
+                return self._json(HTTPStatus.OK, rt.servo_diagnostics())
             if path == "/api/v1/reconnect":
                 return self._json(HTTPStatus.OK, rt.reconnect())
             if path == "/api/v1/stream/start":

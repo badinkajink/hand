@@ -26,6 +26,7 @@ import rev_joint_sag as JS  # noqa: E402
 import rev_rescore as RR  # noqa: E402
 
 _G = {}
+BUDGET = None          # N m: hom_bench.torque_budget on HOM's targets, as the bench server's --torque-budget (rev_predict)
 
 
 def gear_class():
@@ -113,7 +114,7 @@ def _run(name, src, call, k, seed, c):
     RP.move_mounts(m_pt, mxy, RP.mount_base(m_pt))
     q_open, _ = T.open_pose(setup, m_pt)
     S.set_palm(m_pt, setup["palm"])
-    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads)
+    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=BUDGET)
     params = {**RR.SERVER, "mu": 1.0}
     GP = _G["GP"]
     bench.T = RP._Tasks(lambda path, st: GP(path, st, mxy, params, 0.0, c=c))
@@ -126,7 +127,10 @@ def _run(name, src, call, k, seed, c):
     task = [s for s in stream if 2.0 - 1e-9 <= float(s["t"]) <= bench.t_end + 1e-9]
     gap = (lambda fi, j: round(float(np.median([float(s["targets"][fi][j]) - float(s["joints"][fi][j]) for s in task])), 1))
     err, ref = res.get("track_err_rms_deg"), res.get("track_ref_rms_deg")
+    bs = [float(s["budget_scale"]) for s in stream if s.get("budget_scale") is not None]
     return {"grasp": name, "seed": seed, "c": c, "held": bool(res.get("held")),
+            "budget_scale_min": round(min(bs), 3) if bs else None,
+            "budget_scale_median": round(float(np.median(bs)), 3) if bs else None,
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
             "twist_end": round(float(f["twist_end"]), 1), "rise_max": round(float(f["rise_max"]), 2),
             "gap_middle_aa": gap("middle", "aa"), "gap_index_aa": gap("index", "aa"), "gap_thumb_fe1": gap("thumb", "fe1"),

@@ -50,8 +50,11 @@ def main():
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--scene", default=None, help="the plant's scene in scenes/ (default rev_fric2's soft-contact scene)")
+    ap.add_argument("--torque-budget", type=float, default=None,
+                    help="N m: HOM's targets under hom_bench.torque_budget, as the bench server's --torque-budget")
     a = ap.parse_args()
     RC2.STIFF, RC2.KP_YAW_IM, RC2.BREAKAWAY = True, a.kp_yaw_im, a.breakaway
+    RG.BUDGET = a.torque_budget
     if a.scene:
         RG.RF.SCENE = D / "scenes" / a.scene
     RG.gear_class = RC2.clutch_class
@@ -65,7 +68,7 @@ def main():
     with mp.get_context("fork").Pool(a.workers, initializer=RG.init, initargs=(str(RG.RF.SCENE),)) as pool:
         rows = pool.map(RG.run, jobs)
     meta = {"hos_plant": os.environ.get("HOS_PLANT"), "kp_yaw_im": a.kp_yaw_im, "breakaway": a.breakaway, "c_f": 0.6,
-            "stiff": True, "scene": RG.RF.SCENE.name}
+            "stiff": True, "scene": RG.RF.SCENE.name, "torque_budget": a.torque_budget}
     summ = {}
     for n, s, c, k in gs:
         rs = [r for r in rows if r["grasp"] == n and "error" not in r]

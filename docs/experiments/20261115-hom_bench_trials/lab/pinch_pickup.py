@@ -909,11 +909,15 @@ def cmd_setdown(a):
                 raise SystemExit(f"the tracker gives no pose ({e}): pass --bottom-mm from the last measurement")
             bottom, z_ref = a.bottom_mm, None
             print(f"the tracker gives no pose; the block's bottom taken as {bottom:.1f} mm above the table")
-        if bottom > a.max_down:
+        if z_ref is not None and a.centre is not None:        # over the table's centre first (owner, 2026-11-16)
+            info = HS.carry_to_centre(a, arm, meas, info, "setdown")
+            bottom = float(info["p_B"][2]) - h - a.table_z
+        if bottom > a.max_down + (a.carry_rise if a.centre is not None else 0.0):
             raise SystemExit(f"{bottom:.1f} mm is more than --max-down {a.max_down:g}: not descending blind")
         if not a.go:
             return 0
-        arm.connect(a.stop_n is not None)
+        if arm.c is None:
+            arm.connect(a.stop_n is not None)
 
         def touch():
             with meas.lock:
@@ -1094,6 +1098,7 @@ def main():
     p.add_argument("--v", type=float, default=0.005)
     p.add_argument("--v-slow", type=float, default=0.002)
     p.set_defaults(stop_n=2.0)
+    HS._centre_args(p)
     p = sub.add_parser("unturn")
     common(p)
     p.add_argument("--plan", required=True)

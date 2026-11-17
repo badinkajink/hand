@@ -153,6 +153,18 @@ class Station:
                 # no restart after a lapsed lease: the first frame of a new stream jumped the fingers to the
                 # controller's targets of that moment (owner, 2026-11-16: "on the lift they spasmed quickly")
 
+    def diagnostics(self):
+        """The station's one read of each servo (POST /api/v1/servos/diagnostics, 2026-11-16): supply voltage (0.1 V),
+        temperature, torque_enable, status byte and the servos that look rebooted; None from a station without it."""
+        c = self._conn()
+        c.timeout = 60.0
+        try:
+            return self._post(c, "/api/v1/servos/diagnostics", {})
+        except (OSError, http.client.HTTPException, RuntimeError, ValueError) as e:
+            return {"error": repr(e)[:200]}
+        finally:
+            c.close()
+
     def end_stream(self):
         if self.stream_token:
             try:
@@ -508,7 +520,17 @@ def cmd_trial(a):
             tracker = None
         if video is not None:
             vid = video.close()
+        diag = None
+        if station is not None and station.live and (station.error or station.errors):
+            # after a station error, once (owner, 2026-11-16: "we dont need to poll this all the time, it's just a
+            # useful diagnostic"): did the servos reboot (torque_enable 0), and what voltage do they read now
+            time.sleep(1.5)                                      # the stream's lease lapses first
+            diag = station.diagnostics()
+            print(f"servo diagnostics after the station error: volts "
+                  f"{ {k: v / 10.0 for k, v in (diag.get('voltage') or {}).items() if v is not None} }, rebooted "
+                  f"{diag.get('suspected_resets')}, no answer {diag.get('no_answer')}", flush=True)
         log.write(json.dumps({"kind": "end", "states": seq, "last_target": last_seq, "status": status, "video": vid,
+                              "servo_diagnostics": diag,
                               "frames_posted": None if station is None else station.n_frames,
                               "frames_with_joints": None if station is None else station.n_read,
                               "frame_errors": None if station is None else station.errors,

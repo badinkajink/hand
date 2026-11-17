@@ -1,0 +1,180 @@
+{
+ "recorded": "2026-11-16T19:51:35",
+ "source": "hand-4a, before any trial with the budget ran (owner, 2026-11-16 19:5x: \"i think we can try again with the capped targets\"): the settings of 20261116-predictions.json (the real object, soft tangential contact at friction 1.0, the server's plant kp 0.55 and HOM's gain 0.55, servos the load cannot backdrive with stiff dry friction, rev_clutch2.py --stiff, c_f 0.6, seeds 0-2), with HOM's targets under hom_bench.torque_budget at 0.84 N m, as the bench server's --torque-budget 0.84; rows logs/20261116-sim_real_reversal/predict_budget084_{kp035,all055}.json on the workstation",
+ "torque_budget_nm": 0.84,
+ "format": "track mean [range], twist at the end (deg), rise (mm), held of 3, the budget's scale (min, median over the run; 1 = not active), gaps middle yaw / index yaw / thumb MCP (deg)",
+ "variants": {
+  "kp035": "index and middle yaw gains 0.35 N m/rad",
+  "all055": "every gain 0.55 N m/rad"
+ },
+ "grasps": [
+  {
+   "label": "gr_g4",
+   "grid": "grid2dgr",
+   "grasp": 4,
+   "role": "the high one; dropped twice at 16:12 and 16:47 without the budget",
+   "kp035": {
+    "track": 0.43,
+    "track_range": [
+     0.401,
+     0.455
+    ],
+    "twist": 55.8,
+    "rise": 8.11,
+    "held": "3/3",
+    "budget_scale_min": 0.806,
+    "budget_scale_median": 0.978,
+    "gaps": [
+     -11.43,
+     16.07,
+     14.93
+    ],
+    "lat_deg": 0.8
+   },
+   "all055": {
+    "track": 0.42,
+    "track_range": [
+     0.406,
+     0.434
+    ],
+    "twist": 53.67,
+    "rise": 9.53,
+    "held": "3/3",
+    "budget_scale_min": 0.793,
+    "budget_scale_median": 0.954,
+    "gaps": [
+     -9.6,
+     13.47,
+     14.17
+    ],
+    "lat_deg": 0.8
+   }
+  },
+  {
+   "label": "gr_g12",
+   "grid": "grid2dgr",
+   "grasp": 12,
+   "role": "the middle one",
+   "kp035": {
+    "track": 0.33,
+    "track_range": [
+     0.322,
+     0.341
+    ],
+    "twist": 36.7,
+    "rise": 6.51,
+    "held": "3/3",
+    "budget_scale_min": 0.945,
+    "budget_scale_median": 1.0,
+    "gaps": [
+     -19.07,
+     14.97,
+     19.3
+    ],
+    "lat_deg": 4.0
+   },
+   "all055": {
+    "track": 0.27,
+    "track_range": [
+     0.266,
+     0.279
+    ],
+    "twist": 34.93,
+    "rise": 5.23,
+    "held": "3/3",
+    "budget_scale_min": 0.97,
+    "budget_scale_median": 1.0,
+    "gaps": [
+     -15.43,
+     13.07,
+     19.3
+    ],
+    "lat_deg": 4.0
+   }
+  },
+  {
+   "label": "gr_g8",
+   "grid": "grid2dgr",
+   "grasp": 8,
+   "role": "the low one",
+   "kp035": {
+    "track": 0.1,
+    "track_range": [
+     0.083,
+     0.121
+    ],
+    "twist": 18.47,
+    "rise": 0.72,
+    "held": "3/3",
+    "budget_scale_min": 0.916,
+    "budget_scale_median": 1.0,
+    "gaps": [
+     -15.97,
+     4.9,
+     19.3
+    ],
+    "lat_deg": 0.7
+   },
+   "all055": {
+    "track": 0.12,
+    "track_range": [
+     0.099,
+     0.139
+    ],
+    "twist": 22.13,
+    "rise": 0.79,
+    "held": "3/3",
+    "budget_scale_min": 0.95,
+    "budget_scale_median": 1.0,
+    "gaps": [
+     -12.77,
+     3.27,
+     19.3
+    ],
+    "lat_deg": 0.7
+   }
+  },
+  {
+   "label": "gr_g13",
+   "grid": "grid2dgr",
+   "grasp": 13,
+   "role": "ran at 13:03 without the budget (the hand turned the sphere 32 deg)",
+   "kp035": {
+    "track": 0.3,
+    "track_range": [
+     0.297,
+     0.3
+    ],
+    "twist": 33.77,
+    "rise": 4.62,
+    "held": "3/3",
+    "budget_scale_min": 0.927,
+    "budget_scale_median": 0.997,
+    "gaps": [
+     -19.3,
+     12.03,
+     16.5
+    ],
+    "lat_deg": 2.4
+   },
+   "all055": {
+    "track": 0.28,
+    "track_range": [
+     0.272,
+     0.286
+    ],
+    "twist": 33.97,
+    "rise": 3.44,
+    "held": "3/3",
+    "budget_scale_min": 0.94,
+    "budget_scale_median": 1.0,
+    "gaps": [
+     -18.67,
+     9.83,
+     16.4
+    ],
+    "lat_deg": 2.4
+   }
+  }
+ ]
+}

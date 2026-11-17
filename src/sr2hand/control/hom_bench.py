@@ -77,15 +77,52 @@ def servo_range(finger: str, servo: str) -> tuple[float, float]:
     return tuple(SV.FINGER_JOINTS[P.FINGER_ID[finger]][servo][2])
 
 
+def torque_budget(out: dict, joints: dict, budget_nm: float, kp: float = 0.55, db_deg: float = 0.59,
+                  tau_max: float = 0.18) -> float:
+    """Servo targets cut so that the nine servos' estimated torques sum to at most budget_nm (owner, 2026-11-16: "i
+    think we can try again with the capped targets"). A servo's torque is estimated as kp (N m/rad) times its target's
+    offset from its measured joint beyond the dead band, saturating at tau_max: the bench's SCS0009 (0.55 N m/rad,
+    0.59 deg, 0.18 N m; the identification of 2026-11-06). Every offset is first cut to the saturation, tau_max / kp
+    plus the dead band (19.3 deg), past which more offset adds no torque. When the sum still exceeds the budget, every
+    offset past the dead band is scaled by one factor, found by bisection. The blind twists of 2026-11-16 lost all nine
+    servos' torque at a summed estimate of 0.96-0.97 N m in the lift, where the 13:03 trial held at 0.84, with the servos
+    at 5.0-5.3 V at rest. out (servo degrees, {finger: {aa, fe1, fe2}}) is edited in place; a servo without a finite
+    joint reading keeps its target. Returns the factor, 1.0 when the budget holds."""
+    sat = math.degrees(tau_max / kp) + db_deg
+    e = {}
+    for f, js in out.items():
+        for sv, v in js.items():
+            q = (joints.get(f) or {}).get(sv)
+            if q is not None and math.isfinite(float(q)):
+                d = float(v) - float(q)
+                e[(f, sv)] = (float(q), math.copysign(min(abs(d), sat), d))
+
+    def total(scale):
+        return sum(min(kp * math.radians(scale * max(abs(d) - db_deg, 0.0)), tau_max) for _q, d in e.values())
+
+    scale = 1.0
+    if total(1.0) > budget_nm:
+        lo, hi = 0.0, 1.0
+        for _ in range(40):
+            mid = 0.5 * (lo + hi)
+            lo, hi = (mid, hi) if total(mid) <= budget_nm else (lo, mid)
+        scale = lo
+    for (f, sv), (q, d) in e.items():
+        m = abs(d)
+        out[f][sv] = q + (math.copysign(db_deg + scale * (m - db_deg), d) if m > db_deg else d)
+    return scale
+
+
 class HomBench:
     """HomController, its Mirror and the task schedule of hom_tasks.py for one task and object on one layout."""
 
     def __init__(self, task: str, d_mm: float, setup: dict, m_pt, q_open: dict, dt: float = DT_BENCH,
                  prm: H.HomParams | None = None, p_pads: Path | None = None, task_prm: dict | None = None,
-                 hold_s: float = 0.0):
+                 hold_s: float = 0.0, torque_budget: float | None = None):
         _paths()
         import hom_tasks as T
         self.T = T
+        self.torque_budget = torque_budget                       # N m summed over the nine servos (torque_budget)
         self.task, self.d_mm, self.setup, self.p_pads = task, float(d_mm), setup, p_pads
         self.task_prm = {**T.PRM, **(task_prm or {})}          # the schedule's forces, weights and command
         self.hold_s = float(hold_s)                             # the plant holds the object this long (the seat)
@@ -192,7 +229,10 @@ class HomBench:
                 if not lo - 1e-3 <= v <= hi + 1e-3:           # the scene's ranges are the servo's to 1e-6 rad
                     clipped.append(f"{f}.{sv}")
                     out[f][sv] = min(max(v, lo), hi)
-        return out, {"phase": info["phase"], "clipped": clipped, "q_cmd": q_cmd, "hom": ci, "schedule": info}
+        res = {"phase": info["phase"], "clipped": clipped, "q_cmd": q_cmd, "hom": ci, "schedule": info}
+        if self.torque_budget is not None:
+            res["budget_scale"] = torque_budget(out, joints, self.torque_budget)
+        return out, res
 
     @property
     def t_end(self) -> float:
@@ -231,7 +271,8 @@ def simulate(bench: HomBench, seed: int = 0, seconds: float | None = None, conta
         out, info = bench.step(t, smp["joints"], smp["obj_pos_mm"], smp["obj_quat"],
                                smp["contacts"] if contacts else None)
         plant.set_targets(sim_from_servo(out))
-        stream.append({"t": round(t, 4), **smp, "targets": out, "phase": info["phase"], "clipped": info["clipped"]})
+        stream.append({"t": round(t, 4), **smp, "targets": out, "phase": info["phase"], "clipped": info["clipped"],
+                       **({"budget_scale": info["budget_scale"]} if "budget_scale" in info else {})})
         rows.append(_metric_row(bench.task, s, info["schedule"], t))
         t += dt
         plant.advance(t)
