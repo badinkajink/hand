@@ -716,6 +716,15 @@ def controller_benchmark_hand_a():
                         "cmd_rate_dps": a["cmd_rate_dps"], "sat_frac": a["sat_frac"], "grip_mean_N": a["grip_mean_N"],
                         "contact": a["contact"], "replan_s": a["replan_s"], "J_by_policy": jp}
                     for k, (lab, _c, a, b, jp) in S.items()}}
+    # not drawn: UHAS trained with the limit terms in its reward (uhas_sr2.py --limits --limits-tau 0.02 --limits-cap 0,
+    # run 20261113-2347; owner, 2026-11-17 00:0x: "didnt we train UHAS and RL variatns that were limit aware (torque)? the
+    # most obvious thing someone will say is that we should have just done more reward shaping")
+    lim = MP.load("uhas_twist_handA_limits")
+    if lim:
+        st = MP.stats(lim)
+        out["extra"] = {"uhas_limits": {"label": "UHAS (RL), limit terms in its reward", "run": lim[0].get("run"),
+                                        **{k: st[k] for k in ("n", "J", "J_se", "held", "reversals_ps", "cmd_rate_dps",
+                                                              "sat_frac")}}}
     path = OUT / "20261110-figures.json"
     fi = json.loads(path.read_text())
     fi["controller_benchmark_handA"] = out

@@ -3498,6 +3498,19 @@
      0.158
     ]
    }
+  },
+  "extra": {
+   "uhas_limits": {
+    "label": "UHAS (RL), limit terms in its reward",
+    "run": "20261113-2347_twist_limits_tau0.02_cap0_s0",
+    "n": 48,
+    "J": 0.16628568624151666,
+    "J_se": 0.023412570392677388,
+    "held": 0.875,
+    "reversals_ps": 55.3157,
+    "cmd_rate_dps": 5208.7661499999995,
+    "sat_frac": 0.5062
+   }
   }
  }
 }
