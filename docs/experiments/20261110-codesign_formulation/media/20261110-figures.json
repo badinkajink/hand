@@ -3335,6 +3335,17 @@
     },
     "fell_s": 6.46,
     "twist_mean_abs_error": 0.061
+   },
+   "newton_hydro_lock": {
+    "label": "Newton hydroelastic, joints held at release",
+    "held_at": {
+     "1": 32.01,
+     "3": 31.9,
+     "6": 31.77,
+     "10": 31.59
+    },
+    "fell_s": null,
+    "twist_mean_abs_error": null
    }
   }
  }

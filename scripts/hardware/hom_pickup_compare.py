@@ -36,7 +36,12 @@ VARIANTS = (("pads_stiff_ns", "pickup_hang10_ns.json", "pads_stiff_ns", "predict
             ("point_stiff_ns", "pickup_hang10_ns.json", "point_stiff_ns", "predict_budget084_kp035_pt_imp100_ns30_trace.json",
              "point contact, stiff, no creep"),
             ("point_soft", "pickup_hang10.json", "point_soft", "predict_budget084_kp035_pt_trace.json",
-             "point contact, soft"))
+             "point contact, soft"),
+            # pickup_newton.py (2026-11-16): Newton's SolverMuJoCo with hydroelastic tips; the finger joints held at
+            # their angles at release (Newton has no servo that the load cannot backdrive), friction rows at kf 2 (at
+            # the benchmark's kf 10 the normal forces rose to 12-17 N within 25 ms and threw the ball out)
+            ("newton_hydro_lock", "pickup_hang10_newton.json", "hydro_kf2_lock", None,
+             "Newton hydroelastic, joints held at release"))
 HAND_TWIST = {"4": 0.379, "8": 0.0, "12": 0.326, "13": 0.378}   # data/20261116-trial_tracking.json, the budgeted trials
 
 
@@ -68,7 +73,7 @@ def build():
         r = next(x for x in json.loads((REV / hf).read_text()) if x["variant"] == var)
         held = [x for x in r["rows"] if x["phase"] == "held"]
         t0 = held[0]["t"] - 0.02
-        mae, tr = twist_error(tf)
+        mae, tr = twist_error(tf) if tf else (None, None)
         # out of the pinch: the ball's centre 10 mm below its height at release (the tilt after that is the fallen
         # object's, standing or lying on the floor)
         fell = next((round(x["t"] - t0, 2) for x in held if x["z_mm"] < held[0]["z_mm"] - 10.0), None)
@@ -88,7 +93,7 @@ def figure(d):
                          "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 13})
     INK, CAL, GREY = "#1f2937", "#d97706", "#6b7280"
     style = {"pads_stiff_ns": (CAL, "-", 2.6), "pads_soft": (CAL, ":", 2.2), "point_stiff_ns": (GREY, "-", 1.6),
-             "point_soft": (GREY, ":", 1.6)}
+             "point_soft": (GREY, ":", 1.6), "newton_hydro_lock": ("#2563eb", "-", 2.6)}
     fig, ax = plt.subplots(figsize=(11.0, 5.4))
     for key, v in d["variants"].items():
         c, ls, lw = style[key]
@@ -100,7 +105,8 @@ def figure(d):
                         xytext=(t[k - 1] + 0.25, y[k - 1] + 6.0), fontsize=12, color=c,
                         bbox={"boxstyle": "round,pad=0.2", "fc": "white", "ec": "none", "alpha": 0.9})
             t, y = t[:k], y[:k]
-        ax.plot(t, y, ls, color=c, lw=lw, label=f"{v['label']}; twist error {v['twist_mean_abs_error']:.2f}")
+        ax.plot(t, y, ls, color=c, lw=lw, label=v["label"] + (f"; twist error {v['twist_mean_abs_error']:.2f}"
+                                                               if v["twist_mean_abs_error"] is not None else ""))
     h = d["hand"]
     ax.plot(h["t"], h["tilt"], color=INK, lw=3.2, label=f"the hand: {h['tilt_first']:.0f} to {h['tilt_last']:.0f} deg over "
                                                          f"{h['held_s']:.0f} s")
