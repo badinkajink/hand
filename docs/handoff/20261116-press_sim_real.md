@@ -1,0 +1,55 @@
+Status: active
+Task: 2026-11-16 23:0x, owner: "sure, send off a background autopilot run to churn on the press task calibration". After
+the blind twists and the pick-up hang, compare the hand's two press trials of 11-16 with simulation under the calibrated
+servo, per fingertip contact variant (1 mm sphere pads or point contact; soft or stiff tangential contact; noslip), as the
+twist and pick-up comparisons did. Owner: "we have like 1.5 good trials".
+Read first: docs/experiments/20261115-hom_bench_trials/README.md (sections of 20:10 and 13:21; lines on the press, "No
+ground-clear press grasp exists"); its runs/20261116-131243_press_d25_trial000.jsonl and 131932 (HOM server records),
+runs_corvus/20261116-131239_press_corvus.jsonl and 131927; data/20261116-trial_tracking.json (scripts/hardware/
+hom_trial_tracking.py scores the press: err = RMS angle between the tracked cylinder axis and the start axis turned by
+-theta_ref about x_P); scripts/hardware/hom_blind_compare.py and hom_pickup_compare.py (the structure to follow);
+logs/20261116-sim_real_reversal/: rev_stem.py (the sphere's real object), rev_gear.py, rev_clutch2.py (the calibrated
+servo: gears the load cannot backdrive, --stiff, index and middle yaw kp 0.35), rev_predict.py (--scene --mu --trace),
+pickup_sim.py (SCENES: the contact variants), scenes/; logs/20261116-hom_setup/press_lat_rerun.py, press_lat_plan.py and
+press_lat_score.py (how the lat0 grasp was made and scored on the servo plant); memory
+project_hom_sim_real_reversal_2026_11_16.md.
+State:
+- Twist (hand 6bc0bca5f, ec57a06d9): calibrated sim within 0.06 of the hand's tracking blind, pads or point contact alike;
+  the design pipeline's model 0.25. Pick-up hang (hand 31a9b46a3 to d61cccac5): pads with creep-free stiff contact hold
+  the hanging sphere, point contact swings it, Newton hydroelastic (joints locked) holds 32 deg.
+- Press trials (both at (70, 110), plant spec kp0.55_kv0_fr0.18_fl0_dp0.011, no torque budget): 13:12 the generalist
+  press (plans/20261115-generalist_press_plan.json), drift guard at ~5.5 s, the cylinder dropped, track 0.469; 13:19 the
+  pinch raised to the axis (logs/20261116-hom_setup/20261116-press_x70_y110_lat0_plan.json; copy in plans/), full
+  schedule, held, track 0.452, fingertip boards recorded. Press schedule t_end 5.5 s, scored from 2.0 s. In both the
+  arm lifted the hand 40 mm at 1.6 s (the corvus record's header "lift"), and the cylinder carried the sphere's tag block
+  (ids 16-21, stem 24.41 mm as assembled; object_tracking_mjcf.BLOCK_ON and assembled_stem_mm; the trials' map
+  maps/20261116-cylinder_fitted_map_O.json). Measured masses: cylinder 23.6 g, block 6.5 g (README, changes of 11-16).
+- Nothing of the press comparison exists yet.
+Next:
+1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press angle over
+   time (rotation of the cylinder axis about x_P against theta_ref), how each ended. Write the facts into State.
+2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; geometry in
+   object_tracking_mjcf) as rev_stem.build does for the sphere, in pads and point-contact versions at impratio 1 and
+   100, with and without noslip (30). The arm's 40 mm lift at 1.6 s is modelled as in rev_stem.py for the twist: a table
+   under the block, removed at the lift as the post is. Masses as weighed: cylinder 23.6 g, block 6.5 g, stem about
+   0.6 g (rev_stem's sphere: 28.1 g in all). Check the centre of mass.
+3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HOM's press
+   on the calibrated plant (rev_clutch2 --stiff, yaw 0.35, HOM converting at 0.55, no budget) for both trials' plans and
+   grasps, seeds 0-2, per scene variant; per run the tracking score as hom_trial_tracking.py defines it for the press,
+   the press-angle trace every 0.1 s, held, and the object's drop. Also the design pipeline's model (backdrivable servo at
+   0.72, stiff contact, as logs/20261116-sim_real_reversal/blind_pipeline.py does for the twist).
+4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS),
+   writing docs/experiments/20261115-hom_bench_trials/data/20261116-press/20261116-press_contact_compare.json and
+   media/20261116-press_sim_vs_hand.png (bench folder), on the pattern of hom_blind_compare.py. Look at the figure at its
+   displayed size before committing.
+5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does not,
+   with numbers; stamp times from `date`), and 3-5 lines in the memory file project_hom_sim_real_reversal_2026_11_16.md.
+6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+Claimed: logs/20261116-sim_real_reversal/press_*, scripts/hardware/hom_press_compare.py,
+docs/experiments/20261115-hom_bench_trials/data/20261116-press/, docs/experiments/20261115-hom_bench_trials/media/20261116-press_*,
+docs/experiments/20261115-hom_bench_trials/README.md (a new section only)
+Waiting on owner: none
+Do not: edit the talk deck (the contact repository's talks/20261117-hand_design/ or build_talk.py; the talk is 11-17
+at 12:00 and hand-4a owns it); touch the hardware, corvus or the CB1 (the HOM servers on ports 47035-47038 may stay up);
+run GPU jobs; change the outputs of the existing rev_*, pickup_* or hom_*_compare scripts (copy them into new press_*
+files); run CPU jobs outside ~/.claude/bin/resguard.sh run (measure one run's RSS first).
