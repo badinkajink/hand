@@ -28,6 +28,7 @@ import rev_rescore as RR  # noqa: E402
 _G = {}
 BUDGET = None          # N m: hom_bench.torque_budget on HOM's targets, as the bench server's --torque-budget (rev_predict)
 TRACE = False          # keep each run's twist about z_P over time, every 0.1 s (rev_predict --trace)
+MU = 1.0               # the plant's sliding friction (rev_predict --mu)
 
 
 def gear_class():
@@ -116,7 +117,7 @@ def _run(name, src, call, k, seed, c):
     q_open, _ = T.open_pose(setup, m_pt)
     S.set_palm(m_pt, setup["palm"])
     bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=BUDGET)
-    params = {**RR.SERVER, "mu": 1.0}
+    params = {**RR.SERVER, "mu": MU}
     GP = _G["GP"]
     bench.T = RP._Tasks(lambda path, st: GP(path, st, mxy, params, 0.0, c=c))
     w0 = time.perf_counter()

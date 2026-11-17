@@ -3282,5 +3282,55 @@
     "calibrated_twist_deg": 18.5
    }
   }
+ },
+ "pickup_hang": {
+  "image": "docs/experiments/20261115-hom_bench_trials/media/20261116-pickup_hang_contact.png",
+  "hand": {
+   "held_s": 59.7,
+   "tilt_first": 43.05,
+   "tilt_last": 40.68
+  },
+  "variants": {
+   "pads_stiff_ns": {
+    "label": "pads, stiff tangential, no creep (noslip)",
+    "held_at": {
+     "1": 40.58,
+     "3": 39.55,
+     "6": 38.04,
+     "10": 36.0
+    },
+    "twist_mean_abs_error": 0.146
+   },
+   "pads_soft": {
+    "label": "pads, soft tangential (the twist's calibration)",
+    "held_at": {
+     "1": 11.92,
+     "3": 7.48,
+     "6": 5.24,
+     "10": 2.38
+    },
+    "twist_mean_abs_error": 0.06
+   },
+   "point_stiff_ns": {
+    "label": "point contact, stiff, no creep",
+    "held_at": {
+     "1": 16.8,
+     "3": 30.84,
+     "6": 22.64,
+     "10": 40.27
+    },
+    "twist_mean_abs_error": 0.17
+   },
+   "point_soft": {
+    "label": "point contact, soft",
+    "held_at": {
+     "1": 18.42,
+     "3": 31.79,
+     "6": 41.91,
+     "10": 86.1
+    },
+    "twist_mean_abs_error": 0.061
+   }
+  }
  }
 }

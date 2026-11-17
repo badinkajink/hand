@@ -53,9 +53,10 @@ def main():
     ap.add_argument("--torque-budget", type=float, default=None,
                     help="N m: HOM's targets under hom_bench.torque_budget, as the bench server's --torque-budget")
     ap.add_argument("--trace", action="store_true", help="keep each run's twist about z_P every 0.1 s")
+    ap.add_argument("--mu", type=float, default=1.0, help="the plant's sliding friction")
     a = ap.parse_args()
     RC2.STIFF, RC2.KP_YAW_IM, RC2.BREAKAWAY = True, a.kp_yaw_im, a.breakaway
-    RG.BUDGET, RG.TRACE = a.torque_budget, a.trace
+    RG.BUDGET, RG.TRACE, RG.MU = a.torque_budget, a.trace, a.mu
     if a.scene:
         RG.RF.SCENE = D / "scenes" / a.scene
     RG.gear_class = RC2.clutch_class
@@ -69,7 +70,7 @@ def main():
     with mp.get_context("fork").Pool(a.workers, initializer=RG.init, initargs=(str(RG.RF.SCENE),)) as pool:
         rows = pool.map(RG.run, jobs)
     meta = {"hos_plant": os.environ.get("HOS_PLANT"), "kp_yaw_im": a.kp_yaw_im, "breakaway": a.breakaway, "c_f": 0.6,
-            "stiff": True, "scene": RG.RF.SCENE.name, "torque_budget": a.torque_budget}
+            "stiff": True, "scene": RG.RF.SCENE.name, "torque_budget": a.torque_budget, "mu": a.mu}
     summ = {}
     for n, s, c, k in gs:
         rs = [r for r in rows if r["grasp"] == n and "error" not in r]
