@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-16T14:24:42-0700",
+ "generated": "2026-11-16T20:09:05-0700",
  "script": "scripts/hardware/hom_trial_tracking.py",
  "runs": "docs/experiments/20261115-hom_bench_trials/runs",
  "corvus": "docs/experiments/20261115-hom_bench_trials/runs_corvus",
@@ -3154,6 +3154,959 @@
     "single_camera_share": 0.086,
     "n_tags_median": 4.0,
     "pose_age_median_ms": 63.8
+   }
+  },
+  {
+   "stamp": "20261116-161256",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-161256_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T16:12:56-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "150fe39ca",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "logs/20261116-hom_setup/20261116-film_x105_y70_twist_gr_g4_plan.json",
+    "family": "film",
+    "label": "film g4 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 4",
+    "grid": "grid2dgr",
+    "grasp": 4,
+    "lat_deg": 0.85,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 137,
+   "periods_server": 137,
+   "duration_s": 2.74,
+   "joints_src": {
+    "open": 1,
+    "reference": 18,
+    "bus": 118
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-161252_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 137,
+    "frames_posted": 119,
+    "posted_share": 0.869,
+    "stop": {
+     "t_s": 2.7451,
+     "reason": "object drifted 75.3 mm from its start in P (limit 30)"
+    },
+    "station_error": "RemoteDisconnected('Remote end closed connection without response')",
+    "frame_errors": {
+     "RemoteDisconnected": 2,
+     "RuntimeError": 1
+    },
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.925,
+    "lift_max_dF_N": 1.821,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "no state for 1.0 s",
+    "t_s": 2.74,
+    "class": "drift guard",
+    "short": "drift 75.3/30",
+    "detail": "object drifted 75.3 mm from its start in P (limit 30)"
+   },
+   "motion": {
+    "rise_max_mm": 2.2,
+    "rise_end_mm": -56.7,
+    "twist_end_deg": -30.4,
+    "twist_max_deg": 0.0,
+    "twist_min_deg": -30.4,
+    "tilt_end_deg": 54.1,
+    "tilt_max_deg": 54.1,
+    "lat_end_mm": 49.5,
+    "lat_max_mm": 49.5,
+    "drift_end_mm": 75.3,
+    "drift_max_mm": 75.3
+   },
+   "scored": true,
+   "notes": [
+    "targets posted to the stream in 119 of 137 periods",
+    "partial window: 2.00-2.74 s of 2.0-7.78 s"
+   ],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 2.74,
+    "periods": 38,
+    "partial": true
+   },
+   "track": {
+    "twist_ref_end_deg": 10.4,
+    "twist_task_end_deg": -20.11,
+    "err_rms_deg": 16.68,
+    "ref_rms_deg": 12.83,
+    "score": 0.0
+   },
+   "joint_gap": {
+    "n_bus": 22,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -10.4,
+      "max_abs_deg": 12.5,
+      "share_over_10": 0.636
+     },
+     "thumb.fe1": {
+      "median_deg": 15.3,
+      "max_abs_deg": 22.2,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 17.5,
+      "max_abs_deg": 22.5,
+      "share_over_10": 0.909
+     },
+     "index.aa": {
+      "median_deg": 15.1,
+      "max_abs_deg": 16.9,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 13.6,
+      "max_abs_deg": 17.4,
+      "share_over_10": 1.0
+     },
+     "index.fe2": {
+      "median_deg": -1.0,
+      "max_abs_deg": 3.8,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -13.9,
+      "max_abs_deg": 17.3,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 16.2,
+      "max_abs_deg": 18.4,
+      "share_over_10": 1.0
+     },
+     "middle.fe2": {
+      "median_deg": 8.1,
+      "max_abs_deg": 10.1,
+      "share_over_10": 0.045
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.368,
+    "lost_share": 0.263,
+    "single_camera_share": 0.079,
+    "n_tags_median": 3.0,
+    "pose_age_median_ms": 70.4
+   },
+   "tracker_trial": {
+    "fresh_share": 0.489,
+    "lost_share": 0.073,
+    "single_camera_share": 0.022,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.9
+   }
+  },
+  {
+   "stamp": "20261116-164730",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-164730_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T16:47:30-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "d7797f1a8",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x105_y70_twist_gr_g4_open9_plan.json",
+    "family": "film",
+    "label": "film g4 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 4",
+    "grid": "grid2dgr",
+    "grasp": 4,
+    "lat_deg": 0.85,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 242,
+   "periods_server": 242,
+   "duration_s": 4.82,
+   "joints_src": {
+    "open": 1,
+    "reference": 25,
+    "bus": 216
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-164726_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 242,
+    "frames_posted": 212,
+    "posted_share": 0.876,
+    "stop": {
+     "t_s": 4.8203,
+     "reason": "object drifted 50.3 mm from its start in P (limit 30)"
+    },
+    "station_error": "RemoteDisconnected('Remote end closed connection without response')",
+    "frame_errors": {
+     "RemoteDisconnected": 2,
+     "RuntimeError": 1
+    },
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.959,
+    "lift_max_dF_N": 1.685,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "no state for 1.0 s",
+    "t_s": 4.82,
+    "class": "drift guard",
+    "short": "drift 50.3/30",
+    "detail": "object drifted 50.3 mm from its start in P (limit 30)"
+   },
+   "motion": {
+    "rise_max_mm": 2.0,
+    "rise_end_mm": -39.0,
+    "twist_end_deg": -7.6,
+    "twist_max_deg": 0.9,
+    "twist_min_deg": -7.6,
+    "tilt_end_deg": 19.7,
+    "tilt_max_deg": 19.7,
+    "lat_end_mm": 31.7,
+    "lat_max_mm": 31.7,
+    "drift_end_mm": 50.3,
+    "drift_max_mm": 50.3
+   },
+   "scored": true,
+   "notes": [
+    "targets posted to the stream in 212 of 242 periods",
+    "partial window: 2.00-4.82 s of 2.0-7.78 s"
+   ],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 4.82,
+    "periods": 142,
+    "partial": true
+   },
+   "track": {
+    "twist_ref_end_deg": 45.6,
+    "twist_task_end_deg": -1.22,
+    "err_rms_deg": 20.42,
+    "ref_rms_deg": 20.62,
+    "score": 0.01
+   },
+   "joint_gap": {
+    "n_bus": 121,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -9.5,
+      "max_abs_deg": 15.6,
+      "share_over_10": 0.413
+     },
+     "thumb.fe1": {
+      "median_deg": 13.7,
+      "max_abs_deg": 20.3,
+      "share_over_10": 0.719
+     },
+     "thumb.fe2": {
+      "median_deg": 17.0,
+      "max_abs_deg": 25.6,
+      "share_over_10": 0.835
+     },
+     "index.aa": {
+      "median_deg": 14.2,
+      "max_abs_deg": 16.1,
+      "share_over_10": 0.983
+     },
+     "index.fe1": {
+      "median_deg": 13.8,
+      "max_abs_deg": 23.6,
+      "share_over_10": 0.661
+     },
+     "index.fe2": {
+      "median_deg": 3.3,
+      "max_abs_deg": 13.3,
+      "share_over_10": 0.231
+     },
+     "middle.aa": {
+      "median_deg": -14.2,
+      "max_abs_deg": 19.7,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 14.2,
+      "max_abs_deg": 18.6,
+      "share_over_10": 0.975
+     },
+     "middle.fe2": {
+      "median_deg": 7.9,
+      "max_abs_deg": 12.0,
+      "share_over_10": 0.066
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.465,
+    "lost_share": 0.113,
+    "single_camera_share": 0.014,
+    "n_tags_median": 5.0,
+    "pose_age_median_ms": 66.2
+   },
+   "tracker_trial": {
+    "fresh_share": 0.492,
+    "lost_share": 0.066,
+    "single_camera_share": 0.012,
+    "n_tags_median": 5.0,
+    "pose_age_median_ms": 64.5
+   }
+  },
+  {
+   "stamp": "20261116-195825",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-195825_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T19:58:25-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "9936ed84f",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x105_y70_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g13 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 13",
+    "grid": "grid2dgr",
+    "grasp": 13,
+    "lat_deg": 2.38,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 416,
+   "periods_server": 416,
+   "duration_s": 8.32,
+   "joints_src": {
+    "open": 1,
+    "reference": 4,
+    "bus": 411
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-195821_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 416,
+    "frames_posted": 411,
+    "posted_share": 0.988,
+    "stop": {
+     "t_s": 8.3271,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.599,
+    "lift_dz_mm": 39.923,
+    "lift_max_dF_N": 1.505,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.6,
+    "rise_end_mm": 1.0,
+    "twist_end_deg": 37.0,
+    "twist_max_deg": 37.2,
+    "twist_min_deg": -2.8,
+    "tilt_end_deg": 18.4,
+    "tilt_max_deg": 20.1,
+    "lat_end_mm": 14.7,
+    "lat_max_mm": 14.7,
+    "drift_end_mm": 14.7,
+    "drift_max_mm": 14.7
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 39.55,
+    "err_rms_deg": 36.93,
+    "ref_rms_deg": 59.4,
+    "score": 0.378
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -1.0,
+      "max_abs_deg": 5.8,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 18.7,
+      "max_abs_deg": 19.3,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 9.8,
+      "max_abs_deg": 15.5,
+      "share_over_10": 0.493
+     },
+     "index.aa": {
+      "median_deg": 8.7,
+      "max_abs_deg": 15.2,
+      "share_over_10": 0.393
+     },
+     "index.fe1": {
+      "median_deg": 17.4,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.993
+     },
+     "index.fe2": {
+      "median_deg": -0.0,
+      "max_abs_deg": 7.6,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -19.1,
+      "max_abs_deg": 19.3,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 8.3,
+      "max_abs_deg": 15.0,
+      "share_over_10": 0.224
+     },
+     "middle.fe2": {
+      "median_deg": 5.2,
+      "max_abs_deg": 14.0,
+      "share_over_10": 0.134
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.214,
+    "lost_share": 0.0,
+    "single_camera_share": 1.0,
+    "n_tags_median": 2.0,
+    "pose_age_median_ms": 121.2
+   },
+   "tracker_trial": {
+    "fresh_share": 0.214,
+    "lost_share": 0.0,
+    "single_camera_share": 1.0,
+    "n_tags_median": 2.0,
+    "pose_age_median_ms": 123.1
+   }
+  },
+  {
+   "stamp": "20261116-200049",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-200049_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T20:00:49-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "9936ed84f",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x105_y70_twist_gr_g4_open9_plan.json",
+    "family": "film",
+    "label": "film g4 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 4",
+    "grid": "grid2dgr",
+    "grasp": 4,
+    "lat_deg": 0.85,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 300,
+   "periods_server": 300,
+   "duration_s": 5.98,
+   "joints_src": {
+    "open": 1,
+    "reference": 1,
+    "bus": 298
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-200045_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 300,
+    "frames_posted": 297,
+    "posted_share": 0.99,
+    "stop": {
+     "t_s": 5.9803,
+     "reason": "object drifted 20.0 mm from its start in P (limit 20)"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.98,
+    "lift_max_dF_N": 2.004,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "no state for 1.0 s",
+    "t_s": 5.98,
+    "class": "drift guard",
+    "short": "drift 20.0/20",
+    "detail": "object drifted 20.0 mm from its start in P (limit 20)"
+   },
+   "motion": {
+    "rise_max_mm": 6.5,
+    "rise_end_mm": 1.0,
+    "twist_end_deg": 28.7,
+    "twist_max_deg": 53.1,
+    "twist_min_deg": -10.2,
+    "tilt_end_deg": 15.6,
+    "tilt_max_deg": 28.0,
+    "lat_end_mm": 20.0,
+    "lat_max_mm": 20.0,
+    "drift_end_mm": 20.0,
+    "drift_max_mm": 20.0
+   },
+   "scored": true,
+   "notes": [
+    "partial window: 2.00-5.98 s of 2.0-7.78 s"
+   ],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 5.98,
+    "periods": 200,
+    "partial": true
+   },
+   "track": {
+    "twist_ref_end_deg": 80.4,
+    "twist_task_end_deg": 36.26,
+    "err_rms_deg": 23.99,
+    "ref_rms_deg": 38.64,
+    "score": 0.379
+   },
+   "joint_gap": {
+    "n_bus": 200,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -7.3,
+      "max_abs_deg": 12.4,
+      "share_over_10": 0.15
+     },
+     "thumb.fe1": {
+      "median_deg": 11.5,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.675
+     },
+     "thumb.fe2": {
+      "median_deg": 15.2,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.845
+     },
+     "index.aa": {
+      "median_deg": 11.7,
+      "max_abs_deg": 15.7,
+      "share_over_10": 0.82
+     },
+     "index.fe1": {
+      "median_deg": 10.2,
+      "max_abs_deg": 18.0,
+      "share_over_10": 0.645
+     },
+     "index.fe2": {
+      "median_deg": 1.2,
+      "max_abs_deg": 17.5,
+      "share_over_10": 0.205
+     },
+     "middle.aa": {
+      "median_deg": -9.8,
+      "max_abs_deg": 16.6,
+      "share_over_10": 0.475
+     },
+     "middle.fe1": {
+      "median_deg": 15.1,
+      "max_abs_deg": 19.3,
+      "share_over_10": 1.0
+     },
+     "middle.fe2": {
+      "median_deg": 6.1,
+      "max_abs_deg": 8.6,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.53,
+    "lost_share": 0.04,
+    "single_camera_share": 0.04,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 62.5
+   },
+   "tracker_trial": {
+    "fresh_share": 0.53,
+    "lost_share": 0.027,
+    "single_camera_share": 0.037,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 63.8
+   }
+  },
+  {
+   "stamp": "20261116-200348",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-200348_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T20:03:48-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "9936ed84f",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x105_y70_twist_gr_g12_open9_plan.json",
+    "family": "film",
+    "label": "film g12 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 12",
+    "grid": "grid2dgr",
+    "grasp": 12,
+    "lat_deg": 3.99,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 416,
+   "periods_server": 416,
+   "duration_s": 8.32,
+   "joints_src": {
+    "open": 1,
+    "reference": 2,
+    "bus": 413
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-200344_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 416,
+    "frames_posted": 411,
+    "posted_share": 0.988,
+    "stop": {
+     "t_s": 8.3157,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.993,
+    "lift_max_dF_N": 1.248,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.2,
+    "rise_end_mm": 2.0,
+    "twist_end_deg": 36.8,
+    "twist_max_deg": 36.9,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 10.0,
+    "tilt_max_deg": 21.1,
+    "lat_end_mm": 5.7,
+    "lat_max_mm": 6.8,
+    "drift_end_mm": 6.1,
+    "drift_max_mm": 6.9
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 31.3,
+    "err_rms_deg": 40.01,
+    "ref_rms_deg": 59.4,
+    "score": 0.326
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -0.2,
+      "max_abs_deg": 3.9,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 19.3,
+      "max_abs_deg": 19.3,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 1.8,
+      "max_abs_deg": 17.8,
+      "share_over_10": 0.141
+     },
+     "index.aa": {
+      "median_deg": 9.4,
+      "max_abs_deg": 16.6,
+      "share_over_10": 0.476
+     },
+     "index.fe1": {
+      "median_deg": 15.2,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.869
+     },
+     "index.fe2": {
+      "median_deg": 0.6,
+      "max_abs_deg": 5.2,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -19.3,
+      "max_abs_deg": 19.3,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 4.3,
+      "max_abs_deg": 12.0,
+      "share_over_10": 0.079
+     },
+     "middle.fe2": {
+      "median_deg": 0.6,
+      "max_abs_deg": 11.8,
+      "share_over_10": 0.038
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.517,
+    "lost_share": 0.0,
+    "single_camera_share": 0.028,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.2
+   },
+   "tracker_trial": {
+    "fresh_share": 0.517,
+    "lost_share": 0.0,
+    "single_camera_share": 0.029,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.3
+   }
+  },
+  {
+   "stamp": "20261116-200600",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261116-200600_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-16T20:06:00-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "9936ed84f",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x105_y70_twist_gr_g8_open9_plan.json",
+    "family": "film",
+    "label": "film g8 (105,70)",
+    "role": "film",
+    "layout_mm": [
+     105.0,
+     70.0
+    ],
+    "call": 329,
+    "pick": "grid2dgr grasp 8",
+    "grid": "grid2dgr",
+    "grasp": 8,
+    "lat_deg": 0.68,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 291,
+   "periods_server": 291,
+   "duration_s": 5.82,
+   "joints_src": {
+    "open": 1,
+    "reference": 9,
+    "bus": 281
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261116-200556_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 291,
+    "frames_posted": 273,
+    "posted_share": 0.938,
+    "stop": {
+     "t_s": 5.8127,
+     "reason": "object drifted 21.2 mm from its start in P (limit 20)"
+    },
+    "station_error": "RemoteDisconnected('Remote end closed connection without response')",
+    "frame_errors": {
+     "RemoteDisconnected": 7,
+     "RuntimeError": 8
+    },
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.98,
+    "lift_max_dF_N": 1.594,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "no state for 1.0 s",
+    "t_s": 5.82,
+    "class": "drift guard",
+    "short": "drift 21.2/20",
+    "detail": "object drifted 21.2 mm from its start in P (limit 20)"
+   },
+   "motion": {
+    "rise_max_mm": 2.0,
+    "rise_end_mm": -6.9,
+    "twist_end_deg": 15.9,
+    "twist_max_deg": 25.5,
+    "twist_min_deg": -1.5,
+    "tilt_end_deg": 39.4,
+    "tilt_max_deg": 39.4,
+    "lat_end_mm": 20.0,
+    "lat_max_mm": 20.0,
+    "drift_end_mm": 21.2,
+    "drift_max_mm": 21.2
+   },
+   "scored": true,
+   "notes": [
+    "partial window: 2.00-5.82 s of 2.0-7.78 s"
+   ],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 5.82,
+    "periods": 192,
+    "partial": true
+   },
+   "track": {
+    "twist_ref_end_deg": 75.6,
+    "twist_task_end_deg": 7.66,
+    "err_rms_deg": 38.03,
+    "ref_rms_deg": 36.05,
+    "score": 0.0
+   },
+   "joint_gap": {
+    "n_bus": 184,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 7.7,
+      "max_abs_deg": 13.1,
+      "share_over_10": 0.12
+     },
+     "thumb.fe1": {
+      "median_deg": 18.7,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.984
+     },
+     "thumb.fe2": {
+      "median_deg": 3.3,
+      "max_abs_deg": 19.0,
+      "share_over_10": 0.277
+     },
+     "index.aa": {
+      "median_deg": 6.6,
+      "max_abs_deg": 12.5,
+      "share_over_10": 0.109
+     },
+     "index.fe1": {
+      "median_deg": 12.4,
+      "max_abs_deg": 16.7,
+      "share_over_10": 0.859
+     },
+     "index.fe2": {
+      "median_deg": 2.5,
+      "max_abs_deg": 8.2,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -15.8,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.75
+     },
+     "middle.fe1": {
+      "median_deg": 9.3,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.527
+     },
+     "middle.fe2": {
+      "median_deg": 0.5,
+      "max_abs_deg": 19.3,
+      "share_over_10": 0.38
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.49,
+    "lost_share": 0.0,
+    "single_camera_share": 0.078,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 66.3
+   },
+   "tracker_trial": {
+    "fresh_share": 0.495,
+    "lost_share": 0.0,
+    "single_camera_share": 0.093,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 67.1
    }
   }
  ]

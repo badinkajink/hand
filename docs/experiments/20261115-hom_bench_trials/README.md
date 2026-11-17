@@ -4,6 +4,49 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 20:10: blind twists under a torque budget, the sphere carried to the table's centre
+
+The owner, 19:5x: "i think we can try again with the capped targets. we should also re-center the sphere on the table.
+let's try to do this generally in each trial reset"; "im not at the bench, but you've run autonomously without me there
+before". hand-4a ran four trials at (105, 70) from the workstation through corvus; the owner was not at the bench. The
+rig at the end: the sphere upright on its block at the table's centre, the hand level and empty over it, station homed,
+torque on; HOM servers 47035-47038 (`--torque-budget 0.84`) still up on the workstation.
+
+- **Why the blind gr_g4 trials lost power.** The calibration was in the simulator only: the three servers of 13:03,
+  16:12 and 16:47 ran the same plant (`kp0.55_kv0_fr0.18_fl0_dp0.011`) and the same HOM forces. gr_g4 loads more joints
+  at once. In the lift its estimated servo torques (0.55 N m/rad past a 0.59 deg dead band, 0.18 N m at most) summed to
+  a median 0.96 N m, against 0.84 N m for the 13:03 grasp, which held. The servos read 5.0-5.3 V at rest and 4.7-4.9 V
+  holding a grasp (the new diagnostic below), the bottom of the SCS0009's 4-7.4 V range.
+- **The budget.** `hom_bench.torque_budget`, served with `hom_server serve --torque-budget 0.84`: the nine targets'
+  offsets past the dead band are scaled by one factor whenever their estimated torques sum past 0.84 N m. The
+  predictions were redone with it and committed before any trial (`data/20261116-blind_twists/20261116-predictions_budget084.json`,
+  19:51). No trial lost power.
+
+| grasp | predicted track | hand track (from 2.0 s) | ended | budget active |
+|---|---|---|---|---|
+| gr_g13 | 0.30 | 0.378 | full run, 39.6 deg of 90.6 | 207 of 416 periods, scale >= 0.85 |
+| gr_g12 | 0.33 | 0.326 | full run, 31.3 deg | 80 of 416, >= 0.92 |
+| gr_g4 | 0.43 | 0.379 to 5.98 s | drift guard, 20.0 mm at 6.0 s | 224 of 300, >= 0.76 |
+| gr_g8 | 0.10 | 0.00 to 5.82 s | drift guard, 21.2 mm at 5.8 s | 173 of 291, >= 0.76 |
+
+  Records: `runs/20261116-1958*`, `20261116-2000*`, `20261116-2003*`, `20261116-2006*` and `runs_corvus/`;
+  `data/20261116-trial_tracking.json`; films in corvus's `logs/20261116-hom_trials/20261116-budget_twists/`. gr_g4 and
+  gr_g8 slid sideways in the hand about 1 s into the twist ramp; the simulation's summary has the rise (8.1 and 0.7 mm),
+  not the lateral slip.
+- **Servo diagnostics on the CB1** (owner's go, installed 19:45, backups in `~/backups/20261116-servo_diagnostics/`;
+  `cb1/20261116-servo_diagnostics.patch`): `POST /api/v1/servos/diagnostics` reads each servo's voltage, temperature,
+  torque_enable and status once. `lab/hom_setup.py diag` calls it, and `hom_trial.py` calls it once after a station
+  error (gr_g8's dropped HTTP connection: no servo rebooted, 4.7-4.9 V). The station was restarted motionless at 19:45
+  by hand (corvus's key does not reach the CB1 non-interactively, so `hom_setup.py torque-on --go` failed at its scp).
+- **The sphere at the table's centre.** `putdown` and `pinch_pickup.py setdown` carry the held object over
+  `TABLE_CENTRE_B` (-150, -375) mm in B before the descent: up 30 mm, then x and y at 20 mm/s, stopped by the HEX-E or the
+  object moving in the hand. The 19:58 trial picked the sphere up from (52.4, -316.9), where the cameras saw 2 tags and
+  `ready`'s descent stopped three times on the tracker's jumps (passed with `--watch-mm 6 --watch-deg 15`); its putdown
+  carried it 207 mm, to 1.0 mm from the centre, where both cameras see 4 tags. With 4 tags the guards kept their
+  defaults, except `putdown --touch-lat 3`: at 1.5 mm a 1.79 mm jump stopped one fast descent 55 mm over the table.
+  gr_g8's putdown first refused to release the sphere at 23.8 deg from vertical; `place --clear 25 --no-level` lifted it
+  and `putdown --level-frac 1 --level-max 26` set it down at 0.4 deg.
+
 ## State on 2026-11-16 17:01: blind twists stopped, the sphere upright
 
 The owner, 17:0x: "we can stop after that. i think we have enough data." The rig: the sphere upright on its block
