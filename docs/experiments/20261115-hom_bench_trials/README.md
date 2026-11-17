@@ -4,6 +4,55 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-17 10:06: the fingertip comparison stopped after three trials, the index PIP's reading wrapped
+
+The owner, 09:0x from away: "are the lights back on? can we finish running some tests". At the tracker's fixed
+exposure both cameras saw a lit lab (mean luma 138-140 of 255). The comparison of the next section started at 09:12 on
+ground-clear grasp 13 at (105, 70). It used HOM servers 47041 (`--tips off`) and 47042 (`--tips on`) with the torque
+budget at 0.84 N m and the drift guard at 20 mm; 47043 and 47044 served g12 for later. It stopped after three trials,
+when the index PIP's position reading wrapped. The owner, 10:0x: stop for today.
+
+| Trial | Tips | Ended | Tracking | Twist (deg) | Rise (mm) | Drift (mm) | Tilt (deg) |
+|---|---|---|---|---|---|---|---|
+| 09:15:23 | off | schedule | 0.322 | 33.6 | 1.9 | 9.0 | 13.1 |
+| 09:17:52 | on | guard, 3.54 s | – | – | 1.8 | 2.5 | 6.1 |
+| 09:21:12 | on | schedule | 0.394 | 35.0 | 4.0 | 19.8 | 35.4 |
+
+Tracking and the twist at the task's end come from `scripts/hardware/hom_trial_tracking.py`, run on a scratch copy of
+the records. Rise, drift and tilt are the largest over each record. The same grasp tracked 0.378 under the same budget
+at 19:58 on 11-16. One pair cannot tell the two settings apart from the spread between trials.
+
+- **The loop stalls.** Inside the trial's process the estimator took 57-73 ms per estimate (each trial's median;
+  125-127 ms at the 95th percentile, 218 ms at most). The offline replays took 7.4 ms. The same Python process runs the
+  tracker on two 1080p cameras and two video writers, and its 50 Hz loop stalled for 40-70 ms. The first tips-on trial
+  stopped at 3.54 s on the guard for three missing targets (60 ms), while HOM's server stepped in 3-7 ms. The third
+  trial ran with `--miss 6` (120 ms). The estimates reached the server 43 ms old (median, first trial). Next: run the
+  estimator, or the films, in a process of its own.
+- **The index PIP's reading wrapped.** In the tips-on trial of 09:21, HOM drove the index PIP to -2.9 deg, against the
+  station's lower limit of -2.93 deg. During the putdown that followed, its reading jumped to +184 to +189 deg and
+  stayed there. The driver's table (`manta_hand/servos.py`, FINGER_JOINTS) puts that limit at the servo's -149.7 deg,
+  0.3 deg inside the end of its 300 deg range, so a small overshoot leaves the potentiometer's track. The index and middle
+  MCPs' flexion limits and the middle PIP's flexion limit sit at +149.7 deg the same way, which fits the MCPs' known jump
+  past 62-68 deg. The station refuses any frame or pose with the index PIP outside [-2.93, 92] deg, so the
+  interpolated release failed. The servo cannot see its position and pushes against the stop at its overload protection
+  (status 32). Next: free the PIP with the station stopped (a raw-bus nudge into flexion), then the motionless restart.
+  Clip HOM's targets a few degrees inside these four limits, and just inside every other limit: the press of 11-16
+  lost frames at the middle PIP's -16.11 deg, a range check, not a wrap (servo +56.6 deg).
+- **The putdown of 09:21.** The sphere had tilted 39 deg in the grasp. The touchdown found the block 30.7 deg from
+  vertical, not seated. After a 25 mm lift, `putdown --level-frac 1 --level-max 35` turned the hand 31 deg, stopped by
+  its 12 s move limit near the end, and seated the block at 3.4 deg. The release had to go around the index PIP: the
+  plan's open pose with that PIP's goal held at -2.9 deg, as one goal at speed 40. The sphere toppled as the fingers
+  opened and rolled about 190 mm. While the hand held it, the thumb's MCP and the middle's yaw also showed the overload
+  flag, and the index yaw's servo warmed to 39 deg C; both eased after the release.
+- **The first ready refused.** The sphere sat 59.6 mm from the hand's nominal pose: the 20:10 putdown had left it at
+  the table's centre. `approach --fine --fine-max 60 --max-lat 60 --fingers-straight` moved the hand over it at its
+  height.
+
+The rig at 09:29: the hand level (z_P 0.02 deg), its palm at z 254 mm in B over the table's centre. The fingers are at
+the open pose with torque on, and the index PIP is blind against its stop (29 deg C). The sphere lies on its side about
+190 mm from the hand. HOM servers 47041-47044 and the board splitter are stopped. Records: `runs_corvus/20261117-*` and
+`runs/20261117-*`. Films and fingertip records are in corvus's `logs/20261116-hom_trials/20261117-0912_tips_eval/`.
+
 ## Trials with the fingertips (from 2026-11-17)
 
 Every HOM trial now records the three fingertip boards and sends their contact estimates to the HOM server. Whether HOM
