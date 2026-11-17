@@ -80,7 +80,7 @@ def _bench(a):
     configure(a.plant, a.hand)
     from dataclasses import replace
     from . import hom_bench as HB
-    kw = {"torque_budget": getattr(a, "torque_budget", None)}
+    kw = {"torque_budget": getattr(a, "torque_budget", None), "pose_tau": getattr(a, "pose_tau", None)}
     b = (HB.HomBench.from_plan(a.plan, a.task, a.d, a.dt, **kw) if a.plan
          else HB.HomBench.from_design(a.task, a.d, dt=a.dt, **kw))
     if getattr(a, "tips", "off") == "on":                 # the tip variant's floor (hom_tasks.VARIANTS["tip"])
@@ -208,8 +208,10 @@ class Server:
         else:
             tc = time.perf_counter()
             try:
+                age_f = (s.t_ms - s.t_capture_ms) / 1000.0 if math.isfinite(s.t_capture_ms) else None
                 out, info = b.step(t, joints, self.last_obj[0], self.last_obj[1],
-                                   contacts if self.a.tips != "off" else None)
+                                   contacts if self.a.tips != "off" else None, frame_age_s=age_f,
+                                   frame=s.t_capture_ms if math.isfinite(s.t_capture_ms) else None)
             except Exception as e:             # noqa: BLE001  e.g. a least-squares solve on a diverged state
                 out = self.last_out if self.last_out is not None else self.HB.servo_from_sim(b.q_open)
                 info = {"phase": "controller error", "clipped": [], "schedule": {}, "error": repr(e)}
@@ -234,7 +236,7 @@ class Server:
                "gcf": {f: [hom[f]["source"], round(1e3 * float(hom[f]["dist"]), 3)] for f in self.HB.FINGERS
                        if f in hom and "source" in hom[f]},
                "targets": out, "targets_sim_deg": sim_deg, "phase": info["phase"], "clipped": info["clipped"],
-               "budget_scale": info.get("budget_scale"),
+               "budget_scale": info.get("budget_scale"), "obj_filtered": info.get("pose_filtered"),
                "compute_ms": round(info.get("compute_ms", float("nan")), 3),
                "ref": {k: sch[k] for k in ("w_ref", "v_ref", "theta_ref") if k in sch}, "error": info.get("error")}
         self.fh.write(json.dumps(rec, default=_jsonable) + "\n")
@@ -488,6 +490,9 @@ def main() -> int:
                            help="the fingertips' contacts (StateMsg.cop): off, recorded and not given to HOM (as on "
                                 "2026-11-16); on, given to HOM as hom_tasks' tip variant does (a finger counts from "
                                 "0.25 N); raw, given at the plan's own floor (sil's simulated hand)")
+            p.add_argument("--pose-tau", type=float, default=None,
+                           help="the tracked pose's filter time constant, s (hom_bench.HomBench._pose_filter, as "
+                                "hom_gpu's POSE_FILTER; 0.2 in the twist's sensing study); off by default")
         elif name != "nominal":
             p.add_argument("--seed", type=int, default=0)
             p.add_argument("--port-out", type=int, default=47102)

@@ -118,11 +118,12 @@ class HomBench:
 
     def __init__(self, task: str, d_mm: float, setup: dict, m_pt, q_open: dict, dt: float = DT_BENCH,
                  prm: H.HomParams | None = None, p_pads: Path | None = None, task_prm: dict | None = None,
-                 hold_s: float = 0.0, torque_budget: float | None = None):
+                 hold_s: float = 0.0, torque_budget: float | None = None, pose_tau: float | None = None):
         _paths()
         import hom_tasks as T
         self.T = T
         self.torque_budget = torque_budget                       # N m summed over the nine servos (torque_budget)
+        self.pose_tau = pose_tau                                 # s: the tracked pose's filter (_pose_filter); None off
         self.task, self.d_mm, self.setup, self.p_pads = task, float(d_mm), setup, p_pads
         self.task_prm = {**T.PRM, **(task_prm or {})}          # the schedule's forces, weights and command
         self.hold_s = float(hold_s)                             # the plant holds the object this long (the seat)
@@ -203,6 +204,43 @@ class HomBench:
     def reset(self):
         self.ctl = H.HomController(self.mirror, self.prm, healthy=self.q_open)
         self.sch = self.T.Schedule(self.task, self.setup, self.task_prm)
+        self.pf, self.w_pred = None, np.zeros(3)
+
+    def _pose_filter(self, t: float, p_mm, q, age_s, frame):
+        """The tracked pose after hom_gpu's pose filter (POSE_FILTER, tau = self.pose_tau; owner, 2026-11-17: "results
+        with using fingertip force sensing (with the pose filter) / closed loop control on that feedback"; in simulation
+        the tag tracker with the fingertips and tau 0.2 s scored the twist's 20 pairs 0.318 against 0.302 without the
+        filter). From the task's start every period turns the estimate by the schedule's last angular velocity (w_ref);
+        a new tag frame (a new capture time) moves it by a = (time since the last new frame) / tau of the frame's
+        difference to the estimate at the frame's capture time (age_s before now; the present estimate without it).
+        Before the task the pose passes unchanged. P mm and wxyz, as the station sends them."""
+        from sr2hand.geometry import rotations as Rq
+        p_mm, q = np.asarray(p_mm, float), Rq.quat_normalize(np.asarray(q, float))
+        if self.pf is None:
+            self.pf = {"p": p_mm.copy(), "q": q.copy(), "frame": frame, "t_new": t, "hist": []}
+        pf = self.pf
+        fresh = frame is None or frame != pf["frame"]
+        pf["frame"] = frame
+        if t < self.T.T_LIFT + 0.4:
+            pf["p"], pf["q"] = p_mm.copy(), q.copy()
+        else:
+            qn = Rq.quat_mul(Rq.quat_from_rotvec(self.w_pred * self.prm.dt), pf["q"])
+            pn = pf["p"].copy()
+            if fresh:
+                a = min(1.0, max(t - pf["t_new"], self.prm.dt) / self.pose_tau)
+                pr, qr = pf["p"], pf["q"]
+                if age_s is not None and math.isfinite(age_s) and pf["hist"]:
+                    th = np.array([h[0] for h in pf["hist"]])
+                    k = int(np.argmin(np.abs(th - (t - age_s))))
+                    pr, qr = pf["hist"][k][1], pf["hist"][k][2]
+                e = a * Rq.quat_to_rotvec(Rq.quat_mul(q, Rq.quat_conj(qr)))
+                qn = Rq.quat_mul(Rq.quat_from_rotvec(e), qn)
+                pn = pn + a * (p_mm - pr)
+            pf["p"], pf["q"] = pn, Rq.quat_normalize(qn)
+        if fresh:
+            pf["t_new"] = t
+        pf["hist"] = [h for h in pf["hist"] if h[0] > t - 1.0] + [(t, pf["p"].copy(), pf["q"].copy())]
+        return pf["p"].copy(), pf["q"].copy()
 
     def measurement(self, joints: dict, obj_pos_mm, obj_quat, contacts: dict | None = None) -> H.Measurement:
         """Bench units -> the controller's Measurement (model world frame, m, rad)."""
@@ -212,12 +250,17 @@ class HomBench:
         return H.Measurement(q=sim_from_servo(joints), obj_pos=self.palm + 1e-3 * np.asarray(obj_pos_mm, float),
                              obj_quat=np.asarray(obj_quat, float), cop=cop)
 
-    def step(self, t: float, joints: dict, obj_pos_mm, obj_quat, contacts: dict | None = None):
+    def step(self, t: float, joints: dict, obj_pos_mm, obj_quat, contacts: dict | None = None, frame_age_s=None,
+             frame=None):
         """One control period at time t (s since the run started): servo targets {finger: {aa, fe1, fe2}} in servo
         degrees and the info of this period (phase, clipped joints, the controller's per-finger info)."""
+        filt = None
+        if self.pose_tau:
+            obj_pos_mm, obj_quat = filt = self._pose_filter(t, obj_pos_mm, obj_quat, frame_age_s, frame)
         meas = self.measurement(joints, obj_pos_mm, obj_quat, contacts)
         s = {"quat": meas.obj_quat}
         cmd, info = self.sch(t, s)
+        self.w_pred = np.asarray(info.get("w_ref", np.zeros(3)), float)
         for f in info.get("reanchor", ()):
             self.ctl.reanchor(f, meas.q[f])
         q_cmd, ci = self.ctl.step(meas, cmd)
@@ -230,6 +273,8 @@ class HomBench:
                     clipped.append(f"{f}.{sv}")
                     out[f][sv] = min(max(v, lo), hi)
         res = {"phase": info["phase"], "clipped": clipped, "q_cmd": q_cmd, "hom": ci, "schedule": info}
+        if filt is not None:
+            res["pose_filtered"] = [np.round(filt[0], 3).tolist(), np.round(filt[1], 6).tolist()]
         if self.torque_budget is not None:
             res["budget_scale"] = torque_budget(out, joints, self.torque_budget)
         return out, res
