@@ -24,11 +24,20 @@ State:
   arm lifted the hand 40 mm at 1.6 s (the corvus record's header "lift"), and the cylinder carried the sphere's tag block
   (ids 16-21, stem 24.41 mm as assembled; object_tracking_mjcf.BLOCK_ON and assembled_stem_mm; the trials' map
   maps/20261116-cylinder_fitted_map_O.json). Measured masses: cylinder 23.6 g, block 6.5 g (README, changes of 11-16).
-- Nothing of the press comparison exists yet.
+- Step 1 (23:2x). Press angle = turn of the tracked axis about x_P from its 2.0 s pose, + in theta_ref's sense
+  (ref 0 -> 20 deg 2-3 s, held to 4 s, back to 0 at 5 s, held to 5.5 s; ref RMS 13.8). Generalist: 13.6 deg at 3.0 s,
+  15.2 mean over the hold, 15.8 max; back through 0 at about 4.8 s and on to -7.3 at 5.0, -29 at 5.48 as the cylinder
+  fell (z first 5 mm low at 5.1 s, -24.9 mm at the end); the middle PIP flexed with its target to 68 deg in the stroke.
+  lat0: 6.1 at 3.0 s, 7.7 mean over the hold, 9.4 max, 4.8 at 5.0, 2.0 at 5.48; held. In both the close pushed the
+  cylinder about 9.5 mm toward -x_P and turned its axis 17-22 deg about the vertical before 2.0 s.
+- Station rejections: HOM's limit target for the middle PIP is -16.110026 servo deg (the model's joint range in rad),
+  beyond the station's -16.11, and the station refuses the whole frame. lat0: 153 of 301 periods at that target from
+  0.94 s (106 of 175 in the task), 147 of 301 frames reached the hand, HOM ran on its reference joints in 69 of 175
+  task periods; the hand's middle PIP stayed at -7..+4 deg (median -0.4) where HOM commanded -16.1; HOM's target cycled
+  3 periods at the limit, 2 near 0. Generalist: first at 5.10 s, after the stroke (the fall).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press angle over
-    time (rotation of the cylinder axis about x_P against theta_ref), how each ended. Write the facts into State.
+- [x] 1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press … Done 11-16 23:14: Both trials read: press angle generalist 15.2 deg mean over the hold then a fall from 5.1 s; lat0 7.7 deg, held; lat0's frames refused by the station whenever HOM set the middle PIP at its limit (153 of 301)
 - [ ] 2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; geometry in
     object_tracking_mjcf) as rev_stem.build does for the sphere, in pads and point-contact versions at impratio 1 and
     100, with and without noslip (30). The arm's 40 mm lift at 1.6 s is modelled as in rev_stem.py for the twist: a table
