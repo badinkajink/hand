@@ -27,6 +27,8 @@ vertical, e being the pinch axis' height above the ball's centre at the grasp (r
     slip     the controlled slip: the PIPs' squeeze lowered in --step-deg steps while the object hangs more than
              --tilt-goal deg from vertical; stops at the goal, when the ball slides down the pads (--slip-mm), or at
              --min-squeeze
+    setdown  the held object down without putdown's tracked touchdown (after a wrist turn the cameras saw 2 tags): the
+             tracker's 1.5 mm when it gives poses, else the HEX-E's 2 N backstop; then hom_setup.py letgo
     unturn   after the putdown and letgo: the hand up until its straight fingers clear the object, then turned back
              by the plan's wrist turn (plan --turn: joint 6 turned first so the stem lies across x_P; owner,
              2026-11-16 16:4x: "next time we can just rotate the wrist first")
@@ -888,6 +890,67 @@ def cmd_slip(a):
     return 0
 
 
+def cmd_setdown(a):
+    """The held object set down when the tracker sees too few tags for putdown's tracked touchdown (after a wrist turn
+    only 2 of the block's tags faced the cameras, 16:51): down along base z, fast to --pre-mm over the expected
+    touchdown and then at --v-slow, stopped by the object moving 1.5 mm along z_P against the hand when the tracker
+    gives fresh poses, else by the HEX-E's change past --stop-n (the backstop that caught the touchdown at 16:36).
+    Then hom_setup.py letgo."""
+    h = HS.map_height(a.map)
+    arm = HS.Arm(a.ur_ft, a.blank_s)
+    meas = HS.Measure(a, video=HS.recorder(a, "pinch_setdown"))
+    try:
+        try:
+            p, q, info = meas.pose(1.0, settle=0.0)
+            bottom, z_ref = float(info["p_B"][2]) - h - a.table_z, float(p[2])
+            print(f"held: the block's bottom {bottom:.1f} mm above the table ({info['n']} poses, {info['tags']} tags)")
+        except SystemExit as e:
+            if a.bottom_mm is None:
+                raise SystemExit(f"the tracker gives no pose ({e}): pass --bottom-mm from the last measurement")
+            bottom, z_ref = a.bottom_mm, None
+            print(f"the tracker gives no pose; the block's bottom taken as {bottom:.1f} mm above the table")
+        if bottom > a.max_down:
+            raise SystemExit(f"{bottom:.1f} mm is more than --max-down {a.max_down:g}: not descending blind")
+        if not a.go:
+            return 0
+        arm.connect(a.stop_n is not None)
+
+        def touch():
+            with meas.lock:
+                s_ = meas.samples[-1] if meas.samples else None
+            if s_ is None or z_ref is None or time.time() - s_[0] > 0.6:
+                return None
+            dz = float(s_[1][2] - z_ref)
+            return f"TOUCHDOWN: the object moved {dz:+.2f} mm along z_P" if dz > 1.5 else None
+        total, why = 0.0, None
+        for name, dist, v in (("fast", max(0.0, bottom - a.pre_mm), a.v), ("slow", min(bottom, a.pre_mm) + a.past_mm,
+                                                                             a.v_slow)):
+            if dist < 0.5:
+                continue
+            T = arm.T_BE()
+            T[2, 3] -= dist
+            why, moved = arm.move(T, v, a.acc, a.stop_n, dist / (1e3 * v) + 5.0, f"set down, {name} leg, {dist:.1f} mm",
+                                  check=touch)
+            total += moved
+            if why:
+                break
+        print(f"down {total:.1f} mm; stopped: {why}", flush=True)
+        if why is None:
+            raise SystemExit("no touchdown: the object may hang above the table; look before anything else")
+        time.sleep(0.5)
+        p2, q2, info2 = meas.pose(1.0, settle=0.0)
+        R = quat_to_mat(np.asarray(info2["q_B"], float))
+        tilt = math.degrees(math.acos(float(np.clip(R[2, 1], -1.0, 1.0))))
+        bot2 = float(info2["p_B"][2]) - h - a.table_z
+        print(f"SET DOWN: the block's bottom {bot2:+.2f} mm from the table, tilt {tilt:.1f} deg; next: hom_setup.py letgo",
+              flush=True)
+        note({"cmd": "setdown", "down_mm": total, "stopped": why, "bottom0": bottom, "bottom": bot2, "tilt": tilt})
+    finally:
+        meas.stop()
+        arm.close()
+    return 0
+
+
 def cmd_unturn(a):
     """After the putdown and letgo: the hand up until its straight fingers clear the object's top by --clear-mm, then
     turned back about its own vertical axis by the plan's turn (owner: "reversal is fine")."""
@@ -906,7 +969,7 @@ def cmd_unturn(a):
     try:
         p, q, info, stem_P, tilt = measure_object(meas, a)
         T_BP = arm.T_BP()
-        low = min(pt[2] - rad for f in HS.FINGERS for pt, rad in HS.finger_pts(plan, f, HS.ZERO))
+        low = min(pt[2] - rad for f in HS.FINGERS for pt, rad in HS.finger_pts(plan, f, HS.ZERO[f]))
         top = float(info["p_B"][2]) + R_TAPED if tilt < 45.0 else float(info["p_B"][2]) + HS.BLOCK_R
         rise = max(0.0, top + a.clear_mm - (T_BP[2, 3] + low))
         print(f"the straight fingers' lowest point {T_BP[2, 3] + low - top:+.1f} mm from the object's top: up "
@@ -1022,6 +1085,15 @@ def main():
     p.add_argument("--swing-only", action="store_true",
                    help="the goal on the swing across the pinch axis alone (the part along it is locked in the pinch; "
                         "level it with putdown's turn)")
+    p = sub.add_parser("setdown")
+    common(p)
+    p.add_argument("--bottom-mm", type=float, default=None, help="the block's bottom over the table when untracked")
+    p.add_argument("--max-down", type=float, default=20.0)
+    p.add_argument("--pre-mm", type=float, default=4.0)
+    p.add_argument("--past-mm", type=float, default=6.0)
+    p.add_argument("--v", type=float, default=0.005)
+    p.add_argument("--v-slow", type=float, default=0.002)
+    p.set_defaults(stop_n=2.0)
     p = sub.add_parser("unturn")
     common(p)
     p.add_argument("--plan", required=True)
@@ -1030,8 +1102,8 @@ def main():
     p = sub.add_parser("status")
     common(p)
     a = ap.parse_args()
-    return {"plan": cmd_plan, "grasp": cmd_grasp, "lift": cmd_lift, "slip": cmd_slip, "unturn": cmd_unturn,
-            "status": cmd_status}[a.cmd](a)
+    return {"plan": cmd_plan, "grasp": cmd_grasp, "lift": cmd_lift, "slip": cmd_slip, "setdown": cmd_setdown,
+            "unturn": cmd_unturn, "status": cmd_status}[a.cmd](a)
 
 
 if __name__ == "__main__":

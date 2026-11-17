@@ -4,6 +4,30 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-16 17:01: blind twists stopped, the sphere upright
+
+The owner, 17:0x: "we can stop after that. i think we have enough data." The rig: the sphere upright on its block
+(1.6 deg), the hand level at its usual heading over it, fingers straight, torque on; the fingertip-board recorder
+stopped (logs/20261116-three_finger_mux/20261116-154014-mux.bin, 193 MB, not in git); HOM servers 47014-47017 and
+47025-47027 still up on the workstation.
+
+- **The blind twist tests produced no result.** hand-4a predicted four grasps at (105, 70) before any ran
+  (`data/20261116-blind_twists/20261116-predictions.json`). gr_g4 ran twice and dropped the sphere both times
+  (`runs_corvus/20261116-161252_*` and `-164726_*`). Mid-lift, a sync write of the goal positions timed out on the
+  servo bus (the CB1's web.log: `RuntimeError: Timeout error` in `stream_frame`), and all nine servos then read torque
+  0 with nothing commanding it. It looks like a supply dip resetting them together. About six servos sat at or near
+  their 0.18 N m limit through the lift, with larger force offsets than in the 13:03 ground-clear run. The station's
+  telemetry has no supply voltage. gr_g12, gr_g8 and g7 did not run.
+- **The open poses of gr_g4, gr_g12 and gr_g8** put a flexion MCP at its -15 deg limit. The middle's stopped at -9.7
+  deg, and its pad pushed the sphere 4.5 mm (16:08). The corvus copies `plans/..._open9_plan.json` hold those MCPs at
+  -9, with every pad at least 6.5 mm from the sphere. hand-4a served them on 47025-47027.
+- **Two more pick-ups by controlled slip.** 16:31-16:38: translation only with the stem 33 deg off the pinch axis.
+  The hang kept 26 deg locked along the axis, and the putdown's levelling turned the hand 26 deg to stand it up (film
+  `media/20261116-pinch_pickup_reorient_tilted.mp4`). The owner then: "next time we can just rotate the wrist first."
+  16:49-17:01: `plan --turn` turned the wrist -32 deg first. Lift to 23.9 deg, slip to 5.8 deg. With the wrist turned
+  the cameras saw only 2 of the block's tags, so the new `setdown` put it down on the tracker and the HEX-E backstop
+  (block seated at +0.03 mm). Then `letgo` (upright at 1.6 deg) and `unturn` (up 35 mm, turned back +32 deg).
+
 ## State on 2026-11-16 15:51: pick-up by controlled slip
 
 The owner, about 15:20: "carefully try to pick up the sphere and run a controlled slip to have it rotate to more level, and
