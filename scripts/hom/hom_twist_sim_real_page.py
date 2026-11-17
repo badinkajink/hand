@@ -605,20 +605,44 @@ mean tracking difference to {mean_d(brk):.2f}.{" Every grasp held under all thre
                "and 55°, one joint at a time (the hand: data/20261116-sweep/20261116_joint_sag.json; simulation: "
                "sim/joint_sag_sim.json and the free_air entries of the model files).", n=6)}"""))
 
+    imps = (("1 (soft, as above)", k35), ("3", model_series("predict_series_kp035_imp3.json")),
+            ("10", model_series("predict_series_kp035_imp10.json")),
+            ("100 (the scenes', stiff)", model_series("predict_series_kp035_imp100.json")))
+    rows7 = [["the hand"] + rows5[0][1:]]
+    for lab, M in imps:
+        rows7.append([f"impratio {lab}"] + [f"{f1(M[g][0], 2)} / {f1(M[g][1], 0)} / {f1(M[g][2])}"
+                                            + ("" if M[g][3] == M[g][4] else f", held {M[g][3]}/{M[g][4]}")
+                                            for g, _, _ in SERIES])
+    i3, i100 = imps[1][1], imps[3][1]
+    tr3 = [i3[g][0] for g, _, _ in SERIES]
     S.append(("remaining", "What does not fit yet", f"""
 <p>In the no-backdrive model with the softer yaws and HOM's gain as on the bench:</p>
 <ul>
 <li>The rise near the equator. At 8° below, the model lifts the sphere {f1(k35['g10_lat8'][2])} mm toward the palm, the
 hand {f1(H['g10_lat8']['rise'][0])}. Ground-clear g13 rises {f1(k35['gr_g13_x105_y70'][2])} mm against
 {rng(H['gr_g13_x105_y70']['rise'])}, and g0 {f1(k35['gr_g0_x70_y110'][2])} against
-{f1(H['gr_g0_x70_y110']['rise'][0])}. The breakaway does not change it.</li>
+{f1(H['gr_g0_x70_y110']['rise'][0])}. The breakaway does not change it; the contact does (Table 7).</li>
 <li>The deep grasps. At 12 and 18.2° the model tracks {f1(k35['g10_lat12'][0], 2)} and {f1(k35['g10_lat18.2'][0], 2)},
 where the hand tracked {f1(H['g10_lat12']['track'][0], 2)} and {f1(H['g10_lat18.2']['track'][0], 2)}. It twists
 {f1(k35['g10_lat12'][1], 0)} and {f1(k35['g10_lat18.2'][1], 0)}°, against {f1(H['g10_lat12']['twist'][0], 0)} and
 {f1(H['g10_lat18.2']['twist'][0], 0)}°.</li>
 <li>The index and middle yaws' give. A gain of 0.35 matches their sag at 30 and 40° but misses their 1.2 to 1.5° at 10°.
 Whether the give is the servo's gain or play in the mounts is not measured.</li>
-</ul>"""))
+</ul>
+<p>The rise is set by how stiff the contact is along the pad's surface, MuJoCo's impratio: 1 is the soft contact of the
+rows above, 100 the scenes' stiff one (Table 7). Under the calibrated servo the stiff contact loses the deep grasps'
+climb, {f1(i100['g10_lat18.2'][2])} and {f1(i100['g10_lat12'][2])} mm at 18.2 and 12° against the hand's
+{f1(H['g10_lat18.2']['rise'][0])} and {f1(H['g10_lat12']['rise'][0])}. An impratio of 3 gets the rise near the equator,
+{f1(i3['g10_lat8'][2])} mm at 8° against {f1(H['g10_lat8']['rise'][0])}, and the deep grasps' twist. But it climbs half
+as far at 12 to 18°, and its tracking stays at {min(tr3):.2f} to {max(tr3):.2f} where the hand's rises from 0.28 to 0.41
+toward the equator. No single stiffness fits both ends. A lower friction might: a pad 18° below the equator needs a
+friction of at least tan 18° = 0.32 to keep the sphere from climbing, and one 4° below only tan 4° = 0.07. Dragging a pad
+across the taped sphere measures its friction and its stiffness before slip in one test.</p>
+{table(["Contact"] + [lab for _, lab, _ in SERIES], rows7,
+       caption="Tracking / net twist at the end (°) / largest rise (mm) under the calibrated servo (no backdrive, no "
+               "creep, index and middle yaw gains 0.35, HOM at 0.55), mean of seeds 0 to 2, at four tangential "
+               "stiffnesses of the contact. Files in data/20261116-sweep/sim/: predict_series_kp035.json and its "
+               "_imp3, _imp10 and _imp100 variants.", n=7)}"""))
 
     rs = ""
     if RS:
@@ -630,21 +654,24 @@ The 24 grasps 15 to 20° below the equator scored a mean J of 0.056 at 0.5, agai
 grasp 7, 12.5° below, ranks first under both models (J 0.603 at 0.5, 0.547 at 1.0); its plan and HOM server are ready.
 Those scores used servos that the load drives back freely. {rs}</p>
 <ul>
-<li>Test the servo model blind (owner, 16:0x: "we should keep running twist trials to verify our many, many real2sim
-calibration problems, and improve pick up as needed when the object falls"). Predict grasp 7 and three or four more
-twist grasps at (105, 70) with the no-backdrive servo, then run each twice on the hand. The pick-up recovers the sphere
-when a trial topples it.</li>
-<li>Add the forward breakaway, about 0.02 N m, to the servo model, and see whether the rise at 8° and the index yaw's
-15° hold come closer.</li>
+<li>The blind test of the servo model has no result yet (owner, 16:0x: "we should keep running twist trials to verify
+our many, many real2sim calibration problems, and improve pick up as needed when the object falls"). The workstation
+predicted four grasps at (105, 70) before any ran (data/20261116-blind_twists/20261116-predictions.json). Ground-clear
+grasp 4 ran twice, and both times all nine servos lost torque mid-trial and dropped the sphere. Each time four to six
+servos sat at their 0.18 N m limit together, and then a write of the goal positions timed out on the servo bus. That
+fits a dip in the servos' supply (runs_corvus/20261116-161252_* and -164726_*; the server's records in runs/). Grasps
+12, 8 and 7 did not run. The station does not report the supply voltage; reading it needs a change to the CB1's
+driver. Check the supply under load, or lower HOM's grip force and predict again, before the next blind trials.</li>
 <li>Re-score the twist landscape on the real object with the no-backdrive servo before the next grasp or layout
 choice.</li>
-<li>Measure the pads' friction on the taped sphere, and close the pinch's slip on the pads' force.</li>
+<li>Measure the pads' friction and stiffness before slip on the taped sphere, and close the pinch's slip on the pads'
+force.</li>
 <li>Record the fingertip boards in every trial, as the pick-up did.</li>
 </ul>"""))
 
     S.append(("records", "Records", """
-<p>Corvus's trial records: <code>docs/experiments/20261115-hom_bench_trials/runs_corvus/</code>; HOM's server records
-on the workstation: <code>runs/</code> beside them. The table of the day's twists:
+<p>Corvus's trial records: <code>docs/experiments/20261115-hom_bench_trials/runs_corvus/</code>; HOM's server records:
+<code>runs/</code> beside them. The table of the day's twists:
 <code>data/20261116-sweep/20261116-all_twists_table.json</code> (<code>lab/sweep_table.py</code>). Simulation:
 <code>logs/20261116-sim_real_reversal/</code> on the workstation (<code>rev_closed.py</code>, <code>rev_lat.py</code>,
 <code>rev_rescore.py</code>, the scene <code>scenes/sph040_stem_block.xml</code>), copied in part to
