@@ -321,7 +321,7 @@ def rl_run_times():
 
 
 UHAS_RUNS = ROOT / "results/uhas_sr2"
-UHAS_LAYOUTS = ((105.0, 70.0), (70.0, 110.0))      # hand A of the twist and the twist's best hand on the servo grid
+UHAS_LAYOUTS = ((105.0, 70.0), (70.0, 110.0))      # the twist film's hands A and B: 1st and 7th of 527 on the servo grid
 
 
 def hom_layout(xy, task="twist", size=40.0):
@@ -364,7 +364,8 @@ def uhas_runs():
                    "minutes": round((max(c.stat().st_mtime for c in ck) - t0) / 60.0, 1),
                    "iterations": max(int(c.stem.split("_")[1]) for c in ck)}
             prog = [json.loads(x) for x in (d / "progress.jsonl").read_text().splitlines() if x.strip()]
-            run["J_proxy_end"] = prog[-1]["J_proxy"] if prog else None
+            # the mean J of the training episodes between checkpoints, against the minutes since the start
+            run["curve"] = [[r["minutes"], r["J_proxy"]] for r in prog if r.get("J_proxy") is not None]
             rs = [json.loads(x) for x in rows_f.read_text().splitlines() if x.strip()]
             g = {}
             for r in rs:
@@ -382,6 +383,56 @@ def uhas_runs():
                        J_on_hom_best=gm.get(hom[key]["best_grasp"]), checkpoint=rs[0].get("checkpoint"))
             out[d.name] = run
     return out, hom
+
+
+def uhas_seeds():
+    """UHAS's policies per hand against HOM at the same two hands of the twist (owner, 2026-11-16: "just to confirm the
+    volatility / suboptimality argument that ive been making for the most recent information and project
+    configuration"). One panel per layout of UHAS_LAYOUTS: the layout's 16 grasps in HOM's order on the x axis, each
+    grasp's J (mean of seeds 0-2) under HOM and under each trained policy; the panel's title gives each controller's
+    best grasp, the hand's score. Writes 20261116-slide_uhas_seeds.png and figures.json uhas_runs, uhas_hom."""
+    ur, hom = uhas_runs()
+    path = OUT / "20261110-figures.json"
+    fi = json.loads(path.read_text())
+    fi["uhas_runs"], fi["uhas_hom"] = ur, hom
+    path.write_text(json.dumps(fi, indent=1, default=float))
+    lays = [xy for xy in UHAS_LAYOUTS if f"{xy[0]:g},{xy[1]:g}" in hom]
+    if not lays:
+        return None
+    seed_style = {0: ("#134e4a", "o"), 1: ("#0d9488", "s"), 2: ("#5eead4", "^")}
+    fig, ax = plt.subplots(1, len(lays), figsize=(5.9 * len(lays), 4.4), sharey=True, squeeze=False)
+    for a, xy in zip(ax[0], lays):
+        name = "AB"[UHAS_LAYOUTS.index(xy)]
+        h = hom[f"{xy[0]:g},{xy[1]:g}"]
+        order = sorted(h["grasps"], key=lambda g: -h["grasps"][g])
+        x = np.arange(len(order))
+        a.plot(x, [h["grasps"][g] for g in order], "D", color="#d97706", ms=8, mec=INK, mew=0.6, label="HOM", zorder=3)
+        runs = sorted((v for v in ur.values() if tuple(v["layout"]) == xy), key=lambda v: v["seed"])
+        for k, v in enumerate(runs):
+            col, mk = seed_style.get(v["seed"], (GREY, "x"))
+            a.plot(x + 0.12 * (k - 1), [v["grasps"].get(g, np.nan) for g in order], mk, color=col, ms=7, mec=INK,
+                   mew=0.5, label=f"UHAS, seed {v['seed']}", zorder=2)
+        best = ", ".join(f"{v['J_best']:.2f}" for v in runs)
+        a.set_title(f"Hand {name}, {xy[0]:.0f} × {xy[1]:.0f} mm\nbest grasp: HOM {h['J_best']:.2f}; UHAS {best}",
+                    loc="left", fontsize=15)
+        a.set_xticks(x)
+        a.set_xticklabels([str(g) for g in order], fontsize=12)
+        a.set_xlabel("Grasp, in the order of HOM's score", fontsize=15)
+        a.set_ylim(-0.03, 1.0)
+        for sp_ in ("top", "right"):
+            a.spines[sp_].set_visible(False)
+        a.grid(axis="y", color="#eef0f3")
+        a.set_axisbelow(True)
+    ax[0][0].set_ylabel("Tracking score J", fontsize=15)
+    ax[0][0].tick_params(axis="y", labelsize=14)
+    ax[0][-1].legend(loc="upper right", fontsize=13, frameon=False)
+    fig.subplots_adjust(wspace=0.08)
+    out = {"image": str(save(fig, "20261116-slide_uhas_seeds.png").relative_to(ROOT)), "runs": len(ur),
+           "layouts": [list(xy) for xy in lays]}
+    fi = json.loads(path.read_text())
+    fi["uhas_seeds" + ("_track" if VARIANT == "track" else "")] = out
+    path.write_text(json.dumps(fi, indent=1, default=float))
+    return out
 
 
 STEEL = ROOT / "docs/experiments/20261113-steel_solver/data/20261113-steel_solver.json"
@@ -911,6 +962,10 @@ def main():
     if "benchmark" in sys.argv[1:]:     # the controllers on the twist benchmark's four measures (owner, 11-16), v2 only
         VARIANT = "track"
         print(json.dumps(controller_benchmark(), default=float)[:3000], flush=True)
+        return 0
+    if "uhas" in sys.argv[1:]:          # UHAS's policies per hand against HOM, three seeds (owner, 11-16), v2 only
+        VARIANT = "track"
+        print(json.dumps(uhas_seeds(), default=float), flush=True)
         return 0
     if "--track" in sys.argv:
         return main_track()
