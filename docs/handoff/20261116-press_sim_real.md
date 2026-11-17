@@ -25,26 +25,28 @@ State:
   (ids 16-21, stem 24.41 mm as assembled; object_tracking_mjcf.BLOCK_ON and assembled_stem_mm; the trials' map
   maps/20261116-cylinder_fitted_map_O.json). Measured masses: cylinder 23.6 g, block 6.5 g (README, changes of 11-16).
 - Nothing of the press comparison exists yet.
-Next:
-1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press angle over
-   time (rotation of the cylinder axis about x_P against theta_ref), how each ended. Write the facts into State.
-2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; geometry in
-   object_tracking_mjcf) as rev_stem.build does for the sphere, in pads and point-contact versions at impratio 1 and
-   100, with and without noslip (30). The arm's 40 mm lift at 1.6 s is modelled as in rev_stem.py for the twist: a table
-   under the block, removed at the lift as the post is. Masses as weighed: cylinder 23.6 g, block 6.5 g, stem about
-   0.6 g (rev_stem's sphere: 28.1 g in all). Check the centre of mass.
-3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HOM's press
-   on the calibrated plant (rev_clutch2 --stiff, yaw 0.35, HOM converting at 0.55, no budget) for both trials' plans and
-   grasps, seeds 0-2, per scene variant; per run the tracking score as hom_trial_tracking.py defines it for the press,
-   the press-angle trace every 0.1 s, held, and the object's drop. Also the design pipeline's model (backdrivable servo at
-   0.72, stiff contact, as logs/20261116-sim_real_reversal/blind_pipeline.py does for the twist).
-4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS),
-   writing docs/experiments/20261115-hom_bench_trials/data/20261116-press/20261116-press_contact_compare.json and
-   media/20261116-press_sim_vs_hand.png (bench folder), on the pattern of hom_blind_compare.py. Look at the figure at its
-   displayed size before committing.
-5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does not,
-   with numbers; stamp times from `date`), and 3-5 lines in the memory file project_hom_sim_real_reversal_2026_11_16.md.
-6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. Read both press trials (server and corvus records, the tracking rows): the plan, the object's pose and press angle over
+    time (rotation of the cylinder axis about x_P against theta_ref), how each ended. Write the facts into State.
+- [ ] 2. Build the press scene with the real cylinder (25 mm, its stem and the sphere's tag block as glued on 11-16; geometry in
+    object_tracking_mjcf) as rev_stem.build does for the sphere, in pads and point-contact versions at impratio 1 and
+    100, with and without noslip (30). The arm's 40 mm lift at 1.6 s is modelled as in rev_stem.py for the twist: a table
+    under the block, removed at the lift as the post is. Masses as weighed: cylinder 23.6 g, block 6.5 g, stem about
+    0.6 g (rev_stem's sphere: 28.1 g in all). Check the centre of mass.
+- [ ] 3. Write logs/20261116-sim_real_reversal/press_predict.py (new; do not change rev_predict.py or rev_gear.py): HOM's press
+    on the calibrated plant (rev_clutch2 --stiff, yaw 0.35, HOM converting at 0.55, no budget) for both trials' plans and
+    grasps, seeds 0-2, per scene variant; per run the tracking score as hom_trial_tracking.py defines it for the press,
+    the press-angle trace every 0.1 s, held, and the object's drop. Also the design pipeline's model (backdrivable servo at
+    0.72, stiff contact, as logs/20261116-sim_real_reversal/blind_pipeline.py does for the twist).
+- [ ] 4. scripts/hardware/hom_press_compare.py (new): hand against each variant (tracking error, press-angle trace RMS),
+    writing docs/experiments/20261115-hom_bench_trials/data/20261116-press/20261116-press_contact_compare.json and
+    media/20261116-press_sim_vs_hand.png (bench folder), on the pattern of hom_blind_compare.py. Look at the figure at its
+    displayed size before committing.
+- [ ] 5. A section "State on 2026-11-17 hh:mm: the press against simulation" in the bench README (what fits, what does not,
+    with numbers; stamp times from `date`), and 3-5 lines in the memory file project_hom_sim_real_reversal_2026_11_16.md.
+- [ ] 6. Commit by path (never git commit -a), push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+<!-- /ap:steps -->
 Claimed: logs/20261116-sim_real_reversal/press_*, scripts/hardware/hom_press_compare.py,
 docs/experiments/20261115-hom_bench_trials/data/20261116-press/, docs/experiments/20261115-hom_bench_trials/media/20261116-press_*,
 docs/experiments/20261115-hom_bench_trials/README.md (a new section only)
