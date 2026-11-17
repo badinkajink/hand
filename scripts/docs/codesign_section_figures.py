@@ -517,25 +517,37 @@ def human(sec):
             else f"{sec / 3600:.0f} hours" if sec > 3 * 3600 else f"{sec / 60:.0f} minutes")
 
 
+def policy_rollout_ratio():
+    """GPU time of one twist rollout under a trained UHAS policy over HOM's, in the inner-loop benchmark's batches of 16
+    hands on the same 20 pairs at seeds 0 and 1 (rows mpc_uhas_twist[_mu0.4]_sv_published_s0 against mpc_hom_twist[_mu0.4],
+    plant friction 1.0 and 0.4): the policy's forward pass in place of HOM's least squares, the simulation the same."""
+    def per(stem):
+        rows = [json.loads(x) for x in (MPC_ROWS / f"mpc_{stem}.jsonl").read_text().splitlines() if x.strip()]
+        return float(np.mean([r["chunk_wall_s"] / r["chunk_worlds"] for r in rows]))
+    return float(np.mean([per(u) / per(h) for u, h in (("uhas_twist_sv_published_s0", "hom_twist"),
+                                                        ("uhas_twist_mu0.4_sv_published_s0", "hom_twist_mu0.4"))]))
+
+
 def cost_chart(rows, title, name, show=None, split=None):
     """One bar per row (label, seconds, colour) on a log time axis from 1 hour to 1 year, the time written at the bar's
-    end. Rows from index split on sit below a dashed line; only the first show rows are drawn (the axes and labels of
-    the rest stay, for a build-up). Both cost charts use it, so they share their scale and layout. Returns {first line of
+    end. Rows from index split on (an index or a list of them) sit below a dashed line; only the first show rows are
+    drawn (the axes and labels of the rest stay, for a build-up). Both cost charts use it, so they share their scale and layout. Returns {first line of
     the label: seconds}."""
     show = len(rows) if show is None else show
     fig, ax = plt.subplots(figsize=(13.0, 1.6 + 0.74 * len(rows)))
-    gap = (lambda k: 0.0 if split is None or k < split else -0.35)
+    splits = [] if split is None else [split] if isinstance(split, int) else list(split)
+    gap = (lambda k: -0.35 * sum(k >= sp for sp in splits))
     ys = [len(rows) - 1 - k + gap(k) for k in range(len(rows))]
     out = {}
-    for k, (lab, sec, col) in enumerate(rows):
+    for k, (lab, sec, col, *key) in enumerate(rows):     # key: the row's name in the output, default the first line
         vis = k < show
         ax.barh(ys[k], sec, color=col if vis else "none", height=0.58)
         ax.text(sec * 1.25, ys[k], human(sec) if vis else "", va="center", fontsize=19, color=INK, weight="bold")
-        out[lab.split("\n")[0]] = round(sec)
+        out[key[0] if key else lab.split("\n")[0]] = round(sec)
     ax.set_yticks(ys)
     ax.set_yticklabels([r[0] for r in rows], fontsize=14.5)
-    if split is not None:
-        ax.axhline(0.5 * (ys[split - 1] + ys[split]), color=LINE, lw=1.0, ls=(0, (4, 3)))
+    for sp in splits:
+        ax.axhline(0.5 * (ys[sp - 1] + ys[sp]), color=LINE, lw=1.0, ls=(0, (4, 3)))
     ax.set_xscale("log")
     ax.set_xticks([3600, 86400, 30 * 86400, 365 * 86400])
     ax.set_xticklabels(["1 hour", "1 day", "30 days", "1 year"], fontsize=14)
@@ -566,11 +578,14 @@ def cost_of_search():
     the ratio of the two step costs measured on the twist at 1,024 worlds (Steel page, 2026-11-13: 5.00 and 2.76 us per
     world-step). Until 2026-11-16 that row was Steel's compliant hydroelastic contact (9.17 us, 3.32 times the pads).
 
-    Controllers, each on MuJoCo-Warp with the pads on one GPU (20261116-slide_cost_control.png): HOM; in its place the
-    gradient planner and annealed sampling at the real-time budget, annealed sampling on HOM's servo targets (the
-    residual), iLQR and full annealed sampling, at their GPU time per twist rollout over HOM's in the search's batches
-    (planner_cost; figures.json controllers_track cost, residual_cost, ilqr cost); one PPO policy per layout on the same
-    GPU at the median of our trainings (rl_run_times) and at 10 min, the best case."""
+    Controllers, each on MuJoCo-Warp with the pads on one GPU (20261116-slide_cost_control.png), the controllers of the
+    benchmark chart (controller_benchmark --hand-a): HOM; in its place the gradient planner and annealed sampling at the
+    real-time budget (2 x 32), iLQR and annealed sampling at 4 x 64, at their GPU time per twist rollout over HOM's in the
+    search's batches (planner_cost; figures.json controllers_track cost, ilqr cost); UHAS, one shared policy per task
+    trained once (uhas_shared minutes, three tasks), and per-hand PPO, UHAS's recipe trained on every layout (the median
+    of the three trainings on hand A, uhas_runs), each followed by the search's rollouts under the policy at
+    policy_rollout_ratio times HOM's GPU time. Until 2026-11-16 23:00 the chart also had annealed sampling on HOM's servo
+    targets (the residual), and its only RL row trained UHAS per layout."""
     path = OUT / "20261110-figures.json"
     fi = json.loads(path.read_text())
     rec = fi["compute_track" if VARIANT == "track" else "compute"]
@@ -597,38 +612,47 @@ def cost_of_search():
     mpc = planner_cost(rec)
     ct = fi.get("controllers_track", {})
     cc = ct.get("cost", {})
-    ctl = [("HOM", mjw, "#d97706")]
+    # owner, 2026-11-16 23:2x: the same controllers on this chart and on the benchmark chart, with brief names ("we don't
+    # need the 'in place of HOM,' or the exact sample numbers"); the residual row dropped
+    ctl = [("HOM (ours)", mjw, "#d97706", "HOM")]
     for lab, ratio, col in (
-            ("Gradient descent, 2 \u00d7 32 rollouts,\nin place of HOM (real time)", cc.get("Gradient 2 \u00d7 32, real time"),
-             "#7c3aed"),
-            ("Annealed sampling, 2 \u00d7 32 samples,\nin place of HOM (real time)", mpc.get("rt", {}).get("ratio"), "#be185d"),
-            ("Annealed sampling on HOM\u2019s targets,\n2 \u00d7 32 samples (a residual)", ct.get("residual_cost"), "#db2777"),
-            ("iLQR, 2 iterations over 0.3 s,\nin place of HOM", ct.get("ilqr", {}).get("cost"), "#5b21b6"),
-            ("Full annealed sampling, 4 \u00d7 64 samples,\nin place of HOM", mpc.get("full", {}).get("ratio"), "#9d174d")):
+            ("Gradient descent\n(real time)", cc.get("Gradient 2 \u00d7 32, real time"), "#7c3aed"),
+            ("Annealed sampling\n(real time)", mpc.get("rt", {}).get("ratio"), "#be185d"),
+            ("iLQR", ct.get("ilqr", {}).get("cost"), "#5b21b6"),
+            ("Annealed sampling\n(not real time)", mpc.get("full", {}).get("ratio"), "#9d174d")):
         if ratio:
-            ctl.append((lab, mjw * float(ratio), col))
+            ctl.append((lab, mjw * float(ratio), col, lab.replace("\n", " ")))
     n_plan = len(ctl)
-    # owner, 2026-11-16: "update the control throughput slides with the real UHAS timing instead of the hypothetical RL
-    # training": one UHAS policy trained per layout, at the measured training time of its single-layout runs
+    # owner, 2026-11-16 23:2x: "we are not supposed to train one UHAS policy per layout, the whole point is that it is a
+    # universal representation with one offline training cost"; "we can still include a per-policy RL row, which we just
+    # got timing for". UHAS: one shared policy per task, trained once (the controller benchmark's twist policy's time),
+    # then the search's rollouts under it. Per-hand PPO: UHAS's recipe trained on each layout (the median of the three
+    # trainings on hand A), then the same rollouts.
     if UHAS_RUNS.exists():
         fi["uhas_runs"], fi["uhas_hom"] = uhas_runs()
-    ur = fi.get("uhas_runs", {})
+    ur, sh = fi.get("uhas_runs", {}), fi.get("uhas_shared", {})
+    pr = policy_rollout_ratio()
+    roll_s = pr * mjw
+    if sh:
+        ctl.append(("UHAS (RL)\none policy per task", len(lay) * 60.0 * sh["minutes"] + roll_s, "#0f766e", "UHAS (RL)"))
     if ur:
         um = float(np.median([v["minutes"] for v in ur.values()]))
-        n_xy = len({tuple(v["layout"]) for v in ur.values()})
-        how = (f"the median of {len(ur)} trainings on {n_xy} layout" + ("s" if n_xy > 1 else "") if len(ur) > 1
-               else "measured, 1 training on one layout")
-        ctl += [(f"UHAS (RL): a policy per layout, {um:.0f} min each\n({how})", n_lay * 60.0 * um, "#0f766e")]
-    out.update(cost_chart(ctl, f"The same {n_roll / 1e6:.2f} M rollouts on MuJoCo-Warp with the pads, one GPU,\n"
-                               "under HOM, a planner in its place, or one trained policy per layout",
-                          "20261116-slide_cost_control.png", split=n_plan))
+        ctl.append(("Per-hand PPO (RL)\na policy per hand", n_lay * 60.0 * um + roll_s, "#14b8a6", "Per-hand PPO (RL)"))
+    # owner, 2026-11-16 23:4x: "can we also add the HOM (Drake, original) in addition to HOM (ours)? as a way to segue to
+    # the dynamics slide": the simulators chart's Drake row, last, below its own line
+    n_rl = len(ctl)
+    ctl.append(("HOM (Drake, original)\none CPU core", sims[0][1], "#6b7280", "HOM (Drake, original)"))
+    out.update(cost_chart(ctl, f"Every layout of three tasks, {n_roll / 1e6:.2f} M rollouts on one GPU, under each "
+                               "controller", "20261116-slide_cost_control.png", split=[n_plan, n_rl]))
     res = {"rows_s": out, "layouts": n_lay, "rollouts": n_roll, "cpu_s_per_rollout": cpu_roll,
+           "policy_rollout_ratio": round(pr, 3), "policy_rollouts_s": round(roll_s), "tasks": len(lay),
+           "uhas_train_min": sh.get("minutes"), "per_hand_train_min": round(um, 1) if ur else None,
            "newton_ratio": round(float(newton), 3), "steel_ratio": round(float(us["steel_hydro"] / us["mjw_pads"]), 3),
            "us_per_world_step_1024": {k: round(float(v), 3) for k, v in us.items()},
            "hom_on_twist": {k: {"mean_J": round(float(st["hom"][k]["mean_J"]), 4), "held": st["hom"][k]["held"],
                                 "n": st["hom"][k]["n"]} for k in ("mjc_pads", NEWTON, "steel_hydro") if k in st["hom"]},
            "drake_ratio": round(2082.0 / 106.0, 2), "mpc": mpc,
-           "sim_rows": [r[0].split("\n")[0] for r in sims], "control_rows": [r[0].split("\n")[0] for r in ctl]}
+           "sim_rows": [r[0].split("\n")[0] for r in sims], "control_rows": [r[3] if len(r) > 3 else r[0] for r in ctl]}
     fi["cost_search" + ("_track" if VARIANT == "track" else "")] = res
     path.write_text(json.dumps(fi, indent=1, default=float))
     return res
@@ -650,6 +674,98 @@ def mu04(stem):
     if stem == "ps_twist_r10h10k2i1":
         return "ps_twist_mu0.4_r10h10k2i1"
     return stem + "_mu0.4"
+
+
+# owner, 2026-11-16 23:2x: the controllers of the search-time chart, with its brief names, on one benchmark. The three
+# per-hand PPO policies exist for hand A (105, 70) only, so every controller runs there: its 16 grasps at seeds 0-2,
+# plant friction 1.0 and 0.4 (scripts/hom/inner_loop_mpc.py run --pairs _handA --seeds 0 1 2 [--plant-mu 0.4] with
+# --method hom; grad or anneal with --plan-dt 0.002 --n 32 --replan 10 --horizon 10 --knots 2 --iters 2; ilqr with
+# --plan-dt 0.002 --replan 10 --horizon 30 --knots 3 --iters 2; anneal with --plan-dt 0.002; uhas with --run
+# 20261113-2115_twist_s0 --tag _shared, or a per-hand run with --tag _perhand_s<k>), each with NUMPY_MADVISE_HUGEPAGE=0.
+# (key, row stems pooled, label, colour)
+BENCH_A = [("hom", ("hom_twist_handA",), "HOM", "#d97706"),
+           ("grad_rt", ("grad_twist_handA_pdt2_n32_r10h10k2i2",), "Gradient descent\n(real time)", "#7c3aed"),
+           ("anneal_rt", ("anneal_twist_handA_pdt2_n32_r10h10k2i2",), "Annealed sampling\n(real time)", "#be185d"),
+           ("ilqr", ("ilqr_twist_handA_pdt2_r10h30k3i2",), "iLQR", "#5b21b6"),
+           ("anneal_full", ("anneal_twist_handA_pdt2",), "Annealed sampling\n(not real time)", "#9d174d"),
+           ("uhas", ("uhas_twist_handA_shared",), "UHAS (RL)", "#0f766e"),
+           ("per_hand", tuple(f"uhas_twist_handA_perhand_s{s}" for s in (0, 1, 2)), "Per-hand PPO (RL)", "#14b8a6")]
+
+
+def controller_benchmark_hand_a():
+    """The controllers of the search-time chart on hand A's twist, on the four measures of controller_benchmark: mean J
+    with its standard error over the runs, mean J at plant friction 0.4 (every controller's model, and UHAS's training,
+    at 1.0), the median target reversals per joint per second and the median share of joint-periods at the torque limit
+    over the held runs. Per-hand PPO pools its three policies' runs. Writes 20261116-slide_controller_benchmark_handA.png
+    and figures.json controller_benchmark_handA."""
+    import inner_loop_mpc_page as MP
+    S = {}
+    for key, stems, lab, col in BENCH_A:
+        a = sum((MP.load(s) for s in stems), [])
+        b = sum((MP.load(s.replace("_handA", "_handA_mu0.4")) for s in stems), [])
+        if a and b:
+            S[key] = (lab, col, MP.stats(a), MP.stats(b), [round(float(np.mean([r["J"] for r in MP.load(s)])), 3)
+                                                           for s in stems])
+    rows = [S[k] for k, *_ in BENCH_A if k in S]
+    if not rows:
+        return None
+    out = {"image": str(_benchmark_figure(rows, "20261116-slide_controller_benchmark_handA.png").relative_to(ROOT)),
+           "hand": [105.0, 70.0], "grasps": 16, "seeds": [0, 1, 2], "missing": [k for k, *_ in BENCH_A if k not in S],
+           "runs": {k: {"label": lab.replace("\n", " "), "n": a["n"], "J": a["J"], "J_se": a["J_se"], "held": a["held"],
+                        "J_mu04": b["J"], "held_mu04": b["held"], "reversals_ps": a["reversals_ps"],
+                        "cmd_rate_dps": a["cmd_rate_dps"], "sat_frac": a["sat_frac"], "grip_mean_N": a["grip_mean_N"],
+                        "contact": a["contact"], "replan_s": a["replan_s"], "J_by_policy": jp}
+                    for k, (lab, _c, a, b, jp) in S.items()}}
+    path = OUT / "20261110-figures.json"
+    fi = json.loads(path.read_text())
+    fi["controller_benchmark_handA"] = out
+    path.write_text(json.dumps(fi, indent=1, default=float))
+    return out
+
+
+def _benchmark_figure(rows, name):
+    """The four panels of controller_benchmark for rows (label, colour, stats at friction 1.0, stats at 0.4, ...)."""
+    fig, ax = plt.subplots(1, 4, figsize=(17.0, 0.8 + 0.68 * len(rows)), sharey=True,
+                           gridspec_kw={"width_ratios": [1.0, 1.0, 1.15, 1.0], "wspace": 0.12})
+    y = np.arange(len(rows))[::-1]
+    cols = [r[1] for r in rows]
+
+    def bars(a, v, txt, err=None, pad=0.015):
+        a.barh(y, v, color=cols, height=0.62, xerr=err, error_kw={"ecolor": INK, "lw": 1.2, "capsize": 3})
+        for k, (yi, vi, ti) in enumerate(zip(y, v, txt)):
+            x = vi * 1.18 if a.get_xscale() == "log" else vi + (err[k] if err else 0.0) + pad
+            a.text(x, yi, ti, va="center", fontsize=14, color=INK)
+
+    jmax = max(0.62, 1.25 * max(r[2]["J"] + r[2]["J_se"] for r in rows))
+    ax[0].set_xlim(0, jmax)
+    bars(ax[0], [r[2]["J"] for r in rows], [f"{r[2]['J']:.2f}" for r in rows], err=[r[2]["J_se"] for r in rows])
+    ax[0].set_title("Mean J, plant friction 1.0", loc="left", fontsize=16)
+    ax[1].set_xlim(0, jmax)
+    bars(ax[1], [r[3]["J"] for r in rows], [f"{r[3]['J']:.2f}" for r in rows], err=[r[3]["J_se"] for r in rows])
+    ax[1].set_title("Mean J, plant friction 0.4", loc="left", fontsize=16)
+    ax[2].set_xscale("log")
+    ax[2].set_xlim(0.2, 300)
+    rv = [max(r[2]["reversals_ps"], 0.21) if np.isfinite(r[2]["reversals_ps"]) else 0.21 for r in rows]
+    bars(ax[2], rv, [f"{r[2]['reversals_ps']:.1f}" for r in rows])
+    ax[2].set_title("Target reversals per joint per s", loc="left", fontsize=16)
+    ax[3].set_xlim(0, 100)
+    bars(ax[3], [100 * r[2]["sat_frac"] for r in rows], [f"{100 * r[2]['sat_frac']:.0f} %" for r in rows], pad=2.5)
+    ax[3].set_title("Joint time at the torque limit", loc="left", fontsize=16)
+    ax[0].set_yticks(y)
+    ax[0].set_yticklabels([r[0] for r in rows], fontsize=14.5)
+    for a in ax:
+        for sp_ in ("top", "right"):
+            a.spines[sp_].set_visible(False)
+        for sp_ in ("left", "bottom"):
+            a.spines[sp_].set_color(LINE)
+        a.grid(axis="x", color="#eef0f3")
+        a.tick_params(axis="x", labelsize=13)
+        a.set_axisbelow(True)
+    ax[2].set_xticks([1, 10, 100])
+    ax[2].set_xticklabels(["1", "10", "100"])
+    ax[3].set_xticks([0, 50, 100])
+    ax[3].set_xticklabels(["0", "50", "100 %"])
+    return save(fig, name)
 
 
 def controller_benchmark():
@@ -1012,7 +1128,8 @@ def main():
         return 0
     if "benchmark" in sys.argv[1:]:     # the controllers on the twist benchmark's four measures (owner, 11-16), v2 only
         VARIANT = "track"
-        print(json.dumps(controller_benchmark(), default=float)[:3000], flush=True)
+        print(json.dumps(controller_benchmark_hand_a() if "--hand-a" in sys.argv else controller_benchmark(),
+                         default=float)[:3000], flush=True)
         return 0
     if "uhas" in sys.argv[1:]:          # UHAS's policies per hand against HOM, three seeds (owner, 11-16), v2 only
         VARIANT = "track"

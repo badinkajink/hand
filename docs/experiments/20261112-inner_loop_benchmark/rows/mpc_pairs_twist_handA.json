@@ -1,0 +1,118 @@
+{
+ "task": "twist",
+ "rule": "hand A of the twist film, (105, 70) mm, all 16 grasps of the servo grid (owner, 2026-11-16: the controllers of the search-time chart and the benchmark chart to match, with a per-hand PPO row; the three PPO policies trained for one hand exist for hand A only); J_by: HOM's landscape J over seeds 0-2",
+ "pairs": [
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 0,
+   "by": "handA",
+   "J_by": 0.1041
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 1,
+   "by": "handA",
+   "J_by": 0.6707
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 2,
+   "by": "handA",
+   "J_by": 0.2794
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 3,
+   "by": "handA",
+   "J_by": 0.0
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 4,
+   "by": "handA",
+   "J_by": 0.4666
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 5,
+   "by": "handA",
+   "J_by": 0.0374
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 6,
+   "by": "handA",
+   "J_by": 0.3431
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 7,
+   "by": "handA",
+   "J_by": 0.6199
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 8,
+   "by": "handA",
+   "J_by": 0.0
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 9,
+   "by": "handA",
+   "J_by": 0.2691
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 10,
+   "by": "handA",
+   "J_by": 0.756
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 11,
+   "by": "handA",
+   "J_by": 0.3824
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 12,
+   "by": "handA",
+   "J_by": 0.2545
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 13,
+   "by": "handA",
+   "J_by": 0.1927
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 14,
+   "by": "handA",
+   "J_by": 0.3608
+  },
+  {
+   "x": 105.0,
+   "y": 70.0,
+   "grasp": 15,
+   "by": "handA",
+   "J_by": 0.3215
+  }
+ ]
+}

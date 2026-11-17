@@ -1155,12 +1155,13 @@
    "Newton hydroelastic (SDF), one GPU": 83635,
    "MuJoCo-Warp, 1 mm sphere pads,": 46201,
    "HOM": 46201,
-   "Gradient descent, 2 \u00d7 32 rollouts,": 1193347,
-   "Annealed sampling, 2 \u00d7 32 samples,": 1284388,
-   "Annealed sampling on HOM\u2019s targets,": 2103444,
-   "iLQR, 2 iterations over 0.3 s,": 4405100,
-   "Full annealed sampling, 4 \u00d7 64 samples,": 9665249,
-   "UHAS (RL): a policy per layout, 32 min each": 2715084
+   "Gradient descent (real time)": 1193347,
+   "Annealed sampling (real time)": 1284388,
+   "iLQR": 4405100,
+   "Annealed sampling (not real time)": 9665249,
+   "UHAS (RL)": 61919,
+   "Per-hand PPO (RL)": 2751387,
+   "HOM (Drake, original)": 51547728
   },
   "layouts": 1423,
   "rollouts": 1092864,
@@ -1169,6 +1170,11 @@
    "roll": 1.717,
    "press": 2.087
   },
+  "policy_rollout_ratio": 0.786,
+  "policy_rollouts_s": 36303,
+  "tasks": 3,
+  "uhas_train_min": 142.31,
+  "per_hand_train_min": 31.8,
   "newton_ratio": 1.81,
   "steel_ratio": 3.322,
   "us_per_world_step_1024": {
@@ -1216,12 +1222,13 @@
   ],
   "control_rows": [
    "HOM",
-   "Gradient descent, 2 \u00d7 32 rollouts,",
-   "Annealed sampling, 2 \u00d7 32 samples,",
-   "Annealed sampling on HOM\u2019s targets,",
-   "iLQR, 2 iterations over 0.3 s,",
-   "Full annealed sampling, 4 \u00d7 64 samples,",
-   "UHAS (RL): a policy per layout, 32 min each"
+   "Gradient descent (real time)",
+   "Annealed sampling (real time)",
+   "iLQR",
+   "Annealed sampling (not real time)",
+   "UHAS (RL)",
+   "Per-hand PPO (RL)",
+   "HOM (Drake, original)"
   ]
  },
  "pinch_film": {
@@ -3346,6 +3353,117 @@
     },
     "fell_s": null,
     "twist_mean_abs_error": null
+   }
+  }
+ },
+ "controller_benchmark_handA": {
+  "image": "docs/experiments/20261110-codesign_formulation/media/20261116-slide_controller_benchmark_handA_track.png",
+  "hand": [
+   105.0,
+   70.0
+  ],
+  "grasps": 16,
+  "seeds": [
+   0,
+   1,
+   2
+  ],
+  "missing": [
+   "ilqr",
+   "anneal_full"
+  ],
+  "runs": {
+   "hom": {
+    "label": "HOM",
+    "n": 48,
+    "J": 0.31668765424308715,
+    "J_se": 0.033735003838610673,
+    "held": 0.8958333333333334,
+    "J_mu04": 0.025354173677716082,
+    "held_mu04": 0.0625,
+    "reversals_ps": 0.5181,
+    "cmd_rate_dps": 14.9066,
+    "sat_frac": 0.1295,
+    "grip_mean_N": 7.721,
+    "contact": 0.5448837209302326,
+    "replan_s": null,
+    "J_by_policy": [
+     0.317
+    ]
+   },
+   "grad_rt": {
+    "label": "Gradient descent (real time)",
+    "n": 48,
+    "J": 0.33590143866733974,
+    "J_se": 0.0336891195067767,
+    "held": 0.9583333333333334,
+    "J_mu04": 0.009173264064165125,
+    "held_mu04": 0.041666666666666664,
+    "reversals_ps": 1.6887,
+    "cmd_rate_dps": 6.8668,
+    "sat_frac": 0.0011,
+    "grip_mean_N": 5.521850000000001,
+    "contact": 0.443804347826087,
+    "replan_s": 0.2710333333333333,
+    "J_by_policy": [
+     0.336
+    ]
+   },
+   "anneal_rt": {
+    "label": "Annealed sampling (real time)",
+    "n": 48,
+    "J": 0.3918396432778058,
+    "J_se": 0.0399091252749766,
+    "held": 0.9375,
+    "J_mu04": 0.00033193112345055803,
+    "held_mu04": 0.0625,
+    "reversals_ps": 1.2474,
+    "cmd_rate_dps": 9.011,
+    "sat_frac": 0.0054,
+    "grip_mean_N": 5.3507,
+    "contact": 0.5302,
+    "replan_s": 0.299,
+    "J_by_policy": [
+     0.392
+    ]
+   },
+   "uhas": {
+    "label": "UHAS (RL)",
+    "n": 48,
+    "J": 0.35443107437321214,
+    "J_se": 0.035879590527380587,
+    "held": 0.8541666666666666,
+    "J_mu04": 0.0016686017163048963,
+    "held_mu04": 0.041666666666666664,
+    "reversals_ps": 40.1842,
+    "cmd_rate_dps": 8622.71,
+    "sat_frac": 0.8546,
+    "grip_mean_N": 6.5724,
+    "contact": 0.46873170731707314,
+    "replan_s": null,
+    "J_by_policy": [
+     0.354
+    ]
+   },
+   "per_hand": {
+    "label": "Per-hand PPO (RL)",
+    "n": 144,
+    "J": 0.16278731163647242,
+    "J_se": 0.01076807254722465,
+    "held": 0.8958333333333334,
+    "J_mu04": 0.000101276945799914,
+    "held_mu04": 0.020833333333333332,
+    "reversals_ps": 38.6874,
+    "cmd_rate_dps": 8359.1104,
+    "sat_frac": 0.808,
+    "grip_mean_N": 5.975,
+    "contact": 0.20469767441860465,
+    "replan_s": null,
+    "J_by_policy": [
+     0.197,
+     0.133,
+     0.158
+    ]
    }
   }
  }
