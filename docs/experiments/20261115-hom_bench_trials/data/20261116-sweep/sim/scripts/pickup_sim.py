@@ -36,6 +36,9 @@ SCENES = {"pads_soft": "sph040_stem_block_tape0_imp1.xml", "pads_stiff": "sph040
           "point_soft_ns": "sph040_stem_block_pt_imp1_ns30.xml", "point_stiff_ns": "sph040_stem_block_pt_mirror_ns30.xml"}
 FINGERS = ("thumb", "index", "middle")
 MU = 1.0                                   # the plant's sliding friction (--mu)
+FILM = None                                # --film DIR: the hang's 10 s filmed, 25 frames a second, one mp4 per variant
+LABEL = {"pads_stiff_ns": "1 mm sphere pads, friction that does not creep", "pads_soft": "1 mm sphere pads, the twist's "
+         "soft contact", "point_stiff_ns": "point contact", "point_soft": "point contact, soft"}
 DT = 0.02
 LIFT_MM, LIFT_V = 64.0, 0.003
 SQUEEZE, STEP, STEP_S = 8.0, 0.5, 1.5
@@ -112,12 +115,32 @@ def run(variant, hang=False):
         mujoco.mju_quat2Mat(R, d.qpos[p.qa + 3:p.qa + 7])
         return math.degrees(math.acos(float(np.clip(R.reshape(3, 3)[2, 1], -1.0, 1.0))))
 
+    frames = []
+    if FILM:
+        import mujoco
+        g = m.vis.global_
+        g.offwidth, g.offheight = max(int(g.offwidth), 640), max(int(g.offheight), 480)
+        rend = mujoco.Renderer(m, 480, 640)
+        cam = mujoco.MjvCamera()
+        cam.lookat[:] = c - np.array([0.0, 0.0, 0.025])
+        cam.distance, cam.azimuth, cam.elevation = 0.20, 180.0, -8.0      # along the pinch axis, x_P, from +x
+        for gg in range(m.ngeom):                                            # the finger links see-through
+            bn = m.body(m.geom_bodyid[gg]).name
+            if any(bn.startswith(f + "_") for f in FINGERS) and "_pad" not in (m.geom(gg).name or ""):
+                m.geom_rgba[gg, 3] = min(float(m.geom_rgba[gg, 3]), 0.35)
+
     def period(phase, q_cmd, drop_mm, sq):
         nonlocal t
         p.set_targets(q_cmd)
         d.mocap_pos[mid][2] = z_top0 - 0.004 - drop_mm / 1e3
         t += DT
         p.advance(t)
+        if FILM and phase == "held" and len(out["rows"]) % 2 == 0:
+            import hom_contact_rig as HR
+            rend.update_scene(d, cam)
+            img = HR.annotate(rend.render().copy(), LABEL.get(variant, variant), size=17)
+            frames.append(HR.annotate_bottom(img, f"{t - HANG['hold_s']:4.1f} s after release, tilt {tilt():4.1f} deg",
+                                             size=16))
         cop, Ftot = p.contacts()
         out["rows"].append({"t": round(t, 3), "phase": phase, "drop_mm": round(drop_mm, 2), "squeeze": sq,
                             "tilt": round(tilt(), 2), "z_mm": round(1e3 * float(d.qpos[p.qa + 2]), 2),
@@ -171,6 +194,11 @@ def run(variant, hang=False):
         pass
     except Exception as e:                                       # noqa: BLE001  a diverged state
         out["error"] = repr(e)[:200]
+    if FILM and frames:
+        import hom_contact_rig as HR
+        Path(FILM).mkdir(parents=True, exist_ok=True)
+        HR.write_mp4(frames, Path(FILM) / f"pickup_hang_{variant}.mp4", fps=25)
+        rend.close()
     rows = out["rows"]
     lift = [x for x in rows if x["phase"] == "lift"]
     out["summary"] = {"tilt_start": rows[0]["tilt"] if rows else None,
@@ -192,9 +220,10 @@ def main():
     ap.add_argument("--variants", nargs="+", default=list(SCENES))
     ap.add_argument("--hang", action="store_true", help="the object pinched in the air at 42 deg, then the slip")
     ap.add_argument("--mu", type=float, default=1.0)
+    ap.add_argument("--film", default=None, help="a folder for the hang's films (with --hang)")
     a = ap.parse_args()
-    global MU
-    MU = a.mu
+    global MU, FILM
+    MU, FILM = a.mu, a.film
     import multiprocessing as mp
     with mp.get_context("fork").Pool(len(a.variants)) as pool:
         res = pool.map(run_hang if a.hang else run, a.variants)

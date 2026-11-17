@@ -69,9 +69,13 @@ def build():
         held = [x for x in r["rows"] if x["phase"] == "held"]
         t0 = held[0]["t"] - 0.02
         mae, tr = twist_error(tf)
-        out["variants"][key] = {"label": label, "scene": r["scene"], "held_at": r["summary"]["held_at"],
+        # out of the pinch: the ball's centre 10 mm below its height at release (the tilt after that is the fallen
+        # object's, standing or lying on the floor)
+        fell = next((round(x["t"] - t0, 2) for x in held if x["z_mm"] < held[0]["z_mm"] - 10.0), None)
+        at = {k: (None if fell is not None and float(k) >= fell else v) for k, v in r["summary"]["held_at"].items()}
+        out["variants"][key] = {"label": label, "scene": r["scene"], "held_at": at, "fell_s": fell,
                                 "t": [round(x["t"] - t0, 2) for x in held], "tilt": [x["tilt"] for x in held],
-                                "twist_mean_abs_error": mae, "twist_track": tr}
+                                "z_mm": [x["z_mm"] for x in held], "twist_mean_abs_error": mae, "twist_track": tr}
     OUT.write_text(json.dumps(out) + "\n")
     return out
 
@@ -89,11 +93,12 @@ def figure(d):
     for key, v in d["variants"].items():
         c, ls, lw = style[key]
         t, y = np.array(v["t"]), np.array(v["tilt"])
-        fell = np.flatnonzero(y > 60.0)
-        if len(fell):                                   # out of the pinch: drawn up to the fall, then marked
-            k = int(fell[0])
-            ax.annotate("fell out of the pinch", xy=(t[k], 44.0), xytext=(t[k] + 0.2, 52.0), fontsize=12, color=c,
-                        arrowprops={"arrowstyle": "-", "color": c, "lw": 1.0})
+        if v["fell_s"] is not None:                     # out of the pinch: drawn up to the fall, then marked
+            k = int(np.searchsorted(t, v["fell_s"]))
+            ax.plot([t[k - 1]], [y[k - 1]], "x", color=c, ms=11, mew=2.4)
+            ax.annotate(f"out of the pinch at {v['fell_s']:.1f} s", xy=(t[k - 1], y[k - 1]),
+                        xytext=(t[k - 1] + 0.25, y[k - 1] + 6.0), fontsize=12, color=c,
+                        bbox={"boxstyle": "round,pad=0.2", "fc": "white", "ec": "none", "alpha": 0.9})
             t, y = t[:k], y[:k]
         ax.plot(t, y, ls, color=c, lw=lw, label=f"{v['label']}; twist error {v['twist_mean_abs_error']:.2f}")
     h = d["hand"]
@@ -114,12 +119,41 @@ def figure(d):
     plt.close(fig)
 
 
+FILMS = REV / "films"                    # pickup_sim.py --hang --film logs/20261116-sim_real_reversal/films
+HAND_FILM = BENCH / "media/20261116-pinch_pickup_controlled_slip.mp4"
+FILM = BENCH / "media/20261116-pickup_hang_hand_vs_sim.mp4"
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+def film():
+    """The hand's lift and hang (its film's second camera, 9-19 s, cropped to the hand: the lift at 3x, the hang and
+    the first slip steps at 2x) beside the simulated hang, 10 s at real time, with creep-free pads, the twist-calibrated
+    pads and point contact, two by two."""
+    import subprocess
+    sims = [FILMS / f"pickup_hang_{v}.mp4" for v in ("pads_stiff_ns", "pads_soft", "point_stiff_ns")]
+    if not HAND_FILM.exists() or not all(f.exists() for f in sims):
+        return None
+    label = "the hand, its film at 2-3x, the lift and then the hang at 42 deg"
+    vf = (f"[0:v]fps=25,crop=560:420:1070:28,scale=640:480,drawbox=x=0:y=0:w=640:h=27:color=white:t=fill,"
+          f"drawtext=fontfile={FONT}:text='{label}':x=8:y=5:fontsize=17:fontcolor=0x141414[h];"
+          "[h][1:v]hstack[top];[2:v][3:v]hstack[bot];[top][bot]vstack,format=yuv420p[v]")
+    cmd = ["ffmpeg", "-v", "error", "-y", "-ss", "9", "-t", "10", "-i", str(HAND_FILM)] + \
+        sum((["-i", str(f)] for f in sims), []) + \
+        ["-filter_complex", vf, "-map", "[v]", "-t", "10", "-c:v", "libx264", "-crf", "20", "-preset", "slow",
+         "-movflags", "+faststart", str(FILM)]
+    subprocess.run(cmd, check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "6.24", "-i", str(FILM), "-frames:v", "1", "-q:v", "3",
+                    str(FILM.with_suffix(".jpg"))], check=True)
+    return str(FILM.relative_to(ROOT))
+
+
 def main():
     d = build()
     figure(d)
-    summ = {"image": str(FIG.relative_to(ROOT)), "hand": {k: d["hand"][k] for k in ("held_s", "tilt_first", "tilt_last")},
-            "variants": {k: {"label": v["label"], "held_at": v["held_at"], "twist_mean_abs_error": v["twist_mean_abs_error"]}
-                         for k, v in d["variants"].items()}}
+    summ = {"image": str(FIG.relative_to(ROOT)), "film": film(),
+            "hand": {k: d["hand"][k] for k in ("held_s", "tilt_first", "tilt_last")},
+            "variants": {k: {"label": v["label"], "held_at": v["held_at"], "fell_s": v["fell_s"],
+                             "twist_mean_abs_error": v["twist_mean_abs_error"]} for k, v in d["variants"].items()}}
     fi = json.loads(FIGS_JSON.read_text())
     fi["pickup_hang"] = summ
     FIGS_JSON.write_text(json.dumps(fi, indent=1, default=float))

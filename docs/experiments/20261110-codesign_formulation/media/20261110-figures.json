@@ -3285,6 +3285,7 @@
  },
  "pickup_hang": {
   "image": "docs/experiments/20261115-hom_bench_trials/media/20261116-pickup_hang_contact.png",
+  "film": "docs/experiments/20261115-hom_bench_trials/media/20261116-pickup_hang_hand_vs_sim.mp4",
   "hand": {
    "held_s": 59.7,
    "tilt_first": 43.05,
@@ -3299,6 +3300,7 @@
      "6": 38.04,
      "10": 36.0
     },
+    "fell_s": null,
     "twist_mean_abs_error": 0.146
    },
    "pads_soft": {
@@ -3306,9 +3308,10 @@
     "held_at": {
      "1": 11.92,
      "3": 7.48,
-     "6": 5.24,
-     "10": 2.38
+     "6": null,
+     "10": null
     },
+    "fell_s": 3.58,
     "twist_mean_abs_error": 0.06
    },
    "point_stiff_ns": {
@@ -3319,6 +3322,7 @@
      "6": 22.64,
      "10": 40.27
     },
+    "fell_s": null,
     "twist_mean_abs_error": 0.17
    },
    "point_soft": {
@@ -3327,8 +3331,9 @@
      "1": 18.42,
      "3": 31.79,
      "6": 41.91,
-     "10": 86.1
+     "10": null
     },
+    "fell_s": 6.46,
     "twist_mean_abs_error": 0.061
    }
   }
