@@ -3368,9 +3368,7 @@
    1,
    2
   ],
-  "missing": [
-   "anneal_full"
-  ],
+  "missing": [],
   "runs": {
    "hom": {
     "label": "HOM",
@@ -3442,6 +3440,24 @@
     "replan_s": 1.405,
     "J_by_policy": [
      0.337
+    ]
+   },
+   "anneal_full": {
+    "label": "Annealed sampling (not real time)",
+    "n": 48,
+    "J": 0.4705081117841719,
+    "J_se": 0.04449293782723581,
+    "held": 0.9791666666666666,
+    "J_mu04": null,
+    "held_mu04": null,
+    "reversals_ps": 2.0342,
+    "cmd_rate_dps": 8.4905,
+    "sat_frac": 0.0015,
+    "grip_mean_N": 5.1529,
+    "contact": 0.5342340425531915,
+    "replan_s": 3.0351,
+    "J_by_policy": [
+     0.471
     ]
    },
    "uhas": {
