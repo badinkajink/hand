@@ -883,10 +883,9 @@ FIGURES = {
                        caption="The press of 16 November at 13:19 was replayed in the simulator from the trial&#8217;s record and is "
                                "seen from a camera in the palm. The fingers are at their measured joints, and the tracked cylinder is "
                                "drawn translucent. Each tip&#8217;s pads are coloured by the pressure estimated from its board, "
-                               "and the arrows are the estimated forces. These estimates come from the contact viewer&#8217;s physical "
-                               "model, fitted at rest before the close, without the own-pose subtraction and not calibrated on the "
-                               "hand. The forces in the text come from the trials&#8217; estimator. The plot below the view gives each "
-                               "finger&#8217;s estimated force against time."),
+                               "and the arrows are the estimated forces. The estimates come from the trials&#8217; estimator: each "
+                               "tip&#8217;s UR5 calibration and board GP, with the field change caused by its finger&#8217;s own pose "
+                               "subtracted. The plot below the view gives each finger&#8217;s estimated force against time."),
     "real_presses": dict(film=[[(FILM_REAL, "Second fingertip, six presses at the face centre", "1100:622:0:38")]],
                          page="20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html",
                          source="second fingertip", crf=32, poster_t=0.09,
