@@ -600,7 +600,16 @@ to 60&#8202;&#181;T. Of the change within 10&#8202;mm, 37 to 63&#8202;% is expla
 data. With a net moment of 7 to 16&#8202;% of one magnet fitted for each tip, the share rises to 85 to 95&#8202;%.
 Fitted on those touch-offs alone, the moments explain 97&#8202;% of the change at either held board in 137 hovers without
 contact ([measured on the holder](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)).</p>
-{{FIG crosstalk}}"""),
+{{FIG crosstalk}}
+<p>On 16 November the boards of the thumb and the middle finger measured a pinch on the SR2 hand. The 40&#8202;mm sphere had
+been picked up at its equator, with the last joint of each finger commanded 8&#176; past touch. Both commands
+then came down by 0.5&#176; every 1.5&#8202;s. In the UR5 presses of the same tips, the field changed by 20 to
+30&#8202;&#181;T per newton along the pad. By that scale the grip was 1.2 to 2.1&#8202;N. Down to 4.5&#176; past touch
+the motors&#8217; loads fell, the middle finger&#8217;s to zero, and the pads&#8217; force did not change. The grip
+was held by the servos&#8217; gears, without motor torque. At 4&#176; the first servo reversed, and the pads&#8217; force
+fell by about a third. The sphere and its stem then swung from 42 to 13&#176; off vertical
+([sim-to-real reversal of HOM&#8217;s twist grasps](exp:20261115-hom_bench_trials/20261116-hom_twist_sim_real_reversal.html#servos),
+section on the hand&#8217;s servos).</p>"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
