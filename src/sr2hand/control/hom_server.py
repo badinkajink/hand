@@ -60,6 +60,8 @@ from pathlib import Path
 
 import numpy as np
 
+from . import servo_limits as SL
+
 ROOT = Path(__file__).resolve().parents[3]
 PLANTS = {"measured": "kp0.55_kv0_fr0.18_fl0_dp0.011", "servo": "servo"}
 SCENES_2P5 = "logs/20261102-hom_servo_plant/scenes"      # cell scenes with pads at 2.5 MPa (reorient_backends.E_TPU)
@@ -218,6 +220,11 @@ class Server:
                 print(f"  controller error at t = {t:.2f} s: {e!r}; holding the last targets and stopping", flush=True)
             info["compute_ms"] = 1e3 * (time.perf_counter() - tc)
         stop = t > b.t_end + self.a.tail_s or "error" in info
+        # every path's targets (the open pose before the first pose, the controller's, the held ones after an error)
+        # inside the safe range (servo_limits; step() has clipped the controller's already)
+        extra = SL.clip_servo(out)
+        if extra:
+            info["clipped"] = sorted(set(info.get("clipped") or []) | set(extra))
         sim_deg = _sim_deg(self.HB, out)
         self.last_msg = L.TargetMsg(seq=self.seq, state_seq=s.seq, t_ms=time.time() * 1000.0, targets=sim_deg,
                                     flags=L.STOP if stop else 0).pack()

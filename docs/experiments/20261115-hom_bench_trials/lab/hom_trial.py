@@ -20,13 +20,16 @@ Each trial writes OUT_DIR/<stamp>_<task>_corvus.jsonl: a header, then per period
 time, the object's pose in P with its capture time, flags and tag count), the arm's TCP pose (mm, rotation vector) and
 the HEX-E's wrench at that time, the target applied (sim degrees, its sequence, age and round trip), the station's
 status and the lift's phase. The controller's own record (hom_server) holds the same periods by sequence number.
+Every frame is clipped to the servos' safe range before it goes to the station (sr2hand.control.servo_limits, from
+2026-11-17); a period whose target needed it records the joints under "clipped_corvus".
 
 The fingertips (from 2026-11-17; owner, 2026-11-16: "lets make sure the next time we run trials we have the fingertip
 sensing going"). A trial attaches to the boards' splitter (reskin5x_mux.py), or starts it, and refuses to start unless
 all three boards stream at 100 records/s or more; --no-tips runs without them. Every board record from 2 s before t = 0
 goes into OUT_DIR/<stamp>_<task>_tip_<finger>.bin (host time f8 on the trial's clock, 5 x (t x y z) f4;
 tip_contacts.read_stream). Before t = 0, with the fingers still at the open pose, each board's rest is taken over
---rest-s; from then on tip_contacts.TipContacts estimates the contacts in a thread of its own, and every state sends
+--rest-s; from then on tip_contacts.TipContacts estimates the contacts in a process of its own (tip_contacts.TipProcess,
+from 2026-11-17; --tips-thread keeps the earlier thread of this process), and every state sends
 the newest in StateMsg.cop (per finger the point in P, mm, and the normal force, N; NaN without a contact), placed with
 the joints that state sends and the mounts of --plan. Each period's record has them under "tips". Whether HOM uses them
 is the server's choice (hom_server serve --tips).
@@ -61,6 +64,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "src/sr2hand/driver/reskin5x/host")]
 from sr2hand.control.link import DRY_RUN, STOP, STOPPED, STREAMING, StateMsg, TargetMsg  # noqa: E402
+from sr2hand.control import servo_limits as SL  # noqa: E402
 from sr2hand.geometry.rotations import log_so3  # noqa: E402
 
 CAL = ROOT / "docs/experiments/20261113-camera_arm_calibration/data/fits"
@@ -365,10 +369,18 @@ def open_tips(a, stem):
     try:
         if a.tips_links:                                  # a test feed (tip_contacts.py play), not the splitter
             pids, how = [], f"not checked (test links {a.tips_links})"
-            outlets = TC.Outlets(a.tips_links)
         else:
             pids, how = TC.ensure_splitter(start=True)
-            outlets = TC.Outlets()
+        if not a.tips_thread:
+            # the feed, the records and the estimator in a process of their own (owner, 2026-11-17: "please fix the
+            # estimator subprocess yes"): in this process its thread stalled the 50 Hz loop for 40-70 ms
+            tips = TC.TipProcess(a.plan, str(stem), links=a.tips_links, gp=not a.no_tips_gp,
+                                 own_pose=not a.no_own_pose)
+            print(f"{time.strftime('%H:%M:%S')} fingertips: splitter {how} (pids {pids}), boards at "
+                  + ", ".join(f"{f} {v:.0f}/s" for f, v in tips.rates().items())
+                  + f"; estimator in process {tips.pid}; records -> {stem}_<finger>.bin", flush=True)
+            return tips, tips, tips.files
+        outlets = TC.Outlets(a.tips_links) if a.tips_links else TC.Outlets()
         outlets.start()
         why = TC.check_streams(outlets, 1.0)
     except (RuntimeError, OSError) as e:
@@ -380,8 +392,8 @@ def open_tips(a, stem):
     files = outlets.record(str(stem), since=time.time() - 2.0)
     tips = TC.TipContacts(outlets, TC.load_plan_d6(a.plan), gp=not a.no_tips_gp, own_pose=not a.no_own_pose)
     print(f"{time.strftime('%H:%M:%S')} fingertips: splitter {how} (pids {pids}), boards at "
-          + ", ".join(f"{f} {v:.0f}/s" for f, v in outlets.rates(1.0).items()) + f"; records -> {stem}_<finger>.bin",
-          flush=True)
+          + ", ".join(f"{f} {v:.0f}/s" for f, v in outlets.rates(1.0).items()) + f"; estimator in this process's "
+          f"thread (--tips-thread); records -> {stem}_<finger>.bin", flush=True)
     return tips, outlets, files
 
 
@@ -479,6 +491,7 @@ def cmd_trial(a):
                                    "stop_N": a.stop_n}, "host": socket.gethostname(), "plan": a.plan,
                           "tips": None if tips is None else {
                               "files": tip_files, "rest_s": a.rest_s, "rest": tips_rest, "gp": not a.no_tips_gp,
+                              "estimator": "thread" if a.tips_thread else f"process {tips.pid}",
                               "own_pose": not a.no_own_pose, "refit": not a.no_tips_refit},
                           "started": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
     if lift is not None:
@@ -549,11 +562,17 @@ def cmd_trial(a):
                     status |= STOPPED
                     row["stop"] = "controller"
                 else:
+                    # the backstop of the server's clip (servo_limits, owner 2026-11-17: "i agree on the HOM target
+                    # clipping"): nothing past the safe range reaches the station, whatever the server runs
+                    frame = newest.joints_frame()
+                    clipped = SL.clip_sim(frame)
+                    if clipped:
+                        row["clipped_corvus"] = clipped
                     if a.live:
                         if station.stream_token is None:
                             station.start_stream()
                             status |= STREAMING
-                        station.frame(newest.joints_frame(), None if np.isnan(newest.servo_speed) else newest.servo_speed)
+                        station.frame(frame, None if np.isnan(newest.servo_speed) else newest.servo_speed)
                     last_seq, t_last_new, armed = newest.seq, now2, True
                     row.update(target=newest.seq, target_sim_deg=np.round(newest.targets, 4).tolist(),
                                target_age=round(now2 - newest.t_ms, 3),
@@ -593,7 +612,8 @@ def cmd_trial(a):
             tips.stop()
             cm = np.array(tips.compute_ms, float)
             tips_end = {"files": tip_files, "records": dict(outlets.count), "outlet_error": outlets.error,
-                        "estimates": int(len(cm)),
+                        "estimates": int(len(cm)), "estimator": "thread" if a.tips_thread else "process",
+                        "dropped": None if a.tips_thread else (tips.stats or {}).get("dropped"),
                         "compute_ms": np.round(np.percentile(cm, [50, 95, 100]), 2).tolist() if len(cm) else None}
             outlets.close()
             print(f"fingertips: {tips_end['estimates']} estimates, {tips_end['compute_ms']} ms (median, p95, max); "
@@ -836,6 +856,9 @@ def main():
     pt.add_argument("--no-own-pose", action="store_true", help="without the boards' own-pose term")
     pt.add_argument("--no-tips-refit", action="store_true",
                     help="keep each tip's saved model, re-zeroed at the rest (no new fit competing with it)")
+    pt.add_argument("--tips-thread", action="store_true",
+                    help="the estimator in a thread of this process, as in the trials of 2026-11-17 09:12-09:29 (the "
+                         "default is a process of its own, tip_contacts.TipProcess)")
     pt.add_argument("--tips-links", default=None,
                     help="test only: the boards' pseudo-terminals in this folder (tip_contacts.py play), without the "
                          "splitter's check")

@@ -9,8 +9,9 @@ Inputs, per control period (50 Hz on the bench):
              axis = body z)
   contacts   optional fingertip contact estimates per finger: centre of pressure in {P} in mm and normal force in N;
              without them every finger's generalized contact frame comes from witness points on the kinematic model
-Output: servo targets per finger in the servo's degrees (aa, fe1, fe2), clipped to the servo's calibrated range
-(manta_hand.servos.FINGER_JOINTS), and the controller's info.
+Output: servo targets per finger in the servo's degrees (aa, fe1, fe2), clipped to the servo's safe range
+(servo_limits.safe_range: the calibrated range of manta_hand.servos.FINGER_JOINTS, kept 5 deg from the ends of the
+potentiometer's track since 2026-11-17), and the controller's info.
 
 The controller, its kinematic model (the Mirror) and the task schedule are those of scripts/hom/hom_tasks.py for one
 task and object size on the CAD-model hand: HomBench.from_design takes an entry of the study's design.json (the
@@ -35,6 +36,7 @@ from pathlib import Path
 import numpy as np
 
 from . import hom as H
+from . import servo_limits as SL
 
 ROOT = Path(__file__).resolve().parents[3]
 FINGERS = ("thumb", "index", "middle")
@@ -268,7 +270,9 @@ class HomBench:
         clipped = []
         for f in FINGERS:
             for sv, v in out[f].items():
-                lo, hi = servo_range(f, sv)
+                # the safe range (owner, 2026-11-17: "i agree on the HOM target clipping"): on 11-17 a target at the
+                # index PIP's calibrated -2.93 deg, 0.3 deg from the servo's end, left the potentiometer's track
+                lo, hi = SL.safe_range(f, sv)
                 if not lo - 1e-3 <= v <= hi + 1e-3:           # the scene's ranges are the servo's to 1e-6 rad
                     clipped.append(f"{f}.{sv}")
                     out[f][sv] = min(max(v, lo), hi)

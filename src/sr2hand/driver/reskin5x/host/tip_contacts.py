@@ -286,6 +286,44 @@ class Tip:
         return out
 
 
+class Placer:
+    """TipContacts.to_P without the boards and their models: the hand's tool chain, the plan's mounts and each pad frame,
+    light enough for the trial's own process while the estimates come from TipProcess's."""
+
+    def __init__(self, d6_P_mm, hand=None):
+        self.hand = hand or SR2Hand.load()
+        d6 = np.asarray(d6_P_mm, float)
+        self.mounts = {"thumb": d6[0:2], "index": d6[2:4], "middle": d6[4:6]}
+        self.T_tp = {f: T_tip_pad(f, self.hand) for f in FINGERS}
+
+    def to_P(self, est, joints_servo):
+        """(cop (12,) for StateMsg.cop, {finger: record}) of the estimates est at the measured joints (servo degrees,
+        (3, 3)): each contact's point (mm), normal and force (N) in P; NaN and None for a finger without one. Without
+        joints a contact keeps its pad-frame values, p_P None and NaN in cop."""
+        cop, rec = np.full(12, np.nan), {}
+        q = TipContacts._q(joints_servo) or None
+        for k, f in enumerate(FINGERS):
+            e = est.get(f) or {}
+            if not e.get("contact"):
+                rec[f] = None
+                continue
+            if q is None:
+                rec[f] = dict(p_P=None, f_n=round(e["f_n"], 4), p_pad=np.round(e["p"], 3).tolist(), w=e.get("w"),
+                              e=e["e"], t=e["t"])
+                continue
+            c, _ = self.hand.box(f)
+            m = self.mounts[f]
+            p_tip = (self.T_tp[f] @ np.r_[e["p"], 1.0])[:3]
+            T = self.hand.T_P_contact(f, m[0] - c[0], m[1] - c[1], *(math.radians(v) for v in q[f]),
+                                      contact_tip_mm=p_tip)
+            R = T[:3, :3] @ self.T_tp[f][:3, :3]                  # pad frame -> P
+            cop[4 * k:4 * k + 3], cop[4 * k + 3] = T[:3, 3], e["f_n"]
+            rec[f] = dict(p_P=np.round(T[:3, 3], 3).tolist(), n_P=np.round(R @ e["n"], 4).tolist(),
+                          f_P=np.round(R @ e["f"], 4).tolist(), f_n=round(e["f_n"], 4), p_pad=np.round(e["p"], 3).tolist(),
+                          w=e.get("w"), e=e["e"], t=e["t"])
+        return cop, rec
+
+
 class TipContacts:
     """The three fingertips on the hand: rests and estimates per board from a feed (Outlets or MuxLog), and the
     contacts in P at the measured joints."""
@@ -296,9 +334,8 @@ class TipContacts:
         own = OwnPose() if own_pose else None
         self.feed, self.hand = feed, hand or SR2Hand.load()
         self.tips = {f: Tip(f, basis, row, board_gp, kappa, (calib or {}).get(f), own=own) for f in FINGERS}
-        d6 = np.asarray(d6_P_mm, float)
-        self.mounts = {"thumb": d6[0:2], "index": d6[2:4], "middle": d6[4:6]}
-        self.T_tp = {f: T_tip_pad(f, self.hand) for f in FINGERS}
+        self.placer = Placer(d6_P_mm, self.hand)
+        self.mounts, self.T_tp = self.placer.mounts, self.placer.T_tp
         self.lock, self.latest, self.worker, self.compute_ms = threading.Lock(), None, None, deque(maxlen=2000)
 
     @staticmethod
@@ -344,31 +381,8 @@ class TipContacts:
         return {f: tip.estimate(*self.feed.window(f, t_end, KEEP_S), q.get(f)) for f, tip in self.tips.items()}
 
     def to_P(self, est, joints_servo):
-        """(cop (12,) for StateMsg.cop, {finger: record}) of the estimates est at the measured joints (servo degrees,
-        (3, 3)): each contact's point (mm), normal and force (N) in P; NaN and None for a finger without one. Without
-        joints a contact keeps its pad-frame values, p_P None and NaN in cop."""
-        cop, rec = np.full(12, np.nan), {}
-        q = self._q(joints_servo) or None
-        for k, f in enumerate(FINGERS):
-            e = est.get(f) or {}
-            if not e.get("contact"):
-                rec[f] = None
-                continue
-            if q is None:
-                rec[f] = dict(p_P=None, f_n=round(e["f_n"], 4), p_pad=np.round(e["p"], 3).tolist(), w=e.get("w"),
-                              e=e["e"], t=e["t"])
-                continue
-            c, _ = self.hand.box(f)
-            m = self.mounts[f]
-            p_tip = (self.T_tp[f] @ np.r_[e["p"], 1.0])[:3]
-            T = self.hand.T_P_contact(f, m[0] - c[0], m[1] - c[1], *(math.radians(v) for v in q[f]),
-                                      contact_tip_mm=p_tip)
-            R = T[:3, :3] @ self.T_tp[f][:3, :3]                  # pad frame -> P
-            cop[4 * k:4 * k + 3], cop[4 * k + 3] = T[:3, 3], e["f_n"]
-            rec[f] = dict(p_P=np.round(T[:3, 3], 3).tolist(), n_P=np.round(R @ e["n"], 4).tolist(),
-                          f_P=np.round(R @ e["f"], 4).tolist(), f_n=round(e["f_n"], 4), p_pad=np.round(e["p"], 3).tolist(),
-                          w=e.get("w"), e=e["e"], t=e["t"])
-        return cop, rec
+        """Placer.to_P: the estimates in P at the measured joints."""
+        return self.placer.to_P(est, joints_servo)
 
     # ------------------------------------------------------------------------------------------- live
     def start(self, period=0.02, joints=None):
@@ -400,6 +414,204 @@ class TipContacts:
         if self.worker is not None:
             self.stop_evt.set()
             self.worker.join(timeout=2.0)
+
+
+# ------------------------------------------------------------------------------------------------ a process of its own
+
+def _tip_process_main(ctl, est_w, joints_arr, cfg):
+    """TipProcess's child, under multiprocessing's spawn: the boards' feed (Outlets), their records and the estimator
+    (TipContacts). It answers ("rest", t_end, seconds, refit, joints), ("start", period) and ("stop",) on ctl with
+    ("ok", value) or ("error", reason), and once started sends (time made, estimates, compute ms) on est_w every period
+    at most, dropping an estimate while the pipe has no room. The joints come from joints_arr: [sequence, valid, 9 servo
+    degrees], the sequence odd while the trial's process writes."""
+    outlets = None
+    try:
+        outlets = Outlets(cfg["links"]) if cfg.get("links") else Outlets()
+        outlets.start()
+        why = check_streams(outlets, 1.0)
+        if why:
+            ctl.send(("error", why))
+            return
+        files = outlets.record(cfg["stem"], since=cfg["since"])
+        tips = TipContacts(outlets, load_plan_d6(cfg["plan"]), gp=cfg["gp"], own_pose=cfg["own_pose"])
+        ctl.send(("ok", {"files": files, "rates": outlets.rates(1.0), "pid": os.getpid()}))
+
+        def joints():
+            for _ in range(5):
+                n0 = joints_arr[0]
+                v = list(joints_arr[1:])
+                if n0 == joints_arr[0] and int(n0) % 2 == 0:
+                    break
+            return np.array(v[1:], float).reshape(3, 3) if v[0] > 0 else None
+
+        compute_ms, period, running, dropped = [], 0.02, False, 0
+        while True:
+            msg = None
+            if not running or ctl.poll(0):
+                try:
+                    msg = ctl.recv()
+                except EOFError:                          # the trial's process is gone
+                    break
+            if msg is not None:
+                if msg[0] == "rest":
+                    _c, t_end, seconds, refit, j = msg
+                    ctl.send(("ok", tips.rest(t_end, seconds, refit, None if j is None else np.asarray(j, float))))
+                    continue
+                if msg[0] == "start":
+                    period, running = float(msg[1]), True
+                elif msg[0] == "stop":
+                    break
+            if running:
+                t0 = time.perf_counter()
+                try:
+                    est = tips.estimate(None, joints())
+                except Exception as e:                    # noqa: BLE001  the record says so; the loop goes on
+                    est = {"error": repr(e)[:200]}
+                dt = time.perf_counter() - t0
+                compute_ms.append(1e3 * dt)
+                if select.select([], [est_w], [], 0)[1]:   # room for a message (one is well under PIPE_BUF)
+                    est_w.send((time.time(), est, 1e3 * dt))
+                else:
+                    dropped += 1
+                time.sleep(max(0.002, period - dt))
+        ctl.send(("ok", {"records": dict(outlets.count), "outlet_error": outlets.error, "compute_ms": compute_ms,
+                         "dropped": dropped}))
+    except Exception as e:                                # noqa: BLE001  the trial prints the reason
+        try:
+            ctl.send(("error", f"{type(e).__name__}: {e}"[:300]))
+        except (OSError, EOFError):
+            pass
+    finally:
+        if outlets is not None:
+            outlets.close()
+
+
+class TipProcess:
+    """The three fingertips in a process of their own (owner, 2026-11-17: "please fix the estimator subprocess yes"). On
+    the trials of 2026-11-17 the estimator's thread in hom_trial.py's process took 57-73 ms per estimate (7.4 ms
+    offline) beside the tracker on two 1080p cameras and two video writers, and the 50 Hz loop stalled for 40-70 ms. Here
+    a spawned child reads the splitter's pseudo-terminals, writes the records, takes the rests and estimates; the
+    trial's process sends it the joints through shared memory and takes the newest estimate from a queue, and places the
+    contacts in P itself (Placer) with the joints each state sends. The interface is TipContacts' (rest, start, get,
+    to_P, stop, compute_ms) with Outlets' (count, error, close, rates)."""
+
+    def __init__(self, plan, stem, links=None, gp=True, own_pose=True, since_s=2.0, start_timeout=60.0):
+        import multiprocessing as mp
+        ctx = mp.get_context("spawn")                     # no fork of a process that already runs threads
+        # pipes and a raw array: no named semaphores, so hom_trial.py's os._exit leaves nothing for the resource
+        # tracker to warn about
+        self.ctl, child = ctx.Pipe()
+        self.est_r, est_w = ctx.Pipe(duplex=False)
+        self.joints_arr = ctx.RawArray("d", 11)
+        self.placer = Placer(load_plan_d6(plan))
+        cfg = {"plan": str(plan), "stem": str(stem), "links": None if links is None else str(links), "gp": gp,
+               "own_pose": own_pose, "since": time.time() - since_s}
+        self.proc = ctx.Process(target=_tip_process_main, args=(child, est_w, self.joints_arr, cfg), daemon=True,
+                                name="tips")
+        threads = ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
+        kept = {k: os.environ.get(k) for k in threads}
+        os.environ.update(dict.fromkeys(threads, "1"))    # one core's estimate (7.4 ms in the replays), no BLAS pool
+        try:
+            self.proc.start()
+        finally:
+            for k, v in kept.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+        child.close()
+        est_w.close()
+        self.latest, self.compute_ms, self.count, self.error, self.stats = None, [], {}, None, None
+        self.feeder, self.stop_feed = None, threading.Event()
+        r = self._answer(start_timeout, "start")
+        self.files, self._rates, self.pid = r["files"], r["rates"], r["pid"]
+
+    def _answer(self, timeout, what):
+        if not self.ctl.poll(timeout):
+            self.proc.terminate()
+            raise RuntimeError(f"the fingertip process gave no {what} within {timeout:g} s")
+        try:
+            tag, value = self.ctl.recv()
+        except EOFError:
+            raise RuntimeError(f"the fingertip process ended before its {what} (exit code {self.proc.exitcode})")
+        if tag != "ok":
+            self.proc.join(5.0)
+            raise RuntimeError(value)
+        return value
+
+    def rates(self, seconds=1.0):
+        """The boards' valid records a second when the process checked them."""
+        return dict(self._rates)
+
+    def rest(self, t_end, seconds, refit=True, joints_servo=None):
+        self.ctl.send(("rest", float(t_end), float(seconds), bool(refit),
+                       None if joints_servo is None else np.asarray(joints_servo, float).tolist()))
+        return self._answer(60.0, "rest")
+
+    def _put_joints(self, j):
+        ok = j is not None and bool(np.all(np.isfinite(np.asarray(j, float))))
+        a = self.joints_arr
+        a[0] += 1.0                                       # odd: a write in progress
+        a[1] = 1.0 if ok else 0.0
+        if ok:
+            a[2:] = [float(x) for x in np.asarray(j, float).ravel()]
+        a[0] += 1.0
+
+    def start(self, period=0.02, joints=None):
+        """Estimates every period at most; joints() (servo degrees, (3, 3), or None) is copied to the child each
+        period by a thread of this process."""
+        if joints is not None:
+            self._put_joints(joints())
+
+            def feed():
+                while not self.stop_feed.wait(period):
+                    try:
+                        self._put_joints(joints())
+                    except Exception:                     # noqa: BLE001  a missing reading leaves the last one
+                        pass
+            self.feeder = threading.Thread(target=feed, daemon=True, name="tips-joints")
+            self.feeder.start()
+        self.ctl.send(("start", float(period)))
+
+    def get(self):
+        """(time it was made, estimates) of the newest estimate, or (nan, {})."""
+        while self.est_r.poll(0):
+            try:
+                t, est, ms = self.est_r.recv()
+            except EOFError:
+                break
+            self.latest = (t, est)
+            self.compute_ms.append(ms)
+        return self.latest if self.latest is not None else (float("nan"), {})
+
+    def to_P(self, est, joints_servo):
+        return self.placer.to_P(est, joints_servo)
+
+    def stop(self, timeout=10.0):
+        """Ends the child; its count of records, the outlets' error and every estimate's compute time come back."""
+        self.stop_feed.set()
+        if self.feeder is not None:
+            self.feeder.join(timeout=1.0)
+        if self.stats is None and self.proc.is_alive():
+            try:
+                self.ctl.send(("stop",))
+                self.stats = self._answer(timeout, "stop")
+            except (RuntimeError, OSError) as e:
+                self.stats = {"error": str(e)}
+            self.count = self.stats.get("records", {})
+            self.error = self.stats.get("outlet_error") or self.stats.get("error")
+            if self.stats.get("compute_ms"):
+                self.compute_ms = list(self.stats["compute_ms"])
+        self.proc.join(timeout=3.0)
+        if self.proc.is_alive():
+            self.proc.terminate()
+            self.proc.join(timeout=1.0)
+        for c in (self.ctl, self.est_r):
+            c.close()
+        return self.stats
+
+    def close(self):
+        self.stop()
 
 
 # ------------------------------------------------------------------------------------------------ feeds
