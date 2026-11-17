@@ -31,6 +31,7 @@ FILM_VIEW = "docs/experiments/20261020-fingertip_contact_estimation/media/202610
 FILM_UR5 = "docs/experiments/20261022-ur5_tip_calibration/media/20261022-lab_sphere2_overhead.mp4"
 FILM_REAL = "docs/experiments/20261023-second_fingertip_transfer/media/20261023-viewer_centre_presses.mp4"
 FILM_SR2 = "docs/experiments/20261027-fingertip_crosstalk/media/20261105-film_sr2_short.mp4"   # sr2_crosstalk_film.py --per-layout 2
+FILM_PALM = "docs/experiments/20261115-hom_bench_trials/media/20261116-fingertips_press_palm.mp4"   # hand_trial_tips_film.py palm
 
 CHAIN_SVG = """<svg class="chain" viewBox="0 0 828 330" width="828" height="330" role="img" aria-label="The chain of models of the printed fingertip, from the print recipe to the contact estimate" style="display:block;margin:12px auto;max-width:100%;height:auto;font-family:'Times New Roman',Times,serif">
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker></defs>
@@ -609,7 +610,26 @@ the motors&#8217; loads fell, the middle finger&#8217;s to zero, and the pads&#8
 was held by the servos&#8217; gears, without motor torque. At 4&#176; the first servo reversed, and the pads&#8217; force
 fell by about a third. The sphere and its stem then swung from 42 to 13&#176; off vertical
 ([sim-to-real reversal of HOM&#8217;s twist grasps](exp:20261115-hom_bench_trials/20261116-hom_twist_sim_real_reversal.html#servos),
-section on the hand&#8217;s servos).</p>"""),
+section on the hand&#8217;s servos).</p>
+<p>Since 17 November the three boards are recorded in every HOM trial on the hand. The v3 tips on the thumb, index and
+middle finger are IDs 1, 3 and 2. Each board&#8217;s contact estimate is computed as on the UR5, with the board GP of the
+v3 tips. The field change caused by the finger&#8217;s own pose is predicted by a GP on its three joint angles and
+subtracted first. The contact point is then placed in the palm frame at the measured joints. The estimates were checked
+on the recordings of 16 November. In the pick-up, the pinch&#8217;s contacts lay 0.3 and 1.6&#8202;mm outside the
+tracked sphere (medians, thumb and middle finger). The pads&#8217; apexes, where the contacts lie in the hand&#8217;s
+model, lay 1.9 and 3.7&#8202;mm outside. In the press of the 25&#8202;mm cylinder, the thumb pressed with 2.8&#8202;N
+and the index finger with 2.4&#8202;N. The index finger&#8217;s contact lay 8.7&#8202;mm inside the tracked cylinder, and
+its apex 8.2&#8202;mm. There the hand&#8217;s model and the tracked pose differ by about 8&#8202;mm.</p>
+<p>During the press&#8217;s approach the middle finger&#8217;s apex stayed 4 to 10&#8202;mm from the cylinder, and its
+board changed by 30&#8202;&#181;T. The GP&#8217;s prediction was 35&#8202;&#181;T. With the prediction subtracted, the
+middle finger was counted as touching from 1.68&#8202;s, at a median 0.53&#8202;N. Without the subtraction, it was
+counted as touching from 1.20&#8202;s, at 1.34&#8202;N. On one core of the lab computer the three boards were estimated in
+7.4&#8202;ms a period (median). The press&#8217;s recorded states were then sent to HOM again, with each finger&#8217;s
+contact frame taken from its board whenever it pressed with 0.25&#8202;N or more. Its joint targets differed by
+0.86&#176; from those without the boards (median), and by 18&#176; at most. HOM with and without the boards is to be
+compared on the hand at the next bench session ([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md),
+section on trials with the fingertips).</p>
+{{FIG hand_press}}"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
@@ -858,6 +878,15 @@ FIGURES = {
                      caption="The cad_v3 hand at the measured joints of the first two random poses of each of the 11 layouts, with each board&#8217;s change in force equivalent: "
                              "with no compensation (grey) and after the own-angle GP (black). Red text marks a pose whose uncompensated change the viewer shows as a contact. "
                              "The line at 0.25&#8202;N is the viewer&#8217;s force threshold. The crosstalk page&#8217;s Section 5 has the lab&#8217;s camera on the hand."),
+    "hand_press": dict(film=[[(FILM_PALM, "Press of the 25 mm cylinder on the SR2 hand, seen from the palm", "1020:934:900:146")]],
+                       page="20261115-hom_bench_trials/README.md", source="HOM trials on the SR2 hand", crf=32,
+                       caption="The press of 16 November at 13:19 was replayed in the simulator from the trial&#8217;s record and is "
+                               "seen from a camera in the palm. The fingers are at their measured joints, and the tracked cylinder is "
+                               "drawn translucent. Each tip&#8217;s pads are coloured by the pressure estimated from its board, "
+                               "and the arrows are the estimated forces. These estimates come from the contact viewer&#8217;s physical "
+                               "model, fitted at rest before the close, without the own-pose subtraction and not calibrated on the "
+                               "hand. The forces in the text come from the trials&#8217; estimator. The plot below the view gives each "
+                               "finger&#8217;s estimated force against time."),
     "real_presses": dict(film=[[(FILM_REAL, "Second fingertip, six presses at the face centre", "1100:622:0:38")]],
                          page="20261023-second_fingertip_transfer/20261023-second_fingertip_transfer.html",
                          source="second fingertip", crf=32, poster_t=0.09,
