@@ -19,15 +19,30 @@ State:
   the twists at 16:12 and 16:47). Copies on the workstation in logs/20261116-three_finger_mux/ (gitignored); the trial
   videos of the press, the first pick-up and those twists in logs/20261116-fingertip_film/raw/.
 - No calibration maps the hand's three boards to contact points and forces yet (README 13:21).
+- (step 1, 11-17 00:2x) Mux logger: started apart, on corvus from /home/will/workspace/hand, as `/usr/bin/python3
+  src/sr2hand/driver/reskin5x/host/reskin5x_mux.py [--stat-s 10] > logs/<date>-three_finger_mux/<date>-splitter.log`
+  (11-16 13:18:31 and 15:40:14; /dev/ttyACM0, channels [0, 1, 3], 160.6 records/s). Writes
+  logs/<date>-three_finger_mux/<stamp>-mux.bin: 8 + 80 n bytes a record, corvus's time.time() f8, then per board in channel
+  order (ch0 middle, ch1 index, ch3 thumb) 5 chips x (T degC, x, y, z uT) f4. Stamp = the serial read's time, a read's
+  earlier records back-dated at 1/150 s (237 backward steps in 18,786); some records are framing garbage (T 3.7e26) that
+  the viewer's filter drops. The .bin reaches disk in 8 KB blocks (~0.2 s); the per-board pseudo-terminals
+  /tmp/reskin5x_mux/ch<c> get each read at once (~50 ms); nobody read them on 11-16. Clock = corvus's epoch, hom_trial's.
+- Tips: thumb v3 ID 1 (ch3), index v3 ID 3 (ch1), middle v3 ID 2 (ch0) (crosstalk README; viewer inputs in
+  docs/experiments/20261022-ur5_tip_calibration/data/20261105-viewer_inputs/, board GP 20261105-board_gp_v3_id1_id3_rig_id3_id6.npz).
+- HomBench.step: hom_server already passes every finite StateMsg.cop to it (Server.handle `_contacts`); HomController.gcf
+  takes a finger's GCF from its CoP (Mirror.gcf_from_cop: closest points of pad and object to the CoP) when F >=
+  prm.contact_force_min (0.02 N; tip variant 0.25 N), else witness points; F also sets `touching`. So --tips must gate it.
+- Physical model alone misplaces a 1-2 N apex press by ~10 mm (synthetic, ID 1); the viewer's board-GP blend is needed.
+- (steps 2, 8, 11-17 00:3x) tip_contacts.py done; replay of press 13:19 (logs/20261117-tip_contacts/): rest keeps the
+  saved models (0.10-0.26 vs new fits 0.22-0.35 mT); thumb 2.8 N from 0.44 s, index 2.4 N from 0.86 s, middle 0.5 N from
+  1.68 s (own-pose on). Gap to the tracked cylinder: thumb -4.0, index -8.7, middle +3.3 mm; the index's pad APEX is
+  itself -7 to -10 mm inside at the measured joints (hand model/tracker offset, not the estimator). Live path reads the
+  pty outlets (one reader at a time). Next: hom_trial integration (tips default on, --no-tips), then hom_server --tips
+  {off,on,raw} (raw keeps sil's in-process equality), then the replays and the README.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Read the files above. Write into State how the mux logger is started on corvus, its record format and clock, which
-    tips (case, ID) sit on the three fingers, and what HomBench.step does with contacts.
-- [ ] 2. A contact estimator for the three boards (new src/sr2hand/driver/reskin5x/host/tip_contacts.py): per board the
-    viewer's model (the rest fit taken at the trial's open pose before the close, or the UR5 GP of that tip where one
-    exists), the contact point in the tip frame turned into P mm through the SR2 hand's kinematics at the measured
-    joints (sr2hand.robot.tool_chain SR2Hand, assets/cad_v3/frames.json), the normal force in N, no contact below
-    0.25 N as in the viewer. It runs under corvus's /usr/bin/python3 3.10 (numpy 1.26, scipy 1.12; no MuJoCo, no torch).
+- [x] 1. Read the files above. Write into State how the mux logger is started on corvus, its record format and clock, … Done 11-17 00:03: State lines: logger command, .bin format and clock (corvus epoch, 1/150 s back-dating), tips ID1 thumb ch3 / ID3 index ch1 / ID2 middle ch0, HomBench.step's CoP GCF; hom_server already forwards any finite cop
+- [x] 2. A contact estimator for the three boards (new src/sr2hand/driver/reskin5x/host/tip_contacts.py): per board th… Done 11-17 00:13: src/sr2hand/driver/reskin5x/host/tip_contacts.py: viewer's estimator per board (saved v3 calib, rest refit rule, board GP blend), pad->tip->P transform, pty-outlet reader, .bin replay; runs under py3.10/numpy 1.26/scipy 1.12; 6.3 ms median for 3 boards on one core
 - [ ] 3. hom_trial.py (and pinch_pickup.py) start or attach to the mux logger for every trial, refuse to start unless all three
     boards stream (override --no-tips), write the raw board records into the trial's run folder on the trial's clock, and
     fill StateMsg.cop from the estimator every period. trial_cycle.sh passes the flags.
@@ -41,6 +56,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
     with tips, trial_cycle.sh), the checks, and the evaluation for the next session (HOM with and without --tips on the
     same grasps, two trials each, the tracking score and the contact traces).
 - [ ] 7. Commit by path (never git commit -a); push with GIT_SSH_COMMAND=ssh git push origin main in a retry loop.
+- [x] 8. Own-pose crosstalk: a per-board GP on the finger's own three joint angles (from the 11-04/05 crosstalk rows) … Done 11-17 00:13: OwnPose GP (data/20261117-tip_contacts/20261117-own_pose_gp.npz, 598 KB) default on: press 13:19 middle's approach change 28-31 uT predicted 35-37 uT, chi2 20 -> <2, first contact 1.20 -> 1.68 s at 0.43-0.64 N; thumb/index change < 0.15 N
 <!-- /ap:steps -->
 Claimed: docs/experiments/20261115-hom_bench_trials/lab/ (hom_trial.py, pinch_pickup.py, trial_cycle.sh, new files),
 src/sr2hand/driver/reskin5x/host/tip_contacts.py (new), src/sr2hand/control/hom_server.py and hom_bench.py (the --tips
