@@ -637,16 +637,31 @@ the sphere had moved 20&#8202;mm from its start. A second grasp had the index an
 apart, against 63&#8202;mm. Its score without the boards was 0.453. With them that trial was stopped at 4.9&#8202;s.
 The sphere then fell at the putdown (<a href="../experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html#tips">bench session of 17 November</a>,
 Table 1 and section on the fingertip contacts).</p>
-<p>Overnight the second grasp was repeated three times in each of four settings. In HOM&#8217;s complementary filter,
-each finger&#8217;s action point is moved a share of the way toward its measured contact each period. At the bench&#8217;s 50&#8202;Hz
-that step can overshoot the contact, so in two settings the filter was run in 2&#8202;ms sub-steps, the published
-500&#8202;Hz. Without the boards all six trials ran to the end. Their scores were 0.417 to 0.479, and 0.427 to 0.473 with
-the sub-steps. With the boards one of three trials ran to the end, at 0.622. The other two were stopped when the sphere
-had moved 25&#8202;mm from its start, at 0.468 and 0.202, and after the second the sphere fell. In the fourth setting the
-boards&#8217; contacts were used with the sub-steps and with a hysteresis. A finger&#8217;s contact was taken from its
-board from 0.25&#8202;N upward, and from the hand&#8217;s model again below 0.1&#8202;N. Both trials of this setting ran to
-the end, at 0.421 and 0.506 (<a href="../experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html#tips">bench session of 17 November</a>,
-section on the fingertip contacts).</p>
+<p>Overnight the second grasp was repeated in two blocks, of 11 and 9 trials, about an hour apart.
+In HOM&#8217;s complementary filter, each finger&#8217;s action point is moved a share of the way toward its measured
+contact each period. At the bench&#8217;s 50&#8202;Hz that step can overshoot the contact. In two settings of the first
+block the filter was therefore run in 2&#8202;ms sub-steps, the published 500&#8202;Hz. The server&#8217;s computation lasted 12.5
+to 12.8&#8202;ms of each 20&#8202;ms period with the sub-steps. Without them it lasted 2.7 to 2.9&#8202;ms. In those trials
+HOM&#8217;s targets thus reached the hand about 10&#8202;ms later
+(<a href="../experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html#tips">bench session of 17 November</a>,
+section on the fingertip contacts). In the second block the sub-steps were replaced by the filter&#8217;s
+continuous equation, integrated exactly over each period in the time of one step. With the boards, the sub-steps and the
+exact integration were each combined with a hysteresis. A finger&#8217;s contact was taken from its board from 0.25&#8202;N
+upward, and from the hand&#8217;s model again below 0.1&#8202;N.</p>
+<p>With the boards, the hysteresis and either form of the published filter, none of four trials drifted out of the
+grasp. With the boards and HOM as before, two of five did. They were stopped when the sphere had moved 25&#8202;mm from its start, at
+scores of 0.468 and 0.202, and after the second the sphere fell. With the boards the mean score was 0.405 as before,
+0.463 with the sub-steps and 0.310 with the exact integration. Without the boards, all 11 trials of the two blocks ran to the end
+(<a href="../experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html#ident">bench session of 17 November</a>,
+Tables 7 and 8).</p>
+<div class="tw"><table class="index"><thead><tr><th>Boards&#8217; contacts</th><th>HOM&#8217;s filter</th><th>Trials</th><th>Run to the end</th><th>Mean tracking score</th><th>Range of the score</th></tr></thead><tbody>
+<tr><td>Off</td><td>One 20&#8202;ms step, as before</td><td>6</td><td>6</td><td>0.433</td><td>0.404&#8211;0.479</td></tr>
+<tr><td>Off</td><td>2&#8202;ms sub-steps</td><td>3</td><td>3</td><td>0.445</td><td>0.427&#8211;0.473</td></tr>
+<tr><td>Off</td><td>Exact integration</td><td>2</td><td>2</td><td>0.426</td><td>0.424&#8211;0.428</td></tr>
+<tr><td>On</td><td>One 20&#8202;ms step, as before</td><td>5</td><td>3</td><td>0.405</td><td>0.202&#8211;0.622</td></tr>
+<tr><td>On</td><td>2&#8202;ms sub-steps, hysteresis</td><td>2</td><td>2</td><td>0.463</td><td>0.421&#8211;0.506</td></tr>
+<tr><td>On</td><td>Exact integration, hysteresis</td><td>2</td><td>2</td><td>0.310</td><td>0.310&#8211;0.311</td></tr>
+</tbody></table></div>
 <p>During the morning&#8217;s trials the estimator ran in the trial&#8217;s own process, which also tracked the sphere in
 two cameras and wrote their films. There the three boards were estimated in 57 to 73&#8202;ms (each trial&#8217;s
 median), against 7.4&#8202;ms on the recordings of 16 November. The trial&#8217;s 50&#8202;Hz loop stalled, and the first trial with the
