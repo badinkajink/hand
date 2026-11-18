@@ -51,6 +51,7 @@ PAPER = "assets/tracking/20261113-paper_board"
 BLK2 = "assets/tracking/20261116-tag_blocks"
 JNT = "assets/tracking/20261116-cotter_joint"
 LRG = "assets/tracking/20261117-large_objects"
+MOD = "assets/tracking/20261117-modular_blocks"
 
 
 def rel(path):
@@ -82,6 +83,9 @@ def load():
     tl = ROOT / f"{LRG}/20261117-opening_touches.json"
     J["lrg_touch"] = json.loads(tl.read_text()) if tl.exists() else None
     J["lrg_ro"] = TP.large_rollouts()
+    J["mod"] = json.loads((ROOT / f"{MOD}/20261117-modular_blocks.json").read_text())
+    J["mod_rc"] = {s: json.loads((ROOT / f"{MOD}/20261117-root_clearance_{s}.json").read_text())["rows"]
+                   for s in ("large", "20261112")}
     return J
 
 
@@ -113,6 +117,11 @@ def sec_terms():
                                  "taper on the stem's end sits in a socket in the object. The cotter is a printed pin "
                                  "with a 1:5 taper on its top face. It is pushed across the stem through a slot in the "
                                  "object and a slot in a post above the taper."),
+        ("Modular block, foot, code", "the tag block and its stem as two parts (2026-11-17). The stem's foot is "
+                                      "a square taper that one M3 screw from the block's bottom face draws into a "
+                                      "socket in the block's top face. The code names the object (C25, S40, C45, S67) "
+                                      "on the block's bottom face, with as many dimples on the block and the stem as "
+                                      "its number."),
         ("Joint frame $J$", "axes on the stem's axis at the object's flat seat: $u$ along the stem into the object, $w$ "
                             "along the cotter toward its entry, $v$ across the cotter (mm)."),
         ("Touch", "in a replayed rollout, a finger geom within 0.5 mm of the object's surface at a recorded period."),
@@ -192,6 +201,19 @@ def sec_files(J):
         ("Cotters of the larger objects, 19.8 mm long: thin, middle and thick",
          "<br>".join(flink(f"{LRG}/20261117-cotter_{k}_white.stl") for k in ("thin", "mid", "thick")), "2.4",
          "through the object's and the post's slots"),
+        ("Modular tag blocks C45 and S67 (2026-11-17, ids 32 to 37 and 38 to 43)",
+         "<br>".join(flink(f"{MOD}/20261117-block_{k}_{c}.stl") for k in ("C45", "S67") for c in ("white", "black")),
+         "17.0", "one M3 &times; 16 screw into the stem's foot"),
+        ("Modular stems C45 and S67 (2026-11-17)",
+         "<br>".join(flink(f"{MOD}/20261117-stem_{k}_white.stl") for k in ("C45", "S67")),
+         " / ".join(f"{J['mod']['objects'][k]['stem']['length_mm']:.1f}" for k in ("C45", "S67")),
+         "foot into the block, cotter joint into the object"),
+        ("Modular blocks and stems C25 and S40, for the cotter-joint objects of 2026-11-16",
+         "<br>".join(flink(f"{MOD}/20261117-{p}_{k}_white.stl") for k in ("C25", "S40") for p in ("block", "stem")),
+         " / ".join(f"{J['mod']['objects'][k]['stem']['length_mm']:.1f}" for k in ("C25", "S40")), "as above"),
+        ("Fit test of the modular joint: the C45 block in white and a foot",
+         "<br>".join(flink(f"{MOD}/20261117-test_{k}_white.stl") for k in ("block", "stem")),
+         f"17.0 / {J['mod']['test_stem']['white']['bounds_mm'][1][2]:.1f}", "test print of the joint"),
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
         ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
          "printed standing; grip tape on its side"),
@@ -238,6 +260,12 @@ def sec_files(J):
              "cotters (2026-11-16)", J["jnt"]["bambu"]),
          row(f"{LRG}/20261117-large_objects_p1s.3mf", "the 45 mm cylinder, the 67 mm sphere's halves, three dowels "
              "and six cotters, 20 % lightning infill, white only (2026-11-17)", J["lrg"]["bambu"]),
+         row(f"{MOD}/20261117-modular_test_p1s.3mf", "the modular joint's fit test (2026-11-17)",
+             J["mod"]["bambu_test"]),
+         row(f"{MOD}/20261117-modular_blocks_p1s.3mf", "the modular blocks C45 and S67 (2026-11-17)",
+             J["mod"]["bambu_blocks"]),
+         row(f"{MOD}/20261117-modular_stems_p1s.3mf", "the modular stems C45 and S67, two each, 5 mm brim "
+             "(2026-11-17)", J["mod"]["bambu_stems"]),
          row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
          row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
     t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
@@ -254,7 +282,8 @@ def sec_files(J):
                "project.", num_from=2)
     hw = ("<p>The mount is fixed with one M5 &times; 16 bolt and a nut, and the board with two M3 self-tapping screws "
           "of 10 to 12 mm. The stems of the first and second blocks and the dowels are glued with cyanoacrylate or "
-          "two-part epoxy; the blocks of the cotter joint take no glue. The cylinder's "
+          "two-part epoxy; the blocks of the cotter joint take no glue. Each modular block takes one M3 &times; 16 "
+          "screw, which threads into its stem. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "
           "to another plate.</p>")
     alt = ""
@@ -682,8 +711,8 @@ def sec_large(J):
           "are flat for paper tags, which the owner will glue on if the tracking needs them. The cylinder's body, both "
           f"hemispheres, three dowels and two cotters of each size lie on one plate (Figure {n1}). It prints in white "
           f"on filament 1 in {q['reslice']['hours']:.1f} h, with {q['reslice']['used_g']['1']:.1f} g of PLA and no "
-          "filament change. The blocks and their stems are not on it; they wait for a modular block and stem, "
-          "which the owner asked for in the same message.</p>")
+          "filament change. Their blocks and stems are the modular ones of Section 7, which the owner asked for in "
+          "the same message.</p>")
     p2 = ("<p>The joint is that of Section 5: the same socket, slot, taper and post, the cotter entering on the "
           "cylinder's $-x_O$ side. On the 67 mm sphere the joint is turned by 180&deg; about the stem, so that its "
           "cotter enters on the $-z_O$ side, where no finger touched in the replayed rollouts (below). The slot meets "
@@ -764,12 +793,73 @@ def sec_large(J):
             "only the top faces, so at 20 % it adds 1.5 g to the empty cylinder and 1.9 g to the empty sphere "
             "(Table " + str(P.TAB[0]) + "). Gyroid adds 1.8 to 1.9 g per percent. With a block of 3 g, a stem of "
             f"about 1 g and a cotter, the cylinder comes to about {ms['cylinder']['lightning_20']['used_g'] + 4.2:.0f} g "
-            f"before its tape and the sphere to about {ms['sphere']['lightning_20']['used_g'] + 4.2:.0f} g. The sphere "
-            "is above 25 g even with no infill. The plate is sliced at 20 % lightning.</p>" + mt
+            f"before its tape. The sphere comes to about {ms['sphere']['lightning_20']['used_g'] + 4.2:.0f} g, and the "
+            "modular block's screw adds 1.4 g to each. The sphere is above 25 g even with no infill. The plate is sliced at 20 % lightning.</p>" + mt
             + f"<p>Files and the full account: <a href=\"{rel(LRG + '/README.md')}\"><code>{LRG}/</code></a>; "
             "geometry and slices: <code>tracking_objects_print.py --set large large build|bambu</code>; stems, "
             "rollouts and touches: <code>object_tracking_rollouts.py --set large stem|run|touchmap</code>.</p>")
     return out
+
+
+def sec_modular(J):
+    """The modular tag block and stem (2026-11-17)."""
+    R = J["mod"]
+    f, sc, O = R["foot"], R["screw"], R["objects"]
+    ck = O["C45"]["checks"]
+    scr = sc["name"].replace(" x ", " &times; ")
+    rc_l = min(x["root_min_mm"] for x in J["mod_rc"]["large"])
+    rc_s = min(x["root_min_mm"] for x in J["mod_rc"]["20261112"]
+               if x["task"] in ("pinpush", "press") or tuple(x["xy"]) in ((70.0, 110.0), (75.0, 55.0)))
+    f1 = img(MEDIA / "20261117-modular_blocks.png",
+             "The modular block and stem, rendered from the print files. Top left: the 45 mm cylinder with its stem "
+             "(blue), block and M3 screw apart. Top right: the 67 mm sphere assembled. Bottom left: the C45 block's "
+             "bottom face with its code, ids, three dimples and the screw's counterbore. Bottom right: the four stems "
+             "and the fit test's block and foot, as they stand on the bed.")
+    n1 = P.FIG[0]
+    p1 = ("<p>The owner asked on 2026-11-17 for the block and its stem as two parts: \"it's quite costly printing "
+          "these, in terms of filament and time, and im trying to anticipate breaks, which would make these blocks "
+          "useless. i am not sure how to design joinery here since we cant interfere with the side faces with the "
+          "blocks on them\". The block keeps its six tag faces. Its top face takes a square socket "
+          f"{f['side_at_top_face_mm']:g} mm across, whose faces lie at {f['taper_deg']:g}&deg; to the axis for "
+          f"{f['taper_depth_mm']:g} mm. The stem's foot is the matching square taper. One {scr} screw goes up through "
+          f"the block from a counterbore {sc['head_depth_mm']:g} mm deep in its bottom face. It threads "
+          f"{ck['screw_engagement_mm']:g} mm into a {sc['pilot_d_mm']:g} mm pilot in the foot and draws the taper into "
+          f"the socket (Figure {n1}). The four taper faces then fix the stem's position, tilt and turn on the block, as "
+          "the cotter joint does at the object. The screw's head sits below the bottom face, which stays flat on the "
+          "seat. The thread is cut in the stem, so a stripped thread costs a stem, not a block. One corner of the "
+          "socket is filled and the foot's cut, so the stem goes in one way only. Turned by 90&deg;, 180&deg; or "
+          f"270&deg; it stands {ck['turned_stops_out_mm']['90']:g} mm proud of its seat.</p>")
+    names = {"C25": "25 mm cylinder", "S40": "40 mm sphere", "C45": "45 mm cylinder", "S67": "67 mm sphere"}
+    rows = [(c, names[c], f"{o['ids'][0]} to {o['ids'][-1]}", f"{o['stem_mm']:.1f}", str(o["dots"]),
+             f"{o['stem']['length_mm']:.1f}", f"{o['stem']['solid_pla_g']:.2f}") for c, o in O.items()]
+    tab = table(["Code", "Object", "Block ids", "Stem (mm)", "Dimples", "Stem as printed (mm)", "Stem, solid PLA (g)"],
+                rows, "The four objects' modular parts. Stem is the distance from the block's top to the object's "
+                "surface; as printed, from the foot's end to the post's top.", num_from=2)
+    p2 = (f"<p>Each object has a code (Table {P.TAB[0]}). It is cut into the block's bottom face with the block's ids, "
+          "reading from below. The block's bottom face and the stem's root bear as many dimples as the code's number, "
+          "so a loose stem is paired with its block by counting. C45 and S67 belong to the larger objects of Section 6. "
+          "C25 and S40 fit the cotter-joint objects of Section 5; the objects printed on 2026-11-13 keep their glued "
+          "blocks.</p>")
+    q, qb, qs = R["bambu_test"]["reslice"], R["bambu_blocks"]["reslice"], R["bambu_stems"]["reslice"]
+    p3 = ("<p>In the CAD the seated foot and the block share 0 mm<sup>3</sup> for all four objects. Every tag face of "
+          "the four blocks' black bodies decodes as its own id, 0.022 mm RMS from the tracker's map. The stem's root is "
+          f"a cone {2 * f['root_r_mm']:g} mm across at the foot, against 6 mm in the second version. Over the larger "
+          f"objects' 400 rollouts no finger came within {rc_l:.1f} mm of it. On the series' layouts of 2026-11-05 none "
+          f"came within {rc_s:.1f} mm, against 6.8 mm for the root of 2026-11-16.</p>")
+    p4 = (f"<p>The fit test prints in {q['hours']:.2f} h: the C45 block in white without tags and a foot with its "
+          f"root. The two larger objects' blocks print in {qb['hours']:.1f} h ({qb['used_g']['2']:.1f} g white, "
+          f"{qb['used_g']['1']:.1f} g black). Their stems, two each, print in {qs['hours']:.2f} h "
+          f"({qs['used_g']['1']:.1f} g white). A broken stem is reprinted alone.</p>")
+    steps = ["Push the stem's foot into the block's socket, the foot's cut corner to the socket's filled corner.",
+             f"Turn the {scr} screw in from below until the stem no longer rocks, and no further: self-forming threads "
+             "in PLA strip after repeated screwing.",
+             "Fit the stem's other end to the object with the cotter (Section 5).",
+             "To replace a broken stem, take the screw out and push the foot out with the screwdriver through the hole."]
+    p5 = ("<p>Assembly:</p><ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
+          f"<p>Files and the full account: <a href=\"{rel(MOD + '/README.md')}\"><code>{MOD}/</code></a>; geometry, "
+          "checks and slices: <code>tracking_objects_print.py modular build|check|bambu</code>; the root's clearance: "
+          "<code>object_tracking_rollouts.py --set large rootclear --root ...</code>.</p>")
+    return p1 + f1 + p2 + tab + p3 + p4 + p5
 
 
 def sec_earlier():
@@ -793,8 +883,9 @@ def sec_earlier():
 def sec_limits():
     return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
             "have not been measured. The cotter joint's parts and coupons have not been printed, nor have the larger "
-            "objects of 2026-11-17, whose blocks and stems are not yet drawn. The larger sphere weighs about 30 g with "
-            "its block, against the 25 g of the simulations. The cotter stays "
+            "objects and the modular blocks and stems of 2026-11-17. The larger sphere weighs about 31 g with its block, "
+            "stem and screw, against the 25 g of the simulations. The modular stem's screw threads into PLA, which "
+            "strips after repeated screwing. The cotter stays "
             "in place only if PLA's friction coefficient on PLA exceeds 0.10. The PLA board and its mount have not been "
             "printed. The paper "
             "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
@@ -817,9 +908,10 @@ def sec_future():
         "end inside the entry, and a push through the far opening then frees it. If none does, measure the post's slot "
         "and the slice's floor with calipers and change <code>COT_T</code> in "
         "<code>tracking_objects_print.py</code> by the difference.",
-        "Design the modular block and stem (owner, 2026-11-17): a block that can be kept when its stem breaks, joined "
-        "to the stem away from its tag faces, with each stem and block marked by its object. The larger objects need "
-        "their blocks (ids 32 to 43) and stems (31.0 and 16.7 mm) before they can be tracked.",
+        "Print the modular fit test (0.35 h) and screw its foot into its block with an M3 &times; 16. The joint works "
+        "if the foot seats without rocking when the screw is firm, and comes out by hand once the screw is out. If it "
+        "rocks with the screw firm, the foot bottoms out; then raise <code>FOOT_DEPTH</code> in "
+        "<code>tracking_objects_print.py</code> by the gap measured with a feeler gauge under the foot's shoulder.",
         "Print the objects, weigh each block with its stem and the cylinder's tape, and set the bodies' infill so "
         "that each object weighs 25 g (plan, step 4).",
         "Calibrate each colour camera's lens with distortion from 20 or more views of a flat board, and solve the "
@@ -875,7 +967,8 @@ def lede_and_summary(J):
             f"{root_gap(J):.1f} mm of it. In a third version each block is held without glue by a cotter joint. A square "
             f"taper on the stem's end is drawn into a socket in the object by a printed tapered pin. Printing errors of "
             f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. A 45 mm cylinder and a "
-            f"67 mm sphere with the same joint print on one plate in white, in {J['lrg']['bambu']['reslice']['hours']:.1f} h. "
+            f"67 mm sphere print on one white plate in {J['lrg']['bambu']['reslice']['hours']:.1f} h, their blocks "
+            f"modular: one M3 screw draws a replaceable stem into the block's top face. "
             f"For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
@@ -885,7 +978,9 @@ def lede_and_summary(J):
                f"0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within "
                f"{root_gap(J):.1f} mm of it in the rollouts; blocks held without glue by a cotter joint, a square taper and a "
                f"tapered pin, three pins covering +-0.55 mm of fit; a 45 mm cylinder and a 67 mm sphere with the same "
-               f"joint on one white plate of {J['lrg']['bambu']['reslice']['hours']:.1f} h), a printed ChArUco board "
+               f"joint on one white plate of {J['lrg']['bambu']['reslice']['hours']:.1f} h; a modular block and stem, "
+               f"the stem's square foot drawn into the block's top face by one M3 screw, codes and dimples naming each "
+               f"object's parts), a printed ChArUco board "
                f"with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
                f"position undetermined; turns of +-10 deg about three axes give "
@@ -920,6 +1015,7 @@ def main():
         ("stems", "Stem length and finger clearance", sec_stems(J)),
         ("joint", "Cotter joint between block and object", sec_joint(J)),
         ("large", "Larger cylinder and sphere with the cotter joint", sec_large(J)),
+        ("modular", "Modular tag block and stem", sec_modular(J)),
         ("board", "ChArUco board and its mount on the hand", sec_board(J, "{{VIEWER_HAND}}")),
         ("views", "The board seen by the two cameras", sec_views(J)),
         ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration(J)),

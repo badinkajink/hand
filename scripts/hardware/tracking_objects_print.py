@@ -1051,11 +1051,18 @@ L_J_B = {"sphere": np.array([[0, -1.0, 0], [1.0, 0, 0], [0, 0, 1.0]])}
 L_INFILL = (("gyroid", 0), ("gyroid", 5), ("gyroid", 10), ("lightning", 10), ("lightning", 20))   # sliced per body
 
 
+J_B0, J0 = {k: v.copy() for k, v in J_B.items()}, (J_DATE, J_OUT, J_REPORT, COT_ENDS)
+SET = "20261112"
+
+
 def use_set(name):
     """Select an object set: its objects and block ids (object_tracking_mjcf.select) and, for the large set, the joint's
-    folder, report and cotter length."""
-    global J_DATE, J_OUT, J_REPORT, COT_ENDS
+    folder, report, cotter length and the sphere's turned joint."""
+    global J_DATE, J_OUT, J_REPORT, COT_ENDS, SET
     OM.select(name)
+    SET = name
+    J_B.update({k: v.copy() for k, v in J_B0.items()})
+    J_DATE, J_OUT, J_REPORT, COT_ENDS = J0
     if name == "large":
         J_DATE, J_OUT, COT_ENDS = L_DATE, L_OUT, L_COT_ENDS
         J_REPORT = J_OUT / f"{J_DATE}-large_objects.json"
@@ -1208,8 +1215,8 @@ def write_large_readme(rep):
          "`assets/tracking/20261116-cotter_joint/` (owner, 2026-11-17: \"prepare these but with a larger diameter "
          "sphere, cylinder, since our current ones aren't broken yet\"). The owner asked for one print job in a single "
          "PLA filament: \"i will glue on a paper apriltag onto the cylinder ends if it turns out being crucial\". "
-         "Written by `scripts/hardware/tracking_objects_print.py --set large large build|bambu`. The tag blocks and "
-         "their stems are not here; they wait for the modular block and stem that the same message asked for.",
+         "Written by `scripts/hardware/tracking_objects_print.py --set large large build|bambu`. Their tag blocks and "
+         "stems are the modular ones of `assets/tracking/20261117-modular_blocks/`, codes C45 and S67.",
          "",
          "| Part | File | Print |",
          "|---|---|---|"]
@@ -1322,6 +1329,438 @@ def write_large_readme(rep):
               "Map filament 1 to the white spool when sending. Not in git; `tracking_objects_print.py --set large large "
               "bambu` rebuilds it."]
     (J_OUT / "README.md").write_text("\n".join(L) + "\n")
+
+
+# The modular block and stem (owner, 2026-11-17: "design a modular attachment for the stem base with the apriltag hex
+# block. it's quite costly printing these ... im trying to anticipate breaks, which would make these blocks useless. i am
+# not sure how to design joinery here since we cant interfere with the side faces with the blocks on them ... if we are
+# going to have unique ids per block, and specific stem heights per object, then some kind of identification for these
+# modular components would also be helpful"). The block keeps its six tag faces and takes a square socket in its top
+# face. The stem is a part of its own: its foot is a square taper that one M3 self-forming screw, up through the block
+# from a counterbore in its bottom face, draws into the socket; its other end is the cotter joint's taper and post. A
+# broken stem is reprinted in white and the block kept. In B the socket's faces are normal to x_B and y_B and its
+# (-x_B, -y_B) corner is filled as a key, so the stem goes in one way only; the depth u is measured down from the top face.
+# Each object has a code: text on the block's bottom face, and as many dimples on the stem's root and the block's bottom
+# as the code's number.
+M_DATE = "20261117"
+M_OUT = ROOT / f"assets/tracking/{M_DATE}-modular_blocks"
+M_REPORT = M_OUT / f"{M_DATE}-modular_blocks.json"
+FOOT_S0, FOOT_H, FOOT_DEPTH = 8.0, 3.0, 4.0     # mm: the socket's side at the top face, its taper's depth, its floor's u
+FOOT_U = (-0.5, 2.7)                # mm: the foot's taper from 0.5 mm above the top face to 2.7 mm into the socket
+FOOT_KEY, FOOT_KEY_CUT = 3.6, 0.15  # mm: the socket's corner filled beyond FOOT_KEY on the diagonal; the foot cut inside
+M_ROOT_R, M_ROOT_H = 4.0, 10.0      # mm: the root cone from radius 4 on the foot down to the stem's 2 mm over 10 mm
+SCREW = {"name": "M3 x 16", "length_mm": 16.0, "clear_d_mm": 3.4, "head_d_mm": 6.0, "head_depth_mm": 3.4,
+         "pilot_d_mm": 2.75, "pilot_depth_mm": 8.0}     # the owner's self-forming M3 pilot is 2.75 mm
+LABEL_H, LABEL_DEPTH, LABEL_Y = 4.0, 0.4, 7.0   # mm: the label's text height, depth and lines at y_B = +-LABEL_Y
+DOT_R, DOT_PITCH = 0.45, 1.8        # mm: the identification dimples' radius and spacing
+CODES = {("20261112", "cylinder"): ("C25", 1), ("20261112", "sphere"): ("S40", 2),
+         ("large", "cylinder"): ("C45", 3), ("large", "sphere"): ("S67", 4)}
+M_PARTS = {"block": "tag block, socket in its top face, counterbore in its bottom face",
+           "stem": "stem, square-taper foot to the cotter joint's taper and post"}
+M_PRINT = {"block": "upright, bottom face on the bed", "stem": "upright, foot on the bed, 5 mm brim",
+           "test_block": "upright, bottom face on the bed", "test_stem": "upright, foot on the bed, 5 mm brim"}
+
+
+def side_at(u):
+    """The socket's square side (mm) at depth u below the top face."""
+    return FOOT_S0 - 2.0 * u * math.tan(math.radians(TAPER_DEG))
+
+
+def square_frustum(u0, u1, s0=None, s1=None):
+    """A square frustum on z_B in B, faces normal to x_B and y_B, from depth u0 (higher) to u1 (lower); sides side_at
+    unless given."""
+    import manifold3d as M
+    zt = OM.BLOCK.height / 2
+    s0 = side_at(u0) if s0 is None else s0
+    s1 = side_at(u1) if s1 is None else s1
+    sq = M.CrossSection.square([s1, s1], True)
+    return M.Manifold.extrude(sq, u1 - u0, 0, 0.0, (s0 / s1, s0 / s1)).translate([0.0, 0.0, zt - u1])
+
+
+def key_region(d):
+    """The half-space beyond d from the axis along the (-x_B, -y_B) diagonal, as a large box (B)."""
+    a = 40.0
+    R = np.array([[math.cos(math.radians(225)), -math.sin(math.radians(225)), 0.0],
+                  [math.sin(math.radians(225)), math.cos(math.radians(225)), 0.0], [0.0, 0.0, 1.0]])
+    return box((d, -a, -a), (d + a, a, a)).transform(m4(R))
+
+
+def label_cs(text, height):
+    """A CrossSection of text (DejaVu Sans Bold) about the origin, its cap height about `height` mm."""
+    import manifold3d as M
+    from matplotlib.font_manager import FontProperties
+    from matplotlib.textpath import TextPath
+    tp = TextPath((0.0, 0.0), text, size=height * 1.37, prop=FontProperties(family="DejaVu Sans", weight="bold"))
+    cs = M.CrossSection([p.tolist() for p in tp.to_polygons()], M.FillRule.EvenOdd)
+    lo, hi = np.array(cs.bounds()[:2]), np.array(cs.bounds()[2:])
+    return cs.translate((-(lo + hi) / 2).tolist())
+
+
+def dots(n, centre, normal_z=True):
+    """n spheres of DOT_R in a row along x about `centre` (B), for dimples."""
+    import manifold3d as M
+    xs = (np.arange(n) - (n - 1) / 2) * DOT_PITCH
+    return M.Manifold.batch_boolean([M.Manifold.sphere(DOT_R, 24).translate([centre[0] + x, centre[1], centre[2]])
+                                     for x in xs], M.OpType.Add)
+
+
+def socket_B():
+    """What the socket, the screw's hole and its counterbore remove from the block (B)."""
+    import manifold3d as M
+    zt, zb = OM.BLOCK.height / 2, -OM.BLOCK.height / 2
+    cav = square_frustum(-0.01, FOOT_H) + square_frustum(FOOT_H - 0.01, FOOT_DEPTH, side_at(FOOT_H), side_at(FOOT_H))
+    cav = cav - key_region(FOOT_KEY)
+    hole = M.Manifold.cylinder(zt - FOOT_DEPTH - zb + 1.01, SCREW["clear_d_mm"] / 2, SCREW["clear_d_mm"] / 2,
+                               64).translate([0.0, 0.0, zb - 1.0])
+    head = M.Manifold.cylinder(SCREW["head_depth_mm"] + 1.0, SCREW["head_d_mm"] / 2, SCREW["head_d_mm"] / 2,
+                               64).translate([0.0, 0.0, zb - 1.0])
+    return cav + hole + head
+
+
+def block_label(shape):
+    """The label cut into the bottom face (B): the object's code and the block's ids, mirrored so that they read from
+    below, and the code's number of dimples."""
+    import manifold3d as M
+    code, n = CODES[(SET, shape)]
+    ids = OM.IDS[shape]
+    zb = -OM.BLOCK.height / 2
+    out = []
+    for text, y in ((code, LABEL_Y), (f"{ids[0]}-{ids[-1]}", -LABEL_Y)):
+        cs = label_cs(text, LABEL_H).mirror([1.0, 0.0]).translate([0.0, y])
+        out.append(M.Manifold.extrude(cs, LABEL_DEPTH + 1.0).translate([0.0, 0.0, zb - 1.0]))
+    out.append(dots(n, (0.0, -LABEL_Y - 4.6, zb)))
+    return M.Manifold.batch_boolean(out, M.OpType.Add)
+
+
+def modular_block(shape):
+    """(white, black) of the block in its print frame (B moved up by half the block): the prism less its tag cells, the
+    socket, the screw's hole and counterbore, and the label."""
+    import manifold3d as M
+    B = OM.BLOCK
+    prism = M.Manifold.extrude(M.CrossSection([B.vertices()[:6, :2].tolist()]), B.height).translate(
+        [0.0, 0.0, -B.height / 2])
+    cells = OP.black_cells(OM.block_map(shape), OP.BLOCK_DEPTH)
+    body = prism - socket_B() - block_label(shape)
+    lift = m4(np.eye(3), (0.0, 0.0, B.height / 2))
+    return (body - cells).transform(lift), (body ^ cells).transform(lift)
+
+
+def foot_B(cut=True):
+    """The stem's foot in B: the square taper over FOOT_U with the key's corner cut, less the screw's pilot."""
+    import manifold3d as M
+    f = square_frustum(*FOOT_U)
+    if not cut:
+        return f
+    zt = OM.BLOCK.height / 2
+    pilot = M.Manifold.cylinder(SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2,
+                                48).translate([0.0, 0.0, zt - FOOT_U[1] - 1.0])
+    return f - key_region(FOOT_KEY - FOOT_KEY_CUT) - pilot
+
+
+def modular_stem(shape):
+    """The stem in B, its foot seated in the socket: the foot, the root cone, the 4 mm stem, the 45 deg cone and the
+    cotter joint's taper and post at the object's seat plane, less the pilot and the code's dimples on the root."""
+    import manifold3d as M
+    o = OM.OBJECTS[shape]
+    zt, rs = OM.BLOCK.height / 2, OM.STEM_D / 2
+    z_seat = zt + seat(shape)[2] + (o["r_mm"] + o["stem_mm"])
+    z_cone, h_cone = z_seat + MALE_U[0], CONE_R - rs
+    z_root = zt - FOOT_U[0]                                     # the foot's top, 0.5 mm above the top face
+    root = M.Manifold.cylinder(M_ROOT_H, M_ROOT_R, rs, SEG).translate([0.0, 0.0, z_root - 0.01])
+    stem = M.Manifold.cylinder(z_cone - h_cone - (z_root + M_ROOT_H) + 1.0, rs, rs, SEG).translate(
+        [0.0, 0.0, z_root + M_ROOT_H - 0.5])
+    cone = M.Manifold.cylinder(h_cone, rs, CONE_R, SEG).translate([0.0, 0.0, z_cone - h_cone])
+    end = male().transform(m4(J_B[shape], (0.0, 0.0, z_seat)))
+    S = M.Manifold.batch_boolean([square_frustum(*FOOT_U) - key_region(FOOT_KEY - FOOT_KEY_CUT), root, stem, cone, end],
+                                 M.OpType.Add)
+    zt_ = zt
+    pilot = M.Manifold.cylinder(SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2,
+                                48).translate([0.0, 0.0, zt_ - FOOT_U[1] - 1.0])
+    z_dot = z_root + 2.0                                        # dimples on the root cone, 2 mm above the foot
+    r_dot = M_ROOT_R - (M_ROOT_R - rs) * 2.0 / M_ROOT_H
+    n = CODES[(SET, shape)][1]
+    angs = np.radians(45.0 + (np.arange(n) - (n - 1) / 2) * 28.0)        # on the side of the key's opposite corner
+    dd = M.Manifold.batch_boolean([M.Manifold.sphere(DOT_R, 24).translate([r_dot * math.cos(a), r_dot * math.sin(a), z_dot])
+                                   for a in angs], M.OpType.Add)
+    return S - pilot - dd, z_seat
+
+
+def modular_checks(shape, stem_B):
+    """Shared volumes (mm3) of the seated foot with the block, the turned stems' stop above their seat, the screw's
+    reach into the foot and the root's clearance to the block's top face."""
+    import manifold3d as M
+    B = OM.BLOCK
+    w, b = modular_block(shape)
+    blk = (w + b).transform(m4(np.eye(3), (0.0, 0.0, -B.height / 2)))      # back to B
+    seated = abs((blk ^ stem_B).volume())
+    turned = {}
+    for k in (1, 2, 3):
+        R = np.array([[math.cos(k * math.pi / 2), -math.sin(k * math.pi / 2), 0.0],
+                      [math.sin(k * math.pi / 2), math.cos(k * math.pi / 2), 0.0], [0.0, 0.0, 1.0]])
+        foot = foot_B(cut=False) - key_region(FOOT_KEY - FOOT_KEY_CUT)
+        stop = None
+        for i in range(0, 41):                                 # 0.1 mm steps up to 4 mm above the seat
+            if (blk ^ foot.transform(m4(R, (0.0, 0.0, 0.1 * i)))).volume() < 1e-6:
+                stop = round(0.1 * i, 2)
+                break
+        turned[f"{90 * k}"] = stop
+    zt, zb = B.height / 2, -B.height / 2
+    head_top = zb + SCREW["head_depth_mm"]
+    tip = head_top + SCREW["length_mm"]
+    foot_end = zt - FOOT_U[1]
+    return {"seated_overlap_mm3": round(seated, 6), "turned_stops_out_mm": turned,
+            "screw_engagement_mm": round(tip - foot_end, 2),
+            "pilot_beyond_tip_mm": round(foot_end + SCREW["pilot_depth_mm"] - tip, 2),
+            "foot_wall_at_end_mm": round((side_at(FOOT_U[1]) - SCREW["pilot_d_mm"]) / 2, 3),
+            "foot_gap_to_floor_mm": round(FOOT_DEPTH - FOOT_U[1], 2),
+            "root_gap_to_top_face_mm": round(-FOOT_U[0], 2)}
+
+
+def modular_stl(code, name, colour="white"):
+    return M_OUT / f"{M_DATE}-{name}_{code}_{colour}.stl"
+
+
+def cmd_modular_build(a):
+    """Blocks and stems of both object sets, and the white test block and stem of the fit test."""
+    M_OUT.mkdir(parents=True, exist_ok=True)
+    rep = {"what": "the modular tag block and stem (owner, 2026-11-17)",
+           "script": "scripts/hardware/tracking_objects_print.py modular",
+           "foot": {"side_at_top_face_mm": FOOT_S0, "taper_deg": TAPER_DEG, "taper_depth_mm": FOOT_H,
+                    "socket_depth_mm": FOOT_DEPTH, "foot_u_mm": FOOT_U, "key_mm": FOOT_KEY, "key_cut_mm": FOOT_KEY_CUT,
+                    "root_r_mm": M_ROOT_R, "root_h_mm": M_ROOT_H},
+           "screw": SCREW, "label": {"height_mm": LABEL_H, "depth_mm": LABEL_DEPTH, "dot_r_mm": DOT_R},
+           "root": {"root_d_mm": 2 * M_ROOT_R, "root_h_mm": M_ROOT_H - FOOT_U[0],
+                    "foot_d_mm": round(side_at(FOOT_U[0]) * math.sqrt(2.0), 3), "fillet_r_mm": -FOOT_U[0]},
+           "objects": {}, "ok": True}
+    if M_REPORT.exists():
+        old = json.loads(M_REPORT.read_text())
+        rep.update({k: old[k] for k in ("bambu", "bambu_test", "check_ok") if k in old})
+        for code, ob in old.get("objects", {}).items():
+            if "check" in ob:
+                rep.setdefault("_checks", {})[code] = ob["check"]
+    ok = True
+    hexagon = 3 * OM.BLOCK.face_width * OM.BLOCK.across_flats / 2 * OM.BLOCK.height
+    for set_ in ("20261112", "large"):
+        use_set(set_)
+        for shape in ("cylinder", "sphere"):
+            code, n = CODES[(set_, shape)]
+            stem_B, z_seat = modular_stem(shape)
+            w, b = modular_block(shape)
+            ob = rep["objects"][code] = {"set": set_, "shape": shape, "dots": n, "ids": list(OM.IDS[shape]),
+                                         "stem_mm": OM.OBJECTS[shape]["stem_mm"], "d_mm": 2 * OM.OBJECTS[shape]["r_mm"],
+                                         "entry": "".join(f"{'+-'[int(c < 0)]}{'xyz'[i]}_O"
+                                                          for i, c in enumerate(OM.R_OB @ J_B[shape][:, 0]) if c)}
+            info = ob["block"] = {"what": f"{M_PARTS['block']}, ids {OM.IDS[shape][0]}-{OM.IDS[shape][-1]}, label {code}",
+                                  "print": M_PRINT["block"]}
+            ok &= export_part(info, w, b, lambda c, k=code: modular_stl(k, "block", c))
+            info["solid_less_hexagon_mm3"] = round((w + b).volume() - hexagon, 2)
+            drop = OM.BLOCK.height / 2 - FOOT_U[1]                       # B to the stem's print frame (foot's end at 0)
+            st = stem_B.translate([0.0, 0.0, -drop])
+            info = ob["stem"] = {"what": f"{M_PARTS['stem']}, {code}, {n} dimple{'s' if n > 1 else ''}",
+                                 "print": M_PRINT["stem"],
+                                 "print_to_B": m4(np.eye(3), (0.0, 0.0, drop)).tolist(),
+                                 "length_mm": round(z_seat + POST_TOP - drop, 2)}
+            ok &= export_part(info, st, None, lambda c, k=code: modular_stl(k, "stem", c))
+            ob["checks"] = modular_checks(shape, stem_B)
+            ok &= ob["checks"]["seated_overlap_mm3"] < 1e-6 and all(v is not None and v >= 0.5
+                                                                     for v in ob["checks"]["turned_stops_out_mm"].values())
+            if code in rep.get("_checks", {}):
+                ob["check"] = rep["_checks"][code]
+            print(code, ob["checks"], flush=True)
+    rep.pop("_checks", None)
+    # the fit test: a block in white only (no tags) and a short stem, its foot and root and 3 mm of stem
+    use_set("large")
+    import manifold3d as M
+    B = OM.BLOCK
+    prism = M.Manifold.extrude(M.CrossSection([B.vertices()[:6, :2].tolist()]), B.height).translate(
+        [0.0, 0.0, -B.height / 2])
+    tb = (prism - socket_B() - block_label("cylinder")).transform(m4(np.eye(3), (0.0, 0.0, B.height / 2)))
+    info = rep["test_block"] = {"what": "fit test: the C45 block in white without tags", "print": M_PRINT["test_block"]}
+    ok &= export_part(info, tb, None, lambda c: M_OUT / f"{M_DATE}-test_block_{c}.stl")
+    zt, rs = B.height / 2, OM.STEM_D / 2
+    z_root = zt - FOOT_U[0]
+    ts = M.Manifold.batch_boolean([foot_B(), M.Manifold.cylinder(M_ROOT_H, M_ROOT_R, rs, SEG).translate(
+        [0.0, 0.0, z_root - 0.01])], M.OpType.Add) - M.Manifold.cylinder(
+        SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2, 48).translate(
+        [0.0, 0.0, zt - FOOT_U[1] - 1.0])
+    info = rep["test_stem"] = {"what": "fit test: the stem's foot and root", "print": M_PRINT["test_stem"]}
+    ok &= export_part(info, ts.translate([0.0, 0.0, -(zt - FOOT_U[1])]), None, lambda c: M_OUT / f"{M_DATE}-test_stem_{c}.stl")
+    rep["ok"] = bool(ok)
+    M_REPORT.write_text(json.dumps(rep, indent=1))
+    write_modular_readme(rep)
+    print("wrote", M_REPORT.relative_to(ROOT), "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+def cmd_modular_check(a):
+    """Every tag face of the four blocks' black bodies, drawn from the mesh and detected against the tracker's map."""
+    rep = json.loads(M_REPORT.read_text())
+    tiles, ok = [], True
+    for code, ob in rep["objects"].items():
+        use_set(ob["set"])
+        tm = OP.shifted(OM.block_map(ob["shape"]), OM.BLOCK.height / 2)
+        rows, good = check_tags(modular_stl(code, "block", "black"), [tm], f"block {code}", tiles)
+        ob["check"] = rows
+        ok &= good
+    rep["check_ok"] = bool(ok)
+    M_REPORT.write_text(json.dumps(rep, indent=1))
+    write_modular_readme(rep)
+    if a.preview:
+        OP.sheet(tiles, a.preview)
+    print("check", "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+M_OBJECT = {"C25": "25 mm cylinder", "S40": "40 mm sphere", "C45": "45 mm cylinder", "S67": "67 mm sphere"}
+
+
+def write_modular_readme(rep):
+    f, sc, O = rep["foot"], rep["screw"], rep["objects"]
+    ck = O["C45"]["checks"]
+    L = [f"# Modular tag blocks and stems, {M_DATE}",
+         "",
+         "The tag block and its stem as two parts (owner, 2026-11-17: \"it's quite costly printing these, in terms of "
+         "filament and time, and im trying to anticipate breaks, which would make these blocks useless. i am not sure "
+         "how to design joinery here since we cant interfere with the side faces with the blocks on them\"; \"some kind "
+         "of identification for these modular components would also be helpful\"). A broken stem is reprinted in white "
+         "and the block kept. Written by `scripts/hardware/tracking_objects_print.py modular build|check|bambu`.",
+         "",
+         "| Part | Files | Print |",
+         "|---|---|---|"]
+    for code, ob in O.items():
+        for kind in ("block", "stem"):
+            info = ob[kind]
+            files = ", ".join(f"`{Path(info[c]['file']).name}`" for c in ("white", "black") if c in info)
+            L.append(f"| {M_OBJECT[code]}: {info['what']} | {files} | {info['print']} |")
+    for k in ("test_block", "test_stem"):
+        L.append(f"| {rep[k]['what']} | `{Path(rep[k]['white']['file']).name}` | {rep[k]['print']} |")
+    L += ["",
+          f"Joint. The block's six tag faces are those of the earlier blocks. Its top face has a square socket "
+          f"{f['side_at_top_face_mm']:g} mm across at the face. The socket's faces lie at {f['taper_deg']:g} deg to the "
+          f"axis for {f['taper_depth_mm']:g} mm and run straight to {f['socket_depth_mm']:g} mm. The stem's foot is the "
+          f"matching square taper, from {-f['foot_u_mm'][0]:g} mm above the top face to {f['foot_u_mm'][1]:g} mm into "
+          f"the socket, so it seats on the four taper faces with {ck['foot_gap_to_floor_mm']:g} mm left below it. One "
+          f"{sc['name']} screw goes up through a {sc['clear_d_mm']:g} mm hole from a counterbore "
+          f"{sc['head_d_mm']:g} mm across and {sc['head_depth_mm']:g} mm deep in the bottom face. It threads "
+          f"{ck['screw_engagement_mm']:g} mm into a {sc['pilot_d_mm']:g} mm pilot in the foot, the owner's size for "
+          "self-forming M3 threads, and draws the taper into the socket. The head sits below the bottom face, which "
+          "stays flat on the seat. The screw threads into the stem, so a stripped thread costs a stem, not a block. "
+          "The socket's (-x_B, -y_B) corner is filled and the foot's cut, so the stem goes in one way only: turned by "
+          f"90, 180 or 270 deg it stands {ck['turned_stops_out_mm']['90']:g} mm proud of its seat.",
+          "",
+          f"Stem. Above the foot a cone {2 * f['root_r_mm']:g} mm across narrows to the 4 mm stem over "
+          f"{f['root_h_mm']:g} mm. The stem's other end is the cotter joint's taper and post of 2026-11-16 at the "
+          "object's flat seat. Each object's stem has its own length, and its taper and post are turned as that "
+          "object's socket requires.",
+          "",
+          "Identification. Each object has a code. It is cut into the block's bottom face with the block's ids, and "
+          "both the block's bottom face and the stem's root bear as many dimples as the code's number. The labels read "
+          "from below.",
+          "",
+          "| Code | Object | Block ids | Stem: block's top to the object's surface (mm) | Dimples | Stem as printed (mm) |",
+          "|---|---|---|---|---|---|"]
+    for code, ob in O.items():
+        L.append(f"| {code} | {M_OBJECT[code]} | {ob['ids'][0]}-{ob['ids'][-1]} | {ob['stem_mm']:.1f} | {ob['dots']} | "
+                 f"{ob['stem']['length_mm']:.1f} |")
+    L += ["",
+          "C45 and S67 are the objects of `assets/tracking/20261117-large_objects/`. C25 and S40 fit the cotter-joint "
+          "objects of `assets/tracking/20261116-cotter_joint/`; the 25 mm cylinder and 40 mm sphere printed on "
+          "2026-11-13 have their blocks glued on.",
+          "",
+          f"Assembly. Push the stem's foot into the socket, its cut corner to the socket's filled corner. Turn the "
+          f"{sc['name']} screw in from below until the stem no longer rocks, and no further: self-forming threads in PLA "
+          "strip after repeated screwing (owner, 2026-11-04). Then fit the stem's other end to the object with the "
+          "cotter. To replace a broken stem, take the screw out and push the foot out of the socket with the "
+          "screwdriver through the hole."]
+    if rep.get("check_ok"):
+        L += ["",
+              "Checks. In the CAD the seated foot and the block share 0 mm3 for all four objects. Every tag face of the "
+              "four blocks' black bodies, drawn at 20 px/mm from the mesh, decodes as its own id, 0.022 mm RMS from the "
+              "tracker's map (ids 32-43 included, `src/sr2hand/tracking/tag_bits.json` now has tag36h11 ids 0-63)."]
+    for st, what in (("large", "the larger objects' 400 rollouts on the two seats"),
+                     ("20261112", "the series' layouts of the rollouts of 2026-11-05")):
+        pth = M_OUT / f"{M_DATE}-root_clearance_{st}.json"
+        if pth.exists():
+            rows = json.loads(pth.read_text())["rows"]
+            if st == "20261112":
+                rows = [x for x in rows if x["task"] in ("pinpush", "press")
+                        or tuple(x["xy"]) in SPHERE_LAYOUTS]
+            L[-1] += (f" Over {what} no finger came within {min(x['root_min_mm'] for x in rows):.1f} mm of the root"
+                      + (" (6.8 mm for the 6 mm root of 2026-11-16)." if st == "20261112" else "."))
+    g = {c: O[c]["stem"]["solid_pla_g"] for c in O}
+    L += ["",
+          f"Mass. The stems are {min(g.values()):.2f} to {max(g.values()):.2f} g of solid PLA, and an {sc['name']} steel "
+          "screw is about 1.4 g. With the screw the 67 mm sphere comes to about 31 g with its block, stem and cotter, "
+          "against the simulations' 25 g. Weigh each assembled object; the simulation takes the measured mass."]
+    if "bambu_test" in rep:
+        q = rep["bambu_test"]["reslice"]
+        L += ["",
+              f"Fit test. Print `{M_DATE}-modular_test_p1s.3mf` first: the C45 block in white without tags and a foot "
+              f"with its root ({q['hours']:.2f} h, {q['used_g']['1']:.1f} g white on filament 1). Screw them together. "
+              "The joint works if the foot seats without rocking when the screw is firm, and comes out by hand once the "
+              "screw is out. If it rocks with the screw firm, the foot bottoms out: report it, and FOOT_U or FOOT_DEPTH "
+              "in `tracking_objects_print.py` changes."]
+    for key, what in (("bambu_blocks", "the C45 and S67 blocks"), ("bambu_stems", "the C45 and S67 stems, two each")):
+        if key in rep:
+            q, fil = rep[key], rep[key]["filament"]
+            rs = q["reslice"]
+            u = rs["used_g"]
+            col = (f"{u.get(str(fil['white']), 0):.1f} g white on filament {fil['white']} and "
+                   f"{u.get(str(fil['black']), 0):.1f} g black on filament {fil['black']}, "
+                   f"{sum(rs['loads'].values())} filament loads" if u.get(str(fil.get('black'))) else
+                   f"{u.get(str(fil['white']), 0):.1f} g white on filament {fil['white']}, 5 mm brim")
+            L += ["", f"Bambu Studio project `{Path(q['project']).name}`: {what}. Sliced again by the command line: "
+                      f"{rs['hours']:.2f} h, {col}. Not in git; `tracking_objects_print.py modular bambu` rebuilds it."]
+    (M_OUT / "README.md").write_text("\n".join(L) + "\n")
+
+
+M_PLATES = {"bambu_test": ("test", "modular fit test", [("test_block", (90.0, 110.0)), ("test_stem", (140.0, 110.0))]),
+            "bambu_blocks": ("blocks", "modular blocks C45 and S67", [("block_C45", (60.0, 80.0)),
+                                                                      ("block_S67", (60.0, 140.0))]),
+            "bambu_stems": ("stems", "modular stems C45 and S67, two each",
+                            [("stem_C45", (80.0, 100.0)), ("stem_C45", (110.0, 100.0)), ("stem_S67", (140.0, 100.0)),
+                             ("stem_S67", (170.0, 100.0))])}
+M_BRIM = {"brim_type": "outer_only", "brim_width": "5"}       # the stems stand on a 6 mm foot
+
+
+def cmd_modular_bambu(a):
+    """Three projects: the fit test (white), the larger objects' two blocks (black on filament 1, white on 2) and their
+    stems, two each (white)."""
+    work = ROOT / f"logs/{M_DATE}-modular_blocks"
+    rep = json.loads(M_REPORT.read_text())
+    bad = False
+    for key, (tag, title, placed) in M_PLATES.items():
+        if a.only and (a.only == "test") != (key == "bambu_test"):
+            continue
+        items, seen = [], {}
+        for n, xy in placed:
+            kind, _, code = n.partition("_")
+            white = M_OUT / f"{M_DATE}-{n}_white.stl" if kind == "test" else modular_stl(code, kind)
+            black = modular_stl(code, kind, "black") if kind == "block" else None
+            seen[n] = seen.get(n, 0) + 1
+            items.append({"name": n if seen[n] == 1 else f"{n}_{seen[n]}", "white": white, "black": black, "place": xy})
+        project = M_OUT / f"{M_DATE}-modular_{tag}_p1s.3mf"
+        two = any(it["black"] is not None for it in items)
+        fil, col = (FILAMENTS, COLOURS) if two else (L_FILAMENT, L_COLOURS)
+        extra = None if two else M_BRIM
+        q = OP.bambu_project(items, project, work / key, title, tower=TOWER, colours=col, filament=fil, extra=extra)
+        if not two:
+            q["problems"] = [x for x in q["problems"] if not x.startswith("filaments loaded")]
+        q["reslice"] = reslice(project, work / f"{key}_reslice")
+        want = sorted(str(f) for f in fil.values()) if two else [str(fil["white"])]
+        if sorted(q["reslice"]["loads"]) != want and two:
+            q["problems"].append(f"re-slice loads {q['reslice']['loads']}")
+        q["filament"] = fil
+        rep[key] = q
+        print(f"{project.relative_to(ROOT)}: {q['reslice']['hours']:.2f} h, {q['layers']} layers, loads "
+              f"{q['reslice']['loads']}, used {q['reslice']['used_g']} g; problems: {q['problems'] or 'none'}", flush=True)
+        bad |= bool(q["problems"])
+    M_REPORT.write_text(json.dumps(rep, indent=1))
+    write_modular_readme(rep)
+    if bad:
+        raise SystemExit(1)
 
 
 def write_readme(rep):
@@ -1441,12 +1880,19 @@ def main():
     p.add_argument("step", choices=("build", "check", "bambu"))
     p.add_argument("--preview")
     p.add_argument("--only", choices=("bambu", "bambu_coupons"), help="bambu: one of the two projects")
+    p = sub.add_parser("modular", help=f"the modular tag blocks and stems ({M_OUT.relative_to(ROOT)})")
+    p.add_argument("step", choices=("build", "check", "bambu"))
+    p.add_argument("--preview")
+    p.add_argument("--only", choices=("test", "parts"), help="bambu: the fit test's plate or the parts' plates")
     p = sub.add_parser("large", help=f"the larger objects with the cotter joint ({L_OUT.relative_to(ROOT)}); needs --set large")
     p.add_argument("step", choices=("build", "bambu"))
     p.add_argument("--only", choices=("mass", "bambu"), help="bambu: the bodies' mass slices or the plate")
     p.add_argument("--infill", default="lightning:10", help="bambu: the plate's infill, PATTERN:PERCENT")
     a = ap.parse_args()
     use_set(a.set)
+    if a.cmd == "modular":
+        {"build": cmd_modular_build, "check": cmd_modular_check, "bambu": cmd_modular_bambu}[a.step](a)
+        return
     if a.cmd == "large":
         if a.set != "large":
             raise SystemExit("large: run with --set large")

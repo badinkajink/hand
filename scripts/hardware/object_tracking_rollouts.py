@@ -463,14 +463,16 @@ BLOCKS_V2 = ROOT / "assets/tracking/20261116-tag_blocks/20261116-tag_blocks.json
 
 
 def cmd_rootclear(a):
-    """Finger clearance of the tag blocks' second-version stem root (owner, 2026-11-16) over the recorded rollouts. The
-    root is drawn by two cylinders that enclose it: ROOT_D across from the block's top up to ROOT_H, and the fillet's
-    foot across up to FILLET_R. They are added to each rollout's built scene, every recorded period is set and
+    """Finger clearance of the tag blocks' second-version stem root (owner, 2026-11-16), or of the modular stem's root
+    (--root, 2026-11-17), over the recorded rollouts of the selected set. The root is drawn by two cylinders that enclose
+    it: root_d across from the block's top up to root_h, and foot_d across up to fillet_r. They are added to each rollout's built scene, every recorded period is set and
     collided, and contacts within CLEAR_RANGE give the distance to the nearest finger geom, as in the rollouts."""
     import mujoco
-    root_cfg = json.loads(BLOCKS_V2.read_text())["root"]
-    rows = [json.loads(x) for x in (ROWS / "rollouts.jsonl").read_text().splitlines() if x.strip()]
-    rows = [r for r in rows if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()]
+    src = ROOT / a.root if a.root else BLOCKS_V2
+    root_cfg = json.loads(src.read_text())["root"]
+    rows = [json.loads(x) for x in (ROWS / f"rollouts{suffix()}.jsonl").read_text().splitlines() if x.strip()]
+    rows = list({(r["task"], r["call"], r["config"], r["seed"]): r for r in rows   # the last row of a rollout run twice
+                 if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()}.values())
     models, out = {}, []
     for r in rows:
         z = np.load(ROOT / r["traj"])
@@ -524,9 +526,9 @@ def cmd_rootclear(a):
         out.append(row)
         print({k: row[k] for k in ("task", "xy", "config", "seed", "root_min_mm", "stem_min_mm", "clear_min_mm")},
               flush=True)
-    res = {"what": "finger clearance of the second-version stem root over the recorded rollouts (mm; 10 = none "
-                   "within CLEAR_RANGE)", "root": root_cfg, "configs": a.configs, "rows": out}
-    dst = BLOCKS_V2.with_name("20261116-root_clearance.json")
+    res = {"what": "finger clearance of a stem root over the recorded rollouts (mm; 10 = none within CLEAR_RANGE)",
+           "root_from": str(src.relative_to(ROOT)), "set": SET, "root": root_cfg, "configs": a.configs, "rows": out}
+    dst = ROOT / a.out if a.out else BLOCKS_V2.with_name("20261116-root_clearance.json")
     dst.write_text(json.dumps(res, indent=1))
     print("root min", min(x["root_min_mm"] for x in out), "mm over", len(out), "rollouts ->", dst.relative_to(ROOT))
     return 0
@@ -659,6 +661,9 @@ def main():
     p.add_argument("--parts", type=int, default=1)
     p = sub.add_parser("rootclear", help="finger clearance of the tag blocks' second-version root (2026-11-16)")
     p.add_argument("--configs", nargs="+", default=["built", "flat"])
+    p.add_argument("--root", help="a report whose 'root' gives the root's enclosing cylinders (default the second "
+                                  "version's), e.g. the modular blocks' of 2026-11-17")
+    p.add_argument("--out", help="the clearance rows (default the second version's root_clearance.json)")
     p = sub.add_parser("touchmap", help="finger touches on the objects against the cotter joint's openings (2026-11-16)")
     p.add_argument("--configs", nargs="+", default=["built", "flat"])
     a = ap.parse_args()

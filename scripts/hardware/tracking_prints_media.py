@@ -180,10 +180,11 @@ def mjcf(geoms, cameras=(), floor=None, extra_assets="", bodies=""):
 
 
 COTTER_RGBA = "0.89 0.64 0.23 1"
+STEM_RGBA, SCREW_RGBA = "0.55 0.70 0.90 1", "0.30 0.30 0.32 1"
 
 
 def rgba(c):
-    return {"white": WHITE, "black": BLACK, "cotter": COTTER_RGBA}[c]
+    return {"white": WHITE, "black": BLACK, "cotter": COTTER_RGBA, "stem": STEM_RGBA, "screw": SCREW_RGBA}[c]
 
 
 def placed(parts, R_W, t_W_mm, explode=None):
@@ -381,6 +382,77 @@ def fig_large():
     save(tile(frames, 2), f"{TO.J_DATE}-large_objects.png")
 
 
+def screw_stl():
+    """An M3 screw of the modular block (shaft and socket head) as an STL in its own frame, head down at z = 0."""
+    import trimesh
+    sc = json.loads(TO.M_REPORT.read_text())["screw"]
+    head = trimesh.creation.cylinder(radius=2.75, height=3.0, sections=48)
+    head.apply_translation([0.0, 0.0, 1.5])
+    shaft = trimesh.creation.cylinder(radius=1.5, height=sc["length_mm"], sections=48)
+    shaft.apply_translation([0.0, 0.0, 3.0 + sc["length_mm"] / 2])
+    p = LOGS / "m3_screw.stl"
+    LOGS.mkdir(parents=True, exist_ok=True)
+    trimesh.util.concatenate([head, shaft]).export(p)
+    return p
+
+
+def modular_parts(code):
+    """[(label, stl, R, t, colour, group)] in O of an object's modular block, stem and screw, placed by the build's
+    transforms; the object set must be selected (TO.use_set)."""
+    rep = json.loads(TO.M_REPORT.read_text())
+    ob, sc = rep["objects"][code], rep["screw"]
+    o = OM.OBJECTS[ob["shape"]]
+    H = OM.BLOCK.height
+    bc = OM.block_centre_O(o["r_mm"], o["stem_mm"])
+    Rb, tb = OM.R_OB, bc - OM.R_OB @ np.array([0.0, 0.0, H / 2])
+    T = np.asarray(ob["stem"]["print_to_B"])
+    head0 = -H / 2 + sc["head_depth_mm"] - 3.0                     # the head's underside at the counterbore's top
+    return [("block", TO.modular_stl(code, "block", "white"), Rb, tb, "white", "block"),
+            ("block", TO.modular_stl(code, "block", "black"), Rb, tb, "black", "block"),
+            ("stem", TO.modular_stl(code, "stem"), OM.R_OB @ T[:, :3], OM.R_OB @ T[:, 3] + bc, "stem", "stem"),
+            ("screw", screw_stl(), OM.R_OB, bc + OM.R_OB @ np.array([0.0, 0.0, head0]), "screw", "screw")]
+
+
+def fig_modular():
+    """The modular block and stem: the 45 mm cylinder's parts apart, the 67 mm sphere assembled, the block's bottom face
+    and the four stems with the fit test's parts in their print frames."""
+    TO.use_set("large")
+    JR = TO.joint_T("cylinder")[:, :3]
+    cyl = modular_parts("C45") + joint_parts("cylinder", ("cylinder", "cotter_mid"))
+    Rp = np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]])
+    sph = (modular_parts("S67") + joint_parts("sphere", ("sphere_lower", "sphere_upper", "cotter_mid"))
+           + [(f"dowel {k + 1}", TO.joint_stl("sphere_pin"), Rp,
+               np.array([TO.PIN_R * math.cos(math.radians(a_)), -TO.PIN_DEPTH + 0.2, TO.PIN_R * math.sin(math.radians(a_))]),
+               "white", "pins") for k, a_ in enumerate(TO.PIN_ANGLES)])
+    rep = json.loads(TO.M_REPORT.read_text())
+    blk = [p for p in modular_parts("C45") if p[5] == "block"]
+    row = []
+    for k, code in enumerate(("C25", "S40", "C45", "S67")):
+        row.append((f"stem {code}", TO.modular_stl(code, "stem"), np.eye(3), np.array([-36.0 + 18.0 * k, 0.0, 0.0]),
+                    "stem", "row"))
+    row += [("test block", TO.M_OUT / f"{TO.M_DATE}-test_block_white.stl", np.eye(3), np.array([46.0, 0.0, 0.0]),
+             "white", "row"),
+            ("test stem", TO.M_OUT / f"{TO.M_DATE}-test_stem_white.stl", np.eye(3), np.array([72.0, 0.0, 0.0]),
+             "stem", "row")]
+    out_w = JR @ np.array([1.0, 0, 0])
+    panels = [
+        ("Cylinder 45 mm: stem, block and screw apart", R_WO, cyl,
+         {"stem": (0.0, -14.0, 0.0), "block": (0.0, -34.0, 0.0), "screw": (0.0, -56.0, 0.0),
+          "cotter_mid": 18.0 * out_w}, None,
+         {"lookat": (-0.004, 0.0, -0.056), "distance": 0.30, "azimuth": 40.0, "elevation": 8.0}),
+        ("Sphere 67 mm assembled", R_WO, sph, None, None,
+         {"lookat": (0.0, 0.0, -0.030), "distance": 0.26, "azimuth": -118.0, "elevation": 6.0}),
+        ("Block's bottom face: code, ids, dimples, counterbore", R_WO, blk, None, None,
+         {"lookat": (0.0, 0.0, -0.0545 - 0.0085), "distance": 0.085, "azimuth": -90.0, "elevation": 89.0}),
+        ("Stems C25, S40, C45, S67; the fit test's block and stem", np.eye(3), row, None, -0.0002,
+         {"lookat": (0.018, 0.0, 0.020), "distance": 0.20, "azimuth": 90.0, "elevation": -12.0})]
+    frames = []
+    for title, R_W, parts, ex, floor, cam in panels:
+        m, d = compile_xml(mjcf(placed(parts, R_W, np.zeros(3), ex), floor=floor))
+        frames.append(outline(label(render(m, d, cam, 700, 620), title)))
+    save(tile(frames, 2), f"{TO.M_DATE}-modular_blocks.png")
+
+
 def task_world():
     """(palm position in the task, m) of the generalist's pin-push rollout, the arm's lift added."""
     z = np.load(TRAJ, allow_pickle=True)
@@ -513,7 +585,8 @@ def fig_views():
 
 def cmd_renders(a):
     for k in a.only or ("objects", "mount", "views", "joint"):
-        {"objects": fig_objects, "mount": fig_mount, "views": fig_views, "joint": fig_joint, "large": fig_large}[k]()
+        {"objects": fig_objects, "mount": fig_mount, "views": fig_views, "joint": fig_joint, "large": fig_large,
+         "modular": fig_modular}[k]()
     return 0
 
 
@@ -897,7 +970,7 @@ def main():
     d.add_argument("--only", choices=("stem_root", "cotter_joint", "opening_touches"),
                    help="one drawing of 2026-11-16: the blocks' stem root, the cotter joint or its openings' touches")
     r = sub.add_parser("renders")
-    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views", "joint", "large"))
+    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views", "joint", "large", "modular"))
     sub.add_parser("viewers")
     a = ap.parse_args()
     TO.use_set(a.set)

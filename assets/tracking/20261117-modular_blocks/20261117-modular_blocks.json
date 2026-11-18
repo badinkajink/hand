@@ -1,0 +1,1042 @@
+{
+ "what": "the modular tag block and stem (owner, 2026-11-17)",
+ "script": "scripts/hardware/tracking_objects_print.py modular",
+ "foot": {
+  "side_at_top_face_mm": 8.0,
+  "taper_deg": 20.0,
+  "taper_depth_mm": 3.0,
+  "socket_depth_mm": 4.0,
+  "foot_u_mm": [
+   -0.5,
+   2.7
+  ],
+  "key_mm": 3.6,
+  "key_cut_mm": 0.15,
+  "root_r_mm": 4.0,
+  "root_h_mm": 10.0
+ },
+ "screw": {
+  "name": "M3 x 16",
+  "length_mm": 16.0,
+  "clear_d_mm": 3.4,
+  "head_d_mm": 6.0,
+  "head_depth_mm": 3.4,
+  "pilot_d_mm": 2.75,
+  "pilot_depth_mm": 8.0
+ },
+ "label": {
+  "height_mm": 4.0,
+  "depth_mm": 0.4,
+  "dot_r_mm": 0.45
+ },
+ "root": {
+  "root_d_mm": 8.0,
+  "root_h_mm": 10.5,
+  "foot_d_mm": 11.828,
+  "fillet_r_mm": 0.5
+ },
+ "objects": {
+  "C25": {
+   "set": "20261112",
+   "shape": "cylinder",
+   "dots": 1,
+   "ids": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "stem_mm": 35.6,
+   "d_mm": 25.0,
+   "entry": "-x_O",
+   "block": {
+    "what": "tag block, socket in its top face, counterbore in its bottom face, ids 10-15, label C25",
+    "print": "upright, bottom face on the bed",
+    "volume_mm3": {
+     "white": 12139.761,
+     "black": 735.123,
+     "overlap": 0.0
+    },
+    "solid_pla_g": 15.96,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_C25_white.stl",
+     "triangles": 2412,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -15.0,
+       -17.321,
+       0.0
+      ],
+      [
+       15.0,
+       17.321,
+       17.0
+      ]
+     ]
+    },
+    "black": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_C25_black.stl",
+     "triangles": 972,
+     "watertight": true,
+     "shells": 6,
+     "bounds_mm": [
+      [
+       -15.0,
+       -16.243,
+       1.995
+      ],
+      [
+       15.0,
+       16.243,
+       15.005
+      ]
+     ]
+    },
+    "solid_less_hexagon_mm3": -375.3
+   },
+   "stem": {
+    "what": "stem, square-taper foot to the cotter joint's taper and post, C25, 1 dimple",
+    "print": "upright, foot on the bed, 5 mm brim",
+    "print_to_B": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      5.8
+     ]
+    ],
+    "length_mm": 48.02,
+    "volume_mm3": {
+     "white": 985.856,
+     "black": 0.0
+    },
+    "solid_pla_g": 1.22,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-stem_C25_white.stl",
+     "triangles": 1836,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -4.98,
+       -4.98,
+       0.0
+      ],
+      [
+       4.98,
+       4.98,
+       48.022
+      ]
+     ]
+    }
+   },
+   "checks": {
+    "seated_overlap_mm3": 0.0,
+    "turned_stops_out_mm": {
+     "90": 2.7,
+     "180": 2.7,
+     "270": 2.7
+    },
+    "screw_engagement_mm": 5.1,
+    "pilot_beyond_tip_mm": 2.9,
+    "foot_wall_at_end_mm": 1.642,
+    "foot_gap_to_floor_mm": 1.3,
+    "root_gap_to_top_face_mm": 0.5
+   },
+   "check": [
+    {
+     "id": 10,
+     "found": [
+      10
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 11,
+     "found": [
+      11
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 12,
+     "found": [
+      12
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 13,
+     "found": [
+      13
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 14,
+     "found": [
+      14
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 15,
+     "found": [
+      15
+     ],
+     "corner_rms_mm": 0.0219
+    }
+   ]
+  },
+  "S40": {
+   "set": "20261112",
+   "shape": "sphere",
+   "dots": 2,
+   "ids": [
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "stem_mm": 25.7,
+   "d_mm": 40.0,
+   "entry": "+z_O",
+   "block": {
+    "what": "tag block, socket in its top face, counterbore in its bottom face, ids 16-21, label S40",
+    "print": "upright, bottom face on the bed",
+    "volume_mm3": {
+     "white": 12141.594,
+     "black": 732.499,
+     "overlap": -0.0
+    },
+    "solid_pla_g": 15.96,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_S40_white.stl",
+     "triangles": 2612,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -15.0,
+       -17.321,
+       0.0
+      ],
+      [
+       15.0,
+       17.321,
+       17.0
+      ]
+     ]
+    },
+    "black": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_S40_black.stl",
+     "triangles": 984,
+     "watertight": true,
+     "shells": 6,
+     "bounds_mm": [
+      [
+       -15.0,
+       -16.243,
+       1.995
+      ],
+      [
+       15.0,
+       16.243,
+       15.005
+      ]
+     ]
+    },
+    "solid_less_hexagon_mm3": -376.1
+   },
+   "stem": {
+    "what": "stem, square-taper foot to the cotter joint's taper and post, S40, 2 dimples",
+    "print": "upright, foot on the bed, 5 mm brim",
+    "print_to_B": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      5.8
+     ]
+    ],
+    "length_mm": 36.84,
+    "volume_mm3": {
+     "white": 845.133,
+     "black": 0.0
+    },
+    "solid_pla_g": 1.05,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-stem_S40_white.stl",
+     "triangles": 2092,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -4.98,
+       -4.98,
+       0.0
+      ],
+      [
+       4.98,
+       4.98,
+       36.835
+      ]
+     ]
+    }
+   },
+   "checks": {
+    "seated_overlap_mm3": 0.0,
+    "turned_stops_out_mm": {
+     "90": 2.7,
+     "180": 2.7,
+     "270": 2.7
+    },
+    "screw_engagement_mm": 5.1,
+    "pilot_beyond_tip_mm": 2.9,
+    "foot_wall_at_end_mm": 1.642,
+    "foot_gap_to_floor_mm": 1.3,
+    "root_gap_to_top_face_mm": 0.5
+   },
+   "check": [
+    {
+     "id": 16,
+     "found": [
+      16
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 17,
+     "found": [
+      17
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 18,
+     "found": [
+      18
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 19,
+     "found": [
+      19
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 20,
+     "found": [
+      20
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 21,
+     "found": [
+      21
+     ],
+     "corner_rms_mm": 0.0219
+    }
+   ]
+  },
+  "C45": {
+   "set": "large",
+   "shape": "cylinder",
+   "dots": 3,
+   "ids": [
+    32,
+    33,
+    34,
+    35,
+    36,
+    37
+   ],
+   "stem_mm": 31.0,
+   "d_mm": 45.0,
+   "entry": "-x_O",
+   "block": {
+    "what": "tag block, socket in its top face, counterbore in its bottom face, ids 32-37, label C45",
+    "print": "upright, bottom face on the bed",
+    "volume_mm3": {
+     "white": 12131.68,
+     "black": 743.012,
+     "overlap": 0.0
+    },
+    "solid_pla_g": 15.96,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_C45_white.stl",
+     "triangles": 2884,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -15.0,
+       -17.321,
+       0.0
+      ],
+      [
+       15.0,
+       17.321,
+       17.0
+      ]
+     ]
+    },
+    "black": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_C45_black.stl",
+     "triangles": 984,
+     "watertight": true,
+     "shells": 6,
+     "bounds_mm": [
+      [
+       -15.0,
+       -16.243,
+       1.995
+      ],
+      [
+       15.0,
+       16.243,
+       15.005
+      ]
+     ]
+    },
+    "solid_less_hexagon_mm3": -375.5
+   },
+   "stem": {
+    "what": "stem, square-taper foot to the cotter joint's taper and post, C45, 3 dimples",
+    "print": "upright, foot on the bed, 5 mm brim",
+    "print_to_B": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      5.8
+     ]
+    ],
+    "length_mm": 42.88,
+    "volume_mm3": {
+     "white": 920.948,
+     "black": 0.0
+    },
+    "solid_pla_g": 1.14,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-stem_C45_white.stl",
+     "triangles": 2352,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -4.98,
+       -4.98,
+       0.0
+      ],
+      [
+       4.98,
+       4.98,
+       42.884
+      ]
+     ]
+    }
+   },
+   "checks": {
+    "seated_overlap_mm3": 0.0,
+    "turned_stops_out_mm": {
+     "90": 2.7,
+     "180": 2.7,
+     "270": 2.7
+    },
+    "screw_engagement_mm": 5.1,
+    "pilot_beyond_tip_mm": 2.9,
+    "foot_wall_at_end_mm": 1.642,
+    "foot_gap_to_floor_mm": 1.3,
+    "root_gap_to_top_face_mm": 0.5
+   },
+   "check": [
+    {
+     "id": 32,
+     "found": [
+      32
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 33,
+     "found": [
+      33
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 34,
+     "found": [
+      34
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 35,
+     "found": [
+      35
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 36,
+     "found": [
+      36
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 37,
+     "found": [
+      37
+     ],
+     "corner_rms_mm": 0.0219
+    }
+   ]
+  },
+  "S67": {
+   "set": "large",
+   "shape": "sphere",
+   "dots": 4,
+   "ids": [
+    38,
+    39,
+    40,
+    41,
+    42,
+    43
+   ],
+   "stem_mm": 16.7,
+   "d_mm": 67.0,
+   "entry": "-z_O",
+   "block": {
+    "what": "tag block, socket in its top face, counterbore in its bottom face, ids 38-43, label S67",
+    "print": "upright, bottom face on the bed",
+    "volume_mm3": {
+     "white": 12156.398,
+     "black": 716.753,
+     "overlap": 0.0
+    },
+    "solid_pla_g": 15.96,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_S67_white.stl",
+     "triangles": 3378,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -15.0,
+       -17.321,
+       0.0
+      ],
+      [
+       15.0,
+       17.321,
+       17.0
+      ]
+     ]
+    },
+    "black": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-block_S67_black.stl",
+     "triangles": 1048,
+     "watertight": true,
+     "shells": 6,
+     "bounds_mm": [
+      [
+       -15.0,
+       -16.243,
+       1.995
+      ],
+      [
+       15.0,
+       16.243,
+       15.005
+      ]
+     ]
+    },
+    "solid_less_hexagon_mm3": -377.04
+   },
+   "stem": {
+    "what": "stem, square-taper foot to the cotter joint's taper and post, S67, 4 dimples",
+    "print": "upright, foot on the bed, 5 mm brim",
+    "print_to_B": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      5.8
+     ]
+    ],
+    "length_mm": 27.58,
+    "volume_mm3": {
+     "white": 728.445,
+     "black": 0.0
+    },
+    "solid_pla_g": 0.9,
+    "white": {
+     "file": "assets/tracking/20261117-modular_blocks/20261117-stem_S67_white.stl",
+     "triangles": 2608,
+     "watertight": true,
+     "shells": 1,
+     "bounds_mm": [
+      [
+       -4.98,
+       -4.98,
+       0.0
+      ],
+      [
+       4.98,
+       4.98,
+       27.575
+      ]
+     ]
+    }
+   },
+   "checks": {
+    "seated_overlap_mm3": 0.0,
+    "turned_stops_out_mm": {
+     "90": 2.7,
+     "180": 2.7,
+     "270": 2.7
+    },
+    "screw_engagement_mm": 5.1,
+    "pilot_beyond_tip_mm": 2.9,
+    "foot_wall_at_end_mm": 1.642,
+    "foot_gap_to_floor_mm": 1.3,
+    "root_gap_to_top_face_mm": 0.5
+   },
+   "check": [
+    {
+     "id": 38,
+     "found": [
+      38
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 39,
+     "found": [
+      39
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 40,
+     "found": [
+      40
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 41,
+     "found": [
+      41
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 42,
+     "found": [
+      42
+     ],
+     "corner_rms_mm": 0.0219
+    },
+    {
+     "id": 43,
+     "found": [
+      43
+     ],
+     "corner_rms_mm": 0.0219
+    }
+   ]
+  }
+ },
+ "ok": true,
+ "test_block": {
+  "what": "fit test: the C45 block in white without tags",
+  "print": "upright, bottom face on the bed",
+  "volume_mm3": {
+   "white": 12874.692,
+   "black": 0.0
+  },
+  "solid_pla_g": 15.96,
+  "white": {
+   "file": "assets/tracking/20261117-modular_blocks/20261117-test_block_white.stl",
+   "triangles": 2012,
+   "watertight": true,
+   "shells": 1,
+   "bounds_mm": [
+    [
+     -15.0,
+     -17.321,
+     0.0
+    ],
+    [
+     15.0,
+     17.321,
+     17.0
+    ]
+   ]
+  }
+ },
+ "test_stem": {
+  "what": "fit test: the stem's foot and root",
+  "print": "upright, foot on the bed, 5 mm brim",
+  "volume_mm3": {
+   "white": 403.236,
+   "black": 0.0
+  },
+  "solid_pla_g": 0.5,
+  "white": {
+   "file": "assets/tracking/20261117-modular_blocks/20261117-test_stem_white.stl",
+   "triangles": 910,
+   "watertight": true,
+   "shells": 1,
+   "bounds_mm": [
+    [
+     -4.182,
+     -4.182,
+     0.0
+    ],
+    [
+     4.182,
+     4.182,
+     13.19
+    ]
+   ]
+  }
+ },
+ "check_ok": true,
+ "bambu_test": {
+  "project": "assets/tracking/20261117-modular_blocks/20261117-modular_test_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "outer_only",
+   "sparse_infill_pattern": "gyroid",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ],
+   "brim_width": "5"
+  },
+  "colours": [
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 1,
+   "black": 2
+  },
+  "place_mm": {
+   "test_block": [
+    90.0,
+    110.0
+   ],
+   "test_stem": [
+    140.0,
+    110.0
+   ]
+  },
+  "prediction_s": 1251.0,
+  "used_g": {
+   "1": 6.34
+  },
+  "filament_loads": 1,
+  "layers": 85,
+  "extrusion_box_mm": [
+   70.56,
+   86.25,
+   147.5,
+   129.75
+  ],
+  "part_offset_err_mm": {},
+  "boxes_mm": {
+   "AgAAAAAAAAA=": [
+    132.5,
+    100.5,
+    147.5,
+    115.5
+   ],
+   "AQAAAAAAAAA=": [
+    70.6,
+    86.3,
+    109.4,
+    129.7
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "143",
+   "623",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 0.35,
+   "loads": {
+    "1": 1
+   },
+   "used_g": {
+    "1": 6.34
+   }
+  }
+ },
+ "bambu_blocks": {
+  "project": "assets/tracking/20261117-modular_blocks/20261117-modular_blocks_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "no_brim",
+   "sparse_infill_pattern": "gyroid",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ]
+  },
+  "colours": [
+   "#000000",
+   "#FFFFFF"
+  ],
+  "filament": {
+   "black": 1,
+   "white": 2
+  },
+  "place_mm": {
+   "block_C45": [
+    60.0,
+    80.0
+   ],
+   "block_S67": [
+    60.0,
+    140.0
+   ]
+  },
+  "prediction_s": 10769.0,
+  "used_g": {
+   "1": 9.55,
+   "2": 40.88
+  },
+  "filament_loads": 67,
+  "layers": 85,
+  "extrusion_box_mm": [
+   45.21,
+   60.92,
+   216.89,
+   203.04
+  ],
+  "part_offset_err_mm": {
+   "block_C45": 0.0,
+   "block_S67": 0.0
+  },
+  "boxes_mm": {
+   "tower": [
+    192.0,
+    180.0,
+    216.9,
+    203.0
+   ],
+   "AgAAAAAAAAA=": [
+    45.2,
+    120.9,
+    74.8,
+    155.1
+   ],
+   "AQAAAAAAAAA=": [
+    45.2,
+    60.9,
+    74.8,
+    95.1
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "623",
+   "143",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 3.05,
+   "loads": {
+    "1": 33,
+    "2": 34
+   },
+   "used_g": {
+    "1": 10.24,
+    "2": 41.88
+   }
+  }
+ },
+ "bambu_stems": {
+  "project": "assets/tracking/20261117-modular_blocks/20261117-modular_stems_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "outer_only",
+   "sparse_infill_pattern": "gyroid",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ],
+   "brim_width": "5"
+  },
+  "colours": [
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 1,
+   "black": 2
+  },
+  "place_mm": {
+   "stem_C45": [
+    80.0,
+    100.0
+   ],
+   "stem_C45_2": [
+    110.0,
+    100.0
+   ],
+   "stem_S67": [
+    140.0,
+    100.0
+   ],
+   "stem_S67_2": [
+    170.0,
+    100.0
+   ]
+  },
+  "prediction_s": 1675.0,
+  "used_g": {
+   "1": 4.0
+  },
+  "filament_loads": 1,
+  "layers": 214,
+  "extrusion_box_mm": [
+   72.5,
+   90.5,
+   177.5,
+   105.5
+  ],
+  "part_offset_err_mm": {},
+  "boxes_mm": {
+   "CAAAAAAAAAA=": [
+    162.5,
+    90.5,
+    177.5,
+    105.5
+   ],
+   "BAAAAAAAAAA=": [
+    132.5,
+    90.5,
+    147.5,
+    105.5
+   ],
+   "AgAAAAAAAAA=": [
+    102.5,
+    90.5,
+    117.5,
+    105.5
+   ],
+   "AQAAAAAAAAA=": [
+    72.5,
+    90.5,
+    87.5,
+    105.5
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "143",
+   "623",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 0.47,
+   "loads": {
+    "1": 1
+   },
+   "used_g": {
+    "1": 4.0
+   }
+  }
+ }
+}

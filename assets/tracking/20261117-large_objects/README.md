@@ -1,6 +1,6 @@
 # Larger tracked cylinder and sphere with the cotter joint, 20261117
 
-The tracked objects at the size-ranking test's large sizes (`scripts/hom/hom_size_rank.py`), a 45 mm x 100 mm cylinder and a 67 mm sphere, each held on its tag block by the cotter joint of `assets/tracking/20261116-cotter_joint/` (owner, 2026-11-17: "prepare these but with a larger diameter sphere, cylinder, since our current ones aren't broken yet"). The owner asked for one print job in a single PLA filament: "i will glue on a paper apriltag onto the cylinder ends if it turns out being crucial". Written by `scripts/hardware/tracking_objects_print.py --set large large build|bambu`. The tag blocks and their stems are not here; they wait for the modular block and stem that the same message asked for.
+The tracked objects at the size-ranking test's large sizes (`scripts/hom/hom_size_rank.py`), a 45 mm x 100 mm cylinder and a 67 mm sphere, each held on its tag block by the cotter joint of `assets/tracking/20261116-cotter_joint/` (owner, 2026-11-17: "prepare these but with a larger diameter sphere, cylinder, since our current ones aren't broken yet"). The owner asked for one print job in a single PLA filament: "i will glue on a paper apriltag onto the cylinder ends if it turns out being crucial". Written by `scripts/hardware/tracking_objects_print.py --set large large build|bambu`. Their tag blocks and stems are the modular ones of `assets/tracking/20261117-modular_blocks/`, codes C45 and S67.
 
 | Part | File | Print |
 |---|---|---|

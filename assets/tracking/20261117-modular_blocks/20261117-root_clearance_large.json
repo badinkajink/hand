@@ -1,0 +1,7217 @@
+{
+ "what": "finger clearance of a stem root over the recorded rollouts (mm; 10 = none within CLEAR_RANGE)",
+ "root_from": "assets/tracking/20261117-modular_blocks/20261117-modular_blocks.json",
+ "set": "large",
+ "root": {
+  "root_d_mm": 8.0,
+  "root_h_mm": 10.5,
+  "foot_d_mm": 11.828,
+  "fillet_r_mm": 0.5
+ },
+ "configs": [
+  "built",
+  "flat"
+ ],
+ "rows": [
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 6.53,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 5.13,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 0.32,
+   "root_min_mm": 4.31,
+   "root_finger": "middle",
+   "root_t": 5.32,
+   "stem_min_mm": 6.31,
+   "stem_finger": "middle",
+   "stem_t": 5.32
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.06,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.06,
+   "stem_finger": "middle",
+   "stem_t": 3.1
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.83,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.83,
+   "stem_finger": "middle",
+   "stem_t": 3.35
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.34,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.34,
+   "stem_finger": "middle",
+   "stem_t": 3.07
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.33,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.33,
+   "stem_finger": "middle",
+   "stem_t": 3.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.63,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.63,
+   "stem_finger": "middle",
+   "stem_t": 3.07
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 9.91,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 9.91,
+   "stem_finger": "middle",
+   "stem_t": 3.12
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 31.0,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "built",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "built",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "flat",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 5.28,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 2.42,
+   "root_min_mm": 8.35,
+   "root_finger": "middle",
+   "root_t": 7.73,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 2.3,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 1.08,
+   "root_min_mm": 9.46,
+   "root_finger": "middle",
+   "root_t": 4.33,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 4.47,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "built",
+   "seed": 22,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "flat",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "flat",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "built",
+   "seed": 20,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "built",
+   "seed": 23,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "flat",
+   "seed": 21,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "config": "flat",
+   "seed": 24,
+   "stem_mm": 16.7,
+   "clear_min_mm": 10.0,
+   "root_min_mm": 10.0,
+   "root_finger": null,
+   "root_t": null,
+   "stem_min_mm": 10.0,
+   "stem_finger": null,
+   "stem_t": null
+  }
+ ]
+}
