@@ -1,0 +1,180 @@
+{
+ "meta": {
+  "what": "The four g13 twists on the hand on 2026-11-17 against closed-loop simulation with three contact models (pads with soft tangential contact, impratio 1; point contact soft; pads stiff, impratio 100), each at the trial's supply, budget and start (5 V: plant 0.55 N m/rad, torque limit 0.18 N m; 7.5 V: both x1.5, assumed), rev_clutch2's no-backdrive gears, the stem scene, the hand's MCP stops, contacts to HOM off for tips off and exact for tips on, seeds 0-2 (means). Hand numbers from the bench README's table of 17:22 (hom_trial_tracking.py; drift = largest over the record).",
+  "written": "2026-11-17 18:25",
+  "runs": "logs/20261117-g13_open_pose/replay_0915_0921.json (5 V, budget 0.84, start plan) and data/20261117-g13_twist_predictions.json (7.5 V, budget 0.56, start mcpstop)"
+ },
+ "hand": {
+  "09:15": {
+   "supply_V": 5.0,
+   "budget": 0.84,
+   "tips": "off",
+   "start": "plan (MCPs stopped at -11.4, -10.0)",
+   "track": 0.322,
+   "twist_end": 33.6,
+   "drift_max": 9.0
+  },
+  "09:21": {
+   "supply_V": 5.0,
+   "budget": 0.84,
+   "tips": "on",
+   "start": "plan (MCPs stopped)",
+   "track": 0.394,
+   "twist_end": 35.0,
+   "drift_max": 19.8
+  },
+  "17:09": {
+   "supply_V": 7.5,
+   "budget": 0.56,
+   "tips": "off",
+   "start": "mcpstop",
+   "track": 0.439,
+   "twist_end": 41.4,
+   "drift_max": 10.5
+  },
+  "17:11": {
+   "supply_V": 7.5,
+   "budget": 0.56,
+   "tips": "on",
+   "start": "mcpstop",
+   "track": 0.482,
+   "track_note": "2.0-5.28 s, drift guard",
+   "twist_end": 74.2,
+   "drift_max": 20.4
+  }
+ },
+ "sim": [
+  {
+   "trial": "09:15",
+   "supply_V": 5.0,
+   "tips": false,
+   "model": "pads",
+   "track": 0.305,
+   "twist_end": 35.2,
+   "drift_max": 13.2,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "09:15",
+   "supply_V": 5.0,
+   "tips": false,
+   "model": "point",
+   "track": 0.32,
+   "twist_end": 34.2,
+   "drift_max": 12.3,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "09:15",
+   "supply_V": 5.0,
+   "tips": false,
+   "model": "pads_stiff",
+   "track": 0.146,
+   "twist_end": 16.9,
+   "drift_max": 4.8,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "09:21",
+   "supply_V": 5.0,
+   "tips": true,
+   "model": "pads",
+   "track": 0.299,
+   "twist_end": 34.2,
+   "drift_max": 12.7,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "09:21",
+   "supply_V": 5.0,
+   "tips": true,
+   "model": "point",
+   "track": 0.324,
+   "twist_end": 35.0,
+   "drift_max": 12.7,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "09:21",
+   "supply_V": 5.0,
+   "tips": true,
+   "model": "pads_stiff",
+   "track": 0.15,
+   "twist_end": 17.2,
+   "drift_max": 4.9,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:09",
+   "supply_V": 7.5,
+   "tips": false,
+   "model": "pads",
+   "track": 0.369,
+   "twist_end": 48.5,
+   "drift_max": 21.2,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:09",
+   "supply_V": 7.5,
+   "tips": false,
+   "model": "point",
+   "track": 0.353,
+   "twist_end": 48.7,
+   "drift_max": 18.9,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:09",
+   "supply_V": 7.5,
+   "tips": false,
+   "model": "pads_stiff",
+   "track": 0.256,
+   "twist_end": 26.5,
+   "drift_max": 8.6,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:11",
+   "supply_V": 7.5,
+   "tips": true,
+   "model": "pads",
+   "track": 0.369,
+   "twist_end": 49.0,
+   "drift_max": 21.2,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:11",
+   "supply_V": 7.5,
+   "tips": true,
+   "model": "point",
+   "track": 0.353,
+   "twist_end": 50.2,
+   "drift_max": 19.4,
+   "runs": 3,
+   "held": 3
+  },
+  {
+   "trial": "17:11",
+   "supply_V": 7.5,
+   "tips": true,
+   "model": "pads_stiff",
+   "track": 0.247,
+   "twist_end": 25.8,
+   "drift_max": 8.3,
+   "runs": 3,
+   "held": 3
+  }
+ ]
+}

@@ -157,7 +157,7 @@ def _run1(job):
     RP.move_mounts(m_pt, mxy, RP.mount_base(m_pt))
     q_open = {f: np.radians(job["q_deg"][f]) for f in T.FINGERS}
     S.set_palm(m_pt, setup["palm"])
-    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=0.56)
+    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=job["budget"])
     GP = RG._G["GP"]
     scene = D / "scenes" / SCENES[job["contact"]]
     stops = job["stops"]
@@ -185,7 +185,7 @@ def _run1(job):
     R = Rot.from_quat(Q[ok][:, [1, 2, 3, 0]])
     tw = np.degrees((R * R[0].inv()).as_rotvec()[:, 2])
     keep = np.arange(0, int(ok.sum()), 5)
-    return {**{k: job[k] for k in ("cand", "volts", "contacts", "contact", "stops", "seed")},
+    return {**{k: job[k] for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget")},
             "held": bool(res.get("held")),
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
             "twist_end": round(float(f["twist_end"]), 1), "rise_max": round(float(f["rise_max"]), 2),
@@ -207,7 +207,7 @@ def sim(cands, a):
                 for contact in a.contact_models:
                     for seed in a.seeds:
                         q = cands[name]["deg"]
-                        jobs.append({"cand": name, "q_deg": q, "volts": volts, "contacts": contacts,
+                        jobs.append({"cand": name, "q_deg": q, "volts": volts, "contacts": contacts, "budget": a.budget,
                                      "contact": contact, "stops": name != "plan@sim", "seed": seed})
     print(f"{len(jobs)} runs on {a.workers} workers", flush=True)
     with mp.get_context("fork").Pool(a.workers, initializer=RG.init, initargs=(str(RG.RF.SCENE),)) as pool:
@@ -249,6 +249,7 @@ def main():
     ap.add_argument("--contact-models", nargs="+", default=["pads"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--budget", type=float, default=0.56, help="N m in HOM's 5 V units (bench --torque-budget)")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
     poses_file = OUT / "poses.json"
@@ -265,7 +266,7 @@ def main():
     cands["plan@sim"] = cands["plan"]
     rows = sim(cands, a)
     out = Path(a.out) if a.out else OUT / "sim.json"
-    meta = {"hos_plant": os.environ.get("HOS_PLANT"), "budget": 0.56, "stop_deg": STOP_DEG, "plant_75": PLANT_75,
+    meta = {"hos_plant": os.environ.get("HOS_PLANT"), "budget": a.budget, "stop_deg": STOP_DEG, "plant_75": PLANT_75,
             "scenes": SCENES, "kp_yaw_im_5v": 0.35, "c_f": 0.6, "stiff": True, "written": time.strftime("%F %H:%M")}
     out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=1) + "\n")
 

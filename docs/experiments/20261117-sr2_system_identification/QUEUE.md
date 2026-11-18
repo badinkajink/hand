@@ -83,7 +83,8 @@ air and then against a force sensor. Contact and the blind validation trials nee
   `data/20261117-g13_twist_predictions.json`. Script: `sim/20261117-g13_open_pose_replan.py`.
 - W2. Fits from S1-S3: joint zero offsets and mount positions; the servo's gain, dead band, friction and overload load
   at 7.5 V; a plant string for the HOM scripts at 7.5 V. One table per fit, against 11-06.
-- W3. Predictions of S5 on the fitted plant. After S4: the friction coefficient, the tangential softness and the
+- W3 (started 18:3x on 11-17). Today's four g13 twists replayed in closed loop with pads soft, point soft and pads stiff, each at its supply, budget and start: `data/20261117-g13_twists_hand_vs_contact_models.json`. Pads and point contact agreed within 0.02 in tracking and 1 deg in twist on all four. Soft contact matched the 5 V tips-off trial (hand 0.322 and 33.6 deg; pads 0.305 and 35.2, point 0.320 and 34.2); stiff contact gave 0.146 and 16.9. At 7.5 V the hand (0.439, 41.4 deg, 10.5 mm drift) fell between soft (0.369, 48.5 deg, 21.2 mm) and stiff (0.256, 26.5 deg, 8.6 mm). With the tips on, the hand drifted 19.8 and 20.4 mm; the simulation with exact contacts drifted as with none (12.7 and 21.2 mm).
+- W3, next. Predictions of S5 on the fitted plant. After S4: the friction coefficient, the tangential softness and the
   torsion, and the same predictions with the pads, point contact and point contact with torsion (condim 4).
 - W4. The three-size landscapes of twist, roll and press with the pads and with point contact (about 6-8 GPU-hours),
   on the plant of W2-W3.
