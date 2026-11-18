@@ -160,7 +160,9 @@ def repeats():
 
 
 def sweep():
-    f = ROOT / "logs/20261117-sr2_boards_sweep/s3/events.jsonl"
+    f = HERE / "data/sweep/20261117-sweep_s3_events.jsonl"
+    if not f.exists():
+        f = ROOT / "logs/20261117-sr2_boards_sweep/s3/events.jsonl"
     if not f.exists():
         return "<p>The boards' random-pose sweep did not run.</p>", {}
     ev = [json.loads(x) for x in f.read_text().splitlines() if x.strip()]

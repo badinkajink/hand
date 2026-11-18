@@ -57,7 +57,7 @@ for k in $(seq 1 $N); do
     echo "$OUT" | grep -v "^   video" | tail -1 | cut -c1-160
   done
   for guard in "" "--watch-mm 6 --watch-deg 15"; do
-    step "ready" $PY lab/hom_setup.py ready --plan $P --object sphere --map $M --go --video-dir $V --max-lat 70 $guard
+    step "ready" $PY lab/hom_setup.py ready --plan $P --object sphere --map $M --go --video-dir $V --max-lat ${READY_LAT:-70} $guard
     echo "$OUT" | grep -E "READY|STOPPED|too far|refused" | tail -2 | cut -c1-200
     echo "$OUT" | grep -q "READY for the trial" && break
   done

@@ -121,7 +121,10 @@ def cmd_run(a):
     if max(abs(j[f][k]) for f in j for k in j[f]) > 3.0:
         raise SystemExit("the fingers are not straight: zero them first (hom_setup.py zero)")
     summary = []
+    only = set(a.only.split(",")) if a.only else None
     for e in d["ends"]:
+        if only and f"{e['finger']}.{e['joint']}.{e['end']}" not in only:
+            continue
         f, k = e["finger"], e["joint"]
         t = tmax()
         if t is not None and t >= 50.0:
@@ -137,7 +140,7 @@ def cmd_run(a):
         sgn = 1.0 if e["target_deg"] >= 0 else -1.0
         n = int(abs(e["target_deg"]) / a.step)
         targets = [sgn * a.step * i for i in range(1, n + 1)] + [e["target_deg"]]
-        lagging, why, last = 0, "reached the end", None
+        hist, why, last = [], "reached the end", None
         for tg in targets:
             q = {g: dict(zero[g]) for g in FINGERS}
             q[f][k] = tg
@@ -149,12 +152,19 @@ def cmd_run(a):
             with rows_f.open("a") as fh:
                 fh.write(json.dumps({"t": time.time(), "finger": f, "joint": k, "end": e["end"], "target": tg,
                                      "measured": meas, "load": load, "sid": sid}) + "\n")
-            if sgn * (tg - meas) > a.lag:
-                lagging += 1
-            else:
-                lagging, last = 0, (tg, meas)
-            if lagging >= 2:
-                why = f"stopped following ({sgn * (tg - meas):.1f} deg behind)"
+            hist.append(meas)
+            lag = sgn * (tg - meas)
+            # a stop: over the last --stall-steps the reading advanced less than --stall-deg while lagging over --lag;
+            # 21:0x on 11-17 a lag rule alone stopped three sweeps at 2-3 deg of friction lag (S2 showed those joints
+            # reach -40 deg yaw and 61 deg MCP), so the lag alone stops a sweep only past --lag-max
+            stalled = (len(hist) > a.stall_steps and sgn * (hist[-1] - hist[-1 - a.stall_steps]) < a.stall_deg
+                       and lag > a.lag)
+            if lag <= a.lag:
+                last = (tg, meas)
+            if stalled or lag > a.lag_max:
+                why = (f"stalled: {sgn * (hist[-1] - hist[-1 - a.stall_steps]):.1f} deg in the last {a.stall_steps} steps, "
+                       f"{lag:.1f} deg behind" if stalled else f"{lag:.1f} deg behind")
+                last = last or (tg, meas)
                 break
             if abs(load) > a.load_max:
                 why = f"load {load:.0f} over {a.load_max:g}"
@@ -175,7 +185,7 @@ def cmd_run(a):
         print(f"{f:6s} {k} {e['end']:4s}: {why}; last following at target {last[0] if last else float('nan'):+.1f}, "
               f"measured {last[1] if last else float('nan'):+.1f} (safe {e['safe_deg']:+.1f}, cap {e['cap_deg']:+.1f})",
               flush=True)
-    (Path(a.out) / "summary.json").write_text(json.dumps(summary, indent=1))
+    (Path(a.out) / ("summary_redo.json" if only else "summary.json")).write_text(json.dumps(summary, indent=1))
     print("S1A DONE")
     return 0
 
@@ -195,7 +205,11 @@ def main():
     p.add_argument("--speed", type=int, default=20)
     p.add_argument("--step", type=float, default=0.5)
     p.add_argument("--dwell", type=float, default=0.35)
-    p.add_argument("--lag", type=float, default=2.5)
+    p.add_argument("--lag", type=float, default=2.0, help="deg behind the target that a stall needs")
+    p.add_argument("--lag-max", type=float, default=6.0, help="deg behind the target that stops a sweep alone")
+    p.add_argument("--stall-steps", type=int, default=6)
+    p.add_argument("--stall-deg", type=float, default=0.6, help="deg the reading must advance over --stall-steps")
+    p.add_argument("--only", default=None, help="finger.joint.end,... the sweeps to run")
     p.add_argument("--load-max", type=float, default=600.0)
     p.add_argument("--go", action="store_true")
     a = ap.parse_args()
