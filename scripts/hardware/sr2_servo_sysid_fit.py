@@ -38,6 +38,7 @@ import numpy as np  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 S = ROOT / "docs/experiments/20261106-sr2_servo_sysid"
 LAB = ROOT / "docs/experiments/20261104-sr2_hand_crosstalk/lab"
+DATA = S / "data"                       # the tables' folder (--dir; 11-06 by default)
 MODEL = ROOT / "assets/mjcf/experimental/20261104-cad_v3/ur5_full_k1.xml"
 F = ("thumb", "index", "middle")
 J = ("yaw", "mcp", "pip")
@@ -95,7 +96,7 @@ class Gravity:
 def dwells(blocks, grav):
     """One record a dwell and servo: command, mean angle and load, the gravity torque at the measured pose, and the
     direction the servo last moved (+1 up, -1 down, 0 never moved in this block)."""
-    rows = read_tsv(S / "data/dwells.tsv")
+    rows = read_tsv(DATA / "dwells.tsv")
     out, last_dir = [], {}
     for r in rows:
         b, k = r["block"], int(r["step"])
@@ -177,7 +178,7 @@ def friction_bands(recs, c):
 def stalls():
     """Each yaw step of c and c40: the final shortfall (deg, measured minus commanded, servo frame), the time from the
     command to come within one step of it and stay, and the drift between 2 s and the end."""
-    rows = read_tsv(S / "data/holds_c.tsv")
+    rows = read_tsv(DATA / "holds_c.tsv")
     groups = {}
     for r in rows:
         groups.setdefault((r["block"], int(r["step"])), []).append(r)
@@ -222,13 +223,24 @@ def loops(recs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default=str(S / "data/20261106-sr2_servo_sysid_fit.json"))
+    ap.add_argument("--out", default=None)
+    ap.add_argument("--dir", default=None, help="the folder of dwells.tsv, holds_c.tsv and registers.txt or "
+                    "supply_diag.txt (default 11-06's data/; 2026-11-17: the identification queue's data/s2 at 7.5 V)")
     a = ap.parse_args()
+    global DATA
+    if a.dir:
+        DATA = Path(a.dir)
+    a.out = a.out or str(DATA / ("20261106-sr2_servo_sysid_fit.json" if not a.dir else "sr2_servo_sysid_fit.json"))
     blocks = plans()
     grav = Gravity()
     recs = dwells(blocks, grav)
     ctl = controller(recs)
-    volts = [float(x.split()[-3]) / 10 for x in open(S / "data/registers.txt") if "present voltage" in x]
+    if (DATA / "registers.txt").exists():
+        volts = [float(x.split()[-3]) / 10 for x in open(DATA / "registers.txt") if "present voltage" in x]
+    else:                          # no register read (2026-11-17): each servo's present voltage from hom_setup.py diag
+        import ast
+        volts = [float(v) for x in open(DATA / "supply_diag.txt") if x.strip().startswith("servo volts")
+                 for v in ast.literal_eval(x.split("volts", 1)[1].split("(")[0].strip()).values()]
     stall = STALL_6V * float(np.mean(volts)) / 6.0
     c = stall / 1000.0                                  # N m per unit of drive (per mille of full duty)
     k_rad = c * ctl["slope_per_step"] / np.radians(STEP_DEG)
