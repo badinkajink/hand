@@ -329,11 +329,13 @@ is the whole point of the complementary filter in the original paper"). The pape
 frames, and in contact these come from the centre of pressure; that part matches. The paper's complementary filter,
 Eqs. (4)-(6), smooths the impedance controller's action point toward the measured contact. Each period it moves the
 point by k·dt of the way to the measurement. Our gain k reaches 100 per second; the paper prints no values. At the
-paper's 500 Hz that is 0.2 of the way. The bench runs at 50 Hz with the same gain, so k·dt reaches 2.0, and the filtered
-point overshoots the measurement on every period. The workstation added the paper's rate as sub-steps of 2 ms (--filter-step-s 0.002), and a hysteresis on the
-0.25 N contact switch (--contact-off). In simulation neither change alters tracking, and no 4-5 Hz chatter appears with
-or without them. The night's twist repeats test them on the hand (the identification
-section).</p>"""))
+paper's 500 Hz that is 0.2 of the way. The bench runs at 50 Hz with the same gain. There k·dt reaches 2.0 when the
+contact's reference speed is high, and the filtered point then overshoots the measurement; at rest k is 5 per second
+and k·dt is 0.1. The workstation added the paper's rate as sub-steps of 2 ms (--filter-step-s 0.002). It also added a
+hysteresis on the 0.25 N contact switch (--contact-off). On the calibrated simulation scene neither change alters
+tracking, and no 4-5 Hz chatter appears with or without them. On the server's own scene the g0 twist held the sphere in
+1 of 6 seeds with the 2 ms sub-steps, against 4 of 6 without, three of the drops at a failed SVD. The night's twist
+repeats test the changes on the hand (the identification section).</p>"""))
 
     p30, p44, p49 = prs["20261117-183028"], prs["20261117-184432"], prs["20261117-184907"]
     S.append(("press", "The cylinder press", f"""
@@ -351,9 +353,10 @@ does not have force closure at the very onset, produces some skew, and then mess
 <li>The pushing finger chattered (Figure 2, Table 3). HOM's middle MCP target swung {p30['mcp_chatter']['target_rms_deg']:.1f}°
 rms at about {p30['mcp_chatter']['target_hz']:.0f} Hz, and the joint followed with
 {p30['mcp_chatter']['measured_rms_deg']:.1f}°. At 5 V on 2026-11-16 the target swung 8.3° at 9 Hz, but the joint moved
-only 0.9°. The chatter comes from HOM, and the stronger servos now follow it. With trends removed, the middle MCP's
-target moves with the tracked cylinder's height (correlation −0.66): the finger pushes the cylinder, the cameras see
-it move, and HOM's next target follows. Raising HOM's servo gain to 0.825, the expected
+only 0.9°. In simulation with the exact object pose, HOM's middle targets on this press swing only 0.13-0.22° rms at
+about 0.7 Hz. On the hand the chatter runs through the tracked pose: with trends removed, the middle MCP's target moves
+with the tracked cylinder's height (correlation −0.66). The finger pushes the cylinder, the cameras see it move, and
+HOM's next target follows; the 7.5 V servos now follow the chatter. Raising HOM's servo gain to 0.825, the expected
 7.5 V gain, doubled the chatter ({p44['mcp_chatter']['target_rms_deg']:.1f}° target, {p44['mcp_chatter']['measured_rms_deg']:.1f}°
 joint) and tracked 0.000. With the original gain and the re-planned open pose, the chatter was as at 18:30
 ({p49['mcp_chatter']['target_rms_deg']:.1f}°, {p49['mcp_chatter']['measured_rms_deg']:.1f}°).</li>
