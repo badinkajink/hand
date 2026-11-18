@@ -771,7 +771,8 @@ def rollout(task, setup, plant, mirror, q_open, seed, prm, hom_prm, film=None, n
                "F": {f: round(s["cop"].get(f, (None, 0.0))[1], 3) for f in FINGERS},
                "F_link": {f: round(max(0.0, s["Ftot"][f] - s["cop"].get(f, (None, 0.0))[1]), 3) for f in FINGERS},
                "dist_mm": {f: round(1e3 * ci[f]["dist"], 3) for f in FINGERS},
-               "src": {f: ci[f]["source"] for f in FINGERS}}
+               "src": {f: ci[f]["source"] for f in FINGERS},
+               "q_cmd_deg": {f: np.degrees(q_cmd[f]).round(3).tolist() for f in FINGERS}}
         if task == "expa":
             g = ctl.gcf(EXPA_MOVER, meas)                                # Eq. (1) at the measured joint rates
             A, b = ctl.eq1_rows(EXPA_MOVER, g, np.zeros(6))
@@ -1100,6 +1101,24 @@ VARIANTS = {
                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "pusher_est": True}),
     "tip_pefl": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "force_loop_gain": 0.01},
                  {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "pusher_est": True}),
+    # 2026-11-17 (owner via the lab: "you gotta do it right"): the filter at the paper's 500 Hz inside the 50 Hz period
+    # (FilterParams.step_s), a contact hysteresis with the boards reporting from 0.05 N (contact from 0.25 N, apart below
+    # 0.10 N), and Eq. (1) in the filtered frames in contact (not in the paper's text)
+    "rate50_f": ({"dt": 0.02, "filter": H.FilterParams(step_s=0.002)}, None),
+    "notip_f": ({"dt": 0.02, "filter": H.FilterParams(step_s=0.002)},
+                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "no_tip": True}),
+    "tip_f": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "filter": H.FilterParams(step_s=0.002)},
+              {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0}),
+    "tip_h": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "contact_force_off": 0.10},
+              {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
+    "tip_fh": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "contact_force_off": 0.10,
+                "filter": H.FilterParams(step_s=0.002)},
+               {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
+    "tip_fhq": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "contact_force_off": 0.10, "eq1_frames": "filtered",
+                 "filter": H.FilterParams(step_s=0.002)},
+                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
+    "tip_lo": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},              # tip with the boards reporting from 0.05 N
+               {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
     "l30": ({}, None),                                # pin-push on the grasps of design --lever 30 / 60
     "l60": ({}, None),
 }

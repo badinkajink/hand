@@ -34,6 +34,9 @@ Changes for MuJoCo and for servo-driven hardware (documented in docs/experiments
   * Linear rows of Eq. (2) are divided by ELL = 20 mm so that 20 mm/s weighs like 1 rad/s; the paper does not give
     its weights or units.
   * theta_ref stays within LEAD of the measured angle, so a blocked finger does not wind its reference up.
+  * Options added 2026-11-17 for the sensed hand, off by default: the filter integrated in sub-steps at the paper's rate
+    (FilterParams.step_s), a contact hysteresis on the sensed force (HomParams.contact_force_off), and Eq. (1) written
+    in the filtered frames in contact (HomParams.eq1_frames, not in the paper's text).
 """
 from __future__ import annotations
 
@@ -280,6 +283,10 @@ class FilterParams:
     k_max: float = 100.0         # 1/s, gain when the reference geodesic speed is large (tracking)
     alpha: float = 0.02          # m/s, geodesic speed above which the gain passes 95 % of its range
     source: str = "reference"    # "reference": S V_L0L1,ref (paper); "planned": the twist Eq. (2) plans
+    step_s: float | None = None  # s: Eqs. (4)-(5) integrated in sub-steps of at most this, the measured GCF held over the
+                                 # period; None: one step per controller period. The paper runs the framework at 500 Hz
+                                 # (k_max dt = 0.2); at the bench's 50 Hz one step is k_max dt = 2.0, which overshoots
+                                 # (2026-11-17, owner via the lab: "you gotta do it right"). 0.002 is the paper's rate
 
 
 class ContactFilter:
@@ -313,21 +320,30 @@ class ContactFilter:
         l0, l1 = Ro.T @ (g.p0 - o), Rb.T @ (g.p1 - pb)
         if self.c0 is None:
             self.c0, self.c1 = self.os.closest(l0)[1], self.fs.closest(l1)[1]
-        (w0, R_c0, q0, n0), (w1, R_c1, q1, n1) = self.frames(mirror, f)
-        K0 = tangent_K(Ro @ self.os.shape_operator(q0, n0) @ Ro.T, R_c0)
-        K1 = tangent_K(Rb @ self.fs.shape_operator(q1, n1) @ Rb.T, R_c1)
-        g0r, g1r = roll_slide_rates(V_ref, K0, K1, R_c1.T @ R_c0, R_c1.T @ (w0 - w1))
         p = self.prm
-        k0 = p.k_min + (p.k_max - p.k_min) * (1.0 - math.exp(-3.0 * np.linalg.norm(g0r) / p.alpha))     # Eq. (6)
-        k1 = p.k_min + (p.k_max - p.k_min) * (1.0 - math.exp(-3.0 * np.linalg.norm(g1r) / p.alpha))
-        e0 = R_c0[:, 1:].T @ (Ro @ (l0 - q0))                                                            # E (p_L - p_C)
-        e1 = R_c1[:, 1:].T @ (Rb @ (l1 - q1))
-        gd0, gd1 = g0r + k0 * e0, g1r + k1 * e1                                                          # Eq. (5)
-        self.c0 = self.os.geodesic_step(q0, Ro.T @ (R_c0[:, 1:] @ gd0) * dt)                             # Eq. (4)
-        self.c1 = self.fs.geodesic_step(q1, Rb.T @ (R_c1[:, 1:] @ gd1) * dt)
-        self.k = (k0, k1)
+        n = 1 if not p.step_s else max(1, math.ceil(dt / p.step_s - 1e-9))
+        h = dt / n
+        for _ in range(n):                       # the measured GCF and V_ref held over the period
+            (w0, R_c0, q0, n0), (w1, R_c1, q1, n1) = self.frames(mirror, f)
+            K0 = tangent_K(Ro @ self.os.shape_operator(q0, n0) @ Ro.T, R_c0)
+            K1 = tangent_K(Rb @ self.fs.shape_operator(q1, n1) @ Rb.T, R_c1)
+            g0r, g1r = roll_slide_rates(V_ref, K0, K1, R_c1.T @ R_c0, R_c1.T @ (w0 - w1))
+            k0 = p.k_min + (p.k_max - p.k_min) * (1.0 - math.exp(-3.0 * np.linalg.norm(g0r) / p.alpha))     # Eq. (6)
+            k1 = p.k_min + (p.k_max - p.k_min) * (1.0 - math.exp(-3.0 * np.linalg.norm(g1r) / p.alpha))
+            e0 = R_c0[:, 1:].T @ (Ro @ (l0 - q0))                                                        # E (p_L - p_C)
+            e1 = R_c1[:, 1:].T @ (Rb @ (l1 - q1))
+            gd0, gd1 = g0r + k0 * e0, g1r + k1 * e1                                                      # Eq. (5)
+            self.c0 = self.os.geodesic_step(q0, Ro.T @ (R_c0[:, 1:] @ gd0) * h)                          # Eq. (4)
+            self.c1 = self.fs.geodesic_step(q1, Rb.T @ (R_c1[:, 1:] @ gd1) * h)
+            self.k = (k0, k1)
         (_, _, _, _), (w1n, R_c1n, _, _) = self.frames(mirror, f)
         return w1n, R_c1n[:, 0]
+
+    def gcf(self, mirror: Mirror, f: str, dist: float) -> Gcf:
+        """The filtered frames as a GCF: {C1}'s origin and axes on the finger, {C0}'s origin on the object (dist: the
+        measured GCF's signed distance)."""
+        (w0, _, _, _), (w1, R_c1, _, _) = self.frames(mirror, f)
+        return Gcf(dist=dist, p1=w1, p0=w0, R1=R_c1, source="filtered")
 
 
 # ------------------------------------------------------------------------------------------------ commands
@@ -364,6 +380,11 @@ class HomParams:
     gravity_ff: bool = True              # add tau_g / k_p to the servo targets
     use_filter: bool = True              # impedance action point from the complementary filter
     contact_force_min: float = 0.02      # N: a finger with less pad force counts as apart
+    contact_force_off: float | None = None   # N: once in contact, a finger counts as apart only below this (hysteresis
+                                         # against a sensed force that hovers at contact_force_min; the paper's simulator
+                                         # knows contact exactly). None: contact_force_min both ways (before 2026-11-17)
+    eq1_frames: str = "measured"         # Eq. (1)'s frames in contact: "measured", the GCF {L} from the centre of pressure
+                                         # (the paper's text); "filtered", the filter's {C0}, {C1} (a test, 2026-11-17)
     force_loop_gain: float = 0.0         # m/s per N: optional v_sep correction from the measured force (not in the paper)
     dls: float = 0.002                   # m/rad: damping of the gap-closing step of the servo impedance
     ell: float = ELL                     # m: linear rows of Eq. (2) are divided by ell (1.0: SI units, equal weights)
@@ -399,6 +420,7 @@ class HomController:
                         for f in self.order}
         self.M = None                                    # pinch frame {M} in the object frame (R, p)
         self.M_key = None
+        self.contact = {f: False for f in self.order}    # sensed contact per finger (contact_force_min / _off)
 
     def reset(self, theta0: dict[str, np.ndarray]):
         self.theta_ref = {f: np.asarray(theta0[f], float).copy() for f in self.order}
@@ -408,6 +430,17 @@ class HomController:
             if flt is not None:
                 flt.reset()
         self.M = self.M_key = None
+        self.contact = {f: False for f in self.order}
+
+    def sensed_contact(self, f: str, meas: Measurement) -> bool:
+        """Whether finger f's sensed force puts it in contact: from contact_force_min up, and, with contact_force_off set,
+        down to contact_force_off once in contact."""
+        cop = meas.cop.get(f) if meas.cop else None
+        F = float(cop[1]) if cop is not None else 0.0
+        off, on = self.prm.contact_force_off, self.prm.contact_force_min
+        lo = min(off, on) if off is not None and self.contact.get(f) else on      # never above the floor
+        self.contact[f] = cop is not None and F >= lo
+        return self.contact[f]
 
     def reanchor(self, f: str, theta: np.ndarray):
         """Set finger f's joint reference to its measured angles: the switch from motion to force control of a finger
@@ -431,7 +464,7 @@ class HomController:
 
     def gcf(self, f: str, meas: Measurement) -> Gcf:
         cop = meas.cop.get(f)
-        if (cop is not None and cop[1] >= self.prm.contact_force_min and self.mr.fingers[f].surface is not None
+        if (self.sensed_contact(f, meas) and self.mr.fingers[f].surface is not None
                 and self.mr.obj.surface is not None):
             return self.mr.gcf_from_cop(f, np.asarray(cop[0], float))
         return self.mr.gcf_witness(f)
@@ -462,12 +495,17 @@ class HomController:
                 V = V + pusher_body_twist(cmd.s, *self.M)
             v_ref = np.asarray(c.v_ref, float).copy()
             Fm = meas.cop.get(f, (None, 0.0))[1] if meas.cop else 0.0
-            touching = Fm >= prm.contact_force_min or g.dist <= 0.0
+            touching = self.contact.get(f, False) or g.dist <= 0.0
             if prm.force_loop_gain > 0 and touching and c.force > 0:
                 v_ref[SEP] += prm.force_loop_gain * (c.force - Fm)
             if g.dist < prm.aw_dist and v_ref[SEP] > 0 and not (prm.force_loop_gain > 0 and touching):
                 v_ref[SEP] = 0.0                          # anti-windup (Sec. III-C)
-            A, b = self.eq1_rows(f, g, V)
+            flt, pre, g_eq1 = self.filters[f], None, g
+            if (prm.eq1_frames == "filtered" and flt is not None and prm.use_filter and self.contact.get(f, False)
+                    and prm.filter.source == "reference"):
+                pre = flt.update(mr, f, g, v_ref, dt)       # the filter first, so that Eq. (1) is written in {C0}, {C1}
+                g_eq1 = flt.gcf(mr, f, g.dist)
+            A, b = self.eq1_rows(f, g_eq1, V)
             th = np.asarray(meas.q[f], float)
             tr0 = self.theta_ref[f].copy()
             u = solve_eq2(A, b, v_ref, c.weights, th, self.theta_ref[f], mr.lo[f], mr.hi[f], dt,
@@ -478,10 +516,12 @@ class HomController:
             self.theta_ref[f] = np.clip(tr, mr.lo[f], mr.hi[f])
             # the impedance: action point and direction from the filter ({C1}) or the GCF ({L1})
             p_act, n_act = g.p1, g.x1
-            flt = self.filters[f]
             if flt is not None and prm.use_filter:
-                V_f = (A @ u + b) if prm.filter.source == "planned" else v_ref
-                p_act, n_act = flt.update(mr, f, g, V_f, dt)
+                if pre is not None:
+                    p_act, n_act = pre
+                else:
+                    V_f = (A @ u + b) if prm.filter.source == "planned" else v_ref
+                    p_act, n_act = flt.update(mr, f, g, V_f, dt)
             off_gap, off_force, off_grav, gap = np.zeros(len(th)), np.zeros(len(th)), np.zeros(len(th)), 0.0
             reanchored = False
             kp = mr.kp[f]
@@ -512,7 +552,7 @@ class HomController:
             out[f] = np.clip(self.theta_ref[f] + off_gap + off_force + off_grav, mr.lo[f], mr.hi[f])
             # every intermediate of the period (the code walkthrough page reads them): the GCF, Eq. (1)'s rows, the
             # reference and weights of Eq. (2), the reference before and after, and the three servo offsets
-            info[f] = {"dist": g.dist, "source": g.source, "u": u, "v_plan": A @ u + b, "v_ref": v_ref,
+            info[f] = {"dist": g.dist, "source": g.source, "eq1_source": g_eq1.source, "u": u, "v_plan": A @ u + b, "v_ref": v_ref,
                        "touching": touching, "F": Fm, "p_act": p_act, "n_act": n_act,
                        "k_filter": flt.k if flt is not None else None, "gcf": g, "V": V, "A": A, "b": b,
                        "weights": np.asarray(c.weights, float), "force": c.force, "theta": th, "theta_ref_prev": tr0,

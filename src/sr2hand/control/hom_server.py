@@ -88,6 +88,16 @@ def _bench(a):
     if getattr(a, "tips", "off") == "on":                 # the tip variant's floor (hom_tasks.VARIANTS["tip"])
         b.prm = replace(b.prm, contact_force_min=b.T.TIP_F_MIN)
         b.reset()
+    over = {}                                             # HOM's options of 2026-11-17 (hom.py), off by default
+    if getattr(a, "filter_step_s", None):
+        over["filter"] = replace(b.prm.filter, step_s=a.filter_step_s)
+    if getattr(a, "contact_off", None) is not None:
+        over["contact_force_off"] = a.contact_off
+    if getattr(a, "eq1_frames", "measured") != "measured":
+        over["eq1_frames"] = a.eq1_frames
+    if over:
+        b.prm = replace(b.prm, **over)
+        b.reset()
     return HB, b
 
 
@@ -157,7 +167,9 @@ class Server:
                 "git": _git(), "host": socket.gethostname(),
                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "t0_ms": self.t0_ms,
                 "joints_mode": self.a.joints, "max_joint_age_ms": self.a.max_joint_age_ms,
-                "tips": self.a.tips, "contact_force_min_N": b.prm.contact_force_min}
+                "tips": self.a.tips, "contact_force_min_N": b.prm.contact_force_min,
+                "contact_force_off_N": b.prm.contact_force_off, "filter_step_s": b.prm.filter.step_s,
+                "eq1_frames": b.prm.eq1_frames}
         self.fh.write(json.dumps(head, default=_jsonable) + "\n")
         self.trials += 1
         print(f"trial {self.trials}: {self.path}", flush=True)
@@ -424,6 +436,8 @@ def cmd_sil(a):
            "--plant", a.plant, "--hand", a.hand, "--dt", str(a.dt), "--listen", str(a.port_out),
            "--reply", f"127.0.0.1:{a.port_in}", "--log-dir", a.log_dir, "--once", "--joints", a.server_joints,
            "--tail-s", "0", "--tips", "raw"] + (["--plan", a.plan] if a.plan else [])
+    srv += (["--filter-step-s", str(a.filter_step_s)] if a.filter_step_s else []) + \
+        (["--contact-off", str(a.contact_off)] if a.contact_off is not None else []) + ["--eq1-frames", a.eq1_frames]
     proc = subprocess.Popen(srv, cwd=str(ROOT), env=dict(os.environ, PYTHONPATH=str(ROOT / "src")))
     try:
         t0 = time.time()
@@ -477,6 +491,15 @@ def main() -> int:
         p.add_argument("--torque-budget", type=float, default=None,
                        help="N m: the servos' estimated torques summed over the nine kept at or under this "
                             "(hom_bench.torque_budget; 0.84 after the blind twists of 2026-11-16)")
+        p.add_argument("--filter-step-s", type=float, default=None,
+                       help="s: the complementary filter (Eqs. 4-6) in sub-steps of at most this inside each period; "
+                            "0.002 is the paper's 500 Hz (FilterParams.step_s); off by default: one step per period")
+        p.add_argument("--contact-off", type=float, default=None,
+                       help="N: a finger in contact counts as apart only below this sensed force (hysteresis below "
+                            "the contact floor; HomParams.contact_force_off); off by default")
+        p.add_argument("--eq1-frames", default="measured", choices=("measured", "filtered"),
+                       help="Eq. (1)'s frames in contact: measured (the GCF from the centre of pressure, the paper's "
+                            "text) or filtered (the filter's {C0}, {C1}; a test)")
         if name in ("serve", "sil"):
             p.add_argument("--log-dir", required=True)
         if name == "nominal":
