@@ -18,9 +18,12 @@ State:
   to data/s1/ (19:2x).
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. When S2's tables are under data/s2/ (dwells.tsv, holds_c.tsv, registers.txt, the plan steps): give scripts/hardware/sr2_servo_sysid_fit.py a --dir option (default the 11-06 folder), run it on data/s2 under `~/.claude/bin/resguard.sh run --mem 3G`, write data/s2/20261117-sr2_servo_7v5_fit.json, and add one QUEUE line (W2) comparing dead band, drive per step, stiffness and friction bands with 11-06's fit. Commit by path, push (merge origin/main; test push's own exit status).
-- [ ] 2. When S1(b) is under data/s1/: per pose the tag centre's and normal's error against the model at the station's joints and mounts; fit each finger's three joint zero offsets by least squares; QUEUE line (W2) with the offsets and residuals. Commit, push.
+- [x] 1. When S2's tables are under data/s2/ (dwells.tsv, holds_c.tsv, registers.txt, the plan steps): give scripts/ha… Done 11-17 19:38: Done in the window 19:4x: data/s2/20261117-sr2_servo_7v5_fit.json; QUEUE W2 line
+- [x] 2. When S1(b) is under data/s1/: per pose the tag centre's and normal's error against the model at the station's… Done 11-17 19:42: Thumb done in the window 19:5x (data/s1/20261117-thumb_zero_fit.json, QUEUE W2 S1(b)); middle not detected, index not attempted by the lab
 - [ ] 3. When the A/B repeats are pushed (runs/ and runs_corvus/ 20261117-19*, 20*): score each with scripts/hardware/hom_trial_tracking.py; one table per arm (tracking, twist at the end, drift, rise, tilt), the base arms against data/20261117-g0_x70y110_twist_predictions.json; QUEUE line (W3). Commit, push.
+Standing directions (for every step):
+- S2 arrives without registers.txt (it needs the station stopped and the owner): take the supply voltage for the fit's torque scale from data/s2/supply_diag.txt (each servo's present-voltage register read by hom_setup.py diag before and after every block; idle 7.4-7.7 V at 19:06), and say so in the QUEUE line
+- S1(b) arrives as data/s1/rows.jsonl, one pose per line: commanded and measured joints of all three fingers, the station's mounts, the plan's mounts in P, the tag's measured and predicted centre and normal, the planned camera and view angle
 <!-- /ap:steps -->
 Claimed: docs/experiments/20261117-sr2_system_identification/ (QUEUE.md W lines, data/, sim/),
 scripts/hardware/sr2_servo_sysid_fit.py
