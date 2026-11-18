@@ -76,6 +76,20 @@ air and then against a force sensor. Contact and the blind validation trials nee
   The pad centres hang 29 mm (index), 31 mm (thumb) and 38 mm (middle) above the table in the model, about 4 mm lower
   with W2's offset. A yaw press needs a land at the pad's height: the arm lowers the hand, with the other fingers clear
   of the table, or a spacer raises the block.
+  The block as built (owner, 15:3x-15:4x; lab 15:42, 6ff03f252) is a 20 mm 80/20 post about 128 mm tall, clamped to
+  the table through a second piece along it. Two 45 x 45 x 1 mm plates are glued on opposite faces. Tag 0 is on one
+  (edge 39.85 mm, centre 108.2 mm above the table); grip tape is on the other, 22 mm behind the tag's face. The plates
+  face +-x_P, 2.3 deg off square. The post flexes, and `s3_press.py --track-block` follows its tag through a press.
+  The flexions press the plates head-on: the index and middle into the taped plate, the thumb into the tag's. A yaw
+  slides its pad along a plate, so it loads its chain only through the tape's friction, with an MCP holding the pad on
+  (the lab's proposal; the owner decides). Prediction for an MCP press head-on, on the 7.5 V replay plant (kp 0.825 N
+  m/rad, at most 0.27 N m; 67 mm from the MCP axis to the pad): if the gear passes 0.4 of the torque, the force rises
+  0.086 N per deg of target offset, to 1.5 N at the tool's 18 deg limit. If it passes all of it, the force rises 0.215
+  N per deg and reaches the 3 N stop at about 14 deg. A rigid chain's reading stays at first contact, apart from the
+  pad's compression. With the MCP press first, its slope sets the hold for the yaws. The hold's friction must exceed
+  the yaw's force at 18 deg of offset: 0.75 N if the gear passes 0.4 of the torque, 1.9 N if it passes all of it.
+  Slip shows on the HEX-E as a tangential force that stops rising while the reading jumps. The yaw's reading also
+  advances by the pad's shear, which S4(b) measures on the same taped plate.
 - S4 (with the owner, next session). Contact on the hand, three trials each.
   (a) Pick-up of the press cylinder and of the taped sphere, then a slow opening of the pinch over 4-6 s above a catch
   box, the tags and the boards recording. The object's angle about the pinch line against the normal force gives the

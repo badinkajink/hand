@@ -16,7 +16,7 @@ loop from its measured start on the 7.5 V plant, the table removed at the lift.
 
 --backdrive replays the owner's alternative (11-18): no spring, and the load may push the index's and middle's yaw
 servos back. When the load's torque about such a yaw exceeds the servo's and opposes it, the joint loses its gear
-friction and yields as a plain position servo (kp 0.525 N m/rad, at most 0.18 N m); otherwise it is the clutch plant.
+friction and yields as a plain position servo (kp 0.525 N m/rad, at most 0.27 N m); otherwise it is the clutch plant.
 
     HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 SCALE_HAND=cad_v2 OMP_NUM_THREADS=1 \\
         .venv/bin/python sim/20261118-yaw_give_replay.py OUT.jsonl [--kc 0.76 1.5] [--contacts pads pads_stiff] \\
