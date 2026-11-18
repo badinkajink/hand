@@ -1,0 +1,216 @@
+{
+ "what": "S1(b) of 2026-11-18 into the study's data. The owner lowered the arm 43 mm, switched it off and moved the sphere aside\n(\"the middle finger tag should be visible from at least one camera now, when it is curled into the tag-visible joint\nconfig. if you yaw the thumb finger toward +x and also step the thumb +x, it should be visible by both\"). Four sets ran\nwith s1b_tags.py at that arm pose: middle and index (each twice), thumb with its gantry 12 mm toward +x (twice) and thumb\nat its home mount (once). Each set's poses and rows are copied to data/s1/20261118-<set>_poses.json and _rows.jsonl, and\ndata/s1/20261118-s1b_summary.json gives per set: the poses seen and by which cameras, the tag's offset from the model\n(median and range per axis of P), the measured normal's turn from the model's about the finger's flexion axis (sign:\ntoward more flexion) and out of its flexion plane, and the difference between the two runs of the same commanded pose.",
+ "log": "logs/20261118-sr2_s1b_tags",
+ "sets": {
+  "middle": {
+   "finger": "middle",
+   "runs": 18,
+   "poses": 9,
+   "seen_runs": 18,
+   "station_mounts": {
+    "x": 36.3187,
+    "y": -81.6002
+   },
+   "mount_P": [
+    42.5,
+    -85.0
+   ],
+   "palm_origin_B_mm": [
+    -191.6,
+    -429.0,
+    123.0
+   ],
+   "arm_mode": 3,
+   "samples_by_cameras": {
+    "832412070344+836612071918": 816
+   },
+   "unseen_q_cmd": [],
+   "d_mm_median": [
+    -1.58,
+    -1.53,
+    5.67
+   ],
+   "d_mm_min": [
+    -1.84,
+    -5.68,
+    4.86
+   ],
+   "d_mm_max": [
+    -1.12,
+    0.85,
+    6.75
+   ],
+   "abs_d_mm_median": 6.39,
+   "normal_deg_median": 12.2,
+   "normal_flex_deg_median": 12.2,
+   "normal_out_of_plane_deg_median": -0.8,
+   "repeat_mm": {
+    "n": 9,
+    "median": 0.29,
+    "max": 0.58
+   },
+   "sd_within_pose_mm_median": 0.21
+  },
+  "index": {
+   "finger": "index",
+   "runs": 18,
+   "poses": 9,
+   "seen_runs": 14,
+   "station_mounts": {
+    "x": 36.3188,
+    "y": 81.6003
+   },
+   "mount_P": [
+    42.5,
+    85.0
+   ],
+   "palm_origin_B_mm": [
+    -191.6,
+    -429.0,
+    123.0
+   ],
+   "arm_mode": 3,
+   "samples_by_cameras": {
+    "832412070344": 15,
+    "832412070344+836612071918": 628
+   },
+   "unseen_q_cmd": [
+    [
+     -30.0,
+     43.0,
+     80.0
+    ],
+    [
+     -25.0,
+     58.0,
+     65.0
+    ]
+   ],
+   "d_mm_median": [
+    8.46,
+    -2.54,
+    0.18
+   ],
+   "d_mm_min": [
+    7.82,
+    -4.74,
+    -0.75
+   ],
+   "d_mm_max": [
+    9.03,
+    0.66,
+    0.6
+   ],
+   "abs_d_mm_median": 9.03,
+   "normal_deg_median": 9.2,
+   "normal_flex_deg_median": 9.2,
+   "normal_out_of_plane_deg_median": 0.7,
+   "repeat_mm": {
+    "n": 7,
+    "median": 0.27,
+    "max": 0.6
+   },
+   "sd_within_pose_mm_median": 0.4
+  },
+  "thumb": {
+   "finger": "thumb",
+   "runs": 18,
+   "poses": 9,
+   "seen_runs": 18,
+   "station_mounts": {
+    "x": -24.3188,
+    "y": 2.4004
+   },
+   "mount_P": [
+    -30.499999999999996,
+    0.0
+   ],
+   "palm_origin_B_mm": [
+    -191.6,
+    -429.0,
+    123.0
+   ],
+   "arm_mode": 3,
+   "samples_by_cameras": {
+    "832412070344": 20,
+    "832412070344+836612071918": 821
+   },
+   "unseen_q_cmd": [],
+   "d_mm_median": [
+    7.11,
+    2.96,
+    -4.05
+   ],
+   "d_mm_min": [
+    5.3,
+    -3.92,
+    -5.38
+   ],
+   "d_mm_max": [
+    8.58,
+    3.38,
+    -1.93
+   ],
+   "abs_d_mm_median": 8.65,
+   "normal_deg_median": 1.9,
+   "normal_flex_deg_median": 1.8,
+   "normal_out_of_plane_deg_median": -0.9,
+   "repeat_mm": {
+    "n": 9,
+    "median": 0.37,
+    "max": 1.13
+   },
+   "sd_within_pose_mm_median": 0.6
+  },
+  "thumb_home": {
+   "finger": "thumb",
+   "runs": 9,
+   "poses": 9,
+   "seen_runs": 9,
+   "station_mounts": {
+    "x": -36.3188,
+    "y": 2.4004
+   },
+   "mount_P": [
+    -42.5,
+    0.0
+   ],
+   "palm_origin_B_mm": [
+    -191.6,
+    -429.0,
+    123.0
+   ],
+   "arm_mode": 3,
+   "samples_by_cameras": {
+    "832412070344": 18,
+    "832412070344+836612071918": 818
+   },
+   "unseen_q_cmd": [],
+   "d_mm_median": [
+    6.77,
+    3.47,
+    -3.99
+   ],
+   "d_mm_min": [
+    5.32,
+    -3.26,
+    -5.52
+   ],
+   "d_mm_max": [
+    8.02,
+    3.6,
+    -2.07
+   ],
+   "abs_d_mm_median": 8.61,
+   "normal_deg_median": 1.1,
+   "normal_flex_deg_median": 0.8,
+   "normal_out_of_plane_deg_median": -0.8,
+   "repeat_mm": {
+    "n": 0,
+    "median": null,
+    "max": null
+   },
+   "sd_within_pose_mm_median": 0.53
+  }
+ }
+}
