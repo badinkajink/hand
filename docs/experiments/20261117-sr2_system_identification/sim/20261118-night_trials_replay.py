@@ -194,7 +194,8 @@ def run1(job):
     win = [k for k in range(len(rows)) if 2.0 - 1e-9 <= t[k] < t_end - 1e-9]
     dt_ = float(head.get("dt") or 0.02)
     prm = head.get("prm") or {}
-    out = {**job, **arm_of(head), "diverged": False, "start_yaw_deg": round(yaw0, 2), "start_tilt_deg": round(tilt0, 2),
+    out = {**job, **arm_of(head), "diverged": False, "delay_s": DELAY_S, "start_yaw_deg": round(yaw0, 2),
+           "start_tilt_deg": round(tilt0, 2),
            "hand": {"track": TT.track("twist", [rows[k] for k in win], prm, dt_), "motion": TT.motion(rows)},
            "replay": {"track": TT.track("twist", [sim_rows[k] for k in win], prm, dt_), "motion": TT.motion(sim_rows)}}
     # joints against the read-backs, each at its own time
@@ -261,7 +262,11 @@ def main():
     ap.add_argument("--volts", nargs="+", default=["7v5", "5v"], choices=list(PLANTS))
     ap.add_argument("--trials", nargs="*", default=None, help="stamps (default: every scored trial of the night)")
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--delay", type=float, default=None, help="s from a state to its targets at the servos (default 0.012)")
     a = ap.parse_args()
+    global DELAY_S
+    if a.delay is not None:
+        DELAY_S = a.delay
     RPL.RG.gear_class = RPL.RC2.clutch_class
     RPL.RC2.STIFF, RPL.RC2.BREAKAWAY = True, 0.0
     RPL.RG.RF.RL.rows_file()

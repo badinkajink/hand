@@ -105,7 +105,8 @@ air and then against a force sensor. Contact and the blind validation trials nee
   arm's lift. Contact models: soft pads, soft point contact, stiff pads, and stiff pads with noslip. Plants: 5 V, 7.5 V
   (the 5 V gains and torque limit times 1.5, as the predictions assumed), and 7.5 V with the index and middle yaws at
   the other joints' 0.825 N m/rad. A simulated closed-loop record, replayed on its own plant with no delay, came back
-  identical (`sim/20261118-night_trials_replay_check.py`). Of the 240 replays 239 ran; one stopped on MuJoCo's
+  identical (`sim/20261118-night_trials_replay_check.py`). A delay of 0 or 30 ms in place of the 12 ms moved the
+  tips-off replays' twist by 0.3 deg at most (soft and stiff pads). Of the 240 replays 239 ran; one stopped on MuJoCo's
   constraint arena at 431 contacts. Data: `data/20261118-night_trials_replay.json` (per trial, model and plant, with
   traces), by `sim/20261118-night_trials_replay.py` and `sim/20261118-night_trials_replay_summary.py`. With the tips
   off (11 trials, 7.5 V plant):
