@@ -16,10 +16,12 @@ State:
   47051 tips off base, 47057 tips off --filter-step-s 0.002, 47052 tips on base, 47058 tips on + --contact-off 0.10;
   labels g0x70y110_tips{off,on}_{base,fstep,fstep_hyst}), then the board sweep. Asked to push S2 to data/s2/ and S1(b)
   to data/s1/ (19:2x).
-Next:
-1. When S2's tables are under data/s2/ (dwells.tsv, holds_c.tsv, registers.txt, the plan steps): give scripts/hardware/sr2_servo_sysid_fit.py a --dir option (default the 11-06 folder), run it on data/s2 under `~/.claude/bin/resguard.sh run --mem 3G`, write data/s2/20261117-sr2_servo_7v5_fit.json, and add one QUEUE line (W2) comparing dead band, drive per step, stiffness and friction bands with 11-06's fit. Commit by path, push (merge origin/main; test push's own exit status).
-2. When S1(b) is under data/s1/: per pose the tag centre's and normal's error against the model at the station's joints and mounts; fit each finger's three joint zero offsets by least squares; QUEUE line (W2) with the offsets and residuals. Commit, push.
-3. When the A/B repeats are pushed (runs/ and runs_corvus/ 20261117-19*, 20*): score each with scripts/hardware/hom_trial_tracking.py; one table per arm (tracking, twist at the end, drift, rise, tilt), the base arms against data/20261117-g0_x70y110_twist_predictions.json; QUEUE line (W3). Commit, push.
+<!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
+Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
+- [ ] 1. When S2's tables are under data/s2/ (dwells.tsv, holds_c.tsv, registers.txt, the plan steps): give scripts/hardware/sr2_servo_sysid_fit.py a --dir option (default the 11-06 folder), run it on data/s2 under `~/.claude/bin/resguard.sh run --mem 3G`, write data/s2/20261117-sr2_servo_7v5_fit.json, and add one QUEUE line (W2) comparing dead band, drive per step, stiffness and friction bands with 11-06's fit. Commit by path, push (merge origin/main; test push's own exit status).
+- [ ] 2. When S1(b) is under data/s1/: per pose the tag centre's and normal's error against the model at the station's joints and mounts; fit each finger's three joint zero offsets by least squares; QUEUE line (W2) with the offsets and residuals. Commit, push.
+- [ ] 3. When the A/B repeats are pushed (runs/ and runs_corvus/ 20261117-19*, 20*): score each with scripts/hardware/hom_trial_tracking.py; one table per arm (tracking, twist at the end, drift, rise, tilt), the base arms against data/20261117-g0_x70y110_twist_predictions.json; QUEUE line (W3). Commit, push.
+<!-- /ap:steps -->
 Claimed: docs/experiments/20261117-sr2_system_identification/ (QUEUE.md W lines, data/, sim/),
 scripts/hardware/sr2_servo_sysid_fit.py
 Waiting on owner: none
