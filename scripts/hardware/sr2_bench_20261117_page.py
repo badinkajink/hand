@@ -232,16 +232,16 @@ def page():
     S = []
     lede = (
         "On 2026-11-17 the SR2 hand's servos moved from a 5 V to a 7.5 V supply. At 7.5 V they follow their targets "
-        "more closely, and three faults showed that the 5 V servos had hidden. HOM's twist targets drive the index and "
+        "more closely, and two faults showed that the 5 V servos had hidden. HOM's twist targets drive the index and "
         "middle fingers into each other, because the GPU scenes have no contact between fingers. HOM's press targets "
-        "chatter at about 5 Hz on the pushing finger, and the servos now follow most of it. The plans' open poses send "
-        "two MCPs past their mechanical stops, so a pad touches the object. Fingertip contacts in HOM's loop did not "
-        "improve tracking in three pairs of trials. The pick-up of a lying sphere by controlled slip now runs as one "
-        "command.")
+        "chatter at about 5 Hz on the pushing finger, and the servos now follow most of it. A third fault does not "
+        "depend on the supply: the plans' open poses send two MCPs past their mechanical stops, so a pad touches the "
+        "object. With the fingertip contacts in HOM's loop, one of three trials tracked better and two drifted out of "
+        "the grasp. The pick-up of a lying sphere by controlled slip now runs as one command.")
     summary = ("SR2 hand at 7.5 V on 2026-11-17: HOM's twist targets drive the index and middle together (least gap "
                f"{g['20261117-181327']['least_measured_mm']:.1f} mm at 7.5 V, {g['20261116-130318']['least_measured_mm']:.1f}"
-               " mm at 5 V); the press's pushing finger follows HOM's 5 Hz chatter; fingertip contacts did not improve "
-               "tracking; the pick-up by controlled slip runs as one command.")
+               " mm at 5 V); the press's pushing finger follows HOM's 5 Hz chatter; with fingertip contacts one of three "
+               "trials tracked better and two drifted out; the pick-up by controlled slip runs as one command.")
 
     S.append(("terms", "Terms and metrics", """
 <ul>

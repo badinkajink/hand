@@ -71,8 +71,20 @@ def s1():
         out.append([fg, f"{len(seen)} of {len(r)}", f"{np.median(d):.2f}" if d else "–", f"{max(d):.2f}" if d else "–",
                     f"{np.median(a):.1f}" if a else "–"])
     txt = ("<p>S1(b) measured the DIP tags of the thumb and the middle finger at nine poses each with both cameras, "
-           "against the hand's model at the measured joints. The index's tag faced away from both cameras at every "
-           "candidate pose of the night's arm pose.</p>")
+           "against the hand's model at the measured joints. The middle's tag was not detected at any of its poses, "
+           "and the index's tag faced away from both cameras at every candidate pose of the night's arm pose.</p>")
+    fit = HERE / "data/s1/20261117-thumb_zero_fit.json"
+    if fit.exists():
+        z = json.loads(fit.read_text())
+        mo, ze, bo = z["mount"], z["zeros"], z["both"]
+        txt += (f"<p>The workstation fitted the thumb's rows. As built, the tag's centre misses the model by "
+                f"{z['rms_centre_mm_before']:.2f} mm RMS. Moving the thumb's mount by "
+                f"({mo['params']['d_mount_x_mm']:+.1f}, {mo['params']['d_mount_y_mm']:+.1f}) mm in the palm frame "
+                f"leaves {mo['rms_centre_mm']:.2f} mm. Fitting the joint zeros alone leaves {ze['rms_centre_mm']:.2f} mm. "
+                f"Fitting both leaves {bo['rms_centre_mm']:.2f} mm ({bo['loo_rms_centre_mm']:.2f} mm leaving one pose "
+                f"out), with a yaw zero of {bo['params']['d_yaw_deg']:+.1f}°. The nine poses do not separate the MCP's "
+                "zero from the PIP's. So the thumb's error is mostly its mount's position; a ruler at the thumb's "
+                "gantry would confirm a 5-7 mm error along x.</p>")
     return txt + table(["Finger", "Poses seen", "Median |tag − model| (mm)", "Largest (mm)", "Median normal error (°)"],
                        out, "Table 6. The fingertip tags against the hand's model (data/s1/rows.jsonl)."), {}
 
