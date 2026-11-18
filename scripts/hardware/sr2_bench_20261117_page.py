@@ -377,6 +377,10 @@ Then it releases the sphere.</p>
 at 2.5 and 2.85° of squeeze, 3.75 and 4.3° in 5 V terms, against 4° at 5 V. The run of 18:38 is the first by one
 command, lab/pickup_cycle.sh. It ran plan, grasp, lift, slip, putdown and the wrist's return in 3 minutes, printing each
 step's key lines and keeping each step's whole output. It stops at the first step that fails.</p>
+<figure><video controls muted playsinline preload="metadata" style="max-width:960px;width:100%"
+src="media/20261117-pickup_one_command.mp4"></video><figcaption>Film 1. The pick-up of 18:38 by one command
+(lab/pickup_cycle.sh), both cameras: the grasp at 6x, the lift at 3x, the slip at 2x with its waits kept, the putdown at
+4x. People at the left of the right-hand camera are blurred.</figcaption></figure>
 {figure(fig_slip(fd), 3, "The slip of the three pick-ups: the object's tilt at the end of each squeeze step, against "
         "the squeeze in 5 V terms. The squeeze falls from left to right.", width=800)}
 {t4}"""))
