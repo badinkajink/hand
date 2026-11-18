@@ -50,10 +50,13 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # fits in the seat block's data/, the tips' held-out curves and the viewer's board GP in the UR5 folder's data/, and the
 # coordinator's QUEUE.md, where the plans' changes and the analyses' readings go without a feed line; and the analysis files
 # of the SR2 hand's sweeps and its lab/ programs (the lab's commits to that folder's README wake by their subject, PREFIX;
-# a commit named for a program there, gated_chain.sh at 15:55 on 11-05, stated a stop under no such subject)
+# a commit named for a program there, gated_chain.sh at 15:55 on 11-05, stated a stop under no such subject); and the boards'
+# own-pose fits on the hand, a later sweep's in an SR2 folder's data/sweep/ and the HOM trials' tip_contacts GPs (the refit
+# of 11-17 at 23:24, commit 2f295223, changed only these and the folder's QUEUE.md)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
-                      r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)))")
+                      r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)|data/sweep/[^/]*own_pose)"
+                      r"|20261115-hom_bench_trials/data/\d{8}-tip_contacts/)")
 # the SR2 analysis's scripts change many times before its result page does (owner's high priority, 18:2x on 11-05): a commit
 # that changes only these is not news, whatever its subject; its page and data files are
 DEV_ONLY = re.compile(r"scripts/fingertip/sr2_crosstalk_")
