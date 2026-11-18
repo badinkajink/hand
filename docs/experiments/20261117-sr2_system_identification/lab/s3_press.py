@@ -21,9 +21,12 @@ both fall before that).
         its tilt; the press pad --behind mm behind the tag's face; and per finger at its present joints, for each joint
         and sign alone, the degrees until the finger (an --pad-r ball round the pad's centre, or the pad's apex) meets
         the pad within its square. One frame per camera is saved with the tag outlined.
-    /usr/bin/python3 s3_press.py run --finger index --joint yaw --sign -1 --track-block --out OUT [--go]
+    /usr/bin/python3 s3_press.py run --finger index --joint mcp --sign +1 --track-block --out OUT [--go]
         without --go, the plan and the same checks; --sign is the direction (simulator degrees) that moves the finger
         toward the pad
+    /usr/bin/python3 s3_press.py run --finger index --joint yaw --sign -1 --hold mcp:+1:N --track-block [--go]
+        the yaw through the tape's friction: the MCP first steps onto the pad until |dF| N and holds there through the
+        yaw's press and step back, then steps back itself; without the hold force reached, no yaw press
 
 Directions (W2, 11-18 15:4x): the yaw presses go the way the yaws pushed in the night's squeezes, toward the sphere and
 the hand's centre line: in the 11 tips-off g0 twists the index's yaw target ran 8.5-16.6 deg more negative than its
@@ -41,7 +44,13 @@ step back alike. The workstation fits the gain, the give and the dead band (W2, 
 middle's yaws (hand-4a, QUEUE 1ad5a35ad): at 14-15 deg of target offset with the finger straight, about 0.6 N if the
 gear passes 0.4 of the servo's torque (the clutch plant, kp 0.525 N m/rad) and 1.5 N if it passes all of it; the slope
 needs neither gain: about 6.6 deg of reading per newton with the yaw chain's give of 0.76 N m/rad, under 1 deg per
-newton for a rigid chain.
+newton for a rigid chain. For the index's MCP head on (QUEUE 67b825a14; kp 0.825 N m/rad, at most 0.27 N m, 67 mm from
+the MCP axis to the pad): 0.086 N per deg of target offset with the clutch plant, about 1.5 N at 18 deg (its plateau
+1.6 N at 18.8 deg), and 0.215 N per deg if the gear passes all of the torque, at the 3 N stop by about 14 deg; on the
+step back the clutch plant keeps the force flat until the target passes the reading. The yaw's hold comes from the
+MCP press's measured slope: the tape's friction at the hold force must exceed the yaw's force at 18 deg of offset,
+0.75 N with the clutch plant and 1.9 N with all of the torque; a slip shows as a tangential force that stops rising
+while the yaw's reading jumps.
 """
 import argparse
 import json
@@ -359,13 +368,31 @@ def cmd_run(a):
         raise SystemExit("servo torque is not on")
     start = dict(HS.sim_joints(s)[f])
     q0 = float(start[jn])
-    lo, hi = st.call("GET", "/api/v1/manual/limits")["joint_deg"][f][jn]
-    n_max = int(a.max_travel / a.step)
-    while n_max > 0 and not lo + 1.0 <= q0 + a.sign * a.step * n_max <= hi - 1.0:
-        n_max -= 1
-    if n_max < 4:
-        raise SystemExit(f"{f} {jn} at {q0:+.1f} deg has under 2 deg of the station's range [{lo:g}, {hi:g}] toward "
-                         f"sign {a.sign:+d}")
+    limits = st.call("GET", "/api/v1/manual/limits")["joint_deg"][f]
+
+    def travel(j, sign):
+        lo_j, hi_j = limits[j]
+        n = int(a.max_travel / a.step)
+        while n > 0 and not lo_j + 1.0 <= float(start[j]) + sign * a.step * n <= hi_j - 1.0:
+            n -= 1
+        if n < 4:
+            raise SystemExit(f"{f} {j} at {float(start[j]):+.1f} deg has under 2 deg of the station's range "
+                             f"[{lo_j:g}, {hi_j:g}] toward sign {sign:+d}")
+        return n
+
+    lo, hi = limits[jn]
+    n_max = travel(jn, a.sign)
+    hold = None
+    if a.hold:
+        hj, hsg, hN = a.hold
+        if hj == jn:
+            raise SystemExit("--hold names the pressing joint")
+        if hN >= a.max_n:
+            raise SystemExit(f"the hold's {hN:g} N must stay under --max-n {a.max_n:g} N")
+        hold = (hj, hsg, hN, float(start[hj]), travel(hj, hsg))
+        print(f"hold first: {f} {hj} (servo {sids[hj]}) steps {a.step:g} deg every {a.dwell:g} s toward sign {hsg:+d} "
+              f"until |dF| {hN:g} N (at most {hold[4]} steps), holds there through the press and its step back, then "
+              f"steps back itself")
     ft = FT.HT.open_ft(True)
     time.sleep(1.5)
     F0, sd0, n0 = hexe_mean(ft, 1.0)
@@ -438,7 +465,7 @@ def cmd_run(a):
            "F0_sd_N": sd0.tolist(), "stops": {"max_n": a.max_n, "max_offset": a.max_offset, "max_load": a.max_load,
                                               "max_temp": a.max_temp}, "diag": dg, "splitter": how,
            "mux": str(mux[-1].relative_to(ROOT)) if mux else None, "mounts": s.get("mount_positions"),
-           "tracker": "dip_tag" if a.tag else "block" if a.track_block else None,
+           "tracker": "dip_tag" if a.tag else "block" if a.track_block else None, "hold": a.hold,
            "block_base": None if base is None else {"p_B": base[0].tolist(), "n_B": base[1].tolist(),
                                                     "edge_mm": a.block_edge},
            "t": time.time(), "note": a.note}
@@ -459,13 +486,23 @@ def cmd_run(a):
         raw.flush()
         t_raw[0] = t1
 
-    def send(target):
-        cmd = dict(start)
-        cmd[jn] = float(target)
-        st.call("POST", "/api/v1/manual/joints", {"joints": {f: cmd}, "servo_speed": a.speed})
+    held = dict(start)              # the finger's targets other than the one being stepped: the start, or the hold
 
-    def dwell_and_row(k, target, phase):
-        """Waits --dwell s watching the HEX-E and the load; returns (row, stop reason or None)."""
+    def send(target, j=None):
+        j = j or jn
+        cmd = dict(held)
+        cmd[j] = float(target)
+        st.call("POST", "/api/v1/manual/joints", {"joints": {f: cmd}, "servo_speed": a.speed})
+        if j != jn:
+            held[j] = float(target)
+
+    def dwell_and_row(k, target, phase, j=None, sign=None, stop_n=None):
+        """Waits --dwell s watching the HEX-E and joint j's load (default the pressing joint, its sign and --max-n);
+        returns (row, stop reason or None). The stops act in the phases "press" and "hold"."""
+        j = j or jn
+        sign = a.sign if sign is None else sign
+        stop_n = a.max_n if stop_n is None else stop_n
+        js, pressing = sids[j], phase in ("press", "hold")
         t0, why = time.time(), None
         while time.time() - t0 < a.dwell:
             time.sleep(0.1)
@@ -474,21 +511,22 @@ def cmd_run(a):
                 why = "the HEX-E stopped streaming"
                 break
             Fn, _, _ = hexe_mean(ft, 0.2)
-            if Fn is not None and np.linalg.norm(Fn - F0) >= a.max_n and phase == "press":
-                why = f"|dF| {np.linalg.norm(Fn - F0):.2f} N reached {a.max_n:g} N"
+            if Fn is not None and np.linalg.norm(Fn - F0) >= stop_n and pressing:
+                why = f"|dF| {np.linalg.norm(Fn - F0):.2f} N reached {stop_n:g} N"
                 break
             rs = samp.since(time.time() - 0.2)
-            if rs and abs(float(rs[-1][2].get(sid) or 0.0)) >= a.max_load and phase == "press":
-                why = f"load {rs[-1][2].get(sid)} reached {a.max_load:g}"
+            if rs and abs(float(rs[-1][2].get(js) or 0.0)) >= a.max_load and pressing:
+                why = f"load {rs[-1][2].get(js)} reached {a.max_load:g}"
                 break
         tw = time.time() - min(1.0, a.dwell / 2)
         Fm, Fsd, nF = hexe_mean(ft, min(1.0, a.dwell / 2))
         rs = samp.since(tw)
-        reading = float(np.median([r[1][f][jn] for r in rs if r[1]])) if rs else None
-        load = float(np.median([float(r[2].get(sid) or 0.0) for r in rs])) if rs else None
+        reading = float(np.median([r[1][f][j] for r in rs if r[1]])) if rs else None
+        load = float(np.median([float(r[2].get(js) or 0.0) for r in rs])) if rs else None
         d = diag(st)
-        row = {"k": k, "phase": phase, "t": time.time(), "target": round(target, 3), "reading": reading,
-               "offset": None if reading is None else round(a.sign * (target - reading), 3), "load": load,
+        row = {"k": k, "phase": phase, "joint": j, "t": time.time(), "target": round(target, 3), "reading": reading,
+               "offset": None if reading is None else round(sign * (target - reading), 3), "load": load,
+               "held": {k2: round(v, 3) for k2, v in held.items()},
                "dF_N": None if Fm is None else np.round(Fm - F0, 4).tolist(),
                "dF_abs_N": None if Fm is None else round(float(np.linalg.norm(Fm - F0)), 4),
                "F_sd_N": None if Fsd is None else np.round(Fsd, 4).tolist(), "hexe_n": nF,
@@ -509,7 +547,7 @@ def cmd_run(a):
                 row["block_B"] = np.round(pm, 3).tolist() if ok else None
                 row["block_d_mm"] = round(float((pm - base[0]) @ base[1]), 3) if ok else None   # +: toward the tag's side
                 row["block_n"] = len(tg)
-        if why is None and phase == "press":
+        if why is None and pressing:
             if any(v not in (None, 0, 0.0) for v in row["status"].values()):
                 why = f"a servo flag {row['status']}"
             elif any(v not in (None, 1, 1.0) for v in row["torque"].values()):
@@ -527,35 +565,55 @@ def cmd_run(a):
             return f", block {num(row.get('block_d_mm'), '+.3f')} mm"
         return ""
 
-    why, k, rows = None, 0, []
+    def record(row, label, why=None):
+        rows.append(row)
+        fh.write(json.dumps(row) + "\n")
+        fh.flush()
+        dump()
+        print(f"{time.strftime('%H:%M:%S')} {label}: {row['joint']} target {row['target']:+6.2f}, reading "
+              f"{num(row['reading'], '+6.2f')} (offset {num(row['offset'], '+5.2f')}), load {num(row['load'], '5.0f')}, "
+              f"|dF| {num(row['dF_abs_N'], '.3f')} N" + track_txt(row) + (f" -- STOP: {why}" if why else ""), flush=True)
+
+    def torque_on():
+        return all(v in (None, 1, 1.0) for v in rows[-1]["torque"].values()) if rows else True
+
+    why, k, kh, rows, hold_why = None, 0, 0, [], None
     try:
-        for k in range(1, n_max + 1):
-            target = q0 + a.sign * a.step * k
-            send(target)
-            row, why = dwell_and_row(k, target, "press")
-            rows.append(row)
-            fh.write(json.dumps(row) + "\n")
-            fh.flush()
-            dump()
-            print(f"{time.strftime('%H:%M:%S')} step {k:2d}: target {target:+6.2f}, reading {num(row['reading'], '+6.2f')} "
-                  f"(offset {num(row['offset'], '+5.2f')}), load {num(row['load'], '5.0f')}, |dF| "
-                  f"{num(row['dF_abs_N'], '.3f')} N" + track_txt(row) + (f" -- STOP: {why}" if why else ""), flush=True)
-            if why:
-                break
-        else:
-            why = f"the target's travel ({n_max} steps) ran out"
-        torque_on = all(v in (None, 1, 1.0) for v in rows[-1]["torque"].values()) if rows else True
-        if torque_on:
+        if hold:
+            hj, hsg, hN, hq0, h_max = hold
+            for kh in range(1, h_max + 1):
+                tgt = hq0 + hsg * a.step * kh
+                send(tgt, hj)
+                row, hold_why = dwell_and_row(kh, tgt, "hold", hj, hsg, hN)
+                record(row, f"hold {kh:2d}", hold_why)
+                if hold_why:
+                    break
+            else:
+                hold_why = f"the hold's travel ({h_max} steps) ran out"
+            if not hold_why.startswith("|dF|"):
+                why = f"the hold stopped short: {hold_why}"
+        if why is None:
+            for k in range(1, n_max + 1):
+                target = q0 + a.sign * a.step * k
+                send(target)
+                row, why = dwell_and_row(k, target, "press")
+                record(row, f"step {k:2d}", why)
+                if why:
+                    break
+            else:
+                why = f"the target's travel ({n_max} steps) ran out"
+        if torque_on():
             for kb in range(k - 1, -1, -1):
                 target = q0 + a.sign * a.step * kb
                 send(target)
                 row, _ = dwell_and_row(kb, target, "back")
-                fh.write(json.dumps(row) + "\n")
-                fh.flush()
-                dump()
-                print(f"{time.strftime('%H:%M:%S')} back {kb:2d}: target {target:+6.2f}, reading "
-                      f"{num(row['reading'], '+6.2f')}, load {num(row['load'], '5.0f')}, |dF| "
-                      f"{num(row['dF_abs_N'], '.3f')} N" + track_txt(row), flush=True)
+                record(row, f"back {kb:2d}")
+            if hold:
+                for kb in range(kh - 1, -1, -1):
+                    tgt = hq0 + hsg * a.step * kb
+                    send(tgt, hj)
+                    row, _ = dwell_and_row(kb, tgt, "unload", hj, hsg)
+                    record(row, f"unload {kb:2d}")
         else:
             print("a servo of the finger lost torque: no step back. Torque on only through hom_setup.py torque-on "
                   "--go, with every MCP under 60 deg", flush=True)
@@ -565,11 +623,21 @@ def cmd_run(a):
         samp.halt = True
         if tracker is not None:
             stop_tracker(arm, tracker)
-        fh.write(json.dumps({"end": time.time(), "reason": why, "steps": k}) + "\n")
+        fh.write(json.dumps({"end": time.time(), "reason": why, "steps": k, "hold_steps": kh, "hold_reason": hold_why,
+                             "held": held}) + "\n")
         fh.close()
         ft.stop = True
-    print(f"S3 {f} {jn}: {why}; -> {stem}.jsonl")
+    print(f"S3 {f} {jn}: {why}" + (f" (hold: {hold_why})" if hold else "") + f"; -> {stem}.jsonl")
     return 0
+
+
+def hold_arg(s):
+    try:
+        j, sg, n = s.split(":")
+        assert j in JOINTS and int(sg) in (-1, 1) and float(n) > 0
+        return j, int(sg), float(n)
+    except (ValueError, AssertionError):
+        raise argparse.ArgumentTypeError("JOINT:SIGN:N, e.g. mcp:+1:1.0")
 
 
 def main():
@@ -603,6 +671,8 @@ def main():
             p.add_argument("--track-block", action="store_true", help="track the block's tag through the press")
             p.add_argument("--block-edge", type=float, default=BLOCK_EDGE)
             p.add_argument("--tag", action="store_true", help="track the finger's DIP tag instead")
+            p.add_argument("--hold", type=hold_arg, help="JOINT:SIGN:N, e.g. mcp:+1:1.0: that joint first steps until "
+                                                         "|dF| N and holds there through the press")
             p.add_argument("--note", default="")
             p.add_argument("--go", action="store_true")
     a = ap.parse_args()
