@@ -39,12 +39,16 @@ def pool_tests(rows):
 
 
 def at_head(path):
-    """A file as committed at HEAD, LFS pointers resolved: the coordinator may be rewriting its working copy mid-analysis."""
+    """A file as committed at HEAD, LFS pointers resolved: the coordinator may be rewriting its working copy mid-analysis.
+    Since 2026-11-15 .lfsconfig's lfs.fetchinclude names only the pages and films under docs/, and git-lfs smudges no
+    other path; the empty fetchinclude given here lets it resolve the data files from the local store."""
     rel = str(Path(path).resolve().relative_to(ROOT))
     blob = subprocess.run(["git", "-C", str(ROOT), "show", f"HEAD:{rel}"], capture_output=True, check=True).stdout
     if blob.startswith(b"version https://git-lfs.github.com/spec/v1"):
-        blob = subprocess.run(["git", "-C", str(ROOT), "lfs", "smudge", "--", rel], input=blob, capture_output=True,
-                              check=True).stdout
+        blob = subprocess.run(["git", "-C", str(ROOT), "-c", "lfs.fetchinclude=", "lfs", "smudge", "--", rel], input=blob,
+                              capture_output=True, check=True).stdout
+        if blob.startswith(b"version https://git-lfs.github.com/spec/v1"):
+            raise SystemExit(f"{rel}: its LFS object is not in the local store")
     return blob
 
 
