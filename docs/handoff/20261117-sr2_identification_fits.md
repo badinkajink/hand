@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task: 2026-11-17 18:01, owner: "what the high priority experiments are, and coordinate with the ur5 session to fill out
 our understanding of the system as-is". The workstation half of docs/experiments/20261117-sr2_system_identification/
 QUEUE.md: fit the lab's overnight data (W2) and score tonight's A/B twist repeats (W3) as they reach origin/main.
@@ -17,7 +17,9 @@ State:
   data/s1/20261117-s1a_ranges_vs_limits.json).
 - Autopilot 23:3x: step 7 done (QUEUE W2 own-pose GP line; sim/20261117-own_pose_sweep_fit.py, data/sweep/
   20261117-own_pose_rows_s3.npz and _sweep_fit.json; GP 20261117-own_pose_gp_sweep_x85y170_7v5.npz beside OWN_POSE,
-  which the trials still load). Next: step 8 (the second A/B against the first and the blind g0 predictions).
+  which the trials still load).
+- Autopilot 23:4x: step 8 done (QUEUE W3 A/B 2 line; sim/20261117-ab2_server_timing.py,
+  data/20261117-ab2_server_timing.json). No open step; job disarmed.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. When S2's tables are under data/s2/ (dwells.tsv, holds_c.tsv, registers.txt, the plan steps): give scripts/ha… Done 11-17 19:38: Done in the window 19:4x: data/s2/20261117-sr2_servo_7v5_fit.json; QUEUE W2 line
@@ -25,7 +27,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 3. When the A/B repeats are pushed (runs/ and runs_corvus/ 20261117-19*, 20*): score each with scripts/hardware/… Done 11-17 20:14: Done in the window 20:2x: the lab scored the A/B (data/20261117-night_repeats_tracking.json); QUEUE W3 A/B line against the blind predictions; --filter-exact added (the sub-steps' 12.5 ms compute explains the fragments)
 - [x] 6. When S1(a)'s joint ranges are pushed (lab/s1a_ranges.py via night_rest3.sh, after the board sweep): per joint… Done 11-17 23:20: QUEUE W2 S1(a) 23:3x: index and middle MCP lows stall at -10.3/-8.5 deg (model -15), moving to -11.4/-10.0 at 21-22 % duty; other ends reached their limits or the caps; safe range 4.7 deg inside the model at 4 ends; data/s1/20261117-s1a_ranges_vs_limits.json
 - [x] 7. When the boards' free-air sweep at the trial layout is pushed (the owner's 18:0x choice: 'a free-air sweep of… Done 11-17 23:24: QUEUE W2 own-pose GP 23:3x: sweep ran at (85,170); new GP five-fold 5.4/4.7/4.7 uT vs 6.1/5.8/5.4 (11-04/05); trials' GP on new rows 11.0/15.3/14.1 uT, 6.3-8.4 with a joint offset (up to 5.5 deg); new file 20261117-own_pose_gp_sweep_x85y170_7v5.npz beside OWN_POSE
-- [ ] 8. When the second A/B (the lab's night_repeats2, about 21:07-22:15: g0 at (70, 110), tips off base 47051 / tips off --filter-exact 47059 / tips on base 47052 / tips on --filter-exact --contact-off 0.10 47060, three cycles each) is pushed with the lab's scores: one QUEUE line (W3, A/B 2) per arm against the first A/B and the blind g0 predictions; check from the server records (runs/) that the --filter-exact arms' compute_ms median stays near 2.6-2.9 ms and that no one-period fragment records appear. Commit, push.
+- [x] 8. When the second A/B (the lab's night_repeats2, about 21:07-22:15: g0 at (70, 110), tips off base 47051 / tips… Done 11-17 23:28: QUEUE W3 A/B 2 23:4x: second block 9 full runs; tips off 0.404-0.428 (exact 0.428/0.424), tips on 0.397/0.335, exact+hyst 0.310/0.311; exact arms 3.02-3.23 ms median vs 2.99-3.20 unflagged in the block; no fragment records; data/20261117-ab2_server_timing.json
 Standing directions (for every step):
 - S2 arrives without registers.txt (it needs the station stopped and the owner): take the supply voltage for the fit's torque scale from data/s2/supply_diag.txt (each servo's present-voltage register read by hom_setup.py diag before and after every block; idle 7.4-7.7 V at 19:06), and say so in the QUEUE line
 - S1(b) arrives as data/s1/rows.jsonl, one pose per line: commanded and measured joints of all three fingers, the station's mounts, the plan's mounts in P, the tag's measured and predicted centre and normal, the planned camera and view angle
@@ -33,6 +35,8 @@ Standing directions (for every step):
 <!-- /ap:steps -->
 Claimed: docs/experiments/20261117-sr2_system_identification/ (QUEUE.md W lines, data/, sim/),
 scripts/hardware/sr2_servo_sysid_fit.py
-Waiting on owner: none
+Waiting on owner: whether the trials load the new own-pose GP (fitted at (85, 170); the trials run at (70, 110)) in
+place of tip_contacts.OWN_POSE; whether W4's scenes take the measured MCP stops (index -10.3, middle -8.5 deg) and the
+safe range in place of hand_object_scale_kin.limits; S2's registers, S3 and S4 need the owner at the bench.
 Do not: touch the hand, corvus or the CB1; run GPU jobs; start W4; edit the lab's page or the bench README; commit data
 files over 2 MB.

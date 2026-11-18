@@ -1,0 +1,398 @@
+{
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261117-ab2_server_timing.py",
+ "runs": "docs/experiments/20261115-hom_bench_trials/runs",
+ "since": "20261117-194000",
+ "records": [
+  {
+   "record": "20261117-194243_twist_d40_trial001.jsonl",
+   "block": 1,
+   "arm": "off_base",
+   "git": "27e662a73",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 2.69,
+    "p95": 3.24,
+    "max": 7.37
+   }
+  },
+  {
+   "record": "20261117-194506_twist_d40_trial000.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 415,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 12.68,
+    "p95": 24.12,
+    "max": 53.26
+   }
+  },
+  {
+   "record": "20261117-194515_twist_d40_trial001.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 1,
+   "fragment": true,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 8.12,
+    "p95": 8.12,
+    "max": 8.12
+   }
+  },
+  {
+   "record": "20261117-194727_twist_d40_trial001.jsonl",
+   "block": 1,
+   "arm": "on_base",
+   "git": "50e3d2a56",
+   "periods": 326,
+   "fragment": false,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 2.88,
+    "p95": 7.01,
+    "max": 17.5
+   }
+  },
+  {
+   "record": "20261117-194922_twist_d40_trial000.jsonl",
+   "block": 1,
+   "arm": "on_fstep_hyst",
+   "git": "50e3d2a56",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 12.76,
+    "p95": 16.4,
+    "max": 22.69
+   }
+  },
+  {
+   "record": "20261117-194930_twist_d40_trial001.jsonl",
+   "block": 1,
+   "arm": "on_fstep_hyst",
+   "git": "50e3d2a56",
+   "periods": 1,
+   "fragment": true,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 9.01,
+    "p95": 9.01,
+    "max": 9.01
+   }
+  },
+  {
+   "record": "20261117-195313_twist_d40_trial002.jsonl",
+   "block": 1,
+   "arm": "off_base",
+   "git": "50e3d2a56",
+   "periods": 415,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 2.74,
+    "p95": 5.83,
+    "max": 16.92
+   }
+  },
+  {
+   "record": "20261117-195517_twist_d40_trial002.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 12.46,
+    "p95": 16.69,
+    "max": 37.75
+   }
+  },
+  {
+   "record": "20261117-195525_twist_d40_trial003.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 1,
+   "fragment": true,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 8.83,
+    "p95": 8.83,
+    "max": 8.83
+   }
+  },
+  {
+   "record": "20261117-195738_twist_d40_trial002.jsonl",
+   "block": 1,
+   "arm": "on_base",
+   "git": "50e3d2a56",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 2.93,
+    "p95": 7.45,
+    "max": 19.1
+   }
+  },
+  {
+   "record": "20261117-195931_twist_d40_trial002.jsonl",
+   "block": 1,
+   "arm": "on_fstep_hyst",
+   "git": "50e3d2a56",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 12.74,
+    "p95": 15.94,
+    "max": 24.78
+   }
+  },
+  {
+   "record": "20261117-195939_twist_d40_trial003.jsonl",
+   "block": 1,
+   "arm": "on_fstep_hyst",
+   "git": "50e3d2a56",
+   "periods": 1,
+   "fragment": true,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 8.34,
+    "p95": 8.34,
+    "max": 8.34
+   }
+  },
+  {
+   "record": "20261117-200137_twist_d40_trial003.jsonl",
+   "block": 1,
+   "arm": "off_base",
+   "git": "50e3d2a56",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 2.79,
+    "p95": 6.71,
+    "max": 21.29
+   }
+  },
+  {
+   "record": "20261117-200542_twist_d40_trial004.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 12.54,
+    "p95": 16.45,
+    "max": 42.69
+   }
+  },
+  {
+   "record": "20261117-200550_twist_d40_trial005.jsonl",
+   "block": 1,
+   "arm": "off_fstep",
+   "git": "50e3d2a56",
+   "periods": 1,
+   "fragment": true,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 9.38,
+    "p95": 9.38,
+    "max": 9.38
+   }
+  },
+  {
+   "record": "20261117-200806_twist_d40_trial003.jsonl",
+   "block": 1,
+   "arm": "on_base",
+   "git": "50e3d2a56",
+   "periods": 271,
+   "fragment": false,
+   "ended": "no state for 1.0 s",
+   "compute_ms": {
+    "median": 2.82,
+    "p95": 6.2,
+    "max": 11.56
+   }
+  },
+  {
+   "record": "20261117-210621_twist_d40_trial004.jsonl",
+   "block": 2,
+   "arm": "off_base",
+   "git": "3071c4b8e",
+   "periods": 415,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.04,
+    "p95": 3.48,
+    "max": 7.72
+   }
+  },
+  {
+   "record": "20261117-210830_twist_d40_trial000.jsonl",
+   "block": 2,
+   "arm": "off_exact",
+   "git": "3071c4b8e",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.04,
+    "p95": 3.42,
+    "max": 4.69
+   }
+  },
+  {
+   "record": "20261117-211021_twist_d40_trial004.jsonl",
+   "block": 2,
+   "arm": "on_base",
+   "git": "3071c4b8e",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.05,
+    "p95": 3.58,
+    "max": 7.16
+   }
+  },
+  {
+   "record": "20261117-211226_twist_d40_trial000.jsonl",
+   "block": 2,
+   "arm": "on_exact_hyst",
+   "git": "3071c4b8e",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.09,
+    "p95": 3.4,
+    "max": 3.96
+   }
+  },
+  {
+   "record": "20261117-211615_twist_d40_trial005.jsonl",
+   "block": 2,
+   "arm": "off_base",
+   "git": "3071c4b8e",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 2.99,
+    "p95": 3.55,
+    "max": 5.03
+   }
+  },
+  {
+   "record": "20261117-211835_twist_d40_trial001.jsonl",
+   "block": 2,
+   "arm": "off_exact",
+   "git": "3071c4b8e",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.02,
+    "p95": 3.54,
+    "max": 5.72
+   }
+  },
+  {
+   "record": "20261117-212039_twist_d40_trial005.jsonl",
+   "block": 2,
+   "arm": "on_base",
+   "git": "3071c4b8e",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.11,
+    "p95": 3.62,
+    "max": 4.61
+   }
+  },
+  {
+   "record": "20261117-212250_twist_d40_trial001.jsonl",
+   "block": 2,
+   "arm": "on_exact_hyst",
+   "git": "3071c4b8e",
+   "periods": 416,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.23,
+    "p95": 3.73,
+    "max": 5.61
+   }
+  },
+  {
+   "record": "20261117-212455_twist_d40_trial006.jsonl",
+   "block": 2,
+   "arm": "off_base",
+   "git": "3071c4b8e",
+   "periods": 417,
+   "fragment": false,
+   "ended": "end of schedule",
+   "compute_ms": {
+    "median": 3.2,
+    "p95": 3.78,
+    "max": 8.38
+   }
+  }
+ ],
+ "compute_median_ms_by_block_arm": {
+  "block 1 off_base": [
+   2.69,
+   2.79
+  ],
+  "block 1 off_fstep": [
+   12.46,
+   12.68
+  ],
+  "block 1 on_base": [
+   2.82,
+   2.93
+  ],
+  "block 1 on_fstep_hyst": [
+   12.74,
+   12.76
+  ],
+  "block 2 off_base": [
+   2.99,
+   3.2
+  ],
+  "block 2 off_exact": [
+   3.02,
+   3.04
+  ],
+  "block 2 on_base": [
+   3.05,
+   3.11
+  ],
+  "block 2 on_exact_hyst": [
+   3.09,
+   3.23
+  ]
+ },
+ "fragments": [
+  "20261117-194515_twist_d40_trial001.jsonl",
+  "20261117-194930_twist_d40_trial001.jsonl",
+  "20261117-195525_twist_d40_trial003.jsonl",
+  "20261117-195939_twist_d40_trial003.jsonl",
+  "20261117-200550_twist_d40_trial005.jsonl"
+ ]
+}
