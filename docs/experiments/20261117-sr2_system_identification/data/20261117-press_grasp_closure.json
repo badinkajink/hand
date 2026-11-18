@@ -1,0 +1,2741 @@
+{
+ "meta": {
+  "what": "The lat0 press grasp's closure at the onset (owner via the lab, 18:5x): in the calibrated simulation on the stiff-contact scene, at 1.30 and 1.58 s (before the lift) and 2.0 and 2.5 s, from every pad-cylinder contact: normal forces, the pinch's antipodality, the Ferrari-Canny epsilon (unit normal forces, 8-edge cones, torque over R = 12.5 mm) with three fingers and with the pinch, the torque about the cylinder's axis that friction can resist against the torque applied; and on the hand, when the cylinder turns about its axis and when each board first reads 0.3 N.",
+  "written": "2026-11-17 18:58",
+  "script": "sim/20261117-press_closure.py"
+ },
+ "sim": [
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.262,
+      -0.9651,
+      0.0008
+     ],
+     "centre_mm": [
+      -0.02,
+      0.12,
+      119.99
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.70127,
+      0.70054,
+      -0.0941,
+      -0.09278
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.3178,
+      -0.9481,
+      0.0001
+     ],
+     "centre_mm": [
+      -0.42,
+      0.51,
+      120.12
+     ],
+     "tau_axis_applied_mNm": -0.225,
+     "tau_axis_resistible_mNm": {
+      "1.0": 35.85,
+      "0.5": 17.93,
+      "0.4": 14.34
+     },
+     "F_net_contacts_N": [
+      -0.005,
+      0.008,
+      0.286
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.434,
+       "contacts": 18,
+       "cop_mm": [
+        0.57,
+        42.14,
+        120.71
+       ],
+       "normal": [
+        -0.947,
+        0.3175,
+        0.0481
+       ]
+      },
+      "index": {
+       "N": 1.311,
+       "contacts": 22,
+       "cop_mm": [
+        23.15,
+        31.98,
+        120.3
+       ],
+       "normal": [
+        0.948,
+        -0.3178,
+        0.0144
+       ]
+      },
+      "middle": {
+       "N": 0.156,
+       "contacts": 9,
+       "cop_mm": [
+        2.65,
+        -27.8,
+        116.51
+       ],
+       "normal": [
+        0.9073,
+        -0.3041,
+        -0.2905
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.42,
+      "line_to_thumb_normal_deg": 5.96,
+      "line_to_index_normal_deg": 5.95,
+      "line_to_axis_deg": 84.32
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1424,
+       "pinch": 0.0492
+      },
+      "0.5": {
+       "three": 0.0441,
+       "pinch": 0.0234
+      },
+      "0.4": {
+       "three": 0.028,
+       "pinch": 0.0184
+      }
+     },
+     "obj_quat": [
+      0.69836,
+      0.69738,
+      -0.11672,
+      -0.11099
+     ],
+     "turn_about_axis_deg": 0.36,
+     "turn_total_deg": 3.36
+    },
+    "1.58": {
+     "axis": [
+      -0.318,
+      -0.9481,
+      0.0001
+     ],
+     "centre_mm": [
+      -0.42,
+      0.51,
+      120.12
+     ],
+     "tau_axis_applied_mNm": 0.025,
+     "tau_axis_resistible_mNm": {
+      "1.0": 35.83,
+      "0.5": 17.91,
+      "0.4": 14.33
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.431,
+       "contacts": 18,
+       "cop_mm": [
+        0.57,
+        42.14,
+        120.71
+       ],
+       "normal": [
+        -0.947,
+        0.3176,
+        0.048
+       ]
+      },
+      "index": {
+       "N": 1.311,
+       "contacts": 22,
+       "cop_mm": [
+        23.15,
+        31.98,
+        120.3
+       ],
+       "normal": [
+        0.948,
+        -0.318,
+        0.0144
+       ]
+      },
+      "middle": {
+       "N": 0.156,
+       "contacts": 9,
+       "cop_mm": [
+        2.64,
+        -27.8,
+        116.5
+       ],
+       "normal": [
+        0.9071,
+        -0.3043,
+        -0.2909
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.42,
+      "line_to_thumb_normal_deg": 5.94,
+      "line_to_index_normal_deg": 5.94,
+      "line_to_axis_deg": 84.34
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1425,
+       "pinch": 0.0492
+      },
+      "0.5": {
+       "three": 0.0441,
+       "pinch": 0.0234
+      },
+      "0.4": {
+       "three": 0.0281,
+       "pinch": 0.0184
+      }
+     },
+     "obj_quat": [
+      0.69836,
+      0.69737,
+      -0.11681,
+      -0.11102
+     ],
+     "turn_about_axis_deg": 0.36,
+     "turn_total_deg": 3.37
+    },
+    "2.0": {
+     "axis": [
+      -0.3182,
+      -0.948,
+      -0.0
+     ],
+     "centre_mm": [
+      -0.43,
+      0.52,
+      120.12
+     ],
+     "tau_axis_applied_mNm": 0.026,
+     "tau_axis_resistible_mNm": {
+      "1.0": 35.81,
+      "0.5": 17.9,
+      "0.4": 14.32
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.429,
+       "contacts": 18,
+       "cop_mm": [
+        0.57,
+        42.14,
+        120.71
+       ],
+       "normal": [
+        -0.9469,
+        0.3178,
+        0.0481
+       ]
+      },
+      "index": {
+       "N": 1.319,
+       "contacts": 23,
+       "cop_mm": [
+        23.15,
+        31.97,
+        120.29
+       ],
+       "normal": [
+        0.9479,
+        -0.3182,
+        0.0136
+       ]
+      },
+      "middle": {
+       "N": 0.148,
+       "contacts": 9,
+       "cop_mm": [
+        2.63,
+        -27.8,
+        116.5
+       ],
+       "normal": [
+        0.9072,
+        -0.3045,
+        -0.2905
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.46,
+      "line_to_thumb_normal_deg": 5.96,
+      "line_to_index_normal_deg": 5.95,
+      "line_to_axis_deg": 84.31
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1426,
+       "pinch": 0.0505
+      },
+      "0.5": {
+       "three": 0.0442,
+       "pinch": 0.0242
+      },
+      "0.4": {
+       "three": 0.0282,
+       "pinch": 0.019
+      }
+     },
+     "obj_quat": [
+      0.69832,
+      0.69739,
+      -0.11694,
+      -0.11104
+     ],
+     "turn_about_axis_deg": 0.37,
+     "turn_total_deg": 3.39
+    },
+    "2.5": {
+     "axis": [
+      -0.3196,
+      -0.9476,
+      0.002
+     ],
+     "centre_mm": [
+      -0.58,
+      0.55,
+      120.21
+     ],
+     "tau_axis_applied_mNm": 0.027,
+     "tau_axis_resistible_mNm": {
+      "1.0": 43.91,
+      "0.5": 21.95,
+      "0.4": 17.56
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.801,
+       "contacts": 27,
+       "cop_mm": [
+        0.52,
+        42.16,
+        120.72
+       ],
+       "normal": [
+        -0.9464,
+        0.3193,
+        0.048
+       ]
+      },
+      "index": {
+       "N": 1.37,
+       "contacts": 23,
+       "cop_mm": [
+        23.05,
+        31.99,
+        120.3
+       ],
+       "normal": [
+        0.9475,
+        -0.3195,
+        0.0132
+       ]
+      },
+      "middle": {
+       "N": 0.386,
+       "contacts": 17,
+       "cop_mm": [
+        2.4,
+        -27.69,
+        116.61
+       ],
+       "normal": [
+        0.9052,
+        -0.3059,
+        -0.295
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.49,
+      "line_to_thumb_normal_deg": 5.92,
+      "line_to_index_normal_deg": 5.92,
+      "line_to_axis_deg": 84.35
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1632,
+       "pinch": 0.0609
+      },
+      "0.5": {
+       "three": 0.059,
+       "pinch": 0.0299
+      },
+      "0.4": {
+       "three": 0.0406,
+       "pinch": 0.0238
+      }
+     },
+     "obj_quat": [
+      0.69895,
+      0.69659,
+      -0.11739,
+      -0.11162
+     ],
+     "turn_about_axis_deg": 0.37,
+     "turn_total_deg": 3.47
+    }
+   }
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.2838,
+      -0.9589,
+      0.0005
+     ],
+     "centre_mm": [
+      0.22,
+      0.05,
+      120.0
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.6998,
+      0.69979,
+      -0.10008,
+      -0.10269
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.3298,
+      -0.944,
+      0.0009
+     ],
+     "centre_mm": [
+      -0.66,
+      0.37,
+      120.25
+     ],
+     "tau_axis_applied_mNm": 0.024,
+     "tau_axis_resistible_mNm": {
+      "1.0": 52.18,
+      "0.5": 26.09,
+      "0.4": 20.87
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.087,
+       "contacts": 24,
+       "cop_mm": [
+        0.79,
+        41.73,
+        120.72
+       ],
+       "normal": [
+        -0.9432,
+        0.3296,
+        0.0416
+       ]
+      },
+      "index": {
+       "N": 1.891,
+       "contacts": 26,
+       "cop_mm": [
+        23.45,
+        32.06,
+        120.37
+       ],
+       "normal": [
+        0.944,
+        -0.3298,
+        0.0131
+       ]
+      },
+      "middle": {
+       "N": 0.251,
+       "contacts": 12,
+       "cop_mm": [
+        2.23,
+        -27.37,
+        116.63
+       ],
+       "normal": [
+        0.9026,
+        -0.3156,
+        -0.2926
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.86,
+      "line_to_thumb_normal_deg": 4.17,
+      "line_to_index_normal_deg": 4.17,
+      "line_to_axis_deg": 86.14
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1557,
+       "pinch": 0.0593
+      },
+      "0.5": {
+       "three": 0.0537,
+       "pinch": 0.0304
+      },
+      "0.4": {
+       "three": 0.0362,
+       "pinch": 0.0247
+      }
+     },
+     "obj_quat": [
+      0.69792,
+      0.69636,
+      -0.12099,
+      -0.11554
+     ],
+     "turn_about_axis_deg": 0.66,
+     "turn_total_deg": 2.85
+    },
+    "1.58": {
+     "axis": [
+      -0.3314,
+      -0.9435,
+      0.0018
+     ],
+     "centre_mm": [
+      -0.72,
+      0.37,
+      120.28
+     ],
+     "tau_axis_applied_mNm": 0.025,
+     "tau_axis_resistible_mNm": {
+      "1.0": 52.01,
+      "0.5": 26.01,
+      "0.4": 20.81
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.073,
+       "contacts": 24,
+       "cop_mm": [
+        0.79,
+        41.72,
+        120.72
+       ],
+       "normal": [
+        -0.9427,
+        0.3311,
+        0.0416
+       ]
+      },
+      "index": {
+       "N": 1.892,
+       "contacts": 26,
+       "cop_mm": [
+        23.46,
+        32.07,
+        120.38
+       ],
+       "normal": [
+        0.9434,
+        -0.3313,
+        0.0133
+       ]
+      },
+      "middle": {
+       "N": 0.25,
+       "contacts": 12,
+       "cop_mm": [
+        2.12,
+        -27.36,
+        116.68
+       ],
+       "normal": [
+        0.9017,
+        -0.3172,
+        -0.2939
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.86,
+      "line_to_thumb_normal_deg": 4.03,
+      "line_to_index_normal_deg": 4.03,
+      "line_to_axis_deg": 86.28
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.156,
+       "pinch": 0.0593
+      },
+      "0.5": {
+       "three": 0.0539,
+       "pinch": 0.0304
+      },
+      "0.4": {
+       "three": 0.0363,
+       "pinch": 0.0247
+      }
+     },
+     "obj_quat": [
+      0.69816,
+      0.69593,
+      -0.12156,
+      -0.11612
+     ],
+     "turn_about_axis_deg": 0.67,
+     "turn_total_deg": 2.94
+    },
+    "2.0": {
+     "axis": [
+      -0.3338,
+      -0.9427,
+      0.0033
+     ],
+     "centre_mm": [
+      -0.82,
+      0.38,
+      120.34
+     ],
+     "tau_axis_applied_mNm": 0.025,
+     "tau_axis_resistible_mNm": {
+      "1.0": 51.74,
+      "0.5": 25.87,
+      "0.4": 20.7
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.056,
+       "contacts": 24,
+       "cop_mm": [
+        0.79,
+        41.71,
+        120.73
+       ],
+       "normal": [
+        -0.9418,
+        0.3336,
+        0.0415
+       ]
+      },
+      "index": {
+       "N": 1.897,
+       "contacts": 27,
+       "cop_mm": [
+        23.47,
+        32.1,
+        120.39
+       ],
+       "normal": [
+        0.9426,
+        -0.3337,
+        0.0135
+       ]
+      },
+      "middle": {
+       "N": 0.239,
+       "contacts": 12,
+       "cop_mm": [
+        1.95,
+        -27.35,
+        116.76
+       ],
+       "normal": [
+        0.9002,
+        -0.3198,
+        -0.2956
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.85,
+      "line_to_thumb_normal_deg": 3.8,
+      "line_to_index_normal_deg": 3.8,
+      "line_to_axis_deg": 86.54
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1564,
+       "pinch": 0.0595
+      },
+      "0.5": {
+       "three": 0.0541,
+       "pinch": 0.031
+      },
+      "0.4": {
+       "three": 0.0365,
+       "pinch": 0.0253
+      }
+     },
+     "obj_quat": [
+      0.69852,
+      0.69526,
+      -0.12241,
+      -0.11704
+     ],
+     "turn_about_axis_deg": 0.68,
+     "turn_total_deg": 3.09
+    },
+    "2.5": {
+     "axis": [
+      -0.3365,
+      -0.9417,
+      0.0065
+     ],
+     "centre_mm": [
+      -1.06,
+      0.44,
+      120.5
+     ],
+     "tau_axis_applied_mNm": 0.027,
+     "tau_axis_resistible_mNm": {
+      "1.0": 64.94,
+      "0.5": 32.47,
+      "0.4": 25.98
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.693,
+       "contacts": 31,
+       "cop_mm": [
+        0.71,
+        41.72,
+        120.72
+       ],
+       "normal": [
+        -0.9409,
+        0.3365,
+        0.039
+       ]
+      },
+      "index": {
+       "N": 2.039,
+       "contacts": 27,
+       "cop_mm": [
+        23.34,
+        32.13,
+        120.41
+       ],
+       "normal": [
+        0.9416,
+        -0.3364,
+        0.0127
+       ]
+      },
+      "middle": {
+       "N": 0.539,
+       "contacts": 18,
+       "cop_mm": [
+        1.59,
+        -27.17,
+        116.88
+       ],
+       "normal": [
+        0.896,
+        -0.3223,
+        -0.3055
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 177.04,
+      "line_to_thumb_normal_deg": 3.6,
+      "line_to_index_normal_deg": 3.6,
+      "line_to_axis_deg": 86.72
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1716,
+       "pinch": 0.064
+      },
+      "0.5": {
+       "three": 0.0642,
+       "pinch": 0.0336
+      },
+      "0.4": {
+       "three": 0.0452,
+       "pinch": 0.0277
+      }
+     },
+     "obj_quat": [
+      0.6995,
+      0.69393,
+      -0.1233,
+      -0.11816
+     ],
+     "turn_about_axis_deg": 0.69,
+     "turn_total_deg": 3.27
+    }
+   }
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.262,
+      -0.9651,
+      0.0008
+     ],
+     "centre_mm": [
+      -0.02,
+      0.12,
+      119.99
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.70127,
+      0.70054,
+      -0.0941,
+      -0.09278
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.3098,
+      -0.9508,
+      -0.0004
+     ],
+     "centre_mm": [
+      -0.53,
+      0.27,
+      120.12
+     ],
+     "tau_axis_applied_mNm": 0.024,
+     "tau_axis_resistible_mNm": {
+      "1.0": 33.62,
+      "0.5": 16.81,
+      "0.4": 13.45
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.334,
+       "contacts": 20,
+       "cop_mm": [
+        0.19,
+        42.25,
+        120.41
+       ],
+       "normal": [
+        -0.9506,
+        0.3097,
+        0.0224
+       ]
+      },
+      "index": {
+       "N": 1.239,
+       "contacts": 24,
+       "cop_mm": [
+        22.75,
+        31.86,
+        120.26
+       ],
+       "normal": [
+        0.9508,
+        -0.3098,
+        0.01
+       ]
+      },
+      "middle": {
+       "N": 0.144,
+       "contacts": 8,
+       "cop_mm": [
+        2.83,
+        -27.9,
+        116.51
+       ],
+       "normal": [
+        0.9103,
+        -0.2965,
+        -0.2889
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.15,
+      "line_to_thumb_normal_deg": 6.74,
+      "line_to_index_normal_deg": 6.74,
+      "line_to_axis_deg": 83.33
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.142,
+       "pinch": 0.0555
+      },
+      "0.5": {
+       "three": 0.0444,
+       "pinch": 0.0274
+      },
+      "0.4": {
+       "three": 0.0286,
+       "pinch": 0.0221
+      }
+     },
+     "obj_quat": [
+      0.69867,
+      0.69803,
+      -0.11372,
+      -0.10807
+     ],
+     "turn_about_axis_deg": 0.35,
+     "turn_total_deg": 2.88
+    },
+    "1.58": {
+     "axis": [
+      -0.3105,
+      -0.9506,
+      -0.0003
+     ],
+     "centre_mm": [
+      -0.55,
+      0.27,
+      120.12
+     ],
+     "tau_axis_applied_mNm": 0.025,
+     "tau_axis_resistible_mNm": {
+      "1.0": 33.5,
+      "0.5": 16.75,
+      "0.4": 13.4
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.322,
+       "contacts": 20,
+       "cop_mm": [
+        0.2,
+        42.24,
+        120.41
+       ],
+       "normal": [
+        -0.9503,
+        0.3104,
+        0.0224
+       ]
+      },
+      "index": {
+       "N": 1.243,
+       "contacts": 24,
+       "cop_mm": [
+        22.76,
+        31.87,
+        120.26
+       ],
+       "normal": [
+        0.9505,
+        -0.3105,
+        0.0102
+       ]
+      },
+      "middle": {
+       "N": 0.143,
+       "contacts": 9,
+       "cop_mm": [
+        2.79,
+        -27.88,
+        116.49
+       ],
+       "normal": [
+        0.9095,
+        -0.297,
+        -0.2908
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.13,
+      "line_to_thumb_normal_deg": 6.66,
+      "line_to_index_normal_deg": 6.66,
+      "line_to_axis_deg": 83.4
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1423,
+       "pinch": 0.0555
+      },
+      "0.5": {
+       "three": 0.0446,
+       "pinch": 0.0274
+      },
+      "0.4": {
+       "three": 0.0288,
+       "pinch": 0.0221
+      }
+     },
+     "obj_quat": [
+      0.69866,
+      0.69796,
+      -0.11407,
+      -0.10825
+     ],
+     "turn_about_axis_deg": 0.36,
+     "turn_total_deg": 2.93
+    },
+    "2.0": {
+     "axis": [
+      -0.3109,
+      -0.9505,
+      -0.0008
+     ],
+     "centre_mm": [
+      -0.57,
+      0.27,
+      120.1
+     ],
+     "tau_axis_applied_mNm": 0.025,
+     "tau_axis_resistible_mNm": {
+      "1.0": 33.38,
+      "0.5": 16.69,
+      "0.4": 13.35
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.32,
+       "contacts": 20,
+       "cop_mm": [
+        0.19,
+        42.24,
+        120.41
+       ],
+       "normal": [
+        -0.9502,
+        0.3108,
+        0.0224
+       ]
+      },
+      "index": {
+       "N": 1.24,
+       "contacts": 24,
+       "cop_mm": [
+        22.76,
+        31.87,
+        120.26
+       ],
+       "normal": [
+        0.9504,
+        -0.3109,
+        0.0103
+       ]
+      },
+      "middle": {
+       "N": 0.138,
+       "contacts": 8,
+       "cop_mm": [
+        2.77,
+        -27.9,
+        116.5
+       ],
+       "normal": [
+        0.9103,
+        -0.2975,
+        -0.2879
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.13,
+      "line_to_thumb_normal_deg": 6.63,
+      "line_to_index_normal_deg": 6.63,
+      "line_to_axis_deg": 83.44
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1429,
+       "pinch": 0.0555
+      },
+      "0.5": {
+       "three": 0.0449,
+       "pinch": 0.0274
+      },
+      "0.4": {
+       "three": 0.029,
+       "pinch": 0.0221
+      }
+     },
+     "obj_quat": [
+      0.69847,
+      0.6981,
+      -0.11426,
+      -0.10833
+     ],
+     "turn_about_axis_deg": 0.37,
+     "turn_total_deg": 2.95
+    },
+    "2.5": {
+     "axis": [
+      -0.3125,
+      -0.9499,
+      0.0014
+     ],
+     "centre_mm": [
+      -0.75,
+      0.31,
+      120.21
+     ],
+     "tau_axis_applied_mNm": 0.028,
+     "tau_axis_resistible_mNm": {
+      "1.0": 44.11,
+      "0.5": 22.06,
+      "0.4": 17.65
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.804,
+       "contacts": 24,
+       "cop_mm": [
+        0.12,
+        42.22,
+        120.45
+       ],
+       "normal": [
+        -0.9496,
+        0.3124,
+        0.0241
+       ]
+      },
+      "index": {
+       "N": 1.368,
+       "contacts": 24,
+       "cop_mm": [
+        22.64,
+        31.89,
+        120.28
+       ],
+       "normal": [
+        0.9499,
+        -0.3124,
+        0.0097
+       ]
+      },
+      "middle": {
+       "N": 0.399,
+       "contacts": 18,
+       "cop_mm": [
+        2.49,
+        -27.78,
+        116.62
+       ],
+       "normal": [
+        0.9082,
+        -0.2992,
+        -0.2927
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.06,
+      "line_to_thumb_normal_deg": 6.51,
+      "line_to_index_normal_deg": 6.51,
+      "line_to_axis_deg": 83.56
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1579,
+       "pinch": 0.0575
+      },
+      "0.5": {
+       "three": 0.0557,
+       "pinch": 0.0288
+      },
+      "0.4": {
+       "three": 0.0379,
+       "pinch": 0.0234
+      }
+     },
+     "obj_quat": [
+      0.69918,
+      0.69721,
+      -0.11483,
+      -0.10892
+     ],
+     "turn_about_axis_deg": 0.38,
+     "turn_total_deg": 3.04
+    }
+   }
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.2838,
+      -0.9589,
+      0.0005
+     ],
+     "centre_mm": [
+      0.22,
+      0.05,
+      120.0
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.6998,
+      0.69979,
+      -0.10008,
+      -0.10269
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.3239,
+      -0.9461,
+      -0.0008
+     ],
+     "centre_mm": [
+      -0.53,
+      0.3,
+      120.18
+     ],
+     "tau_axis_applied_mNm": 0.013,
+     "tau_axis_resistible_mNm": {
+      "1.0": 51.59,
+      "0.5": 25.79,
+      "0.4": 20.63
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.058,
+       "contacts": 23,
+       "cop_mm": [
+        0.79,
+        42.03,
+        120.74
+       ],
+       "normal": [
+        -0.9452,
+        0.3236,
+        0.0425
+       ]
+      },
+      "index": {
+       "N": 1.904,
+       "contacts": 28,
+       "cop_mm": [
+        23.33,
+        31.95,
+        120.35
+       ],
+       "normal": [
+        0.946,
+        -0.3239,
+        0.011
+       ]
+      },
+      "middle": {
+       "N": 0.218,
+       "contacts": 9,
+       "cop_mm": [
+        2.51,
+        -27.52,
+        116.53
+       ],
+       "normal": [
+        0.9049,
+        -0.3096,
+        -0.2919
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.93,
+      "line_to_thumb_normal_deg": 5.42,
+      "line_to_index_normal_deg": 5.42,
+      "line_to_axis_deg": 84.8
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1517,
+       "pinch": 0.0605
+      },
+      "0.5": {
+       "three": 0.0514,
+       "pinch": 0.0306
+      },
+      "0.4": {
+       "three": 0.0343,
+       "pinch": 0.025
+      }
+     },
+     "obj_quat": [
+      0.69746,
+      0.69756,
+      -0.11758,
+      -0.11463
+     ],
+     "turn_about_axis_deg": 0.44,
+     "turn_total_deg": 2.46
+    },
+    "1.58": {
+     "axis": [
+      -0.3252,
+      -0.9456,
+      0.0001
+     ],
+     "centre_mm": [
+      -0.58,
+      0.3,
+      120.22
+     ],
+     "tau_axis_applied_mNm": 0.012,
+     "tau_axis_resistible_mNm": {
+      "1.0": 51.54,
+      "0.5": 25.77,
+      "0.4": 20.62
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.057,
+       "contacts": 23,
+       "cop_mm": [
+        0.79,
+        42.02,
+        120.74
+       ],
+       "normal": [
+        -0.9448,
+        0.3249,
+        0.0426
+       ]
+      },
+      "index": {
+       "N": 1.87,
+       "contacts": 26,
+       "cop_mm": [
+        23.33,
+        31.97,
+        120.36
+       ],
+       "normal": [
+        0.9456,
+        -0.3252,
+        0.0116
+       ]
+      },
+      "middle": {
+       "N": 0.249,
+       "contacts": 10,
+       "cop_mm": [
+        2.41,
+        -27.51,
+        116.58
+       ],
+       "normal": [
+        0.9042,
+        -0.311,
+        -0.2927
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.9,
+      "line_to_thumb_normal_deg": 5.29,
+      "line_to_index_normal_deg": 5.29,
+      "line_to_axis_deg": 84.94
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1514,
+       "pinch": 0.0594
+      },
+      "0.5": {
+       "three": 0.051,
+       "pinch": 0.03
+      },
+      "0.4": {
+       "three": 0.034,
+       "pinch": 0.0241
+      }
+     },
+     "obj_quat": [
+      0.69769,
+      0.69717,
+      -0.118,
+      -0.11515
+     ],
+     "turn_about_axis_deg": 0.44,
+     "turn_total_deg": 2.53
+    },
+    "2.0": {
+     "axis": [
+      -0.3277,
+      -0.9448,
+      0.0016
+     ],
+     "centre_mm": [
+      -0.68,
+      0.31,
+      120.28
+     ],
+     "tau_axis_applied_mNm": 0.013,
+     "tau_axis_resistible_mNm": {
+      "1.0": 50.94,
+      "0.5": 25.47,
+      "0.4": 20.38
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.025,
+       "contacts": 22,
+       "cop_mm": [
+        0.79,
+        42.01,
+        120.76
+       ],
+       "normal": [
+        -0.9438,
+        0.3275,
+        0.0442
+       ]
+      },
+      "index": {
+       "N": 1.863,
+       "contacts": 27,
+       "cop_mm": [
+        23.34,
+        32.0,
+        120.36
+       ],
+       "normal": [
+        0.9447,
+        -0.3277,
+        0.0115
+       ]
+      },
+      "middle": {
+       "N": 0.239,
+       "contacts": 11,
+       "cop_mm": [
+        2.23,
+        -27.51,
+        116.67
+       ],
+       "normal": [
+        0.9029,
+        -0.3137,
+        -0.294
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 176.81,
+      "line_to_thumb_normal_deg": 5.05,
+      "line_to_index_normal_deg": 5.05,
+      "line_to_axis_deg": 85.21
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1514,
+       "pinch": 0.0594
+      },
+      "0.5": {
+       "three": 0.0518,
+       "pinch": 0.0304
+      },
+      "0.4": {
+       "three": 0.0346,
+       "pinch": 0.025
+      }
+     },
+     "obj_quat": [
+      0.69807,
+      0.69648,
+      -0.11891,
+      -0.11611
+     ],
+     "turn_about_axis_deg": 0.45,
+     "turn_total_deg": 2.68
+    },
+    "2.5": {
+     "axis": [
+      -0.3305,
+      -0.9438,
+      0.0048
+     ],
+     "centre_mm": [
+      -0.93,
+      0.37,
+      120.44
+     ],
+     "tau_axis_applied_mNm": 0.015,
+     "tau_axis_resistible_mNm": {
+      "1.0": 64.91,
+      "0.5": 32.46,
+      "0.4": 25.97
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 2.689,
+       "contacts": 31,
+       "cop_mm": [
+        0.7,
+        42.01,
+        120.73
+       ],
+       "normal": [
+        -0.943,
+        0.3305,
+        0.0399
+       ]
+      },
+      "index": {
+       "N": 2.038,
+       "contacts": 27,
+       "cop_mm": [
+        23.2,
+        32.03,
+        120.38
+       ],
+       "normal": [
+        0.9438,
+        -0.3305,
+        0.0106
+       ]
+      },
+      "middle": {
+       "N": 0.543,
+       "contacts": 20,
+       "cop_mm": [
+        1.88,
+        -27.31,
+        116.81
+       ],
+       "normal": [
+        0.8991,
+        -0.3164,
+        -0.3026
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 177.1,
+      "line_to_thumb_normal_deg": 4.85,
+      "line_to_index_normal_deg": 4.84,
+      "line_to_axis_deg": 85.38
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1678,
+       "pinch": 0.064
+      },
+      "0.5": {
+       "three": 0.0619,
+       "pinch": 0.0331
+      },
+      "0.4": {
+       "three": 0.0433,
+       "pinch": 0.0273
+      }
+     },
+     "obj_quat": [
+      0.69904,
+      0.69515,
+      -0.11982,
+      -0.11724
+     ],
+     "turn_about_axis_deg": 0.46,
+     "turn_total_deg": 2.86
+    }
+   }
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 5.0,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.2372,
+      -0.9715,
+      0.0002
+     ],
+     "centre_mm": [
+      -0.02,
+      0.02,
+      119.97
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.70215,
+      0.70194,
+      -0.08461,
+      -0.08432
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.2562,
+      -0.9666,
+      -0.0012
+     ],
+     "centre_mm": [
+      -0.3,
+      0.14,
+      120.08
+     ],
+     "tau_axis_applied_mNm": 0.011,
+     "tau_axis_resistible_mNm": {
+      "1.0": 36.11,
+      "0.5": 18.06,
+      "0.4": 14.44
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.456,
+       "contacts": 22,
+       "cop_mm": [
+        -1.63,
+        43.17,
+        119.86
+       ],
+       "normal": [
+        -0.9664,
+        0.2562,
+        -0.0215
+       ]
+      },
+      "index": {
+       "N": 1.285,
+       "contacts": 23,
+       "cop_mm": [
+        20.72,
+        31.26,
+        120.02
+       ],
+       "normal": [
+        0.9666,
+        -0.2562,
+        -0.0079
+       ]
+      },
+      "middle": {
+       "N": 0.179,
+       "contacts": 10,
+       "cop_mm": [
+        4.57,
+        -28.01,
+        116.53
+       ],
+       "normal": [
+        0.9273,
+        -0.2455,
+        -0.2827
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.32,
+      "line_to_thumb_normal_deg": 13.23,
+      "line_to_index_normal_deg": 13.23,
+      "line_to_axis_deg": 76.8
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1247,
+       "pinch": 0.052
+      },
+      "0.5": {
+       "three": 0.0331,
+       "pinch": 0.0251
+      },
+      "0.4": {
+       "three": 0.0199,
+       "pinch": 0.0199
+      }
+     },
+     "obj_quat": [
+      0.70093,
+      0.70142,
+      -0.09267,
+      -0.09004
+     ],
+     "turn_about_axis_deg": 0.18,
+     "turn_total_deg": 1.14
+    },
+    "1.58": {
+     "axis": [
+      -0.2563,
+      -0.9666,
+      -0.0011
+     ],
+     "centre_mm": [
+      -0.31,
+      0.15,
+      120.08
+     ],
+     "tau_axis_applied_mNm": 0.011,
+     "tau_axis_resistible_mNm": {
+      "1.0": 35.95,
+      "0.5": 17.98,
+      "0.4": 14.38
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.454,
+       "contacts": 22,
+       "cop_mm": [
+        -1.63,
+        43.17,
+        119.86
+       ],
+       "normal": [
+        -0.9664,
+        0.2563,
+        -0.0215
+       ]
+      },
+      "index": {
+       "N": 1.275,
+       "contacts": 22,
+       "cop_mm": [
+        20.72,
+        31.25,
+        120.0
+       ],
+       "normal": [
+        0.9665,
+        -0.2563,
+        -0.0093
+       ]
+      },
+      "middle": {
+       "N": 0.178,
+       "contacts": 10,
+       "cop_mm": [
+        4.56,
+        -28.01,
+        116.54
+       ],
+       "normal": [
+        0.9272,
+        -0.2456,
+        -0.2826
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.23,
+      "line_to_thumb_normal_deg": 13.25,
+      "line_to_index_normal_deg": 13.25,
+      "line_to_axis_deg": 76.78
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1248,
+       "pinch": 0.052
+      },
+      "0.5": {
+       "three": 0.0331,
+       "pinch": 0.0251
+      },
+      "0.4": {
+       "three": 0.0199,
+       "pinch": 0.0199
+      }
+     },
+     "obj_quat": [
+      0.70096,
+      0.70139,
+      -0.09272,
+      -0.09008
+     ],
+     "turn_about_axis_deg": 0.18,
+     "turn_total_deg": 1.15
+    },
+    "2.0": {
+     "axis": [
+      -0.2565,
+      -0.9665,
+      -0.001
+     ],
+     "centre_mm": [
+      -0.31,
+      0.15,
+      120.08
+     ],
+     "tau_axis_applied_mNm": 0.012,
+     "tau_axis_resistible_mNm": {
+      "1.0": 35.89,
+      "0.5": 17.94,
+      "0.4": 14.35
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.452,
+       "contacts": 22,
+       "cop_mm": [
+        -1.63,
+        43.17,
+        119.86
+       ],
+       "normal": [
+        -0.9663,
+        0.2565,
+        -0.0214
+       ]
+      },
+      "index": {
+       "N": 1.273,
+       "contacts": 22,
+       "cop_mm": [
+        20.72,
+        31.25,
+        120.0
+       ],
+       "normal": [
+        0.9665,
+        -0.2565,
+        -0.0092
+       ]
+      },
+      "middle": {
+       "N": 0.177,
+       "contacts": 10,
+       "cop_mm": [
+        4.55,
+        -28.01,
+        116.54
+       ],
+       "normal": [
+        0.9272,
+        -0.2458,
+        -0.2827
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.24,
+      "line_to_thumb_normal_deg": 13.24,
+      "line_to_index_normal_deg": 13.24,
+      "line_to_axis_deg": 76.79
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1248,
+       "pinch": 0.052
+      },
+      "0.5": {
+       "three": 0.0331,
+       "pinch": 0.0251
+      },
+      "0.4": {
+       "three": 0.0199,
+       "pinch": 0.0199
+      }
+     },
+     "obj_quat": [
+      0.70098,
+      0.70135,
+      -0.09284,
+      -0.09006
+     ],
+     "turn_about_axis_deg": 0.19,
+     "turn_total_deg": 1.16
+    },
+    "2.5": {
+     "axis": [
+      -0.2589,
+      -0.9659,
+      0.001
+     ],
+     "centre_mm": [
+      -0.45,
+      0.16,
+      120.17
+     ],
+     "tau_axis_applied_mNm": 0.01,
+     "tau_axis_resistible_mNm": {
+      "1.0": 41.1,
+      "0.5": 20.55,
+      "0.4": 16.44
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 1.65,
+       "contacts": 22,
+       "cop_mm": [
+        -1.66,
+        43.14,
+        119.87
+       ],
+       "normal": [
+        -0.9657,
+        0.2588,
+        -0.0214
+       ]
+      },
+      "index": {
+       "N": 1.276,
+       "contacts": 23,
+       "cop_mm": [
+        20.67,
+        31.3,
+        120.04
+       ],
+       "normal": [
+        0.9659,
+        -0.2589,
+        -0.0076
+       ]
+      },
+      "middle": {
+       "N": 0.401,
+       "contacts": 16,
+       "cop_mm": [
+        4.3,
+        -28.03,
+        116.69
+       ],
+       "normal": [
+        0.9264,
+        -0.2486,
+        -0.2828
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.34,
+      "line_to_thumb_normal_deg": 12.98,
+      "line_to_index_normal_deg": 12.98,
+      "line_to_axis_deg": 77.05
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1369,
+       "pinch": 0.052
+      },
+      "0.5": {
+       "three": 0.0408,
+       "pinch": 0.0251
+      },
+      "0.4": {
+       "three": 0.0253,
+       "pinch": 0.02
+      }
+     },
+     "obj_quat": [
+      0.70159,
+      0.70052,
+      -0.09373,
+      -0.09089
+     ],
+     "turn_about_axis_deg": 0.21,
+     "turn_total_deg": 1.3
+    }
+   }
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 7.5,
+   "seed": 0,
+   "error": null,
+   "snapshots": {
+    "0.3": {
+     "axis": [
+      -0.2372,
+      -0.9715,
+      0.0002
+     ],
+     "centre_mm": [
+      -0.02,
+      0.02,
+      119.97
+     ],
+     "tau_axis_applied_mNm": 0.0,
+     "tau_axis_resistible_mNm": {
+      "1.0": 0.0,
+      "0.5": 0.0,
+      "0.4": 0.0
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "index": {
+       "N": 0.0,
+       "contacts": 0
+      },
+      "middle": {
+       "N": 0.0,
+       "contacts": 0
+      }
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.5": {
+       "three": 0.0,
+       "pinch": 0.0
+      },
+      "0.4": {
+       "three": 0.0,
+       "pinch": 0.0
+      }
+     },
+     "obj_quat": [
+      0.70215,
+      0.70194,
+      -0.08461,
+      -0.08432
+     ],
+     "turn_about_axis_deg": 0.0,
+     "turn_total_deg": 0.0
+    },
+    "1.3": {
+     "axis": [
+      -0.268,
+      -0.9634,
+      -0.0039
+     ],
+     "centre_mm": [
+      -0.3,
+      0.01,
+      120.1
+     ],
+     "tau_axis_applied_mNm": 0.008,
+     "tau_axis_resistible_mNm": {
+      "1.0": 86.87,
+      "0.5": 43.44,
+      "0.4": 34.75
+     },
+     "F_net_contacts_N": [
+      0.0,
+      0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 3.731,
+       "contacts": 36,
+       "cop_mm": [
+        -1.01,
+        42.85,
+        120.07
+       ],
+       "normal": [
+        -0.9633,
+        0.2681,
+        -0.0158
+       ]
+      },
+      "index": {
+       "N": 3.042,
+       "contacts": 31,
+       "cop_mm": [
+        21.19,
+        31.47,
+        120.12
+       ],
+       "normal": [
+        0.9634,
+        -0.268,
+        -0.0096
+       ]
+      },
+      "middle": {
+       "N": 0.306,
+       "contacts": 15,
+       "cop_mm": [
+        4.33,
+        -27.78,
+        116.51
+       ],
+       "normal": [
+        0.9249,
+        -0.2562,
+        -0.2808
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.55,
+      "line_to_thumb_normal_deg": 11.61,
+      "line_to_index_normal_deg": 11.61,
+      "line_to_axis_deg": 78.41
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.144,
+       "pinch": 0.0701
+      },
+      "0.5": {
+       "three": 0.0457,
+       "pinch": 0.0329
+      },
+      "0.4": {
+       "three": 0.0292,
+       "pinch": 0.0264
+      }
+     },
+     "obj_quat": [
+      0.69937,
+      0.70184,
+      -0.0968,
+      -0.0945
+     ],
+     "turn_about_axis_deg": 0.14,
+     "turn_total_deg": 1.85
+    },
+    "1.58": {
+     "axis": [
+      -0.2683,
+      -0.9633,
+      -0.0038
+     ],
+     "centre_mm": [
+      -0.31,
+      0.01,
+      120.1
+     ],
+     "tau_axis_applied_mNm": 0.009,
+     "tau_axis_resistible_mNm": {
+      "1.0": 86.71,
+      "0.5": 43.36,
+      "0.4": 34.68
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 3.721,
+       "contacts": 36,
+       "cop_mm": [
+        -1.01,
+        42.84,
+        120.07
+       ],
+       "normal": [
+        -0.9632,
+        0.2683,
+        -0.0158
+       ]
+      },
+      "index": {
+       "N": 3.038,
+       "contacts": 31,
+       "cop_mm": [
+        21.19,
+        31.47,
+        120.12
+       ],
+       "normal": [
+        0.9633,
+        -0.2682,
+        -0.0096
+       ]
+      },
+      "middle": {
+       "N": 0.306,
+       "contacts": 15,
+       "cop_mm": [
+        4.31,
+        -27.78,
+        116.52
+       ],
+       "normal": [
+        0.9247,
+        -0.2564,
+        -0.2813
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.55,
+      "line_to_thumb_normal_deg": 11.59,
+      "line_to_index_normal_deg": 11.59,
+      "line_to_axis_deg": 78.43
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1441,
+       "pinch": 0.0701
+      },
+      "0.5": {
+       "three": 0.0457,
+       "pinch": 0.0329
+      },
+      "0.4": {
+       "three": 0.0293,
+       "pinch": 0.0264
+      }
+     },
+     "obj_quat": [
+      0.6994,
+      0.70178,
+      -0.09689,
+      -0.09459
+     ],
+     "turn_about_axis_deg": 0.14,
+     "turn_total_deg": 1.86
+    },
+    "2.0": {
+     "axis": [
+      -0.2685,
+      -0.9633,
+      -0.0037
+     ],
+     "centre_mm": [
+      -0.32,
+      0.01,
+      120.11
+     ],
+     "tau_axis_applied_mNm": 0.009,
+     "tau_axis_resistible_mNm": {
+      "1.0": 86.84,
+      "0.5": 43.42,
+      "0.4": 34.73
+     },
+     "F_net_contacts_N": [
+      -0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 3.722,
+       "contacts": 36,
+       "cop_mm": [
+        -1.01,
+        42.84,
+        120.07
+       ],
+       "normal": [
+        -0.9631,
+        0.2685,
+        -0.0157
+       ]
+      },
+      "index": {
+       "N": 3.048,
+       "contacts": 32,
+       "cop_mm": [
+        21.2,
+        31.5,
+        120.13
+       ],
+       "normal": [
+        0.9632,
+        -0.2685,
+        -0.009
+       ]
+      },
+      "middle": {
+       "N": 0.305,
+       "contacts": 15,
+       "cop_mm": [
+        4.3,
+        -27.77,
+        116.52
+       ],
+       "normal": [
+        0.9246,
+        -0.2566,
+        -0.2816
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.58,
+      "line_to_thumb_normal_deg": 11.51,
+      "line_to_index_normal_deg": 11.51,
+      "line_to_axis_deg": 78.51
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1441,
+       "pinch": 0.0707
+      },
+      "0.5": {
+       "three": 0.0458,
+       "pinch": 0.0336
+      },
+      "0.4": {
+       "three": 0.0293,
+       "pinch": 0.0268
+      }
+     },
+     "obj_quat": [
+      0.69944,
+      0.70173,
+      -0.09699,
+      -0.09464
+     ],
+     "turn_about_axis_deg": 0.14,
+     "turn_total_deg": 1.87
+    },
+    "2.5": {
+     "axis": [
+      -0.2756,
+      -0.9613,
+      0.0009
+     ],
+     "centre_mm": [
+      -0.59,
+      0.03,
+      120.3
+     ],
+     "tau_axis_applied_mNm": 0.011,
+     "tau_axis_resistible_mNm": {
+      "1.0": 85.56,
+      "0.5": 42.78,
+      "0.4": 34.22
+     },
+     "F_net_contacts_N": [
+      0.0,
+      -0.0,
+      0.295
+     ],
+     "fingers": {
+      "thumb": {
+       "N": 3.589,
+       "contacts": 35,
+       "cop_mm": [
+        -1.0,
+        42.79,
+        120.08
+       ],
+       "normal": [
+        -0.9612,
+        0.2755,
+        -0.0152
+       ]
+      },
+      "index": {
+       "N": 2.83,
+       "contacts": 32,
+       "cop_mm": [
+        21.22,
+        31.55,
+        120.16
+       ],
+       "normal": [
+        0.9612,
+        -0.2756,
+        -0.0088
+       ]
+      },
+      "middle": {
+       "N": 0.547,
+       "contacts": 21,
+       "cop_mm": [
+        3.72,
+        -27.77,
+        116.7
+       ],
+       "normal": [
+        0.9188,
+        -0.2637,
+        -0.2937
+       ]
+      }
+     },
+     "pinch": {
+      "normals_angle_deg": 178.63,
+      "line_to_thumb_normal_deg": 10.85,
+      "line_to_index_normal_deg": 10.85,
+      "line_to_axis_deg": 79.17
+     },
+     "epsilon": {
+      "1.0": {
+       "three": 0.1564,
+       "pinch": 0.0706
+      },
+      "0.5": {
+       "three": 0.0543,
+       "pinch": 0.0337
+      },
+      "0.4": {
+       "three": 0.0364,
+       "pinch": 0.0269
+      }
+     },
+     "obj_quat": [
+      0.70069,
+      0.69976,
+      -0.09939,
+      -0.09739
+     ],
+     "turn_about_axis_deg": 0.14,
+     "turn_total_deg": 2.28
+    }
+   }
+  }
+ ],
+ "hand": {
+  "trials": {
+   "18:30 (plan pose, kp 0.55)": {
+    "spin_deg": {
+     "0.3": -0.8,
+     "0.5": -5.1,
+     "0.8": -14.0,
+     "1.0": -19.7,
+     "1.6": -24.9
+    },
+    "force_onset_s": {
+     "thumb": 0.56,
+     "index": 0.7,
+     "middle": 1.5
+    },
+    "n_tags_0.1_1.0": "4-5"
+   },
+   "18:44 (replan pose, kp 0.825)": {
+    "spin_deg": {
+     "0.3": -3.3,
+     "0.5": -9.6,
+     "0.8": -11.5,
+     "1.0": -21.8,
+     "1.6": -27.3
+    },
+    "force_onset_s": {
+     "thumb": 0.48,
+     "index": 0.88,
+     "middle": 1.88
+    },
+    "n_tags_0.1_1.0": "3-6"
+   },
+   "18:49 (replan pose, kp 0.55)": {
+    "spin_deg": {
+     "0.3": -1.8,
+     "0.5": -4.8,
+     "0.8": -9.7,
+     "1.0": -17.7,
+     "1.6": -21.0
+    },
+    "force_onset_s": {
+     "thumb": 0.82,
+     "index": 0.82,
+     "middle": 2.36
+    },
+    "n_tags_0.1_1.0": "2-5"
+   }
+  },
+  "how": "spin = the tracked object's rotation about its body axis 1 (the cylinder's axis, along z_P) from the first sample; force onset = first period with the board's |F| >= 0.3 N (recorded with --tips off); server records runs/20261117-183037, -184442, -184917."
+ }
+}
