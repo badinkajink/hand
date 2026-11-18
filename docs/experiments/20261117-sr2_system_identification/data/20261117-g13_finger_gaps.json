@@ -1,0 +1,1647 @@
+{
+ "meta": {
+  "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+  "budget": 0.56,
+  "layout": "grid2dgr:329:13",
+  "plan_file": null,
+  "stop_deg": {
+   "index": -11.4,
+   "middle": -10.0
+  },
+  "plant_75": {
+   "kp": 0.8250000000000001,
+   "damping": 0.011,
+   "tau_max": 0.27
+  },
+  "scenes": {
+   "pads": "sph040_stem_block_tape0_imp1.xml",
+   "point": "sph040_stem_block_pt_imp1.xml",
+   "pads_stiff": "sph040_stem_block_tape0_imp100.xml"
+  },
+  "kp_yaw_im_5v": 0.35,
+  "c_f": 0.6,
+  "stiff": true,
+  "written": "2026-11-17 18:30",
+  "what": "Index-middle finger gaps in the calibrated simulation of g13 at (105, 70) from the mcpstop and re-planned open poses: HOM's targets overlap the two fingers by about 10 mm; the simulated fingers stay 13-17 mm apart. On the hand at 7.5 V they came within 1.9-7.8 mm (lab, 18:2x), at 5 V 9.6 mm (11-16)."
+ },
+ "summary": [
+  {
+   "start": "mcpstop",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.335,
+   "track_min": 0.33,
+   "track_max": 0.342,
+   "twist_end_deg": 38.0,
+   "drift_max_mm": 14.1,
+   "rise_max_mm": 5.5,
+   "gap_index_middle_states_min_mm": 13.7,
+   "gap_index_middle_targets_min_mm": -10.2
+  },
+  {
+   "start": "mcpstop",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "point",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.322,
+   "track_min": 0.32,
+   "track_max": 0.323,
+   "twist_end_deg": 35.0,
+   "drift_max_mm": 11.8,
+   "rise_max_mm": 3.7,
+   "gap_index_middle_states_min_mm": 14.7,
+   "gap_index_middle_targets_min_mm": -10.0
+  },
+  {
+   "start": "mcpstop",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.369,
+   "track_min": 0.367,
+   "track_max": 0.371,
+   "twist_end_deg": 48.5,
+   "drift_max_mm": 21.2,
+   "rise_max_mm": 12.7,
+   "gap_index_middle_states_min_mm": 13.7,
+   "gap_index_middle_targets_min_mm": -10.3
+  },
+  {
+   "start": "mcpstop",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "point",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.353,
+   "track_min": 0.343,
+   "track_max": 0.36,
+   "twist_end_deg": 48.7,
+   "drift_max_mm": 18.9,
+   "rise_max_mm": 11.4,
+   "gap_index_middle_states_min_mm": 14.9,
+   "gap_index_middle_targets_min_mm": -10.0
+  },
+  {
+   "start": "replan",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.328,
+   "track_min": 0.326,
+   "track_max": 0.331,
+   "twist_end_deg": 37.3,
+   "drift_max_mm": 13.3,
+   "rise_max_mm": 4.1,
+   "gap_index_middle_states_min_mm": 16.4,
+   "gap_index_middle_targets_min_mm": -11.1
+  },
+  {
+   "start": "replan",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "point",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.331,
+   "track_min": 0.325,
+   "track_max": 0.334,
+   "twist_end_deg": 35.2,
+   "drift_max_mm": 11.4,
+   "rise_max_mm": 2.8,
+   "gap_index_middle_states_min_mm": 17.2,
+   "gap_index_middle_targets_min_mm": -10.9
+  },
+  {
+   "start": "replan",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.365,
+   "track_min": 0.358,
+   "track_max": 0.371,
+   "twist_end_deg": 49.9,
+   "drift_max_mm": 19.6,
+   "rise_max_mm": 9.8,
+   "gap_index_middle_states_min_mm": 13.3,
+   "gap_index_middle_targets_min_mm": -10.9
+  },
+  {
+   "start": "replan",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "point",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.358,
+   "track_min": 0.346,
+   "track_max": 0.364,
+   "twist_end_deg": 49.9,
+   "drift_max_mm": 18.8,
+   "rise_max_mm": 8.9,
+   "gap_index_middle_states_min_mm": 15.5,
+   "gap_index_middle_targets_min_mm": -10.7
+  }
+ ],
+ "rows": [
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      17.7,
+      7.6
+     ],
+     "ti": [
+      30.2,
+      3.36
+     ],
+     "tm": [
+      28.3,
+      5.64
+     ]
+    },
+    "targets": {
+     "im": [
+      -9.8,
+      0.8
+     ],
+     "ti": [
+      3.0,
+      2.08
+     ],
+     "tm": [
+      2.2,
+      1.32
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.323,
+   "twist_end": 35.5,
+   "rise_max": 4.1,
+   "drift_max": 11.6,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     9.2,
+     31.9
+    ],
+    "index": [
+     9.7,
+     -2.1,
+     42.7
+    ],
+    "middle": [
+     -11.6,
+     2.6,
+     34.7
+    ]
+   },
+   "wall_s": 2.0
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      18.0,
+      4.04
+     ],
+     "ti": [
+      30.0,
+      3.2
+     ],
+     "tm": [
+      28.5,
+      5.72
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.0,
+      0.84
+     ],
+     "ti": [
+      2.5,
+      3.6
+     ],
+     "tm": [
+      2.9,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.323,
+   "twist_end": 35.4,
+   "rise_max": 4.37,
+   "drift_max": 11.0,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     9.2,
+     32.0
+    ],
+    "index": [
+     9.9,
+     -1.1,
+     41.0
+    ],
+    "middle": [
+     -11.5,
+     1.2,
+     36.9
+    ]
+   },
+   "wall_s": 2.0
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      14.7,
+      7.76
+     ],
+     "ti": [
+      30.8,
+      1.48
+     ],
+     "tm": [
+      28.4,
+      5.44
+     ]
+    },
+    "targets": {
+     "im": [
+      -9.5,
+      0.8
+     ],
+     "ti": [
+      3.1,
+      5.68
+     ],
+     "tm": [
+      1.4,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.32,
+   "twist_end": 34.1,
+   "rise_max": 2.68,
+   "drift_max": 12.9,
+   "grasp_joints": {
+    "thumb": [
+     3.0,
+     8.9,
+     31.9
+    ],
+    "index": [
+     9.6,
+     -3.0,
+     44.2
+    ],
+    "middle": [
+     -12.1,
+     4.3,
+     32.4
+    ]
+   },
+   "wall_s": 2.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.9,
+      7.76
+     ],
+     "ti": [
+      30.5,
+      3.4
+     ],
+     "tm": [
+      27.6,
+      5.32
+     ]
+    },
+    "targets": {
+     "im": [
+      -9.5,
+      0.8
+     ],
+     "ti": [
+      2.0,
+      5.52
+     ],
+     "tm": [
+      0.9,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.33,
+   "twist_end": 39.0,
+   "rise_max": 5.15,
+   "drift_max": 14.9,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     9.0,
+     31.8
+    ],
+    "index": [
+     9.6,
+     -2.8,
+     44.2
+    ],
+    "middle": [
+     -12.1,
+     4.8,
+     32.0
+    ]
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      14.1,
+      7.4
+     ],
+     "ti": [
+      29.1,
+      7.4
+     ],
+     "tm": [
+      27.0,
+      5.68
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.3,
+      1.56
+     ],
+     "ti": [
+      1.6,
+      5.6
+     ],
+     "tm": [
+      2.1,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.368,
+   "twist_end": 48.5,
+   "rise_max": 12.79,
+   "drift_max": 21.2,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.6,
+     -2.3,
+     43.7
+    ],
+    "middle": [
+     -12.1,
+     1.1,
+     37.8
+    ]
+   },
+   "wall_s": 3.4
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.7,
+      7.4
+     ],
+     "ti": [
+      29.4,
+      4.08
+     ],
+     "tm": [
+      27.0,
+      5.6
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.0,
+      2.88
+     ],
+     "ti": [
+      1.7,
+      5.72
+     ],
+     "tm": [
+      1.8,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.371,
+   "twist_end": 48.0,
+   "rise_max": 12.33,
+   "drift_max": 22.0,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     8.0,
+     33.5
+    ],
+    "index": [
+     10.5,
+     -3.0,
+     44.8
+    ],
+    "middle": [
+     -12.4,
+     1.6,
+     37.2
+    ]
+   },
+   "wall_s": 3.4
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      15.9,
+      7.76
+     ],
+     "ti": [
+      29.3,
+      7.76
+     ],
+     "tm": [
+      28.1,
+      5.76
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.0,
+      1.96
+     ],
+     "ti": [
+      2.8,
+      3.52
+     ],
+     "tm": [
+      2.7,
+      3.24
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.36,
+   "twist_end": 52.5,
+   "rise_max": 12.25,
+   "drift_max": 19.9,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.6,
+     -2.6,
+     43.7
+    ],
+    "middle": [
+     -12.1,
+     0.0,
+     39.0
+    ]
+   },
+   "wall_s": 1.9
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      15.9,
+      7.76
+     ],
+     "ti": [
+      29.7,
+      3.2
+     ],
+     "tm": [
+      27.7,
+      5.6
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.2,
+      1.6
+     ],
+     "ti": [
+      2.1,
+      5.72
+     ],
+     "tm": [
+      2.3,
+      1.76
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.342,
+   "twist_end": 38.3,
+   "rise_max": 5.92,
+   "drift_max": 13.4,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.3,
+     31.9
+    ],
+    "index": [
+     9.9,
+     -1.1,
+     41.5
+    ],
+    "middle": [
+     -11.5,
+     1.7,
+     36.3
+    ]
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.7,
+      7.76
+     ],
+     "ti": [
+      30.0,
+      4.08
+     ],
+     "tm": [
+      27.5,
+      5.52
+     ]
+    },
+    "targets": {
+     "im": [
+      -9.8,
+      0.8
+     ],
+     "ti": [
+      2.2,
+      5.6
+     ],
+     "tm": [
+      1.7,
+      1.92
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.333,
+   "twist_end": 36.8,
+   "rise_max": 5.44,
+   "drift_max": 13.9,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     9.3,
+     31.9
+    ],
+    "index": [
+     9.8,
+     -1.9,
+     42.7
+    ],
+    "middle": [
+     -11.7,
+     3.2,
+     34.1
+    ]
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      14.9,
+      7.76
+     ],
+     "ti": [
+      30.1,
+      3.88
+     ],
+     "tm": [
+      28.1,
+      5.68
+     ]
+    },
+    "targets": {
+     "im": [
+      -9.8,
+      1.96
+     ],
+     "ti": [
+      3.1,
+      3.36
+     ],
+     "tm": [
+      2.3,
+      3.28
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.343,
+   "twist_end": 46.2,
+   "rise_max": 10.45,
+   "drift_max": 18.9,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     8.0,
+     33.3
+    ],
+    "index": [
+     10.5,
+     -3.3,
+     44.8
+    ],
+    "middle": [
+     -12.4,
+     0.8,
+     37.8
+    ]
+   },
+   "wall_s": 2.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.0,
+      7.76
+     ],
+     "ti": [
+      29.6,
+      7.76
+     ],
+     "tm": [
+      28.0,
+      5.8
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.0,
+      1.8
+     ],
+     "ti": [
+      2.7,
+      3.44
+     ],
+     "tm": [
+      2.9,
+      3.28
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.355,
+   "twist_end": 47.4,
+   "rise_max": 11.39,
+   "drift_max": 17.9,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.6,
+     -2.3,
+     43.0
+    ],
+    "middle": [
+     -11.9,
+     0.1,
+     38.9
+    ]
+   },
+   "wall_s": 1.9
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.9,
+      7.48
+     ],
+     "ti": [
+      28.7,
+      7.64
+     ],
+     "tm": [
+      27.2,
+      5.76
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.1,
+      1.72
+     ],
+     "ti": [
+      1.7,
+      5.6
+     ],
+     "tm": [
+      2.2,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.367,
+   "twist_end": 48.9,
+   "rise_max": 13.08,
+   "drift_max": 20.5,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.8,
+     -1.9,
+     43.0
+    ],
+    "middle": [
+     -11.9,
+     0.7,
+     38.3
+    ]
+   },
+   "wall_s": 3.4
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      17.6,
+      4.08
+     ],
+     "ti": [
+      30.6,
+      2.28
+     ],
+     "tm": [
+      28.9,
+      5.4
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.9,
+      0.88
+     ],
+     "ti": [
+      2.1,
+      5.72
+     ],
+     "tm": [
+      2.0,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.325,
+   "twist_end": 35.5,
+   "rise_max": 2.7,
+   "drift_max": 12.6,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     11.1,
+     30.0
+    ],
+    "index": [
+     9.6,
+     -2.3,
+     41.1
+    ],
+    "middle": [
+     -12.2,
+     2.1,
+     33.9
+    ]
+   },
+   "wall_s": 2.0
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      17.2,
+      4.08
+     ],
+     "ti": [
+      30.2,
+      2.32
+     ],
+     "tm": [
+      29.3,
+      5.68
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.7,
+      1.68
+     ],
+     "ti": [
+      2.4,
+      2.08
+     ],
+     "tm": [
+      2.5,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.333,
+   "twist_end": 35.1,
+   "rise_max": 2.95,
+   "drift_max": 10.8,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     10.7,
+     30.2
+    ],
+    "index": [
+     10.2,
+     -1.0,
+     39.3
+    ],
+    "middle": [
+     -11.8,
+     1.7,
+     34.9
+    ]
+   },
+   "wall_s": 1.9
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.6,
+      7.76
+     ],
+     "ti": [
+      29.7,
+      4.08
+     ],
+     "tm": [
+      28.0,
+      5.56
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.9,
+      1.84
+     ],
+     "ti": [
+      1.4,
+      5.64
+     ],
+     "tm": [
+      1.9,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.328,
+   "twist_end": 37.0,
+   "rise_max": 4.26,
+   "drift_max": 12.9,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.7,
+     29.3
+    ],
+    "index": [
+     10.1,
+     -1.6,
+     40.5
+    ],
+    "middle": [
+     -11.8,
+     1.4,
+     35.0
+    ]
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.6,
+      7.76
+     ],
+     "ti": [
+      30.2,
+      3.96
+     ],
+     "tm": [
+      27.9,
+      5.32
+     ]
+    },
+    "targets": {
+     "im": [
+      -11.1,
+      1.96
+     ],
+     "ti": [
+      1.2,
+      5.64
+     ],
+     "tm": [
+      2.0,
+      1.48
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.331,
+   "twist_end": 39.0,
+   "rise_max": 4.06,
+   "drift_max": 14.8,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     11.3,
+     30.1
+    ],
+    "index": [
+     9.7,
+     -2.1,
+     40.9
+    ],
+    "middle": [
+     -12.1,
+     1.9,
+     34.5
+    ]
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      17.4,
+      4.08
+     ],
+     "ti": [
+      30.3,
+      4.0
+     ],
+     "tm": [
+      29.1,
+      5.48
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.5,
+      1.96
+     ],
+     "ti": [
+      2.7,
+      2.08
+     ],
+     "tm": [
+      2.3,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.334,
+   "twist_end": 35.0,
+   "rise_max": 2.78,
+   "drift_max": 10.8,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     11.6,
+     29.3
+    ],
+    "index": [
+     10.0,
+     -1.9,
+     40.4
+    ],
+    "middle": [
+     -11.9,
+     1.3,
+     35.0
+    ]
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "replan",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.4,
+      7.76
+     ],
+     "ti": [
+      29.7,
+      4.08
+     ],
+     "tm": [
+      28.1,
+      5.6
+     ]
+    },
+    "targets": {
+     "im": [
+      -11.0,
+      1.8
+     ],
+     "ti": [
+      1.9,
+      5.48
+     ],
+     "tm": [
+      2.1,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.326,
+   "twist_end": 35.8,
+   "rise_max": 3.96,
+   "drift_max": 12.2,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.8,
+     30.3
+    ],
+    "index": [
+     10.3,
+     -0.8,
+     39.4
+    ],
+    "middle": [
+     -11.9,
+     1.7,
+     34.9
+    ]
+   },
+   "wall_s": 3.4
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.0,
+      7.76
+     ],
+     "ti": [
+      30.3,
+      4.0
+     ],
+     "tm": [
+      29.1,
+      5.4
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.7,
+      1.96
+     ],
+     "ti": [
+      2.5,
+      5.68
+     ],
+     "tm": [
+      2.2,
+      1.6
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.364,
+   "twist_end": 52.4,
+   "rise_max": 9.26,
+   "drift_max": 19.3,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.7,
+     31.1
+    ],
+    "index": [
+     10.3,
+     -3.0,
+     42.0
+    ],
+    "middle": [
+     -12.1,
+     0.3,
+     36.5
+    ]
+   },
+   "wall_s": 2.2
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      15.5,
+      7.76
+     ],
+     "ti": [
+      30.6,
+      2.08
+     ],
+     "tm": [
+      28.4,
+      5.32
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.7,
+      2.04
+     ],
+     "ti": [
+      1.7,
+      5.6
+     ],
+     "tm": [
+      1.9,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.346,
+   "twist_end": 52.2,
+   "rise_max": 10.19,
+   "drift_max": 21.5,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.7,
+     30.8
+    ],
+    "index": [
+     9.9,
+     -3.4,
+     42.9
+    ],
+    "middle": [
+     -12.4,
+     1.2,
+     35.3
+    ]
+   },
+   "wall_s": 1.9
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "point",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      16.1,
+      7.76
+     ],
+     "ti": [
+      30.2,
+      2.2
+     ],
+     "tm": [
+      29.5,
+      5.68
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.4,
+      1.16
+     ],
+     "ti": [
+      2.7,
+      3.4
+     ],
+     "tm": [
+      2.5,
+      1.64
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.363,
+   "twist_end": 45.1,
+   "rise_max": 7.32,
+   "drift_max": 15.6,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     9.8,
+     31.7
+    ],
+    "index": [
+     10.7,
+     -2.0,
+     40.9
+    ],
+    "middle": [
+     -12.1,
+     0.6,
+     36.3
+    ]
+   },
+   "wall_s": 1.9
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.7,
+      7.76
+     ],
+     "ti": [
+      29.4,
+      4.0
+     ],
+     "tm": [
+      27.7,
+      5.48
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.6,
+      1.64
+     ],
+     "ti": [
+      1.3,
+      5.56
+     ],
+     "tm": [
+      1.7,
+      1.92
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.366,
+   "twist_end": 49.2,
+   "rise_max": 9.48,
+   "drift_max": 19.1,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.5,
+     29.9
+    ],
+    "index": [
+     10.5,
+     -2.9,
+     41.9
+    ],
+    "middle": [
+     -12.1,
+     0.5,
+     36.4
+    ]
+   },
+   "wall_s": 3.4
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.3,
+      7.72
+     ],
+     "ti": [
+      29.8,
+      3.88
+     ],
+     "tm": [
+      27.4,
+      5.32
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.9,
+      0.88
+     ],
+     "ti": [
+      0.7,
+      5.48
+     ],
+     "tm": [
+      1.7,
+      1.88
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.371,
+   "twist_end": 51.1,
+   "rise_max": 10.13,
+   "drift_max": 21.0,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.6,
+     31.2
+    ],
+    "index": [
+     10.1,
+     -3.2,
+     42.6
+    ],
+    "middle": [
+     -12.4,
+     1.4,
+     35.4
+    ]
+   },
+   "wall_s": 3.5
+  },
+  {
+   "cand": "replan",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "budget": 0.56,
+   "gap_min_mm": {
+    "joints": {
+     "im": [
+      13.7,
+      7.76
+     ],
+     "ti": [
+      29.3,
+      4.12
+     ],
+     "tm": [
+      27.9,
+      5.56
+     ]
+    },
+    "targets": {
+     "im": [
+      -10.9,
+      1.6
+     ],
+     "ti": [
+      1.5,
+      5.56
+     ],
+     "tm": [
+      2.0,
+      1.96
+     ]
+    }
+   },
+   "held": true,
+   "track": 0.358,
+   "twist_end": 49.3,
+   "rise_max": 9.93,
+   "drift_max": 18.6,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     9.9,
+     32.0
+    ],
+    "index": [
+     10.9,
+     -1.8,
+     40.9
+    ],
+    "middle": [
+     -12.1,
+     0.8,
+     36.4
+    ]
+   },
+   "wall_s": 3.4
+  }
+ ]
+}

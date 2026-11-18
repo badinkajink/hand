@@ -51,6 +51,28 @@ SCENES = {"pads": "sph040_stem_block_tape0_imp1.xml", "point": "sph040_stem_bloc
           "pads_stiff": "sph040_stem_block_tape0_imp100.xml"}
 PLANT_75 = {"kp": 0.55 * 1.5, "damping": 0.011, "tau_max": 0.18 * 1.5}
 JN = ("yaw", "mcp", "pip")
+PLAN_D6 = None                                     # the plan's meta.hom.d6_P_mm, for the finger gaps (set in main)
+
+
+def _finger_spheres(f, q_rad):
+    """[(point in P mm, radius mm)]: tip pad r 11, tip end 11 mm on r 6, PIP joint r 8, on the SR2 hand's chain at the
+    plan's mounts, as docs/experiments/20261115-hom_bench_trials/lab/hom_setup.finger_pts (q in sim radians)."""
+    from sr2hand.robot.tool_chain import SR2Hand, ToolChain
+    H = _finger_spheres.__dict__.setdefault("H", SR2Hand.load())
+    m = {"thumb": PLAN_D6[0:2], "index": PLAN_D6[2:4], "middle": PLAN_D6[4:6]}[f]
+    c, _ = H.box(f)
+    ch = ToolChain(f, H.finger_links(f, m[0] - c[0], m[1] - c[1], *[float(x) for x in q_rad]))
+    T_tip, T_pip = ch.transform(upto=f"{f}_tip"), ch.transform(upto=f"{f}_pip_frame")
+    return [(T_tip[:3, 3], 11.0), ((T_tip @ np.array([0.0, 0.0, -11.0, 1.0]))[:3], 6.0), (T_pip[:3, 3], 8.0)]
+
+
+def finger_gaps(q_sim):
+    """Least surface gap (mm) between each pair of fingers' spheres at sim joint angles {finger: (yaw, mcp, pip)}."""
+    sp = {f: _finger_spheres(f, q_sim[f]) for f in ("thumb", "index", "middle")}
+    out = {}
+    for a, b in (("index", "middle"), ("thumb", "index"), ("thumb", "middle")):
+        out[f"{a[0]}{b[0]}"] = min(float(np.linalg.norm(pa - pb)) - ra - rb for pa, ra in sp[a] for pb, rb in sp[b])
+    return out
 
 
 def world():
@@ -185,7 +207,20 @@ def _run1(job):
     R = Rot.from_quat(Q[ok][:, [1, 2, 3, 0]])
     tw = np.degrees((R * R[0].inv()).as_rotvec()[:, 2])
     keep = np.arange(0, int(ok.sum()), 5)
+    gaps = {}
+    if PLAN_D6 is not None:
+        for key in ("joints", "targets"):
+            best = {}
+            for s in stream[::2]:
+                if not s.get(key):
+                    continue
+                gp = finger_gaps(HB.sim_from_servo(s[key]))
+                for pair, v in gp.items():
+                    if pair not in best or v < best[pair][0]:
+                        best[pair] = (round(v, 1), round(float(s["t"]), 2))
+            gaps[key] = best
     return {**{k: job[k] for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget")},
+            "gap_min_mm": gaps,
             "held": bool(res.get("held")),
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
             "twist_end": round(float(f["twist_end"]), 1), "rise_max": round(float(f["rise_max"]), 2),
@@ -251,8 +286,17 @@ def main():
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--budget", type=float, default=0.56, help="N m in HOM's 5 V units (bench --torque-budget)")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--layout", default=None, help="SRC:CALL:GRASP (default grid2dgr:329:13, g13 at (105, 70))")
+    ap.add_argument("--plan-file", default=None, help="a bench plan: its open pose is the candidate 'planfile', its "
+                    "mounts (meta.hom.d6_P_mm) place the finger gaps (default: the g13 plan)")
+    ap.add_argument("--poses", default=None, help="the candidates file (default poses.json beside this script)")
     a = ap.parse_args()
-    poses_file = OUT / "poses.json"
+    global SRC, CALL, K, PLAN_D6
+    if a.layout:
+        SRC, CALL, K = a.layout.split(":")[0], int(a.layout.split(":")[1]), int(a.layout.split(":")[2])
+    pf = json.loads(Path(a.plan_file).read_text()) if a.plan_file else json.loads(PLAN.read_text())
+    PLAN_D6 = pf["meta"]["hom"]["d6_P_mm"]
+    poses_file = Path(a.poses) if a.poses else OUT / "poses.json"
     if a.cmd == "poses":
         rows = candidates()
         poses_file.write_text(json.dumps(rows, indent=1) + "\n")
@@ -262,11 +306,15 @@ def main():
         rows = {**json.loads(poses_file.read_text()), **g}
         poses_file.write_text(json.dumps(rows, indent=1) + "\n")
         return
-    cands = json.loads(poses_file.read_text())
-    cands["plan@sim"] = cands["plan"]
+    cands = json.loads(poses_file.read_text()) if poses_file.exists() else {}
+    if "plan" in cands:
+        cands["plan@sim"] = cands["plan"]
+    if a.plan_file:
+        cands["planfile"] = {"deg": {f: [pf["poses"][0]["joints"][f][j] for j in JN] for f in ("thumb", "index", "middle")}}
     rows = sim(cands, a)
     out = Path(a.out) if a.out else OUT / "sim.json"
-    meta = {"hos_plant": os.environ.get("HOS_PLANT"), "budget": a.budget, "stop_deg": STOP_DEG, "plant_75": PLANT_75,
+    meta = {"hos_plant": os.environ.get("HOS_PLANT"), "budget": a.budget, "layout": f"{SRC}:{CALL}:{K}",
+            "plan_file": a.plan_file, "stop_deg": STOP_DEG, "plant_75": PLANT_75,
             "scenes": SCENES, "kp_yaw_im_5v": 0.35, "c_f": 0.6, "stiff": True, "written": time.strftime("%F %H:%M")}
     out.write_text(json.dumps({"meta": meta, "rows": rows}, indent=1) + "\n")
 
