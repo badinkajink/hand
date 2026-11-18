@@ -219,6 +219,7 @@ class Lift(threading.Thread):
         self.t_lift, self.dz, self.v, self.acc, self.stop_n, self.ft, self.arm = t_lift, dz, v, acc, stop_n, ft, arm_enabled
         self.rtde = rtde
         self.phase, self.rec = "waiting", {}
+        self.cancel = threading.Event()               # set before t_lift: no lift (a trial without a target)
 
     @staticmethod
     def connect():
@@ -234,6 +235,9 @@ class Lift(threading.Thread):
 
     def run(self):
         while time.time() < self.t_lift:
+            if self.cancel.is_set():
+                self.phase, self.rec["note"] = "cancelled", "no lift: the trial stopped before it"
+                return
             time.sleep(0.001)
         self.rec["t_start_ms"] = time.time() * 1000.0
         if not self.arm:
@@ -580,6 +584,14 @@ def cmd_trial(a):
             if armed and not status & STOPPED and now2 - t_last_new > a.miss * 1000.0 * P:
                 status |= STOPPED
                 row["stop"] = f"no target for {a.miss} periods"
+            if (not armed and not status & STOPPED and a.first_target_s > 0
+                    and now2 - 1000.0 * t0 > 1000.0 * a.first_target_s):
+                # 2026-11-17 16:49: no reply reached corvus, and the lift raised the open hand at 1.6 s anyway
+                status |= STOPPED
+                row["stop"] = f"no target from the controller in {a.first_target_s:g} s"
+                if lift is not None and lift.phase == "waiting":
+                    lift.cancel.set()
+                print(f"{time.strftime('%H:%M:%S')} STOP: {row['stop']} (the lift cancelled)", flush=True)
             if status & STOPPED and status & STREAMING:
                 station.end_stream()
                 status &= ~STREAMING
@@ -820,6 +832,9 @@ def main():
     pt.add_argument("--listen", type=int, default=47001)
     pt.add_argument("--hz", type=float, default=50.0)
     pt.add_argument("--miss", type=int, default=3)
+    pt.add_argument("--first-target-s", type=float, default=0.5,
+                    help="s without any target from the controller after which the trial stops and its lift is "
+                         "cancelled (0: never)")
     pt.add_argument("--wait-ms", type=float, default=8.0)
     pt.add_argument("--seconds", type=float, default=9.0, help="the link's length; the controller's STOP ends it first")
     pt.add_argument("--settle-s", type=float, default=2.0, help="the cameras' start before t = 0")

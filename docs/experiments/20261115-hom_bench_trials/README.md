@@ -4,6 +4,93 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-17 17:22: the servos at 7.5 V
+
+The owner, 16:1x: "i have approximately zeroed the servos (all). you can go ahead with the restart. i agree on the HOM
+target clipping. please fix the estimator subprocess yes. i am now powering the servos on 7.5V ... please experiment
+with this carefully, but see if we can improve stiffness/speed/force with these 50% higher voltage". The SCS0009 is
+listed for 4-7.4 V; a coworker had held one at stall for 45 s at 7.5 V, and the servos' own input limit register reads
+9.0 V. The owner watched the trials from 16:5x and left at about 17:15.
+
+In short: at the same servo current as at 5 V, one trial without the fingertip contacts tracked 0.439 against 0.322-0.378
+at 5 V, a hint and no more. At the 5 V offsets the 7.5 V supply browned out mid-squeeze. Free-air steps settle in 0.1 s.
+The plan's open pose drives two MCPs into a mechanical stop, which puts a pad against the sphere.
+
+- **The morning's fixes.** The restart at 16:2x left every joint within 0.29 deg; the index PIP read +0.3 deg again.
+  Commit 0edf083d5: HOM's targets stay 5 deg from the ends of the pots' track (`sr2hand.control.servo_limits`: index PIP
+  +1.78 deg or more, index MCP 60.04 or less, middle MCP 65.02, middle PIP 72.34; the server clips every target and
+  `hom_trial.py` clips again before the station), and the fingertip estimator runs in a process of its own
+  (`tip_contacts.TipProcess`; `--tips-thread` keeps the thread). In the live trials of 17:09 and 17:11 an estimate took
+  16.8-18.8 ms (median) against 68-73 ms in the thread at 09:15-09:21. The loop's longest period fell from 37-44 ms to
+  21-39 ms, and both trials passed the default 60 ms guard. In the 17:11 trial the clip held the index PIP at +1.8 deg.
+- **How the servos protect themselves** (their registers, read on 11-06 at 5 V:
+  `docs/experiments/20261106-sr2_servo_sysid/data/registers.txt`). The overload trips on PWM duty: over 80 % for the
+  protection time (register value 100), then the output is cut to 20 %, and the unloading byte (0x20) turns torque off.
+  Maximum torque 100 %, P 15, D 15. A stalled motor's torque at a given duty scales with the supply, so at 7.5 V the 80
+  % trip sits near 1.5 times the 5 V torque. The same force needs about two thirds of the duty, the same current and the
+  same heat. The same offsets give 1.5 times the force and 2.25 times the heat.
+- **Free-air steps** (`docs/experiments/20261117-sr2_servo_7v5/lab/step_test.py`, one joint at a time, 20 deg, read back
+  at 50 Hz; `data/20261117-step_responses.json` there). A step reached 90 % in 0.09 s at speed 80 and 0.10 s at speed 40.
+  Peak slews ran 230-510 deg/s, and every joint ended within 1 deg of its target. The speed setting does not cap these
+  moves. The 5 V yaw holds of 11-06 reached 90 % in 0.17-0.27 s, but their samples are 0.1 s apart and timed from a
+  manual command, so they only bound the comparison.
+- **The open pose pushes the sphere.** The g13 plan sends the index and middle MCPs to -15.0 and -13.7 deg. They stop
+  against the mechanism at -11.4 and -10.0 deg, in free air too, the servos pushing at 21-22 % duty. There the index
+  pad sits 2.6 mm and the middle's 4.7 mm from the taped sphere on the hand's model; on 11-16 the tags put these tips 3-7
+  mm off the model. `ready` found the sphere 0.05-0.08 mm from the grasp's pose before the fingers opened and 1.8-2.1 mm
+  after, and the owner saw a fingertip tilt it. The morning's 5 V trials started the same way (MCPs at -10.5 and -9.1
+  deg). A pose that keeps both pads 7 mm off (`plans/20261117-..._g13_open9_plan.json`: MCPs at -9, PIPs at 37.2 and
+  41.4) changed the grasp itself: HOM closes from wherever the fingers start, and the index closed 16 deg straighter.
+  The fix is to re-plan g13's open pose in simulation within the MCPs' real range.
+- **Brownout at the 5 V offsets.** At 16:55 (budget 0.84, the open9 start) all nine servos reset at 1.45 s, mid-squeeze,
+  before the lift. The station's read-backs stopped for 0.5 s, and the pads fell from 3.9 and 3.1 N to 1.2 and 1.0 N.
+  The weakened pinch slid off at the lift. At 7.5 V the same offsets draw 1.5 times the current: the gr_g4 failure of
+  11-16 at 5 V again.
+- **The comparison at budget 0.56** (the owner's choice at 17:0x: the summed servo current held at the 5 V level), from
+  the morning's open pose with the two MCPs sent to their stops, not past them (`plans/20261117-..._g13_mcpstop_plan.json`;
+  the start pushed the sphere about 2 mm, so the trials ran from `ready`'s pose without its 1 mm gate):
+
+  | Trial | Supply, budget (N m) | Tips | Ended | Tracking | Twist at the end (deg) | Drift (mm) |
+  |---|---|---|---|---|---|---|
+  | 09:15 | 5 V, 0.84 | off | schedule | 0.322 | 33.6 of 90.6 | 9.0 |
+  | 09:21 | 5 V, 0.84 | on | schedule | 0.394 | 35.0 | 19.8 |
+  | 17:09 | 7.5 V, 0.56 | off | schedule | 0.439 | 41.4 | 10.5 |
+  | 17:11 | 7.5 V, 0.56 | on | drift guard at 5.28 s | 0.482 (2.0-5.28 s) | 74.2 (59.4 commanded) | 20.4 |
+
+  The budget is in the server's 5 V units (kp 0.55 N m/rad); at 7.5 V, 0.56 there is about 0.84 N m of real torque.
+  The same grasp at 5 V on 11-16 tracked 0.378 (39.6 deg). Each row is one trial, so the gain is a hint, not a result.
+  At 17:11 the sphere turned ahead of the command, rose 9.1 mm and tilted about 40 deg in the grasp. HOM's targets stayed
+  13 deg (median) from the thumb MCP, index MCP and middle yaw, against 19 deg at 5 V. That difference is the budget's
+  scale (0.56/0.84), not stiffness; at 7.5 V, 13 deg is about the torque 19 deg gave at 5 V. No servo reset at 0.56. The
+  rail sagged to 6.3-7.4 V while the hand held the sphere, and the overload flag showed on the thumb MCP, index MCP and
+  middle yaw.
+- **Heat.** Holding the tilted sphere through the long putdown of 17:12 warmed the thumb yaw servo to 50 C and the
+  middle MCP to 48 C (limit 70). They were back to 30-32 C at 17:2x.
+- **The 17:11 putdown.** The levelling turn (32.4 deg) stopped at its 12 s limit; the touchdown seated the block at 4.7
+  deg. The release left the thumb's tip end under the ball with the hand tilted 35 deg near the table, and `letgo`
+  refused to straighten the fingers. The way out was checked on the hand's model first: the thumb's PIP from 44.8 to 20
+  deg, a 35 mm rise along z_P (1.19 N at most at the HEX-E), `letgo`, then the rise and the levelling in two steps.
+- **No reply at 16:49.** The first trial received no target: the server answered all 106 states, and none reached
+  corvus. The hand lifted empty at 1.6 s. Four dry runs at 16:51-16:52 received every target; their server records
+  were deleted. Cause not found. A trial now stops when no target comes within 0.5 s, and its lift is cancelled
+  (`hom_trial.py --first-target-s`).
+- **The tracker and the printed blocks.** At 17:06 the tracker fitted the sphere's map (tags 10-15) to extra printed
+  blocks 460 mm away. With them out of view it found the sphere at once. The cylinder's tags (16-23) do not overlap the
+  sphere's, so the cylinder may stay in view.
+
+The rig at 17:22: the hand level (z_P 0.01 deg) with its palm at z 234 mm in B, over the upright sphere near the
+table's centre. Fingers straight, torque on, 7.4-7.7 V. No HOM server runs (47047-47050 mine, 47045-47046 hand-4a's), and
+the board splitter is stopped. Records: `runs/` and `runs_corvus/` from 20261117-1649 to -1711. Films, fingertip
+records and the splitter's log are in corvus's `logs/20261116-hom_trials/20261117-1650_7v5/` and
+`logs/20261117-three_finger_mux/20261117-163428-mux.bin`.
+
+Next, in the owner's words where given: a map of the data paths, rates and clocks with each past failure on it, on
+`docs/index.html` ("we can queue this up after the 7.5v experiments"); re-plan g13's open pose within the MCPs' range;
+a supply that carries budget 0.84 at 7.5 V, or keep 0.56; repeat the trials (one per row so far); the cylinder in reach
+("ideally you could experiment on both"); "picking up the cylinder from dropped via a HOM-style roll" (a plan from
+simulation first); faster tag detection ("surely at this point we can accelerate the detections"); and the records'
+contact forces and points for the pad and point contact models.
+
 ## State on 2026-11-17 10:06: the fingertip comparison stopped after three trials, the index PIP's reading wrapped
 
 The owner, 09:0x from away: "are the lights back on? can we finish running some tests". At the tracker's fixed
