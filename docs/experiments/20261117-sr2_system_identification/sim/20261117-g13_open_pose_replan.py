@@ -54,21 +54,22 @@ JN = ("yaw", "mcp", "pip")
 PLAN_D6 = None                                     # the plan's meta.hom.d6_P_mm, for the finger gaps (set in main)
 
 
-def _finger_spheres(f, q_rad):
+def _finger_spheres(f, q_rad, d6=None):
     """[(point in P mm, radius mm)]: tip pad r 11, tip end 11 mm on r 6, PIP joint r 8, on the SR2 hand's chain at the
     plan's mounts, as docs/experiments/20261115-hom_bench_trials/lab/hom_setup.finger_pts (q in sim radians)."""
     from sr2hand.robot.tool_chain import SR2Hand, ToolChain
     H = _finger_spheres.__dict__.setdefault("H", SR2Hand.load())
-    m = {"thumb": PLAN_D6[0:2], "index": PLAN_D6[2:4], "middle": PLAN_D6[4:6]}[f]
+    d6 = PLAN_D6 if d6 is None else d6
+    m = {"thumb": d6[0:2], "index": d6[2:4], "middle": d6[4:6]}[f]
     c, _ = H.box(f)
     ch = ToolChain(f, H.finger_links(f, m[0] - c[0], m[1] - c[1], *[float(x) for x in q_rad]))
     T_tip, T_pip = ch.transform(upto=f"{f}_tip"), ch.transform(upto=f"{f}_pip_frame")
     return [(T_tip[:3, 3], 11.0), ((T_tip @ np.array([0.0, 0.0, -11.0, 1.0]))[:3], 6.0), (T_pip[:3, 3], 8.0)]
 
 
-def finger_gaps(q_sim):
+def finger_gaps(q_sim, d6=None):
     """Least surface gap (mm) between each pair of fingers' spheres at sim joint angles {finger: (yaw, mcp, pip)}."""
-    sp = {f: _finger_spheres(f, q_sim[f]) for f in ("thumb", "index", "middle")}
+    sp = {f: _finger_spheres(f, q_sim[f], d6) for f in ("thumb", "index", "middle")}
     out = {}
     for a, b in (("index", "middle"), ("thumb", "index"), ("thumb", "middle")):
         out[f"{a[0]}{b[0]}"] = min(float(np.linalg.norm(pa - pb)) - ra - rb for pa, ra in sp[a] for pb, rb in sp[b])
@@ -173,11 +174,14 @@ def _run1(job):
     v75 = job["volts"] == 7.5
     RC2.KP_YAW_IM = 0.35 * (1.5 if v75 else 1.0)
     plant_params = {**(PLANT_75 if v75 else RR.SERVER), "mu": 1.0}
-    setup, mxy, _layout = RP.toy_setup("twist", 40.0, CALL, K, SRC)
+    setup, mxy, _layout = RP.toy_setup("twist", 40.0, job.get("call", CALL), job.get("k", K), job.get("src", SRC))
     p_pads, p_pt = RP.ref_scene("sphere", 40.0)
     m_pt = mujoco.MjModel.from_xml_path(str(p_pt))
     RP.move_mounts(m_pt, mxy, RP.mount_base(m_pt))
-    q_open = {f: np.radians(job["q_deg"][f]) for f in T.FINGERS}
+    if job.get("q_deg"):
+        q_open = {f: np.radians(job["q_deg"][f]) for f in T.FINGERS}
+    else:                                                # the layout's own 8 mm open pose (screen)
+        q_open, _ = T.open_pose(setup, m_pt)
     S.set_palm(m_pt, setup["palm"])
     bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=job["budget"])
     GP = RG._G["GP"]
@@ -208,18 +212,19 @@ def _run1(job):
     tw = np.degrees((R * R[0].inv()).as_rotvec()[:, 2])
     keep = np.arange(0, int(ok.sum()), 5)
     gaps = {}
-    if PLAN_D6 is not None:
+    d6 = job.get("d6", PLAN_D6)
+    if d6 is not None:
         for key in ("joints", "targets"):
             best = {}
             for s in stream[::2]:
                 if not s.get(key):
                     continue
-                gp = finger_gaps(HB.sim_from_servo(s[key]))
+                gp = finger_gaps(HB.sim_from_servo(s[key]), d6)
                 for pair, v in gp.items():
                     if pair not in best or v < best[pair][0]:
                         best[pair] = (round(v, 1), round(float(s["t"]), 2))
             gaps[key] = best
-    return {**{k: job[k] for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget")},
+    return {**{k: job.get(k) for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget", "src", "call", "k", "xy")},
             "gap_min_mm": gaps,
             "held": bool(res.get("held")),
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
@@ -275,9 +280,38 @@ def grid_poses(dyaws=(-8, -4, -3, -2, -1, 0, 4, 8), dpips=(0, 2, 3, 4, 6, 9)):
     return out
 
 
+def screen_jobs(a):
+    """The 100 layouts of the re-score of 11-16 (rank100_summary.json): every ground-clear grasp (grid2dgr) at seed 0
+    and the film grid's best grasp (grid2dff) at seeds 0-2, each from its own 8 mm open pose, at the given plant."""
+    from sr2hand.robot import sr2_layouts as SL
+    summ = json.loads((ROOT / "docs/experiments/20261115-hom_bench_trials/data/20261116-sweep/sim/rank100_summary.json")
+                      .read_text())
+    lays = {}
+    for model, lst in summ["layouts_best"].items():
+        for r in lst:
+            lays.setdefault(int(r["call"]), {"xy": r["xy"], "dff_best": r["grid_best_grasp"]})
+    rows_gr = {}
+    for x in (ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dgr_tripod40_v4b.jsonl").read_text().splitlines():
+        if x.strip():
+            r = json.loads(x)
+            if int(r["call"]) in lays:
+                rec = r["fp"].get("tripod") or {}
+                rows_gr[int(r["call"])] = len(rec.get("grasps") or ([rec] if rec.get("ok") else [])) if rec.get("ok") else 0
+    jobs = []
+    for call, L in sorted(lays.items()):
+        d6 = [float(v) for v in SL.sym6(*L["xy"])]
+        base = {"cand": "screen", "q_deg": None, "volts": a.volts[0], "contacts": False, "contact": a.contact_models[0],
+                "stops": True, "budget": a.budget, "call": call, "xy": L["xy"], "d6": d6}
+        for k in range(rows_gr.get(call, 0)):
+            jobs.append({**base, "src": "grid2dgr", "k": k, "seed": 0})
+        for seed in a.seeds:
+            jobs.append({**base, "src": "grid2dff", "k": int(L["dff_best"]), "seed": seed})
+    return jobs
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=("poses", "sim", "grid"))
+    ap.add_argument("cmd", choices=("poses", "sim", "grid", "screen"))
     ap.add_argument("--cands", nargs="+", default=["plan@sim", "plan", "mcpstop", "open9", "reach"])
     ap.add_argument("--volts", type=float, nargs="+", default=[5.0, 7.5])
     ap.add_argument("--contacts", type=lambda s: s == "on", nargs="+", default=[False, True])
@@ -300,6 +334,21 @@ def main():
     if a.cmd == "poses":
         rows = candidates()
         poses_file.write_text(json.dumps(rows, indent=1) + "\n")
+        return
+    if a.cmd == "screen":
+        import multiprocessing as mp
+        RG.gear_class = RC2.clutch_class
+        RC2.STIFF, RC2.BREAKAWAY = True, 0.0
+        RG.RF.RL.rows_file()
+        jobs = screen_jobs(a)
+        print(f"{len(jobs)} runs on {a.workers} workers", flush=True)
+        out = Path(a.out) if a.out else OUT / "screen.jsonl"
+        with open(out, "w") as fo, mp.get_context("fork").Pool(a.workers, initializer=RG.init,
+                                                               initargs=(str(RG.RF.SCENE),)) as pool:
+            for r in pool.imap_unordered(_run, jobs):
+                r.pop("trace", None)
+                fo.write(json.dumps(r) + "\n")
+                fo.flush()
         return
     if a.cmd == "grid":
         g = grid_poses()
