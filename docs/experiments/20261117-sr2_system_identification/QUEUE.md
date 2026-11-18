@@ -225,6 +225,12 @@ air and then against a force sensor. Contact and the blind validation trials nee
   tape on a land, or on a flat plate bolted on with T-nuts, and drag along the slot. Measure the tag's offset to the
   pressed faces once with calipers, or touch each face off at 0.2 N on the HEX-E. The tag's ID must differ from the
   object's tags and the DIP tags 24-26.
+- S3's block tag (owner, 15:0x): tag36h11 id 0 on the back of the 80/20, for localization. No map of the cell uses
+  id 0 (the hand's tag plate 6, the objects' blocks 10-23 and 32-43, the DIP tags 24-26). The tag test plate of 11-07
+  has tag36h11 ids 0-4 and stays out of view; the old real_v1 bench tracker (`src/sr2hand/bench/tags.py`) also reads
+  id 0, as its cylinder. The block's map is `sr2hand.tracking.tags.plate_map("tag36h11", edge, [0], [(0, 0, 0)])`,
+  with `edge` the printed black square measured with calipers. The faces' offsets from the tag, or the touch-offs at
+  0.2 N, are still needed.
 - The press chatter: the owner attributes it to the skewed cylinder in the misaligned grasp giving the middle finger
   poor contact. The records agree: the pushing finger's targets chattered in every press on both days (3.3-9.0 deg rms
   at 3-10 Hz), both days skewed the cylinder in the close (17-22 deg, 18-27 deg), and the simulation's cylinder, which
