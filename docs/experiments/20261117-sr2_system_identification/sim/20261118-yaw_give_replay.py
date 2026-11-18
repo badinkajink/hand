@@ -14,9 +14,13 @@ On the 7.5 V plant (the index's and middle's yaw kp 0.525 N m/rad) K_C 0.76 N m/
 14-15 deg of target offset (0.4 x 0.525 x 0.253 rad / 0.76); K_C 1.5 gives 2 deg. Everything else is night_replay.py's (logs/20261117-g13_open_pose): the hand's recorded targets open
 loop from its measured start on the 7.5 V plant, the table removed at the lift.
 
+--backdrive replays the owner's alternative (11-18): no spring, and the load may push the index's and middle's yaw
+servos back. When the load's torque about such a yaw exceeds the servo's and opposes it, the joint loses its gear
+friction and yields as a plain position servo (kp 0.525 N m/rad, at most 0.18 N m); otherwise it is the clutch plant.
+
     HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 SCALE_HAND=cad_v2 OMP_NUM_THREADS=1 \\
         .venv/bin/python sim/20261118-yaw_give_replay.py OUT.jsonl [--kc 0.76 1.5] [--contacts pads pads_stiff] \\
-        [--tips off] [--trials STAMP ...] [--workers 6]
+        [--tips off] [--trials STAMP ...] [--workers 6] [--backdrive]
 """
 import argparse
 import json
@@ -34,6 +38,7 @@ sys.path.insert(0, str(ROOT / "logs/20261117-g13_open_pose"))
 import night_replay as NR  # noqa: E402
 
 K_C = None                  # N m/rad, the yaw chain's spring; None: the rigid clutch plant
+BACKDRIVE = False           # --backdrive: the load may push the index's and middle's yaw servos back
 ETA = 0.4                   # the gear's forward efficiency (1 - c of the clutch plant)
 TAU_S = 0.013               # s, the shaft's lag (the 7.5 V plant's damping / kp)
 W_MAX = 10.0                # rad/s, the shaft's top speed (the SCS0009 at 7.5 V, about 0.1 s per 60 deg)
@@ -64,6 +69,8 @@ def give_class():
                     m.actuator_biasprm[a_, 1] = -self.kc
                     m.actuator_forcerange[a_] = (-5.0, 5.0)
             self.theta, self.T = {}, {}
+            v9 = np.asarray(self.vadr9)
+            self.bd = [int(np.flatnonzero(v9 == int(self.vadr[f][0]))[0]) for f in GIVE]
 
         def reset_to(self, q0, pos, quat):
             super().reset_to(q0, pos, quat)
@@ -96,12 +103,12 @@ def give_class():
                 self.d.ctrl[a_] = new
 
         def advance(self, t1: float):
-            if not self.give:
+            if not self.give and not BACKDRIVE:
                 return super().advance(t1)
             import mujoco
             m, d = self.m, self.d
             h, nv = float(m.opt.timestep), m.nv
-            gd = np.array([g[1] for g in self.give])
+            gd = np.array([g[1] for g in self.give], int)
             while d.time < t1 - 1e-9:
                 tau = d.actuator_force[self.acts].copy()
                 n = int(d.nefc)
@@ -114,10 +121,15 @@ def give_class():
                 ext = qc[self.vadr9] - d.qfrc_bias[self.vadr9]
                 hold = (ext * tau < 0.0) & (np.abs(ext) > np.abs(tau))
                 fl = np.maximum(self.c * np.abs(tau), RC2.BREAKAWAY)
-                m.dof_frictionloss[self.vadr9] = np.where(hold, np.maximum(fl, np.abs(ext)), fl)
-                m.dof_frictionloss[gd] = FL_LINK
+                fl = np.where(hold, np.maximum(fl, np.abs(ext)), fl)
+                if BACKDRIVE:                                          # these two yield to a load that beats them
+                    fl[self.bd] = np.where(hold[self.bd], 0.0, fl[self.bd])
+                    hold[self.bd] = False
+                m.dof_frictionloss[self.vadr9] = fl
+                if self.give:
+                    m.dof_frictionloss[gd] = FL_LINK
+                    self.shaft(h)
                 self.n_locked += int(hold.sum())
-                self.shaft(h)
                 SR2Plant.advance(self, min(t1, d.time + h))
 
         def state(self):
@@ -131,8 +143,8 @@ def give_class():
 
 
 def run_give(job):
-    global K_C
-    K_C = job["k_c"]
+    global K_C, BACKDRIVE
+    K_C, BACKDRIVE = job["k_c"], bool(job.get("backdrive"))
     return NR.run(job)
 
 
@@ -152,6 +164,7 @@ def main():
     ap.add_argument("--tips", default="off", choices=["off", "on", "all"])
     ap.add_argument("--trials", nargs="*", default=None)
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--backdrive", action="store_true", help="no spring; the load may push the two yaws back")
     a = ap.parse_args()
     NR.RPL.RG.gear_class = give_class
     NR.RPL.RC2.STIFF, NR.RPL.RC2.BREAKAWAY = True, 0.0
@@ -167,9 +180,10 @@ def main():
         for x in out.read_text().splitlines():
             r = json.loads(x) if x.strip() else None
             if r and "error" not in r:
-                done.add((r["stamp"], r["contact"], r["k_c"]))
-    jobs = [{**t, "contact": c, "volts": "7v5", "k_c": k} for k in a.kc for c in a.contacts for t in tl
-            if (t["stamp"], c, k) not in done]
+                done.add((r["stamp"], r["contact"], r["k_c"], bool(r.get("backdrive"))))
+    kcs = [None] if a.backdrive else a.kc
+    jobs = [{**t, "contact": c, "volts": "7v5", "k_c": k, "backdrive": a.backdrive} for k in kcs for c in a.contacts
+            for t in tl if (t["stamp"], c, k, a.backdrive) not in done]
     print(f"{len(jobs)} replays on {a.workers} workers ({len(done)} done)", flush=True)
     with open(out, "a") as fo, mp.get_context("fork").Pool(a.workers, initializer=NR.RPL.RG.init,
                                                            initargs=(str(NR.RPL.RG.RF.SCENE),), maxtasksperchild=4) as pool:

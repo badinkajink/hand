@@ -60,7 +60,9 @@ air and then against a force sensor. Contact and the blind validation trials nee
   the reading advances about 4 deg past first contact by the time the target is 14-15 deg past the reading, as in the
   night's squeezes. The force there is about 1.0 N if the gear passes 0.4 of the servo's torque (the clutch plant), and
   2.4 N if it passes all of it; the index board read 0.6-1.6 N. Where the pressing finger's DIP tag is in view, record
-  it: it shows where the chain gives.
+  it: it shows where the chain gives. On the step back the force shows whether the load can backdrive the gear (W3, the
+  owner's alternative). In the clutch plant the force stays flat and the reading stays put until the target passes the
+  reading; a backdrivable gear lets both fall before that.
 - S4 (with the owner, next session). Contact on the hand, three trials each.
   (a) Pick-up of the press cylinder and of the taped sphere, then a slow opening of the pinch over 4-6 s above a catch
   box, the tags and the boards recording. The object's angle about the pinch line against the normal force gives the
@@ -187,6 +189,20 @@ air and then against a force sensor. Contact and the blind validation trials nee
   The turn comes about 1 s later than the hand's, so the twist trace's RMS falls only from 16.9 to 15.8 deg and the
   tracking from 0.25 to 0.32 (hand 0.43). With soft pads the give changes little: twist 35.3-37.7 deg, rise 7.3-8.4 mm.
   The stiffness comes from the grasp, not from the twist; S3 measures it on the hand.
+- W3, the owner's alternative: the load backdrives the yaw servos (11-18 13:4x). The owner asked whether the long lever
+  from the contact to the yaw servo lets the load backdrive the servo. In the night's squeezes the index and middle
+  readings moved 4.1 and 3.5 deg toward their targets. A backdriven servo's reading would retreat with its finger, since
+  the potentiometer turns with the output shaft, and the model at the readings would stay on the sphere. Its pads sit
+  5.6-7.3 mm inside the sphere instead, and the thumb pushed the sphere 1.3-3.1 mm toward those fingers: the shafts
+  advanced and the pads were pushed back. The pads sit about 82 mm from the yaw axis (7.2 mm of gap per 5 deg). At that
+  lever 0.8 N on the index pad is 0.066 N m about its yaw, and 4 deg of give is 5.8 mm at the pad. The 11 tips-off
+  twists were replayed with the alternative (`sim/20261118-yaw_give_replay.py --backdrive`; rows
+  `logs/20261118-night_replay/yaw_backdrive.jsonl`; table rows "pads backdrive" and "pads_stiff backdrive" in
+  `data/20261118-yaw_give_replay.json`). There is no spring, and a load that opposes either yaw servo and exceeds its
+  torque pushes it back as a plain position servo (kp 0.525 N m/rad). The readings stayed 3.7-4.3 deg short of the
+  hand's in the task (rigid 3.7-4.1). The sphere turned 30.7 deg with stiff pads and 36.7 deg with soft pads (rigid 30.8
+  and 36.7, hand 49.6). In the squeeze the targets sit 14-15 deg past the readings, so each servo pushes with 0.13 N m,
+  and a load must exceed that to push it back.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

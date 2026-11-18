@@ -6,10 +6,11 @@ Per contact model and spring stiffness K_C (rigid: the clutch plant), the means 
 from 2.0 s; the joint RMS against the read-backs in free air (0-0.6 s), in the grasp (0.6-2.0 s) and in the task (from
 2.0 s); the index's and middle's yaw shortfall (how far the replay's reading stops short of the hand's, toward the
 sphere; the bias of the yaw against the read-backs, sign set so that positive is short); and the jumps (the largest
-twist rise over 0.2 s from 2.0 s, and the number of 0.2 s windows that rose more than 8 deg).
+twist rise over 0.2 s from 2.0 s, and the number of 0.2 s windows that rose more than 8 deg). Rows replayed with
+--backdrive (no spring; the load may push the two yaw servos back) form the rows "<contact> backdrive".
 
     python3 sim/20261118-yaw_give_summary.py logs/20261118-night_replay/yaw_give.jsonl \\
-        [--out data/20261118-yaw_give_replay.json]
+        logs/20261118-night_replay/yaw_backdrive.jsonl [--out data/20261118-yaw_give_replay.json]
 """
 import argparse
 import json
@@ -60,10 +61,10 @@ def agg(ms):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("rows")
+    ap.add_argument("rows", nargs="+")
     ap.add_argument("--out", default=str(STUDY / "data/20261118-yaw_give_replay.json"))
     a = ap.parse_args()
-    rows = [json.loads(x) for x in open(a.rows) if x.strip()]
+    rows = [json.loads(x) for fn in a.rows for x in open(fn) if x.strip()]
     bad = [r for r in rows if "error" in r or r.get("diverged")]
     rows = [r for r in rows if "error" not in r and not r.get("diverged")]
     rep = json.loads((STUDY / "data/20261118-night_trials_replay.json").read_text())
@@ -77,8 +78,12 @@ def main():
     for c in sorted({r["contact"] for r in rows}):
         ms = [from_rigid(trials[s]["replays"][f"{c}/7v5"]) for s in stamps if f"{c}/7v5" in trials[s]["replays"]]
         table[f"{c} rigid"] = agg(ms)
-        for k in sorted({r["k_c"] for r in rows if r["contact"] == c}):
-            table[f"{c} kc{k:g}"] = agg([from_give(r) for r in rows if r["contact"] == c and r["k_c"] == k])
+        for k in sorted({r["k_c"] for r in rows if r["contact"] == c and not r.get("backdrive")}):
+            table[f"{c} kc{k:g}"] = agg([from_give(r) for r in rows if r["contact"] == c and r["k_c"] == k
+                                         and not r.get("backdrive")])
+        bd = [from_give(r) for r in rows if r["contact"] == c and r.get("backdrive")]
+        if bd:
+            table[f"{c} backdrive"] = agg(bd)
     for name, v in table.items():
         ys = v["yaw_short_task_deg"]
         print(f"{name:18s} n {v['trials']:2d} track {v['track']} twist {v['twist_end_deg']} rise {v['rise_max_mm']} "
@@ -87,11 +92,14 @@ def main():
     out = {"what": __doc__.split("\n\n")[0].replace("\n", " "),
            "scripts": ["docs/experiments/20261117-sr2_system_identification/sim/20261118-yaw_give_replay.py",
                        "docs/experiments/20261117-sr2_system_identification/sim/20261118-yaw_give_summary.py"],
-           "rows": a.rows, "trials": stamps, "failed": [(r["stamp"], r["contact"], r.get("k_c")) for r in bad],
+           "rows": a.rows, "trials": stamps,
+           "failed": [(r["stamp"], r["contact"], r.get("k_c"), bool(r.get("backdrive"))) for r in bad],
            "table": table,
-           "per_trial": [{"stamp": r["stamp"], "contact": r["contact"], "k_c": r["k_c"], **from_give(r),
+           "per_trial": [{"stamp": r["stamp"], "contact": r["contact"], "k_c": r["k_c"],
+                          "backdrive": bool(r.get("backdrive")), **from_give(r),
                           "hand": trials[r["stamp"]]["hand"], "hand_jumps": trials[r["stamp"]]["hand_jumps"]}
-                         for r in sorted(rows, key=lambda r: (r["contact"], r["k_c"], r["stamp"]))]}
+                         for r in sorted(rows, key=lambda r: (r["contact"], bool(r.get("backdrive")), r["k_c"] or 0.0,
+                                                              r["stamp"]))]}
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
     print("wrote", a.out)
 
