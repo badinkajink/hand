@@ -581,6 +581,13 @@ left out of its fit. There the GP leaves 13.2 to 17.2&#8202;&#181;T at the 95th 
 own poses in its fit. UR5 presses added to those frames read with a
 median force error of 11 to 13&#8202;%, against 8 to 11&#8202;% on the zero pose&#8217;s noise. The pads came no closer than
 27&#8202;mm ([at 11 layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts), [result page](exp:20261104-sr2_hand_crosstalk/20261105-sr2_hand_fingertip_crosstalk.html)).</p>
+<p>On the evening of 17 November the boards were swept again in free air, at 300 random poses of the hand at one of the
+11 layouts. The servos had been re-zeroed that afternoon. The own-pose GP of the 11 layouts is loaded in the HOM trials. On the new poses its median
+error was 11.0 to 15.3&#8202;&#181;T. At the tips&#8217; 28&#8202;&#181;T/N that is 0.39 to 0.54&#8202;N. At that layout, left
+out of its fit, it had been 6.6 to 8.4&#8202;&#181;T on 5 November. With one offset per joint fitted to the sweep, of up to
+5.5&#176;, the error was 6.3 to 8.4&#8202;&#181;T. A GP refitted on the sweep left 4.7 to 5.4&#8202;&#181;T over five folds
+([crosstalk between fingertips](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts),
+Table 12).</p>
 {{FIG sr2_film}}
 <p>On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most
 5.4&#8202;&#181;T, 0.19&#8202;N. Rest readings differ by 2.6 to 3.4&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to
