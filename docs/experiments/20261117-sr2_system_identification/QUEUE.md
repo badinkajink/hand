@@ -64,12 +64,23 @@ air and then against a force sensor. Contact and the blind validation trials nee
   HEX-E recording. Output: the friction coefficient and the tangential stiffness before slip.
 - S5 (after S1-S3 and W1, with predictions committed first). Blind validation: the g13 twist from the re-planned open
   pose, three trials with the tips off and three with them on, alternating; the press at lat0 twice; the pick-up hang
-  twice.
+  twice. The g13 twists run unattended tonight, after S2, S1 and the board sweep: the owner told the lab at 18:0x to run
+  HOM twist repeats overnight ("we can be a little aggressive with trials"; lab message of 18:1x). Start from the W1 plan;
+  the predictions are committed (W1).
 
 ## Workstation
 
-- W1. Re-plan g13's open pose within the measured MCP range, check in simulation that HOM's close from it reproduces
-  the grasp, and ship the plan.
+- W1 (done, 18:2x on 11-17). Re-plan g13's open pose within the measured MCP range, check in simulation that HOM's
+  close from it reproduces the grasp, and ship the plan. The plan is
+  `docs/experiments/20261115-hom_bench_trials/plans/20261117-film_x105_y70_twist_gr_g13_replan_plan.json`. Its open pose
+  puts the index and middle MCPs 0.5 deg inside the stops (-10.9, -9.5 deg), turns their yaws 1 deg toward zero and opens
+  their PIPs 4 deg; the thumb is as planned. The pads sit 5.2 and 7.4 mm off the sphere on the model, against 3.0 and 5.1
+  for mcpstop. Of 17 start poses simulated (52 checked for clearance), HOM's close from this one ended nearest the plan's grasp among those with the index
+  pad at least 5 mm off: within 3.5 deg on every joint at 5 and 7.5 V (mcpstop 2.3-4.4 deg). The open9 pose closed the
+  index PIP 16 deg straighter in simulation, as on the hand. The HOM server keeps loading
+  `20261116-film_x105_y70_twist_gr_plan.json`. Selection: `data/20261117-g13_open_pose_selection.json`. Blind predictions
+  for both starts (pads soft, point soft, pads stiff; 5 and 7.5 V; contacts to HOM off and on; seeds 0-2):
+  `data/20261117-g13_twist_predictions.json`. Script: `sim/20261117-g13_open_pose_replan.py`.
 - W2. Fits from S1-S3: joint zero offsets and mount positions; the servo's gain, dead band, friction and overload load
   at 7.5 V; a plant string for the HOM scripts at 7.5 V. One table per fit, against 11-06.
 - W3. Predictions of S5 on the fitted plant. After S4: the friction coefficient, the tangential softness and the

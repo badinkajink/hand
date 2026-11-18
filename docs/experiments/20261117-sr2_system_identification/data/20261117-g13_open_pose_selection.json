@@ -1,0 +1,2260 @@
+{
+ "meta": {
+  "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+  "budget": 0.56,
+  "stop_deg": {
+   "index": -11.4,
+   "middle": -10.0
+  },
+  "plant_75": {
+   "kp": 0.8250000000000001,
+   "damping": 0.011,
+   "tau_max": 0.27
+  },
+  "scenes": {
+   "pads": "sph040_stem_block_tape0_imp1.xml",
+   "point": "sph040_stem_block_pt_imp1.xml"
+  },
+  "kp_yaw_im_5v": 0.35,
+  "c_f": 0.6,
+  "stiff": true,
+  "written": "2026-11-17 18:21",
+  "what": "Open-pose selection: HOM's close and twist in simulation from each candidate start (pads, soft contact, contacts to HOM off), 5 and 7.5 V, seeds 0-2; grasp_joints = median joint angles over 1.40-1.58 s (bench degrees)."
+ },
+ "summary": [
+  {
+   "start": "mcpstop",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.335,
+   "track_min": 0.33,
+   "track_max": 0.342,
+   "twist_end_deg": 38.0,
+   "drift_max_mm": 14.1,
+   "rise_max_mm": 5.5,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.7,
+     9.2,
+     31.9
+    ],
+    "index": [
+     9.8,
+     -1.9,
+     42.8
+    ],
+    "middle": [
+     -11.8,
+     3.2,
+     34.1
+    ]
+   }
+  },
+  {
+   "start": "mcpstop",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.369,
+   "track_min": 0.367,
+   "track_max": 0.371,
+   "twist_end_deg": 48.5,
+   "drift_max_mm": 21.2,
+   "rise_max_mm": 12.7,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.6,
+     -2.4,
+     43.8
+    ],
+    "middle": [
+     -12.1,
+     1.1,
+     37.8
+    ]
+   }
+  },
+  {
+   "start": "plan@sim",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.273,
+   "track_min": 0.268,
+   "track_max": 0.281,
+   "twist_end_deg": 29.9,
+   "drift_max_mm": 9.3,
+   "rise_max_mm": 1.6,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     11.5,
+     29.5
+    ],
+    "index": [
+     10.9,
+     -4.2,
+     43.7
+    ],
+    "middle": [
+     -12.9,
+     -1.2,
+     38.3
+    ]
+   }
+  },
+  {
+   "start": "plan@sim",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.286,
+   "track_min": 0.283,
+   "track_max": 0.288,
+   "twist_end_deg": 34.0,
+   "drift_max_mm": 12.8,
+   "rise_max_mm": 4.4,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.3,
+     10.9,
+     30.7
+    ],
+    "index": [
+     11.4,
+     -5.4,
+     45.3
+    ],
+    "middle": [
+     -13.3,
+     -1.9,
+     39.3
+    ]
+   }
+  },
+  {
+   "start": "y+0_p6",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.313,
+   "track_min": 0.307,
+   "track_max": 0.318,
+   "twist_end_deg": 34.0,
+   "drift_max_mm": 12.2,
+   "rise_max_mm": 2.5,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     11.3,
+     29.8
+    ],
+    "index": [
+     10.6,
+     -1.1,
+     38.8
+    ],
+    "middle": [
+     -12.6,
+     2.1,
+     33.2
+    ]
+   }
+  },
+  {
+   "start": "y+0_p6",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.331,
+   "track_min": 0.316,
+   "track_max": 0.342,
+   "twist_end_deg": 39.8,
+   "drift_max_mm": 16.4,
+   "rise_max_mm": 6.9,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.4,
+     10.7,
+     31.0
+    ],
+    "index": [
+     11.1,
+     -2.5,
+     40.5
+    ],
+    "middle": [
+     -13.0,
+     1.3,
+     34.3
+    ]
+   }
+  },
+  {
+   "start": "y-1_p4",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.328,
+   "track_min": 0.326,
+   "track_max": 0.331,
+   "twist_end_deg": 37.3,
+   "drift_max_mm": 13.3,
+   "rise_max_mm": 4.1,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     11.3,
+     29.9
+    ],
+    "index": [
+     10.0,
+     -1.5,
+     40.3
+    ],
+    "middle": [
+     -11.9,
+     1.7,
+     34.8
+    ]
+   }
+  },
+  {
+   "start": "y-1_p4",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.365,
+   "track_min": 0.358,
+   "track_max": 0.371,
+   "twist_end_deg": 49.9,
+   "drift_max_mm": 19.6,
+   "rise_max_mm": 9.8,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.4,
+     10.7,
+     31.0
+    ],
+    "index": [
+     10.5,
+     -2.6,
+     41.8
+    ],
+    "middle": [
+     -12.2,
+     0.9,
+     36.1
+    ]
+   }
+  },
+  {
+   "start": "y-1_p6",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.322,
+   "track_min": 0.314,
+   "track_max": 0.331,
+   "twist_end_deg": 35.6,
+   "drift_max_mm": 13.0,
+   "rise_max_mm": 3.2,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     11.5,
+     29.5
+    ],
+    "index": [
+     10.2,
+     -0.4,
+     38.0
+    ],
+    "middle": [
+     -12.3,
+     2.8,
+     32.2
+    ]
+   }
+  },
+  {
+   "start": "y-1_p6",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.349,
+   "track_min": 0.335,
+   "track_max": 0.357,
+   "twist_end_deg": 47.3,
+   "drift_max_mm": 18.5,
+   "rise_max_mm": 8.8,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.4,
+     11.3,
+     30.2
+    ],
+    "index": [
+     10.7,
+     -1.6,
+     39.5
+    ],
+    "middle": [
+     -12.6,
+     1.8,
+     33.7
+    ]
+   }
+  },
+  {
+   "start": "y-2_p0",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.387,
+   "track_min": 0.385,
+   "track_max": 0.389,
+   "twist_end_deg": 49.0,
+   "drift_max_mm": 16.9,
+   "rise_max_mm": 8.5,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     10.6,
+     30.4
+    ],
+    "index": [
+     8.9,
+     1.1,
+     38.1
+    ],
+    "middle": [
+     -10.8,
+     4.0,
+     33.3
+    ]
+   }
+  },
+  {
+   "start": "y-2_p0",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.412,
+   "track_min": 0.41,
+   "track_max": 0.414,
+   "twist_end_deg": 53.4,
+   "drift_max_mm": 21.9,
+   "rise_max_mm": 14.9,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     9.6,
+     31.6
+    ],
+    "index": [
+     9.5,
+     0.6,
+     39.4
+    ],
+    "middle": [
+     -11.1,
+     3.9,
+     33.4
+    ]
+   }
+  },
+  {
+   "start": "y-2_p2",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.366,
+   "track_min": 0.361,
+   "track_max": 0.371,
+   "twist_end_deg": 46.5,
+   "drift_max_mm": 15.8,
+   "rise_max_mm": 7.3,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     10.9,
+     30.1
+    ],
+    "index": [
+     9.3,
+     -0.7,
+     40.1
+    ],
+    "middle": [
+     -11.2,
+     3.7,
+     32.7
+    ]
+   }
+  },
+  {
+   "start": "y-2_p2",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.404,
+   "track_min": 0.399,
+   "track_max": 0.408,
+   "twist_end_deg": 53.0,
+   "drift_max_mm": 21.0,
+   "rise_max_mm": 12.7,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     10.4,
+     31.2
+    ],
+    "index": [
+     9.8,
+     -2.0,
+     42.2
+    ],
+    "middle": [
+     -11.4,
+     2.8,
+     34.3
+    ]
+   }
+  },
+  {
+   "start": "y-2_p3",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.363,
+   "track_min": 0.361,
+   "track_max": 0.366,
+   "twist_end_deg": 44.2,
+   "drift_max_mm": 15.3,
+   "rise_max_mm": 6.0,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     11.1,
+     29.9
+    ],
+    "index": [
+     9.4,
+     -1.2,
+     40.8
+    ],
+    "middle": [
+     -11.4,
+     3.2,
+     33.3
+    ]
+   }
+  },
+  {
+   "start": "y-2_p3",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.4,
+   "track_min": 0.39,
+   "track_max": 0.407,
+   "twist_end_deg": 53.3,
+   "drift_max_mm": 20.7,
+   "rise_max_mm": 12.0,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     10.6,
+     30.9
+    ],
+    "index": [
+     9.9,
+     -2.3,
+     42.2
+    ],
+    "middle": [
+     -11.6,
+     2.3,
+     34.7
+    ]
+   }
+  },
+  {
+   "start": "y-3_p0",
+   "supply_V": 5.0,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.401,
+   "track_min": 0.395,
+   "track_max": 0.405,
+   "twist_end_deg": 49.2,
+   "drift_max_mm": 17.2,
+   "rise_max_mm": 8.4,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.6,
+     10.9,
+     30.1
+    ],
+    "index": [
+     8.5,
+     1.6,
+     37.7
+    ],
+    "middle": [
+     -10.5,
+     3.8,
+     33.9
+    ]
+   }
+  },
+  {
+   "start": "y-3_p0",
+   "supply_V": 7.5,
+   "contacts_to_HOM": false,
+   "contact_model": "pads",
+   "runs": 3,
+   "held": 3,
+   "track_mean": 0.443,
+   "track_min": 0.443,
+   "track_max": 0.443,
+   "twist_end_deg": 57.1,
+   "drift_max_mm": 22.3,
+   "rise_max_mm": 16.0,
+   "grasp_joints_bench_deg": {
+    "thumb": [
+     2.5,
+     10.0,
+     31.3
+    ],
+    "index": [
+     9.0,
+     2.0,
+     37.3
+    ],
+    "middle": [
+     -10.6,
+     4.2,
+     33.5
+    ]
+   }
+  }
+ ],
+ "rows": [
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 1,
+   "held": true,
+   "track": 0.281,
+   "twist_end": 31.0,
+   "rise_max": 1.31,
+   "drift_max": 11.6,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.9,
+     29.2
+    ],
+    "index": [
+     10.6,
+     -5.0,
+     44.6
+    ],
+    "middle": [
+     -13.1,
+     -1.0,
+     37.9
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.333,
+   "twist_end": 36.8,
+   "rise_max": 5.44,
+   "drift_max": 13.9,
+   "grasp_joints": {
+    "thumb": [
+     2.7,
+     9.3,
+     31.9
+    ],
+    "index": [
+     9.8,
+     -1.9,
+     42.7
+    ],
+    "middle": [
+     -11.7,
+     3.2,
+     34.1
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.33,
+   "twist_end": 39.0,
+   "rise_max": 5.15,
+   "drift_max": 14.9,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     9.0,
+     31.8
+    ],
+    "index": [
+     9.6,
+     -2.8,
+     44.2
+    ],
+    "middle": [
+     -12.1,
+     4.8,
+     32.0
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 2,
+   "held": true,
+   "track": 0.268,
+   "twist_end": 28.8,
+   "rise_max": 1.7,
+   "drift_max": 7.8,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.8,
+     30.2
+    ],
+    "index": [
+     11.2,
+     -3.5,
+     42.9
+    ],
+    "middle": [
+     -12.9,
+     -1.1,
+     38.4
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 0,
+   "held": true,
+   "track": 0.288,
+   "twist_end": 34.2,
+   "rise_max": 4.41,
+   "drift_max": 12.5,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     10.6,
+     31.4
+    ],
+    "index": [
+     11.5,
+     -5.3,
+     45.1
+    ],
+    "middle": [
+     -13.3,
+     -2.1,
+     39.6
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 2,
+   "held": true,
+   "track": 0.288,
+   "twist_end": 33.9,
+   "rise_max": 4.51,
+   "drift_max": 11.1,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.7,
+     30.8
+    ],
+    "index": [
+     11.7,
+     -4.8,
+     44.6
+    ],
+    "middle": [
+     -13.2,
+     -1.8,
+     39.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 1,
+   "held": true,
+   "track": 0.283,
+   "twist_end": 34.0,
+   "rise_max": 4.28,
+   "drift_max": 14.9,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     11.5,
+     30.0
+    ],
+    "index": [
+     11.0,
+     -6.0,
+     46.1
+    ],
+    "middle": [
+     -13.5,
+     -1.7,
+     38.9
+    ]
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": false,
+   "seed": 0,
+   "held": true,
+   "track": 0.271,
+   "twist_end": 29.8,
+   "rise_max": 1.76,
+   "drift_max": 8.4,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     11.8,
+     29.2
+    ],
+    "index": [
+     10.9,
+     -4.1,
+     43.5
+    ],
+    "middle": [
+     -12.8,
+     -1.4,
+     38.5
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.342,
+   "twist_end": 38.3,
+   "rise_max": 5.92,
+   "drift_max": 13.4,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.3,
+     31.9
+    ],
+    "index": [
+     9.9,
+     -1.1,
+     41.5
+    ],
+    "middle": [
+     -11.5,
+     1.7,
+     36.3
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.402,
+   "twist_end": 48.9,
+   "rise_max": 7.57,
+   "drift_max": 17.3,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     11.0,
+     30.0
+    ],
+    "index": [
+     8.3,
+     0.6,
+     39.0
+    ],
+    "middle": [
+     -10.8,
+     3.9,
+     34.0
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.405,
+   "twist_end": 49.1,
+   "rise_max": 8.94,
+   "drift_max": 17.3,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     11.0,
+     30.1
+    ],
+    "index": [
+     8.5,
+     2.1,
+     37.1
+    ],
+    "middle": [
+     -10.3,
+     3.8,
+     34.0
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.367,
+   "twist_end": 48.9,
+   "rise_max": 13.08,
+   "drift_max": 20.5,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.8,
+     -1.9,
+     43.0
+    ],
+    "middle": [
+     -11.9,
+     0.7,
+     38.3
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.395,
+   "twist_end": 49.5,
+   "rise_max": 8.74,
+   "drift_max": 17.0,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.8,
+     30.1
+    ],
+    "index": [
+     8.8,
+     2.1,
+     36.9
+    ],
+    "middle": [
+     -10.4,
+     3.8,
+     33.7
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.371,
+   "twist_end": 48.0,
+   "rise_max": 12.33,
+   "drift_max": 22.0,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     8.0,
+     33.5
+    ],
+    "index": [
+     10.5,
+     -3.0,
+     44.8
+    ],
+    "middle": [
+     -12.4,
+     1.6,
+     37.2
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "mcpstop",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.368,
+   "twist_end": 48.5,
+   "rise_max": 12.79,
+   "drift_max": 21.2,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     8.1,
+     33.4
+    ],
+    "index": [
+     10.6,
+     -2.3,
+     43.7
+    ],
+    "middle": [
+     -12.1,
+     1.1,
+     37.8
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.443,
+   "twist_end": 57.4,
+   "rise_max": 16.22,
+   "drift_max": 22.6,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.5,
+     30.7
+    ],
+    "index": [
+     9.0,
+     2.2,
+     36.9
+    ],
+    "middle": [
+     -10.5,
+     4.0,
+     33.6
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.388,
+   "twist_end": 49.5,
+   "rise_max": 8.85,
+   "drift_max": 16.9,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     10.9,
+     30.1
+    ],
+    "index": [
+     9.0,
+     1.4,
+     37.5
+    ],
+    "middle": [
+     -10.7,
+     3.8,
+     33.4
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.443,
+   "twist_end": 55.8,
+   "rise_max": 15.26,
+   "drift_max": 22.1,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     9.9,
+     31.5
+    ],
+    "index": [
+     8.8,
+     1.1,
+     38.7
+    ],
+    "middle": [
+     -10.8,
+     4.3,
+     33.6
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.389,
+   "twist_end": 48.6,
+   "rise_max": 7.58,
+   "drift_max": 17.1,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     10.8,
+     30.0
+    ],
+    "index": [
+     8.7,
+     -0.4,
+     40.4
+    ],
+    "middle": [
+     -11.0,
+     4.0,
+     33.4
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-3_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.443,
+   "twist_end": 58.1,
+   "rise_max": 16.6,
+   "drift_max": 22.3,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.7,
+     31.7
+    ],
+    "index": [
+     9.2,
+     2.7,
+     36.4
+    ],
+    "middle": [
+     -10.5,
+     4.2,
+     33.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.385,
+   "twist_end": 48.9,
+   "rise_max": 9.2,
+   "drift_max": 16.8,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.1,
+     31.1
+    ],
+    "index": [
+     9.1,
+     2.3,
+     36.5
+    ],
+    "middle": [
+     -10.6,
+     4.1,
+     33.1
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.414,
+   "twist_end": 52.8,
+   "rise_max": 14.49,
+   "drift_max": 22.1,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     9.6,
+     31.5
+    ],
+    "index": [
+     9.4,
+     -0.7,
+     41.2
+    ],
+    "middle": [
+     -11.3,
+     4.3,
+     32.9
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.412,
+   "twist_end": 53.4,
+   "rise_max": 15.17,
+   "drift_max": 21.8,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.6,
+     31.6
+    ],
+    "index": [
+     9.5,
+     1.1,
+     38.8
+    ],
+    "middle": [
+     -11.0,
+     3.9,
+     33.5
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p0",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.41,
+   "twist_end": 53.9,
+   "rise_max": 15.07,
+   "drift_max": 21.9,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     9.6,
+     31.6
+    ],
+    "index": [
+     9.6,
+     1.4,
+     38.1
+    ],
+    "middle": [
+     -10.9,
+     3.6,
+     33.9
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.367,
+   "twist_end": 48.5,
+   "rise_max": 8.18,
+   "drift_max": 16.4,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     11.0,
+     30.1
+    ],
+    "index": [
+     9.3,
+     -0.1,
+     39.3
+    ],
+    "middle": [
+     -11.1,
+     3.7,
+     32.7
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.371,
+   "twist_end": 46.3,
+   "rise_max": 6.83,
+   "drift_max": 16.3,
+   "grasp_joints": {
+    "thumb": [
+     2.9,
+     11.0,
+     30.0
+    ],
+    "index": [
+     9.0,
+     -1.5,
+     41.3
+    ],
+    "middle": [
+     -11.4,
+     4.4,
+     31.9
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.361,
+   "twist_end": 44.7,
+   "rise_max": 6.88,
+   "drift_max": 14.8,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.8,
+     30.2
+    ],
+    "index": [
+     9.6,
+     -0.4,
+     39.7
+    ],
+    "middle": [
+     -11.1,
+     3.1,
+     33.6
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.408,
+   "twist_end": 53.4,
+   "rise_max": 12.88,
+   "drift_max": 20.9,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.6,
+     30.8
+    ],
+    "index": [
+     9.9,
+     -1.3,
+     41.2
+    ],
+    "middle": [
+     -11.3,
+     1.9,
+     35.6
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.399,
+   "twist_end": 52.0,
+   "rise_max": 12.55,
+   "drift_max": 22.3,
+   "grasp_joints": {
+    "thumb": [
+     3.0,
+     10.6,
+     31.0
+    ],
+    "index": [
+     9.3,
+     -3.6,
+     44.3
+    ],
+    "middle": [
+     -11.6,
+     4.9,
+     31.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.363,
+   "twist_end": 44.2,
+   "rise_max": 6.12,
+   "drift_max": 15.3,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     11.6,
+     29.3
+    ],
+    "index": [
+     9.4,
+     -1.1,
+     40.7
+    ],
+    "middle": [
+     -11.2,
+     2.6,
+     34.0
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-2_p2",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.405,
+   "twist_end": 53.6,
+   "rise_max": 12.6,
+   "drift_max": 19.8,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.9,
+     31.7
+    ],
+    "index": [
+     10.1,
+     -1.1,
+     41.1
+    ],
+    "middle": [
+     -11.4,
+     1.7,
+     36.0
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.366,
+   "twist_end": 44.9,
+   "rise_max": 6.05,
+   "drift_max": 16.2,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     10.9,
+     30.1
+    ],
+    "index": [
+     9.1,
+     -1.7,
+     41.6
+    ],
+    "middle": [
+     -11.7,
+     4.1,
+     31.9
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.361,
+   "twist_end": 43.5,
+   "rise_max": 5.83,
+   "drift_max": 14.5,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.9,
+     30.2
+    ],
+    "index": [
+     9.6,
+     -0.8,
+     40.1
+    ],
+    "middle": [
+     -11.3,
+     2.8,
+     33.9
+    ]
+   },
+   "wall_s": 2.9
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.407,
+   "twist_end": 54.2,
+   "rise_max": 11.82,
+   "drift_max": 19.9,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.8,
+     30.8
+    ],
+    "index": [
+     10.0,
+     -2.1,
+     42.1
+    ],
+    "middle": [
+     -11.5,
+     1.4,
+     36.0
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.39,
+   "twist_end": 52.0,
+   "rise_max": 12.45,
+   "drift_max": 22.3,
+   "grasp_joints": {
+    "thumb": [
+     2.8,
+     10.6,
+     31.1
+    ],
+    "index": [
+     9.5,
+     -3.1,
+     43.1
+    ],
+    "middle": [
+     -11.9,
+     4.3,
+     31.6
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.328,
+   "twist_end": 37.0,
+   "rise_max": 4.26,
+   "drift_max": 12.9,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.7,
+     29.3
+    ],
+    "index": [
+     10.1,
+     -1.6,
+     40.5
+    ],
+    "middle": [
+     -11.8,
+     1.4,
+     35.0
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.331,
+   "twist_end": 39.0,
+   "rise_max": 4.06,
+   "drift_max": 14.8,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     11.3,
+     30.1
+    ],
+    "index": [
+     9.7,
+     -2.1,
+     40.9
+    ],
+    "middle": [
+     -12.1,
+     1.9,
+     34.5
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-2_p3",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.404,
+   "twist_end": 53.8,
+   "rise_max": 11.67,
+   "drift_max": 19.8,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.5,
+     30.9
+    ],
+    "index": [
+     10.2,
+     -1.6,
+     41.5
+    ],
+    "middle": [
+     -11.5,
+     1.2,
+     36.5
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.326,
+   "twist_end": 35.8,
+   "rise_max": 3.96,
+   "drift_max": 12.2,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.8,
+     30.3
+    ],
+    "index": [
+     10.3,
+     -0.8,
+     39.4
+    ],
+    "middle": [
+     -11.9,
+     1.7,
+     34.9
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.366,
+   "twist_end": 49.2,
+   "rise_max": 9.48,
+   "drift_max": 19.1,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.5,
+     29.9
+    ],
+    "index": [
+     10.5,
+     -2.9,
+     41.9
+    ],
+    "middle": [
+     -12.1,
+     0.5,
+     36.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.371,
+   "twist_end": 51.1,
+   "rise_max": 10.13,
+   "drift_max": 21.0,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.6,
+     31.2
+    ],
+    "index": [
+     10.1,
+     -3.2,
+     42.6
+    ],
+    "middle": [
+     -12.4,
+     1.4,
+     35.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.322,
+   "twist_end": 35.7,
+   "rise_max": 3.18,
+   "drift_max": 12.9,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     11.7,
+     29.2
+    ],
+    "index": [
+     10.3,
+     -0.4,
+     38.0
+    ],
+    "middle": [
+     -12.3,
+     2.7,
+     32.4
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y-1_p4",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.358,
+   "twist_end": 49.3,
+   "rise_max": 9.93,
+   "drift_max": 18.6,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     9.9,
+     32.0
+    ],
+    "index": [
+     10.9,
+     -1.8,
+     40.9
+    ],
+    "middle": [
+     -12.1,
+     0.8,
+     36.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.314,
+   "twist_end": 36.3,
+   "rise_max": 3.28,
+   "drift_max": 14.2,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.9,
+     29.2
+    ],
+    "index": [
+     9.9,
+     -1.3,
+     39.1
+    ],
+    "middle": [
+     -12.5,
+     2.9,
+     31.9
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.331,
+   "twist_end": 34.9,
+   "rise_max": 3.25,
+   "drift_max": 11.9,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.9,
+     30.2
+    ],
+    "index": [
+     10.5,
+     0.4,
+     36.9
+    ],
+    "middle": [
+     -12.2,
+     2.9,
+     32.4
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.356,
+   "twist_end": 48.1,
+   "rise_max": 8.67,
+   "drift_max": 18.2,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.6,
+     29.8
+    ],
+    "index": [
+     10.7,
+     -1.7,
+     39.5
+    ],
+    "middle": [
+     -12.5,
+     1.6,
+     33.8
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.335,
+   "twist_end": 47.1,
+   "rise_max": 9.03,
+   "drift_max": 20.3,
+   "grasp_joints": {
+    "thumb": [
+     2.3,
+     11.6,
+     29.9
+    ],
+    "index": [
+     10.3,
+     -2.3,
+     40.6
+    ],
+    "middle": [
+     -12.8,
+     1.9,
+     33.4
+    ]
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "y-1_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.357,
+   "twist_end": 46.8,
+   "rise_max": 8.71,
+   "drift_max": 17.1,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.6,
+     30.8
+    ],
+    "index": [
+     11.0,
+     -0.7,
+     38.4
+    ],
+    "middle": [
+     -12.5,
+     1.9,
+     33.9
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.318,
+   "twist_end": 34.3,
+   "rise_max": 2.54,
+   "drift_max": 12.3,
+   "grasp_joints": {
+    "thumb": [
+     2.6,
+     11.7,
+     29.2
+    ],
+    "index": [
+     10.6,
+     -1.1,
+     38.7
+    ],
+    "middle": [
+     -12.5,
+     1.8,
+     33.6
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.314,
+   "twist_end": 33.3,
+   "rise_max": 2.5,
+   "drift_max": 11.0,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     10.8,
+     30.2
+    ],
+    "index": [
+     10.9,
+     -0.4,
+     38.0
+    ],
+    "middle": [
+     -12.5,
+     2.0,
+     33.5
+    ]
+   },
+   "wall_s": 3.0
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 5.0,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.307,
+   "twist_end": 34.3,
+   "rise_max": 2.52,
+   "drift_max": 13.3,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     11.4,
+     30.1
+    ],
+    "index": [
+     10.2,
+     -1.9,
+     39.7
+    ],
+    "middle": [
+     -12.9,
+     2.4,
+     32.5
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 2,
+   "held": true,
+   "track": 0.342,
+   "twist_end": 40.2,
+   "rise_max": 6.8,
+   "drift_max": 15.2,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     9.8,
+     32.1
+    ],
+    "index": [
+     11.5,
+     -1.8,
+     39.8
+    ],
+    "middle": [
+     -12.9,
+     1.4,
+     34.5
+    ]
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 0,
+   "held": true,
+   "track": 0.336,
+   "twist_end": 39.3,
+   "rise_max": 6.87,
+   "drift_max": 15.9,
+   "grasp_joints": {
+    "thumb": [
+     2.5,
+     10.6,
+     31.1
+    ],
+    "index": [
+     11.2,
+     -2.4,
+     40.4
+    ],
+    "middle": [
+     -12.9,
+     1.2,
+     34.6
+    ]
+   },
+   "wall_s": 3.3
+  },
+  {
+   "cand": "y+0_p6",
+   "volts": 7.5,
+   "contacts": false,
+   "contact": "pads",
+   "stops": true,
+   "seed": 1,
+   "held": true,
+   "track": 0.316,
+   "twist_end": 39.8,
+   "rise_max": 7.06,
+   "drift_max": 18.1,
+   "grasp_joints": {
+    "thumb": [
+     2.4,
+     11.6,
+     29.8
+    ],
+    "index": [
+     10.6,
+     -3.2,
+     41.3
+    ],
+    "middle": [
+     -13.3,
+     1.4,
+     33.9
+    ]
+   },
+   "wall_s": 3.3
+  }
+ ]
+}
