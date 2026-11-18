@@ -175,6 +175,18 @@ air and then against a force sensor. Contact and the blind validation trials nee
   task windows its index and middle yaws moved 3.0-4.8 and 1.8-4.7 deg less than the hand's. At this grasp +5 deg of
   yaw changes the index's or middle's gap by 7.2 mm, and +5 deg of MCP or PIP by 0.2-1.4 mm. With the S1(b) zeros the
   close gaps become +1.3 to +1.7 mm, and the squeeze gaps -5.2 and -3.2 mm.
+- W3, the yaw chains' give in the replays (11-18 12:4x). The night's 11 tips-off g0 twists were replayed as in "W3,
+  replays", with a spring between the index's and middle's yaw servo shafts and their links
+  (`sim/20261118-yaw_give_replay.py`; summary `sim/20261118-yaw_give_summary.py`: `data/20261118-yaw_give_replay.json`).
+  The shaft is the yaw's reading. It stops where the gear's forward output (0.4 of the servo's torque) meets the
+  spring, and the spring cannot drive it back. A stiffness of 0.76 N m/rad gives the night's 4 deg on the 7.5 V plant;
+  1.5 N m/rad gives 2 deg. With 0.76 the yaw readings follow the hand's: the grasp's joint RMS falls from 2.2-2.3 to
+  1.0-1.2 deg, and the task's yaw shortfall from 3.7-4.1 deg to -1.1 to +0.2 deg. With stiff pads the sphere turns 45.6
+  deg by the end (rigid 30.8, hand 49.6), within 3 deg of the hand in 8 of 11 trials. It rises 1.6 mm (hand 3.0). Its
+  twist rises more than 8 deg within 0.2 s 4.3 times per trial (rigid 1.6, hand 3.8), at most 13.9 deg (hand 23.9).
+  The turn comes about 1 s later than the hand's, so the twist trace's RMS falls only from 16.9 to 15.8 deg and the
+  tracking from 0.25 to 0.32 (hand 0.43). With soft pads the give changes little: twist 35.3-37.7 deg, rise 7.3-8.4 mm.
+  The stiffness comes from the grasp, not from the twist; S3 measures it on the hand.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
