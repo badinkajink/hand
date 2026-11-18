@@ -4,8 +4,10 @@
 #   1. S1(b): the DIP tags of the thumb and the middle at the poses of logs/20261117-sr2_s1b_tags/poses.json (chosen for
 #      the arm's pose after S2 and the (85, 170) layout; CAD clearance >= 14.1 mm); the index's tag faced away from
 #      both cameras at every candidate pose.
-#   2. The HOM twist repeats (owner, 18:0x): lab/repeat_cycle.sh of the bench study, g0 at (70, 110), six cycles, tips
-#      off and on alternating, servers 47051/47052.
+#   2. The HOM twist repeats (owner, 18:0x), as an A/B of the paper-rate filter (owner, 19:0x: "you gotta do it right";
+#      hand-4a's flags, 7cce889e8): lab/repeat_cycle.sh of the bench study, g0 at (70, 110), twelve cycles over four arms
+#      in turn, three each: tips off as before (47051), tips off with --filter-step-s 0.002 (47057), tips on as before
+#      (47052), tips on with --filter-step-s 0.002 --contact-off 0.10 (47058).
 #   3. Only when the repeats end cleanly: the random-pose sweep of the fingertip boards (owner, 19:1x: "good idea to get
 #      the magnetic fields response recalibrated too with this new sysid"), at (85, 170) with the arm 70 mm higher,
 #      logs/20261117-sr2_boards_sweep/20261117-plan_random_s3.json (300 poses, CAD clearance >= 12.2 mm).
@@ -42,7 +44,8 @@ log "S1(b): DIP tags"
 (cd $ID/lab && $PY s1b_tags.py run --plan ../../20261115-hom_bench_trials/$ROLL --go 2>&1 | grep -v -i token | tail -30)
 stop_check repeats
 log "HOM twist repeats"
-(cd $H && bash lab/repeat_cycle.sh ../../../logs/20261116-hom_trials/20261117-night_repeats 6)
+(cd $H && ARMS="47051:off:base 47057:off:fstep 47052:on:base 47058:on:fstep_hyst" \
+    bash lab/repeat_cycle.sh ../../../logs/20261116-hom_trials/20261117-night_repeats 12)
 rc=$?
 log "repeats ended (exit $rc)"
 [ $rc -eq 0 ] || { log "the repeats did not end cleanly: no board sweep"; exit 2; }
