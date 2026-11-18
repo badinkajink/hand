@@ -56,6 +56,9 @@ air and then against a force sensor. Contact and the blind validation trials nee
   the finger's board. One joint per finger: thumb MCP, index MCP and middle MCP, then the PIPs if time allows. Output:
   force against target offset. The workstation converts it to torque against offset (the gain in N m/rad), the dead
   band under load and the load at the overload trip, and compares each board's normal force with the HEX-E (W2).
+  Prediction for the index and middle yaws, first in the owner's order (W2, 11-18 12:0x): from first contact the
+  reading advances about 1.6 deg per newton at the pad (4 deg at about 2.4 N), while the pad stays on the block. Where
+  the pressing finger's DIP tag is in view, record it: it shows where the chain gives.
 - S4 (with the owner, next session). Contact on the hand, three trials each.
   (a) Pick-up of the press cylinder and of the taped sphere, then a slow opening of the pinch over 4-6 s above a catch
   box, the tags and the boards recording. The object's angle about the pinch line against the normal force gives the
@@ -134,9 +137,40 @@ air and then against a force sensor. Contact and the blind validation trials nee
   tips-on trials were not reproduced at all. The hand's best, 19:57 (0.622, 64.8 deg), turned 0-13 deg in every
   replay. The replays of 20:08, which the drift guard stopped on the hand at 5.4 s, spun the sphere 52-115 deg with
   soft contact.
-- W3, next (11-18). Fit the index and middle yaw gain, the sliding friction and the contact's impratio to the replays'
+- W2, S1(b) with the arm lowered (11-18 12:0x). The lab's rows of 11:12-11:41 (`data/s1/20261118-*_rows.jsonl`, all
+  three fingers, both cameras) were fitted by `sim/20261118-s1b_tag_fit.py`: `data/s1/20261118-s1b_tag_fit.json`. The
+  tag model is the one of 19:5x; the leave-one-out error leaves out both runs of a commanded pose. The middle (9 poses,
+  twice; yaw -13 to 29 deg, MCP 52-57, PIP 74-75) missed by 6.59 mm RMS as built, its normal by 12.4 deg. A PIP zero of
+  +12.3 deg with the mount 6.0 mm toward -x and 0.8 mm toward -y leaves 0.81 mm (0.87 left out) and 0.8 deg. An MCP
+  zero in its place leaves 3.3 mm. The index (7 poses, twice; yaw -28 to 29, MCP 48-58, PIP 69-80) missed by 9.03 mm
+  and 9.1 deg. Its mount alone, moved (+8.5, -2.5) mm, leaves 1.81 mm and the 9 deg. Zeros and mount together leave
+  1.67 mm (1.93 left out), with an MCP zero of -10.0 deg and a PIP zero of +19.0; a PIP zero alone leaves 3.7 mm. The
+  thumb (13 poses at its home and stepped mounts, 27 runs; yaw -30 to 29, MCP -7 to 23, PIP 0-30) missed by 8.67 mm,
+  and every model leaves 4.4-6.0 mm. Its tag sits 3.5-5.5 mm below the model at every pose. In last night's rows it sat
+  0.7 mm above, and the same fit left 1.59 mm. The mount fitted at each gantry place moved (6.98, 1.52) and (6.79,
+  1.95) mm, so the 12 mm step came out as commanded. The fitted mounts' x agrees with the station's own coordinates
+  (frames.json's box_minus_nominal_mm, 6.18 mm, not added) for the thumb (+6.9 mm, and +5.1 last night) and the middle
+  (-6.0), not for the index. As the lab notes, these poses cannot separate zero offsets from pots that read low near the
+  top of their range.
+- W2, the pads on the sphere at the night's grasps (11-18 12:0x). For the 20 scored g0 twists, the replay plant was
+  set to the hand's measured joints and the tracked sphere, as built (`sim/20261118-grasp_pad_gap.py`,
+  `data/20261118-grasp_pad_gap.json`). The gap is the least distance from a pad's surface to the sphere's (negative:
+  inside), its median over each window. In the close (0.60-0.80 s) the index and middle yaws stop at about 20 deg, 2.4-3.2
+  deg short of their targets. There the gaps are +0.8 mm for the thumb (median of 20; -0.4 to +1.8), -0.3 mm for the
+  index (-1.1 to +0.3) and -0.6 mm for the middle (-2.5 to +0.2). The model meets the sphere where the hand's fingers
+  stop. In the squeeze (1.30-1.58 s) the yaw targets go 14-15 deg past the readings. The index and middle readings
+  advance 4.1 deg (2.3-4.7) and 3.5 deg (2.9-3.8), and the thumb pushes the sphere 1.3-3.1 mm toward them. The model's
+  pads then sit 7.3 mm inside the sphere for the index (5.5-9.0) and 5.6 mm for the middle (4.5-7.7); the thumb's sit
+  1.3 mm inside (0.2-2.6). On the hand the pads touch the sphere, compressed by about a millimetre. The boards read 2.6 N
+  (thumb) and 0.8 N (index), and nothing on the middle in 18 of 20 trials. The index and middle yaw chains therefore give
+  about 6 mm at the pad under the squeeze, about 4 deg of reading. The rigid model has no such give: in the replays'
+  task windows its index and middle yaws moved 3.0-4.8 and 1.8-4.7 deg less than the hand's. At this grasp +5 deg of
+  yaw changes the index's or middle's gap by 7.2 mm, and +5 deg of MCP or PIP by 0.2-1.4 mm. With the S1(b) zeros the
+  close gaps become +1.3 to +1.7 mm, and the squeeze gaps -5.2 and -3.2 mm.
+- W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
+  and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
-  plant; about 30 min on 6 cores). S3 then checks the fitted gain and S4(b) the friction. Then predictions of S5 on the
+  plant; about 30 min on 6 cores). S3 then checks the fitted gain and give, and S4(b) the friction. Then predictions of S5 on the
   fitted plant. After S4: the friction coefficient, the tangential softness and the torsion, and the same predictions
   with the pads, point contact and point contact with torsion (condim 4).
 - W4. The three-size landscapes of twist, roll and press with the pads and with point contact (about 6-8 GPU-hours),

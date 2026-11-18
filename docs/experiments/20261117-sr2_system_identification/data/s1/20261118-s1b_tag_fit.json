@@ -1,0 +1,713 @@
+{
+ "what": "Joint zero offsets and finger mounts from the DIP tags of 2026-11-18 (W2 of the identification queue; S1(b) with the arm lowered, rows data/s1/20261118-{middle,index,thumb,thumb_home}_rows.jsonl), beside the thumb's rows of 2026-11-17 (data/s1/rows.jsonl).",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-s1b_tag_fit.py",
+ "models": {
+  "built": [],
+  "mount": [
+   "mx",
+   "my"
+  ],
+  "zeros": [
+   "yaw",
+   "mcp",
+   "pip"
+  ],
+  "both": [
+   "yaw",
+   "mcp",
+   "pip",
+   "mx",
+   "my"
+  ],
+  "pip_only": [
+   "yaw",
+   "pip",
+   "mx",
+   "my"
+  ],
+  "mcp_only": [
+   "yaw",
+   "mcp",
+   "mx",
+   "my"
+  ],
+  "station": [
+   "yaw",
+   "mcp",
+   "pip"
+  ]
+ },
+ "units": "zeros in deg (added to the reading), mount in mm (added to the lab's mount in P), errors in mm (centre) and deg (normal)",
+ "sets": {
+  "middle": {
+   "runs": 18,
+   "poses": 9,
+   "q_min": [
+    -12.9,
+    52.1,
+    74.1
+   ],
+   "q_max": [
+    29.0,
+    57.4,
+    75.0
+   ],
+   "mounts_P": [
+    [
+     42.5,
+     -85.0
+    ]
+   ],
+   "models": {
+    "built": {
+     "params": {},
+     "se": {},
+     "centre_rms_mm": 6.59,
+     "normal_rms_deg": 12.41,
+     "mean_err_mm": [
+      -1.55,
+      -1.93,
+      5.72
+     ],
+     "loo_centre_rms_mm": 6.59
+    },
+    "mount": {
+     "params": {
+      "mx": -1.55,
+      "my": -1.93
+     },
+     "se": {
+      "mx": 1.34,
+      "my": 1.34
+     },
+     "centre_rms_mm": 6.1,
+     "normal_rms_deg": 12.41,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      5.72
+     ],
+     "loo_centre_rms_mm": 6.19
+    },
+    "zeros": {
+     "params": {
+      "yaw": -2.04,
+      "mcp": 5.72,
+      "pip": 4.33
+     },
+     "se": {
+      "yaw": 0.72,
+      "mcp": 0.91,
+      "pip": 1.08
+     },
+     "centre_rms_mm": 4.17,
+     "normal_rms_deg": 2.54,
+     "mean_err_mm": [
+      -3.57,
+      -0.65,
+      -2.01
+     ],
+     "loo_centre_rms_mm": 4.17
+    },
+    "both": {
+     "params": {
+      "yaw": -1.63,
+      "mcp": -1.08,
+      "pip": 13.52,
+      "mx": -6.45,
+      "my": -0.87
+     },
+     "se": {
+      "yaw": 0.18,
+      "mcp": 0.27,
+      "pip": 0.33,
+      "mx": 0.15,
+      "my": 0.11
+     },
+     "centre_rms_mm": 0.71,
+     "normal_rms_deg": 0.8,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -0.14
+     ],
+     "loo_centre_rms_mm": 0.8
+    },
+    "pip_only": {
+     "params": {
+      "yaw": -1.65,
+      "pip": 12.25,
+      "mx": -6.04,
+      "my": -0.84
+     },
+     "se": {
+      "yaw": 0.19,
+      "pip": 0.1,
+      "mx": 0.12,
+      "my": 0.12
+     },
+     "centre_rms_mm": 0.81,
+     "normal_rms_deg": 0.83,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -0.52
+     ],
+     "loo_centre_rms_mm": 0.87
+    },
+    "mcp_only": {
+     "params": {
+      "yaw": -1.73,
+      "mcp": 9.23,
+      "mx": -2.42,
+      "my": -0.61
+     },
+     "se": {
+      "yaw": 0.71,
+      "mcp": 0.32,
+      "mx": 0.46,
+      "my": 0.48
+     },
+     "centre_rms_mm": 3.29,
+     "normal_rms_deg": 3.31,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      -3.26
+     ],
+     "loo_centre_rms_mm": 3.29
+    },
+    "station": {
+     "params": {
+      "yaw": -4.03,
+      "mcp": -0.53,
+      "pip": 12.94
+     },
+     "se": {
+      "yaw": 0.63,
+      "mcp": 0.76,
+      "pip": 0.87
+     },
+     "centre_rms_mm": 3.77,
+     "normal_rms_deg": 1.66,
+     "mean_err_mm": [
+      -0.09,
+      -3.7,
+      -0.32
+     ],
+     "loo_centre_rms_mm": 3.79,
+     "mount_offset_mm": [
+      -6.18,
+      3.4
+     ]
+    }
+   }
+  },
+  "index": {
+   "runs": 14,
+   "poses": 7,
+   "q_min": [
+    -28.1,
+    47.5,
+    69.1
+   ],
+   "q_max": [
+    29.3,
+    57.7,
+    80.0
+   ],
+   "mounts_P": [
+    [
+     42.5,
+     85.0
+    ]
+   ],
+   "models": {
+    "built": {
+     "params": {},
+     "se": {},
+     "centre_rms_mm": 9.03,
+     "normal_rms_deg": 9.06,
+     "mean_err_mm": [
+      8.48,
+      -2.53,
+      0.07
+     ],
+     "loo_centre_rms_mm": 9.03
+    },
+    "mount": {
+     "params": {
+      "mx": 8.48,
+      "my": -2.53
+     },
+     "se": {
+      "mx": 1.02,
+      "my": 1.02
+     },
+     "centre_rms_mm": 1.81,
+     "normal_rms_deg": 9.06,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      0.07
+     ],
+     "loo_centre_rms_mm": 2.09
+    },
+    "zeros": {
+     "params": {
+      "yaw": -0.68,
+      "mcp": -12.18,
+      "pip": 21.82
+     },
+     "se": {
+      "yaw": 0.53,
+      "mcp": 0.69,
+      "pip": 0.77
+     },
+     "centre_rms_mm": 2.87,
+     "normal_rms_deg": 1.73,
+     "mean_err_mm": [
+      0.65,
+      -2.22,
+      -0.04
+     ],
+     "loo_centre_rms_mm": 2.94
+    },
+    "both": {
+     "params": {
+      "yaw": 1.07,
+      "mcp": -10.02,
+      "pip": 19.0,
+      "mx": 1.75,
+      "my": -2.73
+     },
+     "se": {
+      "yaw": 0.35,
+      "mcp": 0.66,
+      "pip": 0.79,
+      "mx": 0.38,
+      "my": 0.25
+     },
+     "centre_rms_mm": 1.67,
+     "normal_rms_deg": 1.1,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -0.57
+     ],
+     "loo_centre_rms_mm": 1.93
+    },
+    "pip_only": {
+     "params": {
+      "yaw": 0.89,
+      "pip": 7.32,
+      "mx": 5.85,
+      "my": -2.37
+     },
+     "se": {
+      "yaw": 0.72,
+      "pip": 0.42,
+      "mx": 0.5,
+      "my": 0.5
+     },
+     "centre_rms_mm": 3.68,
+     "normal_rms_deg": 2.01,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -3.63
+     ],
+     "loo_centre_rms_mm": 3.71
+    },
+    "mcp_only": {
+     "params": {
+      "yaw": 0.87,
+      "mcp": 4.84,
+      "mx": 8.19,
+      "my": -2.3
+     },
+     "se": {
+      "yaw": 1.02,
+      "mcp": 0.5,
+      "mx": 0.7,
+      "my": 0.74
+     },
+     "centre_rms_mm": 4.51,
+     "normal_rms_deg": 4.29,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -4.47
+     ],
+     "loo_centre_rms_mm": 4.54
+    },
+    "station": {
+     "params": {
+      "yaw": 1.55,
+      "mcp": -22.18,
+      "pip": 33.4
+     },
+     "se": {
+      "yaw": 0.74,
+      "mcp": 0.97,
+      "pip": 1.03
+     },
+     "centre_rms_mm": 3.96,
+     "normal_rms_deg": 2.5,
+     "mean_err_mm": [
+      1.94,
+      0.23,
+      2.21
+     ],
+     "loo_centre_rms_mm": 4.03,
+     "mount_offset_mm": [
+      -6.18,
+      -3.4
+     ]
+    }
+   }
+  },
+  "thumb": {
+   "runs": 27,
+   "poses": 13,
+   "q_min": [
+    -29.6,
+    -7.3,
+    -0.0
+   ],
+   "q_max": [
+    29.0,
+    22.6,
+    29.9
+   ],
+   "mounts_P": [
+    [
+     -42.5,
+     0.0
+    ],
+    [
+     -30.499999999999996,
+     0.0
+    ]
+   ],
+   "models": {
+    "built": {
+     "params": {},
+     "se": {},
+     "centre_rms_mm": 8.67,
+     "normal_rms_deg": 2.12,
+     "mean_err_mm": [
+      6.92,
+      1.66,
+      -3.98
+     ],
+     "loo_centre_rms_mm": 8.67
+    },
+    "mount": {
+     "params": {
+      "mx": 6.92,
+      "my": 1.66
+     },
+     "se": {
+      "mx": 0.43,
+      "my": 0.43
+     },
+     "centre_rms_mm": 4.95,
+     "normal_rms_deg": 2.12,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      -3.98
+     ],
+     "loo_centre_rms_mm": 5.13
+    },
+    "zeros": {
+     "params": {
+      "yaw": 0.39,
+      "mcp": 8.07,
+      "pip": -5.96
+     },
+     "se": {
+      "yaw": 0.32,
+      "mcp": 1.08,
+      "pip": 1.4
+     },
+     "centre_rms_mm": 6.03,
+     "normal_rms_deg": 1.61,
+     "mean_err_mm": [
+      1.35,
+      1.33,
+      -4.65
+     ],
+     "loo_centre_rms_mm": 6.11
+    },
+    "both": {
+     "params": {
+      "yaw": -2.4,
+      "mcp": -2.95,
+      "pip": 4.4,
+      "mx": 7.55,
+      "my": 5.03
+     },
+     "se": {
+      "yaw": 0.6,
+      "mcp": 3.81,
+      "pip": 3.85,
+      "mx": 2.05,
+      "my": 0.93
+     },
+     "centre_rms_mm": 4.39,
+     "normal_rms_deg": 1.98,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -3.24
+     ],
+     "loo_centre_rms_mm": 4.89
+    },
+    "pip_only": {
+     "params": {
+      "yaw": -2.47,
+      "pip": 1.43,
+      "mx": 6.01,
+      "my": 5.16
+     },
+     "se": {
+      "yaw": 0.59,
+      "pip": 0.38,
+      "mx": 0.46,
+      "my": 0.92
+     },
+     "centre_rms_mm": 4.43,
+     "normal_rms_deg": 1.99,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -3.28
+     ],
+     "loo_centre_rms_mm": 4.82
+    },
+    "mcp_only": {
+     "params": {
+      "yaw": -2.51,
+      "mcp": 1.24,
+      "mx": 5.47,
+      "my": 5.22
+     },
+     "se": {
+      "yaw": 0.6,
+      "mcp": 0.38,
+      "mx": 0.59,
+      "my": 0.93
+     },
+     "centre_rms_mm": 4.47,
+     "normal_rms_deg": 2.01,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      -3.31
+     ],
+     "loo_centre_rms_mm": 4.88
+    },
+    "station": {
+     "params": {
+      "yaw": -0.93,
+      "mcp": -0.91,
+      "pip": 2.45
+     },
+     "se": {
+      "yaw": 0.26,
+      "mcp": 0.87,
+      "pip": 1.13
+     },
+     "centre_rms_mm": 4.71,
+     "normal_rms_deg": 1.69,
+     "mean_err_mm": [
+      0.23,
+      0.59,
+      -3.68
+     ],
+     "loo_centre_rms_mm": 4.79,
+     "mount_offset_mm": [
+      6.18,
+      2.4
+     ]
+    }
+   },
+   "mount_fit_each_mount": {
+    "stepped": [
+     6.98,
+     1.52
+    ],
+    "home": [
+     6.79,
+     1.95
+    ]
+   }
+  },
+  "thumb_1117": {
+   "runs": 9,
+   "poses": 9,
+   "q_min": [
+    -9.7,
+    -9.4,
+    -0.3
+   ],
+   "q_max": [
+    29.0,
+    54.5,
+    69.7
+   ],
+   "mounts_P": [
+    [
+     -42.5,
+     0.0
+    ]
+   ],
+   "models": {
+    "built": {
+     "params": {},
+     "se": {},
+     "centre_rms_mm": 5.96,
+     "normal_rms_deg": 2.4,
+     "mean_err_mm": [
+      5.06,
+      2.38,
+      0.74
+     ],
+     "loo_centre_rms_mm": 5.96
+    },
+    "mount": {
+     "params": {
+      "mx": 5.06,
+      "my": 2.38
+     },
+     "se": {
+      "mx": 0.44,
+      "my": 0.44
+     },
+     "centre_rms_mm": 2.05,
+     "normal_rms_deg": 2.4,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      0.74
+     ],
+     "loo_centre_rms_mm": 2.17
+    },
+    "zeros": {
+     "params": {
+      "yaw": 2.18,
+      "mcp": 6.52,
+      "pip": -6.03
+     },
+     "se": {
+      "yaw": 0.36,
+      "mcp": 1.15,
+      "pip": 1.47
+     },
+     "centre_rms_mm": 3.72,
+     "normal_rms_deg": 1.01,
+     "mean_err_mm": [
+      1.81,
+      0.14,
+      -1.42
+     ],
+     "loo_centre_rms_mm": 3.87
+    },
+    "both": {
+     "params": {
+      "yaw": 2.81,
+      "mcp": -4.7,
+      "pip": 4.95,
+      "mx": 7.17,
+      "my": -1.24
+     },
+     "se": {
+      "yaw": 0.28,
+      "mcp": 1.1,
+      "pip": 1.17,
+      "mx": 0.58,
+      "my": 0.44
+     },
+     "centre_rms_mm": 1.59,
+     "normal_rms_deg": 0.75,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -0.0
+     ],
+     "loo_centre_rms_mm": 1.83
+    },
+    "pip_only": {
+     "params": {
+      "yaw": 2.57,
+      "pip": 0.06,
+      "mx": 5.03,
+      "my": -0.76
+     },
+     "se": {
+      "yaw": 0.32,
+      "pip": 0.28,
+      "mx": 0.33,
+      "my": 0.5
+     },
+     "centre_rms_mm": 1.9,
+     "normal_rms_deg": 0.87,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -0.4
+     ],
+     "loo_centre_rms_mm": 2.12
+    },
+    "mcp_only": {
+     "params": {
+      "yaw": 2.62,
+      "mcp": -0.16,
+      "mx": 5.22,
+      "my": -0.86
+     },
+     "se": {
+      "yaw": 0.33,
+      "mcp": 0.26,
+      "mx": 0.39,
+      "my": 0.5
+     },
+     "centre_rms_mm": 1.85,
+     "normal_rms_deg": 0.94,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -0.34
+     ],
+     "loo_centre_rms_mm": 2.09
+    },
+    "station": {
+     "params": {
+      "yaw": 0.91,
+      "mcp": -2.86,
+      "pip": 3.38
+     },
+     "se": {
+      "yaw": 0.25,
+      "mcp": 0.81,
+      "pip": 1.03
+     },
+     "centre_rms_mm": 2.08,
+     "normal_rms_deg": 1.78,
+     "mean_err_mm": [
+      -0.02,
+      -1.2,
+      0.57
+     ],
+     "loo_centre_rms_mm": 2.24,
+     "mount_offset_mm": [
+      6.18,
+      2.4
+     ]
+    }
+   }
+  }
+ }
+}
