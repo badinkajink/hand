@@ -82,3 +82,49 @@ new sysid".
   and the fingers straightened, all without vision. The sphere stands somewhere under the hand at the table's centre.
 - **The rig:** the hand at the roll layout, palm about z 300 mm, fingers straight, torque on, servos 22-36 C with no
   flags. The workstation's HOM servers 47051, 47052, 47057-47060 are stopped. The cylinder stands 18 cm off the centre.
+
+## 2026-11-18, morning: S1(b) with the arm lowered (11:12-11:41)
+
+At 09:4x the owner wrote: "the middle finger tag should be visible from at least one camera now, when it is curled into
+the tag-visible joint config. if you yaw the thumb finger toward +x and also step the thumb +x, it should be visible by
+both". The arm still read running at the night's pose then. The owner lowered it 43 mm at 11:12:24-27 (TCP z 305 to
+262 mm), switched it off at 11:12:30 and moved the sphere aside ("ok done im headed out for 2 hours"). The arm's
+read-only stream still gives its pose while it is off (robot mode 3), so the tracker places the frames as before. The
+watcher's log is `logs/20261118-sr2_tags/arm_watch.jsonl`.
+
+- **Why the poses changed.** The palm's origin is now 120 mm above the table (z_B 123 mm; 298 mm at 19:36 last night),
+  level with both cameras (z_B 96 and 106 mm). The index's and middle's tags face +x at zero, away from both cameras,
+  and a curl turns them downward. Last night's middle poses now view at 50-100 deg. Curled further (MCP 58, PIP 75-80),
+  a tag faces -x and both cameras see it. MCP 58 and PIP 80 are the ends S1(a) reached last night, below the MCP pots'
+  dead zone (62-68 deg). Lowering the palm brought the tags into frame without blocking them.
+- **The tool.** `lab/s1b_tags.py` takes the mounts from the station (so a moved gantry is modelled where it is), chooses
+  poses for given `--fingers`, keeps only poses both cameras see with `--both`, measures the sphere and the cylinder
+  with the tracker (`--avoid-map MAP:R`, 60 mm round each, 20 mm more clear along each pose's path from zero), moves one
+  gantry (`mount`), and refuses a run if the arm, a mount or an object moved since the choice. The rows now record
+  which cameras saw the tag.
+- **The thumb's step.** The thumb's yaw axis lies along x, so a positive yaw swings the finger toward +y and turns its tag
+  between the two cameras. On the model, stepping the thumb's gantry +12 mm (to x -24.3, inside the station's -20 limit)
+  raised the poses both cameras see within 40 deg from 3 to 15 (within 50 deg from 60 to 71).
+- **Runs** (`logs/20261118-sr2_s1b_tags/<set>/`; copies and the summary in `data/s1/20261118-*`, from `lab/s1b_summary.py`):
+
+| set | mount (station, mm) | runs seen | cameras | tag minus model, median (mm) | normal off the model | repeat |
+|---|---|---|---|---|---|---|
+| middle | (36.3, -81.6) | 18 of 18 | both, every sample | (-1.6, -1.5, +5.7), 6.4 | 12.2 deg, +12.2 about the flexion axis | 0.29 mm |
+| index | (36.3, 81.6) | 14 of 18 | both (628), 0344 alone (15) | (+8.5, -2.5, +0.2), 9.0 | 9.2 deg, +9.2 about the flexion axis | 0.27 mm |
+| thumb | (-24.3, 2.4) | 18 of 18 | both (821), 0344 alone (20) | (+7.1, +3.0, -4.1), 8.7 | 1.9 deg | 0.37 mm |
+| thumb_home | (-36.3, 2.4) | 9 of 9 | both (818), 0344 alone (18) | (+6.8, +3.5, -4.0), 8.6 | 1.1 deg | one run |
+
+  The two index poses never seen, twice each, are the two at yaw -25 to -30 with the least curl ((-25, 58, 65) and
+  (-30, 43, 80)). The model put them at 47-49 deg from camera 1918. The thumb's gantry step came out within 0.1-0.9 mm of
+  the 12 mm commanded (its offsets at the two mounts agree to that).
+- **What the normals say.** Assuming the stickers lie flat on the links as modelled, the index's and middle's DIP links
+  sit 9 and 12 deg more flexed than the station's joint readings put them. The turn is about the flexion axis, under 1 deg
+  out of the plane. Every pose where those tags are visible is at MCP 47-58 and PIP 65-80. The thumb's normal agrees
+  within 2 deg at MCP 23 or less and PIP 30 or less. These poses cannot separate joint zero offsets from pots that read
+  low near the top of their range; tag views at less curl would. The workstation's W2 fit has the rows with the measured
+  joints and both mounts of the thumb.
+- **The boards** recorded every pose in `logs/20261118-three_finger_mux/20261118-112222-mux.bin` (46 MB, 11:22-11:41,
+  corvus). Its "dropped by outlet" counts are the live outlets nobody read; the file holds every record.
+- **Rig after.** Every finger at zero, the thumb back at (-36.3, 2.4), torque on, servos 19-26 C, no flags. The arm
+  is off at the owner's lowered pose (palm origin z_B 123 mm). The sphere is 200 mm from the palm toward +y; the cylinder
+  is 190 mm away toward -y.
