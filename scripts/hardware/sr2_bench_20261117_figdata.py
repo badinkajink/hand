@@ -131,8 +131,24 @@ def slip():
     return out
 
 
+def tracking():
+    """Every trial of 2026-11-17 scored by scripts/hardware/hom_trial_tracking.py (the bench's tracking measure) from
+    the committed server and corvus records; its table goes to data/20261117-trial_tracking.json beside the figure data."""
+    sys.path[:0] = [str(ROOT / "scripts/hardware"), str(ROOT / "scripts")]
+    import hom_trial_tracking as T
+    T.OUT = OUT.parent / "20261117-trial_tracking.json"
+    argv = sys.argv
+    sys.argv = [argv[0], "--since", "20261117-000000"]
+    try:
+        T.main()
+    finally:
+        sys.argv = argv
+    return str(T.OUT.relative_to(ROOT))
+
+
 if __name__ == "__main__":
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    d = {"made_by": "scripts/hardware/sr2_bench_20261117_figdata.py", "gaps": gaps(), "press": press(), "slip": slip()}
+    d = {"made_by": "scripts/hardware/sr2_bench_20261117_figdata.py", "gaps": gaps(), "press": press(), "slip": slip(),
+         "tracking_file": tracking()}
     OUT.write_text(json.dumps(d))
     print(f"-> {OUT} ({OUT.stat().st_size / 1e3:.0f} kB)")
