@@ -1,7 +1,8 @@
 #!/bin/bash
 # Unattended HOM twist repeats on the SR2 hand, tips off and on alternating (owner, 2026-11-17 18:0x, choosing the
 # overnight runs: "HOM twist repeats", "we can be a little aggressive with trials"). trial_cycle.sh's steps for N cycles,
-# with the lessons of 2026-11-17's evening: the putdown levels fully the first time (--level-frac 1 --level-max 30; at
+# with the lessons of 2026-11-17's evening: the putdown levels fully the first time (--level-frac 1 --level-max 20: a
+# 28.6 deg turn outran the putdown's 12 s move limit at 19:49, and 20 deg leaves under 14 deg for a 34 deg tilt; at
 # 14-16 deg the seat check held three twists' spheres), ready may move 70 mm sideways (the putdown leaves the sphere up
 # to ~20 mm off the table's centre), and a putdown that fails leaves the fingers straightened when the model's path to
 # zero is clear of the object (zero's own check). Before every cycle hom_setup.py diag; when a servo is at 50 C or more
@@ -67,12 +68,12 @@ for k in $(seq 1 $N); do
   echo "$OUT" | grep -E "STOP:|trial done|fingertips:" | tail -3 | cut -c1-200
   echo "$OUT" | grep -q "trial done" || { log "TRIAL FAILED: $(echo "$OUT" | tail -2 | cut -c1-200)"; safe_end "trial failed" 3; }
   step "putdown" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V --touch-lat 3 \
-      --level-frac 1 --level-max 30
+      --level-frac 1 --level-max 20
   echo "$OUT" | grep -E -i "carried|touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus|tracker does not" | tail -5 | cut -c1-200
   if [ $RC -ne 0 ] && echo "$OUT" | grep -q "is not seated"; then
     step "lift 25 mm" $PY lab/hom_setup.py place --plan $P --map $M --clear 25 --no-level --go
     step "putdown again" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V \
-        --touch-lat 3 --level-frac 1 --level-max 30
+        --touch-lat 3 --level-frac 1 --level-max 20
     echo "$OUT" | grep -E -i "touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus" | tail -4 | cut -c1-200
   fi
   { [ $RC -eq 0 ] && echo "$OUT" | grep -q "LET GO"; } || safe_end "PUTDOWN FAILED" 4
