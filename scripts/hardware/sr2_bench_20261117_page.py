@@ -326,8 +326,11 @@ states and of HOM's targets, computed without a contact solve.</p>
                   f"off, the paper-rate filter left tracking unchanged: {of['mean']:.3f} against {ob['mean']:.3f}, with "
                   f"every trial a full run. With the contacts on, the filter and the hysteresis ran {nf['full']} of "
                   f"{nf['n']} trials to the schedule's end (mean {nf['mean']:.3f}). Without them {nb['full']} of "
-                  f"{nb['n']} did (mean {nb['mean']:.3f}); the others drifted out of the grasp. With two or three trials "
-                  "an arm, this is a hint.")
+                  f"{nb['n']} did (mean {nb['mean']:.3f}); the others drifted out of the grasp. The 2 ms sub-steps also "
+                  "cost the server 12.5-12.8 ms of each 20 ms period, against 2.7-2.9 ms without them, so those arms "
+                  "ran about 10 ms later; with two or three trials an arm and that difference, the arms do not "
+                  "separate. The workstation then added --filter-exact, which integrates the paper's continuous "
+                  "filter over each period at the cost of one step, for the next A/B.")
     else:
         ab_txt = "The night's twist repeats test the changes on the hand (the identification section)."
     S.append(("tips", "HOM with the fingertip contacts", f"""
