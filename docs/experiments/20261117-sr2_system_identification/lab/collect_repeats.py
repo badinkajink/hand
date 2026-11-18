@@ -1,6 +1,6 @@
 """The night's twist repeats (lab/repeat_cycle.sh of the bench study, 2026-11-17) into the bench study's records, scored.
 
-    /usr/bin/python3 docs/experiments/20261117-sr2_system_identification/lab/collect_repeats.py [SINCE]
+    /usr/bin/python3 docs/experiments/20261117-sr2_system_identification/lab/collect_repeats.py [SINCE [FOLDER ...]]
 
 Copies corvus's records (logs/20261116-hom_trials/20261117-night_repeats/*_twist_corvus.jsonl) to the bench study's
 runs_corvus/, fetches the HOM server's records of the same stamps from the workstation into runs/, and scores every
@@ -14,10 +14,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 B = ROOT / "docs/experiments/20261115-hom_bench_trials"
-V = ROOT / "logs/20261116-hom_trials/20261117-night_repeats"
 SINCE = sys.argv[1] if len(sys.argv) > 1 else "20261117-193000"
+VS = [ROOT / "logs/20261116-hom_trials" / x for x in
+      (sys.argv[2:] or ["20261117-night_repeats", "20261117-night_repeats2"])]
 n = 0
-for f in sorted(V.glob("*_twist_corvus.jsonl")):
+for f in sorted(x for V in VS if V.exists() for x in V.glob("*_twist_corvus.jsonl")):
     if f.name[:15] >= SINCE:
         shutil.copy(f, B / "runs_corvus" / f.name)
         n += 1

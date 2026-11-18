@@ -19,7 +19,9 @@ HERE = Path(__file__).resolve().parents[1]
 ROOT = HERE.parents[2]
 B = ROOT / "docs/experiments/20261115-hom_bench_trials"
 OUT = HERE / "data/20261117-night_summary.json"
-ARM = {"base": "as before", "fstep": "paper-rate filter", "fstep_hyst": "paper-rate filter, contact hysteresis"}
+ARM = {"base": "as before", "fstep": "paper-rate filter, 2 ms sub-steps",
+       "fstep_hyst": "paper-rate filter, 2 ms sub-steps, contact hysteresis", "exact": "exact continuous filter",
+       "exact_hyst": "exact continuous filter, contact hysteresis"}
 
 
 def esc(s):
@@ -113,7 +115,8 @@ def repeats():
         return "<p>The twist repeats did not run.</p>", {}
     tt = json.loads(f.read_text())
     port_arm = {"47051": ("off", "base"), "47057": ("off", "fstep"), "47052": ("on", "base"),
-                "47058": ("on", "fstep_hyst")}       # the night's servers (repeat_cycle.sh's ARMS)
+                "47058": ("on", "fstep_hyst"), "47059": ("off", "exact"),
+                "47060": ("on", "exact_hyst")}       # the night's servers (repeat_cycle.sh's ARMS)
     lab = {}
     for c in sorted((B / "runs_corvus").glob("20261117-*_twist_corvus.jsonl")):
         if c.name[:15] < "20261117-194000":
