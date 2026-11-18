@@ -70,20 +70,31 @@ for k in $(seq 1 $N); do
   step "putdown" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V --touch-lat 3 \
       --level-frac 1 --level-max 20
   echo "$OUT" | grep -E -i "carried|touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus|tracker does not" | tail -5 | cut -c1-200
-  if [ $RC -ne 0 ] && echo "$OUT" | grep -q "the levelling stopped"; then
+  if echo "$OUT" | grep -q "the levelling stopped"; then
     # 20:02: the levelling turn's 2 mm guard stopped it twice with the sphere held; the partial turn had left it 11.9
     # deg from vertical, and a putdown without levelling set it down and released it upright (0.36 deg)
     step "putdown, no levelling" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V \
         --touch-lat 3 --level-max 0
     echo "$OUT" | grep -E -i "touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus" | tail -4 | cut -c1-200
   fi
-  if [ $RC -ne 0 ] && echo "$OUT" | grep -q "is not seated"; then
+  # putdown may exit 0 with "the block is not seated ... look before releasing" (21:13), so the text decides
+  if echo "$OUT" | grep -q "is not seated"; then
     step "lift 25 mm" $PY lab/hom_setup.py place --plan $P --map $M --clear 25 --no-level --go
     step "putdown again" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V \
         --touch-lat 3 --level-frac 1 --level-max 20
     echo "$OUT" | grep -E -i "touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus" | tail -4 | cut -c1-200
   fi
-  { [ $RC -eq 0 ] && echo "$OUT" | grep -q "LET GO"; } || safe_end "PUTDOWN FAILED" 4
+  if ! echo "$OUT" | grep -q "LET GO" && echo "$OUT" | grep -q "is not seated"; then
+    # still unseated after the second putdown: release with --tilt-ok when the tilt is at most 17 deg (11-16: released
+    # at 13.5 deg the sphere settled upright, at 21.6 deg it toppled; 21:13 on 11-17 at 14.5 deg it settled at 0.4)
+    TILT=$(echo "$OUT" | grep -o "not seated (bottom [-+0-9.]* mm, tilt [0-9.]*" | tail -1 | grep -o "[0-9.]*$")
+    if [ -n "$TILT" ] && awk "BEGIN{exit !($TILT <= 17)}"; then
+      step "letgo, tilted $TILT deg" $PY lab/hom_setup.py letgo --plan $P --object sphere --map $M --tilt-ok --go \
+          --video-dir $V
+      echo "$OUT" | grep -E "released|LET GO|STOPPED|refus" | tail -2 | cut -c1-200
+    fi
+  fi
+  echo "$OUT" | grep -q "LET GO" || safe_end "PUTDOWN FAILED" 4
   log "cycle $k done"
 done
 $PY lab/hom_setup.py diag 2>&1 | grep -E "volts|temperature|status" | cut -c1-200
