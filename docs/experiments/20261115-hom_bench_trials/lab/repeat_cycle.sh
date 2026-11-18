@@ -70,6 +70,13 @@ for k in $(seq 1 $N); do
   step "putdown" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V --touch-lat 3 \
       --level-frac 1 --level-max 20
   echo "$OUT" | grep -E -i "carried|touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus|tracker does not" | tail -5 | cut -c1-200
+  if [ $RC -ne 0 ] && echo "$OUT" | grep -q "the levelling stopped"; then
+    # 20:02: the levelling turn's 2 mm guard stopped it twice with the sphere held; the partial turn had left it 11.9
+    # deg from vertical, and a putdown without levelling set it down and released it upright (0.36 deg)
+    step "putdown, no levelling" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V \
+        --touch-lat 3 --level-max 0
+    echo "$OUT" | grep -E -i "touchdown:|  down |not seated|flex back|LET GO|STOPPED|refus" | tail -4 | cut -c1-200
+  fi
   if [ $RC -ne 0 ] && echo "$OUT" | grep -q "is not seated"; then
     step "lift 25 mm" $PY lab/hom_setup.py place --plan $P --map $M --clear 25 --no-level --go
     step "putdown again" $PY lab/hom_setup.py putdown --plan $P --object sphere --map $M --go --video-dir $V \
