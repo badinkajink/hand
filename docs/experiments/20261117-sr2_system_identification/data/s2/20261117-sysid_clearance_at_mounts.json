@@ -1,0 +1,68 @@
+{
+ "made": "2026-11-17 19:00:57",
+ "mounts_palm_mm": {
+  "thumb": [
+   -36.3,
+   2.4
+  ],
+  "index": [
+   36.3,
+   81.6
+  ],
+  "middle": [
+   36.3,
+   -81.6
+  ]
+ },
+ "margin_mm": 12.0,
+ "blocks": {
+  "a1": {
+   "steps": 186,
+   "minutes": 3.1,
+   "least_at_pose_mm": 37.4,
+   "least_in_box_mm": 34.1,
+   "worst_family": "a1_thumb_mcp_down",
+   "worst_cmd": 57.0
+  },
+  "b1": {
+   "steps": 120,
+   "minutes": 2.0,
+   "least_at_pose_mm": 51.5,
+   "least_in_box_mm": 48.7,
+   "worst_family": "b1_thumb_yaw_down",
+   "worst_cmd": 32.0
+  },
+  "a2": {
+   "steps": 186,
+   "minutes": 7.5,
+   "least_at_pose_mm": 37.4,
+   "least_in_box_mm": 34.1,
+   "worst_family": "a2_thumb_mcp_down",
+   "worst_cmd": 57.0
+  },
+  "b2": {
+   "steps": 120,
+   "minutes": 4.9,
+   "least_at_pose_mm": 51.5,
+   "least_in_box_mm": 48.7,
+   "worst_family": "b2_thumb_yaw_down",
+   "worst_cmd": 32.0
+  },
+  "c": {
+   "steps": 36,
+   "minutes": 6.8,
+   "least_at_pose_mm": 51.2,
+   "least_in_box_mm": 48.5,
+   "worst_family": "c_thumb_yaw_out",
+   "worst_cmd": 40.0
+  },
+  "c40": {
+   "steps": 42,
+   "minutes": 7.1,
+   "least_at_pose_mm": 15.3,
+   "least_in_box_mm": 10.0,
+   "worst_family": "c40_thumb_yaw_out",
+   "worst_cmd": -40.0
+  }
+ }
+}
