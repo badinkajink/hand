@@ -1,6 +1,6 @@
 # Identification of the SR2 hand at 7.5 V: requests between the workstation and the lab computer
 
-Owner, 2026-11-17 17:4x: "i thought we queued up additional experiments to better understand real2sim transfer,
+Owner, 2026-11-17 18:01: "i thought we queued up additional experiments to better understand real2sim transfer,
 calibration of the various components of our system prior to running a larger scale GPU study of morphology
 optimization, co-design, contact models? can you hash out / figure out ... what the high priority experiments are, and
 coordinate with the ur5 session to fill out our understanding of the system as-is?"
@@ -37,7 +37,7 @@ air and then against a force sensor. Contact and the blind validation trials nee
 
 ## Requests to the lab
 
-- S1 (open, 17:5x on 11-17). Geometry after the re-zeroing.
+- S1 (open, 18:0x on 11-17). Geometry after the re-zeroing.
   (a) Each joint's reachable range inside the station's limits: at low speed, step the target past the plan's extreme
   in 0.5 deg steps and record the angle where the read-back stops following. Output, per joint: that angle against the
   model's limit and the station's limit.
@@ -45,11 +45,11 @@ air and then against a force sensor. Contact and the blind validation trials nee
   `move`, `measure`, both cameras). Output, per pose: the tag centre's error (mm) and its normal's error (deg) against the
   model at the measured joints. The workstation fits each joint's zero offset and each finger mount's position from
   these (W2).
-- S2 (open, 17:5x on 11-17). Free-air servo identification at 7.5 V: the chain of 11-06
+- S2 (open, 18:0x on 11-17). Free-air servo identification at 7.5 V: the chain of 11-06
   (`docs/experiments/20261104-sr2_hand_crosstalk/lab/make_sysid_plan.py`, `sysid_chain.sh`, `sysid_tables.py`; about
   50 min), then the registers (`scs0009_registers.py`, read only). Output as on 11-06: `dwells.tsv` and `holds_c.tsv`.
   The workstation compares the dead band, the drive per step of error and the friction bands with 11-06 (W2).
-- S3 (open, 17:5x on 11-17; unattended if the lab judges it safe, otherwise with the owner). Torque scale at 7.5 V. The
+- S3 (open, 18:0x on 11-17; unattended if the lab judges it safe, otherwise with the owner). Torque scale at 7.5 V. The
   arm sets one fingertip 1-2 mm from a rigid surface (the table, or a block fixed on it), along the direction in which
   the chosen joint moves the tip. The joint's target then steps 0.5 deg at a time past contact, 2 s per step, until 3 N
   on the HEX-E or an overload flag, and steps back the same way. Record the HEX-E, the joint's read-back and load, and
