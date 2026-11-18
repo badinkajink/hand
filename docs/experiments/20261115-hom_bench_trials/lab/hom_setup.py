@@ -1299,6 +1299,71 @@ def lift_goal(a, plan, T_BP, h):
     return tf(R, T_BP[:3, 3] + [0.0, 0.0, dz]) @ tf_inv(T_EP), dz, text
 
 
+def ramp_joints(a, st, j_from, j_to, seconds):
+    """j_from -> j_to by the station's manual joints in small steps, ten a second over `seconds`, at --speed; --wait-s
+    after. Returns the measured joints."""
+    n = max(1, int(round(10 * seconds)))
+    for i in range(1, n + 1):
+        u = i / n
+        step = {f: {k: j_from[f][k] + (j_to[f][k] - j_from[f][k]) * u for k in j_to[f]} for f in j_to}
+        st.call("POST", "/api/v1/manual/joints", {"joints": step, "servo_speed": a.speed})
+        time.sleep(0.1)
+    time.sleep(a.wait_s)
+    return sim_joints(st.state())
+
+
+def flex_back_release(a, plan, st, arm, meas, h, j, p_m, q_m, info):
+    """The fallback when the fingers' straight path to zero is refused, the object seated on the table (owner,
+    2026-11-17 18:5x: "if the object is already stably down, then moving the flexion joints far back (to 0 or even
+    negative), going up from there, and then yawing back to zero is probably safest. if the initial move back flexion is
+    not safe (which presumably could only be for ground collision reasons)"; "it should be a slowed/damped ...
+    extension"). (1) Every MCP and PIP to --flex-deg with the yaws kept, in small steps over --flex-s, when the model's
+    path keeps every part away from the object (path_away, --zero-margin) and --table-clear above the table. (2) The palm
+    straight up in base z, the least rise from --flex-rise-min in 10 mm steps to --flex-rise-max after which the path to
+    zero passes zero_path_check, the object watched (--lift-still-mm). (3) The yaws to zero over --flex-s. Raises
+    SystemExit with the hand where it is on a refusal; on 2026-11-17 the same steps by hand released the lat0 press's
+    cylinder twice (18:3x, 18:5x), where the path to zero from the open pose ran the index pad 3-6 mm into it."""
+    caps = object_capsules(p_m, q_m, plan, h)
+    tgt = {f: {"yaw": j[f]["yaw"], "mcp": a.flex_deg, "pip": a.flex_deg} for f in j}
+    ok, text, rec = path_away(plan, j, tgt, caps, a.zero_margin)
+    tab = release_check(plan, j, tgt, arm.T_BP(), info["p_B"], info["q_B"], h, a)
+    ok_t = tab["table_mm"] >= a.table_clear
+    print(f"   flex back (every MCP and PIP to {a.flex_deg:g} deg, the yaws kept): {text}; the lowest finger part "
+          f"{tab['table_mm']:.1f} mm above the table" + ("" if ok_t else f" (REFUSED: {a.table_clear:g} wanted)"),
+          flush=True)
+    note({"cmd": "letgo", "step": "flex back check", "ok": ok and ok_t, **rec, "table_mm": tab["table_mm"]})
+    if not (ok and ok_t):
+        raise SystemExit("not flexing back either: the hand holds its open pose over the object; look")
+    j1 = ramp_joints(a, st, j, tgt, a.flex_s)
+    print("   " + show_pose("flexed back", j1), flush=True)
+    T_BP = arm.T_BP()
+    rise, found = a.flex_rise_min, None
+    while rise <= a.flex_rise_max + 1e-6:
+        T2 = T_BP.copy()
+        T2[2, 3] += rise
+        p2 = np.asarray(p_m, float) - T_BP[:3, :3].T @ np.array([0.0, 0.0, rise])   # the object seen from the risen palm
+        ok, text, _ = zero_path_check(a, plan, j1, T2, p2, q_m, info, h)
+        if ok:
+            found = (rise, text)
+            break
+        rise += 10.0
+    if found is None:
+        raise SystemExit(f"no rise up to --flex-rise-max {a.flex_rise_max:g} mm clears the path to zero: the fingers "
+                         "flexed back over the object; look")
+    rise, text = found
+    print(f"   rise {rise:.0f} mm, then the path to zero: {text}", flush=True)
+    ref = meas.latest(5, 0.5)
+    T_goal = arm.T_BE()
+    T_goal[2, 3] += rise
+    why, _ = arm.move(T_goal, a.v, a.acc, a.stop_n, rise / (1e3 * a.v) + 6.0, f"rise {rise:.0f} mm, flexion back",
+                      check=meas.watch_still(ref[1], a.lift_still_mm) if ref is not None else None)
+    if why:
+        raise SystemExit(f"the rise stopped: {why}; look before anything else")
+    j3 = ramp_joints(a, st, sim_joints(st.state()), ZERO, a.flex_s)
+    print("   " + show_pose("yaws to zero", j3), flush=True)
+    note({"cmd": "letgo", "step": "flex back done", "rise_mm": rise, "after": j3})
+
+
 def letgo_sequence(a, plan, st, arm, meas, h):
     """Release, straighten, lift, after a touchdown (owner, 2026-11-16: "this release --> straighten --> lift should
     also be automated/skill-ified if not already. it works pretty reliably"; by hand at 12:52, 12:56 and 13:00): the
@@ -1319,9 +1384,12 @@ def letgo_sequence(a, plan, st, arm, meas, h):
         ok, text, rec = zero_path_check(a, plan, j, arm.T_BP(), p_m, q_m, info, h)
         print("   the path to zero: " + text, flush=True)
         note({"cmd": "letgo", "step": "zero check", "ok": ok, **rec})
-        if not ok:
+        if ok:
+            zero_fingers(a, st)
+        elif a.no_flex_back:
             raise SystemExit("not straightening the fingers: the hand holds its open pose over the object; look")
-        zero_fingers(a, st)
+        else:
+            flex_back_release(a, plan, st, arm, meas, h, j, p_m, q_m, info)
     else:
         print("   the fingers are straight already: no release", flush=True)
     T_goal, dz, text = lift_goal(a, plan, arm.T_BP(), h)
@@ -1576,6 +1644,14 @@ def _letgo_args(p):
     p.add_argument("--max-level", type=float, default=10.0,
                    help="deg of z_P tilt the lift levels out (putdown's levelling turns the hand up to 8 deg)")
     p.add_argument("--max-dz", type=float, default=160.0, help="mm the lift may take at most")
+    p.add_argument("--no-flex-back", action="store_true",
+                   help="refuse instead of flex_back_release when the straight path to zero is refused")
+    p.add_argument("--flex-deg", type=float, default=0.0, help="flex_back_release: the MCPs' and PIPs' target, deg")
+    p.add_argument("--flex-s", type=float, default=3.0,
+                   help="flex_back_release: s over which the flexion goes back, and the yaws to zero (owner: \"a "
+                        "slowed/damped ... extension\")")
+    p.add_argument("--flex-rise-min", type=float, default=20.0, help="flex_back_release: mm, the least rise")
+    p.add_argument("--flex-rise-max", type=float, default=80.0, help="flex_back_release: mm, the largest rise")
 
 
 def _approach_args(p):
