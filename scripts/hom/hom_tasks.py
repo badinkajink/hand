@@ -1117,6 +1117,12 @@ VARIANTS = {
     "tip_fhq": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "contact_force_off": 0.10, "eq1_frames": "filtered",
                  "filter": H.FilterParams(step_s=0.002)},
                 {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
+    "rate50_x": ({"dt": 0.02, "filter": H.FilterParams(exact=True)}, None),     # the filter's exact one-step update
+    "notip_x": ({"dt": 0.02, "filter": H.FilterParams(exact=True)},
+                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "no_tip": True}),
+    "tip_xh": ({"dt": 0.02, "contact_force_min": TIP_F_MIN, "contact_force_off": 0.10,
+                "filter": H.FilterParams(exact=True)},
+               {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
     "tip_lo": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},              # tip with the boards reporting from 0.05 N
                {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0, "f_min": 0.05}),
     "l30": ({}, None),                                # pin-push on the grasps of design --lever 30 / 60

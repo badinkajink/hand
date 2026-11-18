@@ -1,0 +1,698 @@
+{
+ "meta": {
+  "what": "FilterParams.exact (server --filter-exact): Eq. (5)'s correction integrated exactly over the 20 ms period, k and the measurement held, (1 - exp(-k dt)) of the error per period: the continuous filter at the cost of one step. Checked against the 2 ms sub-steps on the calibrated stem scene (ff rows, variants *_x) and the server's own scene (sil seeds), and the server's compute per period in sil (g0 plan).",
+  "written": "2026-11-17 20:14"
+ },
+ "compute_ms_sil_g0": {
+  "none": {
+   "median": 2.61,
+   "p95": 3.34,
+   "max": 9.66
+  },
+  "filter_exact": {
+   "median": 2.56,
+   "p95": 3.62,
+   "max": 13.94
+  },
+  "filter_step_s_0.002": {
+   "median": 12.52,
+   "p95": 15.79,
+   "max": 21.41
+  }
+ },
+ "compute_ms_hand_night_A_B": {
+  "base_arms_median": "2.7-2.9",
+  "fstep_arms_median": "12.5-12.8",
+  "fstep_arms_p95": "16-25",
+  "fstep_arms_max": "22-53"
+ },
+ "fragments": "the five one-period records after the fstep arms' trials (19:45:15, 19:49:30, 19:55:25, 19:59:39, 20:05:50) each hold corvus's last state (seq 415-417) arriving after the slower server closed its trial: the sub-steps' compute, not a logic error",
+ "ff_rows_exact": [
+  {
+   "layout": "g13",
+   "var": "rate50_x",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.771,
+   "drift_max_mm": 12.19,
+   "ramp_three_pads_max_deg": 26.01,
+   "track_err_rms_deg": 41.55,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.22,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.928
+    },
+    "index": {
+     "jit_rms_deg": 0.595,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.51,
+     "cop_share": 0.715
+    },
+    "middle": {
+     "jit_rms_deg": 0.489,
+     "jit_hz": 1.1,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.895
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "notip_x",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.792,
+   "drift_max_mm": 13.77,
+   "ramp_three_pads_max_deg": 25.62,
+   "track_err_rms_deg": 41.87,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.231,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.773,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.628,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "rate50_x",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.796,
+   "drift_max_mm": 15.32,
+   "ramp_three_pads_max_deg": 24.33,
+   "track_err_rms_deg": 41.03,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.224,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.928
+    },
+    "index": {
+     "jit_rms_deg": 0.722,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.708
+    },
+    "middle": {
+     "jit_rms_deg": 0.513,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.89
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "notip_x",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.795,
+   "drift_max_mm": 14.45,
+   "ramp_three_pads_max_deg": 25.78,
+   "track_err_rms_deg": 40.76,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.254,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.7,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.617,
+     "jit_hz": 1.1,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "tip_xh",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.95,
+   "drift_max_mm": 21.25,
+   "ramp_three_pads_max_deg": 24.06,
+   "track_err_rms_deg": 39.88,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.305,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.64,
+     "cop_share": 0.905
+    },
+    "index": {
+     "jit_rms_deg": 0.784,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.77,
+     "cop_share": 0.641
+    },
+    "middle": {
+     "jit_rms_deg": 0.609,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.887
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "rate50_x",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.757,
+   "drift_max_mm": 11.32,
+   "ramp_three_pads_max_deg": 26.14,
+   "track_err_rms_deg": 41.47,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.212,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.928
+    },
+    "index": {
+     "jit_rms_deg": 0.804,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.715
+    },
+    "middle": {
+     "jit_rms_deg": 0.449,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.918
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "notip_x",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.796,
+   "drift_max_mm": 14.45,
+   "ramp_three_pads_max_deg": 25.31,
+   "track_err_rms_deg": 40.48,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.237,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.635,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.616,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "tip_xh",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.859,
+   "drift_max_mm": 21.57,
+   "ramp_three_pads_max_deg": 22.29,
+   "track_err_rms_deg": 40.49,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.303,
+     "jit_hz": 0.4,
+     "src_switches_per_s": 0.39,
+     "cop_share": 0.915
+    },
+    "index": {
+     "jit_rms_deg": 0.783,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 1.03,
+     "cop_share": 0.636
+    },
+    "middle": {
+     "jit_rms_deg": 0.53,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.89
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "rate50_x",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.706,
+   "drift_max_mm": 12.38,
+   "ramp_three_pads_max_deg": 7.22,
+   "track_err_rms_deg": 36.49,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.194,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.954
+    },
+    "index": {
+     "jit_rms_deg": 0.691,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.549
+    },
+    "middle": {
+     "jit_rms_deg": 0.466,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.915
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "rate50_x",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.705,
+   "drift_max_mm": 12.12,
+   "ramp_three_pads_max_deg": 7.69,
+   "track_err_rms_deg": 37.28,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.187,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.9,
+     "cop_share": 0.944
+    },
+    "index": {
+     "jit_rms_deg": 0.692,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.551
+    },
+    "middle": {
+     "jit_rms_deg": 0.47,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.91
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "notip_x",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.705,
+   "drift_max_mm": 11.69,
+   "ramp_three_pads_max_deg": 4.61,
+   "track_err_rms_deg": 35.08,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.214,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.795,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.506,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "notip_x",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.714,
+   "drift_max_mm": 12.28,
+   "ramp_three_pads_max_deg": 5.93,
+   "track_err_rms_deg": 35.46,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.207,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.729,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.511,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g13",
+   "var": "tip_xh",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.792,
+   "drift_max_mm": 11.06,
+   "ramp_three_pads_max_deg": 27.15,
+   "track_err_rms_deg": 41.09,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.288,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.39,
+     "cop_share": 0.908
+    },
+    "index": {
+     "jit_rms_deg": 0.815,
+     "jit_hz": 0.9,
+     "src_switches_per_s": 0.51,
+     "cop_share": 0.685
+    },
+    "middle": {
+     "jit_rms_deg": 0.582,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.89
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "tip_xh",
+   "seed": 0,
+   "held": true,
+   "w_rmse_ratio": 0.789,
+   "drift_max_mm": 11.48,
+   "ramp_three_pads_max_deg": 3.74,
+   "track_err_rms_deg": 33.3,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.335,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.39,
+     "cop_share": 0.895
+    },
+    "index": {
+     "jit_rms_deg": 0.821,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.51,
+     "cop_share": 0.372
+    },
+    "middle": {
+     "jit_rms_deg": 0.622,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.869
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "rate50_x",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.722,
+   "drift_max_mm": 12.47,
+   "ramp_three_pads_max_deg": 6.74,
+   "track_err_rms_deg": 36.67,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.201,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.64,
+     "cop_share": 0.946
+    },
+    "index": {
+     "jit_rms_deg": 0.72,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.554
+    },
+    "middle": {
+     "jit_rms_deg": 0.453,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.915
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "notip_x",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.721,
+   "drift_max_mm": 12.33,
+   "ramp_three_pads_max_deg": 6.73,
+   "track_err_rms_deg": 35.93,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.206,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "index": {
+     "jit_rms_deg": 0.753,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    },
+    "middle": {
+     "jit_rms_deg": 0.5,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.0,
+     "cop_share": 0.0
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": null,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "tip_xh",
+   "seed": 1,
+   "held": true,
+   "w_rmse_ratio": 0.758,
+   "drift_max_mm": 12.85,
+   "ramp_three_pads_max_deg": 5.84,
+   "track_err_rms_deg": 34.22,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.323,
+     "jit_hz": 1.3,
+     "src_switches_per_s": 0.39,
+     "cop_share": 0.915
+    },
+    "index": {
+     "jit_rms_deg": 0.773,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.26,
+     "cop_share": 0.485
+    },
+    "middle": {
+     "jit_rms_deg": 0.581,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.64,
+     "cop_share": 0.874
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  },
+  {
+   "layout": "g0",
+   "var": "tip_xh",
+   "seed": 2,
+   "held": true,
+   "w_rmse_ratio": 0.743,
+   "drift_max_mm": 11.78,
+   "ramp_three_pads_max_deg": 5.13,
+   "track_err_rms_deg": 35.53,
+   "track_ref_rms_deg": 59.4,
+   "jitter": {
+    "thumb": {
+     "jit_rms_deg": 0.323,
+     "jit_hz": 1.3,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.89
+    },
+    "index": {
+     "jit_rms_deg": 0.823,
+     "jit_hz": 0.6,
+     "src_switches_per_s": 0.77,
+     "cop_share": 0.469
+    },
+    "middle": {
+     "jit_rms_deg": 0.554,
+     "jit_hz": 0.8,
+     "src_switches_per_s": 0.13,
+     "cop_share": 0.89
+    }
+   },
+   "dt": 0.02,
+   "step_s": null,
+   "contact_off": 0.1,
+   "eq1": "measured"
+  }
+ ],
+ "sil_rows_exact": [
+  {
+   "step": "x",
+   "seed": 4,
+   "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+  },
+  {
+   "step": "x",
+   "seed": 2,
+   "error": "LinAlgError('SVD did not converge in Linear Least Squares')"
+  },
+  {
+   "step": "x",
+   "seed": 1,
+   "held": false,
+   "J": 0.0
+  },
+  {
+   "step": "x",
+   "seed": 5,
+   "held": true,
+   "J": 0.1101010101010101
+  },
+  {
+   "step": "x",
+   "seed": 0,
+   "held": false,
+   "J": 0.0
+  },
+  {
+   "step": "x",
+   "seed": 3,
+   "held": false,
+   "J": 0.0
+  }
+ ]
+}

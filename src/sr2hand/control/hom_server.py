@@ -89,8 +89,9 @@ def _bench(a):
         b.prm = replace(b.prm, contact_force_min=b.T.TIP_F_MIN)
         b.reset()
     over = {}                                             # HOM's options of 2026-11-17 (hom.py), off by default
-    if getattr(a, "filter_step_s", None):
-        over["filter"] = replace(b.prm.filter, step_s=a.filter_step_s)
+    if getattr(a, "filter_step_s", None) or getattr(a, "filter_exact", False):
+        over["filter"] = replace(b.prm.filter, step_s=getattr(a, "filter_step_s", None) or None,
+                                 exact=bool(getattr(a, "filter_exact", False)))
     if getattr(a, "contact_off", None) is not None:
         over["contact_force_off"] = a.contact_off
     if getattr(a, "eq1_frames", "measured") != "measured":
@@ -169,6 +170,7 @@ class Server:
                 "joints_mode": self.a.joints, "max_joint_age_ms": self.a.max_joint_age_ms,
                 "tips": self.a.tips, "contact_force_min_N": b.prm.contact_force_min,
                 "contact_force_off_N": b.prm.contact_force_off, "filter_step_s": b.prm.filter.step_s,
+                "filter_exact": b.prm.filter.exact,
                 "eq1_frames": b.prm.eq1_frames}
         self.fh.write(json.dumps(head, default=_jsonable) + "\n")
         self.trials += 1
@@ -437,6 +439,7 @@ def cmd_sil(a):
            "--reply", f"127.0.0.1:{a.port_in}", "--log-dir", a.log_dir, "--once", "--joints", a.server_joints,
            "--tail-s", "0", "--tips", "raw"] + (["--plan", a.plan] if a.plan else [])
     srv += (["--filter-step-s", str(a.filter_step_s)] if a.filter_step_s else []) + \
+        (["--filter-exact"] if a.filter_exact else []) + \
         (["--contact-off", str(a.contact_off)] if a.contact_off is not None else []) + ["--eq1-frames", a.eq1_frames]
     proc = subprocess.Popen(srv, cwd=str(ROOT), env=dict(os.environ, PYTHONPATH=str(ROOT / "src")))
     try:
@@ -494,6 +497,9 @@ def main() -> int:
         p.add_argument("--filter-step-s", type=float, default=None,
                        help="s: the complementary filter (Eqs. 4-6) in sub-steps of at most this inside each period; "
                             "0.002 is the paper's 500 Hz (FilterParams.step_s); off by default: one step per period")
+        p.add_argument("--filter-exact", action="store_true",
+                       help="the filter's correction (Eq. 5) integrated exactly over the period, k and the measurement "
+                            "held (FilterParams.exact): the continuous filter at any rate, at the cost of one step")
         p.add_argument("--contact-off", type=float, default=None,
                        help="N: a finger in contact counts as apart only below this sensed force (hysteresis below "
                             "the contact floor; HomParams.contact_force_off); off by default")

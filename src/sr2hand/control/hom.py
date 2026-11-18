@@ -287,6 +287,10 @@ class FilterParams:
                                  # period; None: one step per controller period. The paper runs the framework at 500 Hz
                                  # (k_max dt = 0.2); at the bench's 50 Hz one step is k_max dt = 2.0, which overshoots
                                  # (2026-11-17, owner via the lab: "you gotta do it right"). 0.002 is the paper's rate
+    exact: bool = False          # the correction of Eq. (5) integrated exactly over each (sub-)step with the measurement and
+                                 # k held: (1 - exp(-k h)) of the error per step, the continuous-time filter's solution;
+                                 # one step per period then costs what the old step did (the sub-steps took 12.5 ms of
+                                 # the server's 20 ms period on 2026-11-17)
 
 
 class ContactFilter:
@@ -332,7 +336,8 @@ class ContactFilter:
             k1 = p.k_min + (p.k_max - p.k_min) * (1.0 - math.exp(-3.0 * np.linalg.norm(g1r) / p.alpha))
             e0 = R_c0[:, 1:].T @ (Ro @ (l0 - q0))                                                        # E (p_L - p_C)
             e1 = R_c1[:, 1:].T @ (Rb @ (l1 - q1))
-            gd0, gd1 = g0r + k0 * e0, g1r + k1 * e1                                                      # Eq. (5)
+            a0, a1 = ((1.0 - math.exp(-k0 * h)) / h, (1.0 - math.exp(-k1 * h)) / h) if p.exact else (k0, k1)
+            gd0, gd1 = g0r + a0 * e0, g1r + a1 * e1                                                      # Eq. (5)
             self.c0 = self.os.geodesic_step(q0, Ro.T @ (R_c0[:, 1:] @ gd0) * h)                          # Eq. (4)
             self.c1 = self.fs.geodesic_step(q1, Rb.T @ (R_c1[:, 1:] @ gd1) * h)
             self.k = (k0, k1)
