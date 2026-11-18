@@ -99,8 +99,45 @@ air and then against a force sensor. Contact and the blind validation trials nee
 - W2, S1(a) (23:3x). The joint ranges at 7.5 V (lab, 20:53-21:03, and five ends again at 21:28-21:31 with the stall test; `data/s1/20261117-s1a_*`) against the model's limits: `data/s1/20261117-s1a_ranges_vs_limits.json`, by `sim/20261117-s1a_ranges_vs_limits.py`. The model's limits (`hand_object_scale_kin.limits`, the joint ranges of HOM's scenes and of the planners) equal the station's calibrated ranges at all 18 ends. Two ends stopped more than 1 deg inside them, both MCP lows. The index MCP stalled at -10.3 deg and the middle MCP at -8.5 deg, against -15.0 in the model. The stops move with the push (duty: the servo's present load, in % of full PWM duty). At 12-18 % tonight the index read -10.3 to -10.8 deg and the middle -8.5 to -8.8; at 21-22 % in the afternoon they read -11.4 and -10.0. The other four low ends reached the station's limits within 1.5 deg (the thumb MCP -10.8 of -12.3). The yaws were swept to +-45 deg, the MCP highs to 58 deg and the PIP highs to 80 deg, the owner's caps. Those ends followed within 0.3-2.5 deg, and the middle yaw's low end within 4.0 deg at 22.5 % duty, the most of any end. Its reading reached -41.0 deg; the lab's table 9 gives -23.7 deg, the last reading within 2 deg of its target. The 6.7-40 deg between the caps and the model's limits were not tested. A stall needs 2 deg of lag, so a stop within 2 deg of a sweep's end goes unseen. The thumb MCP's reading did not move over the last 1.3 deg of its sweep. At four ends the server clips HOM's targets 4.7 deg inside the model's limits (servo_limits' safe range). These are the index PIP's low end (+1.78 against -2.93 deg) and the index MCP's high end (60.04 against 64.75). The others are the middle MCP's high end (65.02 against 69.73) and the middle PIP's (72.34 against 77.05).
 - W2, own-pose GP (23:3x). The boards' free-air sweep (lab, 20:10-20:53) moved all nine joints to 300 random poses, with 27 zero poses between them. It ran at the roll layout (85, 170); the trials ran at (70, 110). It was fitted as on 11-04/05 by `sim/20261117-own_pose_sweep_fit.py`, with 294 still poses per board: rows `data/sweep/20261117-own_pose_rows_s3.npz`, numbers `data/sweep/20261117-own_pose_sweep_fit.json`. The new GP is `docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261117-own_pose_gp_sweep_x85y170_7v5.npz`; the trials still load the 11-04/05 GP (`tip_contacts.OWN_POSE`). Each board changed by 62-67 uT (median) with its finger's pose, against 66-69 on 11-04/05. A zero pose predicted from its two neighbours missed by 3.6-3.7 uT. The new GP's five-fold error is 5.4, 4.7 and 4.7 uT (thumb, index, middle; 0.17-0.19 N), against 6.1, 5.8 and 5.4 uT for the 11-04/05 fit. The trials' GP misses the new rows by 11.0, 15.3 and 14.1 uT (0.39-0.54 N). One offset per joint, fitted to the new rows, brings it to 6.3, 7.2 and 8.4 uT. On 11-05 its error at this layout, left out of the fit, was 8.1, 8.4 and 6.6 uT. The offsets reach 5.5 deg (the index yaw) and 5.1 deg (the middle MCP); the owner re-zeroed the servos at 16:1x.
 - W3, A/B 2 (23:4x). The second A/B of the g0 twist at (70, 110) ran 21:06-21:25 with `--filter-exact` in place of the 2 ms sub-steps: 9 of 12 cycles before the lights went off. The scores are the lab's (`docs/experiments/20261115-hom_bench_trials/data/20261117-night_repeats_tracking.json`). All nine trials ran to the schedule's end. Tips off as before tracked 0.404, 0.424 and 0.428 (twist at the end 43-45 deg), against 0.479, 0.445 and 0.417 in the first A/B. The blind predictions at 7.5 V were 0.437 with point contact (48.2 deg), 0.406 with soft pads (43.2) and 0.362 with stiff pads (38.2). Tips off with `--filter-exact` tracked 0.428 and 0.424 (47 and 46 deg); the first A/B's sub-steps gave 0.473, 0.427 and 0.434. Tips on as before tracked 0.397 and 0.335 (37 and 31 deg), both full runs. In the first A/B this arm gave 0.468 and 0.202, both stopped by the drift guard (at 6.5 and 5.4 s), and 0.622. With the contacts given to HOM in simulation, the predictions were 0.437 (point), 0.397 (soft pads) and 0.346 (stiff pads). Tips on with `--filter-exact --contact-off 0.10` tracked 0.310 and 0.311 (34 and 40 deg), both full. The first A/B's sub-steps with the same hysteresis gave 0.421 and 0.506, at about 10 ms more latency (W1c addendum). Within the second block the four tips-on trials tracked 0.310-0.397 and the five tips-off trials 0.404-0.428. Over both blocks the drift guard stopped none of the four tips-on trials with the paper's filter and the hysteresis, and two of five without. The server records (`data/20261117-ab2_server_timing.json`, by `sim/20261117-ab2_server_timing.py`) give the compute time per 20 ms period. The `--filter-exact` arms took 3.02-3.23 ms (median; 95th percentile 3.4-3.7 ms), the unflagged arms of the same block 2.99-3.20 ms. Both are about 0.3 ms over the first block's unflagged arms (2.69-2.93 ms); the sub-steps took 12.5-12.8 ms. The second block has no one-period fragment record; the first block's five each followed a sub-step trial.
-- W3, next. Predictions of S5 on the fitted plant. After S4: the friction coefficient, the tangential softness and the
-  torsion, and the same predictions with the pads, point contact and point contact with torsion (condim 4).
+- W3, replays (11-18 10:1x; owner 09:1x: every trial reported with the simulation's prediction and replay, per contact
+  model). The night's 20 scored g0 trials were replayed open loop on the predictions' calibrated plant. Each replay
+  started from the hand's start and applied the hand's recorded targets 12 ms after their state; the table went at the
+  arm's lift. Contact models: soft pads, soft point contact, stiff pads, and stiff pads with noslip. Plants: 5 V, 7.5 V
+  (the 5 V gains and torque limit times 1.5, as the predictions assumed), and 7.5 V with the index and middle yaws at
+  the other joints' 0.825 N m/rad. A simulated closed-loop record, replayed on its own plant with no delay, came back
+  identical (`sim/20261118-night_trials_replay_check.py`). Of the 240 replays 239 ran; one stopped on MuJoCo's
+  constraint arena at 431 contacts. Data: `data/20261118-night_trials_replay.json` (per trial, model and plant, with
+  traces), by `sim/20261118-night_trials_replay.py` and `sim/20261118-night_trials_replay_summary.py`. With the tips
+  off (11 trials, 7.5 V plant):
+
+  | | tracking | twist at the end (deg) | rise (mm) |
+  |---|---|---|---|
+  | hand, mean of 11 | 0.435 | 49.6 | 3.0 |
+  | point soft: blind prediction, replay | 0.437, 0.351 | 48.2, 37.1 | 9.9, 9.9 |
+  | pads soft: blind prediction, replay | 0.406, 0.347 | 43.2, 36.7 | 9.3, 10.0 |
+  | pads stiff: blind prediction, replay | 0.362, 0.255 | 38.2, 30.7 | 1.3, 0.8 |
+  | pads stiff + noslip: closed loop after the trials, replay | 0.354, 0.251 | 37.1, 30.0 | 1.2, 0.8 |
+
+  Driven by the hand's own targets, the simulated sphere turned 12-20 deg less than the hand's in every contact model.
+  The contact model set the rise: about 10 mm with soft contact and 0.8 mm with stiff, against the hand's 3.0 mm. In
+  free air (0-0.6 s) the replayed joints were within 0.87 deg RMS of the hand's on the 5 V plant, 0.76 deg on the
+  7.5 V plant and 0.69 deg with the stronger yaws. From 2.0 s the joints' RMS grew to 2.4-3.2 deg. In every model the
+  simulated index yaw moved 3.0-4.8 deg less toward its target than the hand's, and the middle yaw 1.8-4.7 deg less.
+  The stronger yaws closed 0.7 deg of the index's gap and 1.8 deg of the middle's. They added 1-3 deg of twist with
+  soft contact and none with stiff, and raised the soft rise to 12 mm. The hand's sphere turned in jumps. In a trial
+  its largest rise of twist within 0.2 s averaged 24 deg, and 3.8 windows of 0.2 s rose more than 8 deg. In the
+  replays the largest rise averaged 7-10 deg, with 0.2-1.7 such windows. With the tips on (9 trials) the hand tracked
+  0.397, turned the sphere 46.1 deg and raised it 4.3 mm. The blind predictions with the contacts given to HOM were
+  0.437, 47.8 deg and 9.8 mm with point contact, 0.397, 42.5 and 9.3 with soft pads, and 0.346, 36.8 and 1.2 with
+  stiff pads. The replays turned the sphere 20-22 deg on the 7.5 V plant and 19-48 deg with the stronger yaws. Two
+  tips-on trials were not reproduced at all. The hand's best, 19:57 (0.622, 64.8 deg), turned 0-13 deg in every
+  replay. The replays of 20:08, which the drift guard stopped on the hand at 5.4 s, spun the sphere 52-115 deg with
+  soft contact.
+- W3, next (11-18). Fit the index and middle yaw gain, the sliding friction and the contact's impratio to the replays'
+  joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
+  plant; about 30 min on 6 cores). S3 then checks the fitted gain and S4(b) the friction. Then predictions of S5 on the
+  fitted plant. After S4: the friction coefficient, the tangential softness and the torsion, and the same predictions
+  with the pads, point contact and point contact with torsion (condim 4).
 - W4. The three-size landscapes of twist, roll and press with the pads and with point contact (about 6-8 GPU-hours),
   on the plant of W2-W3. Each rollout also records the least index-middle and thumb-finger gaps of the joint states and of HOM's targets (the three spheres per finger of hom_setup.finger_pts; no contact solve), and layouts whose fingers pass within a margin are flagged (lab request, 18:2x: "put it in W4, or flag layouts and grasps whose fingers pass within a margin of each other").
 
@@ -112,6 +149,11 @@ air and then against a force sensor. Contact and the blind validation trials nee
   and middle yaws first (pushing the side face; they stall in the twist), then one MCP and one PIP (pushing the top).
 - S4(b) uses a plate covered in the sphere's grip tape on the same block. Drag 5 mm at 1 mm/s each way at 0.5, 1 and
   2 N, twice each.
+- S3's block (owner, 09:55): a length of 80/20 extrusion clamped to the table, with an AprilTag glued to one side so
+  that the camera finds it. Press on a flat land beside a T-slot, never across the slot. For S4(b), stick the grip
+  tape on a land, or on a flat plate bolted on with T-nuts, and drag along the slot. Measure the tag's offset to the
+  pressed faces once with calipers, or touch each face off at 0.2 N on the HEX-E. The tag's ID must differ from the
+  object's tags and the DIP tags 24-26.
 - The press chatter: the owner attributes it to the skewed cylinder in the misaligned grasp giving the middle finger
   poor contact. The records agree: the pushing finger's targets chattered in every press on both days (3.3-9.0 deg rms
   at 3-10 Hz), both days skewed the cylinder in the close (17-22 deg, 18-27 deg), and the simulation's cylinder, which
