@@ -62,3 +62,23 @@ new sysid".
   `logs/20261117-sr2_boards_sweep/s3/` and `logs/20261117-sr2_s1a_ranges/`; their summaries follow when they end.
 - **Rig at the end:** the sphere lies on its side 227 mm from the table's centre (at B (77, -402) mm), the cylinder
   stands 18 cm from it; the hand at the roll layout, fingers straight, torque on.
+
+### The end of the night (20:53-21:33)
+
+- **The boards' sweep** ran all 327 poses ("plan done", 20:10-20:53): events and plan in `data/sweep/`, telemetry
+  (37 MB) in `logs/20261117-sr2_boards_sweep/s3/` on corvus and the workstation. The splitter stopped at 21:3x; its file
+  `logs/20261117-three_finger_mux/20261117-180517-mux.bin` (495 MB, 18:05-21:3x) is on both machines, same path: S2,
+  S1(a), the sweep and every trial of the evening are in it.
+- **S1(a)** (20:53-21:03, again for five ends at 21:28): `data/s1/20261117-s1a_*`. With the stall test every end was
+  reached except the two low MCPs: the index's stalls at -10.3 deg, the middle's at -8.5 deg, pushed at about 2 deg of
+  lag; the afternoon's -11.4 and -10.0 deg came at 21-22 % duty. The first run's lag rule had stopped the index's and
+  middle's yaw and the middle's MCP early on friction lag (S2 shows them at -40 and 61 deg).
+- **The second A/B** with `--filter-exact` (21:05-21:25): 9 of 12 cycles, records in the bench study's `runs/` and
+  `runs_corvus/`, scored with the first in its `data/20261117-night_repeats_tracking.json`. Per arm over both blocks:
+  tips off as before 0.433 (6 full), 2 ms sub-steps 0.445 (3 full), exact 0.426 (2 full); tips on as before 0.405 (3
+  of 5 full, two drift-outs), sub-steps with hysteresis 0.463 (2 of 2), exact with hysteresis 0.310 (2 of 2).
+- **The lab lights went off at about 21:25** (frame luma 14 and 5). Cycle 9's putdown lost the tracker with the
+  sphere in the hand; it was set down on the HEX-E (40.1 mm, 2.38 N), released to the open pose, the hand raised 70 mm
+  and the fingers straightened, all without vision. The sphere stands somewhere under the hand at the table's centre.
+- **The rig:** the hand at the roll layout, palm about z 300 mm, fingers straight, torque on, servos 22-36 C with no
+  flags. The workstation's HOM servers 47051, 47052, 47057-47060 are stopped. The cylinder stands 18 cm off the centre.

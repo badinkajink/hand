@@ -1,0 +1,62 @@
+[
+ {
+  "finger": "index",
+  "joint": "yaw",
+  "end": "low",
+  "target_deg": -45.0,
+  "safe_deg": -85.0,
+  "cap_deg": -45.0,
+  "clear_mm": 50.3,
+  "reached_target_deg": -42.5,
+  "reached_measured_deg": -40.72265,
+  "stopped": "reached the end"
+ },
+ {
+  "finger": "index",
+  "joint": "mcp",
+  "end": "low",
+  "target_deg": -15.0,
+  "safe_deg": -15.0,
+  "cap_deg": -90.0,
+  "clear_mm": 58.4,
+  "reached_target_deg": -12.0,
+  "reached_measured_deg": -10.253868749999995,
+  "stopped": "stalled: 0.3 deg in the last 6 steps, 2.2 deg behind"
+ },
+ {
+  "finger": "middle",
+  "joint": "yaw",
+  "end": "low",
+  "target_deg": -45.0,
+  "safe_deg": -85.0,
+  "cap_deg": -45.0,
+  "clear_mm": 66.0,
+  "reached_target_deg": -25.5,
+  "reached_measured_deg": -23.73050625,
+  "stopped": "reached the end"
+ },
+ {
+  "finger": "middle",
+  "joint": "mcp",
+  "end": "low",
+  "target_deg": -15.0,
+  "safe_deg": -15.0,
+  "cap_deg": -90.0,
+  "clear_mm": 66.0,
+  "reached_target_deg": -10.0,
+  "reached_measured_deg": -8.49609375,
+  "stopped": "stalled: 0.6 deg in the last 6 steps, 2.0 deg behind"
+ },
+ {
+  "finger": "middle",
+  "joint": "mcp",
+  "end": "high",
+  "target_deg": 58.0,
+  "safe_deg": 65.02,
+  "cap_deg": 58.0,
+  "clear_mm": 55.3,
+  "reached_target_deg": 58.0,
+  "reached_measured_deg": 56.25,
+  "stopped": "reached the end"
+ }
+]
