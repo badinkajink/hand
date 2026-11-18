@@ -626,10 +626,27 @@ middle finger was counted as touching from 1.68&#8202;s, at a median 0.53&#8202;
 counted as touching from 1.20&#8202;s, at 1.34&#8202;N. On one core of the lab computer the three boards were estimated in
 7.4&#8202;ms a period (median). The press&#8217;s recorded states were then sent to HOM again, with each finger&#8217;s
 contact frame taken from its board whenever it pressed with 0.25&#8202;N or more. Its joint targets differed by
-0.86&#176; from those without the boards (median), and by 18&#176; at most. HOM with and without the boards is to be
-compared on the hand at the next bench session ([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md),
-section on trials with the fingertips).</p>
-{{FIG hand_press}}"""),
+0.86&#176; from those without the boards (median), and by 18&#176; at most
+([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md), section on trials with the fingertips).</p>
+{{FIG hand_press}}
+<p>On 17 November HOM was run on the hand with the boards&#8217; contacts and without them. The hand twisted the
+40&#8202;mm sphere from the same grasp in every trial. The tracking score is computed from the RMS angle between the
+sphere&#8217;s tracked rotation and the commanded one, from 2.0&#8202;s to the twist&#8217;s end at 7.8&#8202;s. One minus
+that angle&#8217;s ratio to the RMS commanded rotation is kept at zero or above. The simulations&#8217; score is also
+multiplied by a factor for the pads&#8217; contact (section on the fingertip in the simulations). With the servos at
+5&#8202;V, HOM&#8217;s tracking score was 0.322 without the boards and 0.394 with them. The same grasp without the boards
+had a score of 0.378 on 16 November. For the evening&#8217;s trials the servos were supplied at 7.5&#8202;V. HOM&#8217;s
+limit on their summed torque was lowered by a third, so that their current stayed at its 5&#8202;V level. The score was
+then 0.439 without the boards. With them it was 0.482 up to 5.28&#8202;s, when the trial was stopped because the sphere
+had moved 20&#8202;mm from its start. By then the sphere had turned 74.2&#176;, against 59.4&#176; commanded. Each
+setting was run once.</p>
+<p>During the morning&#8217;s trials the estimator ran in the trial&#8217;s own process, which also tracked the sphere in
+two cameras and wrote their films. There the three boards were estimated in 57 to 73&#8202;ms (each trial&#8217;s
+median), against 7.4&#8202;ms on the recordings of 16 November. The trial&#8217;s 50&#8202;Hz loop stalled, and the first trial with the
+boards was stopped at 3.54&#8202;s, when three targets in a row were missing. Before the evening&#8217;s trials the
+estimator was moved to a process of its own. There the three boards were estimated in 16.8 to 18.8&#8202;ms (medians).
+Neither trial was stopped for a missing target ([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md),
+the two sections on the state of 17 November).</p>"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
