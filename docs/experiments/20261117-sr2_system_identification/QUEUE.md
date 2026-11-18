@@ -56,13 +56,26 @@ air and then against a force sensor. Contact and the blind validation trials nee
   the finger's board. One joint per finger: thumb MCP, index MCP and middle MCP, then the PIPs if time allows. Output:
   force against target offset. The workstation converts it to torque against offset (the gain in N m/rad), the dead
   band under load and the load at the overload trip, and compares each board's normal force with the HEX-E (W2).
-  Prediction for the index and middle yaws, first in the owner's order (W2, 11-18 12:0x): with the pad on the block,
-  the reading advances about 4 deg past first contact by the time the target is 14-15 deg past the reading, as in the
-  night's squeezes. The force there is about 1.0 N if the gear passes 0.4 of the servo's torque (the clutch plant), and
-  2.4 N if it passes all of it; the index board read 0.6-1.6 N. Where the pressing finger's DIP tag is in view, record
-  it: it shows where the chain gives. On the step back the force shows whether the load can backdrive the gear (W3, the
-  owner's alternative). In the clutch plant the force stays flat and the reading stays put until the target passes the
-  reading; a backdrivable gear lets both fall before that.
+  Prediction for the index and middle yaws, first in the owner's order (W2, 11-18 12:0x; forces corrected 15:3x): with
+  the pad on the block, the reading advances about 4 deg past first contact by the time the target is 14-15 deg past
+  the reading, as in the night's squeezes. Press in the direction the yaws moved in the squeezes, toward the sphere.
+  With the finger straight (1.53 mm of pad per deg of yaw, an 88 mm lever) the force there is about 0.6 N if the gear
+  passes 0.4 of the servo's torque (the clutch plant at kp 0.525 N m/rad), and 1.5 N if it passes all of it. The
+  index board read 0.6-1.6 N in the squeezes. The 1.0 and 2.4 N given at 12:0x assumed a gain of about 0.8 N m/rad,
+  the datasheet's stall scaled to 7.5 V (0.81). Per newton on the HEX-E the reading advances 6.6 deg with the give of
+  0.76 N m/rad; a rigid chain advances only by the pad's compression, under 1 deg. The block pins the pad, so the yaw
+  presses need no DIP tag. The finger stays straight: its tag then faces away from both cameras (lab, 15:2x), and its
+  lever is close to the twist's (1.44 mm per deg). On the step back the force shows whether the load can backdrive the
+  gear (W3, the owner's alternative). In the clutch plant the force stays flat and the reading stays put until the
+  target passes the reading; a backdrivable gear lets both fall before that.
+  Geometry at today's arm pose (lab, 15:2x; `s3_press.py block`, 28db7ea9c). At zero the yaws move the pads along y_P,
+  1.53 mm per deg. The MCPs and PIPs move them along x_P, 1.17 and 0.63 mm per deg, toward the palm's centre and then
+  upward as they curl. With the palm level no flexion presses a pad onto the block's top. The MCP and PIP presses need
+  a vertical land on the palm's-centre side of the finger (+x_P for the index and middle, -x_P for the thumb). The arm
+  can turn the hand about the vertical until a side land faces the finger, or tilt it; the owner chooses at the bench.
+  The pad centres hang 29 mm (index), 31 mm (thumb) and 38 mm (middle) above the table in the model, about 4 mm lower
+  with W2's offset. A yaw press needs a land at the pad's height: the arm lowers the hand, with the other fingers clear
+  of the table, or a spacer raises the block.
 - S4 (with the owner, next session). Contact on the hand, three trials each.
   (a) Pick-up of the press cylinder and of the taped sphere, then a slow opening of the pinch over 4-6 s above a catch
   box, the tags and the boards recording. The object's angle about the pinch line against the normal force gives the
