@@ -4,6 +4,39 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-17 19:30: the evening's commands, and the night's runs
+
+The evening's results are on the session page
+`docs/experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html`
+(https://claude.ai/artifact/JuQrKr5dzHEtGkzLv8XHSe). How to run what it added:
+
+- **The pick-up of a lying sphere as one command** (owner, 18:1x: "hopefully this task can be automated for next runs,
+  without losing this interpretability"). From this folder, with the sphere lying near the table's centre:
+
+      lab/pickup_cycle.sh /home/will/workspace/hand/logs/20261116-hom_trials/<YYYYmmdd-HHMM>_pickup        (plan only)
+      lab/pickup_cycle.sh /home/will/workspace/hand/logs/20261116-hom_trials/<YYYYmmdd-HHMM>_pickup go     (the run)
+
+  It runs diag, plan (with the wrist turn), the plan's checks (table at touch >= 7.5 mm, joint margin >= 3.5 deg),
+  grasp, lift, slip, putdown and unturn, prints each step's key lines and keeps each step's whole output in the
+  folder. It stops at the first step that fails. The defaults are the 7.5 V settings (squeeze 5.3 deg, slip steps 0.35
+  deg); at 5 V use `SQUEEZE=8 STEP=0.5 RESQUEEZE=1`. A turn over 45 deg refuses: lay the sphere with its stem across
+  the hand's x axis.
+- **Twist repeats as one command:** `lab/repeat_cycle.sh V N` with the HOM servers up (env `P`, `ARMS` as
+  `port:tips:name` list, `DRIFT`). Each cycle: diag and the 50/40 C thermal rule, place twice, ready (`--max-lat 70`),
+  the trial, the putdown levelled fully, a second putdown when the seat check refuses, the fingers straightened when a
+  putdown fails and the path is clear. It stops at the first failure.
+- **The release when the straight path to zero is refused** (owner, 18:5x): `letgo` and `putdown` now fall back to
+  `flex_back_release`: MCPs and PIPs to `--flex-deg` with the yaws kept, ramped over `--flex-s` 3 s, then a rise, then
+  the yaws to zero, each step checked on the hand's model. `--no-flex-back` keeps the old refusal.
+- **Layouts.** g13 at (105, 70) drives the index and middle together (least gap on the model 1.9 mm at 7.5 V); run
+  twists on g0 at (70, 110), `plans/20261117-film_x70_y110_twist_gr_mcpstop_plan.json` (servers 47051 tips off, 47052
+  tips on). The press: `plans/20261117-press_x70_y110_lat0_replan_plan.json` (the workstation's open pose inside the MCP
+  stops; the HOM server still loads `20261116-press_x70_y110_lat0_plan.json`).
+- **The night of 11-17** (`docs/experiments/20261117-sr2_system_identification/lab/night_rest.sh`, its log
+  `logs/20261117-night_rest.out`): S2 at the roll layout (85, 170), S1(b), twelve g0 twist repeats over four arms (the
+  paper-rate filter's A/B), then the boards' random-pose sweep. `touch logs/20261117-night_rest/STOP` stops it between
+  steps; `touch V/STOP` stops the repeats between cycles.
+
 ## State on 2026-11-17 17:22: the servos at 7.5 V
 
 The owner, 16:1x: "i have approximately zeroed the servos (all). you can go ahead with the restart. i agree on the HOM
