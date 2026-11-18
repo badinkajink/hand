@@ -1,0 +1,57 @@
+{
+ "finger": "thumb",
+ "poses": 9,
+ "rms_centre_mm_before": 5.958,
+ "mean_centre_err_mm_before": [
+  -5.063,
+  -2.382,
+  -0.74
+ ],
+ "zeros": {
+  "params": {
+   "d_yaw_deg": 2.18,
+   "d_mcp_deg": 6.52,
+   "d_pip_deg": -6.026
+  },
+  "se": {
+   "d_yaw_deg": 0.357,
+   "d_mcp_deg": 1.149,
+   "d_pip_deg": 1.473
+  },
+  "rms_centre_mm": 3.718,
+  "rms_normal_deg": 1.014,
+  "loo_rms_centre_mm": 3.871
+ },
+ "mount": {
+  "params": {
+   "d_mount_x_mm": 5.063,
+   "d_mount_y_mm": 2.382
+  },
+  "se": {
+   "d_mount_x_mm": 0.437,
+   "d_mount_y_mm": 0.437
+  },
+  "rms_centre_mm": 2.046,
+  "rms_normal_deg": 2.398,
+  "loo_rms_centre_mm": 2.174
+ },
+ "both": {
+  "params": {
+   "d_yaw_deg": 2.81,
+   "d_mcp_deg": -4.7,
+   "d_pip_deg": 4.954,
+   "d_mount_x_mm": 7.171,
+   "d_mount_y_mm": -1.237
+  },
+  "se": {
+   "d_yaw_deg": 0.28,
+   "d_mcp_deg": 1.1,
+   "d_pip_deg": 1.165,
+   "d_mount_x_mm": 0.58,
+   "d_mount_y_mm": 0.436
+  },
+  "rms_centre_mm": 1.595,
+  "rms_normal_deg": 0.751,
+  "loo_rms_centre_mm": 1.829
+ }
+}
