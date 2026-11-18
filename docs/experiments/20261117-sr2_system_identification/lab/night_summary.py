@@ -19,7 +19,9 @@ HERE = Path(__file__).resolve().parents[1]
 ROOT = HERE.parents[2]
 B = ROOT / "docs/experiments/20261115-hom_bench_trials"
 OUT = HERE / "data/20261117-night_summary.json"
-ARM = {"base": "as before", "fstep": "paper-rate filter", "fstep_hyst": "paper-rate filter, contact hysteresis"}
+ARM = {"base": "as before", "fstep": "paper-rate filter, 2 ms sub-steps",
+       "fstep_hyst": "paper-rate filter, 2 ms sub-steps, contact hysteresis", "exact": "exact continuous filter",
+       "exact_hyst": "exact continuous filter, contact hysteresis"}
 
 
 def esc(s):
@@ -94,15 +96,23 @@ def s1a():
     if not f.exists():
         return "<p>S1(a) did not run.</p>", {}
     rows = json.loads(f.read_text())
+    fr = HERE / "data/s1/20261117-s1a_summary_redo.json"
+    redo = {(r["finger"], r["joint"], r["end"]): r for r in json.loads(fr.read_text())} if fr.exists() else {}
     out = []
     for r in rows:
-        stop = r["stopped"]
+        k = (r["finger"], r["joint"], r["end"])
+        rr = redo.get(k, r)
+        stop = rr["stopped"] + (" (second run)" if k in redo else "")
         out.append([r["finger"], r["joint"], r["end"], f"{r['target_deg']:+.1f}", f"{r['safe_deg']:+.1f}",
-                    "–" if r.get("reached_measured_deg") is None else f"{r['reached_measured_deg']:+.1f}", esc(stop)])
-    blocked = [r for r in rows if not r["stopped"].startswith("reached")]
+                    "–" if rr.get("reached_measured_deg") is None else f"{rr['reached_measured_deg']:+.1f}", esc(stop)])
+    final = [redo.get((r["finger"], r["joint"], r["end"]), r) for r in rows]
+    blocked = [r for r in final if not r["stopped"].startswith("reached")]
     txt = (f"<p>S1(a) swept each joint alone toward both ends of its range: {len(rows)} sweeps, "
-           f"{len(blocked)} of them stopped before the end by a mechanical stop or the load guard. The end is the "
-           "station's safe range, capped tonight at yaw ±45°, MCP 58° and PIP 80°.</p>")
+           f"{len(blocked)} of them stopped before the end. The end is the station's safe range, capped tonight at "
+           "yaw ±45°, MCP 58° and PIP 80°. The first run's stop rule, 2.5° of lag on two steps of 0.35 s, stopped "
+           "three sweeps on friction lag where S2's dwells at the same layout reach further (both yaws to −40°, the "
+           "middle's MCP to 61°). A stall test replaced it, and five ends ran again"
+           + (" (marked)" if redo else "; the second run did not take place") + ".</p>")
     return txt + table(["Finger", "Joint", "End", "Target end (°)", "Safe limit (°)", "Last angle following (°)",
                         "Stopped"], out, "Table 9. Each joint's reach (data/s1/20261117-s1a_summary.json)."), {}
 
@@ -113,7 +123,8 @@ def repeats():
         return "<p>The twist repeats did not run.</p>", {}
     tt = json.loads(f.read_text())
     port_arm = {"47051": ("off", "base"), "47057": ("off", "fstep"), "47052": ("on", "base"),
-                "47058": ("on", "fstep_hyst")}       # the night's servers (repeat_cycle.sh's ARMS)
+                "47058": ("on", "fstep_hyst"), "47059": ("off", "exact"),
+                "47060": ("on", "exact_hyst")}       # the night's servers (repeat_cycle.sh's ARMS)
     lab = {}
     for c in sorted((B / "runs_corvus").glob("20261117-*_twist_corvus.jsonl")):
         if c.name[:15] < "20261117-194000":
@@ -157,7 +168,9 @@ def repeats():
 
 
 def sweep():
-    f = ROOT / "logs/20261117-sr2_boards_sweep/s3/events.jsonl"
+    f = HERE / "data/sweep/20261117-sweep_s3_events.jsonl"
+    if not f.exists():
+        f = ROOT / "logs/20261117-sr2_boards_sweep/s3/events.jsonl"
     if not f.exists():
         return "<p>The boards' random-pose sweep did not run.</p>", {}
     ev = [json.loads(x) for x in f.read_text().splitlines() if x.strip()]

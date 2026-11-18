@@ -1,0 +1,181 @@
+{
+ "mounts": {
+  "thumb": {
+   "x": -36.3188,
+   "y": 2.4004
+  },
+  "index": {
+   "x": 36.3188,
+   "y": 81.6003
+  },
+  "middle": {
+   "x": 36.3187,
+   "y": -81.6002
+  }
+ },
+ "min_mm": 12.0,
+ "ends": [
+  {
+   "finger": "thumb",
+   "joint": "yaw",
+   "end": "low",
+   "target_deg": -45.0,
+   "safe_deg": -85.0,
+   "cap_deg": -45.0,
+   "clear_mm": 53.3
+  },
+  {
+   "finger": "thumb",
+   "joint": "yaw",
+   "end": "high",
+   "target_deg": 45.0,
+   "safe_deg": 85.0,
+   "cap_deg": 45.0,
+   "clear_mm": 50.3
+  },
+  {
+   "finger": "thumb",
+   "joint": "mcp",
+   "end": "low",
+   "target_deg": -12.3,
+   "safe_deg": -12.3,
+   "cap_deg": -90.0,
+   "clear_mm": 58.4
+  },
+  {
+   "finger": "thumb",
+   "joint": "mcp",
+   "end": "high",
+   "target_deg": 58.0,
+   "safe_deg": 89.06,
+   "cap_deg": 58.0,
+   "clear_mm": 38.6
+  },
+  {
+   "finger": "thumb",
+   "joint": "pip",
+   "end": "low",
+   "target_deg": -18.0,
+   "safe_deg": -18.0,
+   "cap_deg": -90.0,
+   "clear_mm": 58.4
+  },
+  {
+   "finger": "thumb",
+   "joint": "pip",
+   "end": "high",
+   "target_deg": 80.0,
+   "safe_deg": 86.72,
+   "cap_deg": 80.0,
+   "clear_mm": 50.2
+  },
+  {
+   "finger": "index",
+   "joint": "yaw",
+   "end": "low",
+   "target_deg": -45.0,
+   "safe_deg": -85.0,
+   "cap_deg": -45.0,
+   "clear_mm": 50.3
+  },
+  {
+   "finger": "index",
+   "joint": "yaw",
+   "end": "high",
+   "target_deg": 45.0,
+   "safe_deg": 85.0,
+   "cap_deg": 45.0,
+   "clear_mm": 58.4
+  },
+  {
+   "finger": "index",
+   "joint": "mcp",
+   "end": "low",
+   "target_deg": -15.0,
+   "safe_deg": -15.0,
+   "cap_deg": -90.0,
+   "clear_mm": 58.4
+  },
+  {
+   "finger": "index",
+   "joint": "mcp",
+   "end": "high",
+   "target_deg": 58.0,
+   "safe_deg": 60.04,
+   "cap_deg": 58.0,
+   "clear_mm": 38.6
+  },
+  {
+   "finger": "index",
+   "joint": "pip",
+   "end": "low",
+   "target_deg": 1.78,
+   "safe_deg": 1.78,
+   "cap_deg": -90.0,
+   "clear_mm": 58.4
+  },
+  {
+   "finger": "index",
+   "joint": "pip",
+   "end": "high",
+   "target_deg": 80.0,
+   "safe_deg": 92.0,
+   "cap_deg": 80.0,
+   "clear_mm": 50.2
+  },
+  {
+   "finger": "middle",
+   "joint": "yaw",
+   "end": "low",
+   "target_deg": -45.0,
+   "safe_deg": -85.0,
+   "cap_deg": -45.0,
+   "clear_mm": 66.0
+  },
+  {
+   "finger": "middle",
+   "joint": "yaw",
+   "end": "high",
+   "target_deg": 45.0,
+   "safe_deg": 85.0,
+   "cap_deg": 45.0,
+   "clear_mm": 53.3
+  },
+  {
+   "finger": "middle",
+   "joint": "mcp",
+   "end": "low",
+   "target_deg": -15.0,
+   "safe_deg": -15.0,
+   "cap_deg": -90.0,
+   "clear_mm": 66.0
+  },
+  {
+   "finger": "middle",
+   "joint": "mcp",
+   "end": "high",
+   "target_deg": 58.0,
+   "safe_deg": 65.02,
+   "cap_deg": 58.0,
+   "clear_mm": 55.3
+  },
+  {
+   "finger": "middle",
+   "joint": "pip",
+   "end": "low",
+   "target_deg": -16.11,
+   "safe_deg": -16.11,
+   "cap_deg": -90.0,
+   "clear_mm": 66.0
+  },
+  {
+   "finger": "middle",
+   "joint": "pip",
+   "end": "high",
+   "target_deg": 72.34,
+   "safe_deg": 72.34,
+   "cap_deg": 80.0,
+   "clear_mm": 61.7
+  }
+ ]
+}

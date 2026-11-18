@@ -41,3 +41,44 @@ new sysid".
   little aggressive with trials"). They run last tonight, on g0 at (70, 110) from
   `plans/20261117-film_x70_y110_twist_gr_mcpstop_plan.json`, against the blind predictions of c5aec6c15.
 - S2 runs at (85, 170), not at the home layout (above).
+
+### The night's results (19:36-20:5x)
+
+- **S2** done, all six blocks "plan done" (19:06-19:36), in `data/s2/` (614de9b46). Servos 20-27 C, no flags.
+- **S1(b)** (19:36-19:40), `data/s1/rows.jsonl` (057c9a1df): the thumb's tag at 9 poses, |tag - model| median 5.78 mm,
+  fitted by the workstation as a mount offset (`data/s1/20261117-thumb_zero_fit.json`). The middle's tag was not
+  detected at any of its 9 poses. The index's needs the standard pose (palm z 234 mm, level) with the sphere moved
+  off the table's centre: 17-23 candidate poses there on the model.
+- **Twist repeats** (19:42-20:08), g0 at (70, 110), 11 of 12 cycles over four arms; records in the bench study's
+  `runs/` and `runs_corvus/`, scored in its `data/20261117-night_repeats_tracking.json` (adc0083bc). Tips off as before
+  0.447 (3 full runs), with `--filter-step-s 0.002` 0.445 (3 full); tips on as before 0.431 (1 of 3 full: two drift
+  guards, the sphere fell at 20:08), with the filter and `--contact-off 0.10` 0.463 (2 of 2 full). The sub-steps added
+  about 10 ms of server latency a period, so the arms do not separate; the next A/B uses `--filter-exact`.
+- **Putdown failures and their fixes.** 19:49: the levelling turn of 28.6 deg outran the putdown's fixed 12 s move
+  limit. 20:02: the levelling's fixed 2 mm slide guard stopped an 18.9 deg turn twice. Both spheres were put down by
+  hand-run putdowns and released upright. `repeat_cycle.sh` now caps the turn at 20 deg and falls back to a putdown
+  without levelling.
+- **The boards' random-pose sweep** (from 20:10, 327 steps, at (85, 170)) and **S1(a)** (after it) record into
+  `logs/20261117-sr2_boards_sweep/s3/` and `logs/20261117-sr2_s1a_ranges/`; their summaries follow when they end.
+- **Rig at the end:** the sphere lies on its side 227 mm from the table's centre (at B (77, -402) mm), the cylinder
+  stands 18 cm from it; the hand at the roll layout, fingers straight, torque on.
+
+### The end of the night (20:53-21:33)
+
+- **The boards' sweep** ran all 327 poses ("plan done", 20:10-20:53): events and plan in `data/sweep/`, telemetry
+  (37 MB) in `logs/20261117-sr2_boards_sweep/s3/` on corvus and the workstation. The splitter stopped at 21:3x; its file
+  `logs/20261117-three_finger_mux/20261117-180517-mux.bin` (495 MB, 18:05-21:3x) is on both machines, same path: S2,
+  S1(a), the sweep and every trial of the evening are in it.
+- **S1(a)** (20:53-21:03, again for five ends at 21:28): `data/s1/20261117-s1a_*`. With the stall test every end was
+  reached except the two low MCPs: the index's stalls at -10.3 deg, the middle's at -8.5 deg, pushed at about 2 deg of
+  lag; the afternoon's -11.4 and -10.0 deg came at 21-22 % duty. The first run's lag rule had stopped the index's and
+  middle's yaw and the middle's MCP early on friction lag (S2 shows them at -40 and 61 deg).
+- **The second A/B** with `--filter-exact` (21:05-21:25): 9 of 12 cycles, records in the bench study's `runs/` and
+  `runs_corvus/`, scored with the first in its `data/20261117-night_repeats_tracking.json`. Per arm over both blocks:
+  tips off as before 0.433 (6 full), 2 ms sub-steps 0.445 (3 full), exact 0.426 (2 full); tips on as before 0.405 (3
+  of 5 full, two drift-outs), sub-steps with hysteresis 0.463 (2 of 2), exact with hysteresis 0.310 (2 of 2).
+- **The lab lights went off at about 21:25** (frame luma 14 and 5). Cycle 9's putdown lost the tracker with the
+  sphere in the hand; it was set down on the HEX-E (40.1 mm, 2.38 N), released to the open pose, the hand raised 70 mm
+  and the fingers straightened, all without vision. The sphere stands somewhere under the hand at the table's centre.
+- **The rig:** the hand at the roll layout, palm about z 300 mm, fingers straight, torque on, servos 22-36 C with no
+  flags. The workstation's HOM servers 47051, 47052, 47057-47060 are stopped. The cylinder stands 18 cm off the centre.

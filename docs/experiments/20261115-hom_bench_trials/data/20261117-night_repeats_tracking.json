@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-17T20:10:05-0700",
+ "generated": "2026-11-17T21:31:40-0700",
  "script": "scripts/hardware/hom_trial_tracking.py",
  "runs": "docs/experiments/20261115-hom_bench_trials/runs",
  "corvus": "docs/experiments/20261115-hom_bench_trials/runs_corvus",
@@ -1999,6 +1999,1390 @@
     "single_camera_share": 0.033,
     "n_tags_median": 4.0,
     "pose_age_median_ms": 60.4
+   }
+  },
+  {
+   "stamp": "20261117-210621",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-210621_twist_d40_trial004.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:06:21-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 415,
+   "periods_server": 415,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 415
+   },
+   "skipped_periods": 2,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-210612_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 407,
+    "posted_share": 0.976,
+    "stop": {
+     "t_s": 8.3236,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.932,
+    "lift_max_dF_N": 1.179,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.6,
+    "rise_end_mm": 1.7,
+    "twist_end_deg": 48.4,
+    "twist_max_deg": 49.4,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 24.1,
+    "tilt_max_deg": 24.1,
+    "lat_end_mm": 11.6,
+    "lat_max_mm": 11.6,
+    "drift_end_mm": 11.7,
+    "drift_max_mm": 11.7
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 43.36,
+    "err_rms_deg": 35.42,
+    "ref_rms_deg": 59.4,
+    "score": 0.404
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.2,
+      "max_abs_deg": 3.2,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.9,
+      "max_abs_deg": 18.0,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 1.4,
+      "max_abs_deg": 7.1,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 15.0,
+      "max_abs_deg": 18.0,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 6.4,
+      "max_abs_deg": 13.2,
+      "share_over_10": 0.179
+     },
+     "index.fe2": {
+      "median_deg": 1.5,
+      "max_abs_deg": 9.1,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -15.0,
+      "max_abs_deg": 18.0,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 2.9,
+      "max_abs_deg": 7.4,
+      "share_over_10": 0.0
+     },
+     "middle.fe2": {
+      "median_deg": 1.8,
+      "max_abs_deg": 6.4,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.528,
+    "lost_share": 0.0,
+    "single_camera_share": 0.038,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 65.2
+   },
+   "tracker_trial": {
+    "fresh_share": 0.525,
+    "lost_share": 0.0,
+    "single_camera_share": 0.041,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 65.2
+   }
+  },
+  {
+   "stamp": "20261117-210830",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-210830_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:08:30-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 417,
+   "periods_server": 417,
+   "duration_s": 8.32,
+   "joints_src": {
+    "open": 1,
+    "bus": 415,
+    "reference": 1
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-210820_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 414,
+    "posted_share": 0.993,
+    "stop": {
+     "t_s": 8.3276,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.941,
+    "lift_max_dF_N": 1.656,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 3.1,
+    "rise_end_mm": 0.7,
+    "twist_end_deg": 53.0,
+    "twist_max_deg": 53.3,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 12.5,
+    "tilt_max_deg": 12.7,
+    "lat_end_mm": 8.0,
+    "lat_max_mm": 10.4,
+    "drift_end_mm": 8.0,
+    "drift_max_mm": 10.5
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 46.66,
+    "err_rms_deg": 34.0,
+    "ref_rms_deg": 59.4,
+    "score": 0.428
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 0.9,
+      "max_abs_deg": 5.3,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.5,
+      "max_abs_deg": 17.3,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 2.3,
+      "max_abs_deg": 6.9,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 14.7,
+      "max_abs_deg": 17.1,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 4.5,
+      "max_abs_deg": 12.9,
+      "share_over_10": 0.176
+     },
+     "index.fe2": {
+      "median_deg": -0.6,
+      "max_abs_deg": 8.2,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -13.9,
+      "max_abs_deg": 16.3,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 4.2,
+      "max_abs_deg": 12.1,
+      "share_over_10": 0.141
+     },
+     "middle.fe2": {
+      "median_deg": 2.3,
+      "max_abs_deg": 6.3,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.524,
+    "lost_share": 0.0,
+    "single_camera_share": 0.093,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 66.5
+   },
+   "tracker_trial": {
+    "fresh_share": 0.535,
+    "lost_share": 0.0,
+    "single_camera_share": 0.084,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 66.4
+   }
+  },
+  {
+   "stamp": "20261117-211021",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-211021_twist_d40_trial004.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:10:21-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 417,
+   "periods_server": 417,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 417
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-211012_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 410,
+    "posted_share": 0.983,
+    "stop": {
+     "t_s": 8.3203,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.96,
+    "lift_max_dF_N": 1.212,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 4.5,
+    "rise_end_mm": 4.5,
+    "twist_end_deg": 49.1,
+    "twist_max_deg": 49.4,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 31.1,
+    "tilt_max_deg": 33.6,
+    "lat_end_mm": 16.5,
+    "lat_max_mm": 16.5,
+    "drift_end_mm": 17.1,
+    "drift_max_mm": 17.1
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 36.9,
+    "err_rms_deg": 35.8,
+    "ref_rms_deg": 59.4,
+    "score": 0.397
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.4,
+      "max_abs_deg": 6.3,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.8,
+      "max_abs_deg": 17.2,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 3.7,
+      "max_abs_deg": 7.7,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 14.3,
+      "max_abs_deg": 17.2,
+      "share_over_10": 0.531
+     },
+     "index.fe1": {
+      "median_deg": 9.6,
+      "max_abs_deg": 15.5,
+      "share_over_10": 0.469
+     },
+     "index.fe2": {
+      "median_deg": 1.2,
+      "max_abs_deg": 10.2,
+      "share_over_10": 0.007
+     },
+     "middle.aa": {
+      "median_deg": -14.1,
+      "max_abs_deg": 17.2,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 2.9,
+      "max_abs_deg": 10.7,
+      "share_over_10": 0.007
+     },
+     "middle.fe2": {
+      "median_deg": 1.7,
+      "max_abs_deg": 9.8,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.524,
+    "lost_share": 0.0,
+    "single_camera_share": 0.086,
+    "n_tags_median": 3.0,
+    "pose_age_median_ms": 67.4
+   },
+   "tracker_trial": {
+    "fresh_share": 0.537,
+    "lost_share": 0.0,
+    "single_camera_share": 0.084,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 67.0
+   }
+  },
+  {
+   "stamp": "20261117-211226",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-211226_twist_d40_trial000.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:12:26-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 417,
+   "periods_server": 417,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 416,
+    "reference": 1
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-211216_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 413,
+    "posted_share": 0.99,
+    "stop": {
+     "t_s": 8.3203,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 39.953,
+    "lift_max_dF_N": 1.237,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.9,
+    "rise_end_mm": 1.9,
+    "twist_end_deg": 38.4,
+    "twist_max_deg": 40.5,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 36.0,
+    "tilt_max_deg": 36.2,
+    "lat_end_mm": 18.7,
+    "lat_max_mm": 20.5,
+    "drift_end_mm": 18.8,
+    "drift_max_mm": 20.6
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 34.09,
+    "err_rms_deg": 40.98,
+    "ref_rms_deg": 59.4,
+    "score": 0.31
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.5,
+      "max_abs_deg": 4.7,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 15.4,
+      "max_abs_deg": 17.2,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 0.9,
+      "max_abs_deg": 6.0,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 15.3,
+      "max_abs_deg": 17.2,
+      "share_over_10": 0.828
+     },
+     "index.fe1": {
+      "median_deg": 5.9,
+      "max_abs_deg": 17.2,
+      "share_over_10": 0.328
+     },
+     "index.fe2": {
+      "median_deg": 1.5,
+      "max_abs_deg": 9.6,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -13.5,
+      "max_abs_deg": 16.5,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 5.3,
+      "max_abs_deg": 10.6,
+      "share_over_10": 0.007
+     },
+     "middle.fe2": {
+      "median_deg": 3.0,
+      "max_abs_deg": 10.9,
+      "share_over_10": 0.014
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.538,
+    "lost_share": 0.0,
+    "single_camera_share": 0.09,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 65.9
+   },
+   "tracker_trial": {
+    "fresh_share": 0.542,
+    "lost_share": 0.0,
+    "single_camera_share": 0.082,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 65.5
+   }
+  },
+  {
+   "stamp": "20261117-211615",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-211615_twist_d40_trial005.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:16:15-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 416,
+   "periods_server": 416,
+   "duration_s": 8.32,
+   "joints_src": {
+    "open": 1,
+    "bus": 415
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-211606_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 416,
+    "frames_posted": 412,
+    "posted_share": 0.99,
+    "stop": {
+     "t_s": 8.3247,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.976,
+    "lift_max_dF_N": 1.18,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.9,
+    "rise_end_mm": 0.8,
+    "twist_end_deg": 51.5,
+    "twist_max_deg": 52.1,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 15.8,
+    "tilt_max_deg": 15.8,
+    "lat_end_mm": 11.6,
+    "lat_max_mm": 11.6,
+    "drift_end_mm": 11.6,
+    "drift_max_mm": 11.6
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 45.39,
+    "err_rms_deg": 34.23,
+    "ref_rms_deg": 59.4,
+    "score": 0.424
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.3,
+      "max_abs_deg": 5.0,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.5,
+      "max_abs_deg": 17.2,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 2.3,
+      "max_abs_deg": 6.9,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 14.6,
+      "max_abs_deg": 16.6,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 5.0,
+      "max_abs_deg": 14.1,
+      "share_over_10": 0.166
+     },
+     "index.fe2": {
+      "median_deg": 1.5,
+      "max_abs_deg": 8.3,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -13.6,
+      "max_abs_deg": 17.2,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 4.4,
+      "max_abs_deg": 12.2,
+      "share_over_10": 0.259
+     },
+     "middle.fe2": {
+      "median_deg": 2.2,
+      "max_abs_deg": 6.6,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.552,
+    "lost_share": 0.0,
+    "single_camera_share": 0.0,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 59.3
+   },
+   "tracker_trial": {
+    "fresh_share": 0.555,
+    "lost_share": 0.0,
+    "single_camera_share": 0.0,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 59.6
+   }
+  },
+  {
+   "stamp": "20261117-211835",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-211835_twist_d40_trial001.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:18:35-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 417,
+   "periods_server": 417,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 417
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-211825_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 414,
+    "posted_share": 0.993,
+    "stop": {
+     "t_s": 8.3212,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.913,
+    "lift_max_dF_N": 1.244,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.7,
+    "rise_end_mm": 1.7,
+    "twist_end_deg": 45.8,
+    "twist_max_deg": 46.0,
+    "twist_min_deg": -0.3,
+    "tilt_end_deg": 21.2,
+    "tilt_max_deg": 21.8,
+    "lat_end_mm": 11.2,
+    "lat_max_mm": 13.3,
+    "drift_end_mm": 11.4,
+    "drift_max_mm": 13.4
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 45.56,
+    "err_rms_deg": 34.19,
+    "ref_rms_deg": 59.4,
+    "score": 0.424
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 0.8,
+      "max_abs_deg": 4.1,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.7,
+      "max_abs_deg": 17.8,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 1.8,
+      "max_abs_deg": 6.4,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 15.3,
+      "max_abs_deg": 17.8,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 6.3,
+      "max_abs_deg": 12.4,
+      "share_over_10": 0.159
+     },
+     "index.fe2": {
+      "median_deg": 0.9,
+      "max_abs_deg": 8.6,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -15.3,
+      "max_abs_deg": 17.7,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 3.3,
+      "max_abs_deg": 8.1,
+      "share_over_10": 0.0
+     },
+     "middle.fe2": {
+      "median_deg": 2.3,
+      "max_abs_deg": 6.5,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.514,
+    "lost_share": 0.0,
+    "single_camera_share": 0.028,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 63.5
+   },
+   "tracker_trial": {
+    "fresh_share": 0.511,
+    "lost_share": 0.0,
+    "single_camera_share": 0.026,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.0
+   }
+  },
+  {
+   "stamp": "20261117-212039",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-212039_twist_d40_trial005.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:20:39-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 416,
+   "periods_server": 416,
+   "duration_s": 8.32,
+   "joints_src": {
+    "open": 1,
+    "reference": 2,
+    "bus": 413
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-212030_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 416,
+    "frames_posted": 413,
+    "posted_share": 0.993,
+    "stop": {
+     "t_s": 8.3112,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.6,
+    "lift_dz_mm": 40.01,
+    "lift_max_dF_N": 0.958,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 3.0,
+    "rise_end_mm": 2.5,
+    "twist_end_deg": 31.8,
+    "twist_max_deg": 34.4,
+    "twist_min_deg": -1.2,
+    "tilt_end_deg": 12.3,
+    "tilt_max_deg": 12.4,
+    "lat_end_mm": 5.6,
+    "lat_max_mm": 10.9,
+    "drift_end_mm": 6.1,
+    "drift_max_mm": 11.1
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 31.24,
+    "err_rms_deg": 39.47,
+    "ref_rms_deg": 59.4,
+    "score": 0.335
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": -0.8,
+      "max_abs_deg": 4.2,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 17.2,
+      "max_abs_deg": 18.5,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 1.2,
+      "max_abs_deg": 8.0,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 17.2,
+      "max_abs_deg": 18.5,
+      "share_over_10": 0.59
+     },
+     "index.fe1": {
+      "median_deg": 2.1,
+      "max_abs_deg": 15.3,
+      "share_over_10": 0.393
+     },
+     "index.fe2": {
+      "median_deg": 0.6,
+      "max_abs_deg": 10.6,
+      "share_over_10": 0.003
+     },
+     "middle.aa": {
+      "median_deg": -12.9,
+      "max_abs_deg": 18.4,
+      "share_over_10": 0.979
+     },
+     "middle.fe1": {
+      "median_deg": 6.1,
+      "max_abs_deg": 11.2,
+      "share_over_10": 0.031
+     },
+     "middle.fe2": {
+      "median_deg": 2.1,
+      "max_abs_deg": 9.2,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.517,
+    "lost_share": 0.0,
+    "single_camera_share": 0.062,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 67.3
+   },
+   "tracker_trial": {
+    "fresh_share": 0.519,
+    "lost_share": 0.0,
+    "single_camera_share": 0.07,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 67.5
+   }
+  },
+  {
+   "stamp": "20261117-212250",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-212250_twist_d40_trial001.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:22:50-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 416,
+   "periods_server": 416,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 416
+   },
+   "skipped_periods": 1,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-212241_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 416,
+    "frames_posted": 414,
+    "posted_share": 0.995,
+    "stop": {
+     "t_s": 8.3162,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.994,
+    "lift_max_dF_N": 1.065,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 3.8,
+    "rise_end_mm": 3.7,
+    "twist_end_deg": 49.3,
+    "twist_max_deg": 50.9,
+    "twist_min_deg": -0.1,
+    "tilt_end_deg": 26.0,
+    "tilt_max_deg": 29.9,
+    "lat_end_mm": 15.4,
+    "lat_max_mm": 16.0,
+    "drift_end_mm": 15.8,
+    "drift_max_mm": 16.4
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 39.58,
+    "err_rms_deg": 40.94,
+    "ref_rms_deg": 59.4,
+    "score": 0.311
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.9,
+      "max_abs_deg": 7.2,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 14.9,
+      "max_abs_deg": 17.3,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 3.4,
+      "max_abs_deg": 7.0,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 14.8,
+      "max_abs_deg": 17.3,
+      "share_over_10": 0.931
+     },
+     "index.fe1": {
+      "median_deg": 5.3,
+      "max_abs_deg": 16.7,
+      "share_over_10": 0.19
+     },
+     "index.fe2": {
+      "median_deg": 0.9,
+      "max_abs_deg": 7.3,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -14.0,
+      "max_abs_deg": 16.7,
+      "share_over_10": 0.976
+     },
+     "middle.fe1": {
+      "median_deg": 2.9,
+      "max_abs_deg": 11.5,
+      "share_over_10": 0.017
+     },
+     "middle.fe2": {
+      "median_deg": 1.7,
+      "max_abs_deg": 13.6,
+      "share_over_10": 0.024
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.514,
+    "lost_share": 0.0,
+    "single_camera_share": 0.066,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.0
+   },
+   "tracker_trial": {
+    "fresh_share": 0.514,
+    "lost_share": 0.0,
+    "single_camera_share": 0.096,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.0
+   }
+  },
+  {
+   "stamp": "20261117-212455",
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261117-212455_twist_d40_trial006.jsonl",
+   "task": "twist",
+   "d_mm": 40.0,
+   "started": "2026-11-17T21:24:55-0700",
+   "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "git": "3071c4b8e",
+   "t_end_s": 7.8,
+   "plan": {
+    "path": "docs/experiments/20261115-hom_bench_trials/plans/20261116-film_x70_y110_twist_gr_plan.json",
+    "family": "gr",
+    "label": "gr g0 (70,110)",
+    "role": "film",
+    "layout_mm": [
+     70.0,
+     110.0
+    ],
+    "call": 162,
+    "pick": "grid2dgr grasp 0",
+    "grid": "grid2dgr",
+    "grasp": 0,
+    "lat_deg": 5.4,
+    "lat_pusher_deg": null,
+    "modified_after_start": false
+   },
+   "mode": "live",
+   "periods": 417,
+   "periods_server": 417,
+   "duration_s": 8.32,
+   "joints_src": {
+    "bus": 416,
+    "reference": 1
+   },
+   "skipped_periods": 0,
+   "corvus": {
+    "file": "docs/experiments/20261115-hom_bench_trials/runs_corvus/20261117-212445_twist_corvus.jsonl",
+    "live": true,
+    "arm": true,
+    "states": 417,
+    "frames_posted": 415,
+    "posted_share": 0.995,
+    "stop": {
+     "t_s": 8.3203,
+     "reason": "controller"
+    },
+    "station_error": null,
+    "frame_errors": {},
+    "stream_restarts": 0,
+    "lift_start_s": 1.601,
+    "lift_dz_mm": 39.974,
+    "lift_max_dF_N": 1.359,
+    "lift_stopped": null
+   },
+   "ended": {
+    "server_reason": "end of schedule",
+    "t_s": 8.32,
+    "class": "end of schedule",
+    "short": "schedule"
+   },
+   "motion": {
+    "rise_max_mm": 2.9,
+    "rise_end_mm": 2.3,
+    "twist_end_deg": 47.1,
+    "twist_max_deg": 47.3,
+    "twist_min_deg": -0.8,
+    "tilt_end_deg": 17.5,
+    "tilt_max_deg": 17.8,
+    "lat_end_mm": 9.0,
+    "lat_max_mm": 15.8,
+    "drift_end_mm": 9.3,
+    "drift_max_mm": 15.8
+   },
+   "scored": true,
+   "notes": [],
+   "window": {
+    "t0_s": 2.0,
+    "t1_s": 7.78,
+    "periods": 290,
+    "partial": false
+   },
+   "track": {
+    "twist_ref_end_deg": 90.6,
+    "twist_task_end_deg": 44.01,
+    "err_rms_deg": 33.96,
+    "ref_rms_deg": 59.4,
+    "score": 0.428
+   },
+   "joint_gap": {
+    "n_bus": 290,
+    "joints": {
+     "thumb.aa": {
+      "median_deg": 1.0,
+      "max_abs_deg": 3.4,
+      "share_over_10": 0.0
+     },
+     "thumb.fe1": {
+      "median_deg": 15.0,
+      "max_abs_deg": 17.7,
+      "share_over_10": 1.0
+     },
+     "thumb.fe2": {
+      "median_deg": 1.5,
+      "max_abs_deg": 6.7,
+      "share_over_10": 0.0
+     },
+     "index.aa": {
+      "median_deg": 15.5,
+      "max_abs_deg": 17.6,
+      "share_over_10": 1.0
+     },
+     "index.fe1": {
+      "median_deg": 4.3,
+      "max_abs_deg": 13.6,
+      "share_over_10": 0.207
+     },
+     "index.fe2": {
+      "median_deg": 1.2,
+      "max_abs_deg": 9.2,
+      "share_over_10": 0.0
+     },
+     "middle.aa": {
+      "median_deg": -15.4,
+      "max_abs_deg": 17.7,
+      "share_over_10": 1.0
+     },
+     "middle.fe1": {
+      "median_deg": 3.4,
+      "max_abs_deg": 7.7,
+      "share_over_10": 0.0
+     },
+     "middle.fe2": {
+      "median_deg": 2.0,
+      "max_abs_deg": 7.4,
+      "share_over_10": 0.0
+     }
+    },
+    "share_over_10": 1.0
+   },
+   "tracker_task": {
+    "fresh_share": 0.497,
+    "lost_share": 0.0,
+    "single_camera_share": 0.055,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.6
+   },
+   "tracker_trial": {
+    "fresh_share": 0.511,
+    "lost_share": 0.0,
+    "single_camera_share": 0.058,
+    "n_tags_median": 4.0,
+    "pose_age_median_ms": 64.2
    }
   }
  ]

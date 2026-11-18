@@ -236,8 +236,9 @@ def page():
         "middle fingers into each other, because the GPU scenes have no contact between fingers. HOM's press targets "
         "chatter at about 5 Hz on the pushing finger, and the servos now follow most of it. A third fault does not "
         "depend on the supply: the plans' open poses send two MCPs past their mechanical stops, so a pad touches the "
-        "object. With the fingertip contacts in HOM's loop, one of three trials tracked better and two drifted out of "
-        "the grasp. The pick-up of a lying sphere by controlled slip now runs as one command.")
+        "object. With the fingertip contacts in HOM's loop, two of three daytime trials drifted out of the grasp. "
+        "Overnight, with the paper's filter rate and a contact hysteresis, none of four did, against two of five "
+        "without them. The pick-up of a lying sphere by controlled slip now runs as one command.")
     summary = ("SR2 hand at 7.5 V on 2026-11-17: HOM's twist targets drive the index and middle together (least gap "
                f"{g['20261117-181327']['least_measured_mm']:.1f} mm at 7.5 V, {g['20261116-130318']['least_measured_mm']:.1f}"
                " mm at 5 V); the press's pushing finger follows HOM's 5 Hz chatter; with fingertip contacts one of three "
@@ -322,12 +323,18 @@ states and of HOM's targets, computed without a contact solve.</p>
     arms = (j(nsf).get("arms") or {}) if nsf.exists() else {}
     if all(k in arms for k in ("off_base", "off_fstep", "on_base", "on_fstep_hyst")):
         ob, of, nb, nf = arms["off_base"], arms["off_fstep"], arms["on_base"], arms["on_fstep_hyst"]
-        ab_txt = (f"Overnight the twist g0 at (70, 110) ran in four arms (the identification section). With the contacts "
-                  f"off, the paper-rate filter left tracking unchanged: {of['mean']:.3f} against {ob['mean']:.3f}, with "
-                  f"every trial a full run. With the contacts on, the filter and the hysteresis ran {nf['full']} of "
-                  f"{nf['n']} trials to the schedule's end (mean {nf['mean']:.3f}). Without them {nb['full']} of "
-                  f"{nb['n']} did (mean {nb['mean']:.3f}); the others drifted out of the grasp. With two or three trials "
-                  "an arm, this is a hint.")
+        oe, ne = arms.get("off_exact"), arms.get("on_exact_hyst")
+        ab_txt = (f"Overnight the twist g0 at (70, 110) ran in two blocks of arms (the identification section). With "
+                  f"the contacts off, no filter variant changed tracking: {ob['mean']:.3f} as before ({ob['n']} trials), "
+                  f"{of['mean']:.3f} with the 2 ms sub-steps"
+                  + (f" and {oe['mean']:.3f} with the exact filter" if oe else "") + ", every trial a full run. "
+                  f"With the contacts on, {nb['n'] - nb['full']} of {nb['n']} trials as before drifted out of the grasp "
+                  f"(mean {nb['mean']:.3f}). With the paper's filter rate and the contact hysteresis none of "
+                  f"{nf['n'] + (ne['n'] if ne else 0)} did. Their tracking was {nf['mean']:.3f} with the sub-steps"
+                  + (f" and {ne['mean']:.3f} with the exact filter" if ne else "") + f", against {nb['mean']:.3f}. "
+                  "The sub-steps also "
+                  "cost the server 12.5-12.8 ms of each 20 ms period, against 2.7-2.9 ms without them, so those arms ran "
+                  "about 10 ms later; the exact filter costs one step. With two to six trials an arm, this is a hint.")
     else:
         ab_txt = "The night's twist repeats test the changes on the hand (the identification section)."
     S.append(("tips", "HOM with the fingertip contacts", f"""
