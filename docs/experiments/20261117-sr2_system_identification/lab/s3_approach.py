@@ -57,6 +57,10 @@ PLATE, PLATE_T = 45.0, 1.0       # mm: the plates' side and thickness
 POST = 20.0                      # mm: the 80/20 post
 TABLE_Z = 3.0
 PAD_R = 11.0                     # mm: hom_setup's tip pad ball (the v4b pad; the DIP link's distal end is 10.5 wide)
+LIP = 3.0                        # mm: the lip on the block's top (owner, 16:25: "the dip link collided with the ~3mm
+                                 # thick lip on top of the 80-20/top edge of the flat pad")
+CAD_XML = ROOT / "assets/mjcf/experimental/20261104-cad_v3/ur5_k1.xml"
+CAD_BODIES = ("mount", "yaw_frame", "mcp_frame", "pip_frame")
 
 
 def model(loc, tape, noise_l, noise_z, noise_n, table_z=TABLE_Z):
@@ -73,26 +77,63 @@ def model(loc, tape, noise_l, noise_z, noise_n, table_z=TABLE_Z):
              "post": ((-S3.BEHIND + PLATE_T - noise_n, -PLATE_T + noise_n), (-POST / 2 - noise_l, POST / 2 + noise_l),
                       (table_z, top + noise_z)),
              "pad plate": ((-S3.BEHIND - tape - noise_n, -S3.BEHIND + PLATE_T + noise_n), (-hw - noise_l, hw + noise_l),
-                           zp)}
+                           zp),
+             "lip": ((-S3.BEHIND - tape - noise_n, noise_n), (-hw - noise_l, hw + noise_l), (top, top + LIP + noise_z))}
     return p, nh, w, boxes
 
 
-def box_gap(x, p, nh, w, box):
-    """The distance (mm) from point x (B) to the box; 0 inside."""
-    v = x - p
-    c = np.array([v @ nh, v @ w, x[2]])
+def box_gaps(X, R, p, nh, w, box):
+    """(clearances, in front of the face): each sphere's distance (mm) to the box less its radius, and whether its
+    centre lies within the box's width and height (its nearest point on the box is on a face square to s)."""
+    V = X - p
+    C = np.stack([V @ nh, V @ w, X[:, 2]], axis=1)
     lo, hi = np.array([b[0] for b in box]), np.array([b[1] for b in box])
-    return float(np.linalg.norm(c - np.clip(c, lo, hi)))
+    Q = np.clip(C, lo, hi)
+    front = (C[:, 1] >= lo[1]) & (C[:, 1] <= hi[1]) & (C[:, 2] >= lo[2]) & (C[:, 2] <= hi[2])
+    return np.linalg.norm(C - Q, axis=1) - R, front
 
 
-def hand_spheres(HS, M, joints, T_BP):
-    """[(finger, part, centre in B, radius)]: hom_setup.finger_pts of each finger at its joints on the mounts M."""
+_CAD = {}
+
+
+def cad_spheres(finger):
+    """{body: (N, 4) array (x, y, z, r mm) in the body's frame}: the cad_v3 scene's collision spheres on the finger's
+    mount, yaw, MCP and PIP (DIP link) bodies (on the CAD hand the DIP link reaches 23 mm to the side by the PIP)."""
+    if finger not in _CAD:
+        import xml.etree.ElementTree as ET
+        names = {f"{finger}_{b}" for b in CAD_BODIES}
+        out = {}
+        for b in ET.parse(CAD_XML).getroot().iter("body"):
+            if b.get("name") in names:
+                out[b.get("name")] = np.array([[*(1e3 * float(v) for v in g.get("pos", "0 0 0").split()),
+                                                1e3 * float(g.get("size").split()[0])]
+                                               for g in b.findall("geom") if g.get("class") == "cad_collision"])
+        _CAD[finger] = out
+    return _CAD[finger]
+
+
+def hand_points(FT, HS, M, joints):
+    """(X_P (N, 3), R (N,), labels [(finger, part)]): every finger's CAD collision spheres on the chain at its mounts
+    and joints, and hom_setup.finger_pts' tip pad, tip end and PIP joint (the TPU pad is not among the CAD's rigid
+    spheres)."""
+    from sr2hand.robot.tool_chain import ToolChain
+    X, R, lab = [], [], []
     plan = {"meta": {"hom": {"d6_P_mm": [*M["thumb"], *M["index"], *M["middle"]]}}}
-    out = []
     for f in FINGERS:
-        for part, (pt, rad) in zip(HS.PARTS, HS.finger_pts(plan, f, joints[f])):
-            out.append((f, part, T_BP[:3, :3] @ pt + T_BP[:3, 3], rad))
-    return out
+        c, _ = FT.H.box(f)
+        q = joints[f]
+        links = FT.H.finger_links(f, M[f][0] - c[0], M[f][1] - c[1], *(math.radians(q[k]) for k in JOINTS))
+        ch = ToolChain(f, links)
+        for body, S in cad_spheres(f).items():
+            T = ch.transform(upto=body)
+            X.append(S[:, :3] @ T[:3, :3].T + T[:3, 3])
+            R.append(S[:, 3])
+            lab += [(f, body.split("_", 1)[1])] * len(S)
+        for part, (pt, rad) in zip(HS.PARTS, HS.finger_pts(plan, f, q)):
+            X.append(np.array([pt]))
+            R.append(np.array([rad]))
+            lab.append((f, part))
+    return np.concatenate(X), np.concatenate(R), lab
 
 
 def shifted(T, dv):
@@ -120,26 +161,35 @@ def leg_poses(leg, step=2.0):
     return [(i / n, shifted(T0, d * i / n)) for i in range(n + 1)]
 
 
-def leg_clearance(HS, M, joints, leg, mdl, table_z, base_clear, press):
-    """The least clearances along a leg: to each box (mm and the finger part with the leg's fraction), to the table,
-    and above table_z + base_clear; the pressing finger's tip pad against its own plate and the post behind it
-    (press = (finger, plate)) apart, as "press pad"."""
+def leg_clearance(pts, leg, mdl, table_z, base_clear, press):
+    """The least clearances along a leg (mm, and the finger part with the leg's fraction): to each box, to the table,
+    and above table_z + base_clear. The pressing finger's parts in front of its own plate's face or the post's
+    (press = (finger, plate)) go apart as "press face": they may end --gap off it; over an edge they count as usual."""
     p, nh, w, boxes = mdl
-    least = {k: (math.inf, None) for k in (*boxes, "press pad", "table", "base layer")}
+    X_P, R, lab = pts
+    fing = np.array([lb[0] for lb in lab])
+    least = {k: (math.inf, None) for k in (*boxes, "press face", "table", "base layer")}
+
+    def keep(key, g, i, u):
+        if g < least[key][0]:
+            least[key] = (float(g), f"{lab[i][0]} {lab[i][1]} at {u:.2f}")
+
     for u, T in leg_poses(leg):
-        for f, part, c, rad in hand_spheres(HS, M, joints, T):
-            for name, box in boxes.items():
-                g = box_gap(c, p, nh, w, box) - rad
-                key = "press pad" if f == press[0] and part == "tip pad" and name in (press[1], "post") else name
-                if g < least[key][0]:
-                    least[key] = (g, f"{f} {part} at {u:.2f}")
-            g = float(c[2] - rad - table_z)
-            if g < least["table"][0]:
-                least["table"] = (g, f"{f} {part} at {u:.2f}")
-            g = float(c[2] - rad - table_z - base_clear)
-            if g < least["base layer"][0]:
-                least["base layer"] = (g, f"{f} {part} at {u:.2f}")
-    return {k: {"mm": round(v[0], 2), "where": v[1]} for k, v in least.items()}
+        X = X_P @ T[:3, :3].T + T[:3, 3]
+        for name, box in boxes.items():
+            g, front = box_gaps(X, R, p, nh, w, box)
+            pf = (fing == press[0]) & front & (name in (press[1], "post"))
+            if pf.any():
+                i = int(np.argmin(np.where(pf, g, np.inf)))
+                keep("press face", g[i], i, u)
+            g2 = np.where(pf, np.inf, g)
+            i = int(np.argmin(g2))
+            keep(name, g2[i], i, u)
+        gz = X[:, 2] - R - table_z
+        i = int(np.argmin(gz))
+        keep("table", gz[i], i, u)
+        keep("base layer", gz[i] - base_clear, i, u)
+    return {k: {"mm": None if v[1] is None else round(v[0], 2), "where": v[1]} for k, v in least.items()}
 
 
 def state(HS, a):
@@ -200,12 +250,16 @@ def cmd_plan(a):
           f"{np.round(nh, 3).tolist()}")
     print(f"{a.finger} {a.press}" + (f" sign {sign:+d}" if sign else "") + f": the hand turns {deg:+.1f} deg about z_P; "
           f"the press then runs {off:.1f} deg off the plate's normal")
-    lows = [c[2] - rad for _, _, c, rad in hand_spheres(HS, M, joints, T0)]
-    rise = max(0.0, top + a.noise_z + a.over - min(lows))
+    pts = hand_points(FT, HS, M, joints)
+
+    def lowest(T):
+        return float(np.min((pts[0] @ T[:3, :3].T + T[:3, 3])[:, 2] - pts[1]))
+
+    top = top + LIP
+    rise = max(0.0, top + a.noise_z + a.over - lowest(T0))
     T_r = shifted(T0, [0.0, 0.0, rise])
     T_t = turned(T_r, deg)
-    lowest_t = min(min(c[2] - rad for _, _, c, rad in hand_spheres(HS, M, joints, turned(T_r, deg * u)))
-                   for u in np.linspace(0, 1, 13))
+    lowest_t = min(lowest(turned(T_r, deg * u)) for u in np.linspace(0, 1, 13))
     if lowest_t < top + a.noise_z + a.over - 0.5:                 # a tilted z_P lowers a finger in the turn
         extra = top + a.noise_z + a.over - lowest_t
         rise += extra
@@ -229,10 +283,10 @@ def cmd_plan(a):
           f"top ({TOP:g} mm) by {a.over:g} mm; noise l {a.noise_l:g}, z {a.noise_z:g}, n {noise_n:g} mm")
     ok, rec_legs = True, []
     for leg in legs:
-        cl = leg_clearance(HS, M, joints, leg, mdl, TABLE_Z, a.base_clear, (a.finger, plate))
+        cl = leg_clearance(pts, leg, mdl, TABLE_Z, a.base_clear, (a.finger, plate))
         if leg["name"] == "rise":
             cl["base layer"]["mm"] = None                            # starts at the present height
-        floor = {"base layer": 0.0, "press pad": 0.5}
+        floor = {"base layer": 0.0, "press face": 0.5}
         bad = [k for k, v in cl.items() if v["mm"] is not None and v["mm"] < floor.get(k, a.min_clear)]
         ok &= not bad
         move = (f"{leg['deg']:+.1f} deg about z_P" if leg["kind"] == "turn"
@@ -265,6 +319,11 @@ def check_same(a, rec, FT, HS, want):
     if dp > 2.0 or dr > 0.5:
         raise SystemExit(f"the hand is {dp:.1f} mm and {dr:.2f} deg from where this leg starts")
     st, s, M, joints = state(HS, a)
+    samples = [joints]                                  # the median of 5 readings: a pot reading jumps for one sample
+    for _ in range(4):
+        time.sleep(0.2)
+        samples.append(HS.sim_joints(st.state()))
+    joints = {f: {k: float(np.median([x[f][k] for x in samples])) for k in JOINTS} for f in FINGERS}
     for f in FINGERS:
         if any(abs(joints[f][k] - rec["joints"][f][k]) > 1.0 for k in JOINTS):
             raise SystemExit(f"the {f}'s joints moved since the plan: {joints[f]} against {rec['joints'][f]}")

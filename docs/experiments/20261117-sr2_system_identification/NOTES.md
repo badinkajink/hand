@@ -157,3 +157,36 @@ watcher's log is `logs/20261118-sr2_tags/arm_watch.jsonl`.
   the force's x_P and y_P only.
 - **Rig after.** The index is at zero, beside the plate at the press pose. The yaw servo is at 47 C and the MCP at
   39 C; the others are 20-22 C, with no flags. The arm runs at the press pose, and the splitter records.
+
+## 2026-11-18, late afternoon: head-on yaw presses with the hand turned (16:17-16:45)
+
+- **Go.** The owner gave the go for the wrist turn at 16:2x ("you have the go ahead on the wrist turn, im here to
+  monitor"). At 16:45 they left ("try to get at much yaw calibration done now though").
+- **Turned approach** (`lab/s3_approach.py plan --press yaw`): the hand turns -92 deg about z_P, so the index's and
+  middle's -y yaw drives the tip's side into the taped plate. The level leg stopped at 3.08 N after 44.9 mm. That was
+  the hand's cable bundle dragging on the table; with a 5 N guard the leg finished.
+- **Collision, 16:25.** The descent stopped at 3.13 N, 7.6 mm above its target: the index's DIP link had landed on the
+  ~3 mm lip on top of the block (owner). The planner modelled each finger as hom_setup's three balls (tip pad 11 mm,
+  tip end 6 mm, PIP 8 mm) and left out two things:
+  - the DIP link's side, which by the PIP reaches 23 mm from the finger's axis on -y and 17 mm on +y (cad_v3
+    collision spheres); with the hand turned, that side faced the block;
+  - the lip.
+  A lift then caught at 6 N. The hand moved 10 mm horizontally away from the plate (1.1 N) and rose 30 mm, free. The
+  owner checked the DIP link: fine.
+- **Fix.** The planner now checks every finger's cad_v3 collision spheres (mount, yaw, MCP and DIP link) plus the
+  three balls, and the lip as a 3 mm box over the block's top. A part squarely in front of the pressed face may end
+  at the gap; a part over an edge needs 5 mm. Pre-move joint checks use the median of five readings, after a single
+  1.5 deg spike on the thumb's yaw: the owner was moving the thumb. The new model flags the collided plan (-2.6 mm with
+  the noise). The -y side needs the tip 13 mm higher, pressing the plate's upper part, and a 6 mm gap.
+- **Results** (`data/s3/*_head_on.jsonl`; the yaw from its reading at contact):
+
+| Press | Slope before the stall | Stall, then jump | Overload flag (status 32) | Step back |
+|---|---|---|---|---|
+| index 16:33 | 0.21 N per deg of offset | 1.0 N, then 1.5 N with a 1.8 deg jump | offset 12.4 deg, load -600 | flat to within 1 deg |
+| index 16:37 | 0.25 N per deg | 1.05 N, no jump | offset 12.5 deg, load -660 | flat to within 0.3 deg |
+| middle 16:42 | 0.2 N per deg | 1.1 N, then 1.74 N with a 2 deg jump | offset 13.4 deg, load -675 | flat to within 0.9 deg |
+
+- **Reading.** Past first contact the reading advanced 2.4-3.5 deg per N, counting the jumps. The contact force had
+  a downward part about 0.8 times the horizontal one: friction on the tape as the yaw's arc lifts the tip, plus the
+  HEX-E's drift. hand-4a predicted 0.19 N per deg, and 2.8 N at 14-15 deg unless the servo stops near the MCP's
+  0.17 N m. The slope agrees, but the yaw's overload trips at 1.0-1.7 N, 0.09-0.15 N m at 88 mm.
