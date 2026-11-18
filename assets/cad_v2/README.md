@@ -25,6 +25,11 @@ oriented for printing, with the part's ID engraved.
 Four M2 x 8 screws fasten the set. The fit-test plates and print settings are in the
 [DIP runbook](../../docs/experiments/20261018-dip_link_board_mount/README.md).
 
+For Onshape, [`20261118-onshape_fingertip/`](20261118-onshape_fingertip) has the whole fingertip as on the hand in one STEP
+file of ten named solids in frame D: these three parts with the cover trimmed at x_F = -0.10 mm, pad 05R4 rebuilt as an
+exact solid, its four magnets, and the ReSkin 5X board with J1 and the Qwiic plug. Its README gives the steps that put
+the parts on the old DIP link in the owner's Onshape assembly.
+
 ### Changes from the original CAD
 
 The original DIP link, [`fingertip_mount_DIP_link.stl`](../cad_v1/fingertip_mount_DIP_link.stl), ends 37.16 mm from the PIP

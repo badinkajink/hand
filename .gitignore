@@ -119,3 +119,6 @@ docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_20261113-2115_twi
 docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_20261113-2347_twist_limits_tau0.02_cap0_s0_test.jsonl
 # UHAS evaluation rows of later runs (2026-11-15 on): summarized in rows/uhas_twist_test_summary.json
 docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_*_test.jsonl
+
+# The Onshape STEP of the v4b fingertip: rebuilt by scripts/cad/fingertip_v4b_onshape_export.py; CAD exchange files stay off GitHub (owner, 2026-11-06)
+assets/cad_v2/20261118-onshape_fingertip/*.step

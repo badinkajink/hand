@@ -1,0 +1,424 @@
+{
+ "when": "2026-11-18 16:53",
+ "generator": "scripts/cad/fingertip_v4b_onshape_export.py",
+ "owner": "2026-11-18: 'are the claude/simulation designed fingertip parts (new dip links, casettes, fingertips themselves) ready for export to onshape? i want to update the assembly and cad document'",
+ "frame": "D: the original DIP link's Part Studio frame (assets/cad_v1/fingertip_mount_DIP_link.stl), mm; the PIP axis is the y axis; x_D = -x_F, y_D = y_F + 21.25, z_D = -z_F - 51.55",
+ "step": "assets/cad_v2/20261118-onshape_fingertip/20261118-fingertip_v4b_05R4.step",
+ "bytes": 4675276,
+ "read_back": {
+  "solids": 10,
+  "valid": true
+ },
+ "parts": [
+  {
+   "name": "DIP link b v4",
+   "key": "dip_link",
+   "valid": true,
+   "solids": 1,
+   "faces": 481,
+   "census": {
+    "Plane": 268,
+    "Cylinder": 213
+   },
+   "volume_mm3": 6404.5,
+   "bbox_D": [
+    [
+     -10.748,
+     -2.0,
+     -5.8
+    ],
+    [
+     6.518,
+     38.65,
+     46.91
+    ]
+   ]
+  },
+  {
+   "name": "Cassette 3T",
+   "key": "cassette",
+   "valid": true,
+   "solids": 1,
+   "faces": 252,
+   "census": {
+    "Plane": 248,
+    "Cylinder": 4
+   },
+   "volume_mm3": 533.46,
+   "bbox_D": [
+    [
+     -3.8,
+     10.75,
+     25.5
+    ],
+    [
+     0.1,
+     31.75,
+     46.91
+    ]
+   ]
+  },
+  {
+   "name": "Top cover TW15H3 trimmed",
+   "key": "cover",
+   "valid": true,
+   "solids": 1,
+   "faces": 278,
+   "census": {
+    "Plane": 273,
+    "Cylinder": 3,
+    "Cone": 2
+   },
+   "volume_mm3": 507.97,
+   "bbox_D": [
+    [
+     -8.0,
+     10.75,
+     38.311
+    ],
+    [
+     0.1,
+     31.75,
+     48.51
+    ]
+   ]
+  },
+  {
+   "name": "Pad 05R4 (TPU 85A)",
+   "key": "pad",
+   "valid": true,
+   "solids": 1,
+   "faces": 50,
+   "census": {
+    "BSplineSurface": 6,
+    "Plane": 36,
+    "Cone": 1,
+    "Cylinder": 7
+   },
+   "volume_mm3": 2945.9,
+   "bbox_D": [
+    [
+     -6.45,
+     8.433,
+     14.36
+    ],
+    [
+     19.05,
+     34.067,
+     80.36
+    ]
+   ]
+  },
+  {
+   "name": "Magnet N52 3x2 proximal +y, south pole to the pad face",
+   "key": "magnet0",
+   "valid": true,
+   "solids": 1,
+   "faces": 3,
+   "census": {
+    "Cylinder": 1,
+    "Plane": 2
+   },
+   "volume_mm3": 14.14,
+   "bbox_D": [
+    [
+     1.05,
+     22.25,
+     32.41
+    ],
+    [
+     3.05,
+     25.25,
+     35.41
+    ]
+   ]
+  },
+  {
+   "name": "Magnet N52 3x2 proximal -y, north pole to the pad face",
+   "key": "magnet1",
+   "valid": true,
+   "solids": 1,
+   "faces": 3,
+   "census": {
+    "Cylinder": 1,
+    "Plane": 2
+   },
+   "volume_mm3": 14.14,
+   "bbox_D": [
+    [
+     1.05,
+     17.25,
+     32.41
+    ],
+    [
+     3.05,
+     20.25,
+     35.41
+    ]
+   ]
+  },
+  {
+   "name": "Magnet N52 3x2 distal +y, north pole to the pad face",
+   "key": "magnet2",
+   "valid": true,
+   "solids": 1,
+   "faces": 3,
+   "census": {
+    "Cylinder": 1,
+    "Plane": 2
+   },
+   "volume_mm3": 14.14,
+   "bbox_D": [
+    [
+     1.05,
+     22.25,
+     37.41
+    ],
+    [
+     3.05,
+     25.25,
+     40.41
+    ]
+   ]
+  },
+  {
+   "name": "Magnet N52 3x2 distal -y, south pole to the pad face",
+   "key": "magnet3",
+   "valid": true,
+   "solids": 1,
+   "faces": 3,
+   "census": {
+    "Cylinder": 1,
+    "Plane": 2
+   },
+   "volume_mm3": 14.14,
+   "bbox_D": [
+    [
+     1.05,
+     17.25,
+     37.41
+    ],
+    [
+     3.05,
+     20.25,
+     40.41
+    ]
+   ]
+  },
+  {
+   "name": "ReSkin 5X board",
+   "key": "board",
+   "valid": true,
+   "solids": 1,
+   "faces": 74,
+   "census": {
+    "Plane": 70,
+    "Cylinder": 4
+   },
+   "volume_mm3": 327.22,
+   "bbox_D": [
+    [
+     -4.4,
+     11.25,
+     17.26
+    ],
+    [
+     -2.9,
+     31.25,
+     46.41
+    ]
+   ]
+  },
+  {
+   "name": "J1 header and Qwiic plug",
+   "key": "j1",
+   "valid": true,
+   "solids": 1,
+   "faces": 10,
+   "census": {
+    "Plane": 10
+   },
+   "volume_mm3": 127.57,
+   "bbox_D": [
+    [
+     -3.8,
+     17.8,
+     16.27
+    ],
+    [
+     -0.84,
+     24.8,
+     23.22
+    ]
+   ]
+  }
+ ],
+ "overlaps": [
+  {
+   "a": "cassette",
+   "b": "pad",
+   "volume_mm3": 10.9149
+  },
+  {
+   "a": "cover",
+   "b": "pad",
+   "volume_mm3": 11.9526
+  },
+  {
+   "a": "pad",
+   "b": "magnet0",
+   "volume_mm3": 0.2248
+  },
+  {
+   "a": "pad",
+   "b": "magnet1",
+   "volume_mm3": 0.2248
+  },
+  {
+   "a": "pad",
+   "b": "magnet2",
+   "volume_mm3": 0.2248
+  },
+  {
+   "a": "pad",
+   "b": "magnet3",
+   "volume_mm3": 0.2248
+  }
+ ],
+ "cover_trim": {
+  "x_F": -0.1,
+  "removed_mm3": 41.38
+ },
+ "pad_check": {
+  "print_stl": "assets/cad_v2/fingertip_prints/pad_05R4_print.stl",
+  "volume_print_mm3": 2940.79,
+  "volume_exact_brep_mm3": 2945.9,
+  "exact_to_print_mm": {
+   "p50": 0.0002,
+   "p99": 0.0109,
+   "max": 0.3357
+  },
+  "print_to_exact_mm": {
+   "p50": 0.0003,
+   "p99": 0.3233,
+   "max": 0.4,
+   "max_outside_engraving": 0.0248
+  },
+  "engraving_note": "the print's ID 05R4 is engraved 0.4 mm deep in the mount face; the exact pad has none"
+ },
+ "onshape_export_dip_links": [
+  {
+   "finger": "Finger v3 <3> (thumb, inferred)",
+   "solid": "009",
+   "label": "Part 010",
+   "T_A_from_D": [
+    [
+     0.009119,
+     -0.97613,
+     0.216994,
+     -96.23809
+    ],
+    [
+     -0.998326,
+     0.003508,
+     0.057738,
+     140.885351
+    ],
+    [
+     -0.057122,
+     -0.217157,
+     -0.974464,
+     -115.22177
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "local_vs_cad_v1_mm": {
+    "p99": 0.0193,
+    "max": 0.0318
+   }
+  },
+  {
+   "finger": "Finger v3 <1> (middle, inferred)",
+   "solid": "032",
+   "label": "Part 033",
+   "T_A_from_D": [
+    [
+     0.286906,
+     0.920243,
+     -0.266152,
+     -191.851667
+    ],
+    [
+     0.690903,
+     -0.006322,
+     0.72292,
+     64.671411
+    ],
+    [
+     0.66358,
+     -0.391296,
+     -0.637612,
+     -111.272542
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "local_vs_cad_v1_mm": {
+    "p99": 0.0193,
+    "max": 0.0318
+   }
+  },
+  {
+   "finger": "Finger v3 <2> (index, inferred)",
+   "solid": "098",
+   "label": "Part 099",
+   "T_A_from_D": [
+    [
+     -0.277661,
+     0.954345,
+     0.110135,
+     -81.759629
+    ],
+    [
+     0.38299,
+     0.004825,
+     0.92374,
+     87.717341
+    ],
+    [
+     0.881035,
+     0.298668,
+     -0.366844,
+     -131.05869
+    ],
+    [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ]
+   ],
+   "local_vs_cad_v1_mm": {
+    "p99": 0.0193,
+    "max": 0.0318
+   }
+  }
+ ],
+ "sources": {
+  "dip_link": "assets/cad_v2/dip_link_v4b.step",
+  "cassette": "assets/cad_v2/cassette_3T.step",
+  "cover": "assets/cad_v2/top_cover_TW15H3.step, trimmed at x_F -0.10",
+  "pad": "tcd_ell7.4x8.5x11x22 with four_y2p5_z5, groove fit 0.05 mm, raised seats, pin hole 1.6 mm (the design of pad 05R4, assets/cad_v2/fingertip_prints/pad_05R4_print.stl)",
+  "board": "dip_link_concept_b.board_parts and j1_boxes_b on the v4 parameters",
+  "params": "docs/experiments/20261018-dip_link_board_mount/params/20261021-v4_concept_b.json"
+ }
+}

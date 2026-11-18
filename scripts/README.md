@@ -20,7 +20,7 @@ transforms are in `sr2hand.geometry.rotations`, over scipy.
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 
 
-## cad/ (40)
+## cad/ (41)
 
 Printable parts: the DIP link, the UR5 mounts and the print plates.
 
@@ -60,6 +60,7 @@ Printable parts: the DIP link, the UR5 mounts and the print plates.
 | `dip_link_spec.py` | Specification of the DIP link that clamps the ReSkin 5X board against the printed fingertip (2026-10-18). |
 | `dip_link_v2.py` | Printable v2 of the DIP-link designs a and b (2026-10-18). |
 | `dip_link_viewer.py` | Local viewer of the DIP-link designs a and b and their parameter files (2026-10-18). |
+| `fingertip_v4b_onshape_export.py` | The v4b fingertip as exact STEP for Onshape: the DIP link b v4, the cassette 3T, the top cover TW15H3 trimmed as on the hand, the pad 05R4 rebuilt as an exact solid, its four magnets and the ReSkin 5X board with J1 and t |
 | `gcode_audit.py` | What a PrusaSlicer G-code file extrudes, layer by layer (2026-10-13). |
 | `metric_magnet_prints.py` | Fingertip prints for the owner's 3 x 2 mm magnets (docs/handoff/20261016-metric_magnet_prints.md). |
 | `tpu_print_audit.py` | Travel, retraction and per-part mass audit of PrusaSlicer G-code for the 85A prints (2026-10-19 night). |
