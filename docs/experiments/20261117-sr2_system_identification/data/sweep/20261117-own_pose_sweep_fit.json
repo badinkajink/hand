@@ -1,0 +1,287 @@
+{
+ "source": "lab's boards sweep, 2026-11-17 20:10-20:53 (327 steps: 300 random poses, 27 zero poses)",
+ "layout": "roll (85, 170)",
+ "mounts_P_mm": {
+  "thumb": [
+   -36.32,
+   2.4
+  ],
+  "index": [
+   36.32,
+   81.6
+  ],
+  "middle": [
+   36.32,
+   -81.6
+  ]
+ },
+ "run": "logs/20261117-sr2_boards_sweep/s3",
+ "mux": "logs/20261117-three_finger_mux/20261117-180517-mux.bin",
+ "rows": "docs/experiments/20261117-sr2_system_identification/data/sweep/20261117-own_pose_rows_s3.npz",
+ "gp_new": "docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261117-own_pose_gp_sweep_x85y170_7v5.npz",
+ "gp_trials": "docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261117-own_pose_gp.npz",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261117-own_pose_sweep_fit.py",
+ "uT_per_N": {
+  "thumb": 28.68,
+  "index": 28.22,
+  "middle": 27.97
+ },
+ "zero_noise": {
+  "20261117 thumb": {
+   "n": 25,
+   "median_uT": 3.64,
+   "p95_uT": 4.86
+  },
+  "20261117 index": {
+   "n": 25,
+   "median_uT": 3.65,
+   "p95_uT": 6.19
+  },
+  "20261117 middle": {
+   "n": 25,
+   "median_uT": 3.71,
+   "p95_uT": 8.4
+  }
+ },
+ "steps": 327,
+ "terms": {
+  "change": "|d|, a board's 15 components less the zero pose's (uT)",
+  "five_folds": "the GP on the own finger's yaw, MCP and PIP fitted on four fifths of the rows and tested on the fifth, |predicted - measured| (uT, and N by the tip's uT per N)",
+  "old_gp_on_new": "the trials' GP (11-04/05) on the new rows, P(q) - P(0) against d",
+  "old_gp_with_joint_offset": "the same with one offset per joint added to the measured angles, fitted to the new rows (soft L1)"
+ },
+ "boards": {
+  "thumb": {
+   "rows": 294,
+   "change": {
+    "median_uT": 67.05,
+    "p95_uT": 114.47,
+    "median_N": 2.338,
+    "p95_N": 3.991
+   },
+   "five_folds_new": {
+    "median_uT": 5.36,
+    "p95_uT": 11.09,
+    "median_N": 0.187,
+    "p95_N": 0.387
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 6.14,
+    "p95_uT": 15.03,
+    "median_N": 0.214,
+    "p95_N": 0.524
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 8.08,
+    "p95_uT": 14.16,
+    "median_N": 0.282
+   },
+   "old_gp_on_new": {
+    "median_uT": 11.04,
+    "p95_uT": 24.87,
+    "median_N": 0.385,
+    "p95_N": 0.867
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 11.02,
+    "p95_uT": 25.03,
+    "median_N": 0.384,
+    "p95_N": 0.873
+   },
+   "old_gp_at_zero_uT": 0.75,
+   "new_gp_in_sample": {
+    "median_uT": 4.55,
+    "p95_uT": 8.56,
+    "median_N": 0.159,
+    "p95_N": 0.298
+   },
+   "joint_ranges_deg": [
+    [
+     -34.3,
+     32.8
+    ],
+    [
+     -8.2,
+     54.2
+    ],
+    [
+     -10.0,
+     79.1
+    ]
+   ],
+   "left_out_moving": 6,
+   "gp": {
+    "n": 294,
+    "ell": 1.732,
+    "nz": 0.1
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -0.72,
+     -2.42,
+     -3.46
+    ],
+    "median_uT": 6.27,
+    "p95_uT": 13.65,
+    "median_N": 0.219,
+    "p95_N": 0.476
+   }
+  },
+  "index": {
+   "rows": 294,
+   "change": {
+    "median_uT": 62.47,
+    "p95_uT": 90.83,
+    "median_N": 2.214,
+    "p95_N": 3.219
+   },
+   "five_folds_new": {
+    "median_uT": 4.69,
+    "p95_uT": 9.11,
+    "median_N": 0.166,
+    "p95_N": 0.323
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 5.81,
+    "p95_uT": 12.41,
+    "median_N": 0.206,
+    "p95_N": 0.44
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 8.41,
+    "p95_uT": 14.47,
+    "median_N": 0.298
+   },
+   "old_gp_on_new": {
+    "median_uT": 15.3,
+    "p95_uT": 23.81,
+    "median_N": 0.542,
+    "p95_N": 0.844
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 14.19,
+    "p95_uT": 22.8,
+    "median_N": 0.503,
+    "p95_N": 0.808
+   },
+   "old_gp_at_zero_uT": 1.43,
+   "new_gp_in_sample": {
+    "median_uT": 3.8,
+    "p95_uT": 7.48,
+    "median_N": 0.135,
+    "p95_N": 0.265
+   },
+   "joint_ranges_deg": [
+    [
+     -32.5,
+     34.6
+    ],
+    [
+     -7.9,
+     48.9
+    ],
+    [
+     2.9,
+     84.7
+    ]
+   ],
+   "left_out_moving": 6,
+   "gp": {
+    "n": 294,
+    "ell": 1.732,
+    "nz": 0.1
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -5.52,
+     3.27,
+     3.83
+    ],
+    "median_uT": 7.2,
+    "p95_uT": 14.63,
+    "median_N": 0.255,
+    "p95_N": 0.518
+   }
+  },
+  "middle": {
+   "rows": 294,
+   "change": {
+    "median_uT": 65.2,
+    "p95_uT": 104.31,
+    "median_N": 2.331,
+    "p95_N": 3.729
+   },
+   "five_folds_new": {
+    "median_uT": 4.66,
+    "p95_uT": 9.83,
+    "median_N": 0.167,
+    "p95_N": 0.351
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 5.44,
+    "p95_uT": 12.74,
+    "median_N": 0.194,
+    "p95_N": 0.455
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 6.59,
+    "p95_uT": 16.27,
+    "median_N": 0.236
+   },
+   "old_gp_on_new": {
+    "median_uT": 14.06,
+    "p95_uT": 21.5,
+    "median_N": 0.503,
+    "p95_N": 0.769
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 13.41,
+    "p95_uT": 21.16,
+    "median_N": 0.479,
+    "p95_N": 0.757
+   },
+   "old_gp_at_zero_uT": 1.45,
+   "new_gp_in_sample": {
+    "median_uT": 3.86,
+    "p95_uT": 7.79,
+    "median_N": 0.138,
+    "p95_N": 0.279
+   },
+   "joint_ranges_deg": [
+    [
+     -32.8,
+     33.1
+    ],
+    [
+     -7.0,
+     54.5
+    ],
+    [
+     -10.0,
+     69.7
+    ]
+   ],
+   "left_out_moving": 6,
+   "gp": {
+    "n": 294,
+    "ell": 1.732,
+    "nz": 0.1
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -1.71,
+     5.14,
+     0.36
+    ],
+    "median_uT": 8.4,
+    "p95_uT": 15.45,
+    "median_N": 0.3,
+    "p95_N": 0.552
+   }
+  }
+ },
+ "seconds": 4.3
+}
