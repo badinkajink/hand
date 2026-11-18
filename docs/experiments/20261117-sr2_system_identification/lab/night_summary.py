@@ -89,23 +89,48 @@ def s1():
                        out, "Table 6. The fingertip tags against the hand's model (data/s1/rows.jsonl)."), {}
 
 
+def s1a():
+    f = HERE / "data/s1/20261117-s1a_summary.json"
+    if not f.exists():
+        return "<p>S1(a) did not run.</p>", {}
+    rows = json.loads(f.read_text())
+    out = []
+    for r in rows:
+        stop = r["stopped"]
+        out.append([r["finger"], r["joint"], r["end"], f"{r['target_deg']:+.1f}", f"{r['safe_deg']:+.1f}",
+                    "–" if r.get("reached_measured_deg") is None else f"{r['reached_measured_deg']:+.1f}", esc(stop)])
+    blocked = [r for r in rows if not r["stopped"].startswith("reached")]
+    txt = (f"<p>S1(a) swept each joint alone toward both ends of its range: {len(rows)} sweeps, "
+           f"{len(blocked)} of them stopped before the end by a mechanical stop or the load guard. The end is the "
+           "station's safe range, capped tonight at yaw ±45°, MCP 58° and PIP 80°.</p>")
+    return txt + table(["Finger", "Joint", "End", "Target end (°)", "Safe limit (°)", "Last angle following (°)",
+                        "Stopped"], out, "Table 9. Each joint's reach (data/s1/20261117-s1a_summary.json)."), {}
+
+
 def repeats():
     f = B / "data/20261117-night_repeats_tracking.json"
     if not f.exists():
         return "<p>The twist repeats did not run.</p>", {}
     tt = json.loads(f.read_text())
+    port_arm = {"47051": ("off", "base"), "47057": ("off", "fstep"), "47052": ("on", "base"),
+                "47058": ("on", "fstep_hyst")}       # the night's servers (repeat_cycle.sh's ARMS)
     lab = {}
     for c in sorted((B / "runs_corvus").glob("20261117-*_twist_corvus.jsonl")):
+        if c.name[:15] < "20261117-194000":
+            continue
         h = json.loads(c.open().readline())
-        m = re.search(r"tips(off|on)_(base|fstep_hyst|fstep)", h.get("label") or "")
-        if m:
-            lab[c.name[:15]] = (m.group(1), m.group(2))
+        port = str(h.get("controller") or "").rsplit(":", 1)[-1]
+        if port in port_arm:
+            lab[c.name[:15]] = port_arm[port]
     per = {}
     rows = []
     for r in tt["trials"]:
         st = r["stamp"]
-        key = min(lab, key=lambda k: abs(int(k[9:]) - int(st[9:]))) if lab else None
-        if key is None or abs(int(key[9:]) - int(st[9:])) > 30:
+        if (r.get("periods") or 0) < 50:       # the one-period records the flagged servers opened after a trial
+            continue
+        sec = lambda s: int(s[9:11]) * 3600 + int(s[11:13]) * 60 + int(s[13:15])      # noqa: E731
+        key = min(lab, key=lambda k: abs(sec(k) - sec(st))) if lab else None
+        if key is None or abs(sec(key) - sec(st)) > 30:
             continue
         tips, arm = lab[key]
         tr = r["track"]
@@ -114,11 +139,13 @@ def repeats():
         per.setdefault((tips, arm), []).append((trk, r["motion"].get("lat_max_mm"), ended))
         rows.append([f"{st[9:11]}:{st[11:13]}", tips, esc(ARM[arm]), f"{trk:.3f}",
                      f"{(tr.get('twist_task_end_deg') or 0):.1f}", f"{r['motion'].get('lat_max_mm', 0):.1f}", esc(ended)])
-    summ = []
+    summ, arms = [], {}
     for (tips, arm), v in sorted(per.items()):
         t = [x[0] for x in v]
-        summ.append([tips, esc(ARM[arm]), len(v), f"{np.mean(t):.3f}", f"{min(t):.3f}-{max(t):.3f}",
-                     sum(1 for x in v if x[2] == "end of schedule")])
+        full = sum(1 for x in v if x[2] == "end of schedule")
+        summ.append([tips, esc(ARM[arm]), len(v), f"{np.mean(t):.3f}", f"{min(t):.3f}-{max(t):.3f}", full])
+        arms[f"{tips}_{arm}"] = {"n": len(v), "mean": round(float(np.mean(t)), 3), "lo": round(min(t), 3),
+                                 "hi": round(max(t), 3), "full": full}
     txt = ("<p>The twist g0 at (70, 110) ran in four arms in turn: the fingertip contacts off and on, each with HOM as "
            "before and with the complementary filter at the paper's rate (2 ms sub-steps); with the contacts on the "
            "filtered arm also had the 0.10 N hysteresis on the contact switch. The workstation's blind predictions for "
@@ -126,7 +153,7 @@ def repeats():
     return txt + table(["Tips", "HOM", "Trials", "Mean tracking", "Range", "Full runs"], summ,
                        "Table 7. The night's twist repeats, per arm.") + table(
         ["Time", "Tips", "HOM", "Tracking", "Twist (°)", "Drift (mm)", "Ended"], rows,
-        "Table 8. Every repeat."), {}
+        "Table 8. Every repeat."), {"arms": arms}
 
 
 def sweep():
@@ -134,7 +161,7 @@ def sweep():
     if not f.exists():
         return "<p>The boards' random-pose sweep did not run.</p>", {}
     ev = [json.loads(x) for x in f.read_text().splitlines() if x.strip()]
-    done = sum(1 for e in ev if e.get("kind") == "step" or e.get("op") == "joints")
+    done = sum(1 for e in ev if e.get("kind") == "step")
     end = ev[-1] if ev else {}
     return (f"<p>The boards' random-pose sweep ran {done} steps of 327 and ended with \"{esc(end.get('reason', ''))}\". "
             "The boards' records are in logs/20261117-three_finger_mux/20261117-180517-mux.bin on corvus; the "
@@ -142,6 +169,9 @@ def sweep():
 
 
 if __name__ == "__main__":
-    parts = [s2(), s1(), repeats(), sweep()]
-    OUT.write_text(json.dumps({"html": "<h3>The night's runs</h3>" + "".join(p[0] for p in parts)}))
+    parts = [s2(), s1(), repeats(), sweep(), s1a()]
+    extra = {}
+    for p in parts:
+        extra.update(p[1])
+    OUT.write_text(json.dumps({"html": "<h3>The night's runs</h3>" + "".join(p[0] for p in parts), **extra}))
     print(f"-> {OUT}")

@@ -318,6 +318,18 @@ states and of HOM's targets, computed without a contact solve.</p>
         "zero the parts overlap.")}
 {t2}"""))
 
+    nsf = ID / "data/20261117-night_summary.json"
+    arms = (j(nsf).get("arms") or {}) if nsf.exists() else {}
+    if all(k in arms for k in ("off_base", "off_fstep", "on_base", "on_fstep_hyst")):
+        ob, of, nb, nf = arms["off_base"], arms["off_fstep"], arms["on_base"], arms["on_fstep_hyst"]
+        ab_txt = (f"Overnight the twist g0 at (70, 110) ran in four arms (the identification section). With the contacts "
+                  f"off, the paper-rate filter left tracking unchanged: {of['mean']:.3f} against {ob['mean']:.3f}, with "
+                  f"every trial a full run. With the contacts on, the filter and the hysteresis ran {nf['full']} of "
+                  f"{nf['n']} trials to the schedule's end (mean {nf['mean']:.3f}). Without them {nb['full']} of "
+                  f"{nb['n']} did (mean {nb['mean']:.3f}); the others drifted out of the grasp. With two or three trials "
+                  "an arm, this is a hint.")
+    else:
+        ab_txt = "The night's twist repeats test the changes on the hand (the identification section)."
     S.append(("tips", "HOM with the fingertip contacts", f"""
 <p>The fingertip boards estimate each pad's contact point and force from the magnets' field. With tips on, HOM takes a
 finger's contact frame from that estimate whenever the board reads 0.25 N or more. Below 0.25 N the frame comes from
@@ -334,8 +346,7 @@ contact's reference speed is high, and the filtered point then overshoots the me
 and k·dt is 0.1. The workstation added the paper's rate as sub-steps of 2 ms (--filter-step-s 0.002). It also added a
 hysteresis on the 0.25 N contact switch (--contact-off). On the calibrated simulation scene neither change alters
 tracking, and no 4-5 Hz chatter appears with or without them. On the server's own scene the g0 twist held the sphere in
-1 of 6 seeds with the 2 ms sub-steps, against 4 of 6 without, three of the drops at a failed SVD. The night's twist
-repeats test the changes on the hand (the identification section).</p>"""))
+1 of 6 seeds with the 2 ms sub-steps, against 4 of 6 without, three of the drops at a failed SVD. {ab_txt}</p>"""))
 
     p30, p44, p49 = prs["20261117-183028"], prs["20261117-184432"], prs["20261117-184907"]
     S.append(("press", "The cylinder press", f"""
