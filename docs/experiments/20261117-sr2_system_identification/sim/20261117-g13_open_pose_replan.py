@@ -48,7 +48,8 @@ STOP_DEG = {"index": -11.4, "middle": -10.0}       # where the MCPs stopped on 1
 MARGIN_DEG = 0.5
 SRC, CALL, K = "grid2dgr", 329, 13
 SCENES = {"pads": "sph040_stem_block_tape0_imp1.xml", "point": "sph040_stem_block_pt_imp1.xml",
-          "pads_stiff": "sph040_stem_block_tape0_imp100.xml"}
+          "pads_stiff": "sph040_stem_block_tape0_imp100.xml", "pads_stiff_ns": "sph040_stem_block_tape0_imp100_ns30.xml",
+          "pads_soft_ns": "sph040_stem_block_tape0_imp1_ns30.xml", "point_soft_ns": "sph040_stem_block_pt_imp1_ns30.xml"}
 PLANT_75 = {"kp": 0.55 * 1.5, "damping": 0.011, "tau_max": 0.18 * 1.5}
 JN = ("yaw", "mcp", "pip")
 PLAN_D6 = None                                     # the plan's meta.hom.d6_P_mm, for the finger gaps (set in main)
@@ -183,7 +184,11 @@ def _run1(job):
     else:                                                # the layout's own 8 mm open pose (screen)
         q_open, _ = T.open_pose(setup, m_pt)
     S.set_palm(m_pt, setup["palm"])
-    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads, torque_budget=job["budget"])
+    if job.get("noclip"):                                # the servos' safe ranges lifted (calibrated ranges only)
+        from sr2hand.control import servo_limits as SLm
+        SLm.safe_range = lambda f, sv: (-1e9, 1e9)
+    bench = HB.HomBench("twist", 40.0, setup, m_pt, q_open, dt=HB.DT_BENCH, p_pads=p_pads,
+                        torque_budget=job["budget"] or None)
     GP = RG._G["GP"]
     scene = D / "scenes" / SCENES[job["contact"]]
     stops = job["stops"]
@@ -224,7 +229,7 @@ def _run1(job):
                     if pair not in best or v < best[pair][0]:
                         best[pair] = (round(v, 1), round(float(s["t"]), 2))
             gaps[key] = best
-    return {**{k: job.get(k) for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget", "src", "call", "k", "xy")},
+    return {**{k: job.get(k) for k in ("cand", "volts", "contacts", "contact", "stops", "seed", "budget", "noclip", "src", "call", "k", "xy")},
             "gap_min_mm": gaps,
             "held": bool(res.get("held")),
             "track": None if not err or not ref else round(max(0.0, 1.0 - err / ref), 3),
@@ -247,7 +252,7 @@ def sim(cands, a):
                 for contact in a.contact_models:
                     for seed in a.seeds:
                         q = cands[name]["deg"]
-                        jobs.append({"cand": name, "q_deg": q, "volts": volts, "contacts": contacts, "budget": a.budget,
+                        jobs.append({"cand": name, "q_deg": q, "volts": volts, "contacts": contacts, "budget": a.budget, "noclip": a.noclip,
                                      "contact": contact, "stops": name != "plan@sim", "seed": seed})
     print(f"{len(jobs)} runs on {a.workers} workers", flush=True)
     with mp.get_context("fork").Pool(a.workers, initializer=RG.init, initargs=(str(RG.RF.SCENE),)) as pool:
@@ -318,7 +323,8 @@ def main():
     ap.add_argument("--contact-models", nargs="+", default=["pads"])
     ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     ap.add_argument("--workers", type=int, default=6)
-    ap.add_argument("--budget", type=float, default=0.56, help="N m in HOM's 5 V units (bench --torque-budget)")
+    ap.add_argument("--budget", type=float, default=0.56, help="N m in HOM's 5 V units (bench --torque-budget); 0: none")
+    ap.add_argument("--noclip", action="store_true", help="lift servo_limits' safe ranges (the index PIP's +1.78 deg)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--layout", default=None, help="SRC:CALL:GRASP (default grid2dgr:329:13, g13 at (105, 70))")
     ap.add_argument("--plan-file", default=None, help="a bench plan: its open pose is the candidate 'planfile', its "
