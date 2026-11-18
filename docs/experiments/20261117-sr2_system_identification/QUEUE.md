@@ -246,6 +246,17 @@ air and then against a force sensor. Contact and the blind validation trials nee
   The head-on yaw press with the wrist turn (owner's OK, 16:0x) tests this. Prediction for the index yaw, straight:
   0.19 N per deg of target offset, about 2.8 N at 14-15 deg unless the servo stops near the MCP's 0.17 N m (1.9 N),
   and 1.3 deg of advance per N. On the step back the force stays until the target passes the reading.
+- W2, the index board against the HEX-E in S3 (11-18 16:4x; `sim/20261118-s3_board_vs_hexe.py`,
+  `data/s3/20261118-board_vs_hexe.json`). Each step's HEX-E force in P (x and y, the mean over the dwell's last second)
+  was set beside the index board's estimate over the same second, from the splitter's log, with the estimator's gates
+  off. In the MCP press, head on, the trials' estimator (the board GP with the own-pose term) read 0.95 N where the
+  HEX-E read 2.51 N (median of 45 steps over 1.5 N), and 0.31 N with no contact. Its line is 0.31 N + 0.26 times the
+  HEX-E's force (RMS 0.05 N). Without the own-pose term the board reads 1.22 N at 2.51 N (0.28 N + 0.38 times). The
+  physical model alone reads 1.38 N, with the force pointing the wrong way (its x_P slope 0.07). In the yaw press the
+  trials' estimator read 0.32 N + 0.38 times the normal force and 0.60 times the tangential force (RMS 0.06-0.08 N).
+  On the taped plate the board thus reads 0.26-0.38 of the normal force. By these lines the night's 0.8 N on the
+  index was 1.3-1.9 N, against the 2.8 N that the yaw's slope gives at 14-15 deg of offset. The lines come from one
+  pad and two contact points on a flat plate; the sphere's contacts and the other boards need their own.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
