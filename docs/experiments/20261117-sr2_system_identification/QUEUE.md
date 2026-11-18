@@ -103,3 +103,17 @@ air and then against a force sensor. Contact and the blind validation trials nee
   torsion, and the same predictions with the pads, point contact and point contact with torsion (condim 4).
 - W4. The three-size landscapes of twist, roll and press with the pads and with point contact (about 6-8 GPU-hours),
   on the plant of W2-W3. Each rollout also records the least index-middle and thumb-finger gaps of the joint states and of HOM's targets (the three spheres per finger of hom_setup.finger_pts; no contact solve), and layouts whose fingers pass within a margin are flagged (lab request, 18:2x: "put it in W4, or flag layouts and grasps whose fingers pass within a margin of each other").
+
+## Owner's notes of 2026-11-18 09:0x
+
+- The middle finger's DIP tag is probably visible only with the middle finger curled and the thumb moved well out of
+  the way along its local x axis (owner). Use that pose for S1(b)'s middle.
+- S3 needs a rigid block fixed to the table, its top and one side face flat; the HEX-E reads the force. Order: index
+  and middle yaws first (pushing the side face; they stall in the twist), then one MCP and one PIP (pushing the top).
+- S4(b) uses a plate covered in the sphere's grip tape on the same block. Drag 5 mm at 1 mm/s each way at 0.5, 1 and
+  2 N, twice each.
+- The press chatter: the owner attributes it to the skewed cylinder in the misaligned grasp giving the middle finger
+  poor contact. The records agree: the pushing finger's targets chattered in every press on both days (3.3-9.0 deg rms
+  at 3-10 Hz), both days skewed the cylinder in the close (17-22 deg, 18-27 deg), and the simulation's cylinder, which
+  does not skew, does not chatter. The twists' targets with the tips off jittered 0.6-1.1 deg (one 2.1); with the tips
+  on 1.3-4.1 deg at 1.4-3.5 Hz.
