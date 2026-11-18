@@ -1,0 +1,6045 @@
+{
+ "meta": {
+  "what": "The lat0 press at (70, 110): open-pose candidates inside the MCP stops (press_poses), HOM's press from each in the calibrated simulation (soft-contact scene: the cylinder drops at the lift in every run; stiff-contact scene pads imp100 ns30: held to the end of the press), and the pushing finger's target chatter on the hand (18:30) against the simulation (exact state: 0.13-0.22 deg rms at about 0.7 Hz, no chatter).",
+  "written": "2026-11-17 18:41",
+  "chosen": "y+0_p4_t4",
+  "script": "sim/20261117-press_open_pose_replan.py"
+ },
+ "candidates": {
+  "plan": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -14.836,
+     23.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 8.05,
+    "middle": 7.2
+   }
+  },
+  "y-4_p0": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     23.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 2.53,
+    "middle": 8.55
+   }
+  },
+  "y-4_p2": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 3.78,
+    "middle": 9.68
+   }
+  },
+  "y-4_p4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 5.0,
+    "middle": 10.79
+   }
+  },
+  "y-4_p6": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 6.2,
+    "middle": 11.87
+   }
+  },
+  "y-4_p9": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     14.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     -9.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 7.93,
+    "middle": 13.46
+   }
+  },
+  "y-4_p12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -26.477,
+     -10.9,
+     11.269
+    ],
+    "middle": [
+     -0.733,
+     13.334,
+     -12.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 9.61,
+    "middle": 14.99
+   }
+  },
+  "y-3_p0": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     23.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 2.79,
+    "middle": 8.22
+   }
+  },
+  "y-3_p2": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 4.04,
+    "middle": 9.35
+   }
+  },
+  "y-3_p4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 5.28,
+    "middle": 10.46
+   }
+  },
+  "y-3_p6": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 6.48,
+    "middle": 11.54
+   }
+  },
+  "y-3_p9": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     14.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     -9.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 8.24,
+    "middle": 13.13
+   }
+  },
+  "y-3_p12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -27.477,
+     -10.9,
+     11.269
+    ],
+    "middle": [
+     0.267,
+     13.334,
+     -12.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 9.93,
+    "middle": 14.67
+   }
+  },
+  "y-2_p0": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     23.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 3.06,
+    "middle": 7.89
+   }
+  },
+  "y-2_p2": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 4.31,
+    "middle": 9.02
+   }
+  },
+  "y-2_p4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 5.56,
+    "middle": 10.13
+   }
+  },
+  "y-2_p6": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 6.77,
+    "middle": 11.21
+   }
+  },
+  "y-2_p9": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     14.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     -9.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 8.55,
+    "middle": 12.8
+   }
+  },
+  "y-2_p12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -28.477,
+     -10.9,
+     11.269
+    ],
+    "middle": [
+     1.267,
+     13.334,
+     -12.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 10.25,
+    "middle": 14.34
+   }
+  },
+  "y-1_p0": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     23.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 3.35,
+    "middle": 7.55
+   }
+  },
+  "y-1_p2": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 4.6,
+    "middle": 8.68
+   }
+  },
+  "y-1_p4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 5.84,
+    "middle": 9.78
+   }
+  },
+  "y-1_p6": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 7.08,
+    "middle": 10.87
+   }
+  },
+  "y-1_p9": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     14.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     -9.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 8.87,
+    "middle": 12.46
+   }
+  },
+  "y-1_p12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -29.477,
+     -10.9,
+     11.269
+    ],
+    "middle": [
+     2.267,
+     13.334,
+     -12.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 10.59,
+    "middle": 14.0
+   }
+  },
+  "y+0_p0": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     23.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     0.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 3.65,
+    "middle": 7.2
+   }
+  },
+  "y+0_p2": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 4.9,
+    "middle": 8.33
+   }
+  },
+  "y+0_p4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 6.14,
+    "middle": 9.44
+   }
+  },
+  "y+0_p6": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 7.38,
+    "middle": 10.52
+   }
+  },
+  "y+0_p9": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     14.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -9.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 9.19,
+    "middle": 12.12
+   }
+  },
+  "y+0_p12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     55.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     11.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -12.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 1.42,
+    "index": 10.93,
+    "middle": 13.66
+   }
+  },
+  "y+0_p2_t4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     51.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 3.47,
+    "index": 4.9,
+    "middle": 8.33
+   }
+  },
+  "y+0_p2_t8": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     47.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 5.7,
+    "index": 4.9,
+    "middle": 8.33
+   }
+  },
+  "y+0_p2_t12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     43.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     21.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -2.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 8.06,
+    "index": 4.9,
+    "middle": 8.33
+   }
+  },
+  "y+0_p4_t4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     51.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 3.47,
+    "index": 6.14,
+    "middle": 9.44
+   }
+  },
+  "y+0_p4_t8": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     47.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 5.7,
+    "index": 6.14,
+    "middle": 9.44
+   }
+  },
+  "y+0_p4_t12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     43.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     19.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -4.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 8.06,
+    "index": 6.14,
+    "middle": 9.44
+   }
+  },
+  "y+0_p6_t4": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     51.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 3.47,
+    "index": 7.38,
+    "middle": 10.52
+   }
+  },
+  "y+0_p6_t8": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     47.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 5.7,
+    "index": 7.38,
+    "middle": 10.52
+   }
+  },
+  "y+0_p6_t12": {
+   "deg": {
+    "thumb": [
+     19.253,
+     -12.3,
+     43.821
+    ],
+    "index": [
+     -30.477,
+     -10.9,
+     17.269
+    ],
+    "middle": [
+     3.267,
+     13.334,
+     -6.0
+    ]
+   },
+   "clearance_mm": {
+    "thumb": 8.06,
+    "index": 7.38,
+    "middle": 10.52
+   }
+  }
+ },
+ "chatter_hand": {
+  "trial": "runs/20261117-183037_press_d25_trial000.jsonl (7.5 V, tips off, budget 0.56)",
+  "press_phases_2_to_4_s": {
+   "middle_mcp_target_rms_deg": 4.4,
+   "middle_pip_target_rms_deg": 4.18,
+   "freq_hz": 4.0,
+   "middle_mcp_joint_rms_deg": 2.97,
+   "gcf_middle_witness_distance_rms_mm": 1.92,
+   "obj_x_rms_mm": 1.28,
+   "obj_z_rms_mm": 0.87,
+   "obj_y_rms_mm": 0.49
+  },
+  "clipped_periods": 0,
+  "budget_scale_range": [
+   0.53,
+   0.801
+  ],
+  "corr_detrended_middle_mcp_target": {
+   "obj_z": -0.66,
+   "obj_y": -0.61,
+   "budget_scale": 0.39,
+   "gcf_middle_distance": 0.1
+  },
+  "n_tags_after_2s": {
+   "0": 3,
+   "2": 26,
+   "3": 25,
+   "4": 146,
+   "5": 2
+  }
+ },
+ "sim_soft": [
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.9,
+     49.3
+    ],
+    "index": [
+     30.5,
+     -8.2,
+     21.7
+    ],
+    "middle": [
+     -5.3,
+     33.0,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.11,
+     7.2
+    ],
+    "middle_fe2_target": [
+     1.62,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.97,
+     0.7
+    ],
+    "obj_x": [
+     0.29,
+     0.7
+    ],
+    "obj_z": [
+     0.43,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 54.28,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -22.15,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.92,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.85,
+    "middle_pip_target_median": 3.16,
+    "middle_mcp_median": 19.66
+   },
+   "wall_s": 3.6
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.7,
+     49.3
+    ],
+    "index": [
+     30.5,
+     -8.8,
+     22.4
+    ],
+    "middle": [
+     -5.2,
+     32.8,
+     -15.5
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.07,
+     7.2
+    ],
+    "middle_fe2_target": [
+     1.61,
+     7.2
+    ],
+    "middle_fe1_joint": [
+     1.0,
+     0.7
+    ],
+    "obj_x": [
+     0.32,
+     0.7
+    ],
+    "obj_z": [
+     0.44,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 54.8,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -22.87,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.92,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.85,
+    "middle_pip_target_median": 3.15,
+    "middle_mcp_median": 19.03
+   },
+   "wall_s": 3.6
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -4.9,
+     49.8
+    ],
+    "index": [
+     30.5,
+     -9.0,
+     22.7
+    ],
+    "middle": [
+     -5.4,
+     32.8,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.66,
+     7.9
+    ],
+    "middle_fe2_target": [
+     2.39,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     1.03,
+     0.7
+    ],
+    "obj_x": [
+     0.44,
+     0.7
+    ],
+    "obj_z": [
+     0.96,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 71.57,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -34.3,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.98,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.85,
+    "middle_pip_target_median": 3.17,
+    "middle_mcp_median": 19.93
+   },
+   "wall_s": 3.7
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.5,
+     49.7
+    ],
+    "index": [
+     30.5,
+     -8.9,
+     22.5
+    ],
+    "middle": [
+     -5.6,
+     34.2,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.19,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.1,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.09,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 18.09,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -44.17,
+    "rise_mm": 0.0,
+    "t_low5_s": 4.68,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.81,
+    "middle_pip_median": -14.69,
+    "middle_pip_target_median": -13.26,
+    "middle_mcp_median": 37.18
+   },
+   "wall_s": 3.7
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -4.8,
+     49.9
+    ],
+    "index": [
+     30.5,
+     -8.9,
+     22.2
+    ],
+    "middle": [
+     -5.5,
+     32.9,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.9,
+     7.9
+    ],
+    "middle_fe2_target": [
+     2.72,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     1.09,
+     0.7
+    ],
+    "obj_x": [
+     0.47,
+     0.7
+    ],
+    "obj_z": [
+     1.22,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 75.4,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -37.99,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.0,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.85,
+    "middle_pip_target_median": 3.33,
+    "middle_mcp_median": 20.37
+   },
+   "wall_s": 3.7
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.175,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -4.3,
+     49.9
+    ],
+    "index": [
+     30.4,
+     -9.5,
+     23.1
+    ],
+    "middle": [
+     -5.7,
+     33.5,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.19,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.07,
+     2.0
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.175,
+    "err_rms_deg": 11.38,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -10.98,
+    "rise_mm": 0.49,
+    "t_low5_s": 4.9,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 5.1,
+    "middle_pip_median": -14.91,
+    "middle_pip_target_median": -13.6,
+    "middle_mcp_median": 37.42
+   },
+   "wall_s": 3.7
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -9.9,
+     54.2
+    ],
+    "index": [
+     30.5,
+     -5.1,
+     20.2
+    ],
+    "middle": [
+     -4.7,
+     33.1,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.5,
+     7.2
+    ],
+    "middle_fe2_target": [
+     0.88,
+     7.2
+    ],
+    "middle_fe1_joint": [
+     0.24,
+     2.6
+    ],
+    "obj_x": [
+     0.07,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 17.73,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -4.24,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.82,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.39,
+    "middle_pip_target_median": 0.14,
+    "middle_mcp_median": 19.66
+   },
+   "wall_s": 4.2
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -10.0,
+     54.8
+    ],
+    "index": [
+     30.5,
+     -4.9,
+     20.1
+    ],
+    "middle": [
+     -5.4,
+     34.3,
+     -15.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.24,
+     10.5
+    ],
+    "middle_fe2_target": [
+     2.08,
+     10.5
+    ],
+    "middle_fe1_joint": [
+     0.35,
+     0.7
+    ],
+    "obj_x": [
+     0.16,
+     0.7
+    ],
+    "obj_z": [
+     0.25,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 43.16,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -17.18,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.88,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.36,
+    "middle_pip_target_median": 0.27,
+    "middle_mcp_median": 19.43
+   },
+   "wall_s": 4.3
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -10.3,
+     54.8
+    ],
+    "index": [
+     30.4,
+     -4.7,
+     19.7
+    ],
+    "middle": [
+     -4.7,
+     33.0,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.5,
+     7.2
+    ],
+    "middle_fe2_target": [
+     0.86,
+     7.2
+    ],
+    "middle_fe1_joint": [
+     0.17,
+     2.6
+    ],
+    "obj_x": [
+     0.07,
+     0.7
+    ],
+    "obj_z": [
+     0.03,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 14.97,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -3.5,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.8,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.52,
+    "middle_pip_target_median": -0.04,
+    "middle_mcp_median": 19.82
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.6,
+     49.6
+    ],
+    "index": [
+     30.5,
+     -8.4,
+     21.9
+    ],
+    "middle": [
+     -5.7,
+     34.4,
+     -15.2
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.19,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.11,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.09,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.05,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 23.16,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -44.04,
+    "rise_mm": 0.0,
+    "t_low5_s": 4.62,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.18,
+    "middle_pip_median": -14.57,
+    "middle_pip_target_median": -13.16,
+    "middle_mcp_median": 36.97
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -9.8,
+     54.5
+    ],
+    "index": [
+     30.4,
+     -4.9,
+     20.0
+    ],
+    "middle": [
+     -5.4,
+     34.3,
+     -15.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.45,
+     10.5
+    ],
+    "middle_fe2_target": [
+     2.4,
+     10.5
+    ],
+    "middle_fe1_joint": [
+     0.45,
+     0.7
+    ],
+    "obj_x": [
+     0.19,
+     0.7
+    ],
+    "obj_z": [
+     0.35,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 49.57,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -20.82,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.9,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.18,
+    "middle_pip_target_median": 0.5,
+    "middle_mcp_median": 19.42
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -6.8,
+     52.0
+    ],
+    "index": [
+     30.4,
+     -5.7,
+     18.3
+    ],
+    "middle": [
+     -5.6,
+     32.5,
+     -15.5
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.99,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.6,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.63,
+     0.7
+    ],
+    "obj_x": [
+     0.13,
+     0.7
+    ],
+    "obj_z": [
+     0.13,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 34.37,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -11.3,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.0,
+    "middle_pip_target_median": 2.4,
+    "middle_mcp_median": 18.84
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -6.0,
+     50.8
+    ],
+    "index": [
+     30.5,
+     -6.1,
+     18.7
+    ],
+    "middle": [
+     -5.9,
+     32.8,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.11,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.58,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.77,
+     0.7
+    ],
+    "obj_x": [
+     0.19,
+     0.7
+    ],
+    "obj_z": [
+     0.21,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 41.34,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -14.89,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.88,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.83,
+    "middle_pip_target_median": 3.13,
+    "middle_mcp_median": 18.73
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.6,
+     -4.0,
+     49.1
+    ],
+    "index": [
+     30.5,
+     -9.1,
+     22.3
+    ],
+    "middle": [
+     -5.7,
+     33.8,
+     -15.2
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.19,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.07,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.09,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 14.85,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -43.51,
+    "rise_mm": 0.33,
+    "t_low5_s": 4.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 4.37,
+    "middle_pip_median": -14.81,
+    "middle_pip_target_median": -13.61,
+    "middle_mcp_median": 37.25
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -11.6,
+     56.0
+    ],
+    "index": [
+     30.4,
+     -2.3,
+     16.2
+    ],
+    "middle": [
+     -4.8,
+     32.6,
+     -16.1
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.32,
+     7.2
+    ],
+    "middle_fe2_target": [
+     0.53,
+     7.2
+    ],
+    "middle_fe1_joint": [
+     0.25,
+     3.3
+    ],
+    "obj_x": [
+     0.08,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 15.24,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -3.4,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.82,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -1.42,
+    "middle_pip_target_median": -1.2,
+    "middle_mcp_median": 20.09
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -6.2,
+     51.4
+    ],
+    "index": [
+     30.4,
+     -5.8,
+     18.3
+    ],
+    "middle": [
+     -6.1,
+     34.2,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     4.24,
+     10.5
+    ],
+    "middle_fe2_target": [
+     6.45,
+     10.5
+    ],
+    "middle_fe1_joint": [
+     1.6,
+     2.0
+    ],
+    "obj_x": [
+     0.46,
+     0.7
+    ],
+    "obj_z": [
+     2.02,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 74.5,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -42.89,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.5,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 3.03,
+    "middle_pip_target_median": 3.58,
+    "middle_mcp_median": 22.52
+   },
+   "wall_s": 3.3
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -4.4,
+     43.2
+    ],
+    "index": [
+     30.5,
+     -3.4,
+     17.2
+    ],
+    "middle": [
+     -5.2,
+     32.9,
+     -15.7
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.8,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.31,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.52,
+     2.6
+    ],
+    "obj_x": [
+     0.25,
+     2.0
+    ],
+    "obj_z": [
+     0.18,
+     2.0
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 36.87,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -9.98,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.65,
+    "middle_pip_target_median": -0.04,
+    "middle_mcp_median": 19.83
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -3.9,
+     42.4
+    ],
+    "index": [
+     30.5,
+     -3.6,
+     17.5
+    ],
+    "middle": [
+     -5.1,
+     32.8,
+     -15.7
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.01,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.59,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.56,
+     2.6
+    ],
+    "obj_x": [
+     0.28,
+     2.0
+    ],
+    "obj_z": [
+     0.23,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 41.75,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -12.29,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.88,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.94,
+    "middle_pip_target_median": -0.41,
+    "middle_mcp_median": 19.83
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -5.1,
+     50.4
+    ],
+    "index": [
+     30.5,
+     -6.6,
+     18.9
+    ],
+    "middle": [
+     -6.4,
+     34.1,
+     -15.2
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.18,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.11,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 17.67,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -41.88,
+    "rise_mm": 0.0,
+    "t_low5_s": 4.64,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.23,
+    "middle_pip_median": -14.61,
+    "middle_pip_target_median": -13.21,
+    "middle_mcp_median": 37.0
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -11.4,
+     56.1
+    ],
+    "index": [
+     30.5,
+     -2.1,
+     16.2
+    ],
+    "middle": [
+     -5.7,
+     34.3,
+     -15.5
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.38,
+     10.5
+    ],
+    "middle_fe2_target": [
+     2.35,
+     10.5
+    ],
+    "middle_fe1_joint": [
+     0.34,
+     0.7
+    ],
+    "obj_x": [
+     0.13,
+     0.7
+    ],
+    "obj_z": [
+     0.22,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 41.2,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -15.86,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -1.25,
+    "middle_pip_target_median": -0.48,
+    "middle_mcp_median": 19.85
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -2.5,
+     41.9
+    ],
+    "index": [
+     30.4,
+     -5.2,
+     18.4
+    ],
+    "middle": [
+     -5.5,
+     32.2,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     2.04,
+     9.2
+    ],
+    "middle_fe2_target": [
+     3.04,
+     8.6
+    ],
+    "middle_fe1_joint": [
+     1.06,
+     0.7
+    ],
+    "obj_x": [
+     0.44,
+     0.7
+    ],
+    "obj_z": [
+     1.25,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 76.26,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -33.76,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.02,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 1.65,
+    "middle_pip_target_median": 2.22,
+    "middle_mcp_median": 19.29
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -4.0,
+     43.2
+    ],
+    "index": [
+     30.4,
+     -3.7,
+     17.5
+    ],
+    "middle": [
+     -5.8,
+     34.1,
+     -15.5
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     2.79,
+     11.2
+    ],
+    "middle_fe2_target": [
+     4.59,
+     11.2
+    ],
+    "middle_fe1_joint": [
+     0.7,
+     0.7
+    ],
+    "obj_x": [
+     0.28,
+     0.7
+    ],
+    "obj_z": [
+     0.81,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 70.99,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -30.9,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.98,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -0.42,
+    "middle_pip_target_median": -0.29,
+    "middle_mcp_median": 19.65
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -1.2,
+     41.1
+    ],
+    "index": [
+     30.5,
+     -6.0,
+     18.7
+    ],
+    "middle": [
+     -6.2,
+     34.3,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.2,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.08,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 21.18,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -37.21,
+    "rise_mm": 0.82,
+    "t_low5_s": 4.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 1.72,
+    "middle_pip_median": -14.75,
+    "middle_pip_target_median": -13.62,
+    "middle_mcp_median": 37.62
+   },
+   "wall_s": 3.3
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -3.4,
+     42.5
+    ],
+    "index": [
+     30.4,
+     -3.7,
+     17.1
+    ],
+    "middle": [
+     -5.9,
+     34.7,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.77,
+     11.2
+    ],
+    "middle_fe2_target": [
+     2.7,
+     11.2
+    ],
+    "middle_fe1_joint": [
+     1.09,
+     2.6
+    ],
+    "obj_x": [
+     0.26,
+     0.7
+    ],
+    "obj_z": [
+     1.3,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 76.38,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -36.7,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.12,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 1.8,
+    "middle_pip_target_median": 2.37,
+    "middle_mcp_median": 20.39
+   },
+   "wall_s": 3.2
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -2.9,
+     41.7
+    ],
+    "index": [
+     30.5,
+     -3.4,
+     15.9
+    ],
+    "middle": [
+     -5.5,
+     32.6,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.33,
+     7.9
+    ],
+    "middle_fe2_target": [
+     2.18,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.95,
+     0.7
+    ],
+    "obj_x": [
+     0.42,
+     0.7
+    ],
+    "obj_z": [
+     0.51,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 57.55,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -21.37,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.92,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 0.23,
+    "middle_pip_target_median": 0.89,
+    "middle_mcp_median": 19.43
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -1.8,
+     41.4
+    ],
+    "index": [
+     30.4,
+     -4.6,
+     16.4
+    ],
+    "middle": [
+     -5.8,
+     32.0,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.96,
+     8.6
+    ],
+    "middle_fe2_target": [
+     2.89,
+     8.6
+    ],
+    "middle_fe1_joint": [
+     1.02,
+     0.7
+    ],
+    "obj_x": [
+     0.48,
+     0.7
+    ],
+    "obj_z": [
+     1.1,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 74.91,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -32.86,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.98,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.62,
+    "middle_pip_target_median": 2.98,
+    "middle_mcp_median": 19.04
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -2.9,
+     42.3
+    ],
+    "index": [
+     30.5,
+     -3.2,
+     15.6
+    ],
+    "middle": [
+     -6.1,
+     34.5,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     3.25,
+     11.2
+    ],
+    "middle_fe2_target": [
+     5.1,
+     11.2
+    ],
+    "middle_fe1_joint": [
+     1.36,
+     1.3
+    ],
+    "obj_x": [
+     0.41,
+     1.3
+    ],
+    "obj_z": [
+     1.63,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 74.57,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -37.3,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.28,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.75,
+    "middle_pip_target_median": 2.94,
+    "middle_mcp_median": 21.34
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.6,
+     -1.2,
+     41.1
+    ],
+    "index": [
+     30.4,
+     -4.8,
+     16.7
+    ],
+    "middle": [
+     -6.4,
+     33.9,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.2,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.08,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.04,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 19.32,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -35.9,
+    "rise_mm": 1.05,
+    "t_low5_s": 4.94,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 1.74,
+    "middle_pip_median": -14.93,
+    "middle_pip_target_median": -13.68,
+    "middle_mcp_median": 37.44
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -3.2,
+     42.0
+    ],
+    "index": [
+     30.5,
+     -2.8,
+     15.4
+    ],
+    "middle": [
+     -5.5,
+     32.9,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.05,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.52,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.75,
+     0.7
+    ],
+    "obj_x": [
+     0.31,
+     1.3
+    ],
+    "obj_z": [
+     0.3,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 46.35,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -14.81,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.88,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 0.35,
+    "middle_pip_target_median": 1.02,
+    "middle_mcp_median": 19.61
+   },
+   "wall_s": 3.1
+  },
+  {
+   "cand": "y+0_p6_t8",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -2.6,
+     41.7
+    ],
+    "index": [
+     30.5,
+     -2.8,
+     15.1
+    ],
+    "middle": [
+     -6.2,
+     34.7,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     2.53,
+     11.2
+    ],
+    "middle_fe2_target": [
+     3.89,
+     11.2
+    ],
+    "middle_fe1_joint": [
+     1.23,
+     1.3
+    ],
+    "obj_x": [
+     0.32,
+     1.3
+    ],
+    "obj_z": [
+     1.23,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 75.16,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -36.97,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.18,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 2.73,
+    "middle_pip_target_median": 2.96,
+    "middle_mcp_median": 21.03
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -1.4,
+     37.7
+    ],
+    "index": [
+     30.5,
+     -3.6,
+     17.3
+    ],
+    "middle": [
+     -5.5,
+     32.9,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.31,
+     7.9
+    ],
+    "middle_fe2_target": [
+     2.32,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     1.03,
+     0.7
+    ],
+    "obj_x": [
+     0.55,
+     1.3
+    ],
+    "obj_z": [
+     0.68,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 65.15,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -25.53,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.94,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 0.16,
+    "middle_pip_target_median": 0.86,
+    "middle_mcp_median": 19.85
+   },
+   "wall_s": 2.6
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -2.3,
+     38.1
+    ],
+    "index": [
+     30.5,
+     -2.4,
+     16.6
+    ],
+    "middle": [
+     -5.1,
+     33.2,
+     -15.6
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.67,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.11,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.45,
+     3.3
+    ],
+    "obj_x": [
+     0.25,
+     2.0
+    ],
+    "obj_z": [
+     0.16,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 36.4,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -9.85,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.86,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -1.07,
+    "middle_pip_target_median": -0.72,
+    "middle_mcp_median": 20.35
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -2.0,
+     38.3
+    ],
+    "index": [
+     30.4,
+     -3.4,
+     17.4
+    ],
+    "middle": [
+     -5.0,
+     32.6,
+     -15.7
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.93,
+     7.9
+    ],
+    "middle_fe2_target": [
+     1.42,
+     7.9
+    ],
+    "middle_fe1_joint": [
+     0.69,
+     2.6
+    ],
+    "obj_x": [
+     0.37,
+     2.0
+    ],
+    "obj_z": [
+     0.32,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 49.21,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -16.28,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.9,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -1.13,
+    "middle_pip_target_median": -0.7,
+    "middle_mcp_median": 20.02
+   },
+   "wall_s": 2.7
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -0.9,
+     37.6
+    ],
+    "index": [
+     30.5,
+     -3.8,
+     17.4
+    ],
+    "middle": [
+     -5.9,
+     34.1,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     3.41,
+     11.2
+    ],
+    "middle_fe2_target": [
+     5.48,
+     11.2
+    ],
+    "middle_fe1_joint": [
+     0.79,
+     0.7
+    ],
+    "obj_x": [
+     0.3,
+     0.7
+    ],
+    "obj_z": [
+     1.21,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 76.46,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -34.99,
+    "rise_mm": 0.0,
+    "t_low5_s": 2.04,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": 0.22,
+    "middle_pip_target_median": 0.57,
+    "middle_mcp_median": 19.66
+   },
+   "wall_s": 2.4
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.5,
+     0.4,
+     36.4
+    ],
+    "index": [
+     30.5,
+     -4.9,
+     18.2
+    ],
+    "middle": [
+     -6.2,
+     35.0,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.2,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.09,
+     0.7
+    ],
+    "obj_x": [
+     0.04,
+     0.7
+    ],
+    "obj_z": [
+     0.05,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 25.4,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -35.72,
+    "rise_mm": 0.53,
+    "t_low5_s": 4.74,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -14.34,
+    "middle_pip_target_median": -13.31,
+    "middle_mcp_median": 37.28
+   },
+   "wall_s": 2.5
+  },
+  {
+   "cand": "y+0_p4_t12",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.0,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -2.7,
+     38.9
+    ],
+    "index": [
+     30.5,
+     -2.0,
+     16.3
+    ],
+    "middle": [
+     -5.9,
+     34.4,
+     -15.1
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     1.48,
+     10.5
+    ],
+    "middle_fe2_target": [
+     2.59,
+     10.5
+    ],
+    "middle_fe1_joint": [
+     0.63,
+     0.7
+    ],
+    "obj_x": [
+     0.22,
+     0.7
+    ],
+    "obj_z": [
+     0.3,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.0,
+    "err_rms_deg": 47.38,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -14.99,
+    "rise_mm": 0.0,
+    "t_low5_s": 1.88,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 0.0,
+    "middle_pip_median": -1.37,
+    "middle_pip_target_median": -0.75,
+    "middle_mcp_median": 20.66
+   },
+   "wall_s": 2.5
+  }
+ ],
+ "sim_stiff": [
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.167,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -10.1,
+     54.2
+    ],
+    "index": [
+     30.5,
+     -5.1,
+     20.1
+    ],
+    "middle": [
+     -4.2,
+     28.6,
+     -15.3
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.5,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     0.7
+    ],
+    "obj_x": [
+     0.14,
+     0.7
+    ],
+    "obj_z": [
+     0.11,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.167,
+    "err_rms_deg": 11.5,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.96,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 4.52,
+    "middle_pip_median": -13.43,
+    "middle_pip_target_median": -9.72,
+    "middle_mcp_median": 28.64
+   },
+   "wall_s": 4.9
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.123,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -5.0,
+     49.7
+    ],
+    "index": [
+     30.5,
+     -8.6,
+     22.1
+    ],
+    "middle": [
+     -5.0,
+     30.6,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     2.6
+    ],
+    "middle_fe1_joint": [
+     0.12,
+     1.3
+    ],
+    "obj_x": [
+     0.07,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.123,
+    "err_rms_deg": 12.1,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.01,
+    "rise_mm": 1.49,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.36,
+    "middle_pip_median": -15.83,
+    "middle_pip_target_median": -14.29,
+    "middle_mcp_median": 33.72
+   },
+   "wall_s": 5.2
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.123,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.6,
+     49.5
+    ],
+    "index": [
+     30.5,
+     -9.0,
+     22.4
+    ],
+    "middle": [
+     -4.8,
+     30.4,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.13,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.123,
+    "err_rms_deg": 12.11,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.49,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.33,
+    "middle_pip_median": -15.93,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.5
+   },
+   "wall_s": 5.3
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.128,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.5,
+     48.6
+    ],
+    "index": [
+     30.5,
+     -8.4,
+     21.8
+    ],
+    "middle": [
+     -4.8,
+     30.2,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.15,
+     1.3
+    ],
+    "obj_x": [
+     0.09,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.128,
+    "err_rms_deg": 12.04,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.66,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.58,
+    "middle_pip_median": -15.92,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.8
+   },
+   "wall_s": 5.3
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.115,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -5.6,
+     51.2
+    ],
+    "index": [
+     30.4,
+     -8.9,
+     22.8
+    ],
+    "middle": [
+     -4.8,
+     30.3,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     2.0
+    ],
+    "middle_fe1_joint": [
+     0.09,
+     1.3
+    ],
+    "obj_x": [
+     0.06,
+     1.3
+    ],
+    "obj_z": [
+     0.03,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.115,
+    "err_rms_deg": 12.22,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.4,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.29,
+    "middle_pip_median": -15.91,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.25
+   },
+   "wall_s": 5.8
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.127,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -3.8,
+     49.4
+    ],
+    "index": [
+     30.5,
+     -9.8,
+     23.0
+    ],
+    "middle": [
+     -5.1,
+     30.8,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     2.0
+    ],
+    "middle_fe1_joint": [
+     0.1,
+     1.3
+    ],
+    "obj_x": [
+     0.06,
+     2.0
+    ],
+    "obj_z": [
+     0.04,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.127,
+    "err_rms_deg": 12.05,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.56,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.49,
+    "middle_pip_median": -15.77,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.77
+   },
+   "wall_s": 6.1
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.016,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -10.2,
+     54.3
+    ],
+    "index": [
+     30.5,
+     -5.0,
+     20.2
+    ],
+    "middle": [
+     -4.4,
+     28.2,
+     -13.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.33,
+     1.3
+    ],
+    "middle_fe2_target": [
+     0.86,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     1.3
+    ],
+    "obj_x": [
+     0.18,
+     0.7
+    ],
+    "obj_z": [
+     0.21,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.016,
+    "err_rms_deg": 13.58,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -21.29,
+    "rise_mm": 6.26,
+    "t_low5_s": 4.94,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 9.85,
+    "middle_pip_median": -7.7,
+    "middle_pip_target_median": -3.48,
+    "middle_mcp_median": 28.49
+   },
+   "wall_s": 7.1
+  },
+  {
+   "cand": "plan@sim",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": false,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.127,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -4.0,
+     49.1
+    ],
+    "index": [
+     30.5,
+     -9.4,
+     22.7
+    ],
+    "middle": [
+     -5.1,
+     30.8,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     2.0
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     1.3
+    ],
+    "obj_x": [
+     0.05,
+     2.0
+    ],
+    "obj_z": [
+     0.03,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.127,
+    "err_rms_deg": 12.05,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.6,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.53,
+    "middle_pip_median": -15.83,
+    "middle_pip_target_median": -14.31,
+    "middle_mcp_median": 33.94
+   },
+   "wall_s": 7.5
+  },
+  {
+   "cand": "plan",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.155,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -10.0,
+     54.2
+    ],
+    "index": [
+     30.5,
+     -4.9,
+     19.5
+    ],
+    "middle": [
+     -4.2,
+     28.6,
+     -15.4
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.14,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.44,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     0.7
+    ],
+    "obj_x": [
+     0.12,
+     0.7
+    ],
+    "obj_z": [
+     0.1,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.155,
+    "err_rms_deg": 11.66,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.6,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.96,
+    "middle_pip_median": -13.08,
+    "middle_pip_target_median": -9.87,
+    "middle_mcp_median": 28.62
+   },
+   "wall_s": 3.8
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.11,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -7.1,
+     51.8
+    ],
+    "index": [
+     30.5,
+     -5.4,
+     18.0
+    ],
+    "middle": [
+     -5.1,
+     29.2,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.03,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.13,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.11,
+    "err_rms_deg": 12.28,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.4,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.14,
+    "middle_pip_median": -16.03,
+    "middle_pip_target_median": -12.88,
+    "middle_mcp_median": 32.51
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.023,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -10.0,
+     54.4
+    ],
+    "index": [
+     30.5,
+     -5.1,
+     20.1
+    ],
+    "middle": [
+     -4.4,
+     28.1,
+     -13.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.34,
+     2.6
+    ],
+    "middle_fe2_target": [
+     0.87,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     2.0
+    ],
+    "obj_x": [
+     0.18,
+     0.7
+    ],
+    "obj_z": [
+     0.22,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.023,
+    "err_rms_deg": 13.48,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": false,
+    "held_end": false,
+    "drop_mm": -21.02,
+    "rise_mm": 6.45,
+    "t_low5_s": 4.94,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 10.21,
+    "middle_pip_median": -7.47,
+    "middle_pip_target_median": -3.56,
+    "middle_mcp_median": 28.26
+   },
+   "wall_s": 4.6
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.128,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.0,
+     48.9
+    ],
+    "index": [
+     30.5,
+     -9.0,
+     22.1
+    ],
+    "middle": [
+     -5.0,
+     30.5,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.1,
+     1.3
+    ],
+    "obj_x": [
+     0.06,
+     1.3
+    ],
+    "obj_z": [
+     0.04,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.128,
+    "err_rms_deg": 12.04,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.67,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.6,
+    "middle_pip_median": -15.85,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.91
+   },
+   "wall_s": 4.8
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.119,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -6.4,
+     51.4
+    ],
+    "index": [
+     30.5,
+     -6.0,
+     18.6
+    ],
+    "middle": [
+     -5.3,
+     29.6,
+     -16.1
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.14,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.02,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.15,
+     1.3
+    ],
+    "obj_x": [
+     0.09,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.119,
+    "err_rms_deg": 12.15,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.46,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.32,
+    "middle_pip_median": -16.05,
+    "middle_pip_target_median": -13.21,
+    "middle_mcp_median": 33.01
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "plan",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.127,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.8,
+     -4.0,
+     49.1
+    ],
+    "index": [
+     30.5,
+     -9.2,
+     22.3
+    ],
+    "middle": [
+     -5.1,
+     30.8,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     2.0
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     1.3
+    ],
+    "obj_x": [
+     0.05,
+     2.0
+    ],
+    "obj_z": [
+     0.03,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.127,
+    "err_rms_deg": 12.05,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.54,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.49,
+    "middle_pip_median": -15.75,
+    "middle_pip_target_median": -14.3,
+    "middle_mcp_median": 33.86
+   },
+   "wall_s": 5.1
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.138,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -11.2,
+     55.5
+    ],
+    "index": [
+     30.4,
+     -2.8,
+     16.4
+    ],
+    "middle": [
+     -4.7,
+     28.1,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.12,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.4,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     0.7
+    ],
+    "obj_x": [
+     0.12,
+     0.7
+    ],
+    "obj_z": [
+     0.09,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.138,
+    "err_rms_deg": 11.89,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 2.24,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.4,
+    "middle_pip_median": -13.68,
+    "middle_pip_target_median": -10.93,
+    "middle_mcp_median": 28.08
+   },
+   "wall_s": 5.2
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.125,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -6.2,
+     51.4
+    ],
+    "index": [
+     30.5,
+     -5.9,
+     18.4
+    ],
+    "middle": [
+     -5.4,
+     29.9,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.14,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.02,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.14,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.125,
+    "err_rms_deg": 12.07,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.67,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.62,
+    "middle_pip_median": -15.89,
+    "middle_pip_target_median": -13.36,
+    "middle_mcp_median": 33.49
+   },
+   "wall_s": 6.4
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.109,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -5.9,
+     46.9
+    ],
+    "index": [
+     30.5,
+     -5.3,
+     19.4
+    ],
+    "middle": [
+     -4.5,
+     28.8,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.05,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.12,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.109,
+    "err_rms_deg": 12.29,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.01,
+    "rise_mm": 1.51,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.25,
+    "middle_pip_median": -15.47,
+    "middle_pip_target_median": -12.59,
+    "middle_mcp_median": 32.11
+   },
+   "wall_s": 4.0
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.111,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -6.1,
+     51.7
+    ],
+    "index": [
+     30.4,
+     -6.3,
+     18.8
+    ],
+    "middle": [
+     -5.6,
+     30.1,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.15,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.07,
+     1.3
+    ],
+    "obj_x": [
+     0.05,
+     2.0
+    ],
+    "obj_z": [
+     0.03,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.111,
+    "err_rms_deg": 12.26,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.36,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.23,
+    "middle_pip_median": -15.88,
+    "middle_pip_target_median": -13.99,
+    "middle_mcp_median": 32.82
+   },
+   "wall_s": 5.2
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.126,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -4.7,
+     46.1
+    ],
+    "index": [
+     30.5,
+     -6.3,
+     20.2
+    ],
+    "middle": [
+     -4.9,
+     29.6,
+     -15.8
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.16,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.126,
+    "err_rms_deg": 12.06,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.01,
+    "rise_mm": 1.68,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.63,
+    "middle_pip_median": -15.81,
+    "middle_pip_target_median": -13.66,
+    "middle_mcp_median": 33.66
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "y+0_p4",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.159,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -11.1,
+     55.5
+    ],
+    "index": [
+     30.5,
+     -2.7,
+     16.5
+    ],
+    "middle": [
+     -4.8,
+     28.4,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.17,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.51,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.0,
+     0.7
+    ],
+    "obj_x": [
+     0.14,
+     0.7
+    ],
+    "obj_z": [
+     0.12,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.159,
+    "err_rms_deg": 11.6,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 3.12,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 4.79,
+    "middle_pip_median": -13.61,
+    "middle_pip_target_median": -11.16,
+    "middle_mcp_median": 28.42
+   },
+   "wall_s": 4.4
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.099,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -6.5,
+     48.1
+    ],
+    "index": [
+     30.4,
+     -4.9,
+     19.4
+    ],
+    "middle": [
+     -4.5,
+     29.1,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.04,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.12,
+     1.3
+    ],
+    "obj_x": [
+     0.07,
+     1.3
+    ],
+    "obj_z": [
+     0.04,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.099,
+    "err_rms_deg": 12.44,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.37,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.05,
+    "middle_pip_median": -15.68,
+    "middle_pip_target_median": -12.7,
+    "middle_mcp_median": 32.24
+   },
+   "wall_s": 4.3
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.119,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -6.0,
+     47.9
+    ],
+    "index": [
+     30.5,
+     -5.5,
+     19.8
+    ],
+    "middle": [
+     -4.6,
+     28.7,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.08,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.19,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     2.0
+    ],
+    "obj_x": [
+     0.11,
+     1.3
+    ],
+    "obj_z": [
+     0.07,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.119,
+    "err_rms_deg": 12.15,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.99,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.05,
+    "middle_pip_median": -14.97,
+    "middle_pip_target_median": -12.29,
+    "middle_mcp_median": 30.77
+   },
+   "wall_s": 4.8
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.114,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -5.7,
+     47.1
+    ],
+    "index": [
+     30.5,
+     -4.5,
+     17.7
+    ],
+    "middle": [
+     -4.9,
+     28.7,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.05,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.13,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     1.3
+    ],
+    "obj_z": [
+     0.05,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.114,
+    "err_rms_deg": 12.24,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.58,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.37,
+    "middle_pip_median": -15.57,
+    "middle_pip_target_median": -12.65,
+    "middle_mcp_median": 32.23
+   },
+   "wall_s": 4.0
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.135,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.1,
+     45.5
+    ],
+    "index": [
+     30.5,
+     -5.3,
+     18.0
+    ],
+    "middle": [
+     -5.3,
+     29.8,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.17,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.17,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.135,
+    "err_rms_deg": 11.94,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.93,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.02,
+    "middle_pip_median": -16.01,
+    "middle_pip_target_median": -14.21,
+    "middle_mcp_median": 34.21
+   },
+   "wall_s": 4.2
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.129,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -5.5,
+     47.3
+    ],
+    "index": [
+     30.5,
+     -4.6,
+     17.7
+    ],
+    "middle": [
+     -5.1,
+     29.7,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.2,
+     1.3
+    ],
+    "obj_x": [
+     0.12,
+     1.3
+    ],
+    "obj_z": [
+     0.08,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.129,
+    "err_rms_deg": 12.02,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.93,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.92,
+    "middle_pip_median": -16.04,
+    "middle_pip_target_median": -13.38,
+    "middle_mcp_median": 34.09
+   },
+   "wall_s": 4.2
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.135,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.0,
+     -4.5,
+     46.5
+    ],
+    "index": [
+     30.5,
+     -6.7,
+     20.5
+    ],
+    "middle": [
+     -5.0,
+     29.7,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.17,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.17,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.135,
+    "err_rms_deg": 11.94,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.99,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.15,
+    "middle_pip_median": -15.9,
+    "middle_pip_target_median": -13.98,
+    "middle_mcp_median": 34.33
+   },
+   "wall_s": 6.1
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.127,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -4.7,
+     47.1
+    ],
+    "index": [
+     30.4,
+     -5.4,
+     18.5
+    ],
+    "middle": [
+     -5.3,
+     29.5,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.15,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.16,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.127,
+    "err_rms_deg": 12.04,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.92,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.07,
+    "middle_pip_median": -15.91,
+    "middle_pip_target_median": -13.46,
+    "middle_mcp_median": 33.85
+   },
+   "wall_s": 4.9
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.102,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.1,
+     -4.8,
+     47.1
+    ],
+    "index": [
+     30.4,
+     -5.1,
+     18.2
+    ],
+    "middle": [
+     -5.0,
+     28.9,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.13,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.04,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     1.3
+    ],
+    "obj_x": [
+     0.05,
+     1.3
+    ],
+    "obj_z": [
+     0.03,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.102,
+    "err_rms_deg": 12.39,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.69,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.61,
+    "middle_pip_median": -15.74,
+    "middle_pip_target_median": -12.77,
+    "middle_mcp_median": 32.1
+   },
+   "wall_s": 5.3
+  },
+  {
+   "cand": "y+0_p4_t4",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.139,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -4.5,
+     46.1
+    ],
+    "index": [
+     30.5,
+     -4.8,
+     17.7
+    ],
+    "middle": [
+     -5.3,
+     30.1,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.16,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.139,
+    "err_rms_deg": 11.89,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.12,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.24,
+    "middle_pip_median": -15.89,
+    "middle_pip_target_median": -13.78,
+    "middle_mcp_median": 34.8
+   },
+   "wall_s": 4.7
+  },
+  {
+   "cand": "y+0_p2_t4",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.124,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -5.9,
+     47.8
+    ],
+    "index": [
+     30.5,
+     -5.3,
+     19.6
+    ],
+    "middle": [
+     -4.7,
+     29.4,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.15,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.03,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.18,
+     1.3
+    ],
+    "obj_x": [
+     0.11,
+     1.3
+    ],
+    "obj_z": [
+     0.07,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.124,
+    "err_rms_deg": 12.09,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 1.98,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.01,
+    "middle_pip_median": -15.73,
+    "middle_pip_target_median": -12.98,
+    "middle_mcp_median": 33.74
+   },
+   "wall_s": 6.4
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.116,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -3.3,
+     41.9
+    ],
+    "index": [
+     30.5,
+     -4.1,
+     17.3
+    ],
+    "middle": [
+     -4.8,
+     28.3,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.12,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.09,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.11,
+     0.7
+    ],
+    "obj_x": [
+     0.09,
+     0.7
+    ],
+    "obj_z": [
+     0.06,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.116,
+    "err_rms_deg": 12.2,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.78,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.62,
+    "middle_pip_median": -15.28,
+    "middle_pip_target_median": -12.53,
+    "middle_mcp_median": 31.71
+   },
+   "wall_s": 4.0
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.116,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -4.3,
+     42.9
+    ],
+    "index": [
+     30.5,
+     -3.4,
+     16.8
+    ],
+    "middle": [
+     -4.8,
+     28.5,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.12,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.09,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.15,
+     1.3
+    ],
+    "obj_x": [
+     0.11,
+     1.3
+    ],
+    "obj_z": [
+     0.07,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.116,
+    "err_rms_deg": 12.2,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.88,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 2.76,
+    "middle_pip_median": -15.32,
+    "middle_pip_target_median": -12.55,
+    "middle_mcp_median": 32.13
+   },
+   "wall_s": 4.1
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 5.0,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.123,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.6,
+     -2.6,
+     41.9
+    ],
+    "index": [
+     30.4,
+     -5.1,
+     18.3
+    ],
+    "middle": [
+     -5.2,
+     29.4,
+     -16.0
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.0,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.16,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.06,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.123,
+    "err_rms_deg": 12.11,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": -0.0,
+    "rise_mm": 1.97,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.09,
+    "middle_pip_median": -16.01,
+    "middle_pip_target_median": -14.31,
+    "middle_mcp_median": 33.98
+   },
+   "wall_s": 4.5
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 0,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.126,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -3.7,
+     42.6
+    ],
+    "index": [
+     30.5,
+     -3.9,
+     17.4
+    ],
+    "middle": [
+     -4.8,
+     28.5,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.08,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.19,
+     1.3
+    ],
+    "middle_fe1_joint": [
+     0.08,
+     1.3
+    ],
+    "obj_x": [
+     0.08,
+     0.7
+    ],
+    "obj_z": [
+     0.05,
+     0.7
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.126,
+    "err_rms_deg": 12.06,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.26,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.37,
+    "middle_pip_median": -14.94,
+    "middle_pip_target_median": -12.24,
+    "middle_mcp_median": 31.27
+   },
+   "wall_s": 5.5
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 2,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.127,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     19.2,
+     -3.2,
+     42.2
+    ],
+    "index": [
+     30.5,
+     -3.8,
+     17.0
+    ],
+    "middle": [
+     -4.9,
+     28.9,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.15,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.04,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.21,
+     1.3
+    ],
+    "obj_x": [
+     0.13,
+     1.3
+    ],
+    "obj_z": [
+     0.08,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.127,
+    "err_rms_deg": 12.04,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.23,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.32,
+    "middle_pip_median": -15.57,
+    "middle_pip_target_median": -12.87,
+    "middle_mcp_median": 33.69
+   },
+   "wall_s": 4.9
+  },
+  {
+   "cand": "y+0_p4_t8",
+   "volts": 7.5,
+   "seed": 1,
+   "stops": true,
+   "hos_plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+   "track": 0.129,
+   "held": null,
+   "error": null,
+   "grasp_joints": {
+    "thumb": [
+     18.7,
+     -2.4,
+     41.8
+    ],
+    "index": [
+     30.4,
+     -5.0,
+     18.3
+    ],
+    "middle": [
+     -5.2,
+     29.4,
+     -15.9
+    ]
+   },
+   "chatter": {
+    "middle_fe1_target": [
+     0.16,
+     0.7
+    ],
+    "middle_fe2_target": [
+     0.01,
+     0.7
+    ],
+    "middle_fe1_joint": [
+     0.17,
+     1.3
+    ],
+    "obj_x": [
+     0.1,
+     1.3
+    ],
+    "obj_z": [
+     0.07,
+     1.3
+    ]
+   },
+   "summary": {
+    "periods": 300,
+    "t_last": 6.0,
+    "error": null,
+    "track": 0.129,
+    "err_rms_deg": 12.02,
+    "ref_rms_deg": 13.8,
+    "window_periods": 175,
+    "held_t_end": true,
+    "held_end": true,
+    "drop_mm": 0.0,
+    "rise_mm": 2.16,
+    "t_low5_s": null,
+    "frames_refused": 0,
+    "periods_reference": 0,
+    "press_max_deg": 3.41,
+    "middle_pip_median": -15.93,
+    "middle_pip_target_median": -14.04,
+    "middle_mcp_median": 34.27
+   },
+   "wall_s": 5.0
+  }
+ ]
+}
