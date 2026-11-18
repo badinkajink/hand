@@ -35,9 +35,40 @@
    "yaw",
    "mcp",
    "pip"
+  ],
+  "both_mz": [
+   "yaw",
+   "mcp",
+   "pip",
+   "mx",
+   "my",
+   "mz"
+  ],
+  "both_tagz": [
+   "yaw",
+   "mcp",
+   "pip",
+   "mx",
+   "my",
+   "tz"
   ]
  },
- "units": "zeros in deg (added to the reading), mount in mm (added to the lab's mount in P), errors in mm (centre) and deg (normal)",
+ "shared_models": {
+  "none": [],
+  "dz": [
+   "dz"
+  ],
+  "dz_tilt": [
+   "dz",
+   "wx",
+   "wy"
+  ],
+  "dz_tagz": [
+   "dz",
+   "tz"
+  ]
+ },
+ "units": "zeros in deg (added to the reading); mount and tag offsets in mm (added to the lab's model in P); dz in mm, wx and wy in deg (applied to the model's prediction); errors in mm (centre) and deg (normal)",
  "sets": {
   "middle": {
    "runs": 18,
@@ -200,6 +231,58 @@
       -6.18,
       3.4
      ]
+    },
+    "both_mz": {
+     "params": {
+      "yaw": -1.59,
+      "mcp": 4.38,
+      "pip": 8.06,
+      "mx": -4.9,
+      "my": -0.69,
+      "mz": -2.56
+     },
+     "se": {
+      "yaw": 0.15,
+      "mcp": 0.8,
+      "pip": 0.81,
+      "mx": 0.23,
+      "my": 0.1,
+      "mz": 0.37
+     },
+     "centre_rms_mm": 0.38,
+     "normal_rms_deg": 0.8,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -0.0
+     ],
+     "loo_centre_rms_mm": 0.43
+    },
+    "both_tagz": {
+     "params": {
+      "yaw": -1.63,
+      "mcp": 15.73,
+      "pip": -3.29,
+      "mx": -8.46,
+      "my": -0.86,
+      "tz": 10.05
+     },
+     "se": {
+      "yaw": 0.18,
+      "mcp": 16.08,
+      "pip": 16.08,
+      "mx": 3.45,
+      "my": 0.12,
+      "tz": 10.23
+     },
+     "centre_rms_mm": 0.71,
+     "normal_rms_deg": 0.8,
+     "mean_err_mm": [
+      -0.0,
+      0.0,
+      -0.14
+     ],
+     "loo_centre_rms_mm": 0.89
     }
    }
   },
@@ -364,6 +447,58 @@
       -6.18,
       -3.4
      ]
+    },
+    "both_mz": {
+     "params": {
+      "yaw": 1.25,
+      "mcp": 0.12,
+      "pip": 8.87,
+      "mx": 5.22,
+      "my": -2.36,
+      "mz": -4.48
+     },
+     "se": {
+      "yaw": 0.22,
+      "mcp": 0.89,
+      "pip": 0.92,
+      "mx": 0.32,
+      "my": 0.15,
+      "mz": 0.39
+     },
+     "centre_rms_mm": 0.5,
+     "normal_rms_deg": 1.1,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      -0.0
+     ],
+     "loo_centre_rms_mm": 0.7
+    },
+    "both_tagz": {
+     "params": {
+      "yaw": 1.06,
+      "mcp": -5.52,
+      "pip": 14.51,
+      "mx": 1.97,
+      "my": -2.71,
+      "tz": 2.28
+     },
+     "se": {
+      "yaw": 0.36,
+      "mcp": 6.48,
+      "pip": 6.49,
+      "mx": 0.38,
+      "my": 0.25,
+      "tz": 3.38
+     },
+     "centre_rms_mm": 1.66,
+     "normal_rms_deg": 1.1,
+     "mean_err_mm": [
+      -0.0,
+      -0.0,
+      -0.56
+     ],
+     "loo_centre_rms_mm": 1.93
     }
    }
   },
@@ -532,6 +667,58 @@
       6.18,
       2.4
      ]
+    },
+    "both_mz": {
+     "params": {
+      "yaw": -0.2,
+      "mcp": -2.9,
+      "pip": 4.37,
+      "mx": 7.52,
+      "my": 1.95,
+      "mz": -3.87
+     },
+     "se": {
+      "yaw": 0.44,
+      "mcp": 2.61,
+      "pip": 2.64,
+      "mx": 1.4,
+      "my": 0.68,
+      "mz": 0.3
+     },
+     "centre_rms_mm": 2.9,
+     "normal_rms_deg": 1.56,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "loo_centre_rms_mm": 3.31
+    },
+    "both_tagz": {
+     "params": {
+      "yaw": -0.11,
+      "mcp": -4.47,
+      "pip": 5.9,
+      "mx": 7.27,
+      "my": 0.9,
+      "tz": -4.72
+     },
+     "se": {
+      "yaw": 0.31,
+      "mcp": 1.92,
+      "pip": 1.94,
+      "mx": 1.02,
+      "my": 0.51,
+      "tz": 0.23
+     },
+     "centre_rms_mm": 1.85,
+     "normal_rms_deg": 1.55,
+     "mean_err_mm": [
+      -0.0,
+      0.0,
+      0.24
+     ],
+     "loo_centre_rms_mm": 2.08
     }
    },
    "mount_fit_each_mount": {
@@ -706,7 +893,227 @@
       6.18,
       2.4
      ]
+    },
+    "both_mz": {
+     "params": {
+      "yaw": 2.81,
+      "mcp": -4.69,
+      "pip": 4.95,
+      "mx": 7.17,
+      "my": -1.24,
+      "mz": -0.01
+     },
+     "se": {
+      "yaw": 0.32,
+      "mcp": 1.2,
+      "pip": 1.24,
+      "mx": 0.63,
+      "my": 0.47,
+      "mz": 0.33
+     },
+     "centre_rms_mm": 1.59,
+     "normal_rms_deg": 0.75,
+     "mean_err_mm": [
+      0.0,
+      0.0,
+      -0.0
+     ],
+     "loo_centre_rms_mm": 1.88
+    },
+    "both_tagz": {
+     "params": {
+      "yaw": 2.91,
+      "mcp": -4.42,
+      "pip": 4.7,
+      "mx": 6.76,
+      "my": -1.43,
+      "tz": -0.38
+     },
+     "se": {
+      "yaw": 0.3,
+      "mcp": 1.14,
+      "pip": 1.2,
+      "mx": 0.73,
+      "my": 0.48,
+      "tz": 0.41
+     },
+     "centre_rms_mm": 1.59,
+     "normal_rms_deg": 0.73,
+     "mean_err_mm": [
+      0.0,
+      -0.0,
+      0.14
+     ],
+     "loo_centre_rms_mm": 1.87
     }
+   }
+  }
+ },
+ "shared": {
+  "none": {
+   "shared": {},
+   "shared_se": {},
+   "per_finger": {
+    "thumb": {
+     "yaw": -2.4,
+     "mcp": -2.95,
+     "pip": 4.4,
+     "mx": 7.55,
+     "my": 5.03
+    },
+    "index": {
+     "yaw": 1.07,
+     "mcp": -10.02,
+     "pip": 19.0,
+     "mx": 1.75,
+     "my": -2.73
+    },
+    "middle": {
+     "yaw": -1.63,
+     "mcp": -1.08,
+     "pip": 13.52,
+     "mx": -6.45,
+     "my": -0.87
+    }
+   },
+   "centre_rms_mm": {
+    "thumb": 4.39,
+    "index": 1.67,
+    "middle": 0.71
+   },
+   "loo_centre_rms_mm": {
+    "thumb": 4.89,
+    "index": 1.93,
+    "middle": 0.8
+   }
+  },
+  "dz": {
+   "shared": {
+    "dz": -3.86
+   },
+   "shared_se": {
+    "dz": 0.2
+   },
+   "per_finger": {
+    "thumb": {
+     "yaw": -0.21,
+     "mcp": -2.9,
+     "pip": 4.37,
+     "mx": 7.52,
+     "my": 1.96
+    },
+    "index": {
+     "yaw": 1.23,
+     "mcp": -1.2,
+     "pip": 10.19,
+     "mx": 4.81,
+     "my": -2.41
+    },
+    "middle": {
+     "yaw": -1.57,
+     "mcp": 7.04,
+     "pip": 5.4,
+     "mx": -4.24,
+     "my": -0.59
+    }
+   },
+   "centre_rms_mm": {
+    "thumb": 2.9,
+    "index": 0.55,
+    "middle": 0.49
+   },
+   "loo_centre_rms_mm": {
+    "thumb": 3.29,
+    "index": 0.64,
+    "middle": 0.54
+   }
+  },
+  "dz_tilt": {
+   "shared": {
+    "dz": -4.23,
+    "wx": -0.54,
+    "wy": 1.06
+   },
+   "shared_se": {
+    "dz": 0.25,
+    "wx": 0.41,
+    "wy": 0.4
+   },
+   "per_finger": {
+    "thumb": {
+     "yaw": 0.16,
+     "mcp": -2.31,
+     "pip": 4.74,
+     "mx": 8.07,
+     "my": 2.23
+    },
+    "index": {
+     "yaw": 1.67,
+     "mcp": 2.12,
+     "pip": 5.88,
+     "mx": 6.46,
+     "my": -2.29
+    },
+    "middle": {
+     "yaw": -1.16,
+     "mcp": 6.56,
+     "pip": 4.86,
+     "mx": -3.74,
+     "my": -0.63
+    }
+   },
+   "centre_rms_mm": {
+    "thumb": 2.86,
+    "index": 0.55,
+    "middle": 0.41
+   },
+   "loo_centre_rms_mm": {
+    "thumb": 3.22,
+    "index": 0.67,
+    "middle": 0.46
+   }
+  },
+  "dz_tagz": {
+   "shared": {
+    "dz": -0.61,
+    "tz": -4.16
+   },
+   "shared_se": {
+    "dz": 0.32,
+    "tz": 0.35
+   },
+   "per_finger": {
+    "thumb": {
+     "yaw": -0.02,
+     "mcp": -4.31,
+     "pip": 5.74,
+     "mx": 7.31,
+     "my": 0.88
+    },
+    "index": {
+     "yaw": 1.1,
+     "mcp": -8.55,
+     "pip": 17.53,
+     "mx": 2.29,
+     "my": -2.68
+    },
+    "middle": {
+     "yaw": -1.62,
+     "mcp": 0.25,
+     "pip": 12.19,
+     "mx": -6.05,
+     "my": -0.83
+    }
+   },
+   "centre_rms_mm": {
+    "thumb": 1.95,
+    "index": 1.46,
+    "middle": 0.6
+   },
+   "loo_centre_rms_mm": {
+    "thumb": 2.48,
+    "index": 1.84,
+    "middle": 0.69
    }
   }
  }

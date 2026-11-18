@@ -56,9 +56,11 @@ air and then against a force sensor. Contact and the blind validation trials nee
   the finger's board. One joint per finger: thumb MCP, index MCP and middle MCP, then the PIPs if time allows. Output:
   force against target offset. The workstation converts it to torque against offset (the gain in N m/rad), the dead
   band under load and the load at the overload trip, and compares each board's normal force with the HEX-E (W2).
-  Prediction for the index and middle yaws, first in the owner's order (W2, 11-18 12:0x): from first contact the
-  reading advances about 1.6 deg per newton at the pad (4 deg at about 2.4 N), while the pad stays on the block. Where
-  the pressing finger's DIP tag is in view, record it: it shows where the chain gives.
+  Prediction for the index and middle yaws, first in the owner's order (W2, 11-18 12:0x): with the pad on the block,
+  the reading advances about 4 deg past first contact by the time the target is 14-15 deg past the reading, as in the
+  night's squeezes. The force there is about 1.0 N if the gear passes 0.4 of the servo's torque (the clutch plant), and
+  2.4 N if it passes all of it; the index board read 0.6-1.6 N. Where the pressing finger's DIP tag is in view, record
+  it: it shows where the chain gives.
 - S4 (with the owner, next session). Contact on the hand, three trials each.
   (a) Pick-up of the press cylinder and of the taped sphere, then a slow opening of the pinch over 4-6 s above a catch
   box, the tags and the boards recording. The object's angle about the pinch line against the normal force gives the
@@ -146,12 +148,18 @@ air and then against a force sensor. Contact and the blind validation trials nee
   and 9.1 deg. Its mount alone, moved (+8.5, -2.5) mm, leaves 1.81 mm and the 9 deg. Zeros and mount together leave
   1.67 mm (1.93 left out), with an MCP zero of -10.0 deg and a PIP zero of +19.0; a PIP zero alone leaves 3.7 mm. The
   thumb (13 poses at its home and stepped mounts, 27 runs; yaw -30 to 29, MCP -7 to 23, PIP 0-30) missed by 8.67 mm,
-  and every model leaves 4.4-6.0 mm. Its tag sits 3.5-5.5 mm below the model at every pose. In last night's rows it sat
-  0.7 mm above, and the same fit left 1.59 mm. The mount fitted at each gantry place moved (6.98, 1.52) and (6.79,
-  1.95) mm, so the 12 mm step came out as commanded. The fitted mounts' x agrees with the station's own coordinates
-  (frames.json's box_minus_nominal_mm, 6.18 mm, not added) for the thumb (+6.9 mm, and +5.1 last night) and the middle
-  (-6.0), not for the index. As the lab notes, these poses cannot separate zero offsets from pots that read low near the
-  top of their range.
+  and every model of zeros and mount leaves 4.4-6.0 mm. Its tag sits 3.5-5.5 mm below the model at every pose. In last
+  night's rows it sat 0.7 mm above, and the same fit left 1.59 mm. The mount fitted at each gantry place moved (6.98,
+  1.52) and (6.79, 1.95) mm, so the 12 mm step came out as commanded. A height offset shared by the three fingers
+  explains most of the rest (12:3x). Fitted together, with each finger's zeros and mount, the tags sit 3.86 mm (+-0.20)
+  below the model. The index then fits to 0.55 mm (0.64 left out) and the middle to 0.49 mm (0.54). Their readings
+  fall short of the tags' flexion by about 9 and 12 deg, split between the MCP and the PIP differently in each model;
+  the mounts move 4.8 mm (index) toward +x and 4.2 mm (middle) toward -x. The thumb still misses by 2.90 mm. With its
+  tag moved 4.7 mm along the finger, away from the PIP axis, it fits to 1.85 mm; last night's rows give -0.4 mm for the
+  same shift. On the lab's camera-only heights the cameras agree within 1-2 mm across the two days, so the 3.9 mm more likely
+  comes from the arm's pose, read with the arm off at its new low pose, or from P's frame there. To check on the hand:
+  the thumb's DIP sticker and DIP link. As the lab notes, these poses cannot separate zero offsets from pots that read
+  low near the top of their range.
 - W2, the pads on the sphere at the night's grasps (11-18 12:0x). For the 20 scored g0 twists, the replay plant was
   set to the hand's measured joints and the tracked sphere, as built (`sim/20261118-grasp_pad_gap.py`,
   `data/20261118-grasp_pad_gap.json`). The gap is the least distance from a pad's surface to the sphere's (negative:
