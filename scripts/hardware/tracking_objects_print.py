@@ -1021,6 +1021,309 @@ def write_joint_readme(rep):
     (J_OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
+# The larger objects (owner, 2026-11-17: "prepare these but with a larger diameter sphere, cylinder, since our current
+# ones aren't broken yet"; "a sphere and cylinder print job ready to go, using just a single pla filament (i will glue on
+# a paper apriltag onto the cylinder ends if it turns out being crucial)"): object_tracking_mjcf.OBJECT_SETS["large"],
+# the 45 mm cylinder without end tags and the 67 mm sphere, with the same cotter joint. The cotters are longer, so that
+# their ends lie as far inside the large cylinder's surface as on the 25 mm one. The bodies, the upper hemisphere, the
+# dowels and the cotters print in white on one plate; the blocks and stems wait for the modular block (same message).
+L_DATE = "20261117"
+L_OUT = ROOT / f"assets/tracking/{L_DATE}-large_objects"
+L_COT_ENDS = (-9.9, 9.9)            # mm: 2.05 mm inside the 45 mm cylinder's surface at the slot floor, as on the 25 mm one
+L_PARTS = {"cylinder": "cylinder body 45 mm (43.4 mm printed for the tape), no end tags, with the joint's socket and slot",
+           "sphere_lower": "sphere 67 mm, lower hemisphere with the joint's socket and slot",
+           "sphere_upper": "sphere 67 mm, upper hemisphere",
+           "sphere_pin": "dowel pin of the sphere (print three)",
+           "cotter_thin": "cotter 0.25 mm thinner, one dimple",
+           "cotter_mid": "cotter, two dimples",
+           "cotter_thick": "cotter 0.25 mm thicker, three dimples"}
+L_PRINT = {"cylinder": "standing on its -z end", "sphere_lower": "flat side down, the socket on top",
+           "sphere_upper": "flat side down", "sphere_pin": "standing; print three",
+           "cotter_thin": "on its side, dimples up", "cotter_mid": "on its side, dimples up",
+           "cotter_thick": "on its side, dimples up"}
+L_PLACE = {"cylinder": (55.0, 60.0), "sphere_lower": (140.0, 60.0), "sphere_upper": (140.0, 150.0),
+           "sphere_pin": [(40.0, 120.0), (55.0, 120.0), (70.0, 120.0)]}
+L_COTTERS = [(40.0 + 28.0 * i, 160.0 + 12.0 * j) for j in range(2) for i in range(3)]
+L_FILAMENT, L_COLOURS = {"white": 1, "black": 2}, ["#FFFFFF", "#000000"]   # one spool, filament 1
+# the 67 mm sphere's joint turned 180 deg about the stem: its cotter enters at -z_O, where no finger touched the replayed
+# rollouts within 10 mm of the opening; at +z_O, the 40 mm sphere's entry, fingers touched it (20261117-opening_touches)
+L_J_B = {"sphere": np.array([[0, -1.0, 0], [1.0, 0, 0], [0, 0, 1.0]])}
+L_INFILL = (("gyroid", 0), ("gyroid", 5), ("gyroid", 10), ("lightning", 10), ("lightning", 20))   # sliced per body
+
+
+def use_set(name):
+    """Select an object set: its objects and block ids (object_tracking_mjcf.select) and, for the large set, the joint's
+    folder, report and cotter length."""
+    global J_DATE, J_OUT, J_REPORT, COT_ENDS
+    OM.select(name)
+    if name == "large":
+        J_DATE, J_OUT, COT_ENDS = L_DATE, L_OUT, L_COT_ENDS
+        J_REPORT = J_OUT / f"{J_DATE}-large_objects.json"
+        J_B.update(L_J_B)
+
+
+def large_parts():
+    """{name: (white, None, frame, T)} of the large set's parts in their print frames, as joint_parts."""
+    out = {}
+    L = OM.OBJECTS["cylinder"]["length_mm"]
+    Rc, Rs, Ru = R_PRINT["cylinder"], R_PRINT["sphere_lower"], R_PRINT["sphere_upper"]
+    low, up, pin = sphere_halves(joint=True)
+    out["cylinder"] = (cylinder_body((), joint=True)[0], None, "cylinder", inverse(Rc, (0.0, 0.0, L / 2)))
+    out["sphere_lower"] = (low, None, "sphere", inverse(Rs, (0.0, 0.0, 0.0)))
+    out["sphere_upper"] = (up, None, "sphere", inverse(Ru, (0.0, 0.0, 0.0)))
+    out["sphere_pin"] = (pin, None, "pin", m4(np.eye(3)))
+    R_tp = np.array([[1.0, 0, 0], [0, 0, -1.0], [0, 1.0, 0]])         # x = w, y = -u, z = v: lying on -v
+    for name, size in COT_SIZES.items():
+        m, t = centred(cotter(size, DIMPLES[name]).transform(m4(R_tp)))
+        out[f"cotter_{name}"] = (m, None, "J", inverse(R_tp, t))
+    return out
+
+
+def cmd_large_build(a):
+    J_OUT.mkdir(parents=True, exist_ok=True)
+    stem = json.loads((ROOT / "docs/experiments/20261105-object_tracking_sim/rows/stem_large.json").read_text())
+    rep = {"what": "the larger tracked cylinder and sphere with the cotter joint (owner, 2026-11-17)",
+           "script": "scripts/hardware/tracking_objects_print.py --set large large", "objects": OM.OBJECTS,
+           "entry": {s: "".join(f"{'+-'[int(c < 0)]}{'xyz'[i]}_O" for i, c in enumerate(OM.R_OB @ J_B[s][:, 0]) if c)
+                     for s in ("cylinder", "sphere")},
+           "ids": OM.IDS, "stem_rows": "docs/experiments/20261105-object_tracking_sim/rows/stem_large.json",
+           "stem_sets": stem["sets"], "stem_mm": stem["stem_mm"], "cotter_ends_mm": COT_ENDS,
+           "seat": {s: dict(zip(("printed_r_mm", "flat_depth_mm", "seat_y_mm"), map(lambda x: round(x, 3), seat(s))))
+                    for s in ("cylinder", "sphere")},
+           "parts": {}, "checks": {}}
+    if J_REPORT.exists():
+        old = json.loads(J_REPORT.read_text())
+        rep.update({k: old[k] for k in ("bambu", "mass_slices", "check_ok") if k in old})
+    ok = True
+    for name, (w, b, frame, T) in large_parts().items():
+        info = rep["parts"][name] = {"what": L_PARTS[name], "print": L_PRINT[name],
+                                     "print_to": {"frame": frame, "T": np.round(T, 6).tolist()}}
+        ok &= export_part(info, w, b, lambda c, n=name: joint_stl(n, c))
+    for shape in ("cylinder", "sphere"):
+        rep["checks"][shape] = joint_checks(shape)
+        ok &= rep["checks"][shape]["ok"] and rep["checks"][shape]["turned_stops_out_mm"] is not None
+        print(shape, {k: v for k, v in rep["checks"][shape].items() if k not in ("rows", "turned_overlap_mm3")}, flush=True)
+    # the joint's stem (taper and post) is that of 2026-11-16: the same male() in the same frame J
+    rep["ok"] = bool(ok)
+    J_REPORT.write_text(json.dumps(rep, indent=1))
+    write_large_readme(rep)
+    print("wrote", J_REPORT.relative_to(ROOT), "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+def large_items(names):
+    items = []
+    for n in names:
+        if n == "sphere_pin":
+            items += [{"name": f"sphere_pin_{k + 1}", "white": joint_stl(n), "black": None, "place": xy}
+                      for k, xy in enumerate(L_PLACE[n])]
+        elif n.startswith("cotter_"):
+            k = list(COT_SIZES).index(n[len("cotter_"):])
+            items += [{"name": f"{n}_{j + 1}", "white": joint_stl(n), "black": None, "place": L_COTTERS[k + 3 * j]}
+                      for j in range(2)]
+        else:
+            items.append({"name": n, "white": joint_stl(n), "black": None, "place": L_PLACE[n]})
+    return items
+
+
+def cmd_large_bambu(a):
+    """The plate in white on filament 1, and each body sliced alone at the infills L_INFILL (pattern, %) for its mass."""
+    work = ROOT / f"logs/{J_DATE}-large_objects"
+    rep = json.loads(J_REPORT.read_text())
+    if not a.only or a.only == "mass":
+        sl = {}
+        for body, names in (("cylinder", ["cylinder"]), ("sphere", ["sphere_lower", "sphere_upper", "sphere_pin"])):
+            for pat, dens in L_INFILL:
+                key = f"{pat}_{dens}"
+                q = OP.bambu_project(large_items(names), work / f"mass_{body}_{key}.3mf", work / f"mass_{body}_{key}",
+                                     f"{body} at {dens} % {pat}", tower=TOWER, colours=L_COLOURS, filament=L_FILAMENT,
+                                     extra={"sparse_infill_pattern": pat, "sparse_infill_density": f"{dens}%"})
+                sl.setdefault(body, {})[key] = {"used_g": q["used_g"].get(str(L_FILAMENT["white"])),
+                                                "hours": round(q["prediction_s"] / 3600, 2)}
+                print(body, key, sl[body][key], flush=True)
+        rep["mass_slices"] = sl
+    if not a.only or a.only == "bambu":
+        pat, dens = a.infill.split(":")
+        project = J_OUT / f"{J_DATE}-large_objects_p1s.3mf"
+        q = OP.bambu_project(large_items(list(L_PARTS)), project, work / "bambu", "large objects", tower=TOWER,
+                             colours=L_COLOURS, filament=L_FILAMENT,
+                             extra={"sparse_infill_pattern": pat, "sparse_infill_density": f"{dens}%"})
+        q["problems"] = [x for x in q["problems"] if not x.startswith("filaments loaded")]
+        q["reslice"] = reslice(project, work / "bambu_reslice")
+        if [k for k in q["reslice"]["loads"] if k != str(L_FILAMENT["white"])]:
+            q["problems"].append(f"re-slice loads {q['reslice']['loads']}")
+        q["infill"] = {"pattern": pat, "density_pct": float(dens)}
+        rep["bambu"] = q
+        print(f"{project.relative_to(ROOT)}: {q['reslice']['hours']:.1f} h, {q['layers']} layers, loads "
+              f"{q['reslice']['loads']}, used {q['reslice']['used_g']} g; problems: {q['problems'] or 'none'}")
+    J_REPORT.write_text(json.dumps(rep, indent=1))
+    write_large_readme(rep)
+    if rep.get("bambu", {}).get("problems"):
+        raise SystemExit(1)
+
+
+L_ROLLOUTS = ROOT / "docs/experiments/20261105-object_tracking_sim/rows/rollouts_large.jsonl"
+TASK_NAME = {"twist": "twist", "roll": "roll", "pinpush": "pin-push", "press": "press"}
+
+
+def large_rollouts():
+    """Per task and configuration over the large set's rollouts (object_tracking_rollouts.py --set large run): rollouts,
+    layouts, mean score and held share in the study's scene (base), on the flat seat (flat) and in the seat's pocket
+    (built), and on the seats the smallest finger distance to the stem and block and the block's lowest height over the
+    seat after the lift; None before the run."""
+    if not L_ROLLOUTS.exists():
+        return None
+    rows = {}
+    for x in L_ROLLOUTS.read_text().splitlines():         # the last row of a rollout run twice
+        r = json.loads(x) if x.strip() else {}
+        if r.get("status") == "ok":
+            rows[(r["task"], r["call"], r["config"], r["seed"])] = r
+    rows = list(rows.values())
+    out = {}
+    for task in ("twist", "roll", "pinpush", "press"):
+        t = {}
+        for cfg in ("base", "flat", "built"):
+            rr = [r for r in rows if r["task"] == task and r["config"] == cfg]
+            if rr:
+                t[cfg] = {"n": len(rr), "layouts": len({r["call"] for r in rr}),
+                          "score": round(float(np.mean([r["score"] for r in rr])), 3),
+                          "held": round(float(np.mean([bool(r["held"]) for r in rr])), 3)}
+        for cfg in ("flat", "built"):
+            bb = [r for r in rows if r["task"] == task and r["config"] == cfg]
+            if bb:
+                t[cfg].update(clear_min_mm=round(min(r["clear_min_mm"] for r in bb), 2),
+                              seat_clear_min_mm=round(min(r["seat_clear_min_mm"] for r in bb), 2))
+        out[task] = t
+    return out
+
+
+def write_large_readme(rep):
+    P, C, o, sm = rep["parts"], rep["checks"], rep["objects"], rep["stem_mm"]
+    cc, cs = C["cylinder"], C["sphere"]
+    L = [f"# Larger tracked cylinder and sphere with the cotter joint, {J_DATE}",
+         "",
+         "The tracked objects at the size-ranking test's large sizes (`scripts/hom/hom_size_rank.py`), a 45 mm x 100 mm "
+         "cylinder and a 67 mm sphere, each held on its tag block by the cotter joint of "
+         "`assets/tracking/20261116-cotter_joint/` (owner, 2026-11-17: \"prepare these but with a larger diameter "
+         "sphere, cylinder, since our current ones aren't broken yet\"). The owner asked for one print job in a single "
+         "PLA filament: \"i will glue on a paper apriltag onto the cylinder ends if it turns out being crucial\". "
+         "Written by `scripts/hardware/tracking_objects_print.py --set large large build|bambu`. The tag blocks and "
+         "their stems are not here; they wait for the modular block and stem that the same message asked for.",
+         "",
+         "| Part | File | Print |",
+         "|---|---|---|"]
+    for name in L_PARTS:
+        L.append(f"| {P[name]['what']} | `{Path(P[name]['white']['file']).name}` | {P[name]['print']} |")
+    L += ["",
+          f"Geometry. The cylinder prints at {2 * rep['seat']['cylinder']['printed_r_mm']:.1f} mm, "
+          f"{o['cylinder']['length_mm']:g} mm long, so {o['cylinder']['tape_mm']:g} mm grip tape brings it to "
+          f"{2 * o['cylinder']['r_mm']:g} mm. Its end faces are bare and flat, "
+          f"{2 * rep['seat']['cylinder']['printed_r_mm']:.1f} mm across, for paper tags. The sphere is "
+          f"{2 * o['sphere']['r_mm']:g} mm and bare, printed as two hemispheres joined by three dowels "
+          f"{PIN_R:g} mm from its axis. The flat seat is {SEAT_D:g} mm across and lies "
+          f"{rep['seat']['cylinder']['flat_depth_mm']:.2f} mm (cylinder) and {rep['seat']['sphere']['flat_depth_mm']:.2f} "
+          "mm (sphere) below the printed surface.",
+          "",
+          "Joint. The socket, its slot and the stem's taper and post are those of 2026-11-16. The cotter enters on "
+          "the cylinder's -x side, as on the 25 mm cylinder. On the sphere the joint is turned 180 deg about the stem, "
+          "so its cotter enters on the -z side: in the replayed rollouts fingers touched the 67 mm sphere at the +z "
+          "opening (see below). The slot reaches the surface further from the stem on the larger objects, so the cotters are "
+          f"{COT_ENDS[1] - COT_ENDS[0]:g} mm long in place of 13.7 mm. At its nominal place each end of a cotter lies "
+          f"{cc['end_recess_mm'][1]:.2f} mm inside the cylinder's surface and {cs['end_recess_mm'][1]:.2f} mm inside the "
+          "sphere's. Their thickness along the taper is unchanged, so the fit coupons of 2026-11-16 test this joint "
+          "too, and the cotter that fits a coupon fits these objects.",
+          "",
+          f"Stems and blocks. The block's top is to lie {sm['cylinder']:g} mm (cylinder) and {sm['sphere']:g} mm "
+          "(sphere) below the object's taped or bare surface, against 35.6 and 25.7 mm on the smaller objects. These "
+          "lengths put the block 15 mm below the lowest finger point at the open and touch poses of the ten best layouts "
+          "per task in the HOM grids at these sizes (`grid2dff_v4b_sv25r`: the SCS0009 plant, 2.5 MPa pads; "
+          "`object_tracking_rollouts.py --set large stem`). The blocks bear ids "
+          f"{rep['ids']['cylinder'][0]}-{rep['ids']['cylinder'][-1]} (cylinder) and "
+          f"{rep['ids']['sphere'][0]}-{rep['ids']['sphere'][-1]} (sphere), so the tracker tells them from the smaller "
+          "objects' blocks (`object_tracking_mjcf.OBJECT_SETS`).",
+          "",
+          "Checks. In the CAD assembly the stem's end, the object and the cotter share 0 mm3 on both objects. The shared "
+          "volume is 0 at the cotter's nominal place and at both ends of its travel, for each of the three cotters. Over "
+          f"its travel each end stays {min(cc['end_recess_mm']):.2f} to {max(cc['end_recess_mm']):.2f} mm inside the "
+          f"cylinder's surface and {min(cs['end_recess_mm']):.2f} to {max(cs['end_recess_mm']):.2f} mm inside the "
+          f"sphere's. A stem turned by 180 deg stops {cc['turned_stops_out_mm']:g} mm short of its seat."]
+    ro = large_rollouts()
+    if ro:
+        n = sum(t[c]["n"] for t in ro.values() for c in t)
+        lay = sum(t["base"]["layouts"] for t in ro.values() if "base" in t)
+        L += ["",
+              f"Rollouts. Each of the {lay} layouts above ran its task with its best grasp at seeds 20-24 in three "
+              "scenes: the study's (a 3 mm post under the object until 1.6 s), and the object on its stem and block "
+              "with the block on a flat seat or in the seat's 4 mm pocket, the arm lifting the hand 40 mm at 1.6 s "
+              f"(`object_tracking_rollouts.py --set large run`, {n} rollouts on the SCS0009 plant, CPU MuJoCo). Scores "
+              "are means; the finger distance to the stem or block is capped at 10 mm, the range of the contact query.",
+              "",
+              "| Task | Object | Layouts | Score, study's scene | Score, flat seat | Score, pocket seat | Held, pocket seat | Nearest finger, flat seat (mm) | Nearest finger, pocket seat (mm) |",
+              "|---|---|---|---|---|---|---|---|---|"]
+        for task, t in ro.items():
+            if not {"base", "flat", "built"} <= set(t):
+                continue
+            obj = (f"{2 * o['sphere']['r_mm']:g} mm sphere" if task in ("twist", "roll")
+                   else f"{2 * o['cylinder']['r_mm']:g} mm cylinder")
+            L.append(f"| {TASK_NAME[task]} | {obj} | {t['base']['layouts']} | {t['base']['score']:.2f} | "
+                     f"{t['flat']['score']:.2f} | {t['built']['score']:.2f} | {100 * t['built']['held']:.0f} % | "
+                     f"{t['flat']['clear_min_mm']:.1f} | {t['built']['clear_min_mm']:.1f} |")
+        L += ["",
+              "On the flat seat the scores stay within 0.02 of the study's scene, except the pin-push (0.08 lower). In "
+              "the pocket the press loses 0.27, as on the 25 mm cylinder, where the series uses the flat seat. The "
+              "twist's nearest finger came at its fourth layout, (150, 70): late in the twist the middle finger came "
+              "within 1.1 mm of the stem or block on the flat seat and 0.3 mm in the pocket, without touching. At the "
+              "other layouts no finger came within 9 mm. The stem's length can change with the modular stem without "
+              "reprinting the sphere."]
+    tm = J_OUT / f"{J_DATE}-opening_touches.json"
+    if tm.exists():
+        t = json.loads(tm.read_text())
+        op = {(x["shape"], x["opening"]): x for x in t["openings"]}
+        L += ["",
+              f"Finger contacts near the openings. The rollouts on the two seats were replayed "
+              f"({t['n_rollouts']['cylinder']} on the cylinder, {t['n_rollouts']['sphere']} on the sphere; "
+              f"`object_tracking_rollouts.py --set large touchmap`) and every finger contact within {t['touch_mm']:g} mm "
+              "of the object's surface recorded. The "
+              f"nearest contacts were {op[('cylinder', 'entry')]['min_mm']:.1f} mm (entry) and "
+              f"{op[('cylinder', 'far')]['min_mm']:.1f} mm (far opening) on the cylinder, and "
+              f"{op[('sphere', 'entry')]['min_mm']:.1f} and {op[('sphere', 'far')]['min_mm']:.1f} mm on the sphere. "
+              f"Rollouts with a contact within {t['near_mm']:g} mm of an opening: "
+              f"{op[('cylinder', 'entry')]['near']} and {op[('cylinder', 'far')]['near']} of "
+              f"{t['n_rollouts']['cylinder']} on the cylinder, {op[('sphere', 'entry')]['near']} and "
+              f"{op[('sphere', 'far')]['near']} of {t['n_rollouts']['sphere']} on the sphere."]
+    if "mass_slices" in rep:
+        ms = rep["mass_slices"]
+        keys = list(ms["cylinder"])
+        L += ["",
+              "Mass. The simulations take each object with its block, stem and tape as 25 g. Each body was sliced alone "
+              "in the plate's process (0.20 mm Standard, two walls) at five infills, the sphere with its dowels:",
+              "",
+              "| Infill | Cylinder body (g) | Sphere, halves and dowels (g) |",
+              "|---|---|---|"]
+        for k in keys:
+            pat, d = k.split("_")
+            L.append(f"| {d} % {pat} | {ms['cylinder'][k]['used_g']:.1f} | {ms['sphere'][k]['used_g']:.1f} |")
+        L += ["",
+              "Lightning infill supports only the top faces, so it adds 1.5 g (cylinder) and 1.9 g (sphere) to the empty "
+              "bodies; gyroid adds 1.8 to 1.9 g per percent. With the block (3 g in the plan), a stem of about 1 g and a "
+              f"cotter of {P['cotter_mid']['solid_pla_g']} g, the cylinder at 20 % lightning comes to about "
+              f"{ms['cylinder']['lightning_20']['used_g'] + 4.2:.0f} g before its tape and the sphere to about "
+              f"{ms['sphere']['lightning_20']['used_g'] + 4.2:.0f} g. The sphere is above 25 g even with no infill. "
+              "Weigh each assembled object; the simulation takes the measured mass."]
+    if "bambu" in rep:
+        q = rep["bambu"]
+        rs = q["reslice"]
+        L += ["",
+              f"Bambu Studio project `{Path(q['project']).name}`: the cylinder body, both hemispheres, three dowels and "
+              f"two cotters of each size, in white on filament 1, {q['infill']['density_pct']:g} % "
+              f"{q['infill']['pattern']} infill. The saved project, sliced again by the command line: "
+              f"{rs['hours']:.1f} h, {rs['used_g'][str(L_FILAMENT['white'])]:.1f} g, one filament and no prime tower. "
+              "Map filament 1 to the white spool when sending. Not in git; `tracking_objects_print.py --set large large "
+              "bambu` rebuilds it."]
+    (J_OUT / "README.md").write_text("\n".join(L) + "\n")
+
+
 def write_readme(rep):
     P, sc, o = rep["parts"], rep["seat"], OM.OBJECTS
     blk = {s: OM.BLOCK_G + P[f"{s}_block"]["stem_solid_g"] for s in ("cylinder", "sphere")}
@@ -1114,11 +1417,16 @@ def write_readme(rep):
     if J_OUT.exists():
         L += ["", "Third version (owner, 2026-11-16), the blocks held without glue by a cotter joint, with a new cylinder "
                   f"body and lower hemisphere: `{J_OUT.relative_to(ROOT)}/`."]
+    if L_OUT.exists():
+        L += ["", "Larger objects (owner, 2026-11-17), a 45 mm cylinder and a 67 mm sphere with the cotter joint, on one "
+                  f"plate in white: `{L_OUT.relative_to(ROOT)}/`."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--set", choices=sorted(OM.OBJECT_SETS), default="20261112",
+                    help="the objects: those printed on 2026-11-12, or the larger ones of 2026-11-17")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("build")
     p = sub.add_parser("check")
@@ -1133,7 +1441,17 @@ def main():
     p.add_argument("step", choices=("build", "check", "bambu"))
     p.add_argument("--preview")
     p.add_argument("--only", choices=("bambu", "bambu_coupons"), help="bambu: one of the two projects")
+    p = sub.add_parser("large", help=f"the larger objects with the cotter joint ({L_OUT.relative_to(ROOT)}); needs --set large")
+    p.add_argument("step", choices=("build", "bambu"))
+    p.add_argument("--only", choices=("mass", "bambu"), help="bambu: the bodies' mass slices or the plate")
+    p.add_argument("--infill", default="lightning:10", help="bambu: the plate's infill, PATTERN:PERCENT")
     a = ap.parse_args()
+    use_set(a.set)
+    if a.cmd == "large":
+        if a.set != "large":
+            raise SystemExit("large: run with --set large")
+        {"build": cmd_large_build, "bambu": cmd_large_bambu}[a.step](a)
+        return
     if a.cmd == "joint":
         {"build": cmd_joint_build, "check": cmd_joint_check, "bambu": cmd_joint_bambu}[a.step](a)
         return

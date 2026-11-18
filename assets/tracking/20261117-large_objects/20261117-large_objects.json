@@ -1,0 +1,1024 @@
+{
+ "what": "the larger tracked cylinder and sphere with the cotter joint (owner, 2026-11-17)",
+ "script": "scripts/hardware/tracking_objects_print.py --set large large",
+ "objects": {
+  "cylinder": {
+   "r_mm": 22.5,
+   "stem_mm": 31.0,
+   "length_mm": 100.0,
+   "tape_mm": 0.8,
+   "end_ids": []
+  },
+  "sphere": {
+   "r_mm": 33.5,
+   "stem_mm": 16.7,
+   "tape_mm": 0.0
+  }
+ },
+ "entry": {
+  "cylinder": "-x_O",
+  "sphere": "-z_O"
+ },
+ "ids": {
+  "cylinder": [
+   32,
+   33,
+   34,
+   35,
+   36,
+   37
+  ],
+  "sphere": [
+   38,
+   39,
+   40,
+   41,
+   42,
+   43
+  ]
+ },
+ "stem_rows": "docs/experiments/20261105-object_tracking_sim/rows/stem_large.json",
+ "stem_sets": [
+  "grid2dff_v4b_sv25r at {'twist': 67.0, 'roll': 67.0, 'pinpush': 45.0, 'press': 45.0}: top 10 per task by tracking score"
+ ],
+ "stem_mm": {
+  "cylinder": 31.0,
+  "sphere": 16.7
+ },
+ "cotter_ends_mm": [
+  -9.9,
+  9.9
+ ],
+ "seat": {
+  "cylinder": {
+   "printed_r_mm": 21.7,
+   "flat_depth_mm": 0.584,
+   "seat_y_mm": -21.116
+  },
+  "sphere": {
+   "printed_r_mm": 33.5,
+   "flat_depth_mm": 0.375,
+   "seat_y_mm": -33.125
+  }
+ },
+ "parts": {
+  "cylinder": {
+   "what": "cylinder body 45 mm (43.4 mm printed for the tape), no end tags, with the joint's socket and slot",
+   "print": "standing on its -z end",
+   "print_to": {
+    "frame": "cylinder",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      -50.0
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 147449.714,
+    "black": 0.0
+   },
+   "solid_pla_g": 182.84,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-cylinder_white.stl",
+    "triangles": 1410,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -21.7,
+      -21.7,
+      0.0
+     ],
+     [
+      21.7,
+      21.7,
+      100.0
+     ]
+    ]
+   }
+  },
+  "sphere_lower": {
+   "what": "sphere 67 mm, lower hemisphere with the joint's socket and slot",
+   "print": "flat side down, the socket on top",
+   "print_to": {
+    "frame": "sphere",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      -1.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 78093.42,
+    "black": 0.0
+   },
+   "solid_pla_g": 96.84,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-sphere_lower_white.stl",
+    "triangles": 7288,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -33.5,
+      -33.5,
+      0.0
+     ],
+     [
+      33.5,
+      33.5,
+      33.125
+     ]
+    ]
+   }
+  },
+  "sphere_upper": {
+   "what": "sphere 67 mm, upper hemisphere",
+   "print": "flat side down",
+   "print_to": {
+    "frame": "sphere",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ],
+     [
+      0.0,
+      -1.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 78577.891,
+    "black": 0.0
+   },
+   "solid_pla_g": 97.44,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-sphere_upper_white.stl",
+    "triangles": 7134,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -33.5,
+      -33.5,
+      0.0
+     ],
+     [
+      33.5,
+      33.5,
+      33.5
+     ]
+    ]
+   }
+  },
+  "sphere_pin": {
+   "what": "dowel pin of the sphere (print three)",
+   "print": "standing; print three",
+   "print_to": {
+    "frame": "pin",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 50.056,
+    "black": 0.0
+   },
+   "solid_pla_g": 0.06,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-sphere_pin_white.stl",
+    "triangles": 188,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -1.45,
+      -1.45,
+      0.0
+     ],
+     [
+      1.45,
+      1.45,
+      7.6
+     ]
+    ]
+   }
+  },
+  "cotter_thin": {
+   "what": "cotter 0.25 mm thinner, one dimple",
+   "print": "on its side, dimples up",
+   "print_to": {
+    "frame": "J",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      -1.2
+     ],
+     [
+      0.0,
+      -1.0,
+      0.0,
+      4.495
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 106.468,
+    "black": 0.0
+   },
+   "solid_pla_g": 0.13,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-cotter_thin_white.stl",
+    "triangles": 120,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -9.9,
+      -1.495,
+      0.0
+     ],
+     [
+      9.9,
+      1.495,
+      2.4
+     ]
+    ]
+   }
+  },
+  "cotter_mid": {
+   "what": "cotter, two dimples",
+   "print": "on its side, dimples up",
+   "print_to": {
+    "frame": "J",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      -1.2
+     ],
+     [
+      0.0,
+      -1.0,
+      0.0,
+      4.62
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 118.196,
+    "black": 0.0
+   },
+   "solid_pla_g": 0.15,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-cotter_mid_white.stl",
+    "triangles": 216,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -9.9,
+      -1.62,
+      0.0
+     ],
+     [
+      9.9,
+      1.62,
+      2.4
+     ]
+    ]
+   }
+  },
+  "cotter_thick": {
+   "what": "cotter 0.25 mm thicker, three dimples",
+   "print": "on its side, dimples up",
+   "print_to": {
+    "frame": "J",
+    "T": [
+     [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      1.0,
+      -1.2
+     ],
+     [
+      0.0,
+      -1.0,
+      0.0,
+      4.745
+     ]
+    ]
+   },
+   "volume_mm3": {
+    "white": 129.923,
+    "black": 0.0
+   },
+   "solid_pla_g": 0.16,
+   "white": {
+    "file": "assets/tracking/20261117-large_objects/20261117-cotter_thick_white.stl",
+    "triangles": 312,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -9.9,
+      -1.745,
+      0.0
+     ],
+     [
+      9.9,
+      1.745,
+      2.4
+     ]
+    ]
+   }
+  }
+ },
+ "checks": {
+  "cylinder": {
+   "rows": [
+    {
+     "cotter": "thin",
+     "ceiling_mm": -0.55,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thin",
+     "ceiling_mm": -0.25,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thin",
+     "ceiling_mm": 0.05,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": -0.3,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": 0.0,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": 0.3,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": -0.05,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": 0.25,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": 0.55,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    }
+   ],
+   "ok": true,
+   "turned_overlap_mm3": [
+    [
+     0.0,
+     0.8398
+    ],
+    [
+     0.1,
+     0.7187
+    ],
+    [
+     0.2,
+     0.6087
+    ],
+    [
+     0.3,
+     0.5091
+    ],
+    [
+     0.4,
+     0.4196
+    ],
+    [
+     0.5,
+     0.3396
+    ],
+    [
+     0.6,
+     0.2685
+    ],
+    [
+     0.7,
+     0.2058
+    ],
+    [
+     0.8,
+     0.151
+    ],
+    [
+     0.9,
+     0.1035
+    ],
+    [
+     1.0,
+     0.0629
+    ],
+    [
+     1.1,
+     0.0286
+    ],
+    [
+     1.2,
+     0.0
+    ],
+    [
+     1.3,
+     0.0
+    ],
+    [
+     1.4,
+     0.0
+    ],
+    [
+     1.5,
+     0.0
+    ],
+    [
+     1.6,
+     0.0
+    ],
+    [
+     1.7,
+     0.0
+    ],
+    [
+     1.8,
+     0.0
+    ],
+    [
+     1.9,
+     0.0
+    ],
+    [
+     2.0,
+     0.0
+    ]
+   ],
+   "turned_stops_out_mm": 1.2,
+   "turned_slot_below_tip_mm": 0.9,
+   "surface_at_floor_mm": 11.946,
+   "socket_half_diag_mm": 3.567,
+   "end_recess_mm": [
+    0.546,
+    2.046,
+    3.546
+   ],
+   "tip_recess_mm": [
+    0.546,
+    2.046,
+    3.546
+   ],
+   "support_min_mm": 4.833
+  },
+  "sphere": {
+   "rows": [
+    {
+     "cotter": "thin",
+     "ceiling_mm": -0.55,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thin",
+     "ceiling_mm": -0.25,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thin",
+     "ceiling_mm": 0.05,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": -0.3,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": 0.0,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "mid",
+     "ceiling_mm": 0.3,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": -0.05,
+     "cotter_at_mm": 1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": 0.25,
+     "cotter_at_mm": 0.0,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    },
+    {
+     "cotter": "thick",
+     "ceiling_mm": 0.55,
+     "cotter_at_mm": -1.5,
+     "body_male": 0.0,
+     "body_cotter": 0.0,
+     "male_cotter": 0.0,
+     "cotter_out": 0.0
+    }
+   ],
+   "ok": true,
+   "turned_overlap_mm3": [
+    [
+     0.0,
+     0.8398
+    ],
+    [
+     0.1,
+     0.7187
+    ],
+    [
+     0.2,
+     0.6087
+    ],
+    [
+     0.3,
+     0.5091
+    ],
+    [
+     0.4,
+     0.4196
+    ],
+    [
+     0.5,
+     0.3396
+    ],
+    [
+     0.6,
+     0.2685
+    ],
+    [
+     0.7,
+     0.2058
+    ],
+    [
+     0.8,
+     0.151
+    ],
+    [
+     0.9,
+     0.1035
+    ],
+    [
+     1.0,
+     0.0629
+    ],
+    [
+     1.1,
+     0.0286
+    ],
+    [
+     1.2,
+     0.0
+    ],
+    [
+     1.3,
+     0.0
+    ],
+    [
+     1.4,
+     0.0
+    ],
+    [
+     1.5,
+     0.0
+    ],
+    [
+     1.6,
+     0.0
+    ],
+    [
+     1.7,
+     0.0
+    ],
+    [
+     1.8,
+     0.0
+    ],
+    [
+     1.9,
+     0.0
+    ],
+    [
+     2.0,
+     0.0
+    ]
+   ],
+   "turned_stops_out_mm": 1.2,
+   "turned_slot_below_tip_mm": 0.9,
+   "surface_at_floor_mm": 14.654,
+   "socket_half_diag_mm": 3.567,
+   "end_recess_mm": [
+    3.254,
+    4.754,
+    6.254
+   ],
+   "tip_recess_mm": [
+    3.254,
+    4.754,
+    6.254
+   ],
+   "support_min_mm": 4.833
+  }
+ },
+ "bambu": {
+  "project": "assets/tracking/20261117-large_objects/20261117-large_objects_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "no_brim",
+   "sparse_infill_pattern": "lightning",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ],
+   "sparse_infill_density": "20%"
+  },
+  "colours": [
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 1,
+   "black": 2
+  },
+  "place_mm": {
+   "cylinder": [
+    55.0,
+    60.0
+   ],
+   "sphere_lower": [
+    140.0,
+    60.0
+   ],
+   "sphere_upper": [
+    140.0,
+    150.0
+   ],
+   "sphere_pin_1": [
+    40.0,
+    120.0
+   ],
+   "sphere_pin_2": [
+    55.0,
+    120.0
+   ],
+   "sphere_pin_3": [
+    70.0,
+    120.0
+   ],
+   "cotter_thin_1": [
+    40.0,
+    160.0
+   ],
+   "cotter_thin_2": [
+    40.0,
+    172.0
+   ],
+   "cotter_mid_1": [
+    68.0,
+    160.0
+   ],
+   "cotter_mid_2": [
+    68.0,
+    172.0
+   ],
+   "cotter_thick_1": [
+    96.0,
+    160.0
+   ],
+   "cotter_thick_2": [
+    96.0,
+    172.0
+   ]
+  },
+  "prediction_s": 4908.0,
+  "used_g": {
+   "1": 44.39
+  },
+  "filament_loads": 1,
+  "layers": 500,
+  "extrusion_box_mm": [
+   30.31,
+   24.72,
+   172.56,
+   180.55
+  ],
+  "part_offset_err_mm": {},
+  "boxes_mm": {
+   "AgAAAAAAAAA=": [
+    107.4,
+    24.7,
+    172.6,
+    90.6
+   ],
+   "BAAAAAAAAAA=": [
+    107.4,
+    115.4,
+    172.6,
+    180.6
+   ],
+   "AAgAAAAAAAA=": [
+    86.3,
+    168.5,
+    105.7,
+    171.5
+   ],
+   "AAQAAAAAAAA=": [
+    86.3,
+    156.5,
+    105.7,
+    159.5
+   ],
+   "AAEAAAAAAAA=": [
+    58.3,
+    156.6,
+    77.7,
+    159.4
+   ],
+   "AAIAAAAAAAA=": [
+    58.3,
+    168.6,
+    77.7,
+    171.4
+   ],
+   "gAAAAAAAAAA=": [
+    30.3,
+    168.7,
+    49.7,
+    171.3
+   ],
+   "QAAAAAAAAAA=": [
+    30.3,
+    156.7,
+    49.7,
+    159.3
+   ],
+   "CAAAAAAAAAA=": [
+    39.0,
+    116.8,
+    41.0,
+    118.8
+   ],
+   "EAAAAAAAAAA=": [
+    54.0,
+    116.8,
+    56.0,
+    118.8
+   ],
+   "IAAAAAAAAAA=": [
+    69.0,
+    116.8,
+    71.0,
+    118.8
+   ],
+   "AQAAAAAAAAA=": [
+    33.7,
+    36.5,
+    76.3,
+    79.3
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "143",
+   "623",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 1.37,
+   "loads": {
+    "1": 1
+   },
+   "used_g": {
+    "1": 44.42
+   }
+  },
+  "infill": {
+   "pattern": "lightning",
+   "density_pct": 20.0
+  }
+ },
+ "mass_slices": {
+  "cylinder": {
+   "gyroid_0": {
+    "used_g": 16.69,
+    "hours": 0.79
+   },
+   "gyroid_5": {
+    "used_g": 26.01,
+    "hours": 0.82
+   },
+   "gyroid_10": {
+    "used_g": 34.25,
+    "hours": 0.91
+   },
+   "lightning_10": {
+    "used_g": 17.35,
+    "hours": 0.79
+   },
+   "lightning_20": {
+    "used_g": 18.2,
+    "hours": 0.81
+   }
+  },
+  "sphere": {
+   "gyroid_0": {
+    "used_g": 23.7,
+    "hours": 0.69
+   },
+   "gyroid_5": {
+    "used_g": 32.96,
+    "hours": 0.84
+   },
+   "gyroid_10": {
+    "used_g": 41.12,
+    "hours": 1.06
+   },
+   "lightning_10": {
+    "used_g": 25.57,
+    "hours": 0.75
+   },
+   "lightning_20": {
+    "used_g": 25.63,
+    "hours": 0.74
+   }
+  }
+ },
+ "ok": true
+}

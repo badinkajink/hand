@@ -28,3 +28,5 @@ Bambu Studio project: `20261112-objects_p1s.3mf`, all parts on one plate, the bl
 Second version of the two blocks (owner, 2026-11-16), with the stem's root widened to 6 mm and filleted to the block's top: `assets/tracking/20261116-tag_blocks/`.
 
 Third version (owner, 2026-11-16), the blocks held without glue by a cotter joint, with a new cylinder body and lower hemisphere: `assets/tracking/20261116-cotter_joint/`.
+
+Larger objects (owner, 2026-11-17), a 45 mm cylinder and a 67 mm sphere with the cotter joint, on one plate in white: `assets/tracking/20261117-large_objects/`.

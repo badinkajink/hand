@@ -1021,12 +1021,12 @@ def cmd_film(a):
     """Side-by-side clips of rollouts from their trajectories (config:task:call:seed), a side view at 640 x 480 and
     25 frames/s, the HOM scene's own lights; out: media/<name>.mp4 and a poster .jpg."""
     import mujoco
-    rows = [json.loads(x) for x in ROLLOUT_ROWS.read_text().splitlines() if x.strip()]
+    rows = [json.loads(x) for x in (ROOT / a.rows if a.rows else ROLLOUT_ROWS).read_text().splitlines() if x.strip()]
     clips = []
     for spec in a.clips:
         cfg, task, call, seed = spec.split(":")
-        r = next(x for x in rows if x["config"] == cfg and x["task"] == task and x["call"] == int(call)
-                 and x["seed"] == int(seed))
+        r = next(x for x in rows[::-1] if x.get("status") == "ok" and x["config"] == cfg and x["task"] == task
+                 and x["call"] == int(call) and x["seed"] == int(seed))
         tr = load_traj(ROOT / r["traj"])
         spec_ = mujoco.MjSpec.from_file(str(ROOT / str(tr["scene"])))
         m = spec_.compile()
@@ -1059,15 +1059,19 @@ def cmd_film(a):
             mujoco.mj_forward(m, d)
             rd.update_scene(d, cv, scene_option=opt)
             im = cv2.cvtColor(rd.render(), cv2.COLOR_RGB2BGR)
-            frames.append(label(im, f"{name}, {task} {r['role']} layout", f"t {t[i]:.2f} s   score {r['score']:.2f}", 0.7))
+            where = (f"{r['role']} layout" if "#" not in r["role"] else
+                     f"({r['xy'][0]:.0f}, {r['xy'][1]:.0f}), {r.get('d_mm', 0):g} mm")
+            frames.append(label(im, f"{name[0].upper() + name[1:]}, {task} {where}",
+                                f"t {t[i]:.2f} s   score {r['score']:.2f}", 0.7))
         rd.close()
         clips.append(frames)
     n = max(len(c) for c in clips)
     out = []
     for k in range(n):
         out.append(np.concatenate([c[min(k, len(c) - 1)] for c in clips], 1))
-    MEDIA.mkdir(parents=True, exist_ok=True)
-    fp = MEDIA / f"{a.name}.mp4"
+    media = ROOT / a.out_dir if a.out_dir else MEDIA
+    media.mkdir(parents=True, exist_ok=True)
+    fp = media / f"{a.name}.mp4"
     write_mp4(out, fp, 25)
     k = int(np.searchsorted(np.arange(n) / 25.0, a.poster_t))
     cv2.imwrite(str(fp.with_suffix(".jpg")), out[min(k, n - 1)], [cv2.IMWRITE_JPEG_QUALITY, 85])
@@ -1113,6 +1117,9 @@ def main():
     p.add_argument("--elevation", type=float, default=5.0)
     p.add_argument("--distance", type=float, default=0.30)
     p.add_argument("--poster-t", type=float, default=2.5)
+    p.add_argument("--rows", help="rollout rows (default rows/rollouts.jsonl), e.g. the larger objects' "
+                                  "rows/rollouts_large.jsonl")
+    p.add_argument("--out-dir", help="folder of the film, relative to the repository (default this page's media/)")
     a = ap.parse_args()
     return {"tagsize": cmd_tagsize, "visibility": cmd_visibility, "pairs": cmd_pairs, "turntable": cmd_turntable,
             "track": cmd_track, "film": cmd_film}[a.cmd](a)

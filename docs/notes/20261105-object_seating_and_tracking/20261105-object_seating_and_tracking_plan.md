@@ -118,7 +118,9 @@ cylinder at both ends set its turn when it is glued. The blocks' second version 
 fillet to the block's top. In the replayed rollouts no finger came within 6.8 mm of it on the series' layouts. In the
 third version (owner, 2026-11-16; `assets/tracking/20261116-cotter_joint/`) each block is held without glue by a cotter
 joint: a square taper on the stem's end is drawn into a socket in the object by a printed pin with a 1:5 taper, pushed
-across the stem; three pins 0.25 mm apart take up -0.55 to +0.55 mm of printing error. The sphere is two
+across the stem; three pins 0.25 mm apart take up -0.55 to +0.55 mm of printing error. A 45 mm cylinder and a 67 mm
+sphere with the same joint (owner, 2026-11-17; `assets/tracking/20261117-large_objects/`) print on one plate in white;
+their blocks (ids 32-43) and stems (31.0 and 16.7 mm) wait for the modular block and stem. The sphere is two
 hemispheres on three dowels. The tracker's maps of the assembled objects are `object_tracking_mjcf.object_map`. The
 measured servo's best layouts (grids of 2026-11-10, press, roll and twist) reach 18.5 mm below the cylinder and 10.7 mm
 below the sphere (`rows/stem_sv25_sv55db.json`), so the cylinder's stem stays at 35.6 mm and the sphere's grows by

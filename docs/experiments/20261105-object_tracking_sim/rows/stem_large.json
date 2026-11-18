@@ -1,0 +1,771 @@
+{
+ "rows": [
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.49",
+   "call": 328,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    32.5,
+    52.5,
+    -32.5
+   ],
+   "below_bottom_open_mm": 4.84,
+   "below_bottom_touch_mm": 3.25
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.49",
+   "call": 363,
+   "d6": [
+    -55.0,
+    0.0,
+    55.0,
+    57.5,
+    55.0,
+    -57.5
+   ],
+   "below_bottom_open_mm": 8.06,
+   "below_bottom_touch_mm": 5.54
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.47",
+   "call": 298,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    82.5,
+    47.5,
+    -82.5
+   ],
+   "below_bottom_open_mm": 2.81,
+   "below_bottom_touch_mm": 1.72
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.46",
+   "call": 340,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    62.5,
+    52.5,
+    -62.5
+   ],
+   "below_bottom_open_mm": 8.19,
+   "below_bottom_touch_mm": 5.73
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.45",
+   "call": 228,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    32.5,
+    42.5,
+    -32.5
+   ],
+   "below_bottom_open_mm": -4.74,
+   "below_bottom_touch_mm": -4.61
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.45",
+   "call": 318,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    70.0,
+    50.0,
+    -70.0
+   ],
+   "below_bottom_open_mm": 6.69,
+   "below_bottom_touch_mm": 4.59
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.45",
+   "call": 336,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    52.5,
+    52.5,
+    -52.5
+   ],
+   "below_bottom_open_mm": 7.38,
+   "below_bottom_touch_mm": 5.03
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.45",
+   "call": 229,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    35.0,
+    42.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": -3.4,
+   "below_bottom_touch_mm": -3.63
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.44",
+   "call": 236,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    52.5,
+    42.5,
+    -52.5
+   ],
+   "below_bottom_open_mm": -5.18,
+   "below_bottom_touch_mm": -5.11
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.44",
+   "call": 232,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    42.5,
+    42.5,
+    -42.5
+   ],
+   "below_bottom_open_mm": -6.37,
+   "below_bottom_touch_mm": -6.24
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.72",
+   "call": 310,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    50.0,
+    50.0,
+    -50.0
+   ],
+   "below_bottom_open_mm": 14.19,
+   "below_bottom_touch_mm": 10.24
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.65",
+   "call": 309,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    47.5,
+    50.0,
+    -47.5
+   ],
+   "below_bottom_open_mm": 13.27,
+   "below_bottom_touch_mm": 9.46
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.65",
+   "call": 265,
+   "d6": [
+    -45.0,
+    0.0,
+    45.0,
+    62.5,
+    45.0,
+    -62.5
+   ],
+   "below_bottom_open_mm": 14.99,
+   "below_bottom_touch_mm": 11.05
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.58",
+   "call": 257,
+   "d6": [
+    -45.0,
+    0.0,
+    45.0,
+    42.5,
+    45.0,
+    -42.5
+   ],
+   "below_bottom_open_mm": 12.78,
+   "below_bottom_touch_mm": 9.08
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.58",
+   "call": 252,
+   "d6": [
+    -45.0,
+    0.0,
+    45.0,
+    30.0,
+    45.0,
+    -30.0
+   ],
+   "below_bottom_open_mm": 13.94,
+   "below_bottom_touch_mm": 10.46
+  },
+  {
+   "task": "press",
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.56",
+   "call": 269,
+   "d6": [
+    -45.0,
+    0.0,
+    45.0,
+    72.5,
+    45.0,
+    -72.5
+   ],
+   "below_bottom_open_mm": 16.0,
+   "below_bottom_touch_mm": 11.85
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.55",
+   "call": 383,
+   "d6": [
+    -57.5,
+    0.0,
+    57.5,
+    45.0,
+    57.5,
+    -45.0
+   ],
+   "below_bottom_open_mm": 13.95,
+   "below_bottom_touch_mm": 9.54
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.55",
+   "call": 286,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    52.5,
+    47.5,
+    -52.5
+   ],
+   "below_bottom_open_mm": 13.88,
+   "below_bottom_touch_mm": 9.91
+  },
+  {
+   "task": "press",
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.54",
+   "call": 380,
+   "d6": [
+    -57.5,
+    0.0,
+    57.5,
+    37.5,
+    57.5,
+    -37.5
+   ],
+   "below_bottom_open_mm": 13.3,
+   "below_bottom_touch_mm": 9.11
+  },
+  {
+   "task": "press",
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.54",
+   "call": 279,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    35.0,
+    47.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": 15.04,
+   "below_bottom_touch_mm": 11.35
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.34",
+   "call": 430,
+   "d6": [
+    -62.5,
+    0.0,
+    62.5,
+    37.5,
+    62.5,
+    -37.5
+   ],
+   "below_bottom_open_mm": -2.7,
+   "below_bottom_touch_mm": -4.26
+  },
+  {
+   "task": "roll",
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.30",
+   "call": 369,
+   "d6": [
+    -55.0,
+    0.0,
+    55.0,
+    72.5,
+    55.0,
+    -72.5
+   ],
+   "below_bottom_open_mm": 1.66,
+   "below_bottom_touch_mm": -0.98
+  },
+  {
+   "task": "roll",
+   "xy": [
+    130.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.30",
+   "call": 451,
+   "d6": [
+    -65.0,
+    0.0,
+    65.0,
+    27.5,
+    65.0,
+    -27.5
+   ],
+   "below_bottom_open_mm": -5.61,
+   "below_bottom_touch_mm": -8.03
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.29",
+   "call": 429,
+   "d6": [
+    -62.5,
+    0.0,
+    62.5,
+    35.0,
+    62.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": 1.33,
+   "below_bottom_touch_mm": -1.18
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.25",
+   "call": 328,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    32.5,
+    52.5,
+    -32.5
+   ],
+   "below_bottom_open_mm": -13.27,
+   "below_bottom_touch_mm": -14.01
+  },
+  {
+   "task": "roll",
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.25",
+   "call": 427,
+   "d6": [
+    -62.5,
+    0.0,
+    62.5,
+    30.0,
+    62.5,
+    -30.0
+   ],
+   "below_bottom_open_mm": -2.83,
+   "below_bottom_touch_mm": -5.94
+  },
+  {
+   "task": "roll",
+   "xy": [
+    120.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.24",
+   "call": 401,
+   "d6": [
+    -60.0,
+    0.0,
+    60.0,
+    27.5,
+    60.0,
+    -27.5
+   ],
+   "below_bottom_open_mm": -9.01,
+   "below_bottom_touch_mm": -10.59
+  },
+  {
+   "task": "roll",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.23",
+   "call": 327,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    30.0,
+    52.5,
+    -30.0
+   ],
+   "below_bottom_open_mm": -13.26,
+   "below_bottom_touch_mm": -14.08
+  },
+  {
+   "task": "roll",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.21",
+   "call": 291,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    65.0,
+    47.5,
+    -65.0
+   ],
+   "below_bottom_open_mm": 0.11,
+   "below_bottom_touch_mm": -1.97
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.20",
+   "call": 305,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    37.5,
+    50.0,
+    -37.5
+   ],
+   "below_bottom_open_mm": -12.5,
+   "below_bottom_touch_mm": -13.18
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #1, tracking 0.74",
+   "call": 551,
+   "d6": [
+    -75.0,
+    0.0,
+    75.0,
+    27.5,
+    75.0,
+    -27.5
+   ],
+   "below_bottom_open_mm": -1.9,
+   "below_bottom_touch_mm": -4.84
+  },
+  {
+   "task": "twist",
+   "xy": [
+    155.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #2, tracking 0.63",
+   "call": 576,
+   "d6": [
+    -77.5,
+    0.0,
+    77.5,
+    27.5,
+    77.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": -5.35,
+   "below_bottom_touch_mm": -7.28
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #3, tracking 0.50",
+   "call": 308,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    45.0,
+    50.0,
+    -45.0
+   ],
+   "below_bottom_open_mm": -9.48,
+   "below_bottom_touch_mm": -10.38
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #4, tracking 0.47",
+   "call": 554,
+   "d6": [
+    -75.0,
+    0.0,
+    75.0,
+    35.0,
+    75.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 1.27,
+   "below_bottom_touch_mm": -1.74
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #5, tracking 0.46",
+   "call": 332,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    42.5,
+    52.5,
+    -42.5
+   ],
+   "below_bottom_open_mm": -14.42,
+   "below_bottom_touch_mm": -14.58
+  },
+  {
+   "task": "twist",
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #6, tracking 0.43",
+   "call": 329,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    35.0,
+    52.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": -11.42,
+   "below_bottom_touch_mm": -12.08
+  },
+  {
+   "task": "twist",
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "role": "grid2dff_v4b_sv25r #7, tracking 0.43",
+   "call": 558,
+   "d6": [
+    -75.0,
+    0.0,
+    75.0,
+    45.0,
+    75.0,
+    -45.0
+   ],
+   "below_bottom_open_mm": 0.55,
+   "below_bottom_touch_mm": -1.42
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    55.0
+   ],
+   "role": "grid2dff_v4b_sv25r #8, tracking 0.41",
+   "call": 501,
+   "d6": [
+    -70.0,
+    0.0,
+    70.0,
+    27.5,
+    70.0,
+    -27.5
+   ],
+   "below_bottom_open_mm": -3.41,
+   "below_bottom_touch_mm": -4.89
+  },
+  {
+   "task": "twist",
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "role": "grid2dff_v4b_sv25r #9, tracking 0.41",
+   "call": 504,
+   "d6": [
+    -70.0,
+    0.0,
+    70.0,
+    35.0,
+    70.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": -1.14,
+   "below_bottom_touch_mm": -3.57
+  },
+  {
+   "task": "twist",
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "role": "grid2dff_v4b_sv25r #10, tracking 0.40",
+   "call": 382,
+   "d6": [
+    -57.5,
+    0.0,
+    57.5,
+    42.5,
+    57.5,
+    -42.5
+   ],
+   "below_bottom_open_mm": -10.92,
+   "below_bottom_touch_mm": -11.52
+  }
+ ],
+ "stem_mm": {
+  "cylinder": 31.0,
+  "sphere": 16.7
+ },
+ "sets": [
+  "grid2dff_v4b_sv25r at {'twist': 67.0, 'roll': 67.0, 'pinpush': 45.0, 'press': 45.0}: top 10 per task by tracking score"
+ ]
+}

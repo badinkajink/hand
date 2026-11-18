@@ -370,15 +370,15 @@ def object_filaments(msets: str) -> str:
     return re.sub(r'<object id="\d+">.*?</object>', fix, msets, flags=re.S)
 
 
-def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0), colours=None, filament=None):
+def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0), colours=None, filament=None, extra=None):
     """A Bambu Studio project of two-colour parts through the command line. Each item {name, white, black, place} is
     assembled from its white and black STLs as one object with two parts, on filaments filament["white"] and
     filament["black"] (default FILAMENT, with the colours COLOURS), its white body centred at `place` (mm on the bed);
-    the prime tower goes to `tower`. The project is sliced once so that its G-code can be checked (the owner slices again
-    in the GUI); an item whose black is None is a part in white only. Each object's filament is also written on the
-    object (object_filaments), where the window reads it. Returns the slice's numbers and
-    the problems found: the P1S start sequence, temperatures, filaments loaded, each black part's offset from its white
-    part against the STLs, every printed move on the bed and the prime tower clear of every part."""
+    the prime tower goes to `tower`, and `extra` overrides process settings. The project is sliced once so that its
+    G-code can be checked (the owner slices again in the GUI); an item whose black is None is a part in white only. Each
+    object's filament is also written on the object (object_filaments), where the window reads it. Returns the slice's
+    numbers and the problems found: the P1S start sequence, temperatures, filaments loaded, each black part's offset from
+    its white part against the STLs, every printed move on the bed and the prime tower clear of every part."""
     import re
     import shutil
     import subprocess
@@ -390,7 +390,7 @@ def bambu_project(items, project, work, plate_name, tower=(175.0, 160.0), colour
     colours = COLOURS if colours is None else colours
     FILAMENT = globals()["FILAMENT"] if filament is None else filament   # noqa: N806
     work.mkdir(parents=True, exist_ok=True)
-    process = dict(P1S_PROCESS, wipe_tower_x=[f"{tower[0]:g}"], wipe_tower_y=[f"{tower[1]:g}"])
+    process = dict(P1S_PROCESS, wipe_tower_x=[f"{tower[0]:g}"], wipe_tower_y=[f"{tower[1]:g}"], **(extra or {}))
     (work / "machine.json").write_text(json.dumps(DF.bbl_preset("machine", P1S["machine"]), indent=1))
     (work / "process.json").write_text(json.dumps(DF.bbl_preset("process", P1S["process"], process), indent=1))
     fils = []

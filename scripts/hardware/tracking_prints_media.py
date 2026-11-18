@@ -332,6 +332,55 @@ def fig_joint():
     save(tile(frames, 2), f"{TO.J_DATE}-cotter_joint_parts.png")
 
 
+def fig_large():
+    """The larger objects of 2026-11-17 (tracking_objects_print.py --set large): each with a cotter beside its entry, the
+    two sizes of each object side by side, and the plate as it lies on the bed. Needs TO.use_set("large")."""
+    JR = {s: TO.joint_T(s)[:, :3] for s in ("cylinder", "sphere")}
+    out_w = {s: (JR[s] @ np.array([1.0, 0, 0])) for s in JR}
+    Rp = np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]])            # the pin's z along +y_O
+    pins = [(f"dowel {k + 1}", TO.joint_stl("sphere_pin"), Rp,
+             np.array([TO.PIN_R * math.cos(math.radians(a_)), -TO.PIN_DEPTH + 0.2, TO.PIN_R * math.sin(math.radians(a_))]),
+             "white", "pins") for k, a_ in enumerate(TO.PIN_ANGLES)]
+    sph = joint_parts("sphere", ("sphere_lower", "sphere_upper", "cotter_mid")) + pins
+    small = TO.OUT
+    Lc = OM.OBJECTS["cylinder"]["length_mm"]
+    # the four objects in O, small above large, cylinders left: the view looks along +x_W, so O's z runs across it
+    pairs = [("cylinder 25 mm", small / "20261112-cylinder_plain_white.stl", TO.R_PRINT["cylinder"].T,
+              np.array([0.0, 45.0, 40.0 - Lc / 2]), "white", "a"),
+             ("cylinder 45 mm", TO.joint_stl("cylinder"), TO.R_PRINT["cylinder"].T,
+              np.array([0.0, -10.0, 40.0 - Lc / 2]), "white", "b")]
+    for k, (lab, low, up, y) in enumerate((("sphere 40 mm", small / "20261112-sphere_lower_white.stl",
+                                            small / "20261112-sphere_upper_white.stl", 45.0),
+                                           ("sphere 67 mm", TO.joint_stl("sphere_lower"), TO.joint_stl("sphere_upper"),
+                                            -10.0))):
+        t = np.array([0.0, y, -58.0])
+        pairs += [(f"{lab} low", low, TO.R_PRINT["sphere_lower"].T, t, "white", f"s{k}"),
+                  (f"{lab} up", up, TO.R_PRINT["sphere_upper"].T, t, "white", f"s{k}")]
+    rep = json.loads(TO.J_REPORT.read_text())
+    bed = []
+    for it in TO.large_items(list(TO.L_PARTS)):
+        name = it["name"].rsplit("_", 1)[0] if it["name"][-1].isdigit() else it["name"]
+        col = "cotter" if name.startswith("cotter") else "white"
+        bed.append((it["name"], it["white"], np.eye(3), np.array([it["place"][0] - 128.0, it["place"][1] - 128.0, 0.0]),
+                    col, "bed"))
+    panels = [
+        ("Cylinder 45 mm and the middle cotter", R_WO, joint_parts("cylinder", ("cylinder", "cotter_mid")),
+         {"cotter_mid": 18.0 * out_w["cylinder"]}, None,
+         {"lookat": (-0.004, 0.0, -0.012), "distance": 0.30, "azimuth": 40.0, "elevation": 18.0}),
+        ("Sphere 67 mm, halves, dowels and cotter apart", R_WO, sph,
+         {"sphere_upper": (0.0, 26.0, 0.0), "pins": (0.0, 11.0, 0.0), "cotter_mid": 20.0 * out_w["sphere"]}, None,
+         {"lookat": (0.0, 0.0, -0.004), "distance": 0.27, "azimuth": -118.0, "elevation": 18.0}),
+        ("Sizes of 2026-11-12 and 2026-11-17", R_WO, pairs, None, None,
+         {"lookat": (0.0, 0.001, 0.011), "distance": 0.40, "azimuth": 0.0, "elevation": 8.0}),
+        (f"The plate, {rep['bambu']['reslice']['hours']:.1f} h in white", np.eye(3), bed, None, -0.0002,
+         {"lookat": (-0.022, 0.005, 0.0), "distance": 0.50, "azimuth": 90.0, "elevation": -62.0})]
+    frames = []
+    for title, R_W, parts, ex, floor, cam in panels:
+        m, d = compile_xml(mjcf(placed(parts, R_W, np.zeros(3), ex), floor=floor))
+        frames.append(outline(label(render(m, d, cam, 700, 620), title)))
+    save(tile(frames, 2), f"{TO.J_DATE}-large_objects.png")
+
+
 def task_world():
     """(palm position in the task, m) of the generalist's pin-push rollout, the arm's lift added."""
     z = np.load(TRAJ, allow_pickle=True)
@@ -464,7 +513,7 @@ def fig_views():
 
 def cmd_renders(a):
     for k in a.only or ("objects", "mount", "views", "joint"):
-        {"objects": fig_objects, "mount": fig_mount, "views": fig_views, "joint": fig_joint}[k]()
+        {"objects": fig_objects, "mount": fig_mount, "views": fig_views, "joint": fig_joint, "large": fig_large}[k]()
     return 0
 
 
@@ -710,7 +759,9 @@ def fig_opening_touches():
     t = json.loads((TO.J_OUT / f"{TO.J_DATE}-opening_touches.json").read_text())
     fig, axs = plt.subplots(1, 2, figsize=(12.0, 5.2), gridspec_kw={"width_ratios": [1.25, 1.0]}, layout="constrained")
     fig.get_layout_engine().set(wspace=0.08)
-    for ax, shape, title in ((axs[0], "cylinder", "Cylinder, unrolled"), (axs[1], "sphere", "Sphere, lower half")):
+    size = {s: f" {2 * OM.OBJECTS[s]['r_mm']:g} mm" if TO.J_DATE != "20261116" else "" for s in ("cylinder", "sphere")}
+    for ax, shape, title in ((axs[0], "cylinder", f"Cylinder{size['cylinder']}, unrolled"),
+                             (axs[1], "sphere", f"Sphere{size['sphere']}, lower half")):
         mp, n = t["maps"][shape], t["n_rollouts"][shape]
         a, b = (np.asarray(x) for x in mp["bins"])
         frac = np.asarray(mp["rollouts_with_touch"], float).T / n
@@ -839,14 +890,17 @@ def cmd_viewers(a):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--set", choices=sorted(OM.OBJECT_SETS), default="20261112",
+                    help="large: the renders (--only large) and the openings' touches of the objects of 2026-11-17")
     sub = ap.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("drawings")
     d.add_argument("--only", choices=("stem_root", "cotter_joint", "opening_touches"),
                    help="one drawing of 2026-11-16: the blocks' stem root, the cotter joint or its openings' touches")
     r = sub.add_parser("renders")
-    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views", "joint"))
+    r.add_argument("--only", nargs="*", choices=("objects", "mount", "views", "joint", "large"))
     sub.add_parser("viewers")
     a = ap.parse_args()
+    TO.use_set(a.set)
     return {"drawings": cmd_drawings, "renders": cmd_renders, "viewers": cmd_viewers}[a.cmd](a)
 
 

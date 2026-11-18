@@ -32,7 +32,7 @@ import mjwasm_embed  # noqa: E402
 import retro_style  # noqa: E402
 import texsvg  # noqa: E402
 
-table, img, esc = P.table, P.img, P.esc
+table, img, esc, film = P.table, P.img, P.esc, P.film
 DATE = "20261113"
 D = ROOT / f"docs/experiments/{DATE}-tracking_prints"
 MEDIA = D / "media"
@@ -50,6 +50,7 @@ STEM_ROWS = "docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db
 PAPER = "assets/tracking/20261113-paper_board"
 BLK2 = "assets/tracking/20261116-tag_blocks"
 JNT = "assets/tracking/20261116-cotter_joint"
+LRG = "assets/tracking/20261117-large_objects"
 
 
 def rel(path):
@@ -76,6 +77,11 @@ def load():
     J["rc"] = json.loads((ROOT / f"{BLK2}/20261116-root_clearance.json").read_text())
     J["jnt"] = json.loads((ROOT / f"{JNT}/20261116-cotter_joint.json").read_text())
     J["touch"] = json.loads((ROOT / f"{JNT}/20261116-opening_touches.json").read_text())
+    import tracking_objects_print as TP
+    J["lrg"] = json.loads((ROOT / f"{LRG}/20261117-large_objects.json").read_text())
+    tl = ROOT / f"{LRG}/20261117-opening_touches.json"
+    J["lrg_touch"] = json.loads(tl.read_text()) if tl.exists() else None
+    J["lrg_ro"] = TP.large_rollouts()
     return J
 
 
@@ -110,6 +116,10 @@ def sec_terms():
         ("Joint frame $J$", "axes on the stem's axis at the object's flat seat: $u$ along the stem into the object, $w$ "
                             "along the cotter toward its entry, $v$ across the cotter (mm)."),
         ("Touch", "in a replayed rollout, a finger geom within 0.5 mm of the object's surface at a recorded period."),
+        ("Study's scene, flat seat, pocket seat", "the three scenes of the simulated rollouts. The study's scene holds "
+                                                  "the object on a 3 mm post until 1.6 s. On the seats the object stands "
+                                                  "on its stem and block, the block on a flat floor or in a 4 mm pocket, "
+                                                  "and the arm lifts the hand 40 mm at 1.6 s."),
         ("Reach below the object", "how far the lowest finger point lies below the object's surface at the open and "
                                    "touch poses of a grasp (mm), from the HOM scenes of the rollouts."),
         ("Clearance to the block", "the stem's length less the reach below the object (mm); the plan's value is "
@@ -141,7 +151,7 @@ def sec_terms():
 
 def sec_files(J):
     O, B, T = J["obj"], J["brd"], J["tag"]
-    op, b2, jp = O["parts"], J["blk2"]["parts"], J["jnt"]["parts"]
+    op, b2, jp, lp = O["parts"], J["blk2"]["parts"], J["jnt"]["parts"], J["lrg"]["parts"]
 
     def stls(name, folder=OBJ, colours=("white", "black")):
         date = Path(folder).name[:8]
@@ -171,6 +181,17 @@ def sec_files(J):
          "<br>".join(flink(f"{JNT}/20261116-coupon_{k}_white.stl") for k in ("stem", "cylinder", "sphere")),
          " / ".join(f"{jp[f'coupon_{k}']['white']['bounds_mm'][1][2]:.1f}" for k in ("stem", "cylinder", "sphere")),
          "test print of the joint"),
+        ("Cylinder 45 mm without end tags, with the joint's socket (2026-11-17)", stls("cylinder", LRG, ("white",)),
+         "100.0", "printed standing; grip tape on its side"),
+        ("Sphere 67 mm, lower and upper hemispheres, the lower with the joint's socket (2026-11-17)",
+         "<br>".join(flink(f"{LRG}/20261117-sphere_{k}_white.stl") for k in ("lower", "upper")),
+         " / ".join(f"{lp[f'sphere_{k}']['white']['bounds_mm'][1][2]:.1f}" for k in ("lower", "upper")),
+         "three dowels"),
+        ("Dowel of the 67 mm sphere, print three", stls("sphere_pin", LRG, ("white",)), "7.6",
+         "2.9 mm in 3.1 mm holes, 4 mm deep"),
+        ("Cotters of the larger objects, 19.8 mm long: thin, middle and thick",
+         "<br>".join(flink(f"{LRG}/20261117-cotter_{k}_white.stl") for k in ("thin", "mid", "thick")), "2.4",
+         "through the object's and the post's slots"),
         ("Cylinder, end tags 22 and 23", stls("cylinder"), "100.0", "printed standing; grip tape on its side"),
         ("Cylinder, end tag 23 only (in place of the above)", stls("cylinder_tag23"), "100.0",
          "printed standing; grip tape on its side"),
@@ -215,13 +236,16 @@ def sec_files(J):
              J["jnt"]["bambu_coupons"]),
          row(f"{JNT}/20261116-cotter_joint_p1s.3mf", "the cotter joint's two blocks, cylinder, lower hemisphere and six "
              "cotters (2026-11-16)", J["jnt"]["bambu"]),
+         row(f"{LRG}/20261117-large_objects_p1s.3mf", "the 45 mm cylinder, the 67 mm sphere's halves, three dowels "
+             "and six cotters, 20 % lightning infill, white only (2026-11-17)", J["lrg"]["bambu"]),
          row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
          row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
     t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
                 "Loads"], proj,
                "Bambu Studio projects for the P1S with the AMS: 0.20 mm layers, textured PEI plate, the slicer's "
                "default 15 % gyroid infill. The objects' projects put black PLA on filament 1 and white on filament 2, "
-               "so that filament 1 maps to the black spool in AMS slot A1 (owner, 2026-11-13). The board's and the test "
+               "so that filament 1 maps to the black spool in AMS slot A1 (owner, 2026-11-13); the larger objects' "
+               "project prints in white on filament 1 alone. The board's and the test "
                "prints' projects put white on filament 2 and black on 3. Each object's filament is written on the "
                "object, where Bambu Studio's window reads it. Before 2026-11-13 the window put the objects' one-part "
                "parts on filament 1, and a slice of the plain-cylinder plate then made 359 filament changes in 12 h "
@@ -303,14 +327,14 @@ def sec_stems(J):
     out = []
     for shape, tasks in (("cylinder", ("pinpush", "press")), ("sphere", ("roll", "twist"))):
         for task in tasks:
-            for set_name, pick in (("plan's five layouts", lambda r: r["xy"] is not None),
-                                   ("measured servo, top 5", lambda r: r["xy"] is None)):
+            for set_name, pick in (("plan's five layouts", lambda r: "#" not in r["role"]),
+                                   ("measured servo, top 5", lambda r: "#" in r["role"])):
                 rr = [r for r in rows if r["task"] == task and pick(r)]
                 if not rr:
                     continue
                 reach = [max(r["below_bottom_open_mm"], r["below_bottom_touch_mm"]) for r in rr]
                 k = max(range(len(rr)), key=lambda i: reach[i])
-                where = (f"({rr[k]['xy'][0]:.0f}, {rr[k]['xy'][1]:.0f})" if rr[k]["xy"] is not None
+                where = (f"({rr[k]['xy'][0]:.0f}, {rr[k]['xy'][1]:.0f})" if "#" not in rr[k]["role"]
                          else esc(rr[k]["role"].split(",")[0].replace("grid2dff_v4b_sv55db ", "grid ")))
                 out.append((shape.capitalize(), task.replace("pinpush", "pin-push").capitalize(), set_name,
                             str(len(rr)), f"{reach[k]:.2f}", where, f"{stem[shape]:.1f}", f"{stem[shape] - reach[k]:.1f}"))
@@ -638,6 +662,116 @@ def sec_calibration(J):
     return p1 + p2 + p4 + th + p5 + fp + p3 + t
 
 
+def sec_large(J):
+    """The larger cylinder and sphere of 2026-11-17 with the cotter joint, on one plate in white."""
+    R, ro, T_ = J["lrg"], J["lrg_ro"], J["lrg_touch"]
+    cc, cs, sm, ms, q = R["checks"]["cylinder"], R["checks"]["sphere"], R["stem_mm"], R["mass_slices"], R["bambu"]
+    o, sd = R["objects"], R["seat"]
+    f1 = img(MEDIA / "20261117-large_objects.png",
+             "The larger objects' print files, rendered. Top: the 45 mm cylinder with the middle cotter drawn out of its "
+             "entry, and the 67 mm sphere's halves, dowels and cotter apart. Bottom left: the objects of 2026-11-12 "
+             "(upper row) and 2026-11-17 (lower row) at the same scale. Bottom right: the plate as it lies on the bed. "
+             "The cotters are drawn in orange.")
+    n1 = P.FIG[0]
+    p1 = ("<p>The owner asked on 2026-11-17 for the objects at a larger diameter, printed in one PLA filament: "
+          "\"prepare these but with a larger diameter sphere, cylinder, since our current ones aren't broken yet\". The "
+          "sizes are the large ones of the size-ranking test of 2026-11-16 (<code>scripts/hom/hom_size_rank.py</code>): "
+          f"a {2 * o['cylinder']['r_mm']:g} mm cylinder {o['cylinder']['length_mm']:g} mm long and a "
+          f"{2 * o['sphere']['r_mm']:g} mm sphere. The HOM grids of the benchmark's plant exist at these sizes. The cylinder "
+          f"prints at {2 * sd['cylinder']['printed_r_mm']:.1f} mm for the grip tape and has no end tags. Its end faces "
+          "are flat for paper tags, which the owner will glue on if the tracking needs them. The cylinder's body, both "
+          f"hemispheres, three dowels and two cotters of each size lie on one plate (Figure {n1}). It prints in white "
+          f"on filament 1 in {q['reslice']['hours']:.1f} h, with {q['reslice']['used_g']['1']:.1f} g of PLA and no "
+          "filament change. The blocks and their stems are not on it; they wait for a modular block and stem, "
+          "which the owner asked for in the same message.</p>")
+    p2 = ("<p>The joint is that of Section 5: the same socket, slot, taper and post, the cotter entering on the "
+          "cylinder's $-x_O$ side. On the 67 mm sphere the joint is turned by 180&deg; about the stem, so that its "
+          "cotter enters on the $-z_O$ side, where no finger touched in the replayed rollouts (below). The slot meets "
+          "the surface "
+          f"farther from the stem, {cc['surface_at_floor_mm']:.1f} and {cs['surface_at_floor_mm']:.1f} mm at its floor "
+          "against 8.9 and 11.5 mm. The cotters are therefore "
+          f"{R['cotter_ends_mm'][1] - R['cotter_ends_mm'][0]:g} mm long instead of 13.7 mm. Their thickness along the "
+          "taper is unchanged, so the fit coupons of Section 5 test this joint as well. In the CAD assembly the stem's "
+          "end, the object and the cotter share 0 mm<sup>3</sup> on both objects. The shared volume is 0 at the "
+          "cotter's nominal place and at both ends of its travel, for each of the three cotters. Over its travel each "
+          f"end stays {min(cc['end_recess_mm']):.2f} to {max(cc['end_recess_mm']):.2f} mm inside the cylinder's surface "
+          f"and {min(cs['end_recess_mm']):.2f} to {max(cs['end_recess_mm']):.2f} mm inside the sphere's.</p>")
+    p3 = (f"<p>The stems are to be {sm['cylinder']:.1f} mm (cylinder) and {sm['sphere']:.1f} mm (sphere) from the "
+          "block's top to the object's surface, against 35.6 and 25.7 mm on the smaller objects. With these lengths the "
+          "block lies 15 mm below the lowest finger point of the ten best layouts per task, at their open and touch "
+          "poses. The layouts are those of the HOM grids at these sizes (<code>grid2dff_v4b_sv25r</code>, SCS0009 "
+          "plant, 2.5 MPa pads). The blocks are "
+          f"to bear ids {R['ids']['cylinder'][0]} to {R['ids']['cylinder'][-1]} and {R['ids']['sphere'][0]} to "
+          f"{R['ids']['sphere'][-1]}, so that the tracker tells them from the smaller objects' blocks.</p>")
+    out = p1 + f1 + p2 + p3
+    if ro:
+        rows = []
+        for task, obj in (("twist", "67 mm sphere"), ("roll", "67 mm sphere"), ("pinpush", "45 mm cylinder"),
+                          ("press", "45 mm cylinder")):
+            t = ro.get(task, {})
+            if "base" not in t:
+                continue
+            cells = [task.replace("pinpush", "pin-push").capitalize(), obj, str(t["base"]["layouts"]),
+                     f"{t['base']['score']:.2f}"]
+            for cfg in ("flat", "built"):
+                c = t.get(cfg)
+                cells += ([f"{c['score']:.2f}", f"{100 * c['held']:.0f}"] if c else ["", ""])
+            c = t.get("flat") or t.get("built")
+            cells.append(f"{c['clear_min_mm']:.1f}" if c else "")
+            rows.append(tuple(cells))
+        tab = table(["Task", "Object", "Layouts", "Score, study's scene", "Score, flat seat", "Held, flat seat (%)",
+                     "Score, pocket seat", "Held, pocket seat (%)", "Nearest finger to stem or block (mm)"], rows,
+                    "Rollouts of the larger objects, seeds 20 to 24 per layout, each layout with its best grasp "
+                    "(<code>object_tracking_rollouts.py --set large run</code>, CPU MuJoCo, SCS0009 plant). The "
+                    "study's scene has a 3 mm post under the object. On the seats the block stands on a flat floor or in "
+                    "a pocket, and the arm lifts the hand 40 mm at 1.6 s. Scores are means over the rollouts. The "
+                    "finger distance is capped at 10 mm, the range of the contact query.", num_from=2)
+        fl = MEDIA / "20261117-large_rollouts.mp4"
+        fm = film(fl, "Two rollouts of the larger objects on the flat seat, each at its task's best layout: the "
+                      "press on the 45 mm cylinder (left) and the twist on the 67 mm sphere (right). The block and its "
+                      "stem are the simulation's; the arm's lift moves the seat down at 1.6 s.") if fl.exists() else ""
+        tw = ro.get("twist", {}).get("flat", {})
+        out += ("<p>Each layout's task was run with the larger objects on their stems and blocks (Table "
+                + str(P.TAB[0]) + ", Film " + str(P.FILM[0]) + "). On the flat seat the scores stay within "
+                "0.02 of the study's scene, except the pin-push, which is 0.08 lower. In the pocket the press loses "
+                "0.27, as on the 25 mm cylinder, where the series uses the flat seat. At the twist's fourth layout, "
+                "(150, 70), the middle finger came within "
+                f"{tw.get('clear_min_mm', float('nan')):.1f} mm of the stem or block late in the twist on the flat seat. "
+                "In the pocket it came within 0.3 mm. It touched neither. At the other layouts no finger came within "
+                "9 mm. "
+                "The stem's length is not fixed by this print: the modular stem can be made longer without "
+                "reprinting the sphere.</p>" + tab + fm)
+    if T_:
+        op = {(x["shape"], x["opening"]): x for x in T_["openings"]}
+        f3 = img(MEDIA / "20261117-opening_touches.png",
+                 "Share of the larger objects' replayed rollouts in which a finger touched each bin of the surface, "
+                 "with the joint's two openings outlined in red. Left: the 45 mm cylinder unrolled. Right: the 67 mm "
+                 "sphere's lower half. White bins were never touched.")
+        out += (f"<p>The rollouts on the two seats were replayed ({T_['n_rollouts']['cylinder']} on the cylinder, "
+                f"{T_['n_rollouts']['sphere']} on the sphere; Figure {P.FIG[0]}). On the cylinder the nearest touch lay "
+                f"{op[('cylinder', 'entry')]['min_mm']:.1f} mm from the entry and "
+                f"{op[('cylinder', 'far')]['min_mm']:.1f} mm from the far opening, which lies under the tape. On the "
+                f"sphere it lay {op[('sphere', 'entry')]['min_mm']:.1f} mm from the entry. A finger came within "
+                f"{T_['near_mm']:g} mm of the far opening, {J['jnt']['joint']['slot_w_mm']:g} &times; "
+                f"{J['jnt']['joint']['slot_h_far_mm']:.1f} mm, in {op[('sphere', 'far')]['near']} of "
+                f"{T_['n_rollouts']['sphere']} rollouts, and touched its rim.</p>" + f3)
+    mrows = [(f"{k.split('_')[1]} % {k.split('_')[0]}", f"{ms['cylinder'][k]['used_g']:.1f}",
+              f"{ms['sphere'][k]['used_g']:.1f}") for k in ms["cylinder"]]
+    mt = table(["Infill", "Cylinder body (g)", "Sphere, halves and dowels (g)"], mrows,
+               "Mass of each body sliced alone in the plate's process (0.20 mm layers, two walls), by infill.",
+               num_from=1)
+    out += ("<p>The simulations take each object with its block, stem and tape as 25 g. Lightning infill supports "
+            "only the top faces, so at 20 % it adds 1.5 g to the empty cylinder and 1.9 g to the empty sphere "
+            "(Table " + str(P.TAB[0]) + "). Gyroid adds 1.8 to 1.9 g per percent. With a block of 3 g, a stem of "
+            f"about 1 g and a cotter, the cylinder comes to about {ms['cylinder']['lightning_20']['used_g'] + 4.2:.0f} g "
+            f"before its tape and the sphere to about {ms['sphere']['lightning_20']['used_g'] + 4.2:.0f} g. The sphere "
+            "is above 25 g even with no infill. The plate is sliced at 20 % lightning.</p>" + mt
+            + f"<p>Files and the full account: <a href=\"{rel(LRG + '/README.md')}\"><code>{LRG}/</code></a>; "
+            "geometry and slices: <code>tracking_objects_print.py --set large large build|bambu</code>; stems, "
+            "rollouts and touches: <code>object_tracking_rollouts.py --set large stem|run|touchmap</code>.</p>")
+    return out
+
+
 def sec_earlier():
     return ("<p>Two parts were printed on 2026-11-07. The tag test plate of step 1 has tag36h11 and tag25h9 tags of "
             "10 to 16 mm. The tag block of step 3 has a 4.2 mm bore for the turntable's shaft. The lab measured that block on 2026-11-09 "
@@ -658,7 +792,9 @@ def sec_earlier():
 
 def sec_limits():
     return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
-            "have not been measured. The cotter joint's parts and coupons have not been printed. The cotter stays "
+            "have not been measured. The cotter joint's parts and coupons have not been printed, nor have the larger "
+            "objects of 2026-11-17, whose blocks and stems are not yet drawn. The larger sphere weighs about 30 g with "
+            "its block, against the 25 g of the simulations. The cotter stays "
             "in place only if PLA's friction coefficient on PLA exceeds 0.10. The PLA board and its mount have not been "
             "printed. The paper "
             "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
@@ -681,6 +817,9 @@ def sec_future():
         "end inside the entry, and a push through the far opening then frees it. If none does, measure the post's slot "
         "and the slice's floor with calipers and change <code>COT_T</code> in "
         "<code>tracking_objects_print.py</code> by the difference.",
+        "Design the modular block and stem (owner, 2026-11-17): a block that can be kept when its stem breaks, joined "
+        "to the stem away from its tag faces, with each stem and block marked by its object. The larger objects need "
+        "their blocks (ids 32 to 43) and stems (31.0 and 16.7 mm) before they can be tracked.",
         "Print the objects, weigh each block with its stem and the cylinder's tape, and set the bodies' infill so "
         "that each object weighs 25 g (plan, step 4).",
         "Calibrate each colour camera's lens with distortion from 20 or more views of a flat board, and solve the "
@@ -708,7 +847,9 @@ def sec_scripts():
             ("scripts/hardware/paper_board_print.py", "the paper boards' PDF and its check"),
             ("scripts/hardware/handeye_rotation_sim.py", "the hand-eye calibration's error against the turn range"),
             ("scripts/hardware/object_tracking_rollouts.py", "the rollouts of 2026-11-05 and their replays: the root's "
-             "clearance (<code>rootclear</code>) and the fingers' touches (<code>touchmap</code>)"),
+             "clearance (<code>rootclear</code>) and the fingers' touches (<code>touchmap</code>); with "
+             "<code>--set large</code> the larger objects' stems, rollouts and touches"),
+            ("scripts/hardware/object_tracking_sim.py", "the rollouts' films (<code>film</code>)"),
             ("scripts/hardware/tracking_prints_media.py", "this page's renders, drawings and viewer models"),
             ("scripts/hardware/tracking_prints_page.py", "this page"),
             (PLAN, "the plan")]
@@ -733,7 +874,9 @@ def lede_and_summary(J):
             f"fillets the stem's root. In the simulated rollouts on the trial series' layouts no finger came within "
             f"{root_gap(J):.1f} mm of it. In a third version each block is held without glue by a cotter joint. A square "
             f"taper on the stem's end is drawn into a socket in the object by a printed tapered pin. Printing errors of "
-            f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. For the cameras' calibration a paper ChArUco board fits the owner's "
+            f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. A 45 mm cylinder and a "
+            f"67 mm sphere with the same joint print on one plate in white, in {J['lrg']['bambu']['reslice']['hours']:.1f} h. "
+            f"For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
             f"in the camera to {he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS in simulation.")
@@ -741,7 +884,9 @@ def lede_and_summary(J):
                f"{stem['sphere']:.1f} mm, 15 mm below the lowest finger point of both layout sets; 14 tags decode at "
                f"0.022 mm RMS; blocks of 2026-11-16 with the stem's root widened and filleted, no finger within "
                f"{root_gap(J):.1f} mm of it in the rollouts; blocks held without glue by a cotter joint, a square taper and a "
-               f"tapered pin, three pins covering +-0.55 mm of fit), a printed ChArUco board with its mount, and a paper ChArUco board for a 140 x 130 mm "
+               f"tapered pin, three pins covering +-0.55 mm of fit; a 45 mm cylinder and a 67 mm sphere with the same "
+               f"joint on one white plate of {J['lrg']['bambu']['reslice']['hours']:.1f} h), a printed ChArUco board "
+               f"with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
                f"position undetermined; turns of +-10 deg about three axes give "
                f"{he[('three axes', 10.0)]['palm_in_camera_pos_rms_mm']:.2f} mm RMS for the palm in the camera in "
@@ -774,6 +919,7 @@ def main():
         ("objects", "Objects on their tag blocks", sec_objects(J, "{{VIEWER_OBJECTS}}")),
         ("stems", "Stem length and finger clearance", sec_stems(J)),
         ("joint", "Cotter joint between block and object", sec_joint(J)),
+        ("large", "Larger cylinder and sphere with the cotter joint", sec_large(J)),
         ("board", "ChArUco board and its mount on the hand", sec_board(J, "{{VIEWER_HAND}}")),
         ("views", "The board seen by the two cameras", sec_views(J)),
         ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration(J)),
@@ -787,7 +933,7 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(body, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in enumerate(body, 1))
     lede, summary = lede_and_summary(J)
-    byline = ("Print files of 2026-11-07, 2026-11-12 and 2026-11-16, checked in CAD and in the slicer. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
+    byline = ("Print files of 2026-11-07, 2026-11-12, 2026-11-16 and 2026-11-17, checked in CAD and in the slicer. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
               "<code>scripts/hardware/tracking_prints_page.py</code>; figures and viewers: "
               "<code>scripts/hardware/tracking_prints_media.py</code>.")
     page = TEMPLATE.read_text()

@@ -67,6 +67,33 @@ SEEDS = (20, 21, 22, 23, 24)
 # its grids (press, roll, twist; no pin-push) give the second set the stems must clear (owner, 2026-11-12: "Both sets").
 GRID_SV55DB = ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv55db"
 GRID_TOP = 5                    # layouts per task by tracking score
+# The larger objects (owner, 2026-11-17; object_tracking_mjcf.OBJECT_SETS["large"]): --set large runs the ten best
+# layouts per task of the HOM grids at the size-ranking test's large sizes on the same SCS0009 plant, 67 mm spheres and
+# 45 mm cylinders, with their best grasps, into rows/stem_large.json, rows/rollouts_large.jsonl and traj/large/.
+GRID_SV25R = ROOT / "docs/experiments/20261029-foundational_pose_review/rows/grid2dff_v4b_sv25r"
+LARGE_D = {"twist": 67.0, "roll": 67.0, "pinpush": 45.0, "press": 45.0}
+LARGE_TOP = 10
+SET = "20261112"
+
+
+def use_set(name):
+    """Select an object set: its sizes in hom_grasp_refine.TASKS (read by prepare and grid_picks), its objects and block
+    ids in object_tracking_mjcf, and the rows' and trajectories' names."""
+    global SET, TRAJ
+    SET = name
+    OM.select(name)
+    if name == "large":
+        R.TASKS.update(LARGE_D)
+        TRAJ = LOGS / "traj" / "large"
+
+
+def suffix():
+    return "" if SET == "20261112" else f"_{SET}"
+
+
+def set_picks():
+    """The picks of the selected set: the plan's five layouts, or the large grids' best layouts."""
+    return picks() if SET == "20261112" else grid_picks(GRID_SV25R, LARGE_TOP)
 BLOCK_BELOW_TIP = 15.0          # mm: the block's top below the lowest finger point at the grasp (plan)
 CLEAR_RANGE = 0.010             # m: the added geoms' margin and gap
 
@@ -107,7 +134,8 @@ def grid_picks(rows_dir=GRID_SV55DB, top=GRID_TOP):
         for k, (call, (score, g)) in enumerate(sorted(best.items(), key=lambda kv: -kv[1][0])[:top]):
             rec = toy[call]["fp"][HG.POSE[task]]
             v = (rec.get("grasps") or [rec])[g]["v"]
-            out.append((task, None, f"{rows_dir.name} #{k + 1}, tracking {score:.2f}", call, toy[call]["d"], v, None))
+            out.append((task, tuple(toy[call]["xy"]), f"{rows_dir.name} #{k + 1}, tracking {score:.2f}", call,
+                        toy[call]["d"], v, None))
     return out
 
 
@@ -158,8 +186,10 @@ def cmd_stem(a):
     shape puts the block's top BLOCK_BELOW_TIP below the lowest over the five layouts and the shape's two tasks."""
     import mujoco
     res = {"rows": [], "stem_mm": {}, "sets": ["the plan's five layouts (sv25 S3 picks)"]}
-    todo = picks()
-    if a.with_sv55db:
+    todo = set_picks()
+    if SET != "20261112":
+        res["sets"] = [f"{GRID_SV25R.name} at {LARGE_D}: top {LARGE_TOP} per task by tracking score"]
+    elif a.with_sv55db:
         todo += grid_picks()
         res["sets"].append(f"{GRID_SV55DB.name}: top {GRID_TOP} per task by tracking score")
     for task, xy, role, call, d6, v, prm in todo:
@@ -360,12 +390,13 @@ def run_one(task, xy, role, call, d6, v, prm, config, seed, stem_mm, lift_mm):
     shift = CONFIGS.get(config, {}).get("shift", 0.0)
     T.T_LIFT = LIFT_T0 + shift                     # the task's start (T_LIFT + 0.4) moves with a slower lift
     try:
-        res, _tr, _ = T.rollout(task, setup, plant, mirror, q_open, seed, {**T.PRM, **prm},
+        res, _tr, _ = T.rollout(task, setup, plant, mirror, q_open, seed, {**T.PRM, **(prm or {})},
                                 replace(H.HomParams(dt=T.DT_C), **over), None, noise,
                                 T.PLANT_VARIANTS.get(var, {}).get("hold_s", 0.0))
     finally:
         T.T_LIFT = LIFT_T0
-    row = {"task": task, "xy": list(xy), "role": role, "call": call, "pick": "S3", "config": config, "seed": seed,
+    row = {"task": task, "xy": list(xy), "role": role, "call": call, "pick": "S3" if prm is not None else "grid best",
+           "config": config, "seed": seed, "d_mm": R.TASKS[task],
            "score": round(float(L.rollout_score(task, res)), 4), "wall_s": round(time.time() - t0, 1),
            **{k: res.get(k) for k in ("held", "dropped", "fingers_end", "ramp_three_pads_max_deg", "w_rmse_ratio",
                                       "theta_rmse_deg", "drift_max_mm", "link_force_max_N")}}
@@ -407,12 +438,11 @@ def done_keys(path):
 
 def cmd_run(a):
     ROWS.mkdir(parents=True, exist_ok=True)
-    path = ROWS / "rollouts.jsonl"
+    path = ROWS / f"rollouts{suffix()}.jsonl"
     done = done_keys(path)
-    stem = json.loads((ROWS / "stem.json").read_text())["stem_mm"]
-    jobs = [(p, c, s) for p in picks() for c in a.configs for s in a.seeds
-            if (p[0], p[3], c, s) not in done and (not a.tasks or p[0] in a.tasks)]
-    jobs = jobs[a.part::a.parts]
+    stem = json.loads((ROWS / f"stem{suffix()}.json").read_text())["stem_mm"]
+    jobs = [(p, c, s) for p in set_picks() for c in a.configs for s in a.seeds if not a.tasks or p[0] in a.tasks]
+    jobs = [j for j in jobs[a.part::a.parts] if (j[0][0], j[0][3], j[1], j[2]) not in done]   # parts before done
     print(f"{len(jobs)} rollouts in part {a.part} of {a.parts}", flush=True)
     for (task, xy, role, call, d6, v, prm), config, seed in jobs:
         try:
@@ -532,9 +562,10 @@ def cmd_touchmap(a):
     rollouts with a touch in each bin of the surface; the sphere's are those of its two layouts in the series."""
     import mujoco
     import tracking_objects_print as TO
-    rows = [json.loads(x) for x in (ROWS / "rollouts.jsonl").read_text().splitlines() if x.strip()]
-    rows = [r for r in rows if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()]
-    shape_of = {12.5: "cylinder", 20.0: "sphere"}
+    rows = [json.loads(x) for x in (ROWS / f"rollouts{suffix()}.jsonl").read_text().splitlines() if x.strip()]
+    rows = list({(r["task"], r["call"], r["config"], r["seed"]): r for r in rows   # the last row of a rollout run twice
+                 if r.get("status") == "ok" and r["config"] in a.configs and (ROOT / r["traj"]).exists()}.values())
+    shape_of = {OM.OBJECTS[k]["r_mm"]: k for k in ("cylinder", "sphere")}
     bins = {"cylinder": (np.arange(-180.0, 181.0, 5.0), np.arange(-50.0, 51.0, 2.0)),
             "sphere": (np.arange(0.0, 91.0, 3.0), np.arange(-180.0, 181.0, 5.0))}
     maps = {k: np.zeros((len(b[0]) - 1, len(b[1]) - 1), int) for k, b in bins.items()}
@@ -543,7 +574,7 @@ def cmd_touchmap(a):
     for r in rows:
         z = np.load(ROOT / r["traj"])
         scene, shape = ROOT / str(z["scene"]), shape_of[float(z["r_mm"])]
-        if shape == "sphere" and tuple(r["xy"]) not in TO.SPHERE_LAYOUTS:
+        if SET == "20261112" and shape == "sphere" and tuple(r["xy"]) not in TO.SPHERE_LAYOUTS:
             continue
         if scene not in models:
             m = mujoco.MjModel.from_xml_path(str(scene))
@@ -614,9 +645,11 @@ def cmd_touchmap(a):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    ap.add_argument("--set", choices=sorted(OM.OBJECT_SETS), default="20261112",
+                    help="the objects: those printed on 2026-11-12, or the larger ones of 2026-11-17")
     p = sub.add_parser("stem")
     p.add_argument("--with-sv55db", action="store_true", help="also the measured servo's best layouts (GRID_SV55DB)")
-    p.add_argument("--out", default="stem.json")
+    p.add_argument("--out", default=None, help="default stem.json, or stem_<set>.json")
     p = sub.add_parser("run")
     p.add_argument("--configs", nargs="+", default=["base", "built"])
     p.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
@@ -629,6 +662,12 @@ def main():
     p = sub.add_parser("touchmap", help="finger touches on the objects against the cotter joint's openings (2026-11-16)")
     p.add_argument("--configs", nargs="+", default=["built", "flat"])
     a = ap.parse_args()
+    use_set(a.set)
+    if a.cmd == "stem" and a.out is None:
+        a.out = f"stem{suffix()}.json"
+    if a.cmd == "touchmap" and a.set != "20261112":
+        import tracking_objects_print as TO
+        TO.use_set(a.set)
     if a.cmd == "rootclear":
         return cmd_rootclear(a)
     if a.cmd == "touchmap":

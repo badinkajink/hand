@@ -42,6 +42,16 @@ END_IDS = (22, 23)              # the cylinder's end faces, +z_O and -z_O (2026-
 # (docs/experiments/20261105-object_tracking_sim/rows/stem_sv25_sv55db.json); radii are the taped or bare surfaces.
 OBJECTS = {"cylinder": dict(r_mm=12.5, stem_mm=35.6, length_mm=100.0, tape_mm=0.8),
            "sphere": dict(r_mm=20.0, stem_mm=25.7, tape_mm=0.0)}
+# The larger objects (owner, 2026-11-17: "prepare these but with a larger diameter sphere, cylinder, since our current
+# ones aren't broken yet"): the large sizes of the size-ranking test (scripts/hom/hom_size_rank.py), a 45 mm x 100 mm
+# cylinder without end tags and a 67 mm sphere, each held on its block by the cotter joint, with blocks of their own
+# (ids 32-37 and 38-43). Their stems put the block's top 15 mm below the lowest finger point of the ten best layouts per
+# task of the HOM grids at these sizes (object_tracking_rollouts.py --set large stem, rows/stem_large.json).
+# select("large") puts them in OBJECTS and IDS for the scripts that build, check and simulate them.
+OBJECT_SETS = {"20261112": ({k: dict(v) for k, v in OBJECTS.items()}, dict(IDS)),
+               "large": ({"cylinder": dict(r_mm=22.5, stem_mm=31.0, length_mm=100.0, tape_mm=0.8, end_ids=()),
+                          "sphere": dict(r_mm=33.5, stem_mm=16.7, tape_mm=0.0)},
+                         {"cylinder": tuple(range(32, 38)), "sphere": tuple(range(38, 44))})}
 POCKET_DEPTH = 4.0             # mm: the seat's pocket around the block's lower end
 POCKET_CLEAR = 0.3             # mm per side
 POCKET_WALL = 3.0              # mm
@@ -67,6 +77,14 @@ def plate_maps():
     return out
 
 
+def select(name):
+    """Put an object set of OBJECT_SETS in OBJECTS and IDS, in place, so that the modules that imported them see it."""
+    objs, ids = OBJECT_SETS[name]
+    for k, v in objs.items():
+        OBJECTS[k] = dict(v)
+    IDS.update(ids)
+
+
 def block_map(shape):
     """The tag map of the shape's block in B (mm)."""
     return TG.HexBlock(ids=IDS[shape]).tag_map()
@@ -77,7 +95,7 @@ def object_map(shape) -> TG.TagMap:
     and on the cylinder the two end-face tags, upright with +y_O up (right +x_O on the +z_O end, -x_O on the -z_O end)."""
     o = OBJECTS[shape]
     out = block_map(shape).transformed(T_OB(o["r_mm"], o["stem_mm"]))
-    return _end_tags(out, shape)
+    return _end_tags(out, shape, o.get("end_ids", END_IDS))
 
 
 def _end_tags(out, shape, ids=END_IDS):

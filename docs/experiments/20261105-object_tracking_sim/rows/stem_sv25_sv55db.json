@@ -1,0 +1,632 @@
+{
+ "rows": [
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "call": 162,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    55.0,
+    35.0,
+    -55.0
+   ],
+   "below_bottom_open_mm": 8.01,
+   "below_bottom_touch_mm": 7.37
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "call": 304,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    35.0,
+    50.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 14.2,
+   "below_bottom_touch_mm": 12.03
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "call": 249,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    85.0,
+    42.5,
+    -85.0
+   ],
+   "below_bottom_open_mm": 14.07,
+   "below_bottom_touch_mm": 12.04
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "call": 176,
+   "d6": [
+    -37.5,
+    0.0,
+    37.5,
+    27.5,
+    37.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": 14.31,
+   "below_bottom_touch_mm": 12.31
+  },
+  {
+   "task": "pinpush",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "call": 170,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    75.0,
+    35.0,
+    -75.0
+   ],
+   "below_bottom_open_mm": 10.48,
+   "below_bottom_touch_mm": 9.58
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "call": 162,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    55.0,
+    35.0,
+    -55.0
+   ],
+   "below_bottom_open_mm": 18.11,
+   "below_bottom_touch_mm": 14.35
+  },
+  {
+   "task": "press",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "call": 304,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    35.0,
+    50.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 16.79,
+   "below_bottom_touch_mm": 13.7
+  },
+  {
+   "task": "press",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "call": 249,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    85.0,
+    42.5,
+    -85.0
+   ],
+   "below_bottom_open_mm": 20.63,
+   "below_bottom_touch_mm": 16.87
+  },
+  {
+   "task": "press",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "call": 176,
+   "d6": [
+    -37.5,
+    0.0,
+    37.5,
+    27.5,
+    37.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": 18.65,
+   "below_bottom_touch_mm": 14.67
+  },
+  {
+   "task": "press",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "call": 170,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    75.0,
+    35.0,
+    -75.0
+   ],
+   "below_bottom_open_mm": 20.4,
+   "below_bottom_touch_mm": 16.35
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "call": 162,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    55.0,
+    35.0,
+    -55.0
+   ],
+   "below_bottom_open_mm": 9.63,
+   "below_bottom_touch_mm": 7.18
+  },
+  {
+   "task": "roll",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "call": 304,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    35.0,
+    50.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 8.74,
+   "below_bottom_touch_mm": 6.5
+  },
+  {
+   "task": "roll",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "call": 249,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    85.0,
+    42.5,
+    -85.0
+   ],
+   "below_bottom_open_mm": 9.92,
+   "below_bottom_touch_mm": 5.84
+  },
+  {
+   "task": "roll",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "call": 176,
+   "d6": [
+    -37.5,
+    0.0,
+    37.5,
+    27.5,
+    37.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": -1.15,
+   "below_bottom_touch_mm": -1.55
+  },
+  {
+   "task": "roll",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "call": 170,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    75.0,
+    35.0,
+    -75.0
+   ],
+   "below_bottom_open_mm": 9.97,
+   "below_bottom_touch_mm": 6.4
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "role": "generalist",
+   "call": 162,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    55.0,
+    35.0,
+    -55.0
+   ],
+   "below_bottom_open_mm": 9.86,
+   "below_bottom_touch_mm": 7.23
+  },
+  {
+   "task": "twist",
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "role": "twist",
+   "call": 304,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    35.0,
+    50.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 10.23,
+   "below_bottom_touch_mm": 7.84
+  },
+  {
+   "task": "twist",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "role": "roll",
+   "call": 249,
+   "d6": [
+    -42.5,
+    0.0,
+    42.5,
+    85.0,
+    42.5,
+    -85.0
+   ],
+   "below_bottom_open_mm": 9.94,
+   "below_bottom_touch_mm": 5.8
+  },
+  {
+   "task": "twist",
+   "xy": [
+    75.0,
+    55.0
+   ],
+   "role": "pinpush",
+   "call": 176,
+   "d6": [
+    -37.5,
+    0.0,
+    37.5,
+    27.5,
+    37.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": 0.49,
+   "below_bottom_touch_mm": -0.18
+  },
+  {
+   "task": "twist",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "role": "press",
+   "call": 170,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    75.0,
+    35.0,
+    -75.0
+   ],
+   "below_bottom_open_mm": 8.85,
+   "below_bottom_touch_mm": 5.6
+  },
+  {
+   "task": "press",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #1, tracking 0.62",
+   "call": 206,
+   "d6": [
+    -40.0,
+    0.0,
+    40.0,
+    40.0,
+    40.0,
+    -40.0
+   ],
+   "below_bottom_open_mm": 18.48,
+   "below_bottom_touch_mm": 14.93
+  },
+  {
+   "task": "press",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #2, tracking 0.55",
+   "call": 126,
+   "d6": [
+    -32.5,
+    0.0,
+    32.5,
+    27.5,
+    32.5,
+    -27.5
+   ],
+   "below_bottom_open_mm": 17.6,
+   "below_bottom_touch_mm": 14.44
+  },
+  {
+   "task": "press",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #3, tracking 0.53",
+   "call": 179,
+   "d6": [
+    -37.5,
+    0.0,
+    37.5,
+    35.0,
+    37.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": 17.61,
+   "below_bottom_touch_mm": 14.45
+  },
+  {
+   "task": "press",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #4, tracking 0.52",
+   "call": 154,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    35.0,
+    35.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 17.47,
+   "below_bottom_touch_mm": 14.02
+  },
+  {
+   "task": "press",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #5, tracking 0.51",
+   "call": 152,
+   "d6": [
+    -35.0,
+    0.0,
+    35.0,
+    30.0,
+    35.0,
+    -30.0
+   ],
+   "below_bottom_open_mm": 17.15,
+   "below_bottom_touch_mm": 13.7
+  },
+  {
+   "task": "roll",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #1, tracking 0.40",
+   "call": 260,
+   "d6": [
+    -45.0,
+    0.0,
+    45.0,
+    50.0,
+    45.0,
+    -50.0
+   ],
+   "below_bottom_open_mm": 8.96,
+   "below_bottom_touch_mm": 6.51
+  },
+  {
+   "task": "roll",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #2, tracking 0.38",
+   "call": 279,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    35.0,
+    47.5,
+    -35.0
+   ],
+   "below_bottom_open_mm": 10.06,
+   "below_bottom_touch_mm": 6.73
+  },
+  {
+   "task": "roll",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #3, tracking 0.35",
+   "call": 551,
+   "d6": [
+    -75.0,
+    0.0,
+    75.0,
+    27.5,
+    75.0,
+    -27.5
+   ],
+   "below_bottom_open_mm": 6.46,
+   "below_bottom_touch_mm": 5.26
+  },
+  {
+   "task": "roll",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #4, tracking 0.28",
+   "call": 285,
+   "d6": [
+    -47.5,
+    0.0,
+    47.5,
+    50.0,
+    47.5,
+    -50.0
+   ],
+   "below_bottom_open_mm": 8.68,
+   "below_bottom_touch_mm": 6.53
+  },
+  {
+   "task": "roll",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #5, tracking 0.28",
+   "call": 202,
+   "d6": [
+    -40.0,
+    0.0,
+    40.0,
+    30.0,
+    40.0,
+    -30.0
+   ],
+   "below_bottom_open_mm": 4.76,
+   "below_bottom_touch_mm": 3.14
+  },
+  {
+   "task": "twist",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #1, tracking 0.76",
+   "call": 327,
+   "d6": [
+    -52.5,
+    0.0,
+    52.5,
+    30.0,
+    52.5,
+    -30.0
+   ],
+   "below_bottom_open_mm": 10.1,
+   "below_bottom_touch_mm": 7.45
+  },
+  {
+   "task": "twist",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #2, tracking 0.70",
+   "call": 302,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    30.0,
+    50.0,
+    -30.0
+   ],
+   "below_bottom_open_mm": 9.81,
+   "below_bottom_touch_mm": 7.05
+  },
+  {
+   "task": "twist",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #3, tracking 0.63",
+   "call": 352,
+   "d6": [
+    -55.0,
+    0.0,
+    55.0,
+    30.0,
+    55.0,
+    -30.0
+   ],
+   "below_bottom_open_mm": 4.52,
+   "below_bottom_touch_mm": 3.52
+  },
+  {
+   "task": "twist",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #4, tracking 0.60",
+   "call": 304,
+   "d6": [
+    -50.0,
+    0.0,
+    50.0,
+    35.0,
+    50.0,
+    -35.0
+   ],
+   "below_bottom_open_mm": 10.66,
+   "below_bottom_touch_mm": 8.08
+  },
+  {
+   "task": "twist",
+   "xy": null,
+   "role": "grid2dff_v4b_sv55db #5, tracking 0.58",
+   "call": 356,
+   "d6": [
+    -55.0,
+    0.0,
+    55.0,
+    40.0,
+    55.0,
+    -40.0
+   ],
+   "below_bottom_open_mm": 10.62,
+   "below_bottom_touch_mm": 8.12
+  }
+ ],
+ "stem_mm": {
+  "cylinder": 35.6,
+  "sphere": 25.7
+ },
+ "sets": [
+  "the plan's five layouts (sv25 S3 picks)",
+  "grid2dff_v4b_sv55db: top 5 per task by tracking score"
+ ]
+}
