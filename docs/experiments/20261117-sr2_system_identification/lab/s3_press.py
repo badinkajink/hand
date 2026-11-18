@@ -124,6 +124,14 @@ def diag(st):
     return {k: d.get(k) for k in ("status", "temperature", "torque_enable", "voltage")}
 
 
+def hexe_in_P():
+    """R_PH: the HEX-E's axes in P (frames.json T_E_from_H and the hand's T_E_P)."""
+    from sr2hand.robot.tool_chain import SR2Hand
+    F = json.loads((ROOT / "assets/cad_v3/frames.json").read_text())
+    T_EH = np.array(F["flange"]["hex_e"]["T_E_from_H"], float).reshape(4, 4)
+    return np.linalg.inv(SR2Hand.load().T_E_P())[:3, :3] @ T_EH[:3, :3]
+
+
 def stop_tracker(arm, tracker):
     tracker.stop()
     arm.stop()
@@ -393,6 +401,14 @@ def cmd_run(a):
         print(f"hold first: {f} {hj} (servo {sids[hj]}) steps {a.step:g} deg every {a.dwell:g} s toward sign {hsg:+d} "
               f"until |dF| {hN:g} N (at most {hold[4]} steps), holds there through the press and its step back, then "
               f"steps back itself")
+    R_PH = hexe_in_P()
+    axes = [0, 1] if a.stop_axes == "xy" else [0, 1, 2]
+
+    def dF_stop(Fn):
+        """The force change the stops read: in P, its x and y only by default (the HEX-E's z drifts ~0.4 N a minute
+        after an arm move, 2026-11-18 15:54-15:59; the presses here push along x_P and y_P)."""
+        return float(np.linalg.norm((R_PH @ (Fn - F0))[axes]))
+
     ft = FT.HT.open_ft(True)
     time.sleep(1.5)
     F0, sd0, n0 = hexe_mean(ft, 1.0)
@@ -462,7 +478,7 @@ def cmd_run(a):
               f"({len(got)} samples in 1 s)", flush=True)
     hdr = {"what": "S3 press", "finger": f, "joint": jn, "servo": sid, "sign": a.sign, "step_deg": a.step,
            "dwell_s": a.dwell, "speed": a.speed, "start_joints": start, "range": [lo, hi], "F0_N": F0.tolist(),
-           "F0_sd_N": sd0.tolist(), "stops": {"max_n": a.max_n, "max_offset": a.max_offset, "max_load": a.max_load,
+           "F0_sd_N": sd0.tolist(), "R_PH": R_PH.tolist(), "stops": {"axes": a.stop_axes, "max_n": a.max_n, "max_offset": a.max_offset, "max_load": a.max_load,
                                               "max_temp": a.max_temp}, "diag": dg, "splitter": how,
            "mux": str(mux[-1].relative_to(ROOT)) if mux else None, "mounts": s.get("mount_positions"),
            "tracker": "dip_tag" if a.tag else "block" if a.track_block else None, "hold": a.hold,
@@ -511,8 +527,8 @@ def cmd_run(a):
                 why = "the HEX-E stopped streaming"
                 break
             Fn, _, _ = hexe_mean(ft, 0.2)
-            if Fn is not None and np.linalg.norm(Fn - F0) >= stop_n and pressing:
-                why = f"|dF| {np.linalg.norm(Fn - F0):.2f} N reached {stop_n:g} N"
+            if Fn is not None and dF_stop(Fn) >= stop_n and pressing:
+                why = f"|dF| {dF_stop(Fn):.2f} N reached {stop_n:g} N"
                 break
             rs = samp.since(time.time() - 0.2)
             if rs and abs(float(rs[-1][2].get(js) or 0.0)) >= a.max_load and pressing:
@@ -528,7 +544,8 @@ def cmd_run(a):
                "offset": None if reading is None else round(sign * (target - reading), 3), "load": load,
                "held": {k2: round(v, 3) for k2, v in held.items()},
                "dF_N": None if Fm is None else np.round(Fm - F0, 4).tolist(),
-               "dF_abs_N": None if Fm is None else round(float(np.linalg.norm(Fm - F0)), 4),
+               "dF_abs_N": None if Fm is None else round(dF_stop(Fm), 4),
+               "dF_P": None if Fm is None else np.round(R_PH @ (Fm - F0), 4).tolist(),
                "F_sd_N": None if Fsd is None else np.round(Fsd, 4).tolist(), "hexe_n": nF,
                "temp": {k2: (d.get("temperature") or {}).get(sids[k2]) for k2 in JOINTS},
                "status": {k2: (d.get("status") or {}).get(sids[k2]) for k2 in JOINTS},
@@ -665,6 +682,8 @@ def main():
             p.add_argument("--speed", type=int, default=20)
             p.add_argument("--max-travel", type=float, default=25.0, help="deg of target travel at most")
             p.add_argument("--max-n", type=float, default=3.0)
+            p.add_argument("--stop-axes", choices=("xy", "xyz"), default="xy",
+                           help="the force change's components in P that the stops read")
             p.add_argument("--max-offset", type=float, default=18.0)
             p.add_argument("--max-load", type=float, default=900.0)
             p.add_argument("--max-temp", type=float, default=55.0)

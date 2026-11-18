@@ -128,3 +128,32 @@ watcher's log is `logs/20261118-sr2_tags/arm_watch.jsonl`.
 - **Rig after.** Every finger at zero, the thumb back at (-36.3, 2.4), torque on, servos 19-26 C, no flags. The arm
   is off at the owner's lowered pose (palm origin z_B 123 mm). The sphere is 200 mm from the palm toward +y; the cylinder
   is 190 mm away toward -y.
+
+## 2026-11-18, afternoon: S3 on the owner's block, the index (15:28-16:06)
+
+- **The block** (owner, 15:3x-15:4x): a 20 x 20 mm 80/20 post about 128 mm tall on the table, with an L base clamped to
+  it. Two 45 x 45 x 1 mm plates are glued on opposite faces, their tops about 128 mm up. Tag36h11 id 0 is on one plate,
+  and grip tape (0.75-1 mm) covers the other, whose face is 22 mm behind the tag's. Clamped (15:42), both cameras
+  triangulate the tag's edge at 39.85 mm (sd 0.01). The tag sits 108.2 mm above the table, tilted -0.2 deg. The plates
+  face +-x_P to 2.1 deg. The owner allows a 90 deg wrist turn if the yaw needs it.
+- **Approach** (`lab/s3_approach.py`, plan `data/s3/20261118-155238_approach_index.json`, 15:52:51-15:53:26): a pure
+  translation, up 140.7 mm, across 85.6 mm, down 64.2 mm. On the way down the least clearance was 8.6 mm, and the pad
+  stopped 4.6 mm off the plate (`data/s3/20261118-155336_block_at_press_pose.json`). The HEX-E changed at most 1.5 N.
+- **Index MCP head on** (`data/s3/20261118-155403_index_mcp_press.jsonl`; raw and boards in
+  `logs/20261118-sr2_s3_press/`, `logs/20261118-three_finger_mux/20261118-155402-mux.bin`, both machines). The force
+  along x_P rose about 0.4 N per deg of target offset to 1.75 N at 4.8 deg. It held there while the MCP stalled, then
+  jumped to 2.55 N with a 1.5 deg jump of the reading, and stayed at about 2.5 N. The MCP flagged overload (status 32)
+  at load -630 after about 20 s at -540 to -630. On the step back the force stayed flat until the target came within
+  about 2 deg of the reading. Contact came at a reading of about 3 deg, and the reading advanced 5.5 deg past it. The
+  PIP reading was pushed back 1.2 deg, and the post moved 0.065 mm per N.
+- **Index yaw with the MCP holding 2 N** (`data/s3/20261118-160047_index_yaw_mcp_hold.jsonl`). The hold reached
+  2.01 N at an MCP offset of 5.1 deg. While the pad stuck, the yaw's tangential force (y_P) rose to 0.69 N with 0.9 deg
+  of reading advance; W3's 0.76 N m/rad give predicts 4.6 deg there. Then it stick-slipped at 0.86-1.05 N against
+  1.9 N normal (friction about 0.5) over 14 deg of reading, about 21 mm along the tape, to within about 1.5 mm of the
+  plate's edge. On the step back the force (0.88-0.93 N) and the reading stayed put until the target passed the
+  reading. Reversed, the yaw stalled at -8.8 deg with offset -9 deg and -0.90 N: 0.08 N m, kp 0.525 x 9 deg. It
+  returned to zero when the MCP unloaded.
+- **Drift.** The HEX-E's z drifts about 0.4 N a minute after an arm move; x and y held to 0.02 N. The stops now read
+  the force's x_P and y_P only.
+- **Rig after.** The index is at zero, beside the plate at the press pose. The yaw servo is at 47 C and the MCP at
+  39 C; the others are 20-22 C, with no flags. The arm runs at the press pose, and the splitter records.
