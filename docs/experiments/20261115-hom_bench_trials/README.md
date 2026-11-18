@@ -13,7 +13,7 @@ listed for 4-7.4 V; a coworker had held one at stall for 45 s at 7.5 V, and the 
 9.0 V. The owner watched the trials from 16:5x and left at about 17:15.
 
 In short: at the same servo current as at 5 V, one trial without the fingertip contacts tracked 0.439 against 0.322-0.378
-at 5 V, a hint and no more. At the 5 V offsets the 7.5 V supply browned out mid-squeeze. Free-air steps settle in 0.1 s.
+at 5 V, a hint and no more. At the 5 V offsets the 7.5 V supply browned out mid-squeeze. Free-air steps reach 90 % in 0.1 s.
 The plan's open pose drives two MCPs into a mechanical stop, which puts a pad against the sphere.
 
 - **The morning's fixes.** The restart at 16:2x left every joint within 0.29 deg; the index PIP read +0.3 deg again.
@@ -46,7 +46,7 @@ The plan's open pose drives two MCPs into a mechanical stop, which puts a pad ag
   before the lift. The station's read-backs stopped for 0.5 s, and the pads fell from 3.9 and 3.1 N to 1.2 and 1.0 N.
   The weakened pinch slid off at the lift. At 7.5 V the same offsets draw 1.5 times the current: the gr_g4 failure of
   11-16 at 5 V again.
-- **The comparison at budget 0.56** (the owner's choice at 17:0x: the summed servo current held at the 5 V level), from
+- **The comparison at budget 0.56** (the owner's choice at 17:0x: the summed servo current kept at the 5 V level), from
   the morning's open pose with the two MCPs sent to their stops, not past them (`plans/20261117-..._g13_mcpstop_plan.json`;
   the start pushed the sphere about 2 mm, so the trials ran from `ready`'s pose without its 1 mm gate):
 
@@ -74,6 +74,8 @@ The plan's open pose drives two MCPs into a mechanical stop, which puts a pad ag
   corvus. The hand lifted empty at 1.6 s. Four dry runs at 16:51-16:52 received every target; their server records
   were deleted. Cause not found. A trial now stops when no target comes within 0.5 s, and its lift is cancelled
   (`hom_trial.py --first-target-s`).
+- **The station closes idle connections.** The step test's first stream start, on a connection idle since its state
+  read, failed with "remote end closed connection". Its client now reconnects once.
 - **The tracker and the printed blocks.** At 17:06 the tracker fitted the sphere's map (tags 10-15) to extra printed
   blocks 460 mm away. With them out of view it found the sphere at once. The cylinder's tags (16-23) do not overlap the
   sphere's, so the cylinder may stay in view.
@@ -86,7 +88,7 @@ records and the splitter's log are in corvus's `logs/20261116-hom_trials/2026111
 
 Next, in the owner's words where given: a map of the data paths, rates and clocks with each past failure on it, on
 `docs/index.html` ("we can queue this up after the 7.5v experiments"); re-plan g13's open pose within the MCPs' range;
-a supply that carries budget 0.84 at 7.5 V, or keep 0.56; repeat the trials (one per row so far); the cylinder in reach
+a supply strong enough for budget 0.84 at 7.5 V, or keep 0.56; repeat the trials (one per row so far); the cylinder in reach
 ("ideally you could experiment on both"); "picking up the cylinder from dropped via a HOM-style roll" (a plan from
 simulation first); faster tag detection ("surely at this point we can accelerate the detections"); and the records'
 contact forces and points for the pad and point contact models.

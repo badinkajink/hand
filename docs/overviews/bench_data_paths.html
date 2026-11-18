@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="docs-date" content="2026-11-17">
+<meta name="docs-summary" content="The SR2 hand bench runs on three computers joined by HTTP, UDP over Tailscale, USB, RTDE and Ethernet. Of the 14 failures recorded from 2026-11-15 to 11-17, 8 sat in the devices, the power or the sensing, and 6 in the plumbing between processes.">
+<meta name="docs-topic" content="hardware">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data paths, rates and clocks of the SR2 hand bench</title>
+<style>
+body { max-width: 1000px; margin: 2em auto; padding: 0 16px; }
+figure { margin: 1.5em 0; text-align: center; }
+figcaption { text-align: left; font-size: 0.95em; }
+td, th { vertical-align: top; }
+</style>
+<style id="retro">/* retro_style.py: plain page style (owner, 2026-10-09) */
+:root, :root[data-theme], html {
+  color-scheme: light !important;
+  --paper:#fff !important; --card:#fff !important; --sunk:#f2f2f2 !important; --shadow:none !important;
+  --ink:#000 !important; --ink2:#000 !important; --ink3:#444 !important;
+  --rule:#000 !important; --rule2:#999 !important;
+  --s1:#BE7514 !important; --s2:#4A7FC4 !important; --s3:#5E8F5A !important;  /* chart series: amber, blue, green */
+  --good:#008800 !important; --bad:#cc0000 !important; --ref:#666 !important;
+  --f-body:"Times New Roman",Times,serif !important; --f-display:"Times New Roman",Times,serif !important;
+  --f-mono:"Courier New",Courier,monospace !important;
+}
+html, body { background:#fff !important; color:#000 !important; }
+body { font:18px/1.4 "Times New Roman",Times,serif !important; margin:0 !important; }
+.wrap, main, body > .col { max-width:860px !important; margin:0 auto !important; padding:24px 16px 48px !important; }
+.col { max-width:none !important; margin:0 !important; padding:0 !important; }
+header, footer, section, nav, figure, .numbers, .keep, .handoff, .step, .derive, .card, .panel, .box {
+  background:none !important; box-shadow:none !important; border-radius:0 !important;
+}
+header { border:0 !important; padding:0 0 6px !important; margin:0 !important; }
+section { border:0 !important; padding:0 !important; margin:0 0 8px !important; }
+h1, h2, h3, h4, .tag, th, .eyebrow, .lede, .byline, nav, figcaption, .note, .sub, .chart h4 {
+  font-family:"Times New Roman",Times,serif !important; letter-spacing:normal !important; text-transform:none !important;
+}
+h1 { font-size:27px !important; line-height:1.2 !important; font-weight:bold !important; margin:12px 0 8px !important; max-width:none !important; }
+h2 { font-size:21px !important; font-weight:bold !important; border-bottom:1px solid #000 !important;
+     margin:30px 0 10px !important; padding:0 0 2px !important; }
+h3 { font-size:18px !important; font-weight:bold !important; margin:18px 0 6px !important; }
+h2 + .sub, .sub { font-size:16px !important; color:#444 !important; }
+.eyebrow { font-size:15px !important; font-weight:normal !important; color:#444 !important; margin:0 !important; }
+.lede { font-size:18px !important; line-height:1.4 !important; font-weight:normal !important; color:#000 !important; }
+.byline { font-size:15px !important; color:#444 !important; border:0 !important; }
+p, li { font-size:18px !important; line-height:1.4 !important; color:#000 !important; max-width:none !important; }
+strong, b { font-weight:bold !important; }
+a, .col a, footer a, nav a, nav.toc a { color:#0000ee !important; text-decoration:underline !important; }
+a:visited, .col a:visited { color:#551a8b !important; }
+nav.toc { border-bottom:1px solid #000 !important; padding:6px 0 10px !important; }
+nav.toc ol { font:16px/1.5 "Times New Roman",Times,serif !important; }
+hr { border:0 !important; border-top:1px solid #000 !important; }
+code, pre, kbd, .mono, td.num, th.num {
+  font-family:"Courier New",Courier,monospace !important;
+}
+code, .m, kbd, samp { font-size:0.9em !important; background:none !important; padding:0 !important;
+  color:#000 !important; font-family:"Courier New",Courier,monospace !important; }
+pre { background:#f2f2f2 !important; border:0 !important; border-radius:0 !important; padding:10px 14px !important;
+      font-size:15px !important; }
+.note, .keep, .callout, .warn {
+  background:#ffffcc !important; border:1px solid #000 !important; padding:8px 12px !important; color:#000 !important;
+}
+.numbers, .handoff { border:1px solid #000 !important; padding:8px 12px !important; }
+.derive, .step { border:0 !important; padding:0 !important; overflow:visible !important; }
+table { border-collapse:collapse !important; max-width:100% !important; font:16px/1.3 "Times New Roman",Times,serif !important; }
+th, td { border:1px solid #000 !important; padding:3px 7px !important; background:#fff !important; color:#000 !important; }
+th { background:#f2f2f2 !important; font-weight:bold !important; font-size:16px !important; }
+td.num, th.num { font-size:16px !important; }
+table.index td, table.index th { font-size:16px !important; vertical-align:top !important; }
+tr.grp td, table.index tr.grp td { background:#f2f2f2 !important; font:bold 16px/1.3 "Times New Roman",Times,serif !important; }
+td.cell { background:#fff !important; }
+td.c4 { background:#b8eeb8 !important; } td.c3 { background:#e2f7e2 !important; }
+td.c2 { background:#ffe2a8 !important; } td.c1, td.c0 { background:#ffc4c4 !important; }
+.tw { overflow-x:auto !important; border:0 !important; max-width:100% !important; }
+.tw table { max-width:none !important; }
+.tnote { font:15px/1.35 "Times New Roman",Times,serif !important; color:#000 !important; }
+figure { margin:16px 0 !important; padding:0 !important; border:0 !important; text-align:center !important; }
+figure > img, figure > video, figure > svg, figure > .chart, figure > .duo, .chart > svg, .diagram > svg {
+  display:block !important; margin-left:auto !important; margin-right:auto !important; }
+.chart .legendrow, .chart .legend { justify-content:center !important; }
+/* two-up chart grids stack: a chart drawn for the full column shows its text at half size side by side */
+.duo, .pair, .two, .grid2, .fig-row { grid-template-columns:1fr !important; }
+figure img, figure video, figure svg { border:1px solid #000 !important; border-radius:0 !important; max-width:100% !important; }
+.eq svg, .tex-d svg, .tex-i svg, svg.tex, .chart svg, .diagram svg { border:0 !important; }
+figcaption { text-align:left !important; font-size:16px !important; line-height:1.35 !important; color:#000 !important; margin-top:4px !important; }
+.chart, .duo, .diagram { background:#fff !important; border:0 !important; padding:0 !important; max-width:100% !important; overflow-x:auto !important; }
+.chart svg, .diagram > svg { max-width:100% !important; height:auto !important; }
+.chart .tip { background:#ffffcc !important; color:#000 !important; border:1px solid #000 !important; border-radius:0 !important;
+              box-shadow:none !important; font-family:"Times New Roman",Times,serif !important; }
+.key { border-radius:0 !important; }
+footer, footer p { border-top:0 !important; font:16px/1.4 "Times New Roman",Times,serif !important; color:#000 !important; }
+footer { border-top:1px solid #000 !important; margin-top:32px !important; padding-top:6px !important; }
+footer code { font-family:"Courier New",Courier,monospace !important; font-size:14px !important; }
+.chip, .pill, .badge { background:none !important; border:0 !important; padding:0 !important; border-radius:0 !important;
+                       font:inherit !important; color:#000 !important; text-transform:none !important;
+                       letter-spacing:normal !important; }
+.stats { background:none !important; border:0 !important; border-radius:0 !important; box-shadow:none !important; }
+.stat { background:none !important; color:#000 !important; border:0 !important; box-shadow:none !important; }
+.stat .num, .stat b, .stat small, .stat .sub, .stat span { color:#000 !important; }
+button.theme, .theme-toggle, [data-theme-toggle] { display:none !important; }</style>
+</head><body>
+<p><a href="../index.html">Documentation home</a></p>
+<h1>Data paths, rates and clocks of the SR2 hand bench</h1>
+
+<p>The SR2 hand bench runs on three computers joined by HTTP, UDP over Tailscale, USB, RTDE and Ethernet. Of the 14 failures recorded from 2026-11-15 to 11-17, 8 sat in the devices, the power or the sensing, and 6 in the plumbing between processes. Figure&nbsp;1 maps every stream with its rate, its age when used and its clock; Table&nbsp;2
+places each failure on the map. The owner asked on 2026-11-17 whether the bench should move to ROS, after repeated
+trouble with servo telemetry, tag detection and fingertip streaming. The last section sorts the failures by what a
+middleware changes.</p>
+
+<h2>Terms</h2>
+<ul>
+<li><b>Rate</b>: messages a second on a link.</li>
+<li><b>Age when used</b>: the time from a measurement to the control loop's use of it.</li>
+<li><b>Clock</b>: the computer whose time stamps a stream's samples.</li>
+<li><b>Read-back</b>: after the station writes a frame of nine goals, it reads the nine positions and returns them with
+its answer.</li>
+<li><b>Lease</b>: the time the station waits for the next frame before it ends a stream and keeps the last goals.</li>
+<li><b>Plumbing</b>: the processes, threads and links between the devices, as opposed to the devices, their power and
+the sensing itself.</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 980 640" width="980" style="max-width:100%;height:auto;font-family:Times,serif" role="img" aria-label="Map of the SR2 hand bench: three computers, their processes and links, with the numbered failures of 2026-11-15 to 11-17">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker></defs>
+<rect x="0" y="0" width="980" height="640" fill="#fff"/>
+<rect x="10" y="30" width="190" height="120" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="18" y="49" font-size="15" font-weight="bold">Workstation</text>
+<text x="18" y="68" font-size="13.5">HOM server, one per plan:</text>
+<text x="18" y="85" font-size="13.5">a UDP port each</text>
+<text x="18" y="102" font-size="13.5">clock: its logs only</text>
+<rect x="285" y="10" width="395" height="620" fill="#f4f4f4" stroke="#000" stroke-width="1.5"/>
+<text x="293" y="29" font-size="15" font-weight="bold">corvus, the UR5 lab computer</text>
+<text x="295" y="50" font-size="13.5" text-anchor="start" font-weight="normal" font-style="italic">clock: the reference (a trial&#x27;s t = 0)</text>
+<rect x="298" y="62" width="370" height="300" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="306" y="81" font-size="15" font-weight="bold">hom_trial.py: one Python process</text>
+<rect x="312" y="92" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="113" font-size="13.5" text-anchor="start" font-weight="normal">50 Hz control loop</text>
+<rect x="312" y="134" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="155" font-size="13.5" text-anchor="start" font-weight="normal">tracker: two cameras, AprilTags</text>
+<rect x="312" y="176" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="197" font-size="13.5" text-anchor="start" font-weight="normal">two video writers</text>
+<rect x="312" y="218" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="239" font-size="13.5" text-anchor="start" font-weight="normal">station client: frames, 20 Hz poll</text>
+<rect x="312" y="260" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="281" font-size="13.5" text-anchor="start" font-weight="normal">HEX-E reader</text>
+<rect x="312" y="302" width="280" height="32" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="322" y="323" font-size="13.5" text-anchor="start" font-weight="normal">the arm&#x27;s lift (RTDE)</text>
+<rect x="298" y="400" width="370" height="80" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="306" y="419" font-size="15" font-weight="bold">Fingertip estimator process (from 11-17)</text>
+<text x="306" y="438" font-size="13.5">takes rests, estimates contacts: 17-19 ms</text>
+<text x="306" y="455" font-size="13.5">spawned by the trial; writes the boards&#x27; records</text>
+<rect x="298" y="515" width="370" height="100" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="306" y="534" font-size="15" font-weight="bold">Splitter: reskin5x_mux.py</text>
+<text x="306" y="553" font-size="13.5">reads the I2C mux, logs every record</text>
+<text x="306" y="570" font-size="13.5">writes each board to a pseudo-terminal</text>
+<text x="306" y="587" font-size="13.5">(one reader each)</text>
+<rect x="770" y="30" width="200" height="250" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="778" y="49" font-size="15" font-weight="bold">CB1</text>
+<text x="778" y="68" font-size="13.5">control station: HTTP :8765</text>
+<text x="778" y="85" font-size="13.5">owns both serial links</text>
+<text x="778" y="102" font-size="13.5"></text>
+<text x="778" y="119" font-size="13.5">clock: hours off</text>
+<text x="778" y="136" font-size="13.5">(11 h 16 min behind, 11-17):</text>
+<text x="778" y="153" font-size="13.5">readings have their own age</text>
+<rect x="770" y="320" width="200" height="120" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="778" y="339" font-size="15" font-weight="bold">Nine SCS0009 servos</text>
+<text x="778" y="358" font-size="13.5">1 Mbps half-duplex bus</text>
+<text x="778" y="375" font-size="13.5">5 V until 11-17, then 7.5 V</text>
+<text x="778" y="392" font-size="13.5">potentiometers over 300 deg</text>
+<rect x="770" y="480" width="200" height="60" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="778" y="499" font-size="15" font-weight="bold">Gantry steppers</text>
+<text x="778" y="518" font-size="13.5">second serial link</text>
+<rect x="10" y="200" width="190" height="60" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="18" y="219" font-size="15" font-weight="bold">Two RealSense D435</text>
+<text x="18" y="238" font-size="13.5">1080p at 30 Hz, USB 3</text>
+<text x="14" y="280" font-size="13" text-anchor="start" font-weight="normal">pose 65-82 ms old when used</text>
+<rect x="10" y="295" width="190" height="50" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="18" y="314" font-size="15" font-weight="bold">UR5 arm</text>
+<text x="18" y="333" font-size="13.5">RTDE at 125 Hz</text>
+<rect x="10" y="370" width="190" height="50" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="18" y="389" font-size="15" font-weight="bold">HEX-E wrench sensor</text>
+<text x="18" y="408" font-size="13.5">100-200 Hz</text>
+<rect x="10" y="515" width="190" height="100" fill="#ffffff" stroke="#000" stroke-width="1.5"/>
+<text x="18" y="534" font-size="15" font-weight="bold">Three ReSkin boards</text>
+<text x="18" y="553" font-size="13.5">fingertip magnetometers</text>
+<text x="18" y="570" font-size="13.5">one I2C mux, USB serial</text>
+<text x="18" y="587" font-size="13.5">160.6 records/s a board</text>
+<line x1="202" y1="108" x2="310" y2="108" stroke="#000" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<text x="206" y="98" font-size="13" text-anchor="start" font-weight="normal">UDP, 50 Hz</text>
+<text x="206" y="125" font-size="13" text-anchor="start" font-weight="normal">Tailscale</text>
+<line x1="594" y1="234" x2="768" y2="234" stroke="#000" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<text x="686" y="224" font-size="13" text-anchor="start" font-weight="normal">HTTP, 50 Hz</text>
+<text x="686" y="252" font-size="13" text-anchor="start" font-weight="normal">14 ms a frame</text>
+<line x1="870" y1="282" x2="870" y2="318" stroke="#000" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<text x="862" y="296" font-size="13" text-anchor="end" font-weight="normal">9 writes + 9 reads,</text>
+<text x="862" y="312" font-size="13" text-anchor="end" font-weight="normal">about 9 ms</text>
+<line x1="870" y1="442" x2="870" y2="478" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="202" y1="230" x2="310" y2="152" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="202" y1="320" x2="310" y2="318" stroke="#000" stroke-width="1.5" marker-end="url(#ah)" marker-start="url(#ah)"/>
+<line x1="202" y1="395" x2="310" y2="278" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="202" y1="565" x2="296" y2="565" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<line x1="480" y1="513" x2="480" y2="482" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="488" y="503" font-size="13" text-anchor="start" font-weight="normal">pseudo-terminals</text>
+<polyline points="630,398 630,108 596,108" fill="none" stroke="#000" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="312" y="386" font-size="13" text-anchor="start" font-weight="normal">pipe to the loop: estimates, data 41 ms old</text>
+<circle cx="262" cy="142" r="11" fill="#c00000"/><text x="262" y="146.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">11</text>
+<circle cx="226" cy="252" r="11" fill="#c00000"/><text x="226" y="256.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">7</text>
+<circle cx="251" cy="252" r="11" fill="#c00000"/><text x="251" y="256.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">13</text>
+<circle cx="650" cy="80" r="11" fill="#c00000"/><text x="650" y="84.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">9</text>
+<circle cx="610" cy="318" r="11" fill="#c00000"/><text x="610" y="322.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">1</text>
+<circle cx="697" cy="196" r="11" fill="#c00000"/><text x="697" y="200.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">2</text>
+<circle cx="722" cy="196" r="11" fill="#c00000"/><text x="722" y="200.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">4</text>
+<circle cx="747" cy="196" r="11" fill="#c00000"/><text x="747" y="200.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">14</text>
+<circle cx="893" cy="300" r="11" fill="#c00000"/><text x="893" y="304.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">3</text>
+<circle cx="918" cy="300" r="11" fill="#c00000"/><text x="918" y="304.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">5</text>
+<circle cx="790" cy="424" r="11" fill="#c00000"/><text x="790" y="428.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">6</text>
+<circle cx="815" cy="424" r="11" fill="#c00000"/><text x="815" y="428.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">8</text>
+<circle cx="840" cy="424" r="11" fill="#c00000"/><text x="840" y="428.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">10</text>
+<circle cx="865" cy="424" r="11" fill="#c00000"/><text x="865" y="428.6" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">12</text>
+</svg>
+<figcaption>Figure 1. The bench on 2026-11-17. Boxes are computers, processes and devices; arrows are links, with their
+rates and the age of their data when the loop uses it. Red discs number the failures of Table&nbsp;2 where they
+occurred. Failure 9 sat in the trial process; its estimator moved to the process below it that evening.</figcaption>
+</figure>
+
+<h2>Streams</h2>
+<p>Table 1. Each stream of a HOM trial on 2026-11-17. The ages are medians from that day's trial records and the bench
+runbook.</p>
+<table>
+<tr><th>Stream</th><th>From and to</th><th>Link</th><th>Rate</th><th>Age when used</th><th>Clock</th></tr>
+<tr><td>HOM state and target</td><td>Corvus&#x27;s loop and the HOM server</td><td>UDP over Tailscale</td><td>50 Hz</td><td>The server&#x27;s step 3-7 ms</td><td>Corvus: each state&#x27;s time</td></tr>
+<tr><td>Finger goals</td><td>Corvus, the station, the nine servos</td><td>HTTP (keep-alive), then the 1 Mbps servo bus</td><td>50 Hz</td><td>14 ms a frame with the read-back</td><td>None needed</td></tr>
+<tr><td>Joint angles</td><td>The servos, the station, corvus</td><td>The read-back of each frame; a 20 Hz poll between streams</td><td>50 Hz in a stream, 8.6 Hz idle</td><td>About 20 ms</td><td>The CB1&#x27;s, hours off: each reading has its own age</td></tr>
+<tr><td>Object pose</td><td>Two D435 cameras, the tracker in the trial process</td><td>USB 3, 1080p, AprilTags</td><td>30 Hz a camera</td><td>65-82 ms (medians, 11-17)</td><td>Corvus: each frame&#x27;s capture time</td></tr>
+<tr><td>Fingertip fields</td><td>Three ReSkin boards, the I2C mux, the splitter, the estimator process, the loop</td><td>USB serial; pseudo-terminals with one reader each; a pipe</td><td>160.6 records/s a board, in 50 ms batches</td><td>Data about 41 ms old; an estimate 17-19 ms</td><td>Corvus: each batch&#x27;s arrival</td></tr>
+<tr><td>Wrench at the wrist</td><td>The HEX-E, corvus</td><td>Ethernet from its compute box</td><td>100-200 Hz</td><td></td><td>Corvus: arrival</td></tr>
+<tr><td>Arm pose and moves</td><td>The UR5, corvus</td><td>RTDE</td><td>125 Hz</td><td></td><td>Corvus: arrival</td></tr>
+<tr><td>Films</td><td>Two D435 cameras, two video writers in the trial process</td><td>USB 3</td><td>30 Hz</td><td></td><td>corvus</td></tr>
+<tr><td>Gantry moves</td><td>The station, the steppers</td><td>The CB1&#x27;s second serial link</td><td>Per move</td><td></td><td>None needed</td></tr>
+</table>
+
+<p>Corvus's clock stamps every sample a trial uses. The CB1's clock runs hours off corvus's, so the station's own time
+stamps are not used; each joint reading comes with its age in seconds. The workstation's clock appears only in its logs:
+the HOM server's periods are counted from the states' times.</p>
+
+<h2>Failures on the map</h2>
+<p>Table 2. The failures recorded in the bench runbook (<a href="../experiments/20261115-hom_bench_trials/README.md">README.md</a>, sections "State on
+2026-11-15 17:42" to "State on 2026-11-17 17:22"). The class is "device" for the devices, their power and the sensing,
+and "plumbing" for the processes and links between them.</p>
+<table>
+<tr><th>No.</th><th>Date</th><th>What happened</th><th>Where</th><th>Cause</th><th>Since then</th><th>Class</th></tr>
+<tr><td>1</td><td>11-16 11:37</td><td>Corvus froze for 1.5 s when the trial opened the arm&#x27;s control link at the lift; the station&#x27;s stream lapsed.</td><td>Trial process, arm link</td><td>Opening RTDE control blocks the Python interpreter for about 1.5 s</td><td>The link opens before t = 0</td><td>plumbing</td></tr>
+<tr><td>2</td><td>11-16 11:57</td><td>The stream&#x27;s lease (0.25 s) lapsed after 33 frames, and the station kept the grip&#x27;s goals until the servos&#x27; overload protection turned them off.</td><td>HTTP to the station</td><td>A frame waited behind the station&#x27;s lock</td><td>A 1 s lease; no new stream after a lapse</td><td>plumbing</td></tr>
+<tr><td>3</td><td>11-16 12:00</td><td>A servo read timed out under the grip&#x27;s load and was retried for 1.5 s; the grip loosened and the sphere dropped at the lift.</td><td>Servo bus</td><td>Retries on a half-duplex bus</td><td>One read attempt per servo in a frame</td><td>device</td></tr>
+<tr><td>4</td><td>11-16</td><td>Each request to the station took about 40 ms longer than it should; a frame with read-back took 55 ms.</td><td>HTTP to the station</td><td>Nagle&#x27;s algorithm against the client&#x27;s delayed acknowledgements</td><td>Nagle off on the CB1: 14 ms a frame</td><td>plumbing</td></tr>
+<tr><td>5</td><td>11-15, 11-16</td><td>Servo readings went stale during a stream.</td><td>Servo bus</td><td>One 1 Mbps half-duplex bus; the station stops polling while a stream writes, and nine reads cost about 9 ms</td><td>Each reading has its age; each frame returns a read-back</td><td>device</td></tr>
+<tr><td>6</td><td>11-16 16:12, 16:47</td><td>All nine servos reset in the middle of a lift, and the sphere fell.</td><td>Servo supply (5 V)</td><td>4.7-4.9 V while the hand held a grasp</td><td>Torque budget 0.84 N m; a servo diagnostics call on the station</td><td>device</td></tr>
+<tr><td>7</td><td>11-16</td><td>The tracked pose jumped where the cameras saw two of the block&#x27;s tags.</td><td>Cameras and tracker</td><td>A pose from two tags</td><td>Objects are put down at the table&#x27;s centre, where both cameras see four</td><td>device</td></tr>
+<tr><td>8</td><td>11-16</td><td>MCP readings jumped by about -110 deg past 62-68 deg of flexion.</td><td>Servo potentiometers</td><td>The potentiometer leaves its track near the end of its 300 deg</td><td>Torque on only with the fingers near straight</td><td>device</td></tr>
+<tr><td>9</td><td>11-17 09:17</td><td>The 50 Hz loop stalled for 40-70 ms, and its 60 ms guard stopped a trial.</td><td>Trial process</td><td>The fingertip estimator ran as a thread beside the tracker and two video writers (68-73 ms an estimate)</td><td>The estimator in a process of its own: 17-19 ms, longest period 21-39 ms</td><td>plumbing</td></tr>
+<tr><td>10</td><td>11-17 09:21</td><td>HOM drove the index PIP to -2.9 deg; its reading jumped to +184-189 deg, and the station refused every pose after.</td><td>Servo potentiometers, joint limits</td><td>A limit 0.3 deg from the potentiometer&#x27;s end</td><td>HOM targets kept 5 deg from the ends</td><td>device</td></tr>
+<tr><td>11</td><td>11-17 16:49</td><td>None of the HOM server&#x27;s 106 replies reached corvus, and the hand lifted empty.</td><td>UDP over Tailscale</td><td>Not found; four dry runs a minute later lost no reply</td><td>A trial stops without a target in 0.5 s, and its lift is cancelled</td><td>plumbing</td></tr>
+<tr><td>12</td><td>11-17 16:55</td><td>At 7.5 V, with offsets sized for 5 V, all nine servos reset in the middle of a squeeze.</td><td>Servo supply (7.5 V)</td><td>1.5 times the current of the 5 V trials</td><td>Torque budget 0.56 N m (the 5 V current)</td><td>device</td></tr>
+<tr><td>13</td><td>11-17 17:06</td><td>The tracker fitted the sphere&#x27;s map to extra printed blocks 460 mm away.</td><td>Cameras and tracker</td><td>The blocks repeated the sphere&#x27;s tag ids 10-15</td><td>Blocks with the same ids stay out of view</td><td>device</td></tr>
+<tr><td>14</td><td>11-17 16:4x</td><td>The station closed an idle connection, and the next request failed.</td><td>HTTP to the station</td><td>The server&#x27;s idle timeout on keep-alive connections</td><td>The step test&#x27;s client reconnects once</td><td>plumbing</td></tr>
+</table>
+
+<h2>Failures and a middleware</h2>
+<p>Failures 1, 2, 4, 9, 11, 14 sat in the plumbing. Two came from one Python process doing six jobs at once (1 and 9): a job
+that blocks the interpreter stalls every other job in it. Three came from the HTTP link to the station (2, 4 and 14),
+and one from UDP replies that never arrived (11). ROS&nbsp;2 runs each node as a separate process and stamps every
+message with its time. Several nodes can read one topic, and one bag records all topics. Separate processes share no
+interpreter (1, 9), and a topic monitor shows a stream that stops (11). Leases and timeouts (2, 4, 14) are settings of
+the transport under ROS&nbsp;2 as well.</p>
+
+<p>Failures 3, 5, 6, 7, 8, 10, 12, 13 sat in the devices, the power and the sensing. The servo bus reads nine positions in about 9 ms
+whatever runs above it (3, 5). The potentiometers leave their track near their ends (8, 10). The supply sagged under
+the grip's current (6, 12), and the tags were seen twice or too few times (7, 13). A middleware changes none of
+these.</p>
+
+<p>The bench is moving toward the structure ROS has without adopting ROS: since 2026-11-17 the fingertip estimator runs
+in a process of its own. The next steps on that path are the tracker in its own process, one publish-and-subscribe
+transport with time stamps for every stream, a recorder of all streams and a time service on all three computers.
+Each has a counterpart in ROS&nbsp;2: nodes, topics, bags and a shared clock.</p>
+
+<h2>Sources</h2>
+<ul>
+<li>Bench runbook: <code>docs/experiments/20261115-hom_bench_trials/README.md</code>.</li>
+<li>Trial loop: <code>docs/experiments/20261115-hom_bench_trials/lab/hom_trial.py</code>; HOM server:
+<code>src/sr2hand/control/hom_server.py</code>; station client limits: <code>src/sr2hand/control/servo_limits.py</code>.</li>
+<li>Fingertip estimator and its process: <code>src/sr2hand/driver/reskin5x/host/tip_contacts.py</code>; splitter:
+<code>src/sr2hand/driver/reskin5x/host/reskin5x_mux.py</code>.</li>
+<li>This page's builder: <code>scripts/docs/bench_data_paths_page.py</code>.</li>
+</ul>
+</body></html>

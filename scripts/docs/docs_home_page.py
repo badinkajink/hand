@@ -62,7 +62,8 @@ TOPICS = [
      "Each finger joint is an SCS0009 servo that lags its command by 0.0186&#176; per unit of load and cuts out at "
      "a protective torque. Under a grasp the yaw joints reach 0.44&#8211;0.90 of the command. The servo model "
      "reproduces 177 tracked bench runs within 2.89&#176;. Two AprilTags give the tool's pose to 0.017&#176;.",
-     [("servo identification", E + "20260902-servo-sysid/20260902-servo_sysid.html"),
+     [("bench data paths, rates and clocks", "docs/overviews/bench_data_paths.html"),
+      ("servo identification", E + "20260902-servo-sysid/20260902-servo_sysid.html"),
       ("servo model refit", E + "20261006-hom_turn3/20261006-servo_refit_hom_turn_pad_cost.html"),
       ("identification protocol, draft", E + "20261013-servo_identification/20261013-servo_identification_protocol.html"),
       ("finger model from the CAD", E + "20261013-cad_v1_finger/20261013-cad_v1_finger_model.html"),
@@ -673,6 +674,12 @@ drive a screw with it.</p>
 <figcaption>The hand on the bench holding the screwdriver, with AprilTags on palm and tool (paper,
 <a href="https://sr2-hand.github.io">sr2-hand.github.io</a>, Fig.&#160;1).</figcaption>
 </figure>
+
+<h2>How the bench is wired</h2>
+<p>Three computers run the SR&#178; Hand bench. The workstation runs the HOM controller. The UR5's lab computer, corvus,
+runs the 50&#8202;Hz trial loop with the arm, the two cameras and the fingertip boards. The CB1 drives the nine servos
+and the gantries. <a href="{rel("docs/overviews/bench_data_paths.html")}">One page</a> maps every data stream with its
+rate, its age when used and its clock, and places each recorded failure of the bench on the map (owner, 2026-11-17).</p>
 
 <h2>Topics</h2>
 <p>Each topic links its overview and two or three of its result pages. The <a href="pages.html">index of result pages</a>
