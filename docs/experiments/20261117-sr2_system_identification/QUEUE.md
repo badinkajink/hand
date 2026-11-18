@@ -230,6 +230,22 @@ air and then against a force sensor. Contact and the blind validation trials nee
   hand's in the task (rigid 3.7-4.1). The sphere turned 30.7 deg with stiff pads and 36.7 deg with soft pads (rigid 30.8
   and 36.7, hand 49.6). In the squeeze the targets sit 14-15 deg past the readings, so each servo pushes with 0.13 N m,
   and a load must exceed that to push it back.
+- W3, S3's index presses against the replay plant (11-18 16:1x; lab 5b6131538, `data/s3/`, NOTES "2026-11-18,
+  afternoon"). The give of 0.76 N m/rad is refuted. With the MCP holding the pad on the taped plate, the index yaw's
+  reading advanced 0.9 deg while the tangential force rose to 0.69 N; the give predicted 4.6 deg. That is 1.3 deg per N
+  with the pad's shear included, a chain of about 4 N m/rad or stiffer. The servos push harder than the replay plant.
+  The index MCP's force rose 0.4 N per deg of target offset, 1.5 N m/rad at its 67 mm lever. That is 4.7 times the
+  clutch plant's 0.086 N per deg and 1.9 times its 0.215 with all of the torque. The yaw gave 0.69 N at 3.6 deg of
+  offset toward the sphere (0.96 N m/rad, 1.8 times kp 0.525) and 0.50 N m/rad the other way. The gears hold: on both
+  step backs the force stayed until the target passed the reading. The MCP's force also stayed at 2.7 N after its
+  overload flag cut the drive. Its force stopped at 1.75 N while the offset grew from 4.8 to 7.2 deg, then jumped to
+  2.55 N with a 1.5 deg jump of the reading, and stayed near 2.5 N (0.17 N m). Its reading advanced 5.5 deg past first
+  contact, and the PIP was pushed back 1.2 deg. The pad slid on the tape at about 0.5 of the normal force; the scenes
+  use 1.0 for the tape. If the yaw's slope holds to the twist's 14-15 deg of offset, the index pushed the sphere with
+  about 2.8 N, where its board read 0.8 N. At 1.3 deg per N that gives 3.6 deg of advance, near the night's 4.1 deg.
+  The head-on yaw press with the wrist turn (owner's OK, 16:0x) tests this. Prediction for the index yaw, straight:
+  0.19 N per deg of target offset, about 2.8 N at 14-15 deg unless the servo stops near the MCP's 0.17 N m (1.9 N),
+  and 1.3 deg of advance per N. On the step back the force stays until the target passes the reading.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
