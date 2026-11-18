@@ -1,11 +1,12 @@
-"""The arm's approach to the owner's S3 block (2026-11-18 15:3x-15:4x), so that one finger's pad rests a few mm from a
-plate of the block before s3_press.py presses it. The block, as the owner described it: a 20 x 20 mm 80/20 post about
-128 mm tall standing on the table, two 45 x 45 x 1 mm plates glued on opposite faces of it, their top edges about 128 mm
-above the table, "approximately centered but not perfectly"; tag36h11 id 0 (40 mm) on one plate, so that the other
-plate's outer face is 22 mm behind the tag's face, and grip tape on that plate; a second 80/20 piece joined to the
-post's foot as an L runs along the table and is clamped to it. The owner: "you should be able to model from this a safe
-approach, at least on the approach axis, with expected noise laterally"; "the apriltag is not quite perfectly parallel
-to the ground"; "the thumb will have to slide against the apriltag end".
+"""The arm's approach to the owner's S3 block (2026-11-18 15:3x-15:4x), so that one finger rests a few mm from a plate of
+the block before s3_press.py presses it. The block, as the owner described it: a 20 x 20 mm 80/20 post about 128 mm tall
+standing on the table, two 45 x 45 x 1 mm plates glued on opposite faces of it, their top edges about 128 mm above the
+table, "approximately centered but not perfectly"; tag36h11 id 0 (40 mm) on one plate, so that the other plate's outer
+face is 22 mm behind the tag's face, and grip tape on that plate; a second 80/20 piece joined to the post's foot as an L
+runs along the table and is clamped to it. The owner: "you should be able to model from this a safe approach, at least
+on the approach axis, with expected noise laterally"; "the apriltag is not quite perfectly parallel to the ground";
+"the thumb will have to slide against the apriltag end"; and at 16:0x "we can also rotate the wrist 90 degrees, if
+that's necessary to properly evaluate the yaw".
 
 The model sits on the tag's pose (s3_press.locate_block: both cameras' corners triangulated, or the tracker's solve with
 the 40 mm edge): s along the tag's outward normal made level (0 at the tag's face), l along the plates' level width (0
@@ -15,20 +16,24 @@ grows by its noise: --noise-l along the width (the plates' and the post's centri
 along the normal. The base and its clamp are not modelled: every finger part stays --base-clear above the table
 after the rise (the plates' bottom edge is 83 mm up; the clamp must stand lower than that).
 
-The finger presses from the side its plate faces: index or middle at the pad plate (flexion moves their pads along
--x_P), the thumb at the tag plate (flexion along +x_P), so the hand's x_P should run against the tag's normal; the plan
-prints the angle. The pressing finger's pad apex goes to --gap mm off its plate, at the tag centre's height and width
-(--dl, --dz shift it). The path keeps the hand's orientation (no wrist turn): straight up until every finger part is
---over mm above the block's top, level to above the target, straight down. Every 2 mm of it, every finger part
-(hom_setup.finger_pts: the 11 mm tip pad, the tip's end, the PIP joint, at the station's mounts and the fingers' present
-joints) is checked against the boxes and the table.
+Two presses. --press flex (default): the finger's flexion presses its pad's apex into the plate it faces, the index
+or middle into the taped plate (their flexion moves the pad along -x_P), the thumb into the tag plate (+x_P), with the
+hand's orientation kept; the plan prints how far x_P runs off the plates' normal. --press yaw --sign S: the yaw (sign
+S moves the pad along S y_P) presses the tip's side into the plate head on (W3, 15:4x: a yaw through the tape's
+friction slipped at about 1 N); the hand first turns about its own vertical axis z_P through the palm origin
+(pinch_pickup's turn) until S y_P points into the plate. The finger's leading point goes to --gap mm off its plate (the
+apex, or for the yaw the 11 mm pad ball's side, which covers the DIP link's 10.5 mm), at the tag centre's height and
+width (--dl, --dz shift it). The legs: straight up until every finger part is --over mm above the block's top, the turn
+(yaw only), level to above the target, straight down. Every 2 mm or 1 deg of them, every finger part
+(hom_setup.finger_pts: the 11 mm tip pad, the tip's end, the PIP joint, at the station's mounts and the fingers'
+present joints) is checked against the boxes and the table.
 
-    /usr/bin/python3 s3_approach.py plan --finger index [--gap 4] [--tape 1] [--out OUT]
-        no motion: locates the block, prints the model, the target, the three legs and their least clearances, and
-        writes OUT/<stamp>_approach_<finger>.json
+    /usr/bin/python3 s3_approach.py plan --finger index [--press yaw --sign -1] [--gap 4] [--tape 1] [--out OUT]
+        no motion: locates the block, prints the model, the target, the legs and their least clearances, and writes
+        OUT/<stamp>_approach_<finger>[_yaw].json
     /usr/bin/python3 s3_approach.py go --plan PLAN [--go]
-        the three legs with the HEX-E guarding each (hom_setup.Arm.move); refuses if the arm, the mounts, the joints or
-        the block moved since the plan
+        the legs with the HEX-E guarding each (hom_setup.Arm.move); refuses if the arm, the mounts, the joints or the
+        block moved since the plan
     /usr/bin/python3 s3_approach.py back --plan PLAN [--go]
         the same legs in reverse, from the plan's target to its start
 """
@@ -51,6 +56,7 @@ TOP = 128.0                      # mm above the table: the plates' top edges and
 PLATE, PLATE_T = 45.0, 1.0       # mm: the plates' side and thickness
 POST = 20.0                      # mm: the 80/20 post
 TABLE_Z = 3.0
+PAD_R = 11.0                     # mm: hom_setup's tip pad ball (the v4b pad; the DIP link's distal end is 10.5 wide)
 
 
 def model(loc, tape, noise_l, noise_z, noise_n, table_z=TABLE_Z):
@@ -90,21 +96,37 @@ def hand_spheres(HS, M, joints, T_BP):
 
 
 def shifted(T, dv):
-    T2 = T.copy()
-    T2[:3, 3] = T[:3, 3] + dv
+    T2 = np.array(T, float).copy()
+    T2[:3, 3] = T2[:3, 3] + dv
     return T2
 
 
-def leg_clearance(HS, M, joints, T_BP0, d0, d1, mdl, table_z, base_clear, press, step=2.0):
-    """The least clearances along the hand's straight translation from T_BP0 + d0 to T_BP0 + d1: to each box (mm and
-    the finger part with the leg's fraction), to the table, and above table_z + base_clear; the pressing finger's tip
-    pad against its own plate and the post behind it (press = (finger, plate)) apart, as "press pad"."""
+def turned(T_BP, deg):
+    """The hand turned by deg about its own vertical axis z_P through the palm origin (pinch_pickup's turn)."""
+    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    Rz = np.eye(4)
+    Rz[:2, :2] = [[c, -s], [s, c]]
+    return np.array(T_BP, float) @ Rz
+
+
+def leg_poses(leg, step=2.0):
+    """The hand's poses T_BP along a leg: a straight translation every step mm, or a turn every deg."""
+    T0, T1 = np.array(leg["T0"]), np.array(leg["T1"])
+    if leg["kind"] == "turn":
+        n = max(1, int(abs(leg["deg"])))
+        return [(i / n, turned(T0, leg["deg"] * i / n)) for i in range(n + 1)]
+    d = T1[:3, 3] - T0[:3, 3]
+    n = max(1, int(np.linalg.norm(d) / step))
+    return [(i / n, shifted(T0, d * i / n)) for i in range(n + 1)]
+
+
+def leg_clearance(HS, M, joints, leg, mdl, table_z, base_clear, press):
+    """The least clearances along a leg: to each box (mm and the finger part with the leg's fraction), to the table,
+    and above table_z + base_clear; the pressing finger's tip pad against its own plate and the post behind it
+    (press = (finger, plate)) apart, as "press pad"."""
     p, nh, w, boxes = mdl
-    n = max(1, int(np.linalg.norm(d1 - d0) / step))
     least = {k: (math.inf, None) for k in (*boxes, "press pad", "table", "base layer")}
-    for i in range(n + 1):
-        u = i / n
-        T = shifted(T_BP0, d0 + u * (d1 - d0))
+    for u, T in leg_poses(leg):
         for f, part, c, rad in hand_spheres(HS, M, joints, T):
             for name, box in boxes.items():
                 g = box_gap(c, p, nh, w, box) - rad
@@ -128,14 +150,18 @@ def state(HS, a):
     return st, s, M, HS.sim_joints(s)
 
 
+def num(x):
+    return "-" if x is None else f"{x:+.1f}"
+
+
 def cmd_plan(a):
     FT, HS, SL = S3.imports()
     import s1b_tags as S1
-    T_BP, mode = S1.arm_T_BP(FT, HS)
+    T0, mode = S1.arm_T_BP(FT, HS)
     st, s, M, joints = state(HS, a)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    stem = out / f"{time.strftime('%Y%m%d-%H%M%S')}_approach_{a.finger}"
+    stem = out / (f"{time.strftime('%Y%m%d-%H%M%S')}_approach_{a.finger}" + ("_yaw" if a.press == "yaw" else ""))
     loc = S3.locate_block(FT, a.edge, a.seconds, frames_to=str(stem))
     if S3.block_frame_B(loc) is None:
         raise SystemExit(f"the block's tag is not in view (detections {loc['dets']}, camera errors "
@@ -145,75 +171,99 @@ def cmd_plan(a):
     mdl = model(loc, a.tape, a.noise_l, a.noise_z, noise_n)
     p, nh, w, boxes = mdl
     top = TABLE_Z + TOP
-    xP = T_BP[:3, 0] - (T_BP[:3, 0] @ np.array([0, 0, 1.0])) * np.array([0, 0, 1.0])
-    xP /= np.linalg.norm(xP)
-    off = math.degrees(math.acos(float(np.clip(-xP @ nh, -1, 1))))
-    print(f"arm mode {mode}; palm origin B {np.round(T_BP[:3, 3], 1).tolist()}; tag ({src}): centre B "
-          f"{np.round(p, 1).tolist()}, {p[2] - TABLE_Z:.1f} mm above the table (a centred tag on plates topped at "
-          f"{TOP:g} mm: {TOP - PLATE / 2:.1f}); level normal B {np.round(nh, 3).tolist()}, tilt "
-          f"{math.degrees(math.asin(float(np.clip(S3.block_frame_B(loc)[1][2], -1, 1)))):+.1f} deg")
-    print(f"the hand's x_P runs {off:.1f} deg off the tag's inward normal (0: the flexion presses head on)")
+    up = np.array([0.0, 0.0, 1.0])
+    plate = "tag plate" if a.finger == "thumb" else "pad plate"
+    d_in = -nh if a.finger == "thumb" else nh                     # into the finger's plate
     q = [float(joints[a.finger][k]) for k in JOINTS]
     _, _, tip, con = FT.fk(a.finger, M[a.finger], q)
-    apex_B = T_BP[:3, :3] @ con + T_BP[:3, 3]
-    s_t = a.gap if a.finger == "thumb" else -S3.BEHIND - a.tape - a.gap
-    target = p + s_t * nh + a.dl * w + (a.dz + 0.0) * np.array([0, 0, 1.0])
-    delta = target - apex_B
-    T_end = shifted(T_BP, delta)
-    lows = [c[2] - rad for _, _, c, rad in hand_spheres(HS, M, joints, T_BP)]
+    if a.press == "yaw":
+        sign = a.sign if a.sign is not None else (-1 if a.finger == "index" else 1)
+        lead_P = tip + PAD_R * np.array([0.0, float(sign), 0.0])
+        dir_P = np.array([0.0, float(sign), 0.0])
+    else:
+        sign = None
+        lead_P, dir_P = con, (con - tip) / np.linalg.norm(con - tip)
+
+    def horiz(v):
+        v = v - (v @ up) * up
+        return v / np.linalg.norm(v)
+
+    degs = np.arange(-180.0, 180.0, 0.05)
+    deg = 0.0
+    if a.press == "yaw":
+        deg = float(degs[int(np.argmax([horiz(turned(T0, x)[:3, :3] @ dir_P) @ d_in for x in degs]))])
+        if abs(deg) > a.max_turn:
+            raise SystemExit(f"the yaw press needs a {deg:+.1f} deg turn of the hand, over --max-turn {a.max_turn:g}")
+    off = math.degrees(math.acos(float(np.clip(horiz(turned(T0, deg)[:3, :3] @ dir_P) @ d_in, -1, 1))))
+    print(f"arm mode {mode}; palm origin B {np.round(T0[:3, 3], 1).tolist()}; tag ({src}): centre B "
+          f"{np.round(p, 1).tolist()}, {p[2] - TABLE_Z:.1f} mm above the table; level normal B "
+          f"{np.round(nh, 3).tolist()}")
+    print(f"{a.finger} {a.press}" + (f" sign {sign:+d}" if sign else "") + f": the hand turns {deg:+.1f} deg about z_P; "
+          f"the press then runs {off:.1f} deg off the plate's normal")
+    lows = [c[2] - rad for _, _, c, rad in hand_spheres(HS, M, joints, T0)]
     rise = max(0.0, top + a.noise_z + a.over - min(lows))
-    rise = max(rise, delta[2] + 0.0)                                 # never a leg that climbs on the level move
-    legs = [("rise", np.zeros(3), np.array([0.0, 0.0, rise])),
-            ("level", np.array([0.0, 0.0, rise]), np.array([delta[0], delta[1], rise])),
-            ("descend", np.array([delta[0], delta[1], rise]), delta)]
-    rec = {"what": "S3 approach plan", "t": time.time(), "finger": a.finger, "gap_mm": a.gap, "tape_mm": a.tape,
-           "noise_mm": {"l": a.noise_l, "z": a.noise_z, "n": noise_n}, "dl": a.dl, "dz": a.dz, "over": a.over,
-           "base_clear": a.base_clear, "edge_mm": a.edge, "locate": loc, "arm_mode": mode, "T_BP0": T_BP.tolist(),
-           "T_BE0": (T_BP @ np.linalg.inv(HS.T_EP)).tolist(), "mounts_station": s.get("mount_positions"), "mounts_P": M,
-           "joints": joints, "tag_B": p.tolist(), "nh_B": nh.tolist(), "w_B": w.tolist(),
-           "boxes": {k: v for k, v in boxes.items()}, "x_P_off_deg": off, "apex_B": apex_B.tolist(),
-           "target_B": target.tolist(), "delta_mm": delta.tolist(), "legs": []}
-    ok = True
-    print(f"target: the {a.finger}'s pad apex at s {s_t:+.1f}, l {a.dl:+.1f} mm, z_B {target[2]:.1f} "
-          f"({target[2] - TABLE_Z:.1f} above the table); the hand moves {np.round(delta, 1).tolist()} mm in B, rising "
-          f"{rise:.1f} mm first so that every finger part clears the block's top ({top - TABLE_Z:g} mm) by "
-          f"{a.over:g} mm; noise l {a.noise_l:g}, z {a.noise_z:g}, n {noise_n:g} mm")
-    press = (a.finger, "tag plate" if a.finger == "thumb" else "pad plate")
-    for name, d0, d1 in legs:
-        cl = leg_clearance(HS, M, joints, T_BP, d0, d1, mdl, TABLE_Z, a.base_clear, press)
-        if name == "rise":
+    T_r = shifted(T0, [0.0, 0.0, rise])
+    T_t = turned(T_r, deg)
+    lowest_t = min(min(c[2] - rad for _, _, c, rad in hand_spheres(HS, M, joints, turned(T_r, deg * u)))
+                   for u in np.linspace(0, 1, 13))
+    if lowest_t < top + a.noise_z + a.over - 0.5:                 # a tilted z_P lowers a finger in the turn
+        extra = top + a.noise_z + a.over - lowest_t
+        rise += extra
+        T_r = shifted(T0, [0.0, 0.0, rise])
+        T_t = turned(T_r, deg)
+    s_t = a.gap if a.finger == "thumb" else -S3.BEHIND - a.tape - a.gap
+    target = p + s_t * nh + a.dl * w + a.dz * up
+    lead_t = T_t[:3, :3] @ lead_P + T_t[:3, 3]
+    delta = target - lead_t
+    if delta[2] > 0:
+        raise SystemExit(f"the target lies {delta[2]:.1f} mm above the turned hand's leading point: plan from lower")
+    T_l = shifted(T_t, [delta[0], delta[1], 0.0])
+    T_d = shifted(T_t, delta)
+    legs = [{"name": "rise", "kind": "lin", "T0": T0, "T1": T_r}]
+    if abs(deg) > 0.05:
+        legs.append({"name": "turn", "kind": "turn", "deg": deg, "T0": T_r, "T1": T_t})
+    legs += [{"name": "level", "kind": "lin", "T0": T_t, "T1": T_l},
+             {"name": "descend", "kind": "lin", "T0": T_l, "T1": T_d}]
+    print(f"target: the {a.finger}'s leading point at s {s_t:+.1f}, l {a.dl:+.1f} mm, z_B {target[2]:.1f} "
+          f"({target[2] - TABLE_Z:.1f} above the table); up {rise:.1f} mm so that every finger part clears the block's "
+          f"top ({TOP:g} mm) by {a.over:g} mm; noise l {a.noise_l:g}, z {a.noise_z:g}, n {noise_n:g} mm")
+    ok, rec_legs = True, []
+    for leg in legs:
+        cl = leg_clearance(HS, M, joints, leg, mdl, TABLE_Z, a.base_clear, (a.finger, plate))
+        if leg["name"] == "rise":
             cl["base layer"]["mm"] = None                            # starts at the present height
-        # the pressing pad ends --gap off its plate (its 11 mm ball 0.45 mm past the apex, less the normal's noise)
         floor = {"base layer": 0.0, "press pad": 0.5}
         bad = [k for k, v in cl.items() if v["mm"] is not None and v["mm"] < floor.get(k, a.min_clear)]
         ok &= not bad
-        rec["legs"].append({"name": name, "from_mm": d0.tolist(), "to_mm": d1.tolist(), "clear": cl, "bad": bad})
-        print(f"  {name:7s} {np.round(d0, 1).tolist()} -> {np.round(d1, 1).tolist()} mm: "
-              + "; ".join(f"{k} {num(v['mm'])} ({v['where']})" for k, v in cl.items())
+        move = (f"{leg['deg']:+.1f} deg about z_P" if leg["kind"] == "turn"
+                else f"{np.round(leg['T1'][:3, 3] - leg['T0'][:3, 3], 1).tolist()} mm")
+        rec_legs.append({**{k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in leg.items()}, "clear": cl,
+                         "bad": bad})
+        print(f"  {leg['name']:7s} {move}: " + "; ".join(f"{k} {num(v['mm'])} ({v['where']})" for k, v in cl.items())
               + (f"  -- TOO CLOSE: {bad}" if bad else ""))
-    rec["T_BE_end"] = (T_end @ np.linalg.inv(HS.T_EP)).tolist()
-    rec["ok"] = ok
+    rec = {"what": "S3 approach plan", "t": time.time(), "finger": a.finger, "press": a.press, "sign": sign,
+           "turn_deg": deg, "press_off_deg": off, "gap_mm": a.gap, "tape_mm": a.tape,
+           "noise_mm": {"l": a.noise_l, "z": a.noise_z, "n": noise_n}, "dl": a.dl, "dz": a.dz, "over": a.over,
+           "base_clear": a.base_clear, "edge_mm": a.edge, "locate": loc, "arm_mode": mode, "T_BP0": T0.tolist(),
+           "mounts_station": s.get("mount_positions"), "mounts_P": M, "joints": joints, "tag_B": p.tolist(),
+           "nh_B": nh.tolist(), "w_B": w.tolist(), "boxes": boxes, "lead_P": lead_P.tolist(), "target_B": target.tolist(),
+           "T_BP_end": T_d.tolist(), "legs": rec_legs, "ok": ok}
     stem.with_suffix(".json").write_text(json.dumps(rec, indent=1, default=float))
     print(("plan clear" if ok else "plan NOT clear") + f" -> {stem}.json")
     return 0 if ok else 1
 
 
-def num(x):
-    return "-" if x is None else f"{x:+.1f}"
-
-
-def check_same(a, rec, FT, HS, at):
-    """Refuses unless the arm is at `at` of the plan (T_BP0 or the target), the station's mounts and the joints are the
-    plan's, and the block's tag is within 2 mm of where the plan saw it."""
+def check_same(a, rec, FT, HS, want):
+    """Refuses unless the arm runs at the pose `want` (T_BP), the station's mounts and the joints are the plan's, and
+    the block's tag is within 2 mm of where the plan saw it."""
     import s1b_tags as S1
     T_BP, mode = S1.arm_T_BP(FT, HS)
     if mode != 7:
         raise SystemExit(f"the arm is not running (robot mode {mode}): release the brakes on the pendant (ON, START)")
-    want = np.array(rec["T_BP0"]) if at == "start" else shifted(np.array(rec["T_BP0"]), np.array(rec["delta_mm"]))
     dp = float(np.linalg.norm(T_BP[:3, 3] - want[:3, 3]))
     dr = math.degrees(math.acos(float(np.clip((np.trace(T_BP[:3, :3].T @ want[:3, :3]) - 1) / 2, -1, 1))))
     if dp > 2.0 or dr > 0.5:
-        raise SystemExit(f"the hand is {dp:.1f} mm and {dr:.2f} deg from the plan's {at}")
+        raise SystemExit(f"the hand is {dp:.1f} mm and {dr:.2f} deg from where this leg starts")
     st, s, M, joints = state(HS, a)
     for f in FINGERS:
         if any(abs(joints[f][k] - rec["joints"][f][k]) > 1.0 for k in JOINTS):
@@ -227,8 +277,8 @@ def check_same(a, rec, FT, HS, at):
     moved = float(np.linalg.norm(fr[0] - np.array(rec["tag_B"])))
     if moved > 2.0:
         raise SystemExit(f"the block's tag moved {moved:.1f} mm since the plan: plan again")
-    print(f"checks: hand {dp:.2f} mm / {dr:.2f} deg from the plan's {at}, mounts and joints as planned, tag {moved:.2f} mm "
-          f"from the plan's ({loc['dets']})")
+    print(f"checks: hand {dp:.2f} mm / {dr:.2f} deg from the leg's start, mounts and joints as planned, tag {moved:.2f} "
+          f"mm from the plan's ({loc['dets']})")
 
 
 def run_legs(a, back):
@@ -237,25 +287,36 @@ def run_legs(a, back):
     if not rec.get("ok"):
         raise SystemExit("the plan is not clear")
     T0 = np.array(rec["T_BP0"])
-    legs = [(lg["name"], np.array(lg["from_mm"]), np.array(lg["to_mm"])) for lg in rec["legs"]]
+    legs = [dict(lg) if "kind" in lg else                           # plans of 15:4x: translations from T_BP0
+            {"name": lg["name"], "kind": "lin", "T0": shifted(T0, lg["from_mm"]).tolist(),
+             "T1": shifted(T0, lg["to_mm"]).tolist()} for lg in rec["legs"]]
     if back:
-        legs = [(f"back {n}", d1, d0) for n, d0, d1 in reversed(legs)]
-    v = {"rise": a.v_up, "level": a.v_level, "descend": a.v_down}
-    print(f"{rec['finger']}: " + "; ".join(f"{n} {np.round(d1 - d0, 1).tolist()} mm" for n, d0, d1 in legs))
-    check_same(a, rec, FT, HS, "target" if back else "start")
+        legs = [{**lg, "name": f"back {lg['name']}", "T0": lg["T1"], "T1": lg["T0"], "deg": -lg.get("deg", 0.0)}
+                for lg in reversed(legs)]
+    v = {"rise": a.v_up, "turn": a.v_level, "level": a.v_level, "descend": a.v_down}
+    print(f"{rec['finger']} {rec.get('press', 'flex')}: " + "; ".join(
+        f"{lg['name']} " + (f"{lg['deg']:+.1f} deg" if lg["kind"] == "turn"
+                            else f"{np.round(np.array(lg['T1'])[:3, 3] - np.array(lg['T0'])[:3, 3], 1).tolist()} mm")
+        for lg in legs))
+    check_same(a, rec, FT, HS, np.array(legs[0]["T0"]))
     if not a.go:
         return 0
     arm = HS.Arm(a.ur_ft, a.blank_s)
     try:
         arm.connect(True)
-        for name, d0, d1 in legs:
-            T_goal = shifted(T0, d1) @ np.linalg.inv(HS.T_EP)
-            dist = float(np.linalg.norm(d1 - d0))
-            vv = v[name.split()[-1]]
-            stop_n = a.stop_down if name.endswith("descend") or name == "back descend" else a.stop_n
-            why, moved = arm.move(T_goal, vv, a.acc, stop_n, dist / (1e3 * vv) + 6.0, f"approach {name}")
+        for lg in legs:
+            T_goal = np.array(lg["T1"]) @ np.linalg.inv(HS.T_EP)
+            base = lg["name"].split()[-1]
+            vv = v[base]
+            if lg["kind"] == "turn":
+                max_s, stop_n = 6.0 + 0.6 * abs(lg["deg"]), a.stop_n
+            else:
+                dist = float(np.linalg.norm(np.array(lg["T1"])[:3, 3] - np.array(lg["T0"])[:3, 3]))
+                max_s = dist / (1e3 * vv) + 6.0
+                stop_n = a.stop_down if base == "descend" else a.stop_n
+            why, moved = arm.move(T_goal, vv, a.acc, stop_n, max_s, f"approach {lg['name']}")
             if why:
-                print(f"stopped in {name}: {why}; the arm holds there", flush=True)
+                print(f"stopped in {lg['name']}: {why}; the arm holds there", flush=True)
                 return 1
     finally:
         arm.close()
@@ -272,7 +333,11 @@ def main():
         p.add_argument("--token-file", default=str(Path.home() / ".sr2_station_token"))
         if name == "plan":
             p.add_argument("--finger", required=True, choices=FINGERS)
-            p.add_argument("--gap", type=float, default=4.0, help="mm from the pad's apex to its plate")
+            p.add_argument("--press", choices=("flex", "yaw"), default="flex")
+            p.add_argument("--sign", type=int, choices=(-1, 1), help="the yaw press's direction (default: index -1, "
+                                                                     "middle +1, as in the night's squeezes)")
+            p.add_argument("--max-turn", type=float, default=95.0, help="deg: the largest turn of the hand (owner: 90)")
+            p.add_argument("--gap", type=float, default=4.0, help="mm from the leading point to its plate")
             p.add_argument("--tape", type=float, default=1.0, help="mm of grip tape on the pad plate")
             p.add_argument("--dl", type=float, default=0.0, help="mm along the plates' width from the tag's centre")
             p.add_argument("--dz", type=float, default=0.0, help="mm up from the tag's centre")
@@ -288,10 +353,11 @@ def main():
         else:
             p.add_argument("--plan", required=True)
             p.add_argument("--v-up", type=float, default=0.015, help="m/s")
-            p.add_argument("--v-level", type=float, default=0.015, help="m/s")
+            p.add_argument("--v-level", type=float, default=0.015, help="m/s (and the turn's moveL speed)")
             p.add_argument("--v-down", type=float, default=0.008, help="m/s")
             p.add_argument("--acc", type=float, default=0.05, help="m/s^2")
-            p.add_argument("--stop-n", type=float, default=3.0, help="N of force change that stops the rise and level legs")
+            p.add_argument("--stop-n", type=float, default=3.0, help="N of force change that stops the rise, turn and "
+                                                                     "level legs (a turn adds hom_setup's allowance)")
             p.add_argument("--stop-down", type=float, default=2.0, help="N that stops the descent")
             p.add_argument("--ur-ft", action="store_true")
             p.add_argument("--blank-s", type=float, default=0.4)
