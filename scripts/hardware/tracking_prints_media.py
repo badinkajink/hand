@@ -386,10 +386,11 @@ def screw_stl():
     """An M3 screw of the modular block (shaft and socket head) as an STL in its own frame, head down at z = 0."""
     import trimesh
     sc = json.loads(TO.M_REPORT.read_text())["screw"]
-    head = trimesh.creation.cylinder(radius=2.75, height=3.0, sections=48)
-    head.apply_translation([0.0, 0.0, 1.5])
-    shaft = trimesh.creation.cylinder(radius=1.5, height=sc["length_mm"], sections=48)
-    shaft.apply_translation([0.0, 0.0, 3.0 + sc["length_mm"] / 2])
+    d = float(sc["name"].split()[0][1:])                # ISO socket head: head 1.9 d across and d tall
+    head = trimesh.creation.cylinder(radius=0.95 * d, height=d, sections=48)
+    head.apply_translation([0.0, 0.0, d / 2])
+    shaft = trimesh.creation.cylinder(radius=d / 2, height=sc["length_mm"], sections=48)
+    shaft.apply_translation([0.0, 0.0, d + sc["length_mm"] / 2])
     p = LOGS / "m3_screw.stl"
     LOGS.mkdir(parents=True, exist_ok=True)
     trimesh.util.concatenate([head, shaft]).export(p)
@@ -406,7 +407,7 @@ def modular_parts(code):
     bc = OM.block_centre_O(o["r_mm"], o["stem_mm"])
     Rb, tb = OM.R_OB, bc - OM.R_OB @ np.array([0.0, 0.0, H / 2])
     T = np.asarray(ob["stem"]["print_to_B"])
-    head0 = -H / 2 + sc["head_depth_mm"] - 3.0                     # the head's underside at the counterbore's top
+    head0 = -H / 2 + sc["head_depth_mm"] - float(sc["name"].split()[0][1:])   # the head's underside at the counterbore's top
     return [("block", TO.modular_stl(code, "block", "white"), Rb, tb, "white", "block"),
             ("block", TO.modular_stl(code, "block", "black"), Rb, tb, "black", "block"),
             ("stem", TO.modular_stl(code, "stem"), OM.R_OB @ T[:, :3], OM.R_OB @ T[:, 3] + bc, "stem", "stem"),

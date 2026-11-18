@@ -2,27 +2,35 @@
  "what": "the modular tag block and stem (owner, 2026-11-17)",
  "script": "scripts/hardware/tracking_objects_print.py modular",
  "foot": {
-  "side_at_top_face_mm": 8.0,
+  "side_at_top_face_mm": 10.0,
   "taper_deg": 20.0,
   "taper_depth_mm": 3.0,
-  "socket_depth_mm": 4.0,
+  "socket_depth_mm": 12.6,
   "foot_u_mm": [
    -0.5,
    2.7
   ],
-  "key_mm": 3.6,
+  "shank_mm": 7.4,
+  "foot_end_u_mm": 11.6,
+  "key_mm": 5.0,
   "key_cut_mm": 0.15,
   "root_r_mm": 4.0,
   "root_h_mm": 10.0
  },
  "screw": {
-  "name": "M3 x 16",
-  "length_mm": 16.0,
-  "clear_d_mm": 3.4,
-  "head_d_mm": 6.0,
-  "head_depth_mm": 3.4,
-  "pilot_d_mm": 2.75,
-  "pilot_depth_mm": 8.0
+  "name": "M2 x 8",
+  "length_mm": 8.0,
+  "clear_d_mm": 2.4,
+  "head_d_mm": 4.4,
+  "head_depth_mm": 2.4,
+  "mass_g": 0.37
+ },
+ "insert": {
+  "name": "M2 brass heat-set insert, 3.6 mm outside, 4 mm long",
+  "hole_d_mm": 3.2,
+  "hole_depth_mm": 5.5,
+  "length_mm": 4.0,
+  "mass_g": 0.28
  },
  "label": {
   "height_mm": 4.0,
@@ -32,7 +40,7 @@
  "root": {
   "root_d_mm": 8.0,
   "root_h_mm": 10.5,
-  "foot_d_mm": 11.828,
+  "foot_d_mm": 14.657,
   "fillet_r_mm": 0.5
  },
  "objects": {
@@ -55,11 +63,11 @@
     "what": "tag block, socket in its top face, counterbore in its bottom face, ids 10-15, label C25",
     "print": "upright, bottom face on the bed",
     "volume_mm3": {
-     "white": 12139.761,
+     "white": 11632.246,
      "black": 735.123,
      "overlap": 0.0
     },
-    "solid_pla_g": 15.96,
+    "solid_pla_g": 15.34,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-block_C25_white.stl",
      "triangles": 2412,
@@ -96,7 +104,7 @@
       ]
      ]
     },
-    "solid_less_hexagon_mm3": -375.3
+    "solid_less_hexagon_mm3": -882.82
    },
    "stem": {
     "what": "stem, square-taper foot to the cotter joint's taper and post, C25, 1 dimple",
@@ -118,30 +126,30 @@
       0.0,
       0.0,
       1.0,
-      5.8
+      -3.0999999999999996
      ]
     ],
-    "length_mm": 48.02,
+    "length_mm": 56.92,
     "volume_mm3": {
-     "white": 985.856,
+     "white": 1579.977,
      "black": 0.0
     },
-    "solid_pla_g": 1.22,
+    "solid_pla_g": 1.96,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-stem_C25_white.stl",
-     "triangles": 1836,
+     "triangles": 1848,
      "watertight": true,
      "shells": 1,
      "bounds_mm": [
       [
-       -4.98,
-       -4.98,
+       -5.182,
+       -5.182,
        0.0
       ],
       [
-       4.98,
-       4.98,
-       48.022
+       5.182,
+       5.182,
+       56.922
       ]
      ]
     }
@@ -149,14 +157,16 @@
    "checks": {
     "seated_overlap_mm3": 0.0,
     "turned_stops_out_mm": {
-     "90": 2.7,
-     "180": 2.7,
-     "270": 2.7
+     "90": 11.75,
+     "180": 11.75,
+     "270": 11.75
     },
-    "screw_engagement_mm": 5.1,
-    "pilot_beyond_tip_mm": 2.9,
-    "foot_wall_at_end_mm": 1.642,
-    "foot_gap_to_floor_mm": 1.3,
+    "screw_engagement_mm": 4.0,
+    "hole_beyond_tip_mm": 0.5,
+    "shank_wall_at_insert_mm": 2.1,
+    "foot_gap_to_floor_mm": 1.0,
+    "floor_under_foot_mm": 2.0,
+    "foot_end_above_bottom_mm": 5.4,
     "root_gap_to_top_face_mm": 0.5
    },
    "check": [
@@ -223,11 +233,11 @@
     "what": "tag block, socket in its top face, counterbore in its bottom face, ids 16-21, label S40",
     "print": "upright, bottom face on the bed",
     "volume_mm3": {
-     "white": 12141.594,
+     "white": 11634.079,
      "black": 732.499,
      "overlap": -0.0
     },
-    "solid_pla_g": 15.96,
+    "solid_pla_g": 15.33,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-block_S40_white.stl",
      "triangles": 2612,
@@ -264,7 +274,7 @@
       ]
      ]
     },
-    "solid_less_hexagon_mm3": -376.1
+    "solid_less_hexagon_mm3": -883.61
    },
    "stem": {
     "what": "stem, square-taper foot to the cotter joint's taper and post, S40, 2 dimples",
@@ -286,30 +296,30 @@
       0.0,
       0.0,
       1.0,
-      5.8
+      -3.0999999999999996
      ]
     ],
-    "length_mm": 36.84,
+    "length_mm": 45.74,
     "volume_mm3": {
-     "white": 845.133,
+     "white": 1439.254,
      "black": 0.0
     },
-    "solid_pla_g": 1.05,
+    "solid_pla_g": 1.78,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-stem_S40_white.stl",
-     "triangles": 2092,
+     "triangles": 2104,
      "watertight": true,
      "shells": 1,
      "bounds_mm": [
       [
-       -4.98,
-       -4.98,
+       -5.182,
+       -5.182,
        0.0
       ],
       [
-       4.98,
-       4.98,
-       36.835
+       5.182,
+       5.182,
+       45.735
       ]
      ]
     }
@@ -317,14 +327,16 @@
    "checks": {
     "seated_overlap_mm3": 0.0,
     "turned_stops_out_mm": {
-     "90": 2.7,
-     "180": 2.7,
-     "270": 2.7
+     "90": 11.75,
+     "180": 11.75,
+     "270": 11.75
     },
-    "screw_engagement_mm": 5.1,
-    "pilot_beyond_tip_mm": 2.9,
-    "foot_wall_at_end_mm": 1.642,
-    "foot_gap_to_floor_mm": 1.3,
+    "screw_engagement_mm": 4.0,
+    "hole_beyond_tip_mm": 0.5,
+    "shank_wall_at_insert_mm": 2.1,
+    "foot_gap_to_floor_mm": 1.0,
+    "floor_under_foot_mm": 2.0,
+    "foot_end_above_bottom_mm": 5.4,
     "root_gap_to_top_face_mm": 0.5
    },
    "check": [
@@ -391,11 +403,11 @@
     "what": "tag block, socket in its top face, counterbore in its bottom face, ids 32-37, label C45",
     "print": "upright, bottom face on the bed",
     "volume_mm3": {
-     "white": 12131.68,
+     "white": 11624.165,
      "black": 743.012,
      "overlap": 0.0
     },
-    "solid_pla_g": 15.96,
+    "solid_pla_g": 15.34,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-block_C45_white.stl",
      "triangles": 2884,
@@ -432,7 +444,7 @@
       ]
      ]
     },
-    "solid_less_hexagon_mm3": -375.5
+    "solid_less_hexagon_mm3": -883.01
    },
    "stem": {
     "what": "stem, square-taper foot to the cotter joint's taper and post, C45, 3 dimples",
@@ -454,30 +466,30 @@
       0.0,
       0.0,
       1.0,
-      5.8
+      -3.0999999999999996
      ]
     ],
-    "length_mm": 42.88,
+    "length_mm": 51.78,
     "volume_mm3": {
-     "white": 920.948,
+     "white": 1515.068,
      "black": 0.0
     },
-    "solid_pla_g": 1.14,
+    "solid_pla_g": 1.88,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-stem_C45_white.stl",
-     "triangles": 2352,
+     "triangles": 2364,
      "watertight": true,
      "shells": 1,
      "bounds_mm": [
       [
-       -4.98,
-       -4.98,
+       -5.182,
+       -5.182,
        0.0
       ],
       [
-       4.98,
-       4.98,
-       42.884
+       5.182,
+       5.182,
+       51.784
       ]
      ]
     }
@@ -485,14 +497,16 @@
    "checks": {
     "seated_overlap_mm3": 0.0,
     "turned_stops_out_mm": {
-     "90": 2.7,
-     "180": 2.7,
-     "270": 2.7
+     "90": 11.75,
+     "180": 11.75,
+     "270": 11.75
     },
-    "screw_engagement_mm": 5.1,
-    "pilot_beyond_tip_mm": 2.9,
-    "foot_wall_at_end_mm": 1.642,
-    "foot_gap_to_floor_mm": 1.3,
+    "screw_engagement_mm": 4.0,
+    "hole_beyond_tip_mm": 0.5,
+    "shank_wall_at_insert_mm": 2.1,
+    "foot_gap_to_floor_mm": 1.0,
+    "floor_under_foot_mm": 2.0,
+    "foot_end_above_bottom_mm": 5.4,
     "root_gap_to_top_face_mm": 0.5
    },
    "check": [
@@ -559,11 +573,11 @@
     "what": "tag block, socket in its top face, counterbore in its bottom face, ids 38-43, label S67",
     "print": "upright, bottom face on the bed",
     "volume_mm3": {
-     "white": 12156.398,
+     "white": 11648.883,
      "black": 716.753,
      "overlap": 0.0
     },
-    "solid_pla_g": 15.96,
+    "solid_pla_g": 15.33,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-block_S67_white.stl",
      "triangles": 3378,
@@ -600,7 +614,7 @@
       ]
      ]
     },
-    "solid_less_hexagon_mm3": -377.04
+    "solid_less_hexagon_mm3": -884.55
    },
    "stem": {
     "what": "stem, square-taper foot to the cotter joint's taper and post, S67, 4 dimples",
@@ -622,30 +636,30 @@
       0.0,
       0.0,
       1.0,
-      5.8
+      -3.0999999999999996
      ]
     ],
-    "length_mm": 27.58,
+    "length_mm": 36.48,
     "volume_mm3": {
-     "white": 728.445,
+     "white": 1322.566,
      "black": 0.0
     },
-    "solid_pla_g": 0.9,
+    "solid_pla_g": 1.64,
     "white": {
      "file": "assets/tracking/20261117-modular_blocks/20261117-stem_S67_white.stl",
-     "triangles": 2608,
+     "triangles": 2620,
      "watertight": true,
      "shells": 1,
      "bounds_mm": [
       [
-       -4.98,
-       -4.98,
+       -5.182,
+       -5.182,
        0.0
       ],
       [
-       4.98,
-       4.98,
-       27.575
+       5.182,
+       5.182,
+       36.475
       ]
      ]
     }
@@ -653,14 +667,16 @@
    "checks": {
     "seated_overlap_mm3": 0.0,
     "turned_stops_out_mm": {
-     "90": 2.7,
-     "180": 2.7,
-     "270": 2.7
+     "90": 11.75,
+     "180": 11.75,
+     "270": 11.75
     },
-    "screw_engagement_mm": 5.1,
-    "pilot_beyond_tip_mm": 2.9,
-    "foot_wall_at_end_mm": 1.642,
-    "foot_gap_to_floor_mm": 1.3,
+    "screw_engagement_mm": 4.0,
+    "hole_beyond_tip_mm": 0.5,
+    "shank_wall_at_insert_mm": 2.1,
+    "foot_gap_to_floor_mm": 1.0,
+    "floor_under_foot_mm": 2.0,
+    "foot_end_above_bottom_mm": 5.4,
     "root_gap_to_top_face_mm": 0.5
    },
    "check": [
@@ -710,61 +726,6 @@
   }
  },
  "ok": true,
- "test_block": {
-  "what": "fit test: the C45 block in white without tags",
-  "print": "upright, bottom face on the bed",
-  "volume_mm3": {
-   "white": 12874.692,
-   "black": 0.0
-  },
-  "solid_pla_g": 15.96,
-  "white": {
-   "file": "assets/tracking/20261117-modular_blocks/20261117-test_block_white.stl",
-   "triangles": 2012,
-   "watertight": true,
-   "shells": 1,
-   "bounds_mm": [
-    [
-     -15.0,
-     -17.321,
-     0.0
-    ],
-    [
-     15.0,
-     17.321,
-     17.0
-    ]
-   ]
-  }
- },
- "test_stem": {
-  "what": "fit test: the stem's foot and root",
-  "print": "upright, foot on the bed, 5 mm brim",
-  "volume_mm3": {
-   "white": 403.236,
-   "black": 0.0
-  },
-  "solid_pla_g": 0.5,
-  "white": {
-   "file": "assets/tracking/20261117-modular_blocks/20261117-test_stem_white.stl",
-   "triangles": 910,
-   "watertight": true,
-   "shells": 1,
-   "bounds_mm": [
-    [
-     -4.182,
-     -4.182,
-     0.0
-    ],
-    [
-     4.182,
-     4.182,
-     13.19
-    ]
-   ]
-  }
- },
- "check_ok": true,
  "bambu_test": {
   "project": "assets/tracking/20261117-modular_blocks/20261117-modular_test_p1s.3mf",
   "presets": {
@@ -802,25 +763,25 @@
     110.0
    ]
   },
-  "prediction_s": 1251.0,
+  "prediction_s": 1380.0,
   "used_g": {
-   "1": 6.34
+   "1": 6.88
   },
   "filament_loads": 1,
-  "layers": 85,
+  "layers": 110,
   "extrusion_box_mm": [
    70.56,
    86.25,
-   147.5,
+   148.14,
    129.75
   ],
   "part_offset_err_mm": {},
   "boxes_mm": {
    "AgAAAAAAAAA=": [
-    132.5,
-    100.5,
-    147.5,
-    115.5
+    131.9,
+    99.9,
+    148.1,
+    116.1
    ],
    "AQAAAAAAAAA=": [
     70.6,
@@ -837,14 +798,86 @@
   ],
   "problems": [],
   "reslice": {
-   "hours": 0.35,
+   "hours": 0.38,
    "loads": {
     "1": 1
    },
    "used_g": {
-    "1": 6.34
+    "1": 6.88
    }
   }
+ },
+ "check_ok": true,
+ "test_block": {
+  "what": "fit test: the C45 block in white without tags",
+  "print": "upright, bottom face on the bed",
+  "volume_mm3": {
+   "white": 12367.178,
+   "black": 0.0
+  },
+  "solid_pla_g": 15.34,
+  "white": {
+   "file": "assets/tracking/20261117-modular_blocks/20261117-test_block_white.stl",
+   "triangles": 2012,
+   "watertight": true,
+   "shells": 1,
+   "bounds_mm": [
+    [
+     -15.0,
+     -17.321,
+     0.0
+    ],
+    [
+     15.0,
+     17.321,
+     17.0
+    ]
+   ]
+  }
+ },
+ "test_stem": {
+  "what": "fit test: the stem's foot, shank and root",
+  "print": "upright, foot on the bed, 5 mm brim",
+  "volume_mm3": {
+   "white": 997.356,
+   "black": 0.0
+  },
+  "solid_pla_g": 1.24,
+  "white": {
+   "file": "assets/tracking/20261117-modular_blocks/20261117-test_stem_white.stl",
+   "triangles": 868,
+   "watertight": true,
+   "shells": 1,
+   "bounds_mm": [
+    [
+     -5.182,
+     -5.182,
+     0.0
+    ],
+    [
+     5.182,
+     5.182,
+     22.09
+    ]
+   ]
+  }
+ },
+ "mass_compare": {
+  "what": "slicer grams of single parts alone in white (modular plates' process) for the first modular version (shallow foot, M3 x 16 self-forming, steel 1.45 g) and the deep foot with an M2 insert and an M2 x 8 (0.37 g) plus insert (0.28 g); scratch script slice_mass.py, 2026-11-18",
+  "m3": {
+   "test_block": 5.83,
+   "stem_C45": 1.18,
+   "stem_S67": 0.96,
+   "screw_g": 1.45
+  },
+  "m2_insert": {
+   "test_block": 5.94,
+   "stem_C45": 1.61,
+   "stem_S67": 1.38,
+   "screw_g": 0.37,
+   "insert_g": 0.28
+  },
+  "total_delta_g": -0.26
  },
  "bambu_blocks": {
   "project": "assets/tracking/20261117-modular_blocks/20261117-modular_blocks_p1s.3mf",
@@ -882,10 +915,10 @@
     140.0
    ]
   },
-  "prediction_s": 10769.0,
+  "prediction_s": 10796.0,
   "used_g": {
    "1": 9.55,
-   "2": 40.88
+   "2": 41.06
   },
   "filament_loads": 67,
   "layers": 85,
@@ -927,14 +960,14 @@
   ],
   "problems": [],
   "reslice": {
-   "hours": 3.05,
+   "hours": 3.06,
    "loads": {
     "1": 33,
     "2": 34
    },
    "used_g": {
     "1": 10.24,
-    "2": 41.88
+    "2": 42.06
    }
   }
  },
@@ -983,43 +1016,43 @@
     100.0
    ]
   },
-  "prediction_s": 1675.0,
+  "prediction_s": 2035.0,
   "used_g": {
-   "1": 4.0
+   "1": 5.7
   },
   "filament_loads": 1,
-  "layers": 214,
+  "layers": 259,
   "extrusion_box_mm": [
-   72.5,
-   90.5,
-   177.5,
-   105.5
+   71.86,
+   89.86,
+   178.14,
+   106.14
   ],
   "part_offset_err_mm": {},
   "boxes_mm": {
    "CAAAAAAAAAA=": [
-    162.5,
-    90.5,
-    177.5,
-    105.5
+    161.9,
+    89.9,
+    178.1,
+    106.1
    ],
    "BAAAAAAAAAA=": [
-    132.5,
-    90.5,
-    147.5,
-    105.5
+    131.9,
+    89.9,
+    148.1,
+    106.1
    ],
    "AgAAAAAAAAA=": [
-    102.5,
-    90.5,
-    117.5,
-    105.5
+    101.9,
+    89.9,
+    118.1,
+    106.1
    ],
    "AQAAAAAAAAA=": [
-    72.5,
-    90.5,
-    87.5,
-    105.5
+    71.9,
+    89.9,
+    88.1,
+    106.1
    ]
   },
   "flush_volumes_matrix": [
@@ -1030,12 +1063,12 @@
   ],
   "problems": [],
   "reslice": {
-   "hours": 0.47,
+   "hours": 0.56,
    "loads": {
     "1": 1
    },
    "used_g": {
-    "1": 4.0
+    "1": 5.7
    }
   }
  }

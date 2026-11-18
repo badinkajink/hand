@@ -1335,9 +1335,12 @@ def write_large_readme(rep):
 # block. it's quite costly printing these ... im trying to anticipate breaks, which would make these blocks useless. i am
 # not sure how to design joinery here since we cant interfere with the side faces with the blocks on them ... if we are
 # going to have unique ids per block, and specific stem heights per object, then some kind of identification for these
-# modular components would also be helpful"). The block keeps its six tag faces and takes a square socket in its top
-# face. The stem is a part of its own: its foot is a square taper that one M3 self-forming screw, up through the block
-# from a counterbore in its bottom face, draws into the socket; its other end is the cotter joint's taper and post. A
+# modular components would also be helpful"; then "shouldnt we just put a brass insert in in this case. then we can use
+# a less heavy m2 or m2.5 screw"; "ideally we have it slot in pretty deep to the apriltag block so we can minimize the
+# mass of the screw"). The block keeps its six tag faces and takes a square socket in its top face. The stem is a part
+# of its own: its foot is a square taper at the socket's mouth and a square shank that reaches to 5.4 mm above the
+# block's bottom face, with a brass M2 heat-set insert in its end. One M2 x 8 screw from a counterbore in the bottom face
+# threads into the insert and draws the taper into the socket; its other end is the cotter joint's taper and post. A
 # broken stem is reprinted in white and the block kept. In B the socket's faces are normal to x_B and y_B and its
 # (-x_B, -y_B) corner is filled as a key, so the stem goes in one way only; the depth u is measured down from the top face.
 # Each object has a code: text on the block's bottom face, and as many dimples on the stem's root and the block's bottom
@@ -1345,12 +1348,15 @@ def write_large_readme(rep):
 M_DATE = "20261117"
 M_OUT = ROOT / f"assets/tracking/{M_DATE}-modular_blocks"
 M_REPORT = M_OUT / f"{M_DATE}-modular_blocks.json"
-FOOT_S0, FOOT_H, FOOT_DEPTH = 8.0, 3.0, 4.0     # mm: the socket's side at the top face, its taper's depth, its floor's u
+FOOT_S0, FOOT_H, FOOT_DEPTH = 10.0, 3.0, 12.6   # mm: the socket's side at the top face, its taper's depth, its floor's u
 FOOT_U = (-0.5, 2.7)                # mm: the foot's taper from 0.5 mm above the top face to 2.7 mm into the socket
-FOOT_KEY, FOOT_KEY_CUT = 3.6, 0.15  # mm: the socket's corner filled beyond FOOT_KEY on the diagonal; the foot cut inside
+SHANK, FOOT_END = 7.4, 11.6         # mm: the shank's side below the taper (0.21 mm clear of the socket) and its end's u
+FOOT_KEY, FOOT_KEY_CUT = 5.0, 0.15  # mm: the socket's corner filled beyond FOOT_KEY on the diagonal; the foot cut inside
 M_ROOT_R, M_ROOT_H = 4.0, 10.0      # mm: the root cone from radius 4 on the foot down to the stem's 2 mm over 10 mm
-SCREW = {"name": "M3 x 16", "length_mm": 16.0, "clear_d_mm": 3.4, "head_d_mm": 6.0, "head_depth_mm": 3.4,
-         "pilot_d_mm": 2.75, "pilot_depth_mm": 8.0}     # the owner's self-forming M3 pilot is 2.75 mm
+SCREW = {"name": "M2 x 8", "length_mm": 8.0, "clear_d_mm": 2.4, "head_d_mm": 4.4, "head_depth_mm": 2.4,
+         "mass_g": 0.37}            # socket head 3.8 x 2 mm, steel
+INSERT = {"name": "M2 brass heat-set insert, 3.6 mm outside, 4 mm long", "hole_d_mm": 3.2, "hole_depth_mm": 5.5,
+          "length_mm": 4.0, "mass_g": 0.28}     # the hole of the common 3.6 x 4 mm M2 insert
 LABEL_H, LABEL_DEPTH, LABEL_Y = 4.0, 0.4, 7.0   # mm: the label's text height, depth and lines at y_B = +-LABEL_Y
 DOT_R, DOT_PITCH = 0.45, 1.8        # mm: the identification dimples' radius and spacing
 CODES = {("20261112", "cylinder"): ("C25", 1), ("20261112", "sphere"): ("S40", 2),
@@ -1409,6 +1415,7 @@ def socket_B():
     import manifold3d as M
     zt, zb = OM.BLOCK.height / 2, -OM.BLOCK.height / 2
     cav = square_frustum(-0.01, FOOT_H) + square_frustum(FOOT_H - 0.01, FOOT_DEPTH, side_at(FOOT_H), side_at(FOOT_H))
+    assert side_at(FOOT_H) > SHANK and FOOT_DEPTH > FOOT_END
     cav = cav - key_region(FOOT_KEY)
     hole = M.Manifold.cylinder(zt - FOOT_DEPTH - zb + 1.01, SCREW["clear_d_mm"] / 2, SCREW["clear_d_mm"] / 2,
                                64).translate([0.0, 0.0, zb - 1.0])
@@ -1446,20 +1453,23 @@ def modular_block(shape):
 
 
 def foot_B(cut=True):
-    """The stem's foot in B: the square taper over FOOT_U with the key's corner cut, less the screw's pilot."""
+    """The stem's foot in B: the square taper over FOOT_U and the shank down to FOOT_END, with the key's corner cut,
+    less the insert's hole in the shank's end."""
     import manifold3d as M
-    f = square_frustum(*FOOT_U)
+    f = square_frustum(*FOOT_U) + square_frustum(FOOT_U[1] - 0.01, FOOT_END, SHANK, SHANK)
+    f = f - key_region(FOOT_KEY - FOOT_KEY_CUT)
     if not cut:
         return f
     zt = OM.BLOCK.height / 2
-    pilot = M.Manifold.cylinder(SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2,
-                                48).translate([0.0, 0.0, zt - FOOT_U[1] - 1.0])
-    return f - key_region(FOOT_KEY - FOOT_KEY_CUT) - pilot
+    hole = M.Manifold.cylinder(INSERT["hole_depth_mm"] + 1.0, INSERT["hole_d_mm"] / 2, INSERT["hole_d_mm"] / 2,
+                               48).translate([0.0, 0.0, zt - FOOT_END - 1.0])
+    return f - hole
 
 
 def modular_stem(shape):
     """The stem in B, its foot seated in the socket: the foot, the root cone, the 4 mm stem, the 45 deg cone and the
-    cotter joint's taper and post at the object's seat plane, less the pilot and the code's dimples on the root."""
+    cotter joint's taper and post at the object's seat plane, less the insert's hole and the code's dimples on the
+    root."""
     import manifold3d as M
     o = OM.OBJECTS[shape]
     zt, rs = OM.BLOCK.height / 2, OM.STEM_D / 2
@@ -1471,11 +1481,9 @@ def modular_stem(shape):
         [0.0, 0.0, z_root + M_ROOT_H - 0.5])
     cone = M.Manifold.cylinder(h_cone, rs, CONE_R, SEG).translate([0.0, 0.0, z_cone - h_cone])
     end = male().transform(m4(J_B[shape], (0.0, 0.0, z_seat)))
-    S = M.Manifold.batch_boolean([square_frustum(*FOOT_U) - key_region(FOOT_KEY - FOOT_KEY_CUT), root, stem, cone, end],
-                                 M.OpType.Add)
-    zt_ = zt
-    pilot = M.Manifold.cylinder(SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2,
-                                48).translate([0.0, 0.0, zt_ - FOOT_U[1] - 1.0])
+    S = M.Manifold.batch_boolean([foot_B(cut=False), root, stem, cone, end], M.OpType.Add)
+    pilot = M.Manifold.cylinder(INSERT["hole_depth_mm"] + 1.0, INSERT["hole_d_mm"] / 2, INSERT["hole_d_mm"] / 2,
+                                48).translate([0.0, 0.0, zt - FOOT_END - 1.0])
     z_dot = z_root + 2.0                                        # dimples on the root cone, 2 mm above the foot
     r_dot = M_ROOT_R - (M_ROOT_R - rs) * 2.0 / M_ROOT_H
     n = CODES[(SET, shape)][1]
@@ -1497,22 +1505,24 @@ def modular_checks(shape, stem_B):
     for k in (1, 2, 3):
         R = np.array([[math.cos(k * math.pi / 2), -math.sin(k * math.pi / 2), 0.0],
                       [math.sin(k * math.pi / 2), math.cos(k * math.pi / 2), 0.0], [0.0, 0.0, 1.0]])
-        foot = foot_B(cut=False) - key_region(FOOT_KEY - FOOT_KEY_CUT)
+        foot = foot_B(cut=False)
         stop = None
-        for i in range(0, 41):                                 # 0.1 mm steps up to 4 mm above the seat
-            if (blk ^ foot.transform(m4(R, (0.0, 0.0, 0.1 * i)))).volume() < 1e-6:
-                stop = round(0.1 * i, 2)
+        for i in range(0, 61):                                 # 0.25 mm steps up to 15 mm above the seat
+            if (blk ^ foot.transform(m4(R, (0.0, 0.0, 0.25 * i)))).volume() < 1e-6:
+                stop = round(0.25 * i, 2)
                 break
         turned[f"{90 * k}"] = stop
     zt, zb = B.height / 2, -B.height / 2
     head_top = zb + SCREW["head_depth_mm"]
     tip = head_top + SCREW["length_mm"]
-    foot_end = zt - FOOT_U[1]
+    foot_end = zt - FOOT_END
     return {"seated_overlap_mm3": round(seated, 6), "turned_stops_out_mm": turned,
-            "screw_engagement_mm": round(tip - foot_end, 2),
-            "pilot_beyond_tip_mm": round(foot_end + SCREW["pilot_depth_mm"] - tip, 2),
-            "foot_wall_at_end_mm": round((side_at(FOOT_U[1]) - SCREW["pilot_d_mm"]) / 2, 3),
-            "foot_gap_to_floor_mm": round(FOOT_DEPTH - FOOT_U[1], 2),
+            "screw_engagement_mm": round(min(tip, foot_end + INSERT["length_mm"]) - foot_end, 2),
+            "hole_beyond_tip_mm": round(foot_end + INSERT["hole_depth_mm"] - tip, 2),
+            "shank_wall_at_insert_mm": round((SHANK - INSERT["hole_d_mm"]) / 2, 3),
+            "foot_gap_to_floor_mm": round(FOOT_DEPTH - FOOT_END, 2),
+            "floor_under_foot_mm": round(OM.BLOCK.height - FOOT_DEPTH - SCREW["head_depth_mm"], 2),
+            "foot_end_above_bottom_mm": round(OM.BLOCK.height - FOOT_END, 2),
             "root_gap_to_top_face_mm": round(-FOOT_U[0], 2)}
 
 
@@ -1526,9 +1536,10 @@ def cmd_modular_build(a):
     rep = {"what": "the modular tag block and stem (owner, 2026-11-17)",
            "script": "scripts/hardware/tracking_objects_print.py modular",
            "foot": {"side_at_top_face_mm": FOOT_S0, "taper_deg": TAPER_DEG, "taper_depth_mm": FOOT_H,
-                    "socket_depth_mm": FOOT_DEPTH, "foot_u_mm": FOOT_U, "key_mm": FOOT_KEY, "key_cut_mm": FOOT_KEY_CUT,
+                    "socket_depth_mm": FOOT_DEPTH, "foot_u_mm": FOOT_U, "shank_mm": SHANK, "foot_end_u_mm": FOOT_END,
+                    "key_mm": FOOT_KEY, "key_cut_mm": FOOT_KEY_CUT,
                     "root_r_mm": M_ROOT_R, "root_h_mm": M_ROOT_H},
-           "screw": SCREW, "label": {"height_mm": LABEL_H, "depth_mm": LABEL_DEPTH, "dot_r_mm": DOT_R},
+           "screw": SCREW, "insert": INSERT, "label": {"height_mm": LABEL_H, "depth_mm": LABEL_DEPTH, "dot_r_mm": DOT_R},
            "root": {"root_d_mm": 2 * M_ROOT_R, "root_h_mm": M_ROOT_H - FOOT_U[0],
                     "foot_d_mm": round(side_at(FOOT_U[0]) * math.sqrt(2.0), 3), "fillet_r_mm": -FOOT_U[0]},
            "objects": {}, "ok": True}
@@ -1554,7 +1565,7 @@ def cmd_modular_build(a):
                                   "print": M_PRINT["block"]}
             ok &= export_part(info, w, b, lambda c, k=code: modular_stl(k, "block", c))
             info["solid_less_hexagon_mm3"] = round((w + b).volume() - hexagon, 2)
-            drop = OM.BLOCK.height / 2 - FOOT_U[1]                       # B to the stem's print frame (foot's end at 0)
+            drop = OM.BLOCK.height / 2 - FOOT_END                        # B to the stem's print frame (foot's end at 0)
             st = stem_B.translate([0.0, 0.0, -drop])
             info = ob["stem"] = {"what": f"{M_PARTS['stem']}, {code}, {n} dimple{'s' if n > 1 else ''}",
                                  "print": M_PRINT["stem"],
@@ -1580,11 +1591,9 @@ def cmd_modular_build(a):
     zt, rs = B.height / 2, OM.STEM_D / 2
     z_root = zt - FOOT_U[0]
     ts = M.Manifold.batch_boolean([foot_B(), M.Manifold.cylinder(M_ROOT_H, M_ROOT_R, rs, SEG).translate(
-        [0.0, 0.0, z_root - 0.01])], M.OpType.Add) - M.Manifold.cylinder(
-        SCREW["pilot_depth_mm"] + 1.0, SCREW["pilot_d_mm"] / 2, SCREW["pilot_d_mm"] / 2, 48).translate(
-        [0.0, 0.0, zt - FOOT_U[1] - 1.0])
-    info = rep["test_stem"] = {"what": "fit test: the stem's foot and root", "print": M_PRINT["test_stem"]}
-    ok &= export_part(info, ts.translate([0.0, 0.0, -(zt - FOOT_U[1])]), None, lambda c: M_OUT / f"{M_DATE}-test_stem_{c}.stl")
+        [0.0, 0.0, z_root - 0.01])], M.OpType.Add)
+    info = rep["test_stem"] = {"what": "fit test: the stem's foot, shank and root", "print": M_PRINT["test_stem"]}
+    ok &= export_part(info, ts.translate([0.0, 0.0, -(zt - FOOT_END)]), None, lambda c: M_OUT / f"{M_DATE}-test_stem_{c}.stl")
     rep["ok"] = bool(ok)
     M_REPORT.write_text(json.dumps(rep, indent=1))
     write_modular_readme(rep)
@@ -1617,7 +1626,7 @@ M_OBJECT = {"C25": "25 mm cylinder", "S40": "40 mm sphere", "C45": "45 mm cylind
 
 
 def write_modular_readme(rep):
-    f, sc, O = rep["foot"], rep["screw"], rep["objects"]
+    f, sc, ins, O = rep["foot"], rep["screw"], rep["insert"], rep["objects"]
     ck = O["C45"]["checks"]
     L = [f"# Modular tag blocks and stems, {M_DATE}",
          "",
@@ -1638,17 +1647,22 @@ def write_modular_readme(rep):
         L.append(f"| {rep[k]['what']} | `{Path(rep[k]['white']['file']).name}` | {rep[k]['print']} |")
     L += ["",
           f"Joint. The block's six tag faces are those of the earlier blocks. Its top face has a square socket "
-          f"{f['side_at_top_face_mm']:g} mm across at the face. The socket's faces lie at {f['taper_deg']:g} deg to the "
-          f"axis for {f['taper_depth_mm']:g} mm and run straight to {f['socket_depth_mm']:g} mm. The stem's foot is the "
-          f"matching square taper, from {-f['foot_u_mm'][0]:g} mm above the top face to {f['foot_u_mm'][1]:g} mm into "
-          f"the socket, so it seats on the four taper faces with {ck['foot_gap_to_floor_mm']:g} mm left below it. One "
-          f"{sc['name']} screw goes up through a {sc['clear_d_mm']:g} mm hole from a counterbore "
-          f"{sc['head_d_mm']:g} mm across and {sc['head_depth_mm']:g} mm deep in the bottom face. It threads "
-          f"{ck['screw_engagement_mm']:g} mm into a {sc['pilot_d_mm']:g} mm pilot in the foot, the owner's size for "
-          "self-forming M3 threads, and draws the taper into the socket. The head sits below the bottom face, which "
-          "stays flat on the seat. The screw threads into the stem, so a stripped thread costs a stem, not a block. "
-          "The socket's (-x_B, -y_B) corner is filled and the foot's cut, so the stem goes in one way only: turned by "
-          f"90, 180 or 270 deg it stands {ck['turned_stops_out_mm']['90']:g} mm proud of its seat.",
+          f"{f['side_at_top_face_mm']:g} mm across at the face, whose faces lie at {f['taper_deg']:g} deg to the axis for "
+          f"{f['taper_depth_mm']:g} mm. Below the taper the socket runs straight to {f['socket_depth_mm']:g} mm, "
+          f"{ck['floor_under_foot_mm'] + sc['head_depth_mm']:g} mm above the bottom face. The stem's foot is the "
+          f"matching square taper, from {-f['foot_u_mm'][0]:g} mm above the top face to {f['foot_u_mm'][1]:g} mm into the "
+          f"socket, and below it a square shank {f['shank_mm']:g} mm across. The shank ends "
+          f"{ck['foot_end_above_bottom_mm']:g} mm above the bottom face, {ck['foot_gap_to_floor_mm']:g} mm above the "
+          f"socket's floor. Its end has a {ins['hole_d_mm']:g} mm hole {ins['hole_depth_mm']:g} mm deep for the "
+          f"insert ({ins['name']}). One {sc['name']} screw goes up from a counterbore "
+          f"{sc['head_d_mm']:g} mm across and {sc['head_depth_mm']:g} mm deep in the bottom face, through "
+          f"{ck['floor_under_foot_mm']:g} mm of floor, and threads {ck['screw_engagement_mm']:g} mm into the insert. It "
+          "draws the taper into the socket. The four taper faces then fix the stem's position, tilt and turn on the "
+          "block. The head sits below the bottom face, which stays flat on the seat. The thread is brass, so the stem "
+          "comes off and goes on again without wearing the PLA, and the insert is in the stem, so a broken stem costs "
+          "a stem and an insert. The socket's (-x_B, -y_B) corner is filled and the foot's cut, so the stem goes in "
+          f"one way only: turned by 90, 180 or 270 deg, its shank meets the filled corner at the socket's mouth and "
+          f"the stem stands {ck['turned_stops_out_mm']['90']:g} mm proud.",
           "",
           f"Stem. Above the foot a cone {2 * f['root_r_mm']:g} mm across narrows to the 4 mm stem over "
           f"{f['root_h_mm']:g} mm. The stem's other end is the cotter joint's taper and post of 2026-11-16 at the "
@@ -1669,11 +1683,11 @@ def write_modular_readme(rep):
           "objects of `assets/tracking/20261116-cotter_joint/`; the 25 mm cylinder and 40 mm sphere printed on "
           "2026-11-13 have their blocks glued on.",
           "",
-          f"Assembly. Push the stem's foot into the socket, its cut corner to the socket's filled corner. Turn the "
-          f"{sc['name']} screw in from below until the stem no longer rocks, and no further: self-forming threads in PLA "
-          "strip after repeated screwing (owner, 2026-11-04). Then fit the stem's other end to the object with the "
-          "cotter. To replace a broken stem, take the screw out and push the foot out of the socket with the "
-          "screwdriver through the hole."]
+          "Assembly. Heat-set the insert into the stem's foot, flush with its end. Push the foot into the socket, its "
+          f"cut corner to the socket's filled corner. Turn the {sc['name']} screw in from below until the stem no longer "
+          "rocks. Then fit the stem's other end to the object with the cotter. To replace a broken stem, take the "
+          "screw out and pull the stem out; push the foot's end through the hole with the screwdriver if the taper "
+          "sticks."]
     if rep.get("check_ok"):
         L += ["",
               "Checks. In the CAD the seated foot and the block share 0 mm3 for all four objects. Every tag face of the "
@@ -1691,17 +1705,25 @@ def write_modular_readme(rep):
                       + (" (6.8 mm for the 6 mm root of 2026-11-16)." if st == "20261112" else "."))
     g = {c: O[c]["stem"]["solid_pla_g"] for c in O}
     L += ["",
-          f"Mass. The stems are {min(g.values()):.2f} to {max(g.values()):.2f} g of solid PLA, and an {sc['name']} steel "
-          "screw is about 1.4 g. With the screw the 67 mm sphere comes to about 31 g with its block, stem and cotter, "
-          "against the simulations' 25 g. Weigh each assembled object; the simulation takes the measured mass."]
+          f"Mass. The stems are {min(g.values()):.2f} to {max(g.values()):.2f} g of solid PLA. The {sc['name']} steel "
+          f"screw is about {sc['mass_g']:g} g and the insert about {ins['mass_g']:g} g."]
+    if rep.get("mass_compare"):
+        mc = rep["mass_compare"]
+        L[-1] += (f" Sliced alone in white, the test block is {mc['m2_insert']['test_block']:.2f} g and the C45 stem "
+                  f"{mc['m2_insert']['stem_C45']:.2f} g; with the shallow foot and an M3 x 16 screw (1.45 g) of the "
+                  f"first version they were {mc['m3']['test_block']:.2f} and {mc['m3']['stem_C45']:.2f} g. An object's "
+                  f"block, stem and fastener are {abs(mc['total_delta_g']):.2f} g "
+                  f"{'lighter' if mc['total_delta_g'] < 0 else 'heavier'} than in that version: the shank's PLA weighs "
+                  "about twice as much per mm as the M2 screw it shortens.")
+    L[-1] += " Weigh each assembled object; the simulation takes the measured mass."
     if "bambu_test" in rep:
         q = rep["bambu_test"]["reslice"]
         L += ["",
               f"Fit test. Print `{M_DATE}-modular_test_p1s.3mf` first: the C45 block in white without tags and a foot "
-              f"with its root ({q['hours']:.2f} h, {q['used_g']['1']:.1f} g white on filament 1). Screw them together. "
-              "The joint works if the foot seats without rocking when the screw is firm, and comes out by hand once the "
-              "screw is out. If it rocks with the screw firm, the foot bottoms out: report it, and FOOT_U or FOOT_DEPTH "
-              "in `tracking_objects_print.py` changes."]
+              f"with its shank and root ({q['hours']:.2f} h, {q['used_g']['1']:.1f} g white on filament 1). Set the "
+              "insert and screw them together. The joint works if the foot seats without rocking when the screw is "
+              "firm, and comes out by hand once the screw is out. If the insert's hole is too loose or too tight for "
+              "the inserts on hand, INSERT in `tracking_objects_print.py` changes; only the stems carry the hole."]
     for key, what in (("bambu_blocks", "the C45 and S67 blocks"), ("bambu_stems", "the C45 and S67 stems, two each")):
         if key in rep:
             q, fil = rep[key], rep[key]["filament"]

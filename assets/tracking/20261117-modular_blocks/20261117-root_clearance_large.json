@@ -5,7 +5,7 @@
  "root": {
   "root_d_mm": 8.0,
   "root_h_mm": 10.5,
-  "foot_d_mm": 11.828,
+  "foot_d_mm": 14.657,
   "fillet_r_mm": 0.5
  },
  "configs": [
@@ -2076,9 +2076,9 @@
    "seed": 22,
    "stem_mm": 16.7,
    "clear_min_mm": 0.32,
-   "root_min_mm": 4.31,
+   "root_min_mm": 3.99,
    "root_finger": "middle",
-   "root_t": 5.32,
+   "root_t": 5.3,
    "stem_min_mm": 6.31,
    "stem_finger": "middle",
    "stem_t": 5.32
@@ -6612,9 +6612,9 @@
    "seed": 20,
    "stem_mm": 16.7,
    "clear_min_mm": 2.42,
-   "root_min_mm": 8.35,
+   "root_min_mm": 7.78,
    "root_finger": "middle",
-   "root_t": 7.73,
+   "root_t": 7.72,
    "stem_min_mm": 10.0,
    "stem_finger": null,
    "stem_t": null
@@ -6648,9 +6648,9 @@
    "seed": 23,
    "stem_mm": 16.7,
    "clear_min_mm": 2.3,
-   "root_min_mm": 10.0,
-   "root_finger": null,
-   "root_t": null,
+   "root_min_mm": 9.6,
+   "root_finger": "middle",
+   "root_t": 4.44,
    "stem_min_mm": 10.0,
    "stem_finger": null,
    "stem_t": null
@@ -6684,7 +6684,7 @@
    "seed": 21,
    "stem_mm": 16.7,
    "clear_min_mm": 1.08,
-   "root_min_mm": 9.46,
+   "root_min_mm": 8.06,
    "root_finger": "middle",
    "root_t": 4.33,
    "stem_min_mm": 10.0,

@@ -118,7 +118,7 @@ def sec_terms():
                                  "with a 1:5 taper on its top face. It is pushed across the stem through a slot in the "
                                  "object and a slot in a post above the taper."),
         ("Modular block, foot, code", "the tag block and its stem as two parts (2026-11-17). The stem's foot is "
-                                      "a square taper that one M3 screw from the block's bottom face draws into a "
+                                      "a square taper that one M2 screw from the block's bottom face draws into a "
                                       "socket in the block's top face. The code names the object (C25, S40, C45, S67) "
                                       "on the block's bottom face, with as many dimples on the block and the stem as "
                                       "its number."),
@@ -203,7 +203,7 @@ def sec_files(J):
          "through the object's and the post's slots"),
         ("Modular tag blocks C45 and S67 (2026-11-17, ids 32 to 37 and 38 to 43)",
          "<br>".join(flink(f"{MOD}/20261117-block_{k}_{c}.stl") for k in ("C45", "S67") for c in ("white", "black")),
-         "17.0", "one M3 &times; 16 screw into the stem's foot"),
+         "17.0", "one M2 &times; 8 screw into the insert in the stem's foot"),
         ("Modular stems C45 and S67 (2026-11-17)",
          "<br>".join(flink(f"{MOD}/20261117-stem_{k}_white.stl") for k in ("C45", "S67")),
          " / ".join(f"{J['mod']['objects'][k]['stem']['length_mm']:.1f}" for k in ("C45", "S67")),
@@ -282,8 +282,8 @@ def sec_files(J):
                "project.", num_from=2)
     hw = ("<p>The mount is fixed with one M5 &times; 16 bolt and a nut, and the board with two M3 self-tapping screws "
           "of 10 to 12 mm. The stems of the first and second blocks and the dowels are glued with cyanoacrylate or "
-          "two-part epoxy; the blocks of the cotter joint take no glue. Each modular block takes one M3 &times; 16 "
-          "screw, which threads into its stem. The cylinder's "
+          "two-part epoxy; the blocks of the cotter joint take no glue. Each modular stem takes an M2 brass heat-set "
+          "insert (3.6 mm outside, 4 mm long), and an M2 &times; 8 screw joins it to its block. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "
           "to another plate.</p>")
     alt = ""
@@ -812,23 +812,27 @@ def sec_modular(J):
                if x["task"] in ("pinpush", "press") or tuple(x["xy"]) in ((70.0, 110.0), (75.0, 55.0)))
     f1 = img(MEDIA / "20261117-modular_blocks.png",
              "The modular block and stem, rendered from the print files. Top left: the 45 mm cylinder with its stem "
-             "(blue), block and M3 screw apart. Top right: the 67 mm sphere assembled. Bottom left: the C45 block's "
+             "(blue), block and M2 screw apart. Top right: the 67 mm sphere assembled. Bottom left: the C45 block's "
              "bottom face with its code, ids, three dimples and the screw's counterbore. Bottom right: the four stems "
              "and the fit test's block and foot, as they stand on the bed.")
     n1 = P.FIG[0]
     p1 = ("<p>The owner asked on 2026-11-17 for the block and its stem as two parts: \"it's quite costly printing "
           "these, in terms of filament and time, and im trying to anticipate breaks, which would make these blocks "
           "useless. i am not sure how to design joinery here since we cant interfere with the side faces with the "
-          "blocks on them\". The block keeps its six tag faces. Its top face takes a square socket "
-          f"{f['side_at_top_face_mm']:g} mm across, whose faces lie at {f['taper_deg']:g}&deg; to the axis for "
-          f"{f['taper_depth_mm']:g} mm. The stem's foot is the matching square taper. One {scr} screw goes up through "
-          f"the block from a counterbore {sc['head_depth_mm']:g} mm deep in its bottom face. It threads "
-          f"{ck['screw_engagement_mm']:g} mm into a {sc['pilot_d_mm']:g} mm pilot in the foot and draws the taper into "
-          f"the socket (Figure {n1}). The four taper faces then fix the stem's position, tilt and turn on the block, as "
-          "the cotter joint does at the object. The screw's head sits below the bottom face, which stays flat on the "
-          "seat. The thread is cut in the stem, so a stripped thread costs a stem, not a block. One corner of the "
-          "socket is filled and the foot's cut, so the stem goes in one way only. Turned by 90&deg;, 180&deg; or "
-          f"270&deg; it stands {ck['turned_stops_out_mm']['90']:g} mm proud of its seat.</p>")
+          "blocks on them\". The owner then asked for a brass insert and an M2 or M2.5 screw, the stem reaching deep "
+          "into the block so that the screw stays short. The block keeps its six tag faces. Its top face takes a "
+          f"square socket {f['side_at_top_face_mm']:g} mm across, whose faces lie at {f['taper_deg']:g}&deg; to the "
+          f"axis for {f['taper_depth_mm']:g} mm. Below the taper the socket runs straight to "
+          f"{ck['foot_end_above_bottom_mm'] - ck['foot_gap_to_floor_mm']:g} mm above the bottom face. The stem's foot "
+          f"is the matching square taper and, below it, a square shank {f['shank_mm']:g} mm across. The shank ends "
+          f"{ck['foot_end_above_bottom_mm']:g} mm above the bottom face, with an M2 brass heat-set insert in its end. "
+          f"One {scr} screw goes up from a counterbore {sc['head_depth_mm']:g} mm deep in the bottom face. It threads "
+          f"{ck['screw_engagement_mm']:g} mm into the insert and draws the taper into the socket (Figure {n1}). The four "
+          "taper faces then fix the stem's position, tilt and turn on the block, as the cotter joint does at the "
+          "object. The insert sits 9 mm below the taper, so heat-setting it cannot bend the faces that locate the "
+          "block. The screw's head sits below the bottom face, which stays flat on the seat. One corner of the socket "
+          "is filled and the foot's cut, so the stem goes in one way only. Turned by 90&deg;, 180&deg; or 270&deg; it "
+          f"stands {ck['turned_stops_out_mm']['90']:g} mm proud of its seat.</p>")
     names = {"C25": "25 mm cylinder", "S40": "40 mm sphere", "C45": "45 mm cylinder", "S67": "67 mm sphere"}
     rows = [(c, names[c], f"{o['ids'][0]} to {o['ids'][-1]}", f"{o['stem_mm']:.1f}", str(o["dots"]),
              f"{o['stem']['length_mm']:.1f}", f"{o['stem']['solid_pla_g']:.2f}") for c, o in O.items()]
@@ -843,18 +847,25 @@ def sec_modular(J):
     q, qb, qs = R["bambu_test"]["reslice"], R["bambu_blocks"]["reslice"], R["bambu_stems"]["reslice"]
     p3 = ("<p>In the CAD the seated foot and the block share 0 mm<sup>3</sup> for all four objects. Every tag face of "
           "the four blocks' black bodies decodes as its own id, 0.022 mm RMS from the tracker's map. The stem's root is "
-          f"a cone {2 * f['root_r_mm']:g} mm across at the foot, against 6 mm in the second version. Over the larger "
+          f"a cone {2 * f['root_r_mm']:g} mm across on the foot, against 6 mm in the second version. Over the larger "
           f"objects' 400 rollouts no finger came within {rc_l:.1f} mm of it. On the series' layouts of 2026-11-05 none "
           f"came within {rc_s:.1f} mm, against 6.8 mm for the root of 2026-11-16.</p>")
+    mc = R["mass_compare"]
     p4 = (f"<p>The fit test prints in {q['hours']:.2f} h: the C45 block in white without tags and a foot with its "
-          f"root. The two larger objects' blocks print in {qb['hours']:.1f} h ({qb['used_g']['2']:.1f} g white, "
+          f"shank and root. The two larger objects' blocks print in {qb['hours']:.1f} h ({qb['used_g']['2']:.1f} g white, "
           f"{qb['used_g']['1']:.1f} g black). Their stems, two each, print in {qs['hours']:.2f} h "
-          f"({qs['used_g']['1']:.1f} g white). A broken stem is reprinted alone.</p>")
-    steps = ["Push the stem's foot into the block's socket, the foot's cut corner to the socket's filled corner.",
-             f"Turn the {scr} screw in from below until the stem no longer rocks, and no further: self-forming threads "
-             "in PLA strip after repeated screwing.",
+          f"({qs['used_g']['1']:.1f} g white). A broken stem is reprinted alone. Sliced alone, the C45 stem is "
+          f"{mc['m2_insert']['stem_C45']:.2f} g and the test block {mc['m2_insert']['test_block']:.2f} g. The M2 "
+          f"&times; 8 screw and the insert are about {mc['m2_insert']['screw_g'] + mc['m2_insert']['insert_g']:.2f} g "
+          f"against 1.45 g for an M3 &times; 16 through the whole block. With the shank's PLA the object is "
+          f"{abs(mc['total_delta_g']):.2f} g lighter than with that screw and a shallow foot. Per millimetre the "
+          "shank weighs about twice as much as the M2 screw it shortens.</p>")
+    steps = ["Heat-set the M2 insert into the end of the stem's shank, flush with the end.",
+             "Push the stem's foot into the block's socket, the foot's cut corner to the socket's filled corner.",
+             f"Turn the {scr} screw in from below until the stem no longer rocks.",
              "Fit the stem's other end to the object with the cotter (Section 5).",
-             "To replace a broken stem, take the screw out and push the foot out with the screwdriver through the hole."]
+             "To replace a broken stem, take the screw out and pull the stem out; if the taper sticks, push the "
+             "shank's end through the hole with the screwdriver."]
     p5 = ("<p>Assembly:</p><ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
           f"<p>Files and the full account: <a href=\"{rel(MOD + '/README.md')}\"><code>{MOD}/</code></a>; geometry, "
           "checks and slices: <code>tracking_objects_print.py modular build|check|bambu</code>; the root's clearance: "
@@ -884,8 +895,8 @@ def sec_limits():
     return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
             "have not been measured. The cotter joint's parts and coupons have not been printed, nor have the larger "
             "objects and the modular blocks and stems of 2026-11-17. The larger sphere weighs about 31 g with its block, "
-            "stem and screw, against the 25 g of the simulations. The modular stem's screw threads into PLA, which "
-            "strips after repeated screwing. The cotter stays "
+            "stem, insert and screw, against the 25 g of the simulations. The insert's hole is drawn for a common M2 "
+            "insert, 3.6 mm outside and 4 mm long; the inserts on hand were not measured. The cotter stays "
             "in place only if PLA's friction coefficient on PLA exceeds 0.10. The PLA board and its mount have not been "
             "printed. The paper "
             "ChArUco board was printed and used in the calibration of 2026-11-13 (<a "
@@ -908,10 +919,11 @@ def sec_future():
         "end inside the entry, and a push through the far opening then frees it. If none does, measure the post's slot "
         "and the slice's floor with calipers and change <code>COT_T</code> in "
         "<code>tracking_objects_print.py</code> by the difference.",
-        "Print the modular fit test (0.35 h) and screw its foot into its block with an M3 &times; 16. The joint works "
-        "if the foot seats without rocking when the screw is firm, and comes out by hand once the screw is out. If it "
-        "rocks with the screw firm, the foot bottoms out; then raise <code>FOOT_DEPTH</code> in "
-        "<code>tracking_objects_print.py</code> by the gap measured with a feeler gauge under the foot's shoulder.",
+        "Print the modular fit test (0.38 h), heat-set the insert and screw the foot into its block with an M2 "
+        "&times; 8. The joint works "
+        "if the foot seats without rocking when the screw is firm, and comes out by hand once the screw is out. If the "
+        "insert's hole is loose or tight for the inserts on hand, change <code>INSERT</code> in "
+        "<code>tracking_objects_print.py</code>; only the stems carry the hole.",
         "Print the objects, weigh each block with its stem and the cylinder's tape, and set the bodies' infill so "
         "that each object weighs 25 g (plan, step 4).",
         "Calibrate each colour camera's lens with distortion from 20 or more views of a flat board, and solve the "
@@ -968,7 +980,7 @@ def lede_and_summary(J):
             f"taper on the stem's end is drawn into a socket in the object by a printed tapered pin. Printing errors of "
             f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. A 45 mm cylinder and a "
             f"67 mm sphere print on one white plate in {J['lrg']['bambu']['reslice']['hours']:.1f} h, their blocks "
-            f"modular: one M3 screw draws a replaceable stem into the block's top face. "
+            f"modular: one M2 screw draws a replaceable stem into the block's top face. "
             f"For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
@@ -979,7 +991,8 @@ def lede_and_summary(J):
                f"{root_gap(J):.1f} mm of it in the rollouts; blocks held without glue by a cotter joint, a square taper and a "
                f"tapered pin, three pins covering +-0.55 mm of fit; a 45 mm cylinder and a 67 mm sphere with the same "
                f"joint on one white plate of {J['lrg']['bambu']['reslice']['hours']:.1f} h; a modular block and stem, "
-               f"the stem's square foot drawn into the block's top face by one M3 screw, codes and dimples naming each "
+               f"the stem's square foot drawn into the block's top face by one M2 screw into a brass insert, codes and "
+               f"dimples naming each "
                f"object's parts), a printed ChArUco board "
                f"with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
