@@ -39,6 +39,7 @@ import night_replay as NR  # noqa: E402
 
 K_C = None                  # N m/rad, the yaw chain's spring; None: the rigid clutch plant
 BACKDRIVE = False           # --backdrive: the load may push the index's and middle's yaw servos back
+HOLD_K = None               # N m/rad: a held MCP or PIP yields as a spring of this stiffness (S3's flexion presses)
 ETA = 0.4                   # the gear's forward efficiency (1 - c of the clutch plant)
 TAU_S = 0.013               # s, the shaft's lag (the 7.5 V plant's damping / kp)
 W_MAX = 10.0                # rad/s, the shaft's top speed (the SCS0009 at 7.5 V, about 0.1 s per 60 deg)
@@ -69,6 +70,9 @@ def give_class(base=None):
                     m.actuator_biasprm[a_, 1] = -self.kc
                     m.actuator_forcerange[a_] = (-5.0, 5.0)
             self.theta, self.T = {}, {}
+            self.hk = np.zeros(9, bool)
+            self.hk[[1, 2, 4, 5, 7, 8]] = True                 # every MCP and PIP (vadr9: yaw, mcp, pip per finger)
+            self.anchor = np.full(9, np.nan)
             v9 = np.asarray(self.vadr9)
             self.bd = [int(np.flatnonzero(v9 == int(self.vadr[f][0]))[0]) for f in GIVE]
 
@@ -103,7 +107,7 @@ def give_class(base=None):
                 self.d.ctrl[a_] = new
 
         def advance(self, t1: float):
-            if not self.give and not BACKDRIVE:
+            if not self.give and not BACKDRIVE and not HOLD_K:
                 return super().advance(t1)
             import mujoco
             m, d = self.m, self.d
@@ -125,6 +129,17 @@ def give_class(base=None):
                 if BACKDRIVE:                                          # these two yield to a load that beats them
                     fl[self.bd] = np.where(hold[self.bd], 0.0, fl[self.bd])
                     hold[self.bd] = False
+                if HOLD_K:                                             # a held MCP or PIP yields as a spring
+                    q9 = d.qpos[self.qadr9]
+                    sp = hold & self.hk
+                    self.anchor[sp & np.isnan(self.anchor)] = q9[sp & np.isnan(self.anchor)]
+                    back = np.sign(tau) * (q9 - self.anchor)               # > 0 once the joint is past its anchor
+                    self.anchor[~sp & ((back >= -1e-4) | (tau == 0.0))] = np.nan
+                    fl[sp] = 0.0
+                    app = np.zeros(9)
+                    app[sp] = HOLD_K * (self.anchor[sp] - q9[sp]) - tau[sp]
+                    d.qfrc_applied[self.vadr9] = app
+                    hold = hold & ~sp
                 m.dof_frictionloss[self.vadr9] = fl
                 if self.give:
                     m.dof_frictionloss[gd] = FL_LINK

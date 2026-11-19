@@ -23,7 +23,9 @@ Writes data/s3/20261118-s4b_friction.json and, with --fig, the friction loops (f
 
 Phase A of the night of 2026-11-18 (lab/s4b_drag.py --protocol; data/s3/20261118-191748_index_protocol.jsonl, raw in
 logs/20261118-sr2_s3_press/) dragged the index pad 5 mm up or down after rests of 1, 10 and 60 s with the pad loaded, at
-0.2 and 2 mm/s, at about 0.5, 1 and 2 N. Per leg (protocol): the level before it (median of the rest's last half: the
+0.2 and 2 mm/s, at about 0.5, 1 and 2 N. Phases B and C repeated it with the middle pad on the tape and the thumb pad on
+the tag plate (the plate's printed tag face); the thumb presses along -x_P, so the normal force is the x_P component
+times the sign of the last hold's. Per leg (protocol): the level before it (median of the rest's last half: the
 pad stuck, holding the last slide's shear), the plateau (median over the travel from 2.5 mm to the end), the swing
 between them, and the overshoot (the largest 0.3 s mean beyond the plateau in the swing's direction within the first
 2.5 mm, minus the plateau) against the noise (the plateau's own largest 0.3 s deviation over the same travel). The
@@ -40,7 +42,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent
 RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "20261118-185120_index_drag2N_z"]
-PROTOCOLS = ["20261118-191748_index_protocol"]
+PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
+SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
@@ -126,12 +129,14 @@ def protocol(stem):
     o = np.argsort(tt)
     tt, zt = tt[o], zt[o]
     FP = (FH - np.array(h["F0_N"])) @ np.array(h["R_PH"]).T
+    holds = [x for x in L if x.get("phase") == "hold"]
+    sgn = float(np.sign(holds[-1]["dF_P"][0]))
     legs = [x for x in segs if x["phase"] == "leg"]
     ax = np.array(legs[0]["axis_P"], float)
     ax /= np.linalg.norm(ax)
     n = max(1, int(round(0.3 / np.median(np.diff(th)))))
     F3 = np.convolve(FP @ ax, np.ones(n) / n, "same")
-    Fn = np.convolve(FP[:, 0], np.ones(n) / n, "same")
+    Fn = np.convolve(sgn * FP[:, 0], np.ones(n) / n, "same")
     z = np.interp(th, tt, zt)
     out = []
     for k, lg in enumerate(legs):
@@ -164,7 +169,8 @@ def protocol(stem):
                     nn = (dn[0]["normal_N"] + up[0]["normal_N"]) / 2
                     fric.append({"N": N, "speed_mm_s": v, "rest_s": rs, "friction_N": round(fk, 3),
                                  "normal_N": round(nn, 3), "mu": round(fk / nn, 3)})
-    return {"run": stem, "legs": out, "friction": fric}, (th, z, F3, legs)
+    return {"run": stem, "finger": h["finger"], "surface": SURFACE[h["finger"]], "normal_sign_x_P": sgn, "legs": out,
+            "friction": fric}, (th, z, F3, legs)
 
 
 def main():
@@ -188,6 +194,7 @@ def main():
         r, c = protocol(stem)
         prot.append(r)
         pcurves.append(c)
+        print(stem, r["finger"], "on the", r["surface"])
         for g in r["legs"]:
             print(f"  {g['N']:3g} N {g['speed_mm_s']:3g} mm/s rest {g['rest_s']:3g} s {g['dir']:4s} before {g['before_N']:+.2f} "
                   f"plateau {g['plateau_N']:+.2f} normal {g['normal_N']:.2f} swing {g['swing_N']:+.2f} overshoot "

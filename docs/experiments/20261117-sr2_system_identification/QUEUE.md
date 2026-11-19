@@ -388,6 +388,64 @@ air and then against a force sensor. Contact and the blind validation trials nee
   3.1 N. In the grasp both touched with rigid parts only. The yaw squeeze thus presses the sides of the index's and
   middle's tips on the sphere, which fits the middle's silent board on the hand. The friction that sets the twist is
   then that of the tips' PLA sides on the taped sphere, which no S4 run has measured.
+- S4(b), phases B and C of the night: the middle pad on the tape and the thumb pad on the tag plate (11-18 22:0x; lab
+  97173bbcd, 2855d871d; `sim/20261118-s4b_drag_friction.py`, "protocols" in `data/s3/20261118-s4b_friction.json`).
+  Each ran phase A's 36 legs. The middle pad slid at 0.59-0.65 of the normal force at 0.2 mm/s and at 0.69-0.77 at
+  2 mm/s, over 0.5-2 N. On the same tape the index pad slid at 0.32-0.34 and 0.42-0.45 (1-2 N), about half as much.
+  The thumb pad slid on the tag plate at 0.58-0.64 at 0.2 mm/s and 0.55-0.62 at 2 mm/s (1-2 N); at 0.5 N, at
+  0.36-0.52. On the tape both pads' friction rose by 0.10 between the two speeds; on the tag plate the thumb's fell by
+  0.03. The rest did not change it: at 1-2 N the middle's mean was 0.672, 0.686 and 0.682 after 1, 10 and 60 s, the
+  thumb's 0.604, 0.590 and 0.604. A leg's start exceeded its plateau by more than the plateau's own largest deviation
+  in 2 of 36 legs for the middle and 10 of 36 for the thumb (6 for the index). The normal force was larger on the
+  legs that dragged down: medians of 1.59 against 1.22 N for the middle and 1.73 against 1.22 N for the thumb.
+- W2, the night's flexion presses (11-18 22:0x; `sim/20261118-s3_flexion_press_fits.py`,
+  `data/s3/20261118-flexion_press_fits.json`): the three PIPs and the thumb's MCP, three presses each, beside the six
+  MCP presses of 15:54-18:45. Each step's joint torques come from the HEX-E's force at the pad's apex, through the
+  finger's kinematics at the measured joints (the cad_v3 chain of `sr2hand.robot.tool_chain`). A servo's gain is its
+  torque per radian of error (target - reading), a least-squares line through zero over errors up to 6 deg. The PIPs
+  gave 0.93 N m/rad for the index and for the thumb (0.92-0.96 over three presses each) and 1.28 for the middle
+  (1.27-1.29). The thumb's MCP gave 1.19-1.27, the six earlier MCP presses 1.19-1.57. The replay plant gives every MCP and
+  PIP 1.6 N m/rad up to 0.17 N m. The largest torques were 0.11 N m for the index PIP, 0.14-0.15 for the middle
+  PIP, 0.10-0.12 for the thumb PIP and 0.14-0.17 for the thumb MCP. The PIP presses ended at 3 N or at the target's
+  last step with the torque still rising, so the PIPs' limit lies above these. The middle pad pulled the plate along
+  z_P with 0.79-0.92 of the normal force (index 0.31-0.35, thumb 0.37-0.43). That exceeds the middle pad's sliding
+  friction on the tape (0.59-0.77), so a part other than its pad face may have met the plate, and the apex's lever
+  may not hold for the middle PIP. In the PIP presses the reading advanced in 3-7 jumps of 1.0-2.6 deg, and the torque
+  rose at each jump, as in the head-on yaw presses. The held joints gave way. Behind each PIP press the MCP's reading
+  moved back 1.5-2.9 deg under 0.17-0.23 N m and came back as the force fell on the step back: 8-19 deg per N m, a
+  stiffness of 3-7 N m/rad. Behind the MCP presses the PIP moved back 0.6-1.2 deg in eight of nine, under 0.05-0.10 N m. The clutch plant
+  holds a joint rigidly against a load that would drive it backward, so the replays have none of this give. On the step
+  back the pressed joint's force fell below half when the target came within -0.01 to 1.59 deg of the reading
+  (medians 0.5-0.6 deg for the PIPs, 1.38 for the thumb's MCP): the gears hold, as in the afternoon. The overload flag
+  tripped at a duty of 77 % with 0.136 N m on the thumb's third MCP press (54 C), at 69 % with 0.091 N m on its third
+  PIP press (49 C), and at 63 % with 0.182 N m on the index MCP in the afternoon (38 C).
+- W3, the twists with each finger's measured friction (11-18 22:0x; `sim/20261118-s3_plant_replay.py --mu-fingers`,
+  rows "... t0.58/i0.43/m0.73" and "... t0.61/i0.33/m0.63" in `logs/20261118-night_replay/s3_plant.jsonl`). On the S3
+  plant with the 2.0 N m/rad bend, each finger's geoms took its pad's friction at 2 mm/s (thumb 0.58, index 0.43,
+  middle 0.73) or at 0.2 mm/s (0.61, 0.33, 0.63); the thumb's values are the tag plate's. Means over the 11 tips-off
+  twists (`data/20261118-s3_plant_replay.json`), against the hand's 49.6 deg: stiff pads turned the sphere 32.6 deg
+  with the 2 mm/s values (31.7 at a uniform 1.0, 37.6 at 0.40). With the 0.2 mm/s values they lost the grasp
+  (15.3 deg, tracking 0.06). Soft pads turned it 35.7 and 47.8 deg and soft point contact 38.8 and 50.9 deg, with the
+  sphere rising 21-28 mm (hand 3.0 mm). The
+  pads' measured friction does not close the deficit on stiff contact. The soft models reach the hand's twist only with
+  the sphere rising about nine times as far. In these replays the index's and middle's rigid tip sides press on the
+  sphere (W3, 20:4x), and their friction on the tape is unmeasured.
+- W3, the held joints' give in the replays (11-18 22:3x; `sim/20261118-s3_plant_replay.py --hold-k 3 7`, rows
+  "... hk3" and "... hk7"). Every MCP and PIP whose load beat its servo yielded as a spring of 3 or 7 N m/rad about the
+  angle where the hold began, as the flexion presses measured; the clutch plant holds such a joint rigidly. The twist
+  barely moved (means over the 11 twists). On stiff pads it was 33.5 and 33.1 deg at friction 1.0 (31.7 rigid; hand
+  49.6) and 37.1 and 38.1 at 0.40 (37.6 rigid). Soft pads and soft point contact gave 34.4-36.2 deg at 1.0 (35.5 and
+  35.7 rigid); at 0.40 they lifted the sphere 32-34 mm in every variant. On stiff pads at 1.0 the thumb MCP's mean
+  difference from the hand's reading over the task went from -5.9 deg (rigid) to -6.5 and -6.3 deg. The held joints'
+  give does not account for the twist deficit.
+- W2, the boards in the night's presses (11-18 22:3x; `sim/20261118-s3_board_vs_hexe.py --only` with the twelve
+  presses, `data/s3/20261118-board_vs_hexe.json`). The trials' estimator (the board GP with the own-pose term) was
+  fitted per press against the HEX-E's force in x_P and y_P. The thumb's board, in its three MCP face presses on the
+  tag plate, read 0.24-0.26 N + 0.40-0.52 times the force (RMS 0.05-0.07 N). In the same press the index's board read
+  0.26 times and the middle's 0.36. In the PIP presses the PIP curled the pad onto the plate from a reading near
+  10-13 deg to 20-25 deg. There the boards read 0.44-0.47 times the force (index), 0.45-0.56 (middle) and 0.39-0.44
+  (thumb), with offsets of 0.17-0.35 N and RMS of 0.06-0.13 N. Without the own-pose term they read 0.42-0.86 times.
+  The thumb's angle presses at PIP 15 and 30 deg were not run (lights off, NOTES).
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

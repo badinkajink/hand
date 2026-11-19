@@ -15,9 +15,11 @@ The presses: the index's MCP press and its yaw press with the MCP holding (15:54
 plate), and the fourteen head-on yaw presses of 16:33-17:17 (lab/s3_yaw_summary.py), in which the side of the index's,
 middle's or thumb's tip met the taped plate (-1) or the tag plate (+1); on the -1 side the DIP link's flat side, not
 the pad, met the plate (NOTES, 16:46-17:18). Then the middle's MCP press of its pad face (18:36) and the angle presses
-of 18:40-18:45: the index's and middle's pad faces pushed by the MCP with the PIP pre-bent 15 and 30 deg. Each press
-takes the other fingers' joints from its approach plan (the first stamp in its note, else the press before it), and
-the boards' records from the splitter's file that was running at the time.
+of 18:40-18:45: the index's and middle's pad faces pushed by the MCP with the PIP pre-bent 15 and 30 deg. The night's
+presses of 19:43-21:39: three PIP presses each for the index and middle (taped plate), three MCP and three PIP presses
+for the thumb (tag plate). Each press takes the other fingers' joints from its approach plan (the first stamp in its
+note; for the night's presses, whose notes name none, the latest approach before the press; else the press before it),
+and the boards' records from the splitter's file that was running at the time.
 
 Per press and estimator: the steps (columns in "cols"), and least-squares lines from the HEX-E's force to the board's:
 its normal force and its |f_xy| against the HEX-E's |F_xy|, and per axis of P against the HEX-E's component.
@@ -86,12 +88,18 @@ def presses():
     out = [("20261118-155403_index_mcp", "index", "20261118-155238"), ("20261118-160047_index_yaw", "index", "20261118-155238")]
     last = None
     later = sorted([*(STUDY / "data/s3").glob("20261118-*_yaw_head_on.jsonl"),
-                    *(STUDY / "data/s3").glob("20261118-18*_mcp_press.jsonl"),
+                    *(STUDY / "data/s3").glob("20261118-1[89]*_mcp_press.jsonl"),
+                    *(STUDY / "data/s3").glob("20261118-2*_mcp_press.jsonl"),
+                    *(STUDY / "data/s3").glob("20261118-*_pip_press.jsonl"),
                     *(STUDY / "data/s3").glob("20261118-18*_mcp_pip_prebend.jsonl")])
+    approaches = sorted(p.name[:15] for p in (STUDY / "data/s3").glob("20261118-*_approach_*.json"))
     for p in later:
         h = json.loads(p.read_text().splitlines()[0])
         m = re.search(r"(\d{8}-\d{6})", h.get("note") or "")
-        last = m.group(1) if m else last
+        if m:
+            last = m.group(1)
+        elif p.name[:9] == "20261118-" and p.name[9:11] in ("19", "20", "21"):
+            last = max(a for a in approaches if a < p.name[:15])      # the night's notes name no approach
         stem = re.sub(r"_(head_on|press|pip_prebend)\.jsonl$", "", p.name)
         out.append((stem, h["finger"], last))
     return out

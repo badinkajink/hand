@@ -28,6 +28,17 @@ joint zeros are added to every joint, so the hand's readings and targets become 
 the replayed angles are compared after taking them off again, and its mount offsets (mx, my) move each finger's mount
 body in P.
 
+--hold-k K lets every MCP and PIP yield under a load that beats its servo: in place of the clutch plant's rigid hold
+the joint becomes a spring of K N m/rad about the angle where the hold began (sim/20261118-yaw_give_replay.py HOLD_K).
+S3's flexion presses measured 3-7 N m/rad for the MCP behind a PIP press and about 4-7 for the PIP behind an MCP press
+(sim/20261118-s3_flexion_press_fits.py).
+
+--mu-fingers THUMB INDEX MIDDLE gives each finger's geoms, pads and rigid parts alike, its own friction, as the night's
+S4(b) protocols measured the pads (sim/20261118-s4b_drag_friction.py: on the tape the index 0.32-0.34 at 0.2 mm/s and
+0.42-0.45 at 2 mm/s, the middle 0.59-0.65 and 0.69-0.77; the thumb 0.55-0.64 on the tag plate). The object's geoms take
+the least of the three, so that MuJoCo's rule (a contact takes the larger of its two geoms' friction) gives each finger's
+contact its own; every other geom keeps --mu.
+
 --stick MU_S MU_K gives the friction two levels, as S4(b) measured the pad on the tape (sim/20261118-s4b_drag_friction.py:
 sliding 0.44-0.49 at 0.7-1.0 N and 0.35 at 2.5 N; after a 20 s rest the slide began 1.2-1.4 times higher). Every geom's
 friction is MU_S while the object turns slower than 0.2 rad/s, and MU_K from then until it turns slower than 0.05 rad/s
@@ -64,6 +75,7 @@ W_TOP = 9.8                                          # rad/s, the 7v5 plant's fr
 T_FREE = 0.033                                       # s, the 7v5y plant's free-air time constant (0.011 / (0.4 x 0.825))
 PLANT = None                                         # "s3" or "s3tc", set per job
 MU = 1.0
+MU_FINGERS = None                                    # {finger: friction of its geoms}, set per job
 STICK = None                                         # (friction at rest, friction while sliding), set per job
 ZSHIFT = 0.0                                         # mm, the object's start moved up along z_P, set per job
 ZEROS = None                                         # {finger: [yaw, mcp, pip] deg}, added to the readings, set per job
@@ -94,6 +106,18 @@ def s3_class():
                     m.dof_damping[v] = damp
                     self.s3[f"{f}.{j}"] = (kp, tau, round(damp, 4))
             m.geom_friction[:, 0] = MU
+            if MU_FINGERS:
+                import mujoco
+                for g in range(m.ngeom):
+                    b = int(m.geom_bodyid[g])
+                    while b > 0:
+                        bn = mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or ""
+                        f = next((f for f in MU_FINGERS if bn.startswith(f)), None)
+                        if f:
+                            m.geom_friction[g, 0] = MU_FINGERS[f]
+                            break
+                        b = int(m.body_parentid[b])
+                m.geom_friction[m.geom_bodyid == self.tb, 0] = min(MU_FINGERS.values())
             if ZEROS:
                 pf = json.loads(S1B.read_text())["shared"]["dz"]["per_finger"]
                 for f in ("thumb", "index", "middle"):
@@ -161,13 +185,15 @@ def patch_kinematics():
 
 
 def run_s3(job):
-    global PLANT, MU, STICK, ZSHIFT, ZEROS
+    global PLANT, MU, MU_FINGERS, STICK, ZSHIFT, ZEROS
     PLANT, MU = job["plant"], job["mu"]
+    MU_FINGERS = dict(zip(("thumb", "index", "middle"), job["mu_fingers"])) if job.get("mu_fingers") else None
     STICK = tuple(job["stick"]) if job.get("stick") else None
     ZSHIFT = float(job.get("zshift") or 0.0)
     ZEROS = s1b_zeros() if job.get("zeros") else None
     patch_kinematics()
     YG.K_C, YG.ETA, YG.BACKDRIVE = job["k_c"], 1.0, False
+    YG.HOLD_K = job.get("hold_k")
     return NR.run(job)
 
 
@@ -189,6 +215,10 @@ def main():
     ap.add_argument("--stick", type=float, nargs=2, default=None, help="friction at rest and while sliding")
     ap.add_argument("--zshift", type=float, nargs="+", default=[0.0], help="mm, the object's start moved up along z_P")
     ap.add_argument("--zeros", action="store_true", help="S1(b)'s joint zeros (shared-height model)")
+    ap.add_argument("--hold-k", type=float, nargs="+", default=[None],
+                    help="N m/rad: a held MCP or PIP yields as a spring of this stiffness")
+    ap.add_argument("--mu-fingers", type=float, nargs=3, default=None, metavar=("THUMB", "INDEX", "MIDDLE"),
+                    help="each finger's friction; the object's geoms take the least, the rest --mu")
     ap.add_argument("--tips", default="off", choices=["off", "on", "all"])
     ap.add_argument("--trials", nargs="*", default=None)
     ap.add_argument("--workers", type=int, default=6)
@@ -208,16 +238,19 @@ def main():
             r = json.loads(x) if x.strip() else None
             if r and "error" not in r:
                 done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"], tuple(r.get("stick") or ()),
-                          float(r.get("zshift") or 0.0), bool(r.get("zeros"))))
+                          float(r.get("zshift") or 0.0), bool(r.get("zeros")), tuple(r.get("mu_fingers") or ()),
+                          r.get("hold_k")))
     st = tuple(a.stick or ())
     mus = [a.stick[0]] if a.stick else a.mu
     lab = f" stick{a.stick[0]:g}/{a.stick[1]:g}" if a.stick else ""
+    mf = tuple(a.mu_fingers or ())
+    lab += " t{:g}/i{:g}/m{:g}".format(*mf) if mf else ""
     jobs = [{**t, "contact": c, "volts": "7v5", "plant": p, "mu": mu, "k_c": k, "stick": list(st) or None,
-             "zshift": zs, "zeros": a.zeros,
+             "zshift": zs, "zeros": a.zeros, "mu_fingers": list(mf) or None, "hold_k": hk,
              "variant": (f"{p} mu{mu:g}" if not a.stick else f"{p}") + (f" kc{k:g}" if k else "") + lab
-             + (f" z{zs:+g}" if zs else "") + (" zeros" if a.zeros else "")}
-            for k in a.kc for p in a.plants for mu in mus for zs in a.zshift for c in a.contacts for t in tl
-            if (t["stamp"], c, p, mu, k, st, zs, a.zeros) not in done]
+             + (f" z{zs:+g}" if zs else "") + (" zeros" if a.zeros else "") + (f" hk{hk:g}" if hk else "")}
+            for hk in a.hold_k for k in a.kc for p in a.plants for mu in mus for zs in a.zshift for c in a.contacts
+            for t in tl if (t["stamp"], c, p, mu, k, st, zs, a.zeros, mf, hk) not in done]
     print(f"{len(jobs)} replays on {a.workers} workers ({len(done)} done)", flush=True)
     with open(out, "a") as fo, mp.get_context("fork").Pool(a.workers, initializer=NR.RPL.RG.init,
                                                            initargs=(str(NR.RPL.RG.RF.SCENE),), maxtasksperchild=4) as pool:
