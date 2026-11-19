@@ -738,12 +738,17 @@ indenter&#8217;s position, so the fitted spring includes any other give of the r
 [section on the laws of each pad](exp:20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html#laws).</p>
 <p>The scenes&#8217; friction coefficient of 1.0 stands for the grip tape. On 18 November the pads were dragged
 5&#8202;mm along the plates on the hand, at about 0.5, 1 and 2&#8202;N. The index and middle pads slid on the grip tape and
-the thumb pad on the tag plate. At 1 to 2&#8202;N the index pad&#8217;s friction force was 0.32 to 0.34 times
-the normal force at 0.2&#8202;mm/s and 0.42 to 0.45 times at 2&#8202;mm/s. The middle pad&#8217;s was 0.59 to 0.65 and 0.69
-to 0.77 times at all three forces. The thumb pad&#8217;s was 0.58 to 0.64 and 0.55 to 0.62 times at 1 to
-2&#8202;N. The coefficient changed little with rests of 1 to 60&#8202;s under load before a drag. In the afternoon&#8217;s
-drags of the index pad, the force varied as much while sliding as at rest. The pad thus did not stick and slip
-([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Tables 38 and 39).</p>
+the thumb pad on the tag plate. In free-air controls on 19 November, the force from the cable and from the sensor
+alone was measured, and it was subtracted. At 1 to 2&#8202;N the index pad&#8217;s friction force was then 0.29 to 0.33
+times the normal force at 0.2&#8202;mm/s and 0.39 to 0.41 times at 2&#8202;mm/s. The middle pad&#8217;s was 0.57 to 0.64 and
+0.70 to 0.77 times at all three forces. The thumb pad&#8217;s pose had no control. Its coefficient was 0.58 to 0.64 and
+0.55 to 0.62 at 1 to 2&#8202;N. The coefficient changed little with rests of 1 to 60&#8202;s under load before a drag. In
+the afternoon&#8217;s drags of the index pad, the force varied as much while sliding as at rest. The pad thus did not stick
+and slip. On 19 November the PLA sides of the index&#8217;s and the middle&#8217;s DIP links were dragged on the same tape.
+With the controls subtracted, the sides slid at 0.43 to 0.54 and 0.72 to 0.87 times normal forces of 0.81 to
+1.35&#8202;N. The
+HEX-E&#8217;s moments did not show whether the middle finger&#8217;s higher friction comes from its contact or from the sensor
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Tables 38 to 40).</p>
 <p>In simulation, the HOM controller&#8217;s inputs from each fingertip are one contact point and one normal force. Its
 fingertip model adds the errors measured on the UR5 to each true contact. A fixed offset of 0.4&#8202;mm and random noise
 are added to the point. The noise&#8217;s sigma is 0.4&#8202;mm at 1.5&#8202;N and over, 0.7&#8202;mm from 0.5&#8202;N and 1.3&#8202;mm below. A
