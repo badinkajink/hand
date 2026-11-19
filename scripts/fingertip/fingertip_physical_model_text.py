@@ -558,8 +558,12 @@ def sections(N, F, P, link, L):
     hside = [p for p in hj["presses"] if p["joint"] == "yaw" and p["approach"] != hm["approach"]]
     # the middle's face press and the four with the PIP bent 15 and 30° beforehand (3fba0e16)
     hmid = next(p for p in hj["presses"] if p["file"].endswith("/20261118-183614_middle_mcp.jsonl"))
-    hbent = [p for p in hj["presses"] if p["joint"] == "mcp" and p not in (hm, hmid)]
-    assert len(hside) == 14 and len(hbent) == 4, "S3's side and bent-PIP presses"
+    hbent = [p for p in hj["presses"] if p["joint"] == "mcp" and p["finger"] != "thumb" and p not in (hm, hmid)]
+    # the night's presses (0d3f6aa1): the thumb's three face presses on the tag plate and the nine PIP presses, each PIP
+    # curling its pad onto a plate
+    hthumb = [p for p in hj["presses"] if p["joint"] == "mcp" and p["finger"] == "thumb"]
+    hpip = [p for p in hj["presses"] if p["joint"] == "pip"]
+    assert len(hside) == 14 and len(hbent) == 4 and len(hthumb) == 3 and len(hpip) == 9, "S3's presses by joint and finger"
     hfp = lambda p, e="physical", c="slope": p["estimators"][e]["fits"]["n_vs_xy"][c]  # noqa: E731
     hf = lambda e, k="n_vs_xy": hm["estimators"][e]["fits"][k]  # noqa: E731
     r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
@@ -580,7 +584,16 @@ def sections(N, F, P, link, L):
         + f", Table 36). In those four presses the model's force rose {r2(min(map(hfp, hbent)))} to "
         f"{r2(max(map(hfp, hbent)))} N per newton, with RMS of {r2(min(hfp(p, c='rms_N') for p in hbent))} to "
         f"{r2(max(hfp(p, c='rms_N') for p in hbent))} N. The board GP's rose "
-        f"{r2(min(hfp(p, 'gp_own_pose') for p in hbent))} to {r2(max(hfp(p, 'gp_own_pose') for p in hbent))}.</p>"
+        f"{r2(min(hfp(p, 'gp_own_pose') for p in hbent))} to {r2(max(hfp(p, 'gp_own_pose') for p in hbent))}. The "
+        "thumb, v3 ID 1, was pressed face on three times onto a second plate. There the model's force rose "
+        f"{r2(min(map(hfp, hthumb)))} to {r2(max(map(hfp, hthumb)))} N per newton, against "
+        f"{r2(min(hfp(p, 'gp_own_pose') for p in hthumb))} to {r2(max(hfp(p, 'gp_own_pose') for p in hthumb))} for the "
+        f"board GP. Its RMS was {r2(min(hfp(p, c='rms_N') for p in hthumb))} to "
+        f"{r2(max(hfp(p, c='rms_N') for p in hthumb))} N. In nine more presses each PIP joint curled its pad onto a plate ("
+        + link(L["cal"], "calibration page") + f", Table 37). There the model's force rose {r2(min(map(hfp, hpip)))} to "
+        f"{r2(max(map(hfp, hpip)))} N per newton, with RMS of {r2(min(hfp(p, c='rms_N') for p in hpip))} to "
+        f"{r2(max(hfp(p, c='rms_N') for p in hpip))} N. The board GP's slopes were "
+        f"{r2(min(hfp(p, 'gp_own_pose') for p in hpip))} to {r2(max(hfp(p, 'gp_own_pose') for p in hpip))}.</p>"
     )
     S.append(("ur5", "The model against the UR5 presses", body))
 
