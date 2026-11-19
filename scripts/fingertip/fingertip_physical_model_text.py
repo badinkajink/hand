@@ -554,8 +554,13 @@ def sections(N, F, P, link, L):
     from decimal import ROUND_HALF_UP, Decimal
     from fingertip_calibration_text import IDENT, at_head
     hj = json.loads(at_head(IDENT / "data/s3/20261118-board_vs_hexe.json"))
-    hm = next(p for p in hj["presses"] if p["finger"] == "index" and p["joint"] == "mcp")
-    hside = [p for p in hj["presses"] if p["approach"] != hm["approach"]]
+    hm = next(p for p in hj["presses"] if p["file"].endswith("/20261118-155403_index_mcp.jsonl"))   # the first face press
+    hside = [p for p in hj["presses"] if p["joint"] == "yaw" and p["approach"] != hm["approach"]]
+    # the middle's face press and the four with the PIP bent 15 and 30° beforehand (3fba0e16)
+    hmid = next(p for p in hj["presses"] if p["file"].endswith("/20261118-183614_middle_mcp.jsonl"))
+    hbent = [p for p in hj["presses"] if p["joint"] == "mcp" and p not in (hm, hmid)]
+    assert len(hside) == 14 and len(hbent) == 4, "S3's side and bent-PIP presses"
+    hfp = lambda p, e="physical", c="slope": p["estimators"][e]["fits"]["n_vs_xy"][c]  # noqa: E731
     hf = lambda e, k="n_vs_xy": hm["estimators"][e]["fits"][k]  # noqa: E731
     r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
     body += (
@@ -568,7 +573,14 @@ def sections(N, F, P, link, L):
         f"With the board GP of the HOM trials, the estimate rose {r2(hf('gp_own_pose')['slope'])} N per newton, with an "
         f"RMS of {r2(hf('gp_own_pose')['rms_N'])} N. In {len(hside)} presses of the tips' sides (" + link(L["cal"], "calibration "
         "page") + ", Table 35), the model's lines rose "
-        f"{r2(max(p['estimators']['physical']['fits']['n_vs_xy']['slope'] for p in hside))} N per newton at most.</p>"
+        f"{r2(max(p['estimators']['physical']['fits']['n_vs_xy']['slope'] for p in hside))} N per newton at most. In "
+        f"the middle's face press, v3 ID 2, the model's normal force rose {r2(hfp(hmid))} N per newton, with an RMS of "
+        f"{r2(hfp(hmid, c='rms_N'))} N. The board GP's rose {r2(hfp(hmid, 'gp_own_pose'))} N per newton there. The index "
+        "and middle pads were also pressed with the PIP bent 15° and 30° beforehand (" + link(L["cal"], "calibration page")
+        + f", Table 36). In those four presses the model's force rose {r2(min(map(hfp, hbent)))} to "
+        f"{r2(max(map(hfp, hbent)))} N per newton, with RMS of {r2(min(hfp(p, c='rms_N') for p in hbent))} to "
+        f"{r2(max(hfp(p, c='rms_N') for p in hbent))} N. The board GP's rose "
+        f"{r2(min(hfp(p, 'gp_own_pose') for p in hbent))} to {r2(max(hfp(p, 'gp_own_pose') for p in hbent))}.</p>"
     )
     S.append(("ur5", "The model against the UR5 presses", body))
 
