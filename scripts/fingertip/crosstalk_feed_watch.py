@@ -54,8 +54,8 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # own-pose fits on the hand, a later sweep's in an SR2 folder's data/sweep/ and the HOM trials' tip_contacts GPs (the refit
 # of 11-17 at 23:24, commit 2f295223, changed only these and the folder's QUEUE.md); and the boards against the HEX-E on the
 # hand, the identification study's data/s3/*board_vs_hexe* (b462a66a and 72ac716b of 11-18, read by the calibration page's
-# Section 17 and the physical-model page's Section 9), and its pad friction on the tape, data/s3/*friction* (3fba0e16, the
-# calibration page's Table 37 and the overview's section on the fingertip in the simulations)
+# Section 17 and the physical-model page's Section 9), and its pad friction, data/s3/*friction* (3fba0e16 and 0d3f6aa1, the
+# calibration page's Tables 38 and 39 and the overview's section on the fingertip in the simulations)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
                       r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)|data/sweep/[^/]*own_pose"
