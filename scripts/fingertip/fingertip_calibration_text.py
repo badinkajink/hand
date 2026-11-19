@@ -273,6 +273,20 @@ def sections(N, F, P, link, L):
         and len(FR) == 3, "S3's presses and S4(b)'s runs"
     assert sorted(FRP) == sorted(FINGERS) and all(len(p["legs"]) == 36 and len(p["friction"]) == 18 for p in FRP.values())
     assert [p["surface"] for p in (FRP[f] for f in FINGERS)] == ["tape", "tape", "tag plate"], "the pads' plates"
+    # S4(b) on 2026-11-19 (lab 42f91545 to e6b929d0; the study's analysis 38097ea3, f30587ed and 8f770048): the PLA sides of
+    # the index's and the middle's DIP links dragged on the tape with the yaw holding, between free-air controls, and the
+    # night's pad drags corrected by controls at their poses
+    PSJ = jl(IDENT / "data/s3/20261119-pla_side_friction.json")
+    PS, PC = ({p["finger"]: p for p in PSJ[k]} for k in ("protocols", "pads_corrected"))
+    SIDE = ("index", "middle")
+    assert sorted(PS) == sorted(PC) == list(SIDE) and all(len(p["legs"]) == 36 and len(p["friction"]) == 18
+                                                          for p in (*PS.values(), *PC.values())), "S4(b) of 11-19"
+    assert {p["surface"] for p in PS.values()} == {"PLA side on tape"} and all(PC[f]["run"] == FRP[f]["run"] for f in SIDE)
+    assert all(abs(c["mu_uncorrected"] - next(d["mu"] for d in FRP[f]["friction"] if (d["N"], d["speed_mm_s"], d["rest_s"])
+                                              == (c["N"], c["speed_mm_s"], c["rest_s"]))) < 2e-3
+               for f in SIDE for c in PC[f]["friction"]), "the corrected pads' raw coefficients are Table 39's"
+    side_hi = {f: [c["mu"] for c in PS[f]["friction"] if c["N"] >= 1.0] for f in SIDE}    # the 1 and 2 N settings
+    side_n = [c["normal_N"] for f in SIDE for c in PS[f]["friction"] if c["N"] >= 1.0]
     hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]]
                                     + [hh_fs(p)["slope"] for p in hh_face + hh_pp])]
     hh_bs = [r2(x) for x in sorted(hh_fs(p)["slope"] for p in hh_bent.values())]
@@ -353,7 +367,8 @@ def sections(N, F, P, link, L):
         f"when the PIP curled the pad onto the plate), the boards' estimates did not rise in {len(hh_side)} presses of "
         f"the tips' sides, and the pads slid at {rng(fr_pad['index'])} (index) and {rng(fr_pad['middle'])} (middle) of "
         f"the normal force on the tape and {rng(fr_pad['thumb'])} (thumb) on the tag plate, unchanged after rests of "
-        "1-60 s.")
+        f"1-60 s; after free-air controls the DIP links' PLA sides slid at {rng(side_hi['index'])} (index) and "
+        f"{rng(side_hi['middle'])} (middle) at {rng(side_n)} N.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -1995,7 +2010,11 @@ def sections(N, F, P, link, L):
         f"{hh_ts.replace('-', ' to ')} N per newton. When the PIP joints curled the pads onto the plates, the slopes were "
         f"{hh_ps.replace('-', ' to ')} (Table 37). On the tape the index pad slid at {rng(fr_pad['index']).replace('-', ' to ')} "
         f"times the normal force and the middle pad at {rng(fr_pad['middle']).replace('-', ' to ')} times. The thumb pad "
-        f"slid on the tag plate at {rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39).</p>"
+        f"slid on the tag plate at {rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39). The PLA sides "
+        "of the index's and the middle's DIP links slid on the tape at "
+        f"{rng(side_hi['index']).replace('-', ' to ')} and {rng(side_hi['middle']).replace('-', ' to ')} times the "
+        f"normal force. That force was {rng(side_n).replace('-', ' to ')} N, and free-air controls of the cable's drag "
+        "were subtracted (Table 40).</p>"
         "<p>The hand was mounted on the UR5 through the HEX-E, which measured the force on the whole hand. On the table stood "
         "a square extrusion of 20 mm with a plate of 45 by 45 mm on each of two opposite faces. One plate was covered in "
         "grip tape. The other bore the printed AprilTag by which the camera located the extrusion. The arm "
@@ -2232,7 +2251,83 @@ def sections(N, F, P, link, L):
                 "squares: drags at 0.2 mm/s. Solid lines and circles: drags at 2 mm/s. Drawn from "
                 + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-s4b_friction.json") + ".")
     )
-    S.append(("hand", "Boards' force and pad friction on the SR2 hand against the HEX-E", body))
+    pfr = lambda p, N=None, v=None, rs=None: [c for c in p["friction"] if N in (None, c["N"])  # noqa: E731
+                                              and v in (None, c["speed_mm_s"]) and rs in (None, c["rest_s"])]
+    phi = lambda p, v=None: [c["mu"] for c in pfr(p, v=v) if c["N"] >= 1.0]  # noqa: E731   the 1 and 2 N settings
+
+    def ctl(p, v):  # the pooled free-air control's force along the drag, one per speed
+        (x,) = {c["control_friction_N"] for c in pfr(p, v=v)}
+        return x
+
+    assert all(len(pfr(p, N, v, rs)) == 1 for p in (*PS.values(), *PC.values()) for N in FS for v in SPEEDS for rs in RESTS)
+    nover = lambda p, N: f"{sum(1 for g in p['legs'] if g['N'] == N and g['overshoot_N'] > g['noise_max_N'])} of " \
+        f"{sum(1 for g in p['legs'] if g['N'] == N)}"  # noqa: E731
+    SRC = [(f"{f.capitalize()}'s DIP link, PLA side", PS[f]) for f in SIDE] \
+        + [(f"{f.capitalize()} pad, v3 ID {TIP[f]}", PC[f]) for f in SIDE]
+    ps_rows = [[nm, f"{N:g}", span_f(c["normal_N"] for c in pfr(p, N)),
+                *(r2(pfr(p, N, v, rs)[0]["mu"]) for v in SPEEDS for rs in RESTS),
+                span_f(c["mu_uncorrected"] for c in pfr(p, N)), nover(p, N)] for nm, p in SRC for N in FS]
+    dmu = {f: [c["mu"] - c["mu_uncorrected"] for c in PC[f]["friction"]] for f in SIDE}
+    rise = lambda p: fmean(phi(p, 2.0)) - fmean(phi(p, 0.2))  # noqa: E731
+    over_n = lambda p: sum(1 for g in p["legs"] if g["overshoot_N"] > g["noise_max_N"])  # noqa: E731
+    pad_ratio = [fmean(phi(PC["middle"], v)) / fmean(phi(PC["index"], v)) for v in SPEEDS]
+    assert max(dmu["index"]) < 0 and min(dmu["middle"]) < 0 < max(dmu["middle"]), "the controls' signs as written"
+    body += (
+        "<p>On 19 November, from 12:12 to 13:54, the flat sides of the index's and the middle's DIP links were dragged on "
+        "the same tape. These sides are printed in PLA, and the plates met them in the side presses of Table 35. The arm "
+        "turned the hand by 92°, and each finger's yaw joint pushed its side onto the taped plate. The yaw held the side at "
+        "settings of 0.5, 1 and 2 N. At the 2 N setting it stopped at its load limit, so the normal force there was "
+        f"{span_f(c['normal_N'] for f in SIDE for c in pfr(PS[f], 2.0))} N. The arm dragged each side through the night's "
+        "36 legs, at 0.2 and 2 mm/s, after rests of 1, 10 and 60 s.</p>"
+        "<p>Before and after each finger's drags, the arm ran the same path with the finger 14 mm off the plate. In these "
+        f"free-air controls the HEX-E measured {r2(ctl(PS['index'], 0.2))} N along the drag at 0.2 mm/s and "
+        f"{r2(ctl(PS['index'], 2.0))} N at 2 mm/s on the index. On the middle it measured {r2(ctl(PS['middle'], 0.2))} "
+        f"and {r2(ctl(PS['middle'], 2.0))} N. These forces of the cable and the sensor were subtracted leg by leg, along "
+        f"the drag and along the normal. At the 1 and 2 N settings the index's side then slid at {span_f(side_hi['index'])} times the normal "
+        f"force of {span_f(c['normal_N'] for c in PS['index']['friction'] if c['N'] >= 1.0)} N. The middle's slid at "
+        f"{span_f(side_hi['middle'])} times, at "
+        f"{span_f(c['normal_N'] for c in PS['middle']['friction'] if c['N'] >= 1.0)} N. Without the controls, the "
+        "coefficients at all three settings were "
+        f"{span_f(c['mu_uncorrected'] for c in PS['index']['friction'])} on the index's side and "
+        f"{span_f(c['mu_uncorrected'] for c in PS['middle']['friction'])} on the middle's. The middle's side slid at "
+        f"{fmean(side_hi['middle']) / fmean(side_hi['index']):.1f} times the index's mean coefficient at 1 to 2 N. From "
+        f"0.2 to 2 mm/s that mean changed by {r2(rise(PS['index']))} on the index's side and rose by "
+        f"{r2(rise(PS['middle']))} on the middle's. In {over_n(PS['index'])} of the index's 36 legs and "
+        f"{over_n(PS['middle'])} of the middle's, the force began above the plateau by more than the plateau's largest "
+        "deviation (Table 40, Figure 25).</p>"
+        "<p>The same controls were run at the index's and the middle's pad poses of 18 November, with the hand unturned. "
+        "There the HEX-E measured at most "
+        f"{r2(max(ctl(PC[f], v) for f in SIDE for v in SPEEDS))} N along the drag. Subtracted, they lowered the index "
+        f"pad's coefficients by {r2(-max(dmu['index']))} to {r2(-min(dmu['index']))}. They moved the middle pad's by "
+        f"{r2(min(dmu['middle']))} to +{r2(max(dmu['middle']))}. At 1 to 2 N the index pad then slid at "
+        f"{span_f(phi(PC['index'], 0.2))} times the normal force at 0.2 mm/s and {span_f(phi(PC['index'], 2.0))} at "
+        f"2 mm/s. The middle pad slid at {span_f(c['mu'] for c in pfr(PC['middle'], v=0.2))} and "
+        f"{span_f(c['mu'] for c in pfr(PC['middle'], v=2.0))} at all three forces. From the slower speed to the faster, "
+        f"the mean at 1 to 2 N still rose by {r2(rise(PC['index']))} on the index pad and by {r2(rise(PC['middle']))} on "
+        f"the middle pad. The middle pad's coefficient stayed {min(pad_ratio):.1f} to {max(pad_ratio):.1f} times the index "
+        "pad's. By the arm's plans, all four contacts were dragged over one patch of the tape. The thumb's pose on the tag "
+        "plate had no control. The analysis of 19 November is in the same script, with its numbers in "
+        + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261119-pla_side_friction.json") + ".</p>"
+        + P.table(["Contact", "Normal force set (N)", "Normal force (N)", "0.2 mm/s after 1 s",
+                   "0.2 mm/s after 10 s", "0.2 mm/s after 60 s", "2 mm/s after 1 s", "2 mm/s after 10 s",
+                   "2 mm/s after 60 s", "Without the control", "Legs that began above the plateau's largest deviation"],
+                  ps_rows, num_cols=tuple(range(1, 11)), n=40,
+                  caption="S4(b) on the SR2 hand's taped plate after the free-air controls, per contact and normal force "
+                  "set: the friction coefficient at each drag speed after each rest under load. The PLA sides of the "
+                  "index's and the middle's DIP links were dragged on 2026-11-19, the yaw holding them; the pads are the "
+                  "index's and the middle's of Table 39, on the MCP. Friction coefficient: as in Table 39, after the "
+                  "control's force at the same speed and direction was subtracted leg by leg, along the drag and along "
+                  "the normal. Without the control: the range of the coefficient over the six speeds and rests before "
+                  "that subtraction. Legs: as in Table 39.")
+        + P.fig(25, F["side_friction"], "The friction coefficient against the normal force on the SR2 hand's taped "
+                "plate, after the free-air controls. (a) The index finger: its pad, v3 ID "
+                f"{TIP['index']}, and its DIP link's PLA side. (b) The middle finger: its pad, v3 ID {TIP['middle']}, "
+                "and its PLA side. The pads were dragged on 2026-11-18 and the sides on 2026-11-19. Squares: drags at "
+                "0.2 mm/s. Circles: drags at 2 mm/s. Each point is one force set, speed and rest. Drawn from "
+                + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261119-pla_side_friction.json")
+                + ".")
+    )
+    S.append(("hand", "Boards' force against the HEX-E and fingertip friction on the SR2 hand", body))
 
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "

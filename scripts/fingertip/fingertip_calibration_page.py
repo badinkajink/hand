@@ -71,6 +71,7 @@ def build():
              hand_faces=MEDIA / "20261118-board_face_presses_on_the_hand.png",
              hand_pips=MEDIA / "20261118-board_pip_presses_on_the_hand.png",
              pad_friction=MEDIA / "20261118-pad_friction_protocol_on_the_hand.png",
+             side_friction=MEDIA / "20261119-side_friction_on_the_hand.png",
              id3_film=UR5 / "lab/20261104-tipcal-timelapse_short.mp4",
              film=UR5 / "media/20261022-lab_sphere2_overhead.mp4", film_poster=UR5 / "media/20261022-lab_sphere2_overhead.png")
     S, lede, summary, film_html = sections(N, F, P, link, L)

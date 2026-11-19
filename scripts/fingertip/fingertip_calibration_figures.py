@@ -1193,6 +1193,34 @@ def fig_pad_friction():
     save(fig, "20261118-pad_friction_protocol_on_the_hand.png")
 
 
+def fig_side_friction():
+    """S4(b) after the free-air controls (2026-11-19; the study's analysis 38097ea3 to 8f770048): the friction coefficient
+    against the normal force on the taped plate, per drag speed, of (a) the index's and (b) the middle's pad (the night's
+    protocol of 2026-11-18, corrected by controls at its pose) and DIP link's PLA side (2026-11-19, the yaw holding)."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import IDENT, at_head
+    plt = plt_setup()
+    J = json.loads(at_head(IDENT / "data/s3/20261119-pla_side_friction.json"))
+    SRC = (("Pad", "#2e5fa8", {p["finger"]: p for p in J["pads_corrected"]}),
+           ("PLA side", "#c07018", {p["finger"]: p for p in J["protocols"]}))
+    VS = ((0.2, "s", "0.2 mm/s"), (2.0, "o", "2 mm/s"))
+    fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.7), sharex=True, sharey=True)
+    for ax, (finger, t) in zip(axes, (("index", "(a) Index finger"), ("middle", "(b) Middle finger"))):
+        for _, col, src in SRC:
+            for v, mk, _ in VS:
+                cs = [c for c in src[finger]["friction"] if c["speed_mm_s"] == v]
+                ax.plot([c["normal_N"] for c in cs], [c["mu"] for c in cs], mk, ms=7, color=col, alpha=0.8)
+        ax.set_title(t)
+        ax.set_xlabel("Normal force (N)")
+        ax.grid(alpha=0.3)
+    axes[0].set_ylabel("Friction coefficient")
+    h = [Line2D([], [], ls="none", marker=mk, ms=7, color=col, label=f"{nm} at {vn}")
+         for nm, col, _ in SRC for _, mk, vn in VS]
+    fig.legend(handles=h, loc="lower center", ncol=2, frameon=False, fontsize=13)
+    fig.tight_layout(rect=(0, 0.13, 1, 1))
+    save(fig, "20261119-side_friction_on_the_hand.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -1203,7 +1231,8 @@ def main():
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
                 rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
                 gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve, hand_hexe=fig_hand_hexe,
-                hand_faces=fig_hand_faces, hand_pips=fig_hand_pips, pad_friction=fig_pad_friction)
+                hand_faces=fig_hand_faces, hand_pips=fig_hand_pips, pad_friction=fig_pad_friction,
+                side_friction=fig_side_friction)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
