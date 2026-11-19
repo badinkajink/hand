@@ -54,7 +54,7 @@ RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "2
 PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
 SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
 CONTROLS = ["20261119-122906_index_protocol"]
-SIDE_PROTOCOLS = {}  # the PLA sides on the tape: loaded run -> its free-air control
+SIDE_PROTOCOLS = {}  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
@@ -184,7 +184,7 @@ def protocol(stem, control=None):
                     "normal_raw_N": round(float(np.median(Fn_raw[s][pl])), 3)})
     bias = {}
     if control:
-        cl = protocol(control)[0]["legs"]
+        cl = [r for c in ([control] if isinstance(control, str) else control) for r in protocol(c)[0]["legs"]]
         for v in {r["speed_mm_s"] for r in cl}:
             for d in ("up", "down"):
                 c = [r for r in cl if (r["speed_mm_s"], r["dir"]) == (v, d)]
