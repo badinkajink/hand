@@ -54,6 +54,7 @@ while the yaw's reading jumps.
 """
 import argparse
 import json
+import os
 import sys
 import threading
 import time
@@ -586,6 +587,7 @@ def cmd_run(a):
         rows.append(row)
         fh.write(json.dumps(row) + "\n")
         fh.flush()
+        os.fsync(fh.fileno())                            # unattended runs (night of 2026-11-18): every row on disk
         dump()
         print(f"{time.strftime('%H:%M:%S')} {label}: {row['joint']} target {row['target']:+6.2f}, reading "
               f"{num(row['reading'], '+6.2f')} (offset {num(row['offset'], '+5.2f')}), load {num(row['load'], '5.0f')}, "
