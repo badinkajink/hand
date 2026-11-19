@@ -1054,7 +1054,7 @@ def fig_hand_hexe():
     from fingertip_calibration_text import at_head
     plt = plt_setup()
     J = json.loads(at_head(HAND_HEXE))
-    mcp = next(p for p in J["presses"] if p["finger"] == "index" and p["joint"] == "mcp")
+    mcp = next(p for p in J["presses"] if Path(p["file"]).stem == "20261118-155403_index_mcp")     # the first face press
     d = {"mcp": mcp, "yaw": next(p for p in J["presses"] if p["approach"] == mcp["approach"] and p["joint"] == "yaw")}
     panels = (("mcp", "x_P", "x", "(a) MCP press, along the normal"), ("yaw", "x_P", "x", "(b) Yaw press, along the normal"),
               ("yaw", "y_P", "y", "(c) Yaw press, along the tape"))
@@ -1082,6 +1082,47 @@ def fig_hand_hexe():
     save(fig, "20261118-index_board_vs_hexe_on_the_hand.png")
 
 
+# S3's face presses (commit 3fba0e16): the MCP pushing the index's and the middle's pad faces onto the taped plate, the PIP
+# straight (15:54, 18:36) or bent 15 and 30° beforehand (18:40-18:45)
+HAND_PIP = ((0, "PIP straight", "#2e5fa8", "o"), (15, "PIP bent 15°", "#c07018", "s"), (30, "PIP bent 30°", "#7a3d9a", "D"))
+
+
+def fig_hand_faces():
+    """The board's normal force (GP with the own-angle term, as in the HOM trials) against the HEX-E's horizontal force,
+    per step of S3's face presses: (a) the index pad, v3 ID 3; (b) the middle pad, v3 ID 2. The PIP's angle is the press's
+    starting reading, rounded to the nearest 15°. Each line is the study's least-squares fit; the dotted line is equal force."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import IDENT, at_head
+    plt = plt_setup()
+    J = json.loads(at_head(HAND_HEXE))
+    fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.4), sharey=True)
+    for ax, (finger, ttl) in zip(axes, (("index", "(a) Index pad, v3 ID 3"), ("middle", "(b) Middle pad, v3 ID 2"))):
+        top = 0.0
+        for p in (p for p in J["presses"] if p["joint"] == "mcp" and p["finger"] == finger):
+            stem = Path(p["file"]).stem
+            head = next(f for f in (IDENT / "data/s3").glob(stem + "_*.jsonl")
+                        if f.name.endswith(("_press.jsonl", "_pip_prebend.jsonl")))
+            pip = json.loads(at_head(head).splitlines()[0])["start_joints"]["pip"]
+            _, _, col, mk = next(h for h in HAND_PIP if abs(h[0] - pip) < 7.5)
+            E = p["estimators"]["gp_own_pose"]
+            st = [r for r in (dict(zip(J["cols"], row)) for row in E["steps"]) if r["board_n_N"] is not None]
+            x = np.array([math.hypot(r["hexe_x_P_N"], r["hexe_y_P_N"]) for r in st])
+            ax.plot(x, [r["board_n_N"] for r in st], mk, ms=5, color=col, alpha=0.75)
+            f = E["fits"]["n_vs_xy"]
+            xs = np.array([x.min(), x.max()])
+            ax.plot(xs, f["offset_N"] + f["slope"] * xs, "-", color=col, lw=1.8)
+            top = max(top, x.max())
+        ax.plot([0, top], [0, top], ":", color="0.3", lw=1.4)              # equal force over the HEX-E's range
+        ax.set_xlabel("HEX-E's force (N)")
+        ax.set_title(ttl)
+    axes[0].set_ylabel("Board's normal force (N)")
+    h = [Line2D([], [], ls="-", marker=mk, ms=6, lw=1.8, color=col, label=nm) for _, nm, col, mk in HAND_PIP]
+    h.append(Line2D([], [], ls=":", lw=1.4, color="0.3", label="Equal force"))
+    fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.09, 1, 1))
+    save(fig, "20261118-board_face_presses_on_the_hand.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -1091,7 +1132,8 @@ def main():
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
                 rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
-                gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve, hand_hexe=fig_hand_hexe)
+                gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve, hand_hexe=fig_hand_hexe,
+                hand_faces=fig_hand_faces)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
