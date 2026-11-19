@@ -30,3 +30,5 @@ Second version of the two blocks (owner, 2026-11-16), with the stem's root widen
 Third version (owner, 2026-11-16), the blocks held without glue by a cotter joint, with a new cylinder body and lower hemisphere: `assets/tracking/20261116-cotter_joint/`.
 
 Larger objects (owner, 2026-11-17), a 45 mm cylinder and a 67 mm sphere with the cotter joint, on one plate in white: `assets/tracking/20261117-large_objects/`.
+
+The larger objects with the stem glued in by a square spigot 12 mm deep, in place of the cotter joint (owner, 2026-11-19): `assets/tracking/20261119-glued_objects/`.

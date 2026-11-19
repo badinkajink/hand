@@ -23,6 +23,10 @@ pla usage"), and `bambu --cylinder NAME` slices the plate with one of them in a 
 `blocks build|check|bambu` writes the blocks' second version into assets/tracking/20261116-tag_blocks/: the stem's root
 widened to ROOT_D and filleted to the block's top (owner, 2026-11-16), the rest as in the first version.
 
+`--set large glued build|figure|bambu` writes the larger objects and their modular stems with the stem glued into the
+object by a square spigot 12 mm deep (owner, 2026-11-19), in place of the cotter joint, into
+assets/tracking/20261119-glued_objects/ (build in femtip, figure in .venv, bambu under ~/miniconda3/bin/python).
+
     ~/.claude/bin/resguard.sh run --mem 3G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
         ~/miniconda3/envs/femtip/bin/python scripts/hardware/tracking_objects_print.py build
     ~/.claude/bin/resguard.sh run --mem 2G -- env NUMPY_MADVISE_HUGEPAGE=0 \\
@@ -258,13 +262,22 @@ def joint_T(shape):
     return m4(OM.R_OB @ J_B[shape], (0.0, seat(shape)[2], 0.0))
 
 
+def object_cut(shape, joint):
+    """What the stem's end removes from the object in O: the key's slot (joint False), the cotter joint's socket and slots
+    (True) or the glued spigot's socket (\"glued\")."""
+    seat_y = seat(shape)[2]
+    if joint == "glued":
+        return spigot(G_CLEAR, -1.0, G_DEPTH + G_EXTRA).transform(m4(OM.R_OB, (0.0, seat_y, 0.0)))
+    return socket().transform(joint_T(shape)) if joint else slot(seat_y)
+
+
 def cylinder_body(ids=OM.END_IDS, joint=False):
     """(white, black) of the cylinder in O turned to print, standing on its -z_O end, with the end tags `ids`; black is
     None when `ids` is empty. `joint` cuts the cotter joint's socket and slots (socket) in place of the key's slot."""
     import manifold3d as M
     r, _d, seat_y = seat("cylinder")
     L = OM.OBJECTS["cylinder"]["length_mm"]
-    cut = socket().transform(joint_T("cylinder")) if joint else slot(seat_y)
+    cut = object_cut("cylinder", joint)
     S = M.Manifold.cylinder(L, r, r, SEG).translate([0.0, 0.0, -L / 2]) - flat(r, seat_y) - cut
     T = m4(R_PRINT["cylinder"], (0.0, 0.0, L / 2))
     if not ids:
@@ -292,7 +305,7 @@ def sphere_halves(joint=False):
         holes.append(M.Manifold.cylinder(2 * PIN_DEPTH, PIN_HOLE_D / 2, PIN_HOLE_D / 2, 48).transform(
             m4(np.array([[1.0, 0, 0], [0, 0, 1.0], [0, -1.0, 0]]), (x, -PIN_DEPTH, z))))  # along y_O, PIN_DEPTH each side
     H = M.Manifold.batch_boolean(holes, M.OpType.Add)
-    low = low - H - flat(r, seat_y) - (socket().transform(joint_T("sphere")) if joint else slot(seat_y))
+    low = low - H - flat(r, seat_y) - object_cut("sphere", joint)
     up = up - H
     pin = M.Manifold.cylinder(2 * PIN_DEPTH - 0.4, PIN_D / 2, PIN_D / 2, 48)
     return low.transform(m4(R_PRINT["sphere_lower"])), up.transform(m4(R_PRINT["sphere_upper"])), pin
@@ -1328,6 +1341,8 @@ def write_large_readme(rep):
               f"{rs['hours']:.1f} h, {rs['used_g'][str(L_FILAMENT['white'])]:.1f} g, one filament and no prime tower. "
               "Map filament 1 to the white spool when sending. Not in git; `tracking_objects_print.py --set large large "
               "bambu` rebuilds it."]
+    if G_OUT.exists():
+        L += ["", GLUED_NOTE]
     (J_OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -1466,7 +1481,7 @@ def foot_B(cut=True):
     return f - hole
 
 
-def modular_stem(shape):
+def modular_stem(shape, glued=False):
     """The stem in B, its foot seated in the socket: the foot, the root cone, the 4 mm stem, the 45 deg cone and the
     cotter joint's taper and post at the object's seat plane, less the insert's hole and the code's dimples on the
     root."""
@@ -1474,13 +1489,17 @@ def modular_stem(shape):
     o = OM.OBJECTS[shape]
     zt, rs = OM.BLOCK.height / 2, OM.STEM_D / 2
     z_seat = zt + seat(shape)[2] + (o["r_mm"] + o["stem_mm"])
-    z_cone, h_cone = z_seat + MALE_U[0], CONE_R - rs
+    if glued:                                                   # the 45 deg cone to the flat seat, the spigot above
+        z_cone, h_cone, r_cone = z_seat, CONE_H, SEAT_D / 2
+        end = spigot().translate([0.0, 0.0, z_seat])
+    else:
+        z_cone, h_cone, r_cone = z_seat + MALE_U[0], CONE_R - rs, CONE_R
+        end = male().transform(m4(J_B[shape], (0.0, 0.0, z_seat)))
     z_root = zt - FOOT_U[0]                                     # the foot's top, 0.5 mm above the top face
     root = M.Manifold.cylinder(M_ROOT_H, M_ROOT_R, rs, SEG).translate([0.0, 0.0, z_root - 0.01])
     stem = M.Manifold.cylinder(z_cone - h_cone - (z_root + M_ROOT_H) + 1.0, rs, rs, SEG).translate(
         [0.0, 0.0, z_root + M_ROOT_H - 0.5])
-    cone = M.Manifold.cylinder(h_cone, rs, CONE_R, SEG).translate([0.0, 0.0, z_cone - h_cone])
-    end = male().transform(m4(J_B[shape], (0.0, 0.0, z_seat)))
+    cone = M.Manifold.cylinder(h_cone, rs, r_cone, SEG).translate([0.0, 0.0, z_cone - h_cone])
     S = M.Manifold.batch_boolean([foot_B(cut=False), root, stem, cone, end], M.OpType.Add)
     pilot = M.Manifold.cylinder(INSERT["hole_depth_mm"] + 1.0, INSERT["hole_d_mm"] / 2, INSERT["hole_d_mm"] / 2,
                                 48).translate([0.0, 0.0, zt - FOOT_END - 1.0])
@@ -1735,6 +1754,9 @@ def write_modular_readme(rep):
                    f"{u.get(str(fil['white']), 0):.1f} g white on filament {fil['white']}, 5 mm brim")
             L += ["", f"Bambu Studio project `{Path(q['project']).name}`: {what}. Sliced again by the command line: "
                       f"{rs['hours']:.2f} h, {col}. Not in git; `tracking_objects_print.py modular bambu` rebuilds it."]
+    if G_OUT.exists():
+        L += ["", "The C45 and S67 stems with a glued spigot in place of the cotter joint's taper and post (owner, "
+                  "2026-11-19) are in `assets/tracking/20261119-glued_objects/`; their feet and the blocks are these."]
     (M_OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -1781,6 +1803,251 @@ def cmd_modular_bambu(a):
         bad |= bool(q["problems"])
     M_REPORT.write_text(json.dumps(rep, indent=1))
     write_modular_readme(rep)
+    if bad:
+        raise SystemExit(1)
+
+
+# The glued joint (owner, 2026-11-19: "this cotter joint isnt going to cut it. this brass insert bottom seat will probably
+# be fine though ... let's redesign the objects and top of stems to go back to the glued fastening. maybe we need a little
+# more surface area / depth of contact to glue in these larger objects?"). The stem's top ends as on 2026-11-12 in a
+# 45 deg cone and a flat seat SEAT_D across, and above the seat in a square spigot G_SIDE across that reaches G_DEPTH into
+# the object, in place of the 4 mm key. Frame G is B moved up the stem to the seat plane. The spigot's corners lie on x_G
+# and y_G, so in the standing cylinder the socket's corners point up and down and its upper faces print at 45 deg. Its
+# +y_G corner is cut and the socket's filled, so the stem goes in one way only; on the cylinder that corner is the
+# socket's lowest in print, a floor.
+G_DATE = "20261119"
+G_OUT = ROOT / f"assets/tracking/{G_DATE}-glued_objects"
+G_REPORT = G_OUT / f"{G_DATE}-glued_objects.json"
+G_SIDE, G_DEPTH = 5.0, 12.0         # mm: the spigot's side and its reach above the seat plane
+G_CLEAR, G_EXTRA = 0.15, 0.5        # mm: the glue gap per side, and the socket's depth beyond the spigot's end
+G_KEY = 2.2                         # mm: the spigot's +y_G corner cut beyond y_G = G_KEY, the socket's beyond G_KEY + G_CLEAR
+G_PARTS = {"cylinder": "cylinder body 45 mm (43.4 mm printed for the tape), no end tags, with the spigot's socket",
+           "sphere_lower": "sphere 67 mm, lower hemisphere with the spigot's socket",
+           "sphere_upper": "sphere 67 mm, upper hemisphere",
+           "sphere_pin": "dowel pin of the sphere (print three)",
+           "stem_C45": "stem C45, square foot for the M2 insert to the seat and spigot, three dimples",
+           "stem_S67": "stem S67, square foot for the M2 insert to the seat and spigot, four dimples"}
+G_PRINT = {"cylinder": "standing on its -z end", "sphere_lower": "flat side down, the socket on top",
+           "sphere_upper": "flat side down", "sphere_pin": "standing; print three",
+           "stem_C45": "upright, foot on the bed, 5 mm brim", "stem_S67": "upright, foot on the bed, 5 mm brim"}
+G_PLATES = {"bambu_objects": ("objects", "glued objects C45 and S67",
+                              [("cylinder", (55.0, 60.0)), ("sphere_lower", (140.0, 60.0)), ("sphere_upper", (140.0, 150.0)),
+                               ("sphere_pin", (40.0, 120.0)), ("sphere_pin", (55.0, 120.0)), ("sphere_pin", (70.0, 120.0))],
+                              None),
+            "bambu_stems": ("stems", "glued stems C45 and S67, two each",
+                            [("stem_C45", (80.0, 100.0)), ("stem_C45", (110.0, 100.0)), ("stem_S67", (140.0, 100.0)),
+                             ("stem_S67", (170.0, 100.0))], M_BRIM)}
+
+
+GLUED_NOTE = ("Superseded on 2026-11-19 (owner: \"this cotter joint isnt going to cut it\"): the objects and stems with the "
+              "stem glued into the object by a square spigot 12 mm deep are in `assets/tracking/20261119-glued_objects/`.")
+
+
+def spigot(clear=0.0, u0=-0.01, u1=G_DEPTH):
+    """The spigot in G from u0 to u1 along z_G, grown by `clear` per side, its +y_G corner cut at G_KEY + clear."""
+    h = (G_SIDE + 2.0 * clear) / math.sqrt(2.0)
+    return diamond(h, u0, u1) - box((-20.0, G_KEY + clear, u0 - 1.0), (20.0, 20.0, u1 + 1.0))
+
+
+def glued_stl(name, colour="white"):
+    return G_OUT / f"{G_DATE}-{name}_{colour}.stl"
+
+
+def glued_checks(shape, stem_B, body_O):
+    """Shared volume (mm3) of the seated stem with the object, the stem turned by 90, 180 and 270 deg about its axis
+    against the object, and the glue areas (mm2) of the spigot and the seat against the key of 2026-11-12."""
+    o = OM.OBJECTS[shape]
+    T = m4(OM.R_OB, OM.block_centre_O(o["r_mm"], o["stem_mm"]))
+    seated = abs((stem_B.transform(T) ^ body_O).volume())
+    turned = {}
+    for k in (1, 2, 3):
+        c, s_ = math.cos(k * math.pi / 2), math.sin(k * math.pi / 2)
+        Rz = np.array([[c, -s_, 0.0], [s_, c, 0.0], [0.0, 0.0, 1.0]])
+        sp = spigot().transform(m4(Rz)).transform(m4(OM.R_OB, (0.0, seat(shape)[2], 0.0)))
+        turned[f"{90 * k}"] = round(abs((sp ^ body_O).volume()), 2)
+    h = G_SIDE / math.sqrt(2.0)
+    cut = h - G_KEY                                              # height of the corner cut off
+    perim = 4.0 * G_SIDE - 2.0 * cut * math.sqrt(2.0) + 2.0 * cut
+    end = G_SIDE ** 2 - cut ** 2
+    seat_ring = math.pi * (SEAT_D / 2) ** 2 - end
+    key = 2 * (KEY[0] + KEY[1]) * KEY[2] + KEY[0] * KEY[1]
+    return {"seated_overlap_mm3": round(seated, 6), "turned_overlap_mm3": turned,
+            "glue_mm2": {"spigot_sides": round(perim * G_DEPTH, 1), "spigot_end": round(end, 1),
+                         "seat": round(seat_ring, 1), "total": round(perim * G_DEPTH + end + seat_ring, 1)},
+            "key_20261112_mm2": {"key": round(key, 1), "seat": round(math.pi * (SEAT_D / 2) ** 2 - KEY[0] * KEY[1], 1),
+                                 "total": round(key + math.pi * (SEAT_D / 2) ** 2 - KEY[0] * KEY[1], 1)}}
+
+
+def cmd_glued_build(a):
+    """The larger objects with the spigot's socket, and the C45 and S67 stems ending in the seat and spigot."""
+    G_OUT.mkdir(parents=True, exist_ok=True)
+    use_set("large")
+    rep = {"what": "the larger objects and their modular stems with the glued spigot (owner, 2026-11-19)",
+           "script": "scripts/hardware/tracking_objects_print.py glued", "objects": OM.OBJECTS,
+           "spigot": {"side_mm": G_SIDE, "depth_mm": G_DEPTH, "clear_mm": G_CLEAR, "socket_extra_mm": G_EXTRA,
+                      "key_cut_y_mm": G_KEY, "seat_d_mm": SEAT_D, "cone_h_mm": CONE_H},
+           "seat": {s: dict(zip(("printed_r_mm", "flat_depth_mm", "seat_y_mm"), map(lambda x: round(x, 3), seat(s))))
+                    for s in ("cylinder", "sphere")},
+           "parts": {}, "checks": {}}
+    if G_REPORT.exists():
+        old = json.loads(G_REPORT.read_text())
+        rep.update({k: old[k] for k in G_PLATES if k in old})
+    ok = True
+    L = OM.OBJECTS["cylinder"]["length_mm"]
+    cyl = cylinder_body((), joint="glued")[0]
+    low, up, pin = sphere_halves(joint="glued")
+    parts = {"cylinder": (cyl, inverse(R_PRINT["cylinder"], (0.0, 0.0, L / 2))),
+             "sphere_lower": (low, inverse(R_PRINT["sphere_lower"], (0.0, 0.0, 0.0))),
+             "sphere_upper": (up, inverse(R_PRINT["sphere_upper"], (0.0, 0.0, 0.0))),
+             "sphere_pin": (pin, m4(np.eye(3)))}
+    for name, (w, T) in parts.items():
+        info = rep["parts"][name] = {"what": G_PARTS[name], "print": G_PRINT[name], "print_to_O": np.round(T, 6).tolist()}
+        ok &= export_part(info, w, None, lambda c, n=name: glued_stl(n, c))
+    drop = OM.BLOCK.height / 2 - FOOT_END                         # B to the stem's print frame (foot's end at 0)
+    for shape, body, T in (("cylinder", cyl, parts["cylinder"][1]), ("sphere", low, parts["sphere_lower"][1])):
+        code, n = CODES[("large", shape)]
+        stem_B, z_seat = modular_stem(shape, glued=True)
+        name = f"stem_{code}"
+        info = rep["parts"][name] = {"what": G_PARTS[name], "print": G_PRINT[name],
+                                     "print_to_B": m4(np.eye(3), (0.0, 0.0, drop)).tolist(),
+                                     "length_mm": round(z_seat + G_DEPTH - drop, 2)}
+        ok &= export_part(info, stem_B.translate([0.0, 0.0, -drop]), None, lambda c, k=name: glued_stl(k, c))
+        ck = rep["checks"][shape] = glued_checks(shape, stem_B, body.transform(T))
+        ok &= ck["seated_overlap_mm3"] < 1e-6 and min(ck["turned_overlap_mm3"].values()) > 1.0
+        print(shape, ck, flush=True)
+    rep["ok"] = bool(ok)
+    G_REPORT.write_text(json.dumps(rep, indent=1))
+    write_glued_readme(rep)
+    print("wrote", G_REPORT.relative_to(ROOT), "ok" if ok else "FAILED")
+    if not ok:
+        raise SystemExit(1)
+
+
+def cmd_glued_figure(a):
+    """Sections of each object with its stem seated, through the stem's axis in the planes x_O = 0 and z_O = 0
+    (G_OUT/G_DATE-glued_sections.png; .venv, trimesh and matplotlib)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import trimesh
+    rep = json.loads(G_REPORT.read_text())
+    fig, axs = plt.subplots(2, 2, figsize=(10.0, 9.6))
+    for row, (shape, part, code) in enumerate((("cylinder", "cylinder", "C45"), ("sphere", "sphere_lower", "S67"))):
+        o = OM.OBJECTS[shape]
+        body = trimesh.load(glued_stl(part))
+        body.apply_transform(np.vstack([np.array(rep["parts"][part]["print_to_O"]), [0.0, 0.0, 0.0, 1.0]]))
+        stem = trimesh.load(glued_stl(f"stem_{code}"))
+        T = np.eye(4)
+        T[:3, :3], T[:3, 3] = OM.R_OB, OM.block_centre_O(o["r_mm"], o["stem_mm"])
+        stem.apply_transform(T @ np.vstack([np.array(rep["parts"][f"stem_{code}"]["print_to_B"]), [0.0, 0.0, 0.0, 1.0]]))
+        seat_y = rep["seat"][shape]["seat_y_mm"]
+        for col, (normal, (i, j), what) in enumerate((((1, 0, 0), (2, 1), "section x_O = 0"),
+                                                      ((0, 0, 1), (0, 1), "section z_O = 0"))):
+            ax = axs[row, col]
+            for m, colour in ((body, "0.8"), (stem, "#6fa8dc")):
+                sec = m.section(plane_origin=(0.0, 0.0, 0.0), plane_normal=normal)
+                for e in ([] if sec is None else sec.discrete):
+                    ax.fill(e[:, i], e[:, j], color=colour, lw=0.6, ec="k")
+            ax.set_xlim(-12.0, 12.0)
+            ax.set_ylim(seat_y - 8.0, seat_y + 16.0)
+            ax.set_aspect("equal")
+            ax.set_title(f"{code}: {what}", fontsize=14)
+            ax.set_xlabel(f"{'z_O' if col == 0 else 'x_O'} (mm)", fontsize=13)
+            ax.set_ylabel("y_O (mm)", fontsize=13)
+            ax.tick_params(labelsize=12)
+    plt.tight_layout()
+    out = G_OUT / f"{G_DATE}-glued_sections.png"
+    plt.savefig(out, dpi=80)
+    plt.close(fig)
+    print("wrote", out.relative_to(ROOT))
+
+
+def write_glued_readme(rep):
+    sp, C, P = rep["spigot"], rep["checks"], rep["parts"]
+    g, k = C["cylinder"]["glue_mm2"], C["cylinder"]["key_20261112_mm2"]
+    L = [f"# Larger tracked objects and their stems with a glued spigot, {G_DATE}",
+         "",
+         "The 45 mm cylinder and the 67 mm sphere of `assets/tracking/20261117-large_objects/`, and the C45 and S67 stems "
+         "of `assets/tracking/20261117-modular_blocks/`, with the stem glued into the object in place of the cotter joint "
+         "(owner, 2026-11-19: \"this cotter joint isnt going to cut it. this brass insert bottom seat will probably be "
+         "fine though ... let's redesign the objects and top of stems to go back to the glued fastening. maybe we need a "
+         "little more surface area / depth of contact to glue in these larger objects?\"). The blocks are unchanged. "
+         "Written by `scripts/hardware/tracking_objects_print.py glued build|figure|bambu`.",
+         "",
+         "| Part | File | Print |",
+         "|---|---|---|"]
+    for name, info in P.items():
+        L.append(f"| {info['what']} | `{Path(info['white']['file']).name}` | {info['print']} |")
+    L += ["",
+          f"![Sections through the stem's axis of each object with its stem seated](./{G_DATE}-glued_sections.png)",
+          "",
+          f"Joint. The stem's top ends as on 2026-11-12, in a 45 deg cone and a flat seat {sp['seat_d_mm']:g} mm across "
+          f"that sits on a flat cut into the object. Above the seat a square spigot {sp['side_mm']:g} mm across reaches "
+          f"{sp['depth_mm']:g} mm into the object, in place of the 4 mm key of 2026-11-12. The socket is "
+          f"{sp['clear_mm']:g} mm wider per side than the spigot, for the glue, and {sp['socket_extra_mm']:g} mm deeper. "
+          f"The glue area is {g['total']:.0f} mm2: {g['spigot_sides']:.0f} mm2 on the spigot's sides, {g['spigot_end']:.0f} "
+          f"on its end and {g['seat']:.0f} on the seat. The key of 2026-11-12 had {k['total']:.0f} mm2, {k['key']:.0f} on "
+          f"the key and {k['seat']:.0f} on the seat. The spigot's depth also sets the lever that resists a side load: "
+          f"{sp['depth_mm']:g} mm against the key's 4 mm.",
+          "",
+          f"Key. One corner of the spigot is cut {sp['key_cut_y_mm']:g} mm from the axis, and the socket's corner is filled "
+          f"to match, so the stem goes in one way only. Turned by 90, 180 or 270 deg, the spigot meets the filled corner "
+          f"({C['cylinder']['turned_overlap_mm3']['90']:.1f} mm3 overlap in the CAD). In the standing cylinder the "
+          "socket's corners point up and down, so its upper faces print at 45 deg without support, and the filled corner "
+          "is the socket's floor. In the sphere's lower hemisphere the socket is vertical. In the CAD the seated stem and "
+          f"the object share {C['cylinder']['seated_overlap_mm3']:g} mm3 on both objects.",
+          "",
+          f"Stems. The foot is the modular one of 2026-11-18: a square shank with an M2 heat-set insert, drawn into the "
+          f"block's socket by an M2 x 8 screw. The C45 stem is {P['stem_C45']['length_mm']:.1f} mm long as printed and "
+          f"the S67 stem {P['stem_S67']['length_mm']:.1f} mm; they are {P['stem_C45']['solid_pla_g']:.2f} and "
+          f"{P['stem_S67']['solid_pla_g']:.2f} g of solid PLA. Their codes and dimples are those of the modular blocks "
+          "(C45 three, S67 four).",
+          "",
+          "Assembly. Heat-set the insert into the stem's foot and screw the stem to its block (C45 on the block with ids "
+          "32-37, S67 on 38-43). Dry-fit the spigot in the object first: it goes in with the cut corner toward the "
+          "socket's filled corner, and the seat then lies on the flat. Then glue it with epoxy or gel CA, which fill the "
+          f"{sp['clear_mm']:g} mm gap; wet the socket's walls and the seat, push the stem in until the seat is on the flat, "
+          "and let it cure with the block hanging straight down. Glue the hemispheres with the three dowels."]
+    for key, what in (("bambu_objects", "the cylinder, both hemispheres and three dowels, 20 % lightning infill"),
+                      ("bambu_stems", "the C45 and S67 stems, two each, with a 5 mm brim")):
+        if key in rep:
+            q = rep[key]["reslice"]
+            L += ["", f"Bambu Studio project `{G_DATE}-glued_{key.split('_')[1]}_p1s.3mf`: {what}, in white on filament 1. "
+                      f"Sliced again by the command line: {q['hours']:.2f} h, {q['used_g']['1']:.1f} g. Not in git; "
+                      "`tracking_objects_print.py glued bambu` rebuilds it."]
+    L += ["", "The blocks print from `assets/tracking/20261117-modular_blocks/20261117-modular_blocks_p1s.3mf` (black on "
+              "filament 1, white on filament 2)."]
+    (G_OUT / "README.md").write_text("\n".join(L) + "\n")
+
+
+def cmd_glued_bambu(a):
+    """Two projects in white on filament 1: the objects (20 % lightning) and the stems, two each, with a 5 mm brim."""
+    work = ROOT / f"logs/{G_DATE}-glued_objects"
+    rep = json.loads(G_REPORT.read_text())
+    bad = False
+    for key, (tag, title, placed, brim) in G_PLATES.items():
+        if a.only and a.only != tag:
+            continue
+        items, seen = [], {}
+        for n, xy in placed:
+            seen[n] = seen.get(n, 0) + 1
+            items.append({"name": n if seen[n] == 1 else f"{n}_{seen[n]}", "white": glued_stl(n), "black": None,
+                          "place": xy})
+        project = G_OUT / f"{G_DATE}-glued_{tag}_p1s.3mf"
+        extra = dict(brim or {}, **({"sparse_infill_pattern": "lightning", "sparse_infill_density": "20%"}
+                                    if tag == "objects" else {}))
+        q = OP.bambu_project(items, project, work / key, title, tower=TOWER, colours=L_COLOURS, filament=L_FILAMENT,
+                             extra=extra)
+        q["problems"] = [x for x in q["problems"] if not x.startswith("filaments loaded")]
+        q["reslice"] = reslice(project, work / f"{key}_reslice")
+        if [k for k in q["reslice"]["loads"] if k != str(L_FILAMENT["white"])]:
+            q["problems"].append(f"re-slice loads {q['reslice']['loads']}")
+        rep[key] = q
+        print(f"{project.relative_to(ROOT)}: {q['reslice']['hours']:.2f} h, {q['layers']} layers, loads "
+              f"{q['reslice']['loads']}, used {q['reslice']['used_g']} g; problems: {q['problems'] or 'none'}", flush=True)
+        bad |= bool(q["problems"])
+    G_REPORT.write_text(json.dumps(rep, indent=1))
+    write_glued_readme(rep)
     if bad:
         raise SystemExit(1)
 
@@ -1881,6 +2148,9 @@ def write_readme(rep):
     if L_OUT.exists():
         L += ["", "Larger objects (owner, 2026-11-17), a 45 mm cylinder and a 67 mm sphere with the cotter joint, on one "
                   f"plate in white: `{L_OUT.relative_to(ROOT)}/`."]
+    if G_OUT.exists():
+        L += ["", "The larger objects with the stem glued in by a square spigot 12 mm deep, in place of the cotter joint "
+                  f"(owner, 2026-11-19): `{G_OUT.relative_to(ROOT)}/`."]
     (OUT / "README.md").write_text("\n".join(L) + "\n")
 
 
@@ -1910,8 +2180,14 @@ def main():
     p.add_argument("step", choices=("build", "bambu"))
     p.add_argument("--only", choices=("mass", "bambu"), help="bambu: the bodies' mass slices or the plate")
     p.add_argument("--infill", default="lightning:10", help="bambu: the plate's infill, PATTERN:PERCENT")
+    p = sub.add_parser("glued", help="the larger objects and stems with the glued spigot (assets/tracking/20261119-glued_objects)")
+    p.add_argument("step", choices=("build", "figure", "bambu"))
+    p.add_argument("--only", choices=("objects", "stems"), help="bambu: one of the two projects")
     a = ap.parse_args()
     use_set(a.set)
+    if a.cmd == "glued":
+        {"build": cmd_glued_build, "figure": cmd_glued_figure, "bambu": cmd_glued_bambu}[a.step](a)
+        return
     if a.cmd == "modular":
         {"build": cmd_modular_build, "check": cmd_modular_check, "bambu": cmd_modular_bambu}[a.step](a)
         return

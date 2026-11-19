@@ -41,3 +41,5 @@ Fit test. Print `20261117-modular_test_p1s.3mf` first: the C45 block in white wi
 Bambu Studio project `20261117-modular_blocks_p1s.3mf`: the C45 and S67 blocks. Sliced again by the command line: 3.06 h, 42.1 g white on filament 2 and 10.2 g black on filament 1, 67 filament loads. Not in git; `tracking_objects_print.py modular bambu` rebuilds it.
 
 Bambu Studio project `20261117-modular_stems_p1s.3mf`: the C45 and S67 stems, two each. Sliced again by the command line: 0.56 h, 5.7 g white on filament 1, 5 mm brim. Not in git; `tracking_objects_print.py modular bambu` rebuilds it.
+
+The C45 and S67 stems with a glued spigot in place of the cotter joint's taper and post (owner, 2026-11-19) are in `assets/tracking/20261119-glued_objects/`; their feet and the blocks are these.

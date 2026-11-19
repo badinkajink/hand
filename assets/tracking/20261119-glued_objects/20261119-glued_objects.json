@@ -1,0 +1,588 @@
+{
+ "what": "the larger objects and their modular stems with the glued spigot (owner, 2026-11-19)",
+ "script": "scripts/hardware/tracking_objects_print.py glued",
+ "objects": {
+  "cylinder": {
+   "r_mm": 22.5,
+   "stem_mm": 31.0,
+   "length_mm": 100.0,
+   "tape_mm": 0.8,
+   "end_ids": []
+  },
+  "sphere": {
+   "r_mm": 33.5,
+   "stem_mm": 16.7,
+   "tape_mm": 0.0
+  }
+ },
+ "spigot": {
+  "side_mm": 5.0,
+  "depth_mm": 12.0,
+  "clear_mm": 0.15,
+  "socket_extra_mm": 0.5,
+  "key_cut_y_mm": 2.2,
+  "seat_d_mm": 10.0,
+  "cone_h_mm": 3.0
+ },
+ "seat": {
+  "cylinder": {
+   "printed_r_mm": 21.7,
+   "flat_depth_mm": 0.584,
+   "seat_y_mm": -21.116
+  },
+  "sphere": {
+   "printed_r_mm": 33.5,
+   "flat_depth_mm": 0.375,
+   "seat_y_mm": -33.125
+  }
+ },
+ "parts": {
+  "cylinder": {
+   "what": "cylinder body 45 mm (43.4 mm printed for the tape), no end tags, with the spigot's socket",
+   "print": "standing on its -z end",
+   "print_to_O": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -50.0
+    ]
+   ],
+   "volume_mm3": {
+    "white": 147535.395,
+    "black": 0.0
+   },
+   "solid_pla_g": 182.94,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-cylinder_white.stl",
+    "triangles": 1304,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -21.7,
+      -21.7,
+      0.0
+     ],
+     [
+      21.7,
+      21.7,
+      100.0
+     ]
+    ]
+   }
+  },
+  "sphere_lower": {
+   "what": "sphere 67 mm, lower hemisphere with the spigot's socket",
+   "print": "flat side down, the socket on top",
+   "print_to_O": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     -1.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "volume_mm3": {
+    "white": 78237.1,
+    "black": 0.0
+   },
+   "solid_pla_g": 97.01,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-sphere_lower_white.stl",
+    "triangles": 7152,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -33.5,
+      -33.5,
+      0.0
+     ],
+     [
+      33.5,
+      33.5,
+      33.125
+     ]
+    ]
+   }
+  },
+  "sphere_upper": {
+   "what": "sphere 67 mm, upper hemisphere",
+   "print": "flat side down",
+   "print_to_O": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ],
+    [
+     0.0,
+     -1.0,
+     0.0,
+     0.0
+    ]
+   ],
+   "volume_mm3": {
+    "white": 78577.891,
+    "black": 0.0
+   },
+   "solid_pla_g": 97.44,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-sphere_upper_white.stl",
+    "triangles": 7134,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -33.5,
+      -33.5,
+      0.0
+     ],
+     [
+      33.5,
+      33.5,
+      33.5
+     ]
+    ]
+   }
+  },
+  "sphere_pin": {
+   "what": "dowel pin of the sphere (print three)",
+   "print": "standing; print three",
+   "print_to_O": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     0.0
+    ]
+   ],
+   "volume_mm3": {
+    "white": 50.056,
+    "black": 0.0
+   },
+   "solid_pla_g": 0.06,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-sphere_pin_white.stl",
+    "triangles": 188,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -1.45,
+      -1.45,
+      0.0
+     ],
+     [
+      1.45,
+      1.45,
+      7.6
+     ]
+    ]
+   }
+  },
+  "stem_C45": {
+   "what": "stem C45, square foot for the M2 insert to the seat and spigot, three dimples",
+   "print": "upright, foot on the bed, 5 mm brim",
+   "print_to_B": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -3.0999999999999996
+    ]
+   ],
+   "length_mm": 55.98,
+   "volume_mm3": {
+    "white": 1635.277,
+    "black": 0.0
+   },
+   "solid_pla_g": 2.03,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-stem_C45_white.stl",
+    "triangles": 2300,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -5.182,
+      -5.182,
+      0.0
+     ],
+     [
+      5.182,
+      5.182,
+      55.984
+     ]
+    ]
+   }
+  },
+  "stem_S67": {
+   "what": "stem S67, square foot for the M2 insert to the seat and spigot, four dimples",
+   "print": "upright, foot on the bed, 5 mm brim",
+   "print_to_B": [
+    [
+     1.0,
+     0.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     1.0,
+     0.0,
+     0.0
+    ],
+    [
+     0.0,
+     0.0,
+     1.0,
+     -3.0999999999999996
+    ]
+   ],
+   "length_mm": 40.68,
+   "volume_mm3": {
+    "white": 1442.774,
+    "black": 0.0
+   },
+   "solid_pla_g": 1.79,
+   "white": {
+    "file": "assets/tracking/20261119-glued_objects/20261119-stem_S67_white.stl",
+    "triangles": 2556,
+    "watertight": true,
+    "shells": 1,
+    "bounds_mm": [
+     [
+      -5.182,
+      -5.182,
+      0.0
+     ],
+     [
+      5.182,
+      5.182,
+      40.675
+     ]
+    ]
+   }
+  }
+ },
+ "checks": {
+  "cylinder": {
+   "seated_overlap_mm3": 0.0,
+   "turned_overlap_mm3": {
+    "90": 16.87,
+    "180": 16.87,
+    "270": 16.87
+   },
+   "glue_mm2": {
+    "spigot_sides": 226.7,
+    "spigot_end": 23.2,
+    "seat": 55.3,
+    "total": 305.3
+   },
+   "key_20261112_mm2": {
+    "key": 71.2,
+    "seat": 66.5,
+    "total": 137.7
+   }
+  },
+  "sphere": {
+   "seated_overlap_mm3": 0.0,
+   "turned_overlap_mm3": {
+    "90": 16.87,
+    "180": 16.87,
+    "270": 16.87
+   },
+   "glue_mm2": {
+    "spigot_sides": 226.7,
+    "spigot_end": 23.2,
+    "seat": 55.3,
+    "total": 305.3
+   },
+   "key_20261112_mm2": {
+    "key": 71.2,
+    "seat": 66.5,
+    "total": 137.7
+   }
+  }
+ },
+ "bambu_objects": {
+  "project": "assets/tracking/20261119-glued_objects/20261119-glued_objects_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "no_brim",
+   "sparse_infill_pattern": "lightning",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ],
+   "sparse_infill_density": "20%"
+  },
+  "colours": [
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 1,
+   "black": 2
+  },
+  "place_mm": {
+   "cylinder": [
+    55.0,
+    60.0
+   ],
+   "sphere_lower": [
+    140.0,
+    60.0
+   ],
+   "sphere_upper": [
+    140.0,
+    150.0
+   ],
+   "sphere_pin": [
+    40.0,
+    120.0
+   ],
+   "sphere_pin_2": [
+    55.0,
+    120.0
+   ],
+   "sphere_pin_3": [
+    70.0,
+    120.0
+   ]
+  },
+  "prediction_s": 4622.0,
+  "used_g": {
+   "1": 42.73
+  },
+  "filament_loads": 1,
+  "layers": 500,
+  "extrusion_box_mm": [
+   33.72,
+   25.44,
+   172.56,
+   180.55
+  ],
+  "part_offset_err_mm": {},
+  "boxes_mm": {
+   "AgAAAAAAAAA=": [
+    106.7,
+    25.4,
+    172.6,
+    90.6
+   ],
+   "BAAAAAAAAAA=": [
+    107.4,
+    115.4,
+    172.6,
+    180.6
+   ],
+   "CAAAAAAAAAA=": [
+    39.0,
+    116.8,
+    41.0,
+    118.8
+   ],
+   "EAAAAAAAAAA=": [
+    54.0,
+    116.8,
+    56.0,
+    118.8
+   ],
+   "IAAAAAAAAAA=": [
+    69.0,
+    116.8,
+    71.0,
+    118.8
+   ],
+   "AQAAAAAAAAA=": [
+    33.7,
+    36.5,
+    76.3,
+    79.3
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "143",
+   "623",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 1.3,
+   "loads": {
+    "1": 1
+   },
+   "used_g": {
+    "1": 42.78
+   }
+  }
+ },
+ "bambu_stems": {
+  "project": "assets/tracking/20261119-glued_objects/20261119-glued_stems_p1s.3mf",
+  "presets": {
+   "machine": "Bambu Lab P1S 0.4 nozzle",
+   "process": "0.20mm Standard @BBL X1C",
+   "filament": "Bambu PLA Basic @BBL P1S 0.4 nozzle"
+  },
+  "process": {
+   "curr_bed_type": "Textured PEI Plate",
+   "brim_type": "outer_only",
+   "sparse_infill_pattern": "gyroid",
+   "wipe_tower_x": [
+    "190"
+   ],
+   "wipe_tower_y": [
+    "180"
+   ],
+   "brim_width": "5"
+  },
+  "colours": [
+   "#FFFFFF",
+   "#000000"
+  ],
+  "filament": {
+   "white": 1,
+   "black": 2
+  },
+  "place_mm": {
+   "stem_C45": [
+    80.0,
+    100.0
+   ],
+   "stem_C45_2": [
+    110.0,
+    100.0
+   ],
+   "stem_S67": [
+    140.0,
+    100.0
+   ],
+   "stem_S67_2": [
+    170.0,
+    100.0
+   ]
+  },
+  "prediction_s": 2178.0,
+  "used_g": {
+   "1": 6.43
+  },
+  "filament_loads": 1,
+  "layers": 280,
+  "extrusion_box_mm": [
+   71.86,
+   89.86,
+   178.14,
+   106.14
+  ],
+  "part_offset_err_mm": {},
+  "boxes_mm": {
+   "CAAAAAAAAAA=": [
+    161.9,
+    89.9,
+    178.1,
+    106.1
+   ],
+   "BAAAAAAAAAA=": [
+    131.9,
+    89.9,
+    148.1,
+    106.1
+   ],
+   "AgAAAAAAAAA=": [
+    101.9,
+    89.9,
+    118.1,
+    106.1
+   ],
+   "AQAAAAAAAAA=": [
+    71.9,
+    89.9,
+    88.1,
+    106.1
+   ]
+  },
+  "flush_volumes_matrix": [
+   "0",
+   "143",
+   "623",
+   "0"
+  ],
+  "problems": [],
+  "reslice": {
+   "hours": 0.6,
+   "loads": {
+    "1": 1
+   },
+   "used_g": {
+    "1": 6.43
+   }
+  }
+ },
+ "ok": true
+}

@@ -46,3 +46,5 @@ Mass. The simulations take each object with its block, stem and tape as 25 g. Ea
 Lightning infill supports only the top faces, so it adds 1.5 g (cylinder) and 1.9 g (sphere) to the empty bodies; gyroid adds 1.8 to 1.9 g per percent. With the block (3 g in the plan), a stem of about 1 g and a cotter of 0.15 g, the cylinder at 20 % lightning comes to about 22 g before its tape and the sphere to about 30 g. The sphere is above 25 g even with no infill. Weigh each assembled object; the simulation takes the measured mass.
 
 Bambu Studio project `20261117-large_objects_p1s.3mf`: the cylinder body, both hemispheres, three dowels and two cotters of each size, in white on filament 1, 20 % lightning infill. The saved project, sliced again by the command line: 1.4 h, 44.4 g, one filament and no prime tower. Map filament 1 to the white spool when sending. Not in git; `tracking_objects_print.py --set large large bambu` rebuilds it.
+
+Superseded on 2026-11-19 (owner: "this cotter joint isnt going to cut it"): the objects and stems with the stem glued into the object by a square spigot 12 mm deep are in `assets/tracking/20261119-glued_objects/`.
