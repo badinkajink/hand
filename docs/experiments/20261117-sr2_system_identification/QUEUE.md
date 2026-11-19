@@ -530,6 +530,17 @@ air and then against a force sensor. Contact and the blind validation trials nee
   pads levelled off near the ends of their legs, at 1.0-1.4 N and 0.9-1.2 N. These runs load the boards with known
   shear at a fixed contact. They give no sliding friction, and the friction script leaves them out. Whether the pads
   grip harder across the finger than along it is open.
+- S4(b), the index pad at 2 and 20 mm/s (11-19 15:1x; lab runs of 14:51-14:59 at phase A's pose, the arm at
+  0.5 m/s^2; records 20261119-145241 and 145651, free-air controls 145158, 145522 and 145802; "pads_speed" in
+  `data/s3/20261119-pla_side_friction.json`). In 145241 the 1 N level ran all 12 legs. The 2 N level stopped on its
+  first down leg at the 3 N guard. 145651 held 1.5 N and ran 20 mm/s only. A 20 mm/s leg slides steadily for about
+  0.1 s, so the script windows it by the TCP's speed and takes 0.05 s means. With the controls subtracted, the pad slid
+  at 0.63 of the normal force at 2 mm/s and at 0.72 at 20 mm/s (1.1-1.2 N). At 1.7 N it slid at 0.66 at 20 mm/s. The
+  rise of 0.09 per tenfold speed matches last night's rise from 0.2 to 2 mm/s. At the same pose and speed last night
+  the pad slid at 0.40, so its friction rose by 0.23 between the sessions. Today's 0.63 equals the middle pad's value
+  of last night (0.62-0.74). The index ran first in both sessions and read lowest. The middle's 1.8-2 times may
+  therefore be drift over a session (the pad or the tape conditioning with use, or temperature). An index, middle,
+  index sequence of drags at their own poses would separate the finger from the drift.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

@@ -67,6 +67,9 @@ PAD_CONTROLS = {  # the pads' drags of 11-18 -> free-air controls run on 11-19 a
 SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
     "20261119-123219_index_protocol": ["20261119-122906_index_protocol", "20261119-130711_index_protocol"],
     "20261119-131412_middle_protocol": ["20261119-131125_middle_protocol", "20261119-134049_middle_protocol"]}
+PAD_SPEED = {  # 2026-11-19 14:51-14:59: the index pad at phase A's pose, 2 and 20 mm/s, arm at 0.5 m/s^2
+    "20261119-145241_index_protocol": ["20261119-145158_index_protocol", "20261119-145522_index_protocol"],
+    "20261119-145651_index_protocol": ["20261119-145522_index_protocol", "20261119-145802_index_protocol"]}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 FAST_MM_S, FAST_MEAN_S = 10.0, 0.05  # legs this fast: 0.05 s means, plateau where the TCP runs at 0.8 of the speed
@@ -194,6 +197,8 @@ def protocol(stem, control=None):
         trav = np.abs(z[s] - z[s][0])
         before = float(np.median(F3[rm]))
         pl = (trav >= 2.5) & (np.abs(vz[s]) >= 0.8 * lg["speed_mm_s"]) if quick else trav >= 2.5
+        if pl.sum() < 3:                                    # a leg stopped by a guard before its plateau
+            continue
         plateau, normal = float(np.median(F3[s][pl])), float(np.median(Fn[s][pl]))
         swing = plateau - before
         sg = np.sign(swing)
@@ -300,6 +305,13 @@ def main():
         r = protocol(stem, control=ctl)[0]
         side["pads_corrected"].append(r)
         print(stem, r["finger"], "pad on the", r["surface"], "control", ctl)
+        for f in r["friction"]:
+            print("   friction", json.dumps(f))
+    side["pads_speed"] = []
+    for stem, ctl in PAD_SPEED.items():
+        r = protocol(stem, control=ctl)[0]
+        side["pads_speed"].append(r)
+        print(stem, r["finger"], "pad at 2 and 20 mm/s, control", ctl)
         for f in r["friction"]:
             print("   friction", json.dumps(f))
     Path(a.side_out).write_text(json.dumps({"what": "S4(b) on 2026-11-19: the tips' PLA sides on the taped plate, "
