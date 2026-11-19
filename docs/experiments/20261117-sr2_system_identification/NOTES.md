@@ -281,3 +281,62 @@ The owner, 18:3x: "ok go ahead on these plans".
   block blind. Phase C first stopped at 21:39 for the same reason: the tag was not seen after the 80 mm rise.
 - **Parked** at 21:42: palm origin z_B 356.7 over the session's start, unturned; all fingers within 3 deg of zero; no
   flags; servos 21-32 C; torque on; arm running (mode 7). Splitter stopped.
+
+## 2026-11-19, 12:12-13:54: the tips' PLA sides on the tape
+
+- **Go.** The owner gave the go to the workstation session at about 12:00 ("we can go for the pla on tape tests"),
+  relayed by hand-4a. The test as proposed on 11-18:
+  - the hand turned -92 deg, as in the head-on yaw presses;
+  - the index's and middle's yaws hold their tips' sides on the taped plate at about 0.5, 1 and 2 N;
+  - the arm drags 5 mm up and down, and the friction is read as in S4(b).
+  hand-4a added phase A's rests and speeds (1, 10, 60 s; 0.2 and 2 mm/s), which ran. Two suggestions wait for the
+  owner's word: a 20 mm/s leg (on a 5 mm leg it needs about 0.2 m/s^2 against the drags' 0.02) and the thumb pad on
+  the tape.
+- **Where the side meets the plate** (`lab/s3_yaw_contact.py`, the cad_v3 spheres).
+  - The DIP link's side is flat, 10.5 mm from the finger's axis, from 4 to 32 mm above the link's end. Above that it
+    steps out to 17-23 mm.
+  - At 11-18's plan (gap 6, dz 13) the flat side met the plate almost flush, its top 0.1 mm from the lip. Part of the
+    force could then have gone to the lip.
+  - At gap 14 and dz 15 the yaw meets the tape about 9 deg further on. The link's lower end touches first, 15 mm below
+    the plate's top, and the flat side's top stays 0.6-1 mm off the face. After the 5 mm drag up the contact is 10 mm
+    below the top.
+  - The index's force began 1.2 deg of yaw sooner than the model said (a reading of -5.3 to -5.6 deg, against -6.7): the
+    face sits about 2 mm closer than modelled. The middle's 0.5 N hold reading (-7.9 deg) matched its model (-7.8).
+- **The yaw hold** (`lab/s4b_drag.py --joint yaw --sign -1 --hold-load 500 --clutch 2`). The yaw steps until the force
+  reaches N or its load reaches 500, and keeps the force reached. The target then steps back until it lies 2 deg past
+  the reading. The gears kept the force while the load fell from 480-510 to 135-150, so the yaw never neared its
+  overload flag (600 and more on 11-18).
+  - Index: 0.47 N, then 0.97 N (the hold reached the load cap at 0.94 N), then 1.0 N. The third hold also stopped at the
+    cap, so the "2 N" level repeats the 1 N one. The yaw ran 24-40 C and settled at 36 C at load 135-150.
+  - Middle: 0.50 N, 0.99 N (load 405) and 1.31 N (the cap). The yaw ran 23-36 C.
+  - During the index's 1 N clutch a force along the plate's width (x_P) grew from 0.1 to 0.5 N and stayed through the
+    legs.
+- **Free-air controls.** The same legs with the finger off the plate: before and after each finger's protocol, and at
+  the night's pad poses, unturned, for phases A and B. The cable bundle biases every drag. For the index's pose, hand-4a's
+  estimator gives 0.08-0.13 N along the drag at 0.2 mm/s and 0.16-0.22 N at 2 mm/s. On the up legs it also gives
+  -0.2 to -0.39 N along y_P, the side presses' normal. At 0.5-1 N of normal force that is a large part of the reading;
+  hand-4a subtracts the controls leg by leg.
+- **Result** (hand-4a: 38097ea33, f30587ed0; `data/s3/20261119-pla_side_friction.json`). With the controls
+  subtracted:
+  - the index's PLA side slid at 0.43-0.54 of the normal force at 0.8-1.1 N (median 0.47): 0.48 at 0.2 mm/s and 0.46
+    at 2 mm/s;
+  - the middle's slid at 0.72-0.87 at 0.9-1.35 N (median 0.78);
+  - uncorrected, the same legs read 0.61-1.12 (index) and 0.97-1.86 (middle);
+  - neither side stuck and slipped.
+  The middle/index ratio, 1.6, is the pads' ratio of 11-18. By the plans all four contacts lie on the same patch of tape
+  (aimed at l = 0, z_B 116-117). In the turned hand the middle's x_P model error, about 5 mm, lies along the width, so
+  its side touched within about 5 mm of the index's spot.
+- **Records** (`data/s3/`; raws over 2 MB in `logs/20261119-sr2_s3_press/`, rsynced):
+  - index: 20261119-122906 (control), 123219 (loaded), 130711 (control); approach 122743;
+  - middle: 131125 (control), 131412 (loaded), 134049 (control); approach 131019;
+  - unturned controls: 134601 (the index at 191629's pose), 135018 (the middle at 200220's pose).
+  - Boards: `logs/20261119-three_finger_mux/20261119-122901-mux.bin` (203 MB, rsynced).
+  - Scripts: `lab/day/`.
+- **Stops and slips.**
+  - The first descent, 149 mm from the park, stopped on its 3 N guard at 105 mm with nothing near the hand. Two frames
+    and a steady HEX-E showed no contact: the cable loop's pull changes as the hand lowers. Re-planned, the last 61 mm
+    finished at 2.65 N.
+  - My waiter for the end of the index's protocol matched its own shell: the next s4b_drag command in the same line
+    held the pattern (lesson 9 of CLAUDE.md). The index's second control started 8 min late. Nothing moved meanwhile.
+- **Parked** at 13:53: palm origin z_B 356.8 over the session's start, unturned. Fingers within 4.4 deg of zero, no
+  flags, servos 19-23 C, torque on, arm running (mode 7). Splitter stopped.
