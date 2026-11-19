@@ -446,6 +446,25 @@ air and then against a force sensor. Contact and the blind validation trials nee
   10-13 deg to 20-25 deg. There the boards read 0.44-0.47 times the force (index), 0.45-0.56 (middle) and 0.39-0.44
   (thumb), with offsets of 0.17-0.35 N and RMS of 0.06-0.13 N. Without the own-pose term they read 0.42-0.86 times.
   The thumb's angle presses at PIP 15 and 30 deg were not run (lights off, NOTES).
+- W3, the three twists in which the middle's board read a load (11-19 12:1x; rows of
+  `logs/20261118-night_replay/s3_plant.jsonl`, `data/20261118-replay_contacts.json`, `data/20261118-grasp_pad_gap.json`).
+  In three of the 11 tips-off twists the middle's board read 0.67-0.73 N in the squeeze: 19:45:06, 21:08:30 and
+  21:16:15, one from each controller arm. In the other eight it read nothing. In the replays at friction 0.40 the
+  middle's pad touched the sphere through the grasp in the same three trials and in none of the eight. The hand turned
+  the sphere 51.5-53.8 deg in the three (mean 52.8), its three largest twists. In the eight it turned 45.2-50.9 deg
+  (mean 48.4). At friction 1.0 on the S3 plant with the 2.0 N m/rad bend, the replays reversed the order. Stiff pads
+  turned the three 27.5 deg and the eight 33.3; soft pads 28.1 and 38.3; point contact 28.7 and 38.3. On stiff pads
+  the three turned 4.9-15.8 deg less than the eight in all 14 variants of 11-18 that kept the grasp. Point contact at
+  friction 0.5 showed no difference (-1.3 to +1.5 deg). The three contact models agree on the sign, and the hand has
+  the other.
+- W3, one finger's friction lowered at a time (11-19 12:2x; `sim/20261118-s3_plant_replay.py --mu-fingers` with
+  0.3 1 1, 1 0.3 1 and 1 1 0.3; rows "... t0.3/i1/m1" and the like). Stiff pads on the S3 plant with the 2.0 N m/rad
+  bend; the other fingers stayed at 1.0. With the thumb at 0.3 the eight twists turned 42.5 deg (33.3 at 1.0; hand
+  48.4). In the three the sphere rose 16 mm and turned 9.7 deg. With the index at 0.3 the eight turned 24.4 deg, and
+  the three were unchanged at 27.5. With the middle at 0.3 both groups gained 3-4 deg (36.9 and 30.7). In the eight,
+  the index's side thus drives the twist and the thumb's pad brakes it. The thumb pad's friction on the sphere's tape
+  is unmeasured: phase C dragged it on the tag plate (0.55-0.64). The index's PLA side on the tape is the other
+  unmeasured value; the owner gave the go for its drag at 11-19 12:0x ("we can go for the pla on tape tests").
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

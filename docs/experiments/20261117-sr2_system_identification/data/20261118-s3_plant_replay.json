@@ -838,6 +838,29 @@
    "object_rot_rms_deg": 14.57,
    "trials": 11
   },
+  "pads_stiff s3tc mu1 kc2 t0.3/i1/m1": {
+   "track": 0.3,
+   "twist_end_deg": 33.55,
+   "rise_max_mm": 12.2,
+   "twist_trace_rms_deg": 12.26,
+   "joint_rms_deg": {
+    "approach": 0.79,
+    "grasp": 1.8,
+    "task": 2.57
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.0,
+    "middle.aa": -0.63
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.17,
+    "middle.aa": -1.24
+   },
+   "jump_max_deg": 8.93,
+   "jumps_over_8deg": 1.09,
+   "object_rot_rms_deg": 44.9,
+   "trials": 11
+  },
   "pads_stiff s3tc mu1 kc2 t0.58/i0.43/m0.73": {
    "track": 0.29,
    "twist_end_deg": 32.62,
@@ -882,6 +905,52 @@
    "jump_max_deg": 6.77,
    "jumps_over_8deg": 0.55,
    "object_rot_rms_deg": 40.03,
+   "trials": 11
+  },
+  "pads_stiff s3tc mu1 kc2 t1/i0.3/m1": {
+   "track": 0.07,
+   "twist_end_deg": 25.25,
+   "rise_max_mm": 5.4,
+   "twist_trace_rms_deg": 22.39,
+   "joint_rms_deg": {
+    "approach": 0.79,
+    "grasp": 1.77,
+    "task": 3.08
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.03,
+    "middle.aa": -0.42
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.71,
+    "middle.aa": -0.42
+   },
+   "jump_max_deg": 7.97,
+   "jumps_over_8deg": 1.18,
+   "object_rot_rms_deg": 36.05,
+   "trials": 11
+  },
+  "pads_stiff s3tc mu1 kc2 t1/i1/m0.3": {
+   "track": 0.19,
+   "twist_end_deg": 35.22,
+   "rise_max_mm": 3.56,
+   "twist_trace_rms_deg": 11.29,
+   "joint_rms_deg": {
+    "approach": 0.78,
+    "grasp": 1.71,
+    "task": 3.04
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.93,
+    "middle.aa": -0.44
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.56,
+    "middle.aa": -3.38
+   },
+   "jump_max_deg": 7.93,
+   "jumps_over_8deg": 0.64,
+   "object_rot_rms_deg": 28.99,
    "trials": 11
   },
   "pads_stiff s3tc mu1 kc2 z+3.86": {
@@ -17341,6 +17410,490 @@
   {
    "stamp": "20261117-194243",
    "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.417,
+   "twist_end_deg": 42.3,
+   "rise_max_mm": 11.2,
+   "twist_trace_rms_deg": 7.41,
+   "joint_rms_deg": {
+    "approach": 0.79,
+    "grasp": 1.81,
+    "task": 2.47
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.54,
+    "middle.aa": -0.8
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.13,
+    "middle.aa": -1.79
+   },
+   "jumps": [
+    8.5,
+    1
+   ],
+   "object_task": {
+    "rot_rms_deg": 45.24,
+    "pos_rms_mm": 8.67
+   },
+   "hand": {
+    "track": 0.479,
+    "twist_task_end_deg": 52.09,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.7,
+    "drift_max_mm": 9.8
+   },
+   "hand_jumps": [
+    27.7,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-194506",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 6.9,
+   "rise_max_mm": 15.7,
+   "twist_trace_rms_deg": 30.27,
+   "joint_rms_deg": {
+    "approach": 1.01,
+    "grasp": 1.6,
+    "task": 2.95
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.71,
+    "middle.aa": -1.28
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.68,
+    "middle.aa": -0.7
+   },
+   "jumps": [
+    7.9,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 46.46,
+    "pos_rms_mm": 8.23
+   },
+   "hand": {
+    "track": 0.473,
+    "twist_task_end_deg": 51.89,
+    "twist_end_deg": 53.8,
+    "rise_max_mm": 3.5,
+    "tilt_max_deg": 15.4,
+    "drift_max_mm": 10.6
+   },
+   "hand_jumps": [
+    30.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-195313",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.445,
+   "twist_end_deg": 44.5,
+   "rise_max_mm": 11.4,
+   "twist_trace_rms_deg": 4.91,
+   "joint_rms_deg": {
+    "approach": 0.66,
+    "grasp": 1.77,
+    "task": 2.71
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.46,
+    "middle.aa": -0.66
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.94,
+    "middle.aa": -1.73
+   },
+   "jumps": [
+    6.3,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 46.92,
+    "pos_rms_mm": 9.32
+   },
+   "hand": {
+    "track": 0.445,
+    "twist_task_end_deg": 45.88,
+    "twist_end_deg": 47.8,
+    "rise_max_mm": 2.4,
+    "tilt_max_deg": 22.1,
+    "drift_max_mm": 11.4
+   },
+   "hand_jumps": [
+    12.3,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-195517",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.397,
+   "twist_end_deg": 40.1,
+   "rise_max_mm": 10.9,
+   "twist_trace_rms_deg": 8.46,
+   "joint_rms_deg": {
+    "approach": 0.94,
+    "grasp": 1.59,
+    "task": 2.39
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.85,
+    "middle.aa": -0.46
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.97,
+    "middle.aa": -1.13
+   },
+   "jumps": [
+    8.6,
+    1
+   ],
+   "object_task": {
+    "rot_rms_deg": 44.76,
+    "pos_rms_mm": 8.52
+   },
+   "hand": {
+    "track": 0.427,
+    "twist_task_end_deg": 47.33,
+    "twist_end_deg": 50.7,
+    "rise_max_mm": 3.0,
+    "tilt_max_deg": 18.1,
+    "drift_max_mm": 9.3
+   },
+   "hand_jumps": [
+    29.0,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-200137",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.394,
+   "twist_end_deg": 37.5,
+   "rise_max_mm": 10.2,
+   "twist_trace_rms_deg": 7.18,
+   "joint_rms_deg": {
+    "approach": 0.69,
+    "grasp": 1.93,
+    "task": 2.4
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.65,
+    "middle.aa": -0.31
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.65,
+    "middle.aa": -1.04
+   },
+   "jumps": [
+    10.7,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 45.05,
+    "pos_rms_mm": 8.08
+   },
+   "hand": {
+    "track": 0.417,
+    "twist_task_end_deg": 43.74,
+    "twist_end_deg": 45.2,
+    "rise_max_mm": 3.4,
+    "tilt_max_deg": 19.9,
+    "drift_max_mm": 11.5
+   },
+   "hand_jumps": [
+    23.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-200542",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.412,
+   "twist_end_deg": 41.7,
+   "rise_max_mm": 10.3,
+   "twist_trace_rms_deg": 7.79,
+   "joint_rms_deg": {
+    "approach": 0.76,
+    "grasp": 1.68,
+    "task": 2.28
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.67,
+    "middle.aa": -0.52
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.94,
+    "middle.aa": -0.98
+   },
+   "jumps": [
+    9.2,
+    1
+   ],
+   "object_task": {
+    "rot_rms_deg": 43.98,
+    "pos_rms_mm": 8.63
+   },
+   "hand": {
+    "track": 0.434,
+    "twist_task_end_deg": 47.36,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.9,
+    "drift_max_mm": 13.9
+   },
+   "hand_jumps": [
+    23.6,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210621",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.454,
+   "twist_end_deg": 45.2,
+   "rise_max_mm": 10.8,
+   "twist_trace_rms_deg": 5.76,
+   "joint_rms_deg": {
+    "approach": 0.71,
+    "grasp": 1.96,
+    "task": 2.89
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.71,
+    "middle.aa": -0.37
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.91,
+    "middle.aa": -1.55
+   },
+   "jumps": [
+    6.7,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 47.62,
+    "pos_rms_mm": 9.67
+   },
+   "hand": {
+    "track": 0.404,
+    "twist_task_end_deg": 43.36,
+    "twist_end_deg": 48.4,
+    "rise_max_mm": 2.6,
+    "tilt_max_deg": 24.1,
+    "drift_max_mm": 11.7
+   },
+   "hand_jumps": [
+    19.3,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210830",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.05,
+   "twist_end_deg": 12.6,
+   "rise_max_mm": 14.8,
+   "twist_trace_rms_deg": 26.15,
+   "joint_rms_deg": {
+    "approach": 0.88,
+    "grasp": 2.1,
+    "task": 2.85
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -2.28,
+    "middle.aa": -0.79
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -2.13,
+    "middle.aa": -0.94
+   },
+   "jumps": [
+    12.3,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 41.69,
+    "pos_rms_mm": 8.98
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 46.66,
+    "twist_end_deg": 53.0,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 12.7,
+    "drift_max_mm": 10.5
+   },
+   "hand_jumps": [
+    30.1,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211615",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.034,
+   "twist_end_deg": 9.6,
+   "rise_max_mm": 16.8,
+   "twist_trace_rms_deg": 27.2,
+   "joint_rms_deg": {
+    "approach": 1.02,
+    "grasp": 1.96,
+    "task": 2.99
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -2.02,
+    "middle.aa": -0.54
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.85,
+    "middle.aa": -1.25
+   },
+   "jumps": [
+    9.0,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 44.43,
+    "pos_rms_mm": 9.44
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.39,
+    "twist_end_deg": 51.5,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 15.8,
+    "drift_max_mm": 11.6
+   },
+   "hand_jumps": [
+    26.8,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211835",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.437,
+   "twist_end_deg": 42.5,
+   "rise_max_mm": 11.0,
+   "twist_trace_rms_deg": 4.36,
+   "joint_rms_deg": {
+    "approach": 0.57,
+    "grasp": 1.85,
+    "task": 2.31
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.59,
+    "middle.aa": -0.58
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.68,
+    "middle.aa": -1.32
+   },
+   "jumps": [
+    6.6,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 45.95,
+    "pos_rms_mm": 9.02
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.56,
+    "twist_end_deg": 45.8,
+    "rise_max_mm": 2.7,
+    "tilt_max_deg": 21.8,
+    "drift_max_mm": 13.4
+   },
+   "hand_jumps": [
+    15.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-212455",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t0.3/i1/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.278,
+   "twist_end_deg": 46.1,
+   "rise_max_mm": 11.1,
+   "twist_trace_rms_deg": 5.35,
+   "joint_rms_deg": {
+    "approach": 0.64,
+    "grasp": 1.54,
+    "task": 2.08
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.53,
+    "middle.aa": -0.58
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.96,
+    "middle.aa": -1.2
+   },
+   "jumps": [
+    12.4,
+    3
+   ],
+   "object_task": {
+    "rot_rms_deg": 41.8,
+    "pos_rms_mm": 8.45
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 44.01,
+    "twist_end_deg": 47.1,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 17.8,
+    "drift_max_mm": 15.8
+   },
+   "hand_jumps": [
+    24.4,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-194243",
+   "contact": "pads_stiff",
    "variant": "s3tc mu1 kc2 t0.58/i0.43/m0.73",
    "k_c": 2.0,
    "backdrive": false,
@@ -18292,6 +18845,974 @@
    "object_task": {
     "rot_rms_deg": 50.18,
     "pos_rms_mm": 10.62
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 44.01,
+    "twist_end_deg": 47.1,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 17.8,
+    "drift_max_mm": 15.8
+   },
+   "hand_jumps": [
+    24.4,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-194243",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 19.3,
+   "rise_max_mm": 7.0,
+   "twist_trace_rms_deg": 25.32,
+   "joint_rms_deg": {
+    "approach": 0.81,
+    "grasp": 1.48,
+    "task": 2.8
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.67,
+    "middle.aa": -0.52
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.56,
+    "middle.aa": -0.61
+   },
+   "jumps": [
+    4.3,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 39.93,
+    "pos_rms_mm": 6.22
+   },
+   "hand": {
+    "track": 0.479,
+    "twist_task_end_deg": 52.09,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.7,
+    "drift_max_mm": 9.8
+   },
+   "hand_jumps": [
+    27.7,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-194506",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.2,
+   "twist_end_deg": 25.7,
+   "rise_max_mm": 0.8,
+   "twist_trace_rms_deg": 22.14,
+   "joint_rms_deg": {
+    "approach": 1.0,
+    "grasp": 1.49,
+    "task": 2.95
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.57,
+    "middle.aa": -1.14
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.4,
+    "middle.aa": 0.03
+   },
+   "jumps": [
+    11.5,
+    3
+   ],
+   "object_task": {
+    "rot_rms_deg": 21.68,
+    "pos_rms_mm": 3.92
+   },
+   "hand": {
+    "track": 0.473,
+    "twist_task_end_deg": 51.89,
+    "twist_end_deg": 53.8,
+    "rise_max_mm": 3.5,
+    "tilt_max_deg": 15.4,
+    "drift_max_mm": 10.6
+   },
+   "hand_jumps": [
+    30.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-195313",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 29.9,
+   "rise_max_mm": 8.6,
+   "twist_trace_rms_deg": 21.65,
+   "joint_rms_deg": {
+    "approach": 0.67,
+    "grasp": 1.69,
+    "task": 3.36
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.54,
+    "middle.aa": -0.41
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.92,
+    "middle.aa": -1.07
+   },
+   "jumps": [
+    9.1,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 41.13,
+    "pos_rms_mm": 7.07
+   },
+   "hand": {
+    "track": 0.445,
+    "twist_task_end_deg": 45.88,
+    "twist_end_deg": 47.8,
+    "rise_max_mm": 2.4,
+    "tilt_max_deg": 22.1,
+    "drift_max_mm": 11.4
+   },
+   "hand_jumps": [
+    12.3,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-195517",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.002,
+   "twist_end_deg": 21.0,
+   "rise_max_mm": 6.5,
+   "twist_trace_rms_deg": 25.46,
+   "joint_rms_deg": {
+    "approach": 0.94,
+    "grasp": 1.57,
+    "task": 3.0
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.9,
+    "middle.aa": -0.27
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.47,
+    "middle.aa": -0.23
+   },
+   "jumps": [
+    4.9,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 41.64,
+    "pos_rms_mm": 6.32
+   },
+   "hand": {
+    "track": 0.427,
+    "twist_task_end_deg": 47.33,
+    "twist_end_deg": 50.7,
+    "rise_max_mm": 3.0,
+    "tilt_max_deg": 18.1,
+    "drift_max_mm": 9.3
+   },
+   "hand_jumps": [
+    29.0,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-200137",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 19.6,
+   "rise_max_mm": 7.6,
+   "twist_trace_rms_deg": 22.99,
+   "joint_rms_deg": {
+    "approach": 0.68,
+    "grasp": 2.2,
+    "task": 3.13
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.74,
+    "middle.aa": -0.04
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.81,
+    "middle.aa": -0.02
+   },
+   "jumps": [
+    4.8,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 44.0,
+    "pos_rms_mm": 7.79
+   },
+   "hand": {
+    "track": 0.417,
+    "twist_task_end_deg": 43.74,
+    "twist_end_deg": 45.2,
+    "rise_max_mm": 3.4,
+    "tilt_max_deg": 19.9,
+    "drift_max_mm": 11.5
+   },
+   "hand_jumps": [
+    23.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-200542",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.043,
+   "twist_end_deg": 27.1,
+   "rise_max_mm": 5.6,
+   "twist_trace_rms_deg": 22.78,
+   "joint_rms_deg": {
+    "approach": 0.77,
+    "grasp": 1.7,
+    "task": 3.42
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.73,
+    "middle.aa": -0.25
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.53,
+    "middle.aa": -0.57
+   },
+   "jumps": [
+    7.2,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 42.68,
+    "pos_rms_mm": 8.29
+   },
+   "hand": {
+    "track": 0.434,
+    "twist_task_end_deg": 47.36,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.9,
+    "drift_max_mm": 13.9
+   },
+   "hand_jumps": [
+    23.6,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210621",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.032,
+   "twist_end_deg": 30.5,
+   "rise_max_mm": 7.3,
+   "twist_trace_rms_deg": 22.0,
+   "joint_rms_deg": {
+    "approach": 0.72,
+    "grasp": 1.93,
+    "task": 3.59
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.79,
+    "middle.aa": -0.12
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.96,
+    "middle.aa": -0.89
+   },
+   "jumps": [
+    10.0,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 42.91,
+    "pos_rms_mm": 8.26
+   },
+   "hand": {
+    "track": 0.404,
+    "twist_task_end_deg": 43.36,
+    "twist_end_deg": 48.4,
+    "rise_max_mm": 2.6,
+    "tilt_max_deg": 24.1,
+    "drift_max_mm": 11.7
+   },
+   "hand_jumps": [
+    19.3,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210830",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.227,
+   "twist_end_deg": 27.6,
+   "rise_max_mm": 0.9,
+   "twist_trace_rms_deg": 20.37,
+   "joint_rms_deg": {
+    "approach": 0.88,
+    "grasp": 2.12,
+    "task": 3.33
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -2.12,
+    "middle.aa": -0.65
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.94,
+    "middle.aa": -0.52
+   },
+   "jumps": [
+    9.1,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 20.62,
+    "pos_rms_mm": 6.38
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 46.66,
+    "twist_end_deg": 53.0,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 12.7,
+    "drift_max_mm": 10.5
+   },
+   "hand_jumps": [
+    30.1,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211615",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.243,
+   "twist_end_deg": 29.1,
+   "rise_max_mm": 0.7,
+   "twist_trace_rms_deg": 19.43,
+   "joint_rms_deg": {
+    "approach": 1.01,
+    "grasp": 1.84,
+    "task": 2.53
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.85,
+    "middle.aa": -0.44
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.64,
+    "middle.aa": -0.39
+   },
+   "jumps": [
+    10.5,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 19.36,
+    "pos_rms_mm": 4.33
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.39,
+    "twist_end_deg": 51.5,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 15.8,
+    "drift_max_mm": 11.6
+   },
+   "hand_jumps": [
+    26.8,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211835",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 28.6,
+   "rise_max_mm": 7.9,
+   "twist_trace_rms_deg": 19.5,
+   "joint_rms_deg": {
+    "approach": 0.57,
+    "grasp": 1.85,
+    "task": 3.13
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.65,
+    "middle.aa": -0.39
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.91,
+    "middle.aa": -0.57
+   },
+   "jumps": [
+    10.9,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 39.96,
+    "pos_rms_mm": 7.89
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.56,
+    "twist_end_deg": 45.8,
+    "rise_max_mm": 2.7,
+    "tilt_max_deg": 21.8,
+    "drift_max_mm": 13.4
+   },
+   "hand_jumps": [
+    15.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-212455",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i0.3/m1",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.0,
+   "twist_end_deg": 19.3,
+   "rise_max_mm": 6.5,
+   "twist_trace_rms_deg": 24.68,
+   "joint_rms_deg": {
+    "approach": 0.65,
+    "grasp": 1.61,
+    "task": 2.69
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.78,
+    "middle.aa": -0.34
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.71,
+    "middle.aa": 0.21
+   },
+   "jumps": [
+    5.4,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 42.61,
+    "pos_rms_mm": 6.74
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 44.01,
+    "twist_end_deg": 47.1,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 17.8,
+    "drift_max_mm": 15.8
+   },
+   "hand_jumps": [
+    24.4,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-194243",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.204,
+   "twist_end_deg": 38.3,
+   "rise_max_mm": 4.8,
+   "twist_trace_rms_deg": 10.09,
+   "joint_rms_deg": {
+    "approach": 0.79,
+    "grasp": 1.43,
+    "task": 2.88
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.5,
+    "middle.aa": -0.53
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.09,
+    "middle.aa": -4.62
+   },
+   "jumps": [
+    7.8,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 30.8,
+    "pos_rms_mm": 6.45
+   },
+   "hand": {
+    "track": 0.479,
+    "twist_task_end_deg": 52.09,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.7,
+    "drift_max_mm": 9.8
+   },
+   "hand_jumps": [
+    27.7,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-194506",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.228,
+   "twist_end_deg": 28.9,
+   "rise_max_mm": 1.2,
+   "twist_trace_rms_deg": 18.16,
+   "joint_rms_deg": {
+    "approach": 1.0,
+    "grasp": 1.52,
+    "task": 2.8
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.54,
+    "middle.aa": -1.18
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.37,
+    "middle.aa": 0.03
+   },
+   "jumps": [
+    7.7,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 20.72,
+    "pos_rms_mm": 3.73
+   },
+   "hand": {
+    "track": 0.473,
+    "twist_task_end_deg": 51.89,
+    "twist_end_deg": 53.8,
+    "rise_max_mm": 3.5,
+    "tilt_max_deg": 15.4,
+    "drift_max_mm": 10.6
+   },
+   "hand_jumps": [
+    30.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-195313",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.181,
+   "twist_end_deg": 36.3,
+   "rise_max_mm": 4.6,
+   "twist_trace_rms_deg": 9.26,
+   "joint_rms_deg": {
+    "approach": 0.66,
+    "grasp": 1.61,
+    "task": 2.49
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.41,
+    "middle.aa": -0.42
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.11,
+    "middle.aa": -3.7
+   },
+   "jumps": [
+    7.0,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 31.12,
+    "pos_rms_mm": 5.69
+   },
+   "hand": {
+    "track": 0.445,
+    "twist_task_end_deg": 45.88,
+    "twist_end_deg": 47.8,
+    "rise_max_mm": 2.4,
+    "tilt_max_deg": 22.1,
+    "drift_max_mm": 11.4
+   },
+   "hand_jumps": [
+    12.3,
+    5
+   ]
+  },
+  {
+   "stamp": "20261117-195517",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.196,
+   "twist_end_deg": 36.0,
+   "rise_max_mm": 4.7,
+   "twist_trace_rms_deg": 9.88,
+   "joint_rms_deg": {
+    "approach": 0.92,
+    "grasp": 1.48,
+    "task": 2.88
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.82,
+    "middle.aa": -0.28
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.21,
+    "middle.aa": -4.03
+   },
+   "jumps": [
+    11.7,
+    3
+   ],
+   "object_task": {
+    "rot_rms_deg": 30.55,
+    "pos_rms_mm": 6.57
+   },
+   "hand": {
+    "track": 0.427,
+    "twist_task_end_deg": 47.33,
+    "twist_end_deg": 50.7,
+    "rise_max_mm": 3.0,
+    "tilt_max_deg": 18.1,
+    "drift_max_mm": 9.3
+   },
+   "hand_jumps": [
+    29.0,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-200137",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.144,
+   "twist_end_deg": 38.6,
+   "rise_max_mm": 4.9,
+   "twist_trace_rms_deg": 8.35,
+   "joint_rms_deg": {
+    "approach": 0.67,
+    "grasp": 2.17,
+    "task": 3.61
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.6,
+    "middle.aa": -0.12
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.16,
+    "middle.aa": -5.04
+   },
+   "jumps": [
+    6.0,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 33.89,
+    "pos_rms_mm": 8.87
+   },
+   "hand": {
+    "track": 0.417,
+    "twist_task_end_deg": 43.74,
+    "twist_end_deg": 45.2,
+    "rise_max_mm": 3.4,
+    "tilt_max_deg": 19.9,
+    "drift_max_mm": 11.5
+   },
+   "hand_jumps": [
+    23.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-200542",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.102,
+   "twist_end_deg": 37.4,
+   "rise_max_mm": 4.2,
+   "twist_trace_rms_deg": 10.39,
+   "joint_rms_deg": {
+    "approach": 0.75,
+    "grasp": 1.66,
+    "task": 4.14
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.61,
+    "middle.aa": -0.28
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.29,
+    "middle.aa": -5.93
+   },
+   "jumps": [
+    4.8,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 37.0,
+    "pos_rms_mm": 9.47
+   },
+   "hand": {
+    "track": 0.434,
+    "twist_task_end_deg": 47.36,
+    "twist_end_deg": 50.9,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 18.9,
+    "drift_max_mm": 13.9
+   },
+   "hand_jumps": [
+    23.6,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210621",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.099,
+   "twist_end_deg": 37.6,
+   "rise_max_mm": 4.9,
+   "twist_trace_rms_deg": 9.83,
+   "joint_rms_deg": {
+    "approach": 0.7,
+    "grasp": 1.84,
+    "task": 3.46
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.66,
+    "middle.aa": -0.14
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.29,
+    "middle.aa": -5.8
+   },
+   "jumps": [
+    5.3,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 36.95,
+    "pos_rms_mm": 7.06
+   },
+   "hand": {
+    "track": 0.404,
+    "twist_task_end_deg": 43.36,
+    "twist_end_deg": 48.4,
+    "rise_max_mm": 2.6,
+    "tilt_max_deg": 24.1,
+    "drift_max_mm": 11.7
+   },
+   "hand_jumps": [
+    19.3,
+    3
+   ]
+  },
+  {
+   "stamp": "20261117-210830",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.253,
+   "twist_end_deg": 31.3,
+   "rise_max_mm": 0.7,
+   "twist_trace_rms_deg": 15.41,
+   "joint_rms_deg": {
+    "approach": 0.88,
+    "grasp": 2.03,
+    "task": 3.2
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -2.12,
+    "middle.aa": -0.66
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.94,
+    "middle.aa": -0.62
+   },
+   "jumps": [
+    10.9,
+    2
+   ],
+   "object_task": {
+    "rot_rms_deg": 17.12,
+    "pos_rms_mm": 6.4
+   },
+   "hand": {
+    "track": 0.428,
+    "twist_task_end_deg": 46.66,
+    "twist_end_deg": 53.0,
+    "rise_max_mm": 3.1,
+    "tilt_max_deg": 12.7,
+    "drift_max_mm": 10.5
+   },
+   "hand_jumps": [
+    30.1,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211615",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.259,
+   "twist_end_deg": 31.9,
+   "rise_max_mm": 0.8,
+   "twist_trace_rms_deg": 15.67,
+   "joint_rms_deg": {
+    "approach": 1.01,
+    "grasp": 1.82,
+    "task": 2.57
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -1.84,
+    "middle.aa": -0.45
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -1.62,
+    "middle.aa": -0.3
+   },
+   "jumps": [
+    9.3,
+    1
+   ],
+   "object_task": {
+    "rot_rms_deg": 16.92,
+    "pos_rms_mm": 4.23
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.39,
+    "twist_end_deg": 51.5,
+    "rise_max_mm": 2.9,
+    "tilt_max_deg": 15.8,
+    "drift_max_mm": 11.6
+   },
+   "hand_jumps": [
+    26.8,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-211835",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.174,
+   "twist_end_deg": 34.4,
+   "rise_max_mm": 4.4,
+   "twist_trace_rms_deg": 8.72,
+   "joint_rms_deg": {
+    "approach": 0.56,
+    "grasp": 1.79,
+    "task": 2.58
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.55,
+    "middle.aa": -0.41
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.04,
+    "middle.aa": -3.48
+   },
+   "jumps": [
+    6.1,
+    0
+   ],
+   "object_task": {
+    "rot_rms_deg": 32.86,
+    "pos_rms_mm": 6.59
+   },
+   "hand": {
+    "track": 0.424,
+    "twist_task_end_deg": 45.56,
+    "twist_end_deg": 45.8,
+    "rise_max_mm": 2.7,
+    "tilt_max_deg": 21.8,
+    "drift_max_mm": 13.4
+   },
+   "hand_jumps": [
+    15.5,
+    4
+   ]
+  },
+  {
+   "stamp": "20261117-212455",
+   "contact": "pads_stiff",
+   "variant": "s3tc mu1 kc2 t1/i1/m0.3",
+   "k_c": 2.0,
+   "backdrive": false,
+   "track": 0.199,
+   "twist_end_deg": 36.7,
+   "rise_max_mm": 4.0,
+   "twist_trace_rms_deg": 8.46,
+   "joint_rms_deg": {
+    "approach": 0.62,
+    "grasp": 1.5,
+    "task": 2.85
+   },
+   "yaw_short_grasp_deg": {
+    "index.aa": -0.57,
+    "middle.aa": -0.36
+   },
+   "yaw_short_task_deg": {
+    "index.aa": -0.05,
+    "middle.aa": -3.66
+   },
+   "jumps": [
+    10.6,
+    1
+   ],
+   "object_task": {
+    "rot_rms_deg": 30.95,
+    "pos_rms_mm": 6.69
    },
    "hand": {
     "track": 0.428,
