@@ -310,6 +310,15 @@ air and then against a force sensor. Contact and the blind validation trials nee
   a static friction at the pads above their sliding friction. MuJoCo's friction has one coefficient for both, and the
   replay plant's gears do not stick. S4(b), the pad dragged across the taped plate, measures the pad's static and
   sliding friction.
+- W2, the boards in S3's head-on yaw presses (11-18 17:4x; `sim/20261118-s3_board_vs_hexe.py` now runs every S3 press;
+  `data/s3/20261118-board_vs_hexe.json`). In all fourteen presses of the index's, middle's and thumb's tip sides, no
+  board followed the force. The GP estimators' lines rise -0.06 to +0.03 N per N of the HEX-E's |F_xy|. At the largest
+  HEX-E force (1.06-2.27 N) the boards read 0.07-0.38 N, about what they read before contact. The physical model rises
+  at most 0.26 N per N, with an RMS of 0.06-0.22 N. The DIP link is 3 mm wider than the pad on each side, so these
+  presses loaded the link and not the pad: a board does not see a load on its tip's side. In the night's twists the
+  middle's board read nothing in 18 of 20 trials. A contact on the middle tip's side would read the same. A press of
+  the middle's pad face would show whether its board reads a face load. The index's two face presses give the lines
+  of the 16:4x entry again.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

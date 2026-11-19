@@ -1,5 +1,5 @@
-"""The index fingertip's board against the HEX-E in S3's two index presses (W2 of the identification queue, 2026-11-18):
-does the board's force estimate (tip_contacts, as in the night's trials) read the force that the HEX-E measures?
+"""The fingertip boards against the HEX-E in S3's presses (W2 of the identification queue, 2026-11-18): does a board's
+force estimate (tip_contacts, as in the night's trials) read the force that the HEX-E measures?
 
 Per step of the press files (lab/s3_press.py; logs/20261118-sr2_s3_press/, data/s3/): the HEX-E's force change in P from
 before the first step, x_P and y_P only (z drifts about 0.4 N a minute; NOTES, 2026-11-18 afternoon), the mean over the
@@ -7,18 +7,24 @@ dwell's last second. The MCP press's rows predate dF_P, so their dF_N turn into 
 press pose). Beside it the board's estimate from the splitter's log (logs/20261118-three_finger_mux/
 20261118-155402-mux.bin), averaged over the same second at ten times, at the index's measured joints (the station's
 samples in the raw file; thumb and middle at the approach plan's joints). The rest is the second that ends 2.2 s before
-the first step's row, with the pad 4.6 mm off the plate. The estimator's threshold and force gate are off, so a step has
+the first step's row, with the pad off the plate. The estimator's threshold and force gate are off, so a step has
 an estimate whenever the board's model finds a contact. Three estimators: the trials' (the board GP with the own-pose
 term), the GP without it, and the physical model alone.
 
-Per press and estimator: the steps' rows, and a least-squares line from the HEX-E's force to the board's: its normal
-force against the HEX-E's |F_xy| (the MCP press, the pad pushed head on), and per axis of P against the HEX-E's
-component (the yaw press: x_P the MCP's hold, y_P the yaw's tangential force).
+The presses: the index's MCP press and its yaw press with the MCP holding (15:54-16:06, the pad's face on the taped
+plate), and the fourteen head-on yaw presses of 16:33-17:17 (lab/s3_yaw_summary.py), in which the side of the index's,
+middle's or thumb's tip met the taped plate (-1) or the tag plate (+1); on the -1 side the DIP link's flat side, not
+the pad, met the plate (NOTES, 16:46-17:18). Each press takes the other fingers' joints from its approach plan (the
+stamp in its note, else the press before it).
+
+Per press and estimator: the steps (columns in "cols"), and least-squares lines from the HEX-E's force to the board's:
+its normal force and its |f_xy| against the HEX-E's |F_xy|, and per axis of P against the HEX-E's component.
 
     resguard run --mem 3G -- .venv/bin/python sim/20261118-s3_board_vs_hexe.py [--out data/s3/20261118-board_vs_hexe.json]
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -33,9 +39,7 @@ from manta_hand import plan as MP  # noqa: E402
 
 LOGS = ROOT / "logs/20261118-sr2_s3_press"
 MUX = ROOT / "logs/20261118-three_finger_mux/20261118-155402-mux.bin"
-APPROACH = STUDY / "data/s3/20261118-155238_approach_index.json"
-PRESSES = {"mcp": "20261118-155403_index_mcp", "yaw": "20261118-160047_index_yaw"}
-FINGER = "index"
+R_PH_FROM = "20261118-160047_index_yaw"           # the MCP press's rows predate dF_P; its pose is the yaw press's
 ESTIMATORS = {"gp_own_pose": (True, True), "gp": (True, False), "physical": (False, False)}
 REST_BEFORE_S, REST_S = 2.2, 1.0
 N_EVAL = 10
@@ -74,14 +78,26 @@ def fit(x, y):
             "n": int(ok.sum())}
 
 
-def run(name, R_PH, others, gp, own):
+def presses():
+    """[(log stem, finger, approach plan)] in time order: the index's two presses, then the head-on yaw presses."""
+    out = [("20261118-155403_index_mcp", "index", "20261118-155238"), ("20261118-160047_index_yaw", "index", "20261118-155238")]
+    last = None
+    for p in sorted((STUDY / "data/s3").glob("20261118-*_yaw_head_on.jsonl")):
+        h = json.loads(p.read_text().splitlines()[0])
+        m = re.search(r"approach (\d{8}-\d{6})", h.get("note") or "")
+        last = m.group(1) if m else last
+        out.append((p.name.replace("_head_on.jsonl", ""), h["finger"], last))
+    return out
+
+
+def run(name, finger, R_PH, others, gp, own):
     head, rows, ts, qs = load(name)
     t_first = rows[0]["t"]
     feed = TC.MuxLog(MUX, t_first - REST_BEFORE_S - REST_S - TC.KEEP_S - 1.0, rows[-1]["t"] + 1.0)
 
     def joints(t):
         q = {f: dict(others[f]) for f in TC.FINGERS}
-        q[FINGER] = {j: float(np.interp(t, ts, qs[:, i])) for i, j in enumerate(("yaw", "mcp", "pip"))}
+        q[finger] = {j: float(np.interp(t, ts, qs[:, i])) for i, j in enumerate(("yaw", "mcp", "pip"))}
         return servo33(q)
 
     tc = TC.TipContacts(feed, np.zeros(6), gp=gp, own_pose=own)
@@ -97,44 +113,47 @@ def run(name, R_PH, others, gp, own):
             J = joints(t)
             est = tc.estimate(t, J)
             _cop, rec = tc.to_P(est, J)
-            e = rec.get(FINGER)
+            e = rec.get(finger)
             if e is not None and e.get("f_P") is not None:
                 fs.append(e["f_P"])
                 fn.append(e["f_n"])
-        out.append({"k": r["k"], "phase": r["phase"], "joint": r["joint"], "t": r["t"], "offset_deg": r["offset"],
-                    "reading_deg": r["reading"], "hexe_P_N": np.round(F, 3).tolist(),
-                    "hexe_xy_N": round(float(np.hypot(F[0], F[1])), 3),
-                    "board_P_N": np.round(np.mean(fs, 0), 3).tolist() if fs else None,
-                    "board_n_N": round(float(np.mean(fn)), 3) if fn else None, "board_found": f"{len(fn)}/{N_EVAL}"})
+        b = np.mean(fs, 0) if fs else [None] * 3
+        out.append([r["k"], r["phase"], round(r["offset"], 2), round(r["reading"], 2), *np.round(F, 3).tolist(),
+                     *[None if v is None else round(float(v), 3) for v in b],
+                     round(float(np.mean(fn)), 3) if fn else None, len(fn)])
     return head, info, out
+
+
+COLS = ["k", "phase", "error_deg", "reading_deg", "hexe_x_P_N", "hexe_y_P_N", "hexe_z_P_N", "board_x_P_N", "board_y_P_N",
+        "board_z_P_N", "board_n_N", "found_of_10"]
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(STUDY / "data/s3/20261118-board_vs_hexe.json"))
     a = ap.parse_args()
-    R_PH = np.asarray(json.loads((LOGS / f"{PRESSES['yaw']}.jsonl").read_text().splitlines()[0])["R_PH"], float)
-    others = json.loads(APPROACH.read_text())["joints"]
+    R_PH = np.asarray(json.loads((LOGS / f"{R_PH_FROM}.jsonl").read_text().splitlines()[0])["R_PH"], float)
     res = {"what": __doc__.split("\n\n")[0].replace("\n", " "),
            "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py",
-           "mux": str(MUX.relative_to(ROOT)), "presses": {}}
-    for press, name in PRESSES.items():
-        res["presses"][press] = {"file": f"logs/20261118-sr2_s3_press/{name}.jsonl", "estimators": {}}
+           "mux": str(MUX.relative_to(ROOT)), "cols": COLS, "presses": []}
+    for name, finger, appr in presses():
+        others = json.loads(next((STUDY / "data/s3").glob(f"{appr}_approach_*.json")).read_text())["joints"]
+        rec = {"file": f"logs/20261118-sr2_s3_press/{name}.jsonl", "finger": finger, "approach": appr, "estimators": {}}
         for en, (gp, own) in ESTIMATORS.items():
-            head, info, out = run(name, R_PH, others, gp, own)
-            have = [o for o in out if o["board_P_N"] is not None]
-            hx = np.array([o["hexe_P_N"] for o in have]) if have else np.zeros((0, 3))
-            bx = np.array([o["board_P_N"] for o in have]) if have else np.zeros((0, 3))
-            fits = {"n_vs_xy": fit([o["hexe_xy_N"] for o in have], [o["board_n_N"] for o in have]),
-                    "x_P": fit(hx[:, 0], bx[:, 0]) if len(have) else None,
-                    "y_P": fit(hx[:, 1], bx[:, 1]) if len(have) else None}
-            res["presses"][press]["estimators"][en] = {"rest": info, "fits": fits, "steps": out}
-            print(f"{press:4s} {en:12s} steps {len(out)}, with an estimate {len(have)}; fits {json.dumps(fits)}",
-                  flush=True)
-            for o in out[::max(1, len(out) // 12)]:
-                print(f"    k {o['k']:3d} {o['phase']:5s} {o['joint']:3s} offset {o['offset_deg']:+5.1f} HEX-E "
-                      f"{o['hexe_P_N']} | board {o['board_P_N']} n {o['board_n_N']} ({o['board_found']})", flush=True)
-    Path(a.out).write_text(json.dumps(res, indent=1) + "\n")
+            head, info, out = run(name, finger, R_PH, others, gp, own)
+            rec["sign"], rec["joint"] = head.get("sign"), head.get("joint")
+            have = [o for o in out if o[11]]
+            hx = np.array([o[4:7] for o in have], float).reshape(-1, 3)
+            bx = np.array([o[7:10] for o in have], float).reshape(-1, 3)
+            fits = {"n_vs_xy": fit(np.hypot(hx[:, 0], hx[:, 1]), [o[10] for o in have]),
+                    "fxy_vs_xy": fit(np.hypot(hx[:, 0], hx[:, 1]), np.hypot(bx[:, 0], bx[:, 1])),
+                    "x_P": fit(hx[:, 0], bx[:, 0]), "y_P": fit(hx[:, 1], bx[:, 1])}
+            rec["estimators"][en] = {"rest": info, "fits": fits, "steps": out}
+            top = max(out, key=lambda o: np.hypot(o[4], o[5]))
+            print(f"{name:26s} {en:12s} steps {len(out)}, with an estimate {len(have)}; at the largest HEX-E force "
+                  f"{np.round(top[4:7], 2).tolist()} the board {top[7:10]} n {top[10]}; fit n {fits['n_vs_xy']}", flush=True)
+        res["presses"].append(rec)
+    Path(a.out).write_text(json.dumps(res, separators=(",", ":")) + "\n")
     print("wrote", a.out)
 
 
