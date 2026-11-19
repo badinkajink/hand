@@ -31,6 +31,15 @@ between them, and the overshoot (the largest 0.3 s mean beyond the plateau in th
 2.5 mm, minus the plateau) against the noise (the plateau's own largest 0.3 s deviation over the same travel). The
 sliding friction per N, speed and rest is half the difference of the down and up plateaus.
 
+On 2026-11-19 the same protocol dragged the tips' PLA sides on the tape: the hand turned -92 deg, the yaw holding the
+DIP link's side on the plate (lab/s4b_drag.py --joint yaw; the header's "joint", "surface" and "normal_axis_P", here
+y_P). A free-air control ran first on the same arm path with the finger 14 mm off the plate. In free air the cable and
+the HEX-E alone gave half the down-up difference along the drag of 0.005-0.11 N, growing with speed. For a run with a
+control, the control's median force along the drag and along the normal, at the leg's speed and direction, is
+subtracted from each leg before the friction is formed; the uncorrected values are kept beside. These runs go to
+data/s3/20261119-pla_side_friction.json, so the pads' file keeps its three protocols. A record is read from data/s3, or
+beside its raw file in logs/<date>-sr2_s3_press until the lab copies it.
+
     python3 sim/20261118-s4b_drag_friction.py [--fig FILE.png] [--protocol-fig FILE.png]
 """
 import argparse
@@ -44,6 +53,8 @@ STUDY = HERE.parent
 RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "20261118-185120_index_drag2N_z"]
 PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
 SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
+CONTROLS = ["20261119-122906_index_protocol"]
+SIDE_PROTOCOLS = {}  # the PLA sides on the tape: loaded run -> its free-air control
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
@@ -113,13 +124,22 @@ def run(stem):
             "hold_roughness_N": round(rough(Ft[hold]), 3) if hold.sum() > 100 else None}, (z, Ft, Fn, th, legs)
 
 
-def protocol(stem):
-    """Per leg of a --protocol run: level before, plateau, swing, overshoot and the noise's own largest deviation."""
-    L = [json.loads(x) for x in (STUDY / "data/s3" / f"{stem}.jsonl").read_text().splitlines() if x.strip()]
+def records(stem):
+    """A --protocol run's record (data/s3, else beside the raw file) and its raw HEX-E and TCP samples."""
+    logs = ROOT / f"logs/{stem[:8]}-sr2_s3_press"
+    rec = STUDY / "data/s3" / f"{stem}.jsonl"
+    rec = rec if rec.exists() else logs / f"{stem}.jsonl"
+    L = [json.loads(x) for x in rec.read_text().splitlines() if x.strip()]
+    raw = [json.loads(x) for x in (logs / f"{stem}_raw.jsonl").read_text().splitlines() if x.strip()]
+    return L, raw
+
+
+def protocol(stem, control=None):
+    """Per leg of a --protocol run: level before, plateau, swing, overshoot and the noise's own largest deviation.
+    With a free-air control, its median forces at the leg's speed and direction are subtracted before the friction."""
+    L, raw = records(stem)
     h = L[0]
     segs = [x for x in L if x.get("phase") in ("rest", "leg")]
-    raw = [json.loads(x) for x in (ROOT / "logs/20261118-sr2_s3_press" / f"{stem}_raw.jsonl").read_text().splitlines()
-           if x.strip()]
     th = np.concatenate([r["hexe_t"] for r in raw])
     FH = np.concatenate([np.array(r["hexe"])[:, :3] for r in raw])
     o = np.argsort(th)
@@ -129,14 +149,17 @@ def protocol(stem):
     o = np.argsort(tt)
     tt, zt = tt[o], zt[o]
     FP = (FH - np.array(h["F0_N"])) @ np.array(h["R_PH"]).T
+    nax = np.array(h.get("normal_axis_P", [1.0, 0.0, 0.0]), float)
     holds = [x for x in L if x.get("phase") == "hold"]
-    sgn = float(np.sign(holds[-1]["dF_P"][0]))
+    fh = float(np.dot(holds[-1]["dF_P"], nax)) if holds else 0.0
+    sgn = float(np.sign(fh)) if abs(fh) > 0.1 else 1.0
     legs = [x for x in segs if x["phase"] == "leg"]
     ax = np.array(legs[0]["axis_P"], float)
     ax /= np.linalg.norm(ax)
     n = max(1, int(round(0.3 / np.median(np.diff(th)))))
     F3 = np.convolve(FP @ ax, np.ones(n) / n, "same")
-    Fn = np.convolve(sgn * FP[:, 0], np.ones(n) / n, "same")
+    Fn_raw = np.convolve(FP @ nax, np.ones(n) / n, "same")
+    Fn = sgn * Fn_raw
     z = np.interp(th, tt, zt)
     out = []
     for k, lg in enumerate(legs):
@@ -157,7 +180,17 @@ def protocol(stem):
                     "dir": "up" if lg["to_mm"] > 0 else "down", "t0": lg["t0"], "before_N": round(before, 3),
                     "plateau_N": round(plateau, 3), "normal_N": round(normal, 3), "swing_N": round(swing, 3),
                     "overshoot_N": round(over, 3), "noise_max_N": round(noise, 3),
-                    "overshoot_at_mm": round(float(trav[first][j]), 2)})
+                    "overshoot_at_mm": round(float(trav[first][j]), 2),
+                    "normal_raw_N": round(float(np.median(Fn_raw[s][pl])), 3)})
+    bias = {}
+    if control:
+        cl = protocol(control)[0]["legs"]
+        for v in {r["speed_mm_s"] for r in cl}:
+            for d in ("up", "down"):
+                c = [r for r in cl if (r["speed_mm_s"], r["dir"]) == (v, d)]
+                if c:
+                    bias[(v, d)] = (float(np.median([r["plateau_N"] for r in c])),
+                                    sgn * float(np.median([r["normal_raw_N"] for r in c])))
     fric = []
     for N in sorted({r["N"] for r in out}):
         for v in sorted({r["speed_mm_s"] for r in out}):
@@ -167,15 +200,27 @@ def protocol(stem):
                 if up and dn:
                     fk = (dn[0]["plateau_N"] - up[0]["plateau_N"]) / 2
                     nn = (dn[0]["normal_N"] + up[0]["normal_N"]) / 2
-                    fric.append({"N": N, "speed_mm_s": v, "rest_s": rs, "friction_N": round(fk, 3),
-                                 "normal_N": round(nn, 3), "mu": round(fk / nn, 3)})
-    return {"run": stem, "finger": h["finger"], "surface": SURFACE[h["finger"]], "normal_sign_x_P": sgn, "legs": out,
-            "friction": fric}, (th, z, F3, legs)
+                    row = {"N": N, "speed_mm_s": v, "rest_s": rs, "friction_N": round(fk, 3),
+                           "normal_N": round(nn, 3), "mu": round(fk / nn, 3) if nn > 0.1 else None}
+                    if (v, "up") in bias and (v, "down") in bias:
+                        bu, bd = bias[(v, "up")], bias[(v, "down")]
+                        fc = fk - (bd[0] - bu[0]) / 2
+                        nc = nn - (bd[1] + bu[1]) / 2
+                        row = {**row, "friction_N": round(fc, 3), "normal_N": round(nc, 3),
+                               "mu": round(fc / nc, 3) if nc > 0.1 else None, "control_friction_N":
+                               round((bd[0] - bu[0]) / 2, 3), "control_normal_N": round((bd[1] + bu[1]) / 2, 3),
+                               "friction_uncorrected_N": row["friction_N"], "normal_uncorrected_N": row["normal_N"],
+                               "mu_uncorrected": row["mu"]}
+                    fric.append(row)
+    return {"run": stem, "finger": h["finger"], "joint": h.get("joint"),
+            "surface": h.get("surface", SURFACE.get(h["finger"])), "normal_axis_P": nax.tolist(), "normal_sign": sgn,
+            "control": control, "legs": out, "friction": fric}, (th, z, F3, legs)
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(STUDY / "data/s3/20261118-s4b_friction.json"))
+    ap.add_argument("--side-out", default=str(STUDY / "data/s3/20261119-pla_side_friction.json"))
     ap.add_argument("--fig", default=None)
     ap.add_argument("--protocol-fig", default=None)
     a = ap.parse_args()
@@ -206,6 +251,24 @@ def main():
                                                  "20261118-s4b_drag_friction.py", "runs": res, "protocols": prot},
                                       indent=1) + "\n")
     print("wrote", a.out)
+    side = {"controls": [], "protocols": []}
+    for stem in CONTROLS:
+        r = protocol(stem)[0]
+        side["controls"].append(r)
+        print(stem, r["surface"], "(control)")
+        for f in r["friction"]:
+            print("   along the drag", json.dumps(f))
+    for stem, ctl in SIDE_PROTOCOLS.items():
+        r = protocol(stem, control=ctl)[0]
+        side["protocols"].append(r)
+        print(stem, r["finger"], r["joint"], "on the", r["surface"], "control", ctl)
+        for f in r["friction"]:
+            print("   friction", json.dumps(f))
+    Path(a.side_out).write_text(json.dumps({"what": "S4(b) on 2026-11-19: the tips' PLA sides on the taped plate, "
+                                                    "with the free-air controls",
+                                            "script": "docs/experiments/20261117-sr2_system_identification/sim/"
+                                                      "20261118-s4b_drag_friction.py", **side}, indent=1) + "\n")
+    print("wrote", a.side_out)
     if a.fig:
         import matplotlib
         matplotlib.use("Agg")
