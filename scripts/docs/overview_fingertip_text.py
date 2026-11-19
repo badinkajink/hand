@@ -119,7 +119,7 @@ LEDE = (
     "with five. On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a neighbour at the home layout by at most "
     "5.4&#8202;&#181;T. With no compensation the contact viewer would show a contact in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames with nothing touching. "
     "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, at most 3 of 14,916 to 21,000 frames per board show one, over 11 layouts. "
-    "On the hand, the index and middle boards&#8217; estimates rose 0.26&#8211;0.57&#8202;N per newton of force on a taped plate. "
+    "On the hand, the three boards&#8217; estimates rose 0.26&#8211;0.57&#8202;N per newton of force when the pads were pressed onto a plate. "
     "A press on a tip&#8217;s side did not change the boards&#8217; estimates. "
     "A model learned on one tip misses on another by "
     "1.0&#8211;2.5&#8202;mm, so each tip&#8217;s own presses must be in its training. With them, the other tips&#8217; presses "
@@ -699,6 +699,11 @@ times the HEX-E&#8217;s force. The index and middle pads were then pressed face 
 30&#176; beforehand. Bending the PIP moves the contact along the pad. The index&#8217;s estimate then rose 0.55 and
 0.57&#8202;N per newton, and the middle&#8217;s 0.44 and 0.45
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Table 36).</p>
+<p>On the night of 18 November the thumb fingertip, v3 ID 1, was pressed face on three times, onto a second plate,
+the tag plate, which bore an AprilTag. Its estimate was 0.24 to 0.26&#8202;N plus 0.40 to 0.52 times the HEX-E&#8217;s force. In three
+more presses per finger, the PIP joint curled the pad onto a plate. The estimates then rose 0.44 to 0.47&#8202;N per
+newton on the index and 0.45 to 0.56 on the middle. On the thumb they rose 0.39 to 0.44
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Tables 36 and 37).</p>
 <p>In 14 more presses the yaw joints pushed the sides of the index, middle and thumb tips into the plates. There the
 boards&#8217; estimates did not rise with the force. At each press&#8217;s largest force, 1.06 to 2.27&#8202;N, the two GP
 estimates were 0.07 to 0.38&#8202;N. Before contact they were 0.14 to 0.31&#8202;N. By the identification study&#8217;s
@@ -731,12 +736,14 @@ from 1 to 5&#8202;N. When the spring and modulus were fitted on the sphere&#8217
 holds was 0.62 at 0.25&#8202;N and 1.64 at 8&#8202;N. Only the HEX-E&#8217;s deflection was removed from the
 indenter&#8217;s position, so the fitted spring includes any other give of the rig. The fits are in the same page&#8217;s
 [section on the laws of each pad](exp:20261030-v3_tip_contact_model/20261030-v3_fingertip_contact_models.html#laws).</p>
-<p>The scenes&#8217; friction coefficient of 1.0 stands for the grip tape. On 18 November the index pad was dragged
-along a taped plate on the hand, at about 0.5, 1 and 2&#8202;N. Its friction force was 0.44 to 0.49 times the normal
-force at 0.67 to 1.01&#8202;N. At 2.5&#8202;N it was 0.35 times. While the pad slid, the force varied as much as at rest,
-so the pad did not stick and slip. Each run began after 20&#8202;s at rest. In the 1 and 2&#8202;N runs the force then rose
-to 1.43 and 1.23 times the sliding force before the pad slid
-([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Table 37).</p>
+<p>The scenes&#8217; friction coefficient of 1.0 stands for the grip tape. On 18 November the pads were dragged
+5&#8202;mm along the plates on the hand, at about 0.5, 1 and 2&#8202;N. The index and middle pads slid on the grip tape and
+the thumb pad on the tag plate. At 1 to 2&#8202;N the index pad&#8217;s friction force was 0.32 to 0.34 times
+the normal force at 0.2&#8202;mm/s and 0.42 to 0.45 times at 2&#8202;mm/s. The middle pad&#8217;s was 0.59 to 0.65 and 0.69
+to 0.77 times at all three forces. The thumb pad&#8217;s was 0.58 to 0.64 and 0.55 to 0.62 times at 1 to
+2&#8202;N. The coefficient changed little with rests of 1 to 60&#8202;s under load before a drag. In the afternoon&#8217;s
+drags of the index pad, the force varied as much while sliding as at rest. The pad thus did not stick and slip
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Tables 38 and 39).</p>
 <p>In simulation, the HOM controller&#8217;s inputs from each fingertip are one contact point and one normal force. Its
 fingertip model adds the errors measured on the UR5 to each true contact. A fixed offset of 0.4&#8202;mm and random noise
 are added to the point. The noise&#8217;s sigma is 0.4&#8202;mm at 1.5&#8202;N and over, 0.7&#8202;mm from 0.5&#8202;N and 1.3&#8202;mm below. A
@@ -1007,7 +1014,7 @@ FUTURE = [
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
     'Steel at known distances and forces: touch the 100&#8202;g mass and the ruler through printed spacers of 0.5 to 10&#8202;mm, then set the mass on the face (0.98&#8202;N). Run <code>scripts/fingertip/fingertip_foreign_field.py touches</code> on each stretch. A spacer reading over 100&#8202;&#181;T with &#923; under 25 means the test misses steel. A joint fit of a contact and the far field within 0.3&#8202;N of 0.98&#8202;N would measure presses made with steel.',
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
-    'Face press of the thumb pad on the hand: press its face onto the taped plate with the MCP joint, as for the index and the middle. Press it with the PIP straight and bent 15 and 30&#176;. Run <code>docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py</code> on them ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Section 17). If v3 ID 1&#8217;s slope with the PIP straight is also 0.26 to 0.36, the low estimate is common to the three v3 tips on the hand.',
+    'Angle presses of the thumb pad on the hand: bend the PIP 15 and 30&#176;, then press the pad&#8217;s face onto the tag plate with the MCP. The index and the middle were pressed so. The thumb&#8217;s were left out on 18 November, when the lab&#8217;s lights went off. Run <code>docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py</code> on them ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Section 17). If v3 ID 1&#8217;s slope stays within its straight presses&#8217; 0.40 to 0.52, the rise of the boards&#8217; slopes with the bend is not common to the three tips.',
     'Mount end on the SR2 hand: the contact viewer has run on the hand since 2026-11-05 with the board GP refitted with the rig&#8217;s holds (<code>docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz</code>), on v3 IDs 1 to 3. Press a tip&#8217;s mount end with a known load (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R33). An error over 2&#8202;mm there refutes it.',
     'The ensemble&#8217;s mean in the contact viewer (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R34, not decided): take the point and force from the MLP ensemble, and keep the GP&#8217;s weight for the blend with the physical model. Score the blend on the coverage gaps of the calibration page&#8217;s Table 33. A location error over the GP&#8217;s 1.24&#8202;mm keeps the GP&#8217;s mean.',
     'Fingertips beside each other on the hand (owner, 2026-10-25): the sweeps of 2026-11-04 and 11-05 are analysed at 11 layouts (<code>scripts/fingertip/sr2_crosstalk_hand.py</code>). The pads came no closer than 27&#8202;mm. A plan of its own brings them within 25&#8202;mm, where a magnet-model gain near 1 at cad_v3&#8217;s finger spacing supports the CAD&#8217;s finger positions. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/sr2hand/driver/reskin5x/README.md</code>). The viewer has yet to run on the hand with the own-angle GP subtracted live, with each tip pressed at a known force at the HEX-E. A false contact while the fingers move, or a press error above the injected one, falsifies the compensation.',
