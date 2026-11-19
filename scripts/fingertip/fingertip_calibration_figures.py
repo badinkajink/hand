@@ -1194,29 +1194,35 @@ def fig_pad_friction():
 
 
 def fig_side_friction():
-    """S4(b) after the free-air controls (2026-11-19; the study's analysis 38097ea3 to 8f770048): the friction coefficient
+    """S4(b) after the free-air controls (2026-11-19; the study's analysis 38097ea3 to adb0af9a): the friction coefficient
     against the normal force on the taped plate, per drag speed, of (a) the index's and (b) the middle's pad (the night's
-    protocol of 2026-11-18, corrected by controls at its pose) and DIP link's PLA side (2026-11-19, the yaw holding)."""
+    protocol of 2026-11-18, corrected by controls at its pose, and the drags of 11-19 14:53-15:09) and DIP link's PLA side
+    (2026-11-19, the yaw holding)."""
     from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
     from fingertip_calibration_text import IDENT, at_head
     plt = plt_setup()
     J = json.loads(at_head(IDENT / "data/s3/20261119-pla_side_friction.json"))
-    SRC = (("Pad", "#2e5fa8", {p["finger"]: p for p in J["pads_corrected"]}),
-           ("PLA side", "#c07018", {p["finger"]: p for p in J["protocols"]}))
-    VS = ((0.2, "s", "0.2 mm/s"), (2.0, "o", "2 mm/s"))
+    by = lambda *ks: {f: [c for k in ks for p in J[k] if p["finger"] == f for c in p["friction"]]  # noqa: E731
+                      for f in ("index", "middle")}
+    SRC = (("Pad on 18 November", "#2e5fa8", by("pads_corrected")),
+           ("Pad on 19 November", "#2a8a3a", by("pads_speed", "pads_aba")),
+           ("PLA side on 19 November", "#c07018", by("protocols")))
+    VS = ((0.2, "s"), (2.0, "o"), (20.0, "^"))
     fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.7), sharex=True, sharey=True)
     for ax, (finger, t) in zip(axes, (("index", "(a) Index finger"), ("middle", "(b) Middle finger"))):
         for _, col, src in SRC:
-            for v, mk, _ in VS:
-                cs = [c for c in src[finger]["friction"] if c["speed_mm_s"] == v]
+            for v, mk in VS:
+                cs = [c for c in src[finger] if c["speed_mm_s"] == v]
                 ax.plot([c["normal_N"] for c in cs], [c["mu"] for c in cs], mk, ms=7, color=col, alpha=0.8)
         ax.set_title(t)
         ax.set_xlabel("Normal force (N)")
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("Friction coefficient")
-    h = [Line2D([], [], ls="none", marker=mk, ms=7, color=col, label=f"{nm} at {vn}")
-         for nm, col, _ in SRC for _, mk, vn in VS]
-    fig.legend(handles=h, loc="lower center", ncol=2, frameon=False, fontsize=13)
+    h = [x for (nm, col, _), (v, mk) in zip(SRC, VS)
+         for x in (Patch(color=col, alpha=0.8, label=nm),
+                   Line2D([], [], ls="none", marker=mk, ms=7, color="0.35", label=f"{v:g} mm/s"))]
+    fig.legend(handles=h, loc="lower center", ncol=3, frameon=False, fontsize=13)
     fig.tight_layout(rect=(0, 0.13, 1, 1))
     save(fig, "20261119-side_friction_on_the_hand.png")
 

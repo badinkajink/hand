@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal
 from math import hypot
 from pathlib import Path
 from statistics import median
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[2]
 UR5D =ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
@@ -296,6 +298,17 @@ def sections(N, F, P, link, L):
     assert LOA_DZ[0] > 0, "every fitted contact nearer the sensor than planned"
     loy = lambda k, planned: (f"{LOA[k]['lead_P_mm'][1]:.1f}" if planned  # noqa: E731   along y_P, fitted or planned
                               else f"{LOA[k]['y_lever_friction_mm']:.0f}").replace("-", "−")
+    # the pads again on 19 November (lab 5911d510; the study's analysis 113e8ea4 to adb0af9a): the index pad at 2 and
+    # 20 mm/s at its pose of 11-18, then the index, the middle and the index pad in turn at 1 N and 2 mm/s
+    PSP, PAB = PSJ["pads_speed"], PSJ["pads_aba"]
+    assert [p["finger"] for p in PSP] == ["index"] * 2 and [p["finger"] for p in PAB] == ["index", "middle", "index"]
+    assert all(p["surface"] == "pad on tape" and p["joint"] == "mcp" for p in (*PSP, *PAB))
+    assert [p["run"] for p in PAB] == sorted(p["run"] for p in PAB) and PSP[-1]["run"] < PAB[0]["run"]
+    ab = [p["friction"][0] for p in PAB]
+    assert all(len(p["friction"]) == 1 and (c["N"], c["speed_mm_s"]) == (1.0, 2.0) for p, c in zip(PAB, ab))
+    ab_ratio = sorted(ab[1]["mu"] / ab[i]["mu"] for i in (0, 2))
+    pm_ix = [c["mu"] for p in (*PSP, PAB[0], PAB[2]) for c in p["friction"]]   # the index pad's coefficients on 11-19
+    clock = lambda p: datetime.fromtimestamp(p["legs"][0]["t0"], ZoneInfo("America/Denver")).strftime("%H:%M")  # noqa: E731
     hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]]
                                     + [hh_fs(p)["slope"] for p in hh_face + hh_pp])]
     hh_bs = [r2(x) for x in sorted(hh_fs(p)["slope"] for p in hh_bent.values())]
@@ -377,7 +390,9 @@ def sections(N, F, P, link, L):
         f"the tips' sides, and the pads slid at {rng(fr_pad['index'])} (index) and {rng(fr_pad['middle'])} (middle) of "
         f"the normal force on the tape and {rng(fr_pad['thumb'])} (thumb) on the tag plate, unchanged after rests of "
         f"1-60 s; after free-air controls the DIP links' PLA sides slid at {rng(side_hi['index'])} (index) and "
-        f"{rng(side_hi['middle'])} (middle) at {rng(side_n)} N.")
+        f"{rng(side_hi['middle'])} (middle) at {rng(side_n)} N; on 11-19, after controls, the index pad slid at "
+        f"{rng(pm_ix)}, and in drags of the two pads in turn the middle pad's coefficient was "
+        f"{ab_ratio[0]:.1f}-{ab_ratio[-1]:.1f} times the index's.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -2017,9 +2032,13 @@ def sections(N, F, P, link, L):
         f"beforehand, the slopes were {hh_bs[0]} to {hh_bs[-1]} (Table 36). The thumb fingertip, v3 ID "
         f"{hh_tip(hh_thumb[0])}, was pressed onto a second plate, the tag plate, which bore an AprilTag. Its estimate rose "
         f"{hh_ts.replace('-', ' to ')} N per newton. When the PIP joints curled the pads onto the plates, the slopes were "
-        f"{hh_ps.replace('-', ' to ')} (Table 37). On the tape the index pad slid at {rng(fr_pad['index']).replace('-', ' to ')} "
-        f"times the normal force and the middle pad at {rng(fr_pad['middle']).replace('-', ' to ')} times. The thumb pad "
-        f"slid on the tag plate at {rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39). The PLA sides "
+        f"{hh_ps.replace('-', ' to ')} (Table 37). On 18 November the index pad slid on the tape at "
+        f"{rng(fr_pad['index']).replace('-', ' to ')} times the normal force and the middle pad at "
+        f"{rng(fr_pad['middle']).replace('-', ' to ')} times. The thumb pad slid on the tag plate at "
+        f"{rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39). A day later, with free-air controls "
+        f"subtracted, the index pad slid at {rng(pm_ix).replace('-', ' to ')} times. In drags of the index and middle "
+        f"pads in turn, the middle pad's coefficient was {ab_ratio[0]:.1f} to {ab_ratio[-1]:.1f} times the index pad's "
+        "(Table 41). The PLA sides "
         "of the index's and the middle's DIP links slid on the tape at "
         f"{rng(side_hi['index']).replace('-', ' to ')} and {rng(side_hi['middle']).replace('-', ' to ')} times the "
         f"normal force. That force was {rng(side_n).replace('-', ' to ')} N, and free-air controls of the cable's drag "
@@ -2345,10 +2364,49 @@ def sections(N, F, P, link, L):
         + P.fig(25, F["side_friction"], "The friction coefficient against the normal force on the SR2 hand's taped "
                 "plate, after the free-air controls. (a) The index finger: its pad, v3 ID "
                 f"{TIP['index']}, and its DIP link's PLA side. (b) The middle finger: its pad, v3 ID {TIP['middle']}, "
-                "and its PLA side. The pads were dragged on 2026-11-18 and the sides on 2026-11-19. Squares: drags at "
-                "0.2 mm/s. Circles: drags at 2 mm/s. Each point is one force set, speed and rest. Drawn from "
+                "and its PLA side. Blue: the pads in the night's protocol of 2026-11-18. Green: the pads on "
+                f"2026-11-19, from {clock(PSP[0])} to {clock(PAB[-1])} (Table 41). Orange: the sides, dragged on "
+                "2026-11-19. Squares: drags at 0.2 mm/s. Circles: drags at 2 mm/s. Triangles: drags at 20 mm/s. Each "
+                "point is one record's force set, speed and rest. Drawn from "
                 + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261119-pla_side_friction.json")
                 + ".")
+    )
+    sp = {(c["N"], c["speed_mm_s"]): c for p in PSP for c in p["friction"]}
+    assert sorted(sp) == [(1.0, 2.0), (1.0, 20.0), (1.5, 20.0)] and ab[0]["control_friction_N"] < 0 < ab[2]["control_friction_N"]
+    rise20 = sp[1.0, 20.0]["mu"] - sp[1.0, 2.0]["mu"]
+    assert r2(rise20) == r2(rise(PC["index"])), "the rise per tenfold speed repeats"
+    ab_rows = [[clock(p), f"{p['finger'].capitalize()} pad, v3 ID {TIP[p['finger']]}", f"{c['N']:g}", r2(c["normal_N"]),
+                f"{c['speed_mm_s']:g}", r2(c["mu"]), r2(c["mu_uncorrected"]), r2(c["control_friction_N"]),
+                str(sum(1 for g in p["legs"] if (g["N"], g["speed_mm_s"]) == (c["N"], c["speed_mm_s"])))]
+               for p in (*PSP, *PAB) for c in p["friction"]]
+    body += (
+        f"<p>From {clock(PSP[0])} on 19 November, the index pad was dragged again at its pose of the night before, after "
+        f"free-air controls there (Table 41). At 1 N and 2 mm/s it slid at {r2(sp[1.0, 2.0]['mu'])} times the normal "
+        f"force, against {r2(pfr(PC['index'], 1.0, 2.0, 1.0)[0]['mu'])} there on 18 November. At 20 mm/s it slid at "
+        f"{r2(sp[1.0, 20.0]['mu'])}. That rise of {r2(rise20)} from 2 to 20 mm/s equals the rise from 0.2 to 2 mm/s on "
+        f"18 November. At the 1.5 N setting, a normal force of {r2(sp[1.5, 20.0]['normal_N'])} N, it slid at "
+        f"{r2(sp[1.5, 20.0]['mu'])} at 20 mm/s. From {clock(PAB[0])} to {clock(PAB[-1])} the index pad, the middle pad "
+        "and the index pad again were dragged in turn. Each was dragged at 1 N and 2 mm/s after a control at its pose. The "
+        "index pad "
+        f"slid at {r2(ab[0]['mu'])} and then at {r2(ab[2]['mu'])}, and the middle pad slid at {r2(ab[1]['mu'])} between "
+        f"them. The controls' forces along the drag were {r2(ab[0]['control_friction_N'])} and "
+        f"+{r2(ab[2]['control_friction_N'])} N at the index pad's drags. Without them the index pad slid at "
+        f"{r2(ab[0]['mu_uncorrected'])} and {r2(ab[2]['mu_uncorrected'])}, and the middle pad at "
+        f"{r2(ab[1]['mu_uncorrected'])}. Within this session the middle pad's coefficient was thus {ab_ratio[0]:.1f} to "
+        f"{ab_ratio[-1]:.1f} times the index pad's. In the night's protocol the index pad had been dragged first, from "
+        f"{clock(FRP['index'])}, and the middle pad from {clock(FRP['middle'])}. The analysis is in the same script and "
+        "file as Table 40's.</p>"
+        + P.table(["Drag began", "Pad", "Normal force set (N)", "Normal force (N)", "Drag speed (mm/s)",
+                   "Friction coefficient", "Without the control", "Control's force along the drag (N)", "Legs"],
+                  ab_rows, num_cols=tuple(range(2, 9)), n=41,
+                  caption="S4(b) on the SR2 hand's taped plate on 2026-11-19: the index and middle pads dragged at their "
+                  "poses of Table 39 after free-air controls there, per record, force set and speed. Drag began: the "
+                  "local time of the record's first leg. Friction coefficient and normal force: as in Table 40, after the "
+                  "control's force at the same speed and direction was subtracted leg by leg. Without the control: the "
+                  "coefficient before that subtraction. Control's force along the drag: half the difference between the "
+                  "control's downward and upward legs. Legs: the 5 mm legs at that force set and speed. At 20 mm/s the "
+                  "arm accelerated at 0.5 m/s², so a leg slid steadily for about 0.1 s. Its plateau was taken over the "
+                  "time at full speed. At the 2 N setting the drag stopped on its first downward leg, at the 3 N guard.")
     )
     S.append(("hand", "Boards' force against the HEX-E and fingertip friction on the SR2 hand", body))
 
