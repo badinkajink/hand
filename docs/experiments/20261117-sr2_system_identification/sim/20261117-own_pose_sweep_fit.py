@@ -20,6 +20,10 @@ joint zeros explains.
 
     ~/.claude/bin/resguard.sh run --mem 3G --cpu 300 -- env NUMPY_MADVISE_HUGEPAGE=0 OPENBLAS_NUM_THREADS=2 \
         .venv/bin/python docs/experiments/20261117-sr2_system_identification/sim/20261117-own_pose_sweep_fit.py
+
+The sweep of 2026-11-19 (lab, 15:12-15:55, at the trials' layout (70, 110), plan data/sweep/
+20261119-plan_random_x70y110.json) runs with --sweep 20261119: the same steps on its own files, and both earlier GPs
+(the trials' and the 11-17 sweep's) tested on its rows.
 """
 import argparse
 import json
@@ -37,11 +41,22 @@ import sr2_crosstalk_hand as XH  # noqa: E402
 import tip_contacts as TC  # noqa: E402
 
 EXP = HERE.parent
-RUN = ROOT / "logs/20261117-sr2_boards_sweep/s3"
-MUX = ROOT / "logs/20261117-three_finger_mux/20261117-180517-mux.bin"
-ROWS = EXP / "data/sweep/20261117-own_pose_rows_s3.npz"
-OUT = EXP / "data/sweep/20261117-own_pose_sweep_fit.json"
-GP_NEW = TC.OWN_POSE.parent / "20261117-own_pose_gp_sweep_x85y170_7v5.npz"
+SWEEPS = {
+    "20261117": dict(run=ROOT / "logs/20261117-sr2_boards_sweep/s3",
+                     mux=ROOT / "logs/20261117-three_finger_mux/20261117-180517-mux.bin",
+                     rows=EXP / "data/sweep/20261117-own_pose_rows_s3.npz",
+                     out=EXP / "data/sweep/20261117-own_pose_sweep_fit.json",
+                     gp_new=TC.OWN_POSE.parent / "20261117-own_pose_gp_sweep_x85y170_7v5.npz",
+                     layout="roll (85, 170)",
+                     source="lab's boards sweep, 2026-11-17 20:10-20:53 (327 steps: 300 random poses, 27 zero poses)"),
+    "20261119": dict(run=ROOT / "logs/20261119-sr2_boards_sweep/s1",
+                     mux=ROOT / "logs/20261119-three_finger_mux/20261119-142714-mux.bin",
+                     rows=EXP / "data/sweep/20261119-own_pose_rows_x70y110.npz",
+                     out=EXP / "data/sweep/20261119-own_pose_sweep_fit.json",
+                     gp_new=TC.OWN_POSE.parent / "20261119-own_pose_gp_sweep_x70y110_7v5.npz",
+                     layout="trials (70, 110)",
+                     source="lab's boards sweep, 2026-11-19 15:12-15:55 (327 steps), after the afternoon's presses")}
+GP_11_17 = SWEEPS["20261117"]["gp_new"]
 OLD_JSON = ROOT / "docs/experiments/20261104-sr2_hand_crosstalk/data/20261105-sr2_crosstalk_hand_20261104_20261105.json"
 F = XH.F
 
@@ -60,12 +75,15 @@ def errs(e, upn):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--no-offset", action="store_true", help="skip the joint-offset test of the old GP")
+    ap.add_argument("--sweep", default="20261117", choices=list(SWEEPS))
     a = ap.parse_args()
+    sw = SWEEPS[a.sweep]
+    RUN, MUX, ROWS, OUT, GP_NEW = sw["run"], sw["mux"], sw["rows"], sw["out"], sw["gp_new"]
     t0 = time.time()
     old = json.loads(OLD_JSON.read_text())
     upn = old["uT_per_N"]                                  # each tip's change per newton on the UR5 (11-05's values)
     cfg = dict(dir=RUN.parent, runs=[RUN.name], logs=[MUX], index_lost=None)
-    S = XH.steps(cfg, "20261117")
+    S = XH.steps(cfg, a.sweep)
     XH.dwell_means(cfg, S)
     print(f"{len(S)} steps read in {time.time() - t0:.0f} s", flush=True)
     names = XH.layout_name(S)
@@ -83,6 +101,7 @@ def main():
     info = TC.fit_own_pose(out=GP_NEW, rows=ROWS)
     print(f"fitted -> {GP_NEW}: {info}", flush=True)
     gp_old, gp_new = TC.OwnPose(TC.OWN_POSE), TC.OwnPose(GP_NEW)
+    gp17 = TC.OwnPose(GP_11_17) if a.sweep != "20261117" and GP_11_17.exists() else None
     z = np.load(ROWS)
     q = z["q"]
     res = {}
@@ -101,6 +120,9 @@ def main():
                  old_gp_at_zero_uT=round(float(np.linalg.norm(P0)), 2),
                  new_gp_in_sample=errs(np.linalg.norm(Y - np.array([gp_new.predict(f, x) for x in X]), axis=1),
                                        upn[f]),
+                 gp_11_17_on_new=(errs(np.linalg.norm(Y - (np.array([gp17.predict(f, x) for x in X])
+                                                           - gp17.predict(f, np.zeros(3))), axis=1), upn[f])
+                                  if gp17 is not None else None),
                  joint_ranges_deg=np.round(np.c_[X.min(0), X.max(0)], 1).tolist(),
                  left_out_moving=own[f]["left_out_moving"], gp=info.get(f))
         if not a.no_offset:
@@ -117,10 +139,10 @@ def main():
         print(f"{f}: {r['rows']} rows, change median {r['change']['median_uT']} uT; five folds new "
               f"{r['five_folds_new']['median_uT']} (11-04/05 {r['five_folds_11_04_05']['median_uT']}); old GP on new "
               f"{r['old_gp_on_new']['median_uT']} (raw {r['old_gp_on_new_raw']['median_uT']})"
+              + (f"; 11-17 sweep GP {r['gp_11_17_on_new']['median_uT']}" if r.get("gp_11_17_on_new") else "")
               + (f"; with offset {r['old_gp_with_joint_offset']['offset_deg']} deg "
                  f"{r['old_gp_with_joint_offset']['median_uT']}" if "old_gp_with_joint_offset" in r else ""), flush=True)
-    out = dict(source="lab's boards sweep, 2026-11-17 20:10-20:53 (327 steps: 300 random poses, 27 zero poses)",
-               layout="roll (85, 170)", mounts_P_mm=mounts, run=str(RUN.relative_to(ROOT)),
+    out = dict(source=sw["source"], layout=sw["layout"], mounts_P_mm=mounts, run=str(RUN.relative_to(ROOT)),
                mux=str(MUX.relative_to(ROOT)), rows=str(ROWS.relative_to(ROOT)), gp_new=str(GP_NEW.relative_to(ROOT)),
                gp_trials=str(TC.OWN_POSE.relative_to(ROOT)), script=str(Path(__file__).relative_to(ROOT)),
                uT_per_N=upn, zero_noise=noise, steps=len(S),

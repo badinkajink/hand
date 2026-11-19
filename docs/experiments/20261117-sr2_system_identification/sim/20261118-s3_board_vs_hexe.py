@@ -25,6 +25,12 @@ Per press and estimator: the steps (columns in "cols"), and least-squares lines 
 its normal force and its |f_xy| against the HEX-E's |F_xy|, and per axis of P against the HEX-E's component.
 
     resguard run --mem 3G -- .venv/bin/python sim/20261118-s3_board_vs_hexe.py [--out data/s3/20261118-board_vs_hexe.json]
+
+With --day 20261119: the six angle presses of 2026-11-19 14:27-14:37 (the MCP pressing the pad face on, the PIP pre-bent
+15 and 30 deg; the thumb on the tag plate, the index and middle on the taped plate), at the roll layout's mounts, into
+data/s3/20261119-board_vs_hexe.json. Their steps dwell 0.5 s (the first index press 1 s), so a step's board estimate
+is the mean over its dwell less 0.05 s. A fourth estimator replaces the trials' own-pose GP with the one fitted on the
+sweep of 2026-11-17 at the same layout (85, 170): "gp_own_pose_x85y170".
 """
 import argparse
 import datetime as dt
@@ -46,6 +52,18 @@ LOGS = ROOT / "logs/20261118-sr2_s3_press"
 MUXES = sorted((ROOT / "logs/20261118-three_finger_mux").glob("20261118-*-mux.bin"))
 R_PH_FROM = "20261118-160047_index_yaw"           # the MCP press's rows predate dF_P; its pose is the yaw press's
 ESTIMATORS = {"gp_own_pose": (True, True), "gp": (True, False), "physical": (False, False)}
+OWN_X85Y170 = TC.OWN_POSE.parent / "20261117-own_pose_gp_sweep_x85y170_7v5.npz"
+DRAGS19 = [("20261119-143939_index_drag1N_w", "index", "20261119-143821"),
+           ("20261119-144044_index_drag2N_w", "index", "20261119-143821"),
+           ("20261119-144343_middle_drag1N_w", "middle", "20261119-144227"),
+           ("20261119-144447_middle_drag2N_w", "middle", "20261119-144227"),
+           ("20261119-144805_thumb_drag1N_w", "thumb", "20261119-144645"),
+           ("20261119-144916_thumb_drag2N_w", "thumb", "20261119-144645")]
+DRAG_DT = 0.2
+DAY19 = [("20261119-142715_index_mcp", "index", "20261119-142629"), ("20261119-142936_index_mcp", "index", "20261119-142905"),
+         ("20261119-143129_middle_mcp", "middle", "20261119-143045"),
+         ("20261119-143251_middle_mcp", "middle", "20261119-143219"),
+         ("20261119-143453_thumb_mcp", "thumb", "20261119-143406"), ("20261119-143659_thumb_mcp", "thumb", "20261119-143610")]
 REST_BEFORE_S, REST_S = 2.2, 1.0
 N_EVAL = 10
 
@@ -112,10 +130,12 @@ def mux_for(t):
     return MUXES[k]
 
 
-def run(name, finger, R_PH, others, gp, own):
+def run(name, finger, R_PH, others, gp, own, own_path=None):
     head, rows, ts, qs = load(name)
     t_first = rows[0]["t"]
-    feed = TC.MuxLog(mux_for(t_first), t_first - REST_BEFORE_S - REST_S - TC.KEEP_S - 1.0, rows[-1]["t"] + 1.0)
+    mux = ROOT / head["mux"] if LOGS.name.startswith("20261119") else mux_for(t_first)
+    feed = TC.MuxLog(mux, t_first - REST_BEFORE_S - REST_S - TC.KEEP_S - 1.0, rows[-1]["t"] + 1.0)
+    win = min(1.0, float(head.get("dwell_s", 1.0))) - (0.05 if head.get("dwell_s", 1.0) < 1.0 else 0.0)
 
     def joints(t):
         q = {f: dict(others[f]) for f in TC.FINGERS}
@@ -125,13 +145,15 @@ def run(name, finger, R_PH, others, gp, own):
     tc = TC.TipContacts(feed, np.zeros(6), gp=gp, own_pose=own)
     for tip in tc.tips.values():
         tip.threshold, tip.min_force = -1e9, -1e9
+        if own and own_path is not None:
+            tip.own = TC.OwnPose(own_path)
     rest_end = t_first - REST_BEFORE_S
     info = tc.rest(rest_end, REST_S, refit=True, joints_servo=joints(rest_end))
     out = []
     for r in rows:
         F = np.asarray(r["dF_P"] if "dF_P" in r else R_PH @ np.asarray(r["dF_N"], float), float)
         fs, fn = [], []
-        for t in r["t"] - 1.0 + (np.arange(N_EVAL) + 0.5) / N_EVAL:
+        for t in r["t"] - win + win * (np.arange(N_EVAL) + 0.5) / N_EVAL:
             J = joints(t)
             est = tc.estimate(t, J)
             _cop, rec = tc.to_P(est, J)
@@ -146,6 +168,62 @@ def run(name, finger, R_PH, others, gp, own):
     return head, info, out
 
 
+def run_drag(name, finger, others, gp, own, own_path=None):
+    """A shear drag (the pad held on the plate, the arm moving it across the finger): every DRAG_DT s through the legs,
+    the HEX-E's force in P (its mean over the interval, from the run's F0) beside the board's estimate (the mean of five
+    evaluations in the interval)."""
+    lines = [json.loads(x) for x in (LOGS / f"{name}.jsonl").read_text().splitlines() if x.strip()]
+    head, legs = lines[0], [x for x in lines if x.get("phase") == "leg"]
+    raw = [json.loads(x) for x in (LOGS / f"{name}_raw.jsonl").read_text().splitlines() if x.strip()]
+    th = np.concatenate([np.array(r["hexe_t"], float) for r in raw])
+    FH = np.concatenate([np.array(r["hexe"], float).reshape(-1, 6)[:, :3] for r in raw])
+    o = np.argsort(th)
+    th, FP = th[o], (FH[o] - np.array(head["F0_N"])) @ np.array(head["R_PH"]).T
+    st = sorted([(q[0], q[1]) for r in raw for q in r.get("station", [])], key=lambda q: q[0])
+    ts = np.array([q[0] for q in st])
+    qs = np.array([[q[1][j] for j in ("yaw", "mcp", "pip")] for q in st])
+    t_first = legs[0]["t0"]
+    t_rest = float(head["t"]) + 0.5
+    feed = TC.MuxLog(ROOT / head["mux"] if head.get("mux") else mux_for(t_first),
+                     t_rest - REST_S - TC.KEEP_S - 1.0, legs[-1]["t1"] + 1.0)
+
+    def joints(t):
+        q = {f: dict(others[f]) for f in TC.FINGERS}
+        q[finger] = {j: float(np.interp(t, ts, qs[:, i])) for i, j in enumerate(("yaw", "mcp", "pip"))}
+        return servo33(q)
+
+    tc = TC.TipContacts(feed, np.zeros(6), gp=gp, own_pose=own)
+    for tip in tc.tips.values():
+        tip.threshold, tip.min_force = -1e9, -1e9
+        if own and own_path is not None:
+            tip.own = TC.OwnPose(own_path)
+    info = tc.rest(t_rest + REST_S, REST_S, refit=True, joints_servo=joints(t_rest))
+    out = []
+    for lg in legs:
+        for t0 in np.arange(lg["t0"], lg["t1"] - DRAG_DT, DRAG_DT):
+            m = (th >= t0) & (th < t0 + DRAG_DT)
+            if m.sum() < 3:
+                continue
+            F = FP[m].mean(0)
+            fs, fn = [], []
+            for t in t0 + DRAG_DT * (np.arange(5) + 0.5) / 5:
+                J = joints(t)
+                _cop, rec = tc.to_P(tc.estimate(t, J), J)
+                e = rec.get(finger)
+                if e is not None and e.get("f_P") is not None:
+                    fs.append(e["f_P"])
+                    fn.append(e["f_n"])
+            b = np.mean(fs, 0) if fs else [None] * 3
+            out.append([round(float(t0 - t_first), 2), lg["to_mm"], *np.round(F, 3).tolist(),
+                        *[None if v is None else round(float(v), 3) for v in b],
+                        round(float(np.mean(fn)), 3) if fn else None, len(fn)])
+    return head, info, out
+
+
+DRAG_COLS = ["t_s", "leg_to_mm", "hexe_x_P_N", "hexe_y_P_N", "hexe_z_P_N", "board_x_P_N", "board_y_P_N", "board_z_P_N",
+             "board_n_N", "found_of_5"]
+
+
 COLS = ["k", "phase", "error_deg", "reading_deg", "hexe_x_P_N", "hexe_y_P_N", "hexe_z_P_N", "board_x_P_N", "board_y_P_N",
         "board_z_P_N", "board_n_N", "found_of_10"]
 
@@ -154,21 +232,33 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(STUDY / "data/s3/20261118-board_vs_hexe.json"))
     ap.add_argument("--only", nargs="*", default=None, help="run these press stems and replace them in --out")
+    ap.add_argument("--day", default="20261118", choices=["20261118", "20261119"])
     a = ap.parse_args()
-    R_PH = np.asarray(json.loads((LOGS / f"{R_PH_FROM}.jsonl").read_text().splitlines()[0])["R_PH"], float)
+    global LOGS, MUXES
+    estimators = dict(ESTIMATORS)
+    if a.day == "20261119":
+        LOGS = ROOT / "logs/20261119-sr2_s3_press"
+        MUXES = sorted((ROOT / "logs/20261119-three_finger_mux").glob("20261119-*-mux.bin"))
+        estimators["gp_own_pose_x85y170"] = (True, True)
+        if a.out.endswith("20261118-board_vs_hexe.json"):
+            a.out = str(STUDY / "data/s3/20261119-board_vs_hexe.json")
+    R_PH = np.asarray(json.loads((ROOT / "logs/20261118-sr2_s3_press" / f"{R_PH_FROM}.jsonl").read_text()
+                                 .splitlines()[0])["R_PH"], float)
     res = {"what": __doc__.split("\n\n")[0].replace("\n", " "),
            "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py",
            "mux": [str(f.relative_to(ROOT)) for f in MUXES], "cols": COLS, "presses": []}
     if a.only and Path(a.out).exists():
         res["presses"] = [p for p in json.loads(Path(a.out).read_text())["presses"]
                           if Path(p["file"]).name[:-6] not in a.only]
-    for name, finger, appr in presses():
+    for name, finger, appr in (DAY19 if a.day == "20261119" else presses()):
         if a.only is not None and name not in a.only:
             continue
-        others = json.loads(next((STUDY / "data/s3").glob(f"{appr}_approach_*.json")).read_text())["joints"]
-        rec = {"file": f"logs/20261118-sr2_s3_press/{name}.jsonl", "finger": finger, "approach": appr, "estimators": {}}
-        for en, (gp, own) in ESTIMATORS.items():
-            head, info, out = run(name, finger, R_PH, others, gp, own)
+        adir = LOGS if a.day == "20261119" else STUDY / "data/s3"
+        others = json.loads(next(adir.glob(f"{appr}_approach_*.json")).read_text())["joints"]
+        rec = {"file": f"{LOGS.relative_to(ROOT)}/{name}.jsonl", "finger": finger, "approach": appr, "estimators": {}}
+        for en, (gp, own) in estimators.items():
+            head, info, out = run(name, finger, R_PH, others, gp, own,
+                                  OWN_X85Y170 if en == "gp_own_pose_x85y170" else None)
             rec["sign"], rec["joint"] = head.get("sign"), head.get("joint")
             have = [o for o in out if o[11]]
             hx = np.array([o[4:7] for o in have], float).reshape(-1, 3)
@@ -182,6 +272,24 @@ def main():
                   f"{np.round(top[4:7], 2).tolist()} the board {top[7:10]} n {top[10]}; fit n {fits['n_vs_xy']}", flush=True)
         res["presses"].append(rec)
     res["presses"].sort(key=lambda p: Path(p["file"]).name)
+    if a.day == "20261119" and a.only is None:
+        res["drag_cols"], res["drags"] = DRAG_COLS, []
+        for name, finger, appr in DRAGS19:
+            others = json.loads(next(LOGS.glob(f"{appr}_approach_*.json")).read_text())["joints"]
+            rec = {"file": f"{LOGS.relative_to(ROOT)}/{name}.jsonl", "finger": finger, "approach": appr,
+                   "estimators": {}}
+            for en, (gp, own) in estimators.items():
+                head, info, out = run_drag(name, finger, others, gp, own,
+                                           OWN_X85Y170 if en == "gp_own_pose_x85y170" else None)
+                have = [o for o in out if o[9]]
+                hx = np.array([o[2:5] for o in have], float).reshape(-1, 3)
+                bx = np.array([o[5:8] for o in have], float).reshape(-1, 3)
+                fits = {"normal_x_P": fit(np.abs(hx[:, 0]), [o[8] for o in have]),
+                        "shear_y_P": fit(hx[:, 1], bx[:, 1]), "shear_z_P": fit(hx[:, 2], bx[:, 2])}
+                rec["estimators"][en] = {"rest": info, "fits": fits, "samples": out}
+                print(f"{name:30s} {en:20s} samples {len(out)} with an estimate {len(have)}; normal {fits['normal_x_P']}; "
+                      f"shear across (y_P) {fits['shear_y_P']}", flush=True)
+            res["drags"].append(rec)
     Path(a.out).write_text(json.dumps(res, separators=(",", ":")) + "\n")
     print("wrote", a.out)
 

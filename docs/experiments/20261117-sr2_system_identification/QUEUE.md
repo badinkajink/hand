@@ -549,6 +549,26 @@ air and then against a force sensor. Contact and the blind validation trials nee
   and 0.64 and the middle 0.82. Within one session the middle thus grips 1.2-1.4 times as hard as the index. Most of
   last night's 1.8-2 times was drift: the index pad slid at 0.40 at this pose on 11-18 and at 0.59-0.71 today. The
   pads' friction on the tape thus spans about 0.3-0.8 over speed and sessions.
+- W2, the boards' own-pose term at the trials' layout (11-19 16:0x; the lab's free-air sweep of 15:12-15:55 at
+  (70, 110), 327 steps; `sim/20261117-own_pose_sweep_fit.py --sweep 20261119`, `data/sweep/20261119-own_pose_sweep_fit.json`;
+  the new GP `docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261119-own_pose_gp_sweep_x70y110_7v5.npz`).
+  In free air the pose alone changed each board's reading by a median of 54-71 uT. At the UR5's 28 uT per N that is
+  1.9-2.5 N. The trials' own-pose GP (11-04/05) leaves 6.1, 10.0 and 11.3 uT for the thumb, index and middle: 0.21,
+  0.36 and 0.40 N, with 95th percentiles of 0.50-0.76 N. A GP refitted on this sweep leaves 5.4, 4.4 and 5.7 uT in
+  five-fold cross-validation: 0.19, 0.16 and 0.20 N. The 11-17 sweep's GP, fitted at the roll layout (85, 170), leaves
+  11.2-21.6 uT here (0.39-0.76 N), so the term depends on the layout. Switching tip_contacts.OWN_POSE to the new file
+  is the owner's call.
+- W2, the boards against the HEX-E in the afternoon's presses and shear runs (11-19 16:1x;
+  `sim/20261118-s3_board_vs_hexe.py --day 20261119`, `data/s3/20261119-board_vs_hexe.json`). In the six angle presses
+  the MCP pressed each pad face on with the PIP bent 15 and 30 deg. The trials' estimator read 0.51-0.60 times the
+  HEX-E's normal force, plus 0.14-0.31 N, with an RMS of 0.05-0.12 N about that line. With the 11-17 sweep's own-pose
+  GP, fitted at this layout, it read 0.51-0.62 times (RMS 0.06-0.10 N). The GP without the own-pose term read
+  0.58-0.69 times. The physical model read 0.28-0.51 times, with an RMS of 0.38-0.55 N. In the shear runs across the
+  finger the trials' estimator read 0.52-0.59 times the HEX-E's force for the index and the thumb (RMS 0.03-0.10 N). It
+  read 0.83 times for the middle at 1 N; the middle's 2 N run fitted poorly (RMS 0.40 N). The physical model read the
+  shear at 0.6-3.5 times, with an RMS of 0.4-0.9 N. With the PIP at 0 the boards had read 0.26-0.52 times (11-18). In
+  the hand the boards thus read about half the force the HEX-E measures, in the normal direction and in shear, with a
+  scatter of 0.03-0.12 N about that line.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

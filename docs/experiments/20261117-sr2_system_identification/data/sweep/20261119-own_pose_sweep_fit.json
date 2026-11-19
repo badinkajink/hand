@@ -1,0 +1,305 @@
+{
+ "source": "lab's boards sweep, 2026-11-19 15:12-15:55 (327 steps), after the afternoon's presses",
+ "layout": "trials (70, 110)",
+ "mounts_P_mm": {
+  "thumb": [
+   -28.82,
+   2.4
+  ],
+  "index": [
+   28.82,
+   51.6
+  ],
+  "middle": [
+   28.82,
+   -51.6
+  ]
+ },
+ "run": "logs/20261119-sr2_boards_sweep/s1",
+ "mux": "logs/20261119-three_finger_mux/20261119-142714-mux.bin",
+ "rows": "docs/experiments/20261117-sr2_system_identification/data/sweep/20261119-own_pose_rows_x70y110.npz",
+ "gp_new": "docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261119-own_pose_gp_sweep_x70y110_7v5.npz",
+ "gp_trials": "docs/experiments/20261115-hom_bench_trials/data/20261117-tip_contacts/20261117-own_pose_gp.npz",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261117-own_pose_sweep_fit.py",
+ "uT_per_N": {
+  "thumb": 28.68,
+  "index": 28.22,
+  "middle": 27.97
+ },
+ "zero_noise": {
+  "20261119 thumb": {
+   "n": 25,
+   "median_uT": 3.2,
+   "p95_uT": 6.63
+  },
+  "20261119 index": {
+   "n": 25,
+   "median_uT": 3.21,
+   "p95_uT": 5.23
+  },
+  "20261119 middle": {
+   "n": 25,
+   "median_uT": 3.23,
+   "p95_uT": 5.17
+  }
+ },
+ "steps": 327,
+ "terms": {
+  "change": "|d|, a board's 15 components less the zero pose's (uT)",
+  "five_folds": "the GP on the own finger's yaw, MCP and PIP fitted on four fifths of the rows and tested on the fifth, |predicted - measured| (uT, and N by the tip's uT per N)",
+  "old_gp_on_new": "the trials' GP (11-04/05) on the new rows, P(q) - P(0) against d",
+  "old_gp_with_joint_offset": "the same with one offset per joint added to the measured angles, fitted to the new rows (soft L1)"
+ },
+ "boards": {
+  "thumb": {
+   "rows": 287,
+   "change": {
+    "median_uT": 54.37,
+    "p95_uT": 88.73,
+    "median_N": 1.896,
+    "p95_N": 3.094
+   },
+   "five_folds_new": {
+    "median_uT": 5.41,
+    "p95_uT": 10.89,
+    "median_N": 0.189,
+    "p95_N": 0.38
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 6.14,
+    "p95_uT": 15.03,
+    "median_N": 0.214,
+    "p95_N": 0.524
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 8.08,
+    "p95_uT": 14.16,
+    "median_N": 0.282
+   },
+   "old_gp_on_new": {
+    "median_uT": 6.11,
+    "p95_uT": 14.24,
+    "median_N": 0.213,
+    "p95_N": 0.497
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 5.94,
+    "p95_uT": 13.95,
+    "median_N": 0.207,
+    "p95_N": 0.486
+   },
+   "old_gp_at_zero_uT": 0.75,
+   "new_gp_in_sample": {
+    "median_uT": 4.46,
+    "p95_uT": 9.4,
+    "median_N": 0.156,
+    "p95_N": 0.328
+   },
+   "gp_11_17_on_new": {
+    "median_uT": 11.2,
+    "p95_uT": 26.08,
+    "median_N": 0.391,
+    "p95_N": 0.909
+   },
+   "joint_ranges_deg": [
+    [
+     -34.6,
+     31.3
+    ],
+    [
+     -7.6,
+     53.6
+    ],
+    [
+     -9.4,
+     79.4
+    ]
+   ],
+   "left_out_moving": 13,
+   "gp": {
+    "n": 287,
+    "ell": 1.732,
+    "nz": 0.1
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -2.02,
+     1.28,
+     -0.57
+    ],
+    "median_uT": 5.89,
+    "p95_uT": 13.21,
+    "median_N": 0.205,
+    "p95_N": 0.461
+   }
+  },
+  "index": {
+   "rows": 287,
+   "change": {
+    "median_uT": 71.48,
+    "p95_uT": 98.64,
+    "median_N": 2.533,
+    "p95_N": 3.495
+   },
+   "five_folds_new": {
+    "median_uT": 4.36,
+    "p95_uT": 8.87,
+    "median_N": 0.155,
+    "p95_N": 0.314
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 5.81,
+    "p95_uT": 12.41,
+    "median_N": 0.206,
+    "p95_N": 0.44
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 8.41,
+    "p95_uT": 14.47,
+    "median_N": 0.298
+   },
+   "old_gp_on_new": {
+    "median_uT": 10.03,
+    "p95_uT": 15.39,
+    "median_N": 0.355,
+    "p95_N": 0.545
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 10.45,
+    "p95_uT": 16.08,
+    "median_N": 0.37,
+    "p95_N": 0.57
+   },
+   "old_gp_at_zero_uT": 1.43,
+   "new_gp_in_sample": {
+    "median_uT": 3.71,
+    "p95_uT": 7.11,
+    "median_N": 0.131,
+    "p95_N": 0.252
+   },
+   "gp_11_17_on_new": {
+    "median_uT": 21.55,
+    "p95_uT": 32.14,
+    "median_N": 0.764,
+    "p95_N": 1.139
+   },
+   "joint_ranges_deg": [
+    [
+     -32.2,
+     34.3
+    ],
+    [
+     -8.2,
+     49.5
+    ],
+    [
+     3.5,
+     83.8
+    ]
+   ],
+   "left_out_moving": 13,
+   "gp": {
+    "n": 287,
+    "ell": 1.732,
+    "nz": 0.1
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -7.32,
+     -5.12,
+     2.31
+    ],
+    "median_uT": 5.19,
+    "p95_uT": 10.05,
+    "median_N": 0.184,
+    "p95_N": 0.356
+   }
+  },
+  "middle": {
+   "rows": 287,
+   "change": {
+    "median_uT": 59.88,
+    "p95_uT": 88.41,
+    "median_N": 2.141,
+    "p95_N": 3.161
+   },
+   "five_folds_new": {
+    "median_uT": 5.66,
+    "p95_uT": 10.7,
+    "median_N": 0.202,
+    "p95_N": 0.383
+   },
+   "five_folds_11_04_05": {
+    "median_uT": 5.44,
+    "p95_uT": 12.74,
+    "median_N": 0.194,
+    "p95_N": 0.455
+   },
+   "left_out_roll_85_170_11_05": {
+    "n": 116,
+    "median_uT": 6.59,
+    "p95_uT": 16.27,
+    "median_N": 0.236
+   },
+   "old_gp_on_new": {
+    "median_uT": 11.29,
+    "p95_uT": 21.14,
+    "median_N": 0.404,
+    "p95_N": 0.756
+   },
+   "old_gp_on_new_raw": {
+    "median_uT": 11.42,
+    "p95_uT": 20.95,
+    "median_N": 0.408,
+    "p95_N": 0.749
+   },
+   "old_gp_at_zero_uT": 1.45,
+   "new_gp_in_sample": {
+    "median_uT": 5.1,
+    "p95_uT": 9.58,
+    "median_N": 0.182,
+    "p95_N": 0.343
+   },
+   "gp_11_17_on_new": {
+    "median_uT": 17.4,
+    "p95_uT": 30.41,
+    "median_N": 0.622,
+    "p95_N": 1.087
+   },
+   "joint_ranges_deg": [
+    [
+     -31.9,
+     30.2
+    ],
+    [
+     -7.3,
+     53.6
+    ],
+    [
+     -10.5,
+     69.4
+    ]
+   ],
+   "left_out_moving": 13,
+   "gp": {
+    "n": 287,
+    "ell": 1.732,
+    "nz": 0.3
+   },
+   "old_gp_with_joint_offset": {
+    "offset_deg": [
+     -2.57,
+     -2.6,
+     -1.57
+    ],
+    "median_uT": 7.54,
+    "p95_uT": 15.7,
+    "median_N": 0.27,
+    "p95_N": 0.561
+   }
+  }
+ },
+ "seconds": 2.9
+}
