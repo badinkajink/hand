@@ -541,6 +541,14 @@ air and then against a force sensor. Contact and the blind validation trials nee
   of last night (0.62-0.74). The index ran first in both sessions and read lowest. The middle's 1.8-2 times may
   therefore be drift over a session (the pad or the tape conditioning with use, or temperature). An index, middle,
   index sequence of drags at their own poses would separate the finger from the drift.
+- S4(b), index, middle and index again on the tape (11-19 15:2x; lab runs of 15:02-15:10 at the pads' poses of 11-18;
+  records 20261119-150353, 150630 and 150905, each after a free-air control at its pose; "pads_aba" in
+  `data/s3/20261119-pla_side_friction.json`). Each ran three pairs of legs at 1 N and 2 mm/s. The index pad slid at
+  0.71 of the normal force at 15:03 and at 0.59 at 15:09. The middle pad slid at 0.82 between them. The controls'
+  half-differences were -0.05 to +0.05 N, and they make most of the index's spread: without them the index gave 0.65
+  and 0.64 and the middle 0.82. Within one session the middle thus grips 1.2-1.4 times as hard as the index. Most of
+  last night's 1.8-2 times was drift: the index pad slid at 0.40 at this pose on 11-18 and at 0.59-0.71 today. The
+  pads' friction on the tape thus spans about 0.3-0.8 over speed and sessions.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

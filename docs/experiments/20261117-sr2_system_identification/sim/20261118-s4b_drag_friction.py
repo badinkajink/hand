@@ -70,6 +70,10 @@ SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air cont
 PAD_SPEED = {  # 2026-11-19 14:51-14:59: the index pad at phase A's pose, 2 and 20 mm/s, arm at 0.5 m/s^2
     "20261119-145241_index_protocol": ["20261119-145158_index_protocol", "20261119-145522_index_protocol"],
     "20261119-145651_index_protocol": ["20261119-145522_index_protocol", "20261119-145802_index_protocol"]}
+ABA = {  # 2026-11-19 15:02-15:10: index, middle, index at their poses of 11-18, 1 N and 2 mm/s, each after its control
+    "20261119-150353_index_protocol": ["20261119-150320_index_protocol"],
+    "20261119-150630_middle_protocol": ["20261119-150558_middle_protocol"],
+    "20261119-150905_index_protocol": ["20261119-150832_index_protocol"]}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 FAST_MM_S, FAST_MEAN_S = 10.0, 0.05  # legs this fast: 0.05 s means, plateau where the TCP runs at 0.8 of the speed
@@ -312,6 +316,13 @@ def main():
         r = protocol(stem, control=ctl)[0]
         side["pads_speed"].append(r)
         print(stem, r["finger"], "pad at 2 and 20 mm/s, control", ctl)
+        for f in r["friction"]:
+            print("   friction", json.dumps(f))
+    side["pads_aba"] = []
+    for stem, ctl in ABA.items():
+        r = protocol(stem, control=ctl)[0]
+        side["pads_aba"].append(r)
+        print(stem, r["finger"], "pad, index-middle-index, control", ctl)
         for f in r["friction"]:
             print("   friction", json.dumps(f))
     Path(a.side_out).write_text(json.dumps({"what": "S4(b) on 2026-11-19: the tips' PLA sides on the taped plate, "

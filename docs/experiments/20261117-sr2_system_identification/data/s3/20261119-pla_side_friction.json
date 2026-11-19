@@ -4985,5 +4985,397 @@
     }
    ]
   }
+ ],
+ "pads_aba": [
+  {
+   "run": "20261119-150353_index_protocol",
+   "finger": "index",
+   "joint": "mcp",
+   "surface": "pad on tape",
+   "normal_axis_P": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "normal_sign": 1.0,
+   "control": [
+    "20261119-150320_index_protocol"
+   ],
+   "legs": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795125853.0869772,
+     "before_N": 0.062,
+     "plateau_N": -0.578,
+     "normal_N": 0.866,
+     "swing_N": -0.64,
+     "overshoot_N": 0.114,
+     "noise_max_N": 0.088,
+     "overshoot_at_mm": 2.04,
+     "normal_raw_N": 0.866,
+     "lateral_N": 0.078
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795125857.0385458,
+     "before_N": -0.4,
+     "plateau_N": 0.943,
+     "normal_N": 1.43,
+     "swing_N": 1.343,
+     "overshoot_N": 0.023,
+     "noise_max_N": 0.103,
+     "overshoot_at_mm": 2.21,
+     "normal_raw_N": 1.43,
+     "lateral_N": 0.046
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795125861.0512335,
+     "before_N": 0.696,
+     "plateau_N": -0.628,
+     "normal_N": 0.971,
+     "swing_N": -1.324,
+     "overshoot_N": 0.011,
+     "noise_max_N": 0.096,
+     "overshoot_at_mm": 1.74,
+     "normal_raw_N": 0.971,
+     "lateral_N": 0.087
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795125865.0584424,
+     "before_N": -0.393,
+     "plateau_N": 0.913,
+     "normal_N": 1.438,
+     "swing_N": 1.306,
+     "overshoot_N": 0.131,
+     "noise_max_N": 0.086,
+     "overshoot_at_mm": 1.84,
+     "normal_raw_N": 1.438,
+     "lateral_N": 0.046
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795125869.0569332,
+     "before_N": 0.653,
+     "plateau_N": -0.676,
+     "normal_N": 0.966,
+     "swing_N": -1.33,
+     "overshoot_N": 0.003,
+     "noise_max_N": 0.124,
+     "overshoot_at_mm": 2.32,
+     "normal_raw_N": 0.966,
+     "lateral_N": 0.097
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795125873.0707164,
+     "before_N": -0.483,
+     "plateau_N": 0.885,
+     "normal_N": 1.412,
+     "swing_N": 1.367,
+     "overshoot_N": 0.084,
+     "noise_max_N": 0.101,
+     "overshoot_at_mm": 2.32,
+     "normal_raw_N": 1.412,
+     "lateral_N": 0.043
+    }
+   ],
+   "friction": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "friction_N": 0.821,
+     "normal_N": 1.158,
+     "mu": 0.709,
+     "control_friction_N": -0.05,
+     "control_normal_N": 0.022,
+     "lateral_N": 0.072,
+     "mu_with_lateral": 0.711,
+     "friction_uncorrected_N": 0.77,
+     "normal_uncorrected_N": 1.18,
+     "mu_uncorrected": 0.653
+    }
+   ]
+  },
+  {
+   "run": "20261119-150630_middle_protocol",
+   "finger": "middle",
+   "joint": "mcp",
+   "surface": "pad on tape",
+   "normal_axis_P": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "normal_sign": 1.0,
+   "control": [
+    "20261119-150558_middle_protocol"
+   ],
+   "legs": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126009.8158863,
+     "before_N": -0.463,
+     "plateau_N": -1.052,
+     "normal_N": 0.948,
+     "swing_N": -0.588,
+     "overshoot_N": 0.044,
+     "noise_max_N": 0.13,
+     "overshoot_at_mm": 2.04,
+     "normal_raw_N": 0.948,
+     "lateral_N": 0.088
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126013.7738006,
+     "before_N": -0.451,
+     "plateau_N": 0.818,
+     "normal_N": 1.322,
+     "swing_N": 1.269,
+     "overshoot_N": -0.08,
+     "noise_max_N": 0.079,
+     "overshoot_at_mm": 1.96,
+     "normal_raw_N": 1.322,
+     "lateral_N": 0.123
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126017.7755685,
+     "before_N": 0.528,
+     "plateau_N": -1.042,
+     "normal_N": 0.95,
+     "swing_N": -1.571,
+     "overshoot_N": 0.034,
+     "noise_max_N": 0.089,
+     "overshoot_at_mm": 2.25,
+     "normal_raw_N": 0.95,
+     "lateral_N": 0.07
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126021.7710035,
+     "before_N": -1.027,
+     "plateau_N": 0.768,
+     "normal_N": 1.415,
+     "swing_N": 1.795,
+     "overshoot_N": 0.073,
+     "noise_max_N": 0.122,
+     "overshoot_at_mm": 2.24,
+     "normal_raw_N": 1.415,
+     "lateral_N": 0.123
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126025.77316,
+     "before_N": 0.546,
+     "plateau_N": -1.179,
+     "normal_N": 1.017,
+     "swing_N": -1.724,
+     "overshoot_N": 0.116,
+     "noise_max_N": 0.118,
+     "overshoot_at_mm": 1.9,
+     "normal_raw_N": 1.017,
+     "lateral_N": 0.056
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126029.7716777,
+     "before_N": -1.026,
+     "plateau_N": 0.957,
+     "normal_N": 1.438,
+     "swing_N": 1.983,
+     "overshoot_N": 0.026,
+     "noise_max_N": 0.095,
+     "overshoot_at_mm": 1.93,
+     "normal_raw_N": 1.438,
+     "lateral_N": 0.116
+    }
+   ],
+   "friction": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "friction_N": 0.958,
+     "normal_N": 1.163,
+     "mu": 0.824,
+     "control_friction_N": 0.011,
+     "control_normal_N": 0.019,
+     "lateral_N": 0.083,
+     "mu_with_lateral": 0.827,
+     "friction_uncorrected_N": 0.969,
+     "normal_uncorrected_N": 1.182,
+     "mu_uncorrected": 0.82
+    }
+   ]
+  },
+  {
+   "run": "20261119-150905_index_protocol",
+   "finger": "index",
+   "joint": "mcp",
+   "surface": "pad on tape",
+   "normal_axis_P": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "normal_sign": 1.0,
+   "control": [
+    "20261119-150832_index_protocol"
+   ],
+   "legs": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126164.7163668,
+     "before_N": 0.058,
+     "plateau_N": -0.599,
+     "normal_N": 0.909,
+     "swing_N": -0.657,
+     "overshoot_N": 0.013,
+     "noise_max_N": 0.127,
+     "overshoot_at_mm": 2.33,
+     "normal_raw_N": 0.909,
+     "lateral_N": 0.091
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126168.682903,
+     "before_N": -0.441,
+     "plateau_N": 0.842,
+     "normal_N": 1.45,
+     "swing_N": 1.283,
+     "overshoot_N": 0.008,
+     "noise_max_N": 0.143,
+     "overshoot_at_mm": 2.46,
+     "normal_raw_N": 1.45,
+     "lateral_N": 0.072
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126172.681566,
+     "before_N": 0.727,
+     "plateau_N": -0.649,
+     "normal_N": 0.975,
+     "swing_N": -1.376,
+     "overshoot_N": 0.07,
+     "noise_max_N": 0.112,
+     "overshoot_at_mm": 1.54,
+     "normal_raw_N": 0.975,
+     "lateral_N": 0.101
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126176.6949072,
+     "before_N": -0.481,
+     "plateau_N": 0.956,
+     "normal_N": 1.545,
+     "swing_N": 1.437,
+     "overshoot_N": 0.071,
+     "noise_max_N": 0.13,
+     "overshoot_at_mm": 1.8,
+     "normal_raw_N": 1.545,
+     "lateral_N": 0.054
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "up",
+     "t0": 1795126180.686169,
+     "before_N": 0.795,
+     "plateau_N": -0.723,
+     "normal_N": 1.026,
+     "swing_N": -1.518,
+     "overshoot_N": -0.054,
+     "noise_max_N": 0.076,
+     "overshoot_at_mm": 2.42,
+     "normal_raw_N": 1.026,
+     "lateral_N": 0.107
+    },
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "dir": "down",
+     "t0": 1795126184.687561,
+     "before_N": -0.551,
+     "plateau_N": 0.979,
+     "normal_N": 1.492,
+     "swing_N": 1.53,
+     "overshoot_N": 0.139,
+     "noise_max_N": 0.084,
+     "overshoot_at_mm": 1.22,
+     "normal_raw_N": 1.492,
+     "lateral_N": 0.065
+    }
+   ],
+   "friction": [
+    {
+     "N": 1.0,
+     "speed_mm_s": 2.0,
+     "rest_s": 1.0,
+     "friction_N": 0.741,
+     "normal_N": 1.249,
+     "mu": 0.593,
+     "control_friction_N": 0.05,
+     "control_normal_N": -0.016,
+     "lateral_N": 0.046,
+     "mu_with_lateral": 0.594,
+     "friction_uncorrected_N": 0.791,
+     "normal_uncorrected_N": 1.233,
+     "mu_uncorrected": 0.642
+    }
+   ]
+  }
  ]
 }
