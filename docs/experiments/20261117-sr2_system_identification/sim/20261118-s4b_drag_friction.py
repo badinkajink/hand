@@ -39,7 +39,9 @@ control, the control's median force along the drag and along the normal, at the 
 subtracted from each leg before the friction is formed; the uncorrected values are kept beside. These runs go to
 data/s3/20261119-pla_side_friction.json, so the pads' file keeps its three protocols. Controls at the poses of the
 index's and middle's pad drags (run on 2026-11-19, the hand unturned) correct those drags in the same file, under
-"pads_corrected"; the thumb's pose had none. A record is read from data/s3, or
+"pads_corrected"; the thumb's pose had none. The travel is the TCP's along the header's axis_B, and a leg's direction
+the sign of that travel. The shear drags of 2026-11-19 14:38-14:50 (each pad pushed +-5 mm across the finger) are left
+out: their force followed the travel like a spring, so they give no sliding friction. A record is read from data/s3, or
 beside its raw file in logs/<date>-sr2_s3_press until the lab copies it. Legs at 10 mm/s or faster (the 20 mm/s legs
 of 2026-11-19, 0.5 m/s^2) slide steadily for about 0.1 s: they take 0.05 s means, and their plateau is the travel past
 2.5 mm where the TCP runs at 0.8 of the leg's speed or more.
@@ -152,11 +154,13 @@ def protocol(stem, control=None):
     h = L[0]
     segs = [x for x in L if x.get("phase") in ("rest", "leg")]
     th = np.concatenate([r["hexe_t"] for r in raw])
-    FH = np.concatenate([np.array(r["hexe"])[:, :3] for r in raw])
+    FH = np.concatenate([np.array(r["hexe"], float).reshape(-1, 6)[:, :3] for r in raw])
     o = np.argsort(th)
     th, FH = th[o], FH[o]
-    tt = np.concatenate([[q[0] for q in r["tcp"]] for r in raw])
-    zt = np.concatenate([[q[1][2] for q in r["tcp"]] for r in raw]) * 1e3
+    tt = np.concatenate([np.array([q[0] for q in r["tcp"]], float) for r in raw])
+    axB = np.array(h.get("axis_B", [0.0, 0.0, 1.0]), float)
+    zt = np.concatenate([np.array([q[1][:3] for q in r["tcp"]], float).reshape(-1, 3) for r in raw]) @ (
+        axB / np.linalg.norm(axB)) * 1e3
     o = np.argsort(tt)
     tt, zt = tt[o], zt[o]
     FP = (FH - np.array(h["F0_N"])) @ np.array(h["R_PH"]).T
@@ -184,6 +188,8 @@ def protocol(stem, control=None):
         Fn = sgn * Fn_raw
         rest = next(x for x in reversed(segs[:segs.index(lg)]) if x["phase"] == "rest")
         rm = (th >= (rest["t0"] + rest["t1"]) / 2) & (th <= rest["t1"])
+        if rm.sum() < 3:                                    # no rest (the shear drags): the 0.3 s before the leg
+            rm = (th >= lg["t0"] - 0.3) & (th < lg["t0"])
         s = (th >= lg["t0"]) & (th <= lg["t1"])
         trav = np.abs(z[s] - z[s][0])
         before = float(np.median(F3[rm]))
@@ -196,7 +202,7 @@ def protocol(stem, control=None):
         noise = float(np.max(sg * (F3[s][pl] - plateau)))
         j = int(np.argmax(sg * (F3[s][first] - plateau)))
         out.append({"N": lg["N"], "speed_mm_s": lg["speed_mm_s"], "rest_s": lg["rest_s"],
-                    "dir": "up" if lg["to_mm"] > 0 else "down", "t0": lg["t0"], "before_N": round(before, 3),
+                    "dir": "up" if z[s][-1] > z[s][0] else "down", "t0": lg["t0"], "before_N": round(before, 3),
                     "plateau_N": round(plateau, 3), "normal_N": round(normal, 3), "swing_N": round(swing, 3),
                     "overshoot_N": round(over, 3), "noise_max_N": round(noise, 3),
                     "overshoot_at_mm": round(float(trav[first][j]), 2),
@@ -219,15 +225,16 @@ def protocol(stem, control=None):
                 up = [r for r in out if (r["N"], r["speed_mm_s"], r["rest_s"], r["dir"]) == (N, v, rs, "up")]
                 dn = [r for r in out if (r["N"], r["speed_mm_s"], r["rest_s"], r["dir"]) == (N, v, rs, "down")]
                 if up and dn:
-                    fk = (dn[0]["plateau_N"] - up[0]["plateau_N"]) / 2
-                    nn = (dn[0]["normal_N"] + up[0]["normal_N"]) / 2
+                    mean = lambda rows, key: float(np.mean([r[key] for r in rows]))  # noqa: E731
+                    fk = (mean(dn, "plateau_N") - mean(up, "plateau_N")) / 2
+                    nn = (mean(dn, "normal_N") + mean(up, "normal_N")) / 2
                     row = {"N": N, "speed_mm_s": v, "rest_s": rs, "friction_N": round(fk, 3),
                            "normal_N": round(nn, 3), "mu": round(fk / nn, 3) if nn > 0.1 else None}
                     if (v, "up") in bias and (v, "down") in bias:
                         bu, bd = bias[(v, "up")], bias[(v, "down")]
                         fc = fk - (bd[0] - bu[0]) / 2
                         nc = nn - (bd[1] + bu[1]) / 2
-                        lc = (dn[0]["lateral_N"] - bd[2] + up[0]["lateral_N"] - bu[2]) / 2
+                        lc = (mean(dn, "lateral_N") - bd[2] + mean(up, "lateral_N") - bu[2]) / 2
                         row = {**row, "friction_N": round(fc, 3), "normal_N": round(nc, 3),
                                "mu": round(fc / nc, 3) if nc > 0.1 else None, "control_friction_N":
                                round((bd[0] - bu[0]) / 2, 3), "control_normal_N": round((bd[1] + bu[1]) / 2, 3),

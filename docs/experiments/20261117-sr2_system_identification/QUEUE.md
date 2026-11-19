@@ -521,6 +521,15 @@ air and then against a force sensor. Contact and the blind validation trials nee
   1.36 times the index's (0.93-0.96). Those were the presses in which its tangential force reached 0.79-0.92 of the
   normal. A known weight hung from each fingertip with the hand pointing down would load z_P at y = +-85 mm, and the
   HEX-E should read the same weight at both.
+- S4(b), the pads pushed across the finger (11-19 15:0x; lab runs of 14:38-14:50, records 20261119-143909 to 144916
+  `_drag0N_w`, `_drag1N_w`, `_drag2N_w`; boards in `logs/20261119-three_finger_mux/20261119-142714-mux.bin`). Each pad
+  was held head on at PIP 0 by its MCP at 1 or 2 N. The arm moved it +5 mm, back, -5 mm and back along the plate's
+  width at 1 mm/s. The force across the finger followed the travel like a spring and fell back near zero at the
+  centre. Its slope was 0.15-0.28 N/mm, and the yaw readings moved 1-2 deg. The index pad did not slide: it held
+  0.98-1.05 N across at 1.0-2.2 N normal, while along the finger it slides at 0.31-0.40. At 1 N the middle and thumb
+  pads levelled off near the ends of their legs, at 1.0-1.4 N and 0.9-1.2 N. These runs load the boards with known
+  shear at a fixed contact. They give no sliding friction, and the friction script leaves them out. Whether the pads
+  grip harder across the finger than along it is open.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
