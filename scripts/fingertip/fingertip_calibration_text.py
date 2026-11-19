@@ -2087,8 +2087,8 @@ def sections(N, F, P, link, L):
         f"{span_f(lg['roughness_N'] for r in FR for lg in r['legs'])} N. At rest it varied by "
         f"{span_f(r['hold_roughness_N'] for r in FR)} N, so the pad did not stick and slip. The first leg of each run "
         "began after the pad had rested about 20 s. In the 1 N and 2 N runs its force rose "
-        f"{r2(fr_rest[1.0]['overshoot_N'])} and {r2(fr_rest[2.0]['overshoot_N'])} N above the plateau. That is "
-        f"{rest_k(1.0)} and {rest_k(2.0)} times the sliding force. In the 0.5 N run it rose "
+        f"{r2(fr_rest[1.0]['overshoot_N'])} and {r2(fr_rest[2.0]['overshoot_N'])} N above the plateau. Its peak "
+        f"was thus {rest_k(1.0)} and {rest_k(2.0)} times the sliding force. In the 0.5 N run it rose "
         f"{r2(fr_rest[0.5]['overshoot_N'])} N. The study's analysis is "
         + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s4b_drag_friction.py") + ", with its "
         "numbers in " + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-s4b_friction.json")
