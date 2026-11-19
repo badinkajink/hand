@@ -20,6 +20,8 @@ Sub-commands (each loads meshes, so run through resguard):
   forces   pinch force at the servo limits, yaw lever, transmission angles of the drive, over the trials' postures
   joints   the trials' yaw-MCP joint space against the serial limits and a two-servo differential (figure)
   render   stills of v3, v4a and v4b
+  play     open v4a or v4b in MuJoCo's viewer with the least index-middle gap overlaid (not part of `all`):
+           play v4a|v4b [--kinematic] [--frames N]
 
   ~/.claude/bin/resguard.sh run --mem 3G --cpu 100 -- .venv/bin/python scripts/cad/cad_v4_layouts.py all
 Outputs go to docs/experiments/20261118-sr2_actuator_layout/ (data/, media/).
@@ -33,6 +35,7 @@ import _paths  # noqa: E402,F401
 import ast  # noqa: E402
 import collections  # noqa: E402
 import glob  # noqa: E402
+import itertools  # noqa: E402
 import json  # noqa: E402
 import math  # noqa: E402
 import os  # noqa: E402
@@ -192,7 +195,7 @@ def add_body(parent, name, pos, axis=None):
     import mujoco as mj
     b = parent.add_body(name=name, pos=_mm(pos))
     b.explicitinertial = True
-    b.mass, b.inertia = 1e-4, [1e-10, 1e-10, 1e-10]
+    b.mass, b.ipos, b.inertia = 1e-4, [0.0, 0.0, 0.0], [1e-10, 1e-10, 1e-10]
     if axis is not None:
         b.add_joint(name=name + "_q", type=mj.mjtJoint.mjJNT_HINGE, axis=axis, range=[-math.pi, math.pi])
     return b
@@ -259,6 +262,15 @@ def lower_finger(mj, spec, f, mcp_body, pip_body, pip_mid, prox=None):
                 (L["dip_plate_x"][1], yb, L["dip_plate_z"][1]), SILVER)
     add_box(mj, pip_body, f"{f}_v4_diplink_web", (L["dip_web_x"][0], -L["dip_plate_y"][1], L["dip_web_z"][0]),
             (L["dip_web_x"][1], L["dip_plate_y"][1], L["dip_web_z"][1]), SILVER)
+
+
+DRIVE_JOINTS = ("idler_q", "rod_q", "coupler_q", "pipcrank_q")
+
+
+def drive_angles(mcp, pip):
+    """Angles (rad) of the drive's joints at MCP and PIP (rad): the idler and the PIP servo's crank turn at MCP + PIP,
+    the rod keeps the MCP link's direction and the coupler the yaw frame's."""
+    return {"idler_q": mcp + pip, "rod_q": -pip, "coupler_q": -(mcp + pip), "pipcrank_q": mcp + pip}
 
 
 def drive(mj, f, yaw_body, mcp_axis, pip_shaft, pip_mid, th_mid, prox=None):
@@ -364,6 +376,75 @@ def build_spec(variant, pip_mid, th_mid):
     return spec, info
 
 
+PALM_LIFT = 0.04  # m; the base scene's straight fingers reach 25 mm below the floor
+
+
+def make_playable(mj, spec):
+    """What the written scenes need under physics, which kinematic posing (Model.set) does not: the base scene's
+    morphology slides (mount x, y and finger length) removed, since contact forces drag them; equality constraints
+    that keep the drive on drive_angles (a fixed tendon idler - MCP - PIP held at 0, joint couplings for the rest);
+    unlimited drive joints with a little armature; no contacts between a finger's drive parts and the finger's
+    other parts or the palm (their clearances are the `check` sub-command's); and the palm raised by PALM_LIFT, so
+    that the straight fingers of qpos0, where a viewer starts, clear the floor (playable_key keeps the keys' world
+    poses)."""
+    for f in ("thumb",) + FINGERS:
+        for n in ("x", "y", "len"):
+            spec.delete(spec.joint(f"{f}_{n}"))
+    spec.key("open").qpos = []  # refilled by playable_key; the old one has the removed slides' entries
+    spec.body("palm_pose").pos = np.asarray(spec.body("palm_pose").pos) + [0.0, 0.0, PALM_LIFT]
+    have = {frozenset((x.bodyname1, x.bodyname2)) for x in spec.excludes}
+    for f in FINGERS:
+        for n in DRIVE_JOINTS:
+            j = spec.joint(f"{f}_{n}")
+            j.limited, j.armature = mj.mjtLimited.mjLIMITED_FALSE, 1e-5
+        t = spec.add_tendon(name=f"{f}_idler_minus_mcp_pip")
+        for n, k in (("idler_q", 1.0), ("mcp", -1.0), ("pip", -1.0)):
+            t.wrap_joint(f"{f}_{n}", k)
+        stiff = [2.0 * 0.002, 1.0]  # the shortest time constant MuJoCo allows at the scene's 2 ms step
+        spec.add_equality(name=f"{f}_idler_eq", type=mj.mjtEq.mjEQ_TENDON, objtype=mj.mjtObj.mjOBJ_TENDON,
+                          name1=t.name, data=np.zeros(11), solref=stiff)
+        for j1, j2, k in (("rod_q", "pip", -1.0), ("coupler_q", "idler_q", -1.0), ("pipcrank_q", "idler_q", 1.0)):
+            data = np.zeros(11)
+            data[1] = k
+            spec.add_equality(name=f"{f}_{j1}_eq", type=mj.mjtEq.mjEQ_JOINT, objtype=mj.mjtObj.mjOBJ_JOINT,
+                              name1=f"{f}_{j1}", name2=f"{f}_{j2}", data=data, solref=stiff)
+        new = [f"{f}_{b}" for b in ("idler", "rod", "coupler", "pipcrank")]
+        own = [f"{f}_{b}" for b in ("mount", "yaw_frame", "mcp_frame", "len_frame", "pip_frame", "tip")] + ["palm_pose"]
+        for a, b in list(itertools.combinations(new, 2)) + [(a, b) for a in new for b in own]:
+            if frozenset((a, b)) not in have:
+                spec.add_exclude(bodyname1=a, bodyname2=b)
+                have.add(frozenset((a, b)))
+
+
+def playable_key(mj, spec, m):
+    """The base scene's keyframe "open" mapped onto the new joints by name (MjSpec keeps the old qpos and appends
+    zeros, which puts the old values on the wrong joints), with the drive on drive_angles and the palm where the base
+    scene has it (its fingertips 3.9 mm into the floor), and a key "lifted" with the palm 40 mm higher."""
+    base = mj.MjModel.from_xml_path(str(SCENE))
+    kb = base.key("open")
+    width = {int(mj.mjtJoint.mjJNT_FREE): 7, int(mj.mjtJoint.mjJNT_BALL): 4}
+    jkey = lambda mm, j: mm.joint(j).name or "body " + mm.body(mm.jnt_bodyid[j]).name  # noqa: E731 (free joints are unnamed)
+    new = {jkey(m, j): j for j in range(m.njnt)}
+    q = m.qpos0.copy()
+    for j in range(base.njnt):
+        if jkey(base, j) not in new:  # a removed morphology slide
+            continue
+        a, n = base.jnt_qposadr[j], width.get(int(base.jnt_type[j]), 1)
+        b = m.jnt_qposadr[new[jkey(base, j)]]
+        q[b:b + n] = kb.qpos[a:a + n]
+    adr = lambda f, n: m.jnt_qposadr[m.joint(f"{f}_{n}").id]  # noqa: E731
+    for f in FINGERS:
+        for n, v in drive_angles(q[adr(f, "mcp")], q[adr(f, "pip")]).items():
+            q[adr(f, n)] = v
+    ctrl = kb.ctrl.copy()
+    pz, upz = adr("palm", "pz"), m.actuator("a_palm_pz").id
+    lifted = spec.add_key(name="lifted", qpos=q.copy(), ctrl=ctrl.copy())
+    q[pz] -= PALM_LIFT
+    ctrl[upz] -= PALM_LIFT
+    spec.key("open").qpos, spec.key("open").ctrl = q, ctrl
+    return lifted
+
+
 # ----------------------------------------------------------------------------------------------- kinematics
 class Model:
     def __init__(self, variant, pip_mid, th_mid):
@@ -383,8 +464,7 @@ class Model:
             d.qpos[m.jnt_qposadr[self.jid(f"{f}_x")]] = (mounts[f][0] - self.mount0[f][0]) * 1e-3
             d.qpos[m.jnt_qposadr[self.jid(f"{f}_y")]] = (mounts[f][1] - self.mount0[f][1]) * 1e-3
             yaw, mcp, pip = (math.radians(v) for v in q[f])
-            for name, v in (("yaw", yaw), ("mcp", mcp), ("pip", pip), ("idler_q", mcp + pip), ("rod_q", -pip),
-                            ("coupler_q", -(mcp + pip)), ("pipcrank_q", mcp + pip)):
+            for name, v in (("yaw", yaw), ("mcp", mcp), ("pip", pip), *drive_angles(mcp, pip).items()):
                 j = self.jid(f"{f}_{name}")
                 if j >= 0:
                     d.qpos[m.jnt_qposadr[j]] = v
@@ -424,13 +504,21 @@ def cmd_build(rows):
     _, pip_mid, th_mid = angle_stats(rows)
     MJCF_OUT.mkdir(parents=True, exist_ok=True)
     out = {}
+    mj = mujoco()
     for v in ("v4a", "v4b"):
         spec, info = build_spec(v, pip_mid, th_mid)
+        make_playable(mj, spec)
+        playable_key(mj, spec, spec.compile())
         spec.compile()
         spec.meshdir = "../20261104-cad_v3/meshes"
         spec.texturedir = "../20261104-cad_v3/meshes"
         spec.modelname = f"cad_v4_{v}_scene_screwdriver_medium"
-        (MJCF_OUT / f"{v}.xml").write_text(spec.to_xml())
+        head, rest = spec.to_xml().split("\n", 1)
+        note = (f"<!-- cad_v4 {v}, written by scripts/cad/cad_v4_layouts.py build from {PARAMS.relative_to(ROOT)}.\n"
+                "     Equality constraints keep the idler, rod, coupler and PIP crank on the MCP and PIP joints; the idler\n"
+                "     and the PIP servo's crank turn at MCP + PIP. The actuators are cad_v3's, in joint angles.\n"
+                f"     View: .venv/bin/python scripts/cad/cad_v4_layouts.py play {v} -->")
+        (MJCF_OUT / f"{v}.xml").write_text(f"{head}\n{note}\n{rest}")
         out[v] = info
         print("wrote", (MJCF_OUT / f"{v}.xml").relative_to(ROOT))
     return out
@@ -486,7 +574,101 @@ def cmd_check(rows):
         print(v, json.dumps({k: res[v][k] for k in ("grid_points", "least_mm", "points_under_0p5mm")}))
         for k, w in list(res[v]["least_by_pair"].items())[:10]:
             print("   ", k, w)
+    res["carriage"] = carriage_check(rows, pip_mid, th_mid)
     return res
+
+
+def surface_samples(m, geoms, spacing=0.25e-3, seed=0):
+    """Vertices plus area-weighted random points of mesh geoms, about one per spacing squared, in each geom's frame."""
+    rng = np.random.default_rng(seed)
+    out = []
+    for g in geoms:
+        k = m.geom_dataid[g]
+        V = m.mesh_vert[m.mesh_vertadr[k]: m.mesh_vertadr[k] + m.mesh_vertnum[k]]
+        A = V[m.mesh_face[m.mesh_faceadr[k]: m.mesh_faceadr[k] + m.mesh_facenum[k]]]
+        area = 0.5 * np.linalg.norm(np.cross(A[:, 1] - A[:, 0], A[:, 2] - A[:, 0]), axis=1)
+        n = int(area.sum() / spacing ** 2) + 1
+        i = rng.choice(len(A), size=n, p=area / area.sum())
+        r = rng.random((n, 2))
+        r[r.sum(1) > 1] = 1 - r[r.sum(1) > 1]
+        out.append((g, np.vstack([V, A[i, 0] + r[:, :1] * (A[i, 1] - A[i, 0]) + r[:, 1:] * (A[i, 2] - A[i, 0])])))
+    return out
+
+
+def points_gap(m, d, samples, geoms):
+    """Least distance (mm) from the posed surface samples to box, capsule and sphere geoms, and that geom."""
+    mj = mujoco()
+    W = np.vstack([d.geom_xpos[g] + p @ d.geom_xmat[g].reshape(3, 3).T for g, p in samples])
+    best = (np.inf, None)
+    for g in geoms:
+        loc, h = (W - d.geom_xpos[g]) @ d.geom_xmat[g].reshape(3, 3), m.geom_size[g]
+        if m.geom_type[g] == mj.mjtGeom.mjGEOM_BOX:
+            dist = np.linalg.norm(loc - np.clip(loc, -h, h), axis=1)
+        elif m.geom_type[g] == mj.mjtGeom.mjGEOM_CAPSULE:  # axis z, half-length h[1], radius h[0]
+            axis_pt = np.zeros_like(loc)
+            axis_pt[:, 2] = np.clip(loc[:, 2], -h[1], h[1])
+            dist = np.linalg.norm(loc - axis_pt, axis=1) - h[0]
+        else:  # sphere
+            dist = np.linalg.norm(loc, axis=1) - h[0]
+        k = float(dist.min()) * 1e3
+        if k < best[0]:
+            best = (k, g)
+    return best
+
+
+def carriage_check(rows, pip_mid, th_mid):
+    """The MCP link against the carriage: the mount's collision spheres (and v4b's new mount parts) in every finger-period
+    of the trials, and for v4a also against the carriage's and yaw servo's meshes, which the spheres overstate. v4b's
+    gimbal moves the joints, so it is checked over the driver's whole yaw and MCP ranges (5 and 3 deg grid)."""
+    out = {}
+    for v in ("v3", "v4a", "v4b"):
+        M = Model(v, pip_mid, th_mid)
+        mj, m, d = M.mj, M.m, M.d
+        names = [mj.mj_id2name(m, mj.mjtObj.mjOBJ_GEOM, g) or "" for g in range(m.ngeom)]
+        out[v] = {}
+        for f in FINGERS:
+            mount = [g for g, n in enumerate(names) if n.startswith(f"{f}_mount_s") or any(
+                n.startswith(f"{f}_v4_{p}") for p in ("yawservo", "yawhousing", "carriage"))]
+            link = [g for g, n in enumerate(names) if n.startswith(f"{f}_mcp_frame_s") or n.startswith(f"{f}_v4_mcplink")]
+            ja = [m.jnt_qposadr[M.jid(f"{f}_{n}")] for n in ("yaw", "mcp")]
+            if v == "v4b":
+                poses = [(y, c) for y in np.arange(-85.0, 85.1, 5.0) for c in np.arange(-15.0, 92.1, 3.0)]
+            else:
+                poses = [(r["q"][f][0], r["q"][f][1]) for r in rows]
+            least, over = (np.inf, None), []
+            for yaw, mcp in poses:
+                d.qpos[:] = m.qpos0
+                d.qpos[ja[0]], d.qpos[ja[1]] = math.radians(yaw), math.radians(mcp)
+                mj.mj_kinematics(m, d)
+                gap, pair = set_gap(boxball(M, mount), boxball(M, link), cutoff=5.0)
+                if gap < 0:
+                    over.append((yaw, mcp))
+                if gap < least[0]:
+                    least = (gap, (round(yaw, 1), round(mcp, 1), names[mount[pair[0]]], names[link[pair[1]]]) if pair else None)
+            res = {"poses": len(poses), "overlapping": len(over), "least_mm": round(least[0], 2), "at": least[1]}
+            if over:
+                O = np.array(over)
+                res["overlap_yaw_deg"] = [round(float(O[:, 0].min()), 1), round(float(O[:, 0].max()), 1)]
+                res["overlap_mcp_deg"] = [round(float(O[:, 1].min()), 1), round(float(O[:, 1].max()), 1)]
+            if v == "v4a" and over:
+                mesh = [g for g in range(m.ngeom) if m.geom_bodyid[g] == m.body(f"{f}_mount").id
+                        and m.geom_type[g] == mj.mjtGeom.mjGEOM_MESH]
+                samples = surface_samples(m, mesh)
+                worst = (np.inf, None)
+                for yaw, mcp in sorted({(round(y), round(c)) for y, c in over}):
+                    d.qpos[:] = m.qpos0
+                    d.qpos[ja[0]], d.qpos[ja[1]] = math.radians(yaw), math.radians(mcp)
+                    mj.mj_kinematics(m, d)
+                    k, g = points_gap(m, d, samples, link)
+                    if k < worst[0]:
+                        worst = (k, (yaw, mcp, names[g]))
+                res["mesh_least_mm_where_spheres_overlap"] = round(worst[0], 2)
+                res["mesh_at"] = worst[1]
+                res["mesh_parts"] = [names[g] for g in mesh]
+                res["mesh_samples"] = int(sum(len(p) for _, p in samples))
+            out[v][f] = res
+            print("carriage", v, f, json.dumps(res, default=str))
+    return out
 
 
 def collision_sets(M, mirror=None):
@@ -788,8 +970,55 @@ def cmd_prims(rows):
     return out
 
 
+def cmd_play(variant, kinematic=False, frames=None):
+    """A written scene in MuJoCo's viewer, posed from the Control sliders, with the least index-middle gap of the
+    replay's collision sets overlaid. Under physics touching parts push each other apart; with kinematic=True the
+    joints take the sliders' values and parts may overlap (negative gap). frames stops after that many frames."""
+    import time
+    import types
+    mj = mujoco()
+    from mujoco import viewer as mjv
+    m = mj.MjModel.from_xml_path(str(MJCF_OUT / f"{variant}.xml"))
+    d = mj.MjData(m)
+    mj.mj_resetDataKeyframe(m, d, m.key("lifted").id)
+    M = types.SimpleNamespace(mj=mj, m=m, d=d)
+    sets = collision_sets(M)
+    adr = {f: {n: m.jnt_qposadr[m.joint(f"{f}_{n}").id] for n in ("mcp", "pip") + DRIVE_JOINTS} for f in FINGERS}
+    acts = [(a, m.jnt_qposadr[m.actuator_trnid[a, 0]]) for a in range(m.nu)
+            if m.actuator_trntype[a] == mj.mjtTrn.mjTRN_JOINT]
+    steps = max(1, round(1.0 / 60.0 / m.opt.timestep))
+    title = f"{variant}, {'kinematic' if kinematic else 'physics'}: least index-middle gap"
+    k, gap, pair = 0, float("nan"), None
+    with mjv.launch_passive(m, d) as viewer:
+        while viewer.is_running() and (frames is None or k < frames):
+            t0 = time.time()
+            if kinematic:
+                for a, i in acts:
+                    d.qpos[i] = d.ctrl[a]
+                for f in FINGERS:
+                    for n, v in drive_angles(d.qpos[adr[f]["mcp"]], d.qpos[adr[f]["pip"]]).items():
+                        d.qpos[adr[f][n]] = v
+                d.qvel[:] = 0.0
+                mj.mj_forward(m, d)
+            else:
+                for _ in range(steps):
+                    mj.mj_step(m, d)
+            gap, pair = min_distance(M, sets)
+            text = "over 25 mm" if pair is None else f"{gap:.2f} mm, {pair}"
+            viewer.set_texts((None, mj.mjtGridPos.mjGRID_BOTTOMLEFT, title, text))
+            viewer.sync()
+            k += 1
+            time.sleep(max(0.0, 1.0 / 60.0 - (time.time() - t0)))
+    return {"variant": variant, "kinematic": kinematic, "frames": k, "last_gap_mm": round(float(gap), 3), "pair": pair}
+
+
 def main() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if cmd == "play":
+        args = sys.argv[2:]
+        frames = int(args[args.index("--frames") + 1]) if "--frames" in args else None
+        print(cmd_play(next((a for a in args if a in ("v4a", "v4b")), "v4a"), "--kinematic" in args, frames), flush=True)
+        os._exit(0)  # skips glfw's exit hook, which hung under Xvfb's software GL after the window closed
     rows = load_trials()
     print(f"{len(rows)} periods from the bench runs")
     DATA.mkdir(parents=True, exist_ok=True)

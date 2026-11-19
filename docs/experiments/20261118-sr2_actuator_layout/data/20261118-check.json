@@ -283,6 +283,99 @@
      90.0
     ]
    }
+  },
+  "carriage": {
+   "v3": {
+    "index": {
+     "poses": 10350,
+     "overlapping": 0,
+     "least_mm": 1.65,
+     "at": [
+      -13.8,
+      -10.8,
+      "index_mount_s23",
+      "index_mcp_frame_s38"
+     ]
+    },
+    "middle": {
+     "poses": 10350,
+     "overlapping": 0,
+     "least_mm": 2.07,
+     "at": [
+      -0.3,
+      -13.5,
+      "middle_mount_s23",
+      "middle_mcp_frame_s38"
+     ]
+    }
+   },
+   "v4a": {
+    "index": {
+     "poses": 10350,
+     "overlapping": 191,
+     "least_mm": -0.3,
+     "at": [
+      -14.1,
+      43.9,
+      "index_mount_s23",
+      "index_v4_mcplink_plate_base_top"
+     ],
+     "overlap_yaw_deg": [
+      -20.8,
+      -11.7
+     ],
+     "overlap_mcp_deg": [
+      31.1,
+      50.4
+     ],
+     "mesh_least_mm_where_spheres_overlap": 3.45,
+     "mesh_at": [
+      -20,
+      45,
+      "index_v4_mcplink_plate_base_top"
+     ],
+     "mesh_parts": [
+      "index_carriage_visual",
+      "index_servo_yaw_visual"
+     ],
+     "mesh_samples": 214178
+    },
+    "middle": {
+     "poses": 10350,
+     "overlapping": 0,
+     "least_mm": 0.94,
+     "at": [
+      4.4,
+      30.5,
+      "middle_mount_s23",
+      "middle_v4_mcplink_plate_base_top"
+     ]
+    }
+   },
+   "v4b": {
+    "index": {
+     "poses": 1260,
+     "overlapping": 0,
+     "least_mm": 1.59,
+     "at": [
+      -55.0,
+      90.0,
+      "index_mount_s6",
+      "index_v4_mcplink_plate_horn_a"
+     ]
+    },
+    "middle": {
+     "poses": 1260,
+     "overlapping": 0,
+     "least_mm": 1.59,
+     "at": [
+      -55.0,
+      90.0,
+      "middle_mount_s6",
+      "middle_v4_mcplink_plate_horn_a"
+     ]
+    }
+   }
   }
  }
 }

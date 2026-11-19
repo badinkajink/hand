@@ -1,9 +1,13 @@
 <mujoco model="cad_v4_v4b_scene_screwdriver_medium">
+<!-- cad_v4 v4b, written by scripts/cad/cad_v4_layouts.py build from assets/cad_v4/concepts/20261118-layout_params.json.
+     Equality constraints keep the idler, rod, coupler and PIP crank on the MCP and PIP joints; the idler
+     and the PIP servo's crank turn at MCP + PIP. The actuators are cad_v3's, in joint angles.
+     View: .venv/bin/python scripts/cad/cad_v4_layouts.py play v4b -->
   <compiler angle="radian" meshdir="../20261104-cad_v3/meshes/" texturedir="../20261104-cad_v3/meshes/"/>
 
   <option integrator="implicitfast"/>
 
-  <size nkey="1"/>
+  <size nkey="2"/>
 
   <visual>
     <global elevation="-15" offwidth="1920" offheight="1440"/>
@@ -91,7 +95,7 @@
       <joint type="free"/>
       <geom size="0.0125 0.05" type="cylinder" friction="2.4 0.2 0.02" density="500" material="object_mat"/>
     </body>
-    <body name="palm_pose" pos="0 0 0.0625" gravcomp="1">
+    <body name="palm_pose" pos="0 0 0.1025" gravcomp="1">
       <inertial pos="0 0 0.025" mass="0.0918" diaginertia="0.000247922 0.000221103 0.000468945"/>
       <joint name="palm_px" class="pose" pos="0 0 0" axis="1 0 0" type="slide" range="-0.2 0.2"/>
       <joint name="palm_py" class="pose" pos="0 0 0" axis="0 1 0" type="slide" range="-0.2 0.2"/>
@@ -115,8 +119,6 @@
       <site name="workspace_middle" pos="0.0561813 -0.0583998 0.0238" size="0.03 0.03 0.0005" type="box" rgba="0.3 0.75 0.45 0.14"/>
       <body name="thumb_mount" pos="-0.0561812 -0.0024004 0">
         <inertial pos="-0.003714 -0.000445 0.016276" quat="0.990218 -0.00608749 0.137631 0.0221326" mass="0.027251" diaginertia="1.08613e-05 1.01871e-05 3.24261e-06"/>
-        <joint name="thumb_x" class="morph" pos="0 0 0" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="thumb_y" class="morph" pos="0 0 0" axis="0 1 0" range="-0.055 0.055"/>
         <geom name="thumb_carriage_visual" class="cad_visual" quat="0 0 0 1" mass="0" material="v3_link_silver" mesh="cad_carriage"/>
         <geom name="thumb_servo_yaw_visual" class="cad_visual" quat="0 0 0 1" mass="0" material="cad_servo" mesh="cad_servo_yaw"/>
         <geom name="thumb_mount_s0" class="cad_collision" size="0.008365" pos="0.002352 0.017507 0.059825" mass="0"/>
@@ -263,7 +265,6 @@
             <geom name="thumb_mcp_frame_s51" class="cad_collision" size="0.007064" pos="0.001205 -0.004913 -0.030783" mass="0"/>
             <body name="thumb_len_frame">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06"/>
-              <joint name="thumb_len" class="morph" pos="0 0 0" axis="1 0 0"/>
               <body name="thumb_pip_frame" pos="0 0 -0.0308">
                 <inertial pos="-0.002967 0.000912 -0.022687" quat="0.997874 -0.0227636 0.060986 -0.00303524" mass="0.009263" diaginertia="2.60076e-06 1.71455e-06 1.16279e-06"/>
                 <joint name="thumb_pip" class="ctrl" pos="0 0 0" axis="0 -1 0" range="-0.314159 1.6057"/>
@@ -595,8 +596,6 @@
       </body>
       <body name="index_mount" pos="0.0561812 0.0583997 0">
         <inertial pos="0.003714 0.000445 0.016276" quat="0.990218 0.00608749 -0.137631 0.0221326" mass="0.027251" diaginertia="1.08613e-05 1.01871e-05 3.24261e-06"/>
-        <joint name="index_x" class="morph" pos="0 0 0" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="index_y" class="morph" pos="0 0 0" axis="0 1 0" range="-0.03 0.03"/>
         <geom name="index_mount_s0" class="cad_collision" size="0.008365" pos="-0.002352 -0.017507 0.059825" mass="0"/>
         <geom name="index_mount_s3" class="cad_collision" size="0.008685" pos="-0.002455 0.016342 0.046861" mass="0"/>
         <geom name="index_mount_s4" class="cad_collision" size="0.008354" pos="-0.002272 -0.016617 0.048319" mass="0"/>
@@ -645,7 +644,6 @@
             <geom name="index_v4_mcplink_neck" size="0.007 0.005 0.012275" pos="0 0 -0.039275" type="box" group="2" mass="0" rgba="0.66 0.68 0.72 1"/>
             <body name="index_len_frame">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06"/>
-              <joint name="index_len" class="morph" pos="0 0 0" axis="1 0 0"/>
               <body name="index_pip_frame" pos="0 0 -0.05155">
                 <inertial pos="0.002967 -0.000912 -0.022687" quat="0.997874 0.0227636 -0.060986 -0.00303524" mass="0.009263" diaginertia="2.60076e-06 1.71455e-06 1.16279e-06"/>
                 <joint name="index_pip" class="ctrl" pos="0 0 0" axis="0 1 0" range="-0.314159 1.6057"/>
@@ -817,34 +815,32 @@
           </body>
           <body name="index_idler">
             <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-            <joint name="index_idler_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+            <joint name="index_idler_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
             <geom name="index_v4_idler_hub" size="0.005 0.0035" pos="0 0.0164 0" quat="0.707107 0.707107 0 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <geom name="index_v4_idler_rodarm" size="0.002 0.004" pos="0.00364175 0.01415 0.00165459" quat="0.541458 0 -0.840728 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <geom name="index_v4_idler_fourbararm" size="0.002 0.004" pos="-0.00196875 0.0179 0.00348196" quat="0.254471 0 0.96708 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <body name="index_rod" pos="0.0072835 0 0.00330917">
-              <inertial pos="0.0072835 0 0.00330917" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-              <joint name="index_rod_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+              <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+              <joint name="index_rod_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
               <geom name="index_v4_rod_upper" size="0.0015 0.009" pos="0 0.01415 -0.009" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
               <geom name="index_v4_rod_jog" size="0.0015 0.00390544" pos="0 0.01045 -0.01925" quat="0.812424 -0.583067 0 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
               <geom name="index_v4_rod_lower" size="0.0015 0.015525" pos="0 0.00675 -0.036025" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             </body>
             <body name="index_coupler" pos="-0.0039375 0 0.00696391">
-              <inertial pos="-0.0039375 0 0.00696391" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-              <joint name="index_coupler_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+              <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+              <joint name="index_coupler_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
               <geom name="index_v4_coupler" size="0.0015 0.0100281" pos="0.01 0.0179 0.00075" quat="0.680151 0 -0.733072 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             </body>
           </body>
           <body name="index_pipcrank" pos="0.02 0 0.0015">
-            <inertial pos="0.02 0 0.0015" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-            <joint name="index_pipcrank_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+            <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+            <joint name="index_pipcrank_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
             <geom name="index_v4_pipcrank" size="0.002 0.004" pos="-0.00196875 0.0179 0.00348196" quat="0.254471 0 0.96708 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
           </body>
         </body>
       </body>
       <body name="middle_mount" pos="0.0561813 -0.0583998 0">
         <inertial pos="0.003714 0.000445 0.016276" quat="0.990218 0.00608749 -0.137631 0.0221326" mass="0.027251" diaginertia="1.08613e-05 1.01871e-05 3.24261e-06"/>
-        <joint name="middle_x" class="morph" pos="0 0 0" axis="1 0 0" range="-0.03 0.03"/>
-        <joint name="middle_y" class="morph" pos="0 0 0" axis="0 1 0" range="-0.03 0.03"/>
         <geom name="middle_mount_s0" class="cad_collision" size="0.008365" pos="-0.002352 -0.017507 0.059825" mass="0"/>
         <geom name="middle_mount_s3" class="cad_collision" size="0.008685" pos="-0.002455 0.016342 0.046861" mass="0"/>
         <geom name="middle_mount_s4" class="cad_collision" size="0.008354" pos="-0.002272 -0.016617 0.048319" mass="0"/>
@@ -893,7 +889,6 @@
             <geom name="middle_v4_mcplink_neck" size="0.007 0.005 0.012275" pos="0 0 -0.039275" type="box" group="2" mass="0" rgba="0.66 0.68 0.72 1"/>
             <body name="middle_len_frame">
               <inertial pos="0 0 0" mass="0.001" diaginertia="1e-06 1e-06 1e-06"/>
-              <joint name="middle_len" class="morph" pos="0 0 0" axis="1 0 0"/>
               <body name="middle_pip_frame" pos="0 0 -0.05155">
                 <inertial pos="0.002967 -0.000912 -0.022687" quat="0.997874 0.0227636 -0.060986 -0.00303524" mass="0.009263" diaginertia="2.60076e-06 1.71455e-06 1.16279e-06"/>
                 <joint name="middle_pip" class="ctrl" pos="0 0 0" axis="0 1 0" range="-0.314159 1.6057"/>
@@ -1065,26 +1060,26 @@
           </body>
           <body name="middle_idler">
             <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-            <joint name="middle_idler_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+            <joint name="middle_idler_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
             <geom name="middle_v4_idler_hub" size="0.005 0.0035" pos="0 0.0164 0" quat="0.707107 0.707107 0 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <geom name="middle_v4_idler_rodarm" size="0.002 0.004" pos="0.00364175 0.01415 0.00165459" quat="0.541458 0 -0.840728 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <geom name="middle_v4_idler_fourbararm" size="0.002 0.004" pos="-0.00196875 0.0179 0.00348196" quat="0.254471 0 0.96708 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             <body name="middle_rod" pos="0.0072835 0 0.00330917">
-              <inertial pos="0.0072835 0 0.00330917" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-              <joint name="middle_rod_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+              <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+              <joint name="middle_rod_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
               <geom name="middle_v4_rod_upper" size="0.0015 0.009" pos="0 0.01415 -0.009" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
               <geom name="middle_v4_rod_jog" size="0.0015 0.00390544" pos="0 0.01045 -0.01925" quat="0.812424 -0.583067 0 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
               <geom name="middle_v4_rod_lower" size="0.0015 0.015525" pos="0 0.00675 -0.036025" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             </body>
             <body name="middle_coupler" pos="-0.0039375 0 0.00696391">
-              <inertial pos="-0.0039375 0 0.00696391" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-              <joint name="middle_coupler_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+              <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+              <joint name="middle_coupler_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
               <geom name="middle_v4_coupler" size="0.0015 0.0100281" pos="0.01 0.0179 0.00075" quat="0.680151 0 -0.733072 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
             </body>
           </body>
           <body name="middle_pipcrank" pos="0.02 0 0.0015">
-            <inertial pos="0.02 0 0.0015" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
-            <joint name="middle_pipcrank_q" pos="0 0 0" axis="0 1 0" range="-3.14159 3.14159"/>
+            <inertial pos="0 0 0" mass="0.0001" diaginertia="1e-10 1e-10 1e-10"/>
+            <joint name="middle_pipcrank_q" pos="0 0 0" axis="0 1 0" limited="false" range="-3.14159 3.14159" armature="1e-05"/>
             <geom name="middle_v4_pipcrank" size="0.002 0.004" pos="-0.00196875 0.0179 0.00348196" quat="0.254471 0 0.96708 0" type="capsule" group="2" mass="0" rgba="0.42 0.44 0.5 1"/>
           </body>
         </body>
@@ -1105,12 +1100,20 @@
     <exclude body1="palm_pose" body2="index_len_frame"/>
     <exclude body1="palm_pose" body2="index_pip_frame"/>
     <exclude body1="palm_pose" body2="index_tip"/>
+    <exclude body1="palm_pose" body2="index_idler"/>
+    <exclude body1="palm_pose" body2="index_rod"/>
+    <exclude body1="palm_pose" body2="index_coupler"/>
+    <exclude body1="palm_pose" body2="index_pipcrank"/>
     <exclude body1="palm_pose" body2="middle_mount"/>
     <exclude body1="palm_pose" body2="middle_yaw_frame"/>
     <exclude body1="palm_pose" body2="middle_mcp_frame"/>
     <exclude body1="palm_pose" body2="middle_len_frame"/>
     <exclude body1="palm_pose" body2="middle_pip_frame"/>
     <exclude body1="palm_pose" body2="middle_tip"/>
+    <exclude body1="palm_pose" body2="middle_idler"/>
+    <exclude body1="palm_pose" body2="middle_rod"/>
+    <exclude body1="palm_pose" body2="middle_coupler"/>
+    <exclude body1="palm_pose" body2="middle_pipcrank"/>
     <exclude body1="thumb_mount" body2="thumb_yaw_frame"/>
     <exclude body1="thumb_mount" body2="thumb_pip_frame"/>
     <exclude body1="thumb_mount" body2="thumb_tip"/>
@@ -1121,18 +1124,104 @@
     <exclude body1="index_mount" body2="index_yaw_frame"/>
     <exclude body1="index_mount" body2="index_pip_frame"/>
     <exclude body1="index_mount" body2="index_tip"/>
+    <exclude body1="index_mount" body2="index_idler"/>
+    <exclude body1="index_mount" body2="index_rod"/>
+    <exclude body1="index_mount" body2="index_coupler"/>
+    <exclude body1="index_mount" body2="index_pipcrank"/>
     <exclude body1="index_yaw_frame" body2="index_pip_frame"/>
     <exclude body1="index_yaw_frame" body2="index_tip"/>
+    <exclude body1="index_yaw_frame" body2="index_idler"/>
+    <exclude body1="index_yaw_frame" body2="index_rod"/>
+    <exclude body1="index_yaw_frame" body2="index_coupler"/>
+    <exclude body1="index_yaw_frame" body2="index_pipcrank"/>
     <exclude body1="index_mcp_frame" body2="index_pip_frame"/>
     <exclude body1="index_mcp_frame" body2="index_tip"/>
+    <exclude body1="index_mcp_frame" body2="index_idler"/>
+    <exclude body1="index_mcp_frame" body2="index_rod"/>
+    <exclude body1="index_mcp_frame" body2="index_coupler"/>
+    <exclude body1="index_mcp_frame" body2="index_pipcrank"/>
+    <exclude body1="index_len_frame" body2="index_idler"/>
+    <exclude body1="index_len_frame" body2="index_rod"/>
+    <exclude body1="index_len_frame" body2="index_coupler"/>
+    <exclude body1="index_len_frame" body2="index_pipcrank"/>
+    <exclude body1="index_pip_frame" body2="index_idler"/>
+    <exclude body1="index_pip_frame" body2="index_rod"/>
+    <exclude body1="index_pip_frame" body2="index_coupler"/>
+    <exclude body1="index_pip_frame" body2="index_pipcrank"/>
+    <exclude body1="index_tip" body2="index_idler"/>
+    <exclude body1="index_tip" body2="index_rod"/>
+    <exclude body1="index_tip" body2="index_coupler"/>
+    <exclude body1="index_tip" body2="index_pipcrank"/>
+    <exclude body1="index_idler" body2="index_rod"/>
+    <exclude body1="index_idler" body2="index_coupler"/>
+    <exclude body1="index_idler" body2="index_pipcrank"/>
+    <exclude body1="index_rod" body2="index_coupler"/>
+    <exclude body1="index_rod" body2="index_pipcrank"/>
+    <exclude body1="index_coupler" body2="index_pipcrank"/>
     <exclude body1="middle_mount" body2="middle_yaw_frame"/>
     <exclude body1="middle_mount" body2="middle_pip_frame"/>
     <exclude body1="middle_mount" body2="middle_tip"/>
+    <exclude body1="middle_mount" body2="middle_idler"/>
+    <exclude body1="middle_mount" body2="middle_rod"/>
+    <exclude body1="middle_mount" body2="middle_coupler"/>
+    <exclude body1="middle_mount" body2="middle_pipcrank"/>
     <exclude body1="middle_yaw_frame" body2="middle_pip_frame"/>
     <exclude body1="middle_yaw_frame" body2="middle_tip"/>
+    <exclude body1="middle_yaw_frame" body2="middle_idler"/>
+    <exclude body1="middle_yaw_frame" body2="middle_rod"/>
+    <exclude body1="middle_yaw_frame" body2="middle_coupler"/>
+    <exclude body1="middle_yaw_frame" body2="middle_pipcrank"/>
     <exclude body1="middle_mcp_frame" body2="middle_pip_frame"/>
     <exclude body1="middle_mcp_frame" body2="middle_tip"/>
+    <exclude body1="middle_mcp_frame" body2="middle_idler"/>
+    <exclude body1="middle_mcp_frame" body2="middle_rod"/>
+    <exclude body1="middle_mcp_frame" body2="middle_coupler"/>
+    <exclude body1="middle_mcp_frame" body2="middle_pipcrank"/>
+    <exclude body1="middle_len_frame" body2="middle_idler"/>
+    <exclude body1="middle_len_frame" body2="middle_rod"/>
+    <exclude body1="middle_len_frame" body2="middle_coupler"/>
+    <exclude body1="middle_len_frame" body2="middle_pipcrank"/>
+    <exclude body1="middle_pip_frame" body2="middle_idler"/>
+    <exclude body1="middle_pip_frame" body2="middle_rod"/>
+    <exclude body1="middle_pip_frame" body2="middle_coupler"/>
+    <exclude body1="middle_pip_frame" body2="middle_pipcrank"/>
+    <exclude body1="middle_tip" body2="middle_idler"/>
+    <exclude body1="middle_tip" body2="middle_rod"/>
+    <exclude body1="middle_tip" body2="middle_coupler"/>
+    <exclude body1="middle_tip" body2="middle_pipcrank"/>
+    <exclude body1="middle_idler" body2="middle_rod"/>
+    <exclude body1="middle_idler" body2="middle_coupler"/>
+    <exclude body1="middle_idler" body2="middle_pipcrank"/>
+    <exclude body1="middle_rod" body2="middle_coupler"/>
+    <exclude body1="middle_rod" body2="middle_pipcrank"/>
+    <exclude body1="middle_coupler" body2="middle_pipcrank"/>
   </contact>
+
+  <equality>
+
+    <tendon name="index_idler_eq" tendon1="index_idler_minus_mcp_pip" polycoef="0 0 0 0 0" solref="0.004"/>
+    <joint name="index_rod_q_eq" joint1="index_rod_q" joint2="index_pip" polycoef="0 -1 0 0 0" solref="0.004"/>
+    <joint name="index_coupler_q_eq" joint1="index_coupler_q" joint2="index_idler_q" polycoef="0 -1 0 0 0" solref="0.004"/>
+    <joint name="index_pipcrank_q_eq" joint1="index_pipcrank_q" joint2="index_idler_q" polycoef="0 1 0 0 0" solref="0.004"/>
+
+    <tendon name="middle_idler_eq" tendon1="middle_idler_minus_mcp_pip" polycoef="0 0 0 0 0" solref="0.004"/>
+    <joint name="middle_rod_q_eq" joint1="middle_rod_q" joint2="middle_pip" polycoef="0 -1 0 0 0" solref="0.004"/>
+    <joint name="middle_coupler_q_eq" joint1="middle_coupler_q" joint2="middle_idler_q" polycoef="0 -1 0 0 0" solref="0.004"/>
+    <joint name="middle_pipcrank_q_eq" joint1="middle_pipcrank_q" joint2="middle_idler_q" polycoef="0 1 0 0 0" solref="0.004"/>
+  </equality>
+
+  <tendon>
+    <fixed name="index_idler_minus_mcp_pip">
+      <joint joint="index_idler_q" coef="1"/>
+      <joint joint="index_mcp" coef="-1"/>
+      <joint joint="index_pip" coef="-1"/>
+    </fixed>
+    <fixed name="middle_idler_minus_mcp_pip">
+      <joint joint="middle_idler_q" coef="1"/>
+      <joint joint="middle_mcp" coef="-1"/>
+      <joint joint="middle_pip" coef="-1"/>
+    </fixed>
+  </tendon>
 
   <actuator>
     <general name="a_palm_px" class="pose" joint="palm_px" ctrlrange="-0.2 0.2"/>
@@ -1153,6 +1242,7 @@
   </actuator>
 
   <keyframe>
-    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.02005 0 0 0 0 0 0 -0.167745 0 1.20758 0 0 -0.429327 0.0237063 0 0.770516 0 0 0.429327 0.0237063 0 0.770516 0 0 0 0 0 0 0 0" ctrl="0 0 0.02005 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.429327 0.0237063 0.770516"/>
+    <key name="open" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 -0.01995 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.794222 -0.770516 -0.794222 0.794222 0.429327 0.0237063 0.770516 0.794222 -0.770516 -0.794222 0.794222" ctrl="0 0 -0.01995 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.429327 0.0237063 0.770516"/>
+    <key name="lifted" qpos="0 0 0.0125 0.707107 0.707107 0 0 0 0 0.02005 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.794222 -0.770516 -0.794222 0.794222 0.429327 0.0237063 0.770516 0.794222 -0.770516 -0.794222 0.794222" ctrl="0 0 0.02005 0 0 0 0 -0.167745 1.20758 -0.429327 0.0237063 0.770516 0.429327 0.0237063 0.770516"/>
   </keyframe>
 </mujoco>

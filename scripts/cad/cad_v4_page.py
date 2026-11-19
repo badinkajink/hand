@@ -85,6 +85,7 @@ travel: 300&deg; for the SCS0009 and 360&deg; for the STS3032 in position mode.<
 def sec_layouts(J):
     P, B, C = J["params"], J["build"], J["check"]
     a, b = B["v4a"]["index"], B["v4b"]["index"]
+    K3, Ka, Kb = C["carriage"]["v3"]["index"], C["carriage"]["v4a"]["index"], C["carriage"]["v4b"]["index"]
     V4b = P["v4b"]
     rows = [
         ["PIP servo", "in the MCP link, across the finger", "STS3032 in a housing on the yaw link, behind the MCP servo",
@@ -122,7 +123,13 @@ axis stays the same. Section SEC[clearance] places the gimbal 20.75 mm lower as 
 {t}{fig}
 <p>Neither layout runs into itself over the driver's ranges (Table TAB[selfc]). The tightest pairs were set by
 design. In v4a the coupler passes the rod in the next layer at {C['v4a']['least_mm']:.2f} mm. In v4b the MCP link's web passes the MCP
-servo's tab at {C['v4b']['least_mm']:.2f} mm.</p>"""
+servo's tab at {C['v4b']['least_mm']:.2f} mm.</p>
+<p>That check left out the carriage. In the trials' postures v3's MCP link kept at least {K3['least_mm']:.2f} mm from the carriage's
+collision spheres. v4a's index MCP link overlapped them in {Ka['overlapping']} of {Ka['poses']:,} periods, by up to {mn(-Ka['least_mm'], 2)} mm.
+The overlap is at the top of the link's plate on the servo-base side, at yaw {mn(Ka['overlap_yaw_deg'][0])}&deg; to
+{mn(Ka['overlap_yaw_deg'][1])}&deg; and MCP {Ka['overlap_mcp_deg'][0]}&deg; to {Ka['overlap_mcp_deg'][1]}&deg;. In those postures the
+carriage's mesh stays {Ka['mesh_least_mm_where_spheres_overlap']:.2f} mm from v4a's link, so only the spheres overlap. v4b's MCP link
+clears the carriage's spheres by {Kb['least_mm']:.2f} mm over the driver's whole yaw and MCP ranges.</p>"""
 
 
 def sec_selfclear(J):
@@ -256,7 +263,10 @@ def sec_files():
     rows = [["<code>scripts/cad/cad_v4_layouts.py</code>", "builds the scenes; check, replay, forces, joint space, renders"],
             ["<code>scripts/cad/cad_v4_page.py</code>", "this page"],
             ["<code>assets/cad_v4/concepts/20261118-layout_params.json</code>", "every dimension of the two layouts"],
-            ["<code>assets/mjcf/experimental/20261118-cad_v4/v4a.xml</code>, <code>v4b.xml</code>", "MuJoCo scenes on the cad_v3 hand"],
+            ["<code>assets/mjcf/experimental/20261118-cad_v4/v4a.xml</code>, <code>v4b.xml</code>",
+             "MuJoCo scenes on the cad_v3 hand. Under physics, equality constraints keep the drive on the MCP and PIP joints. "
+             "<code>scripts/cad/cad_v4_layouts.py play v4a</code> opens one in the viewer with the least index-middle gap "
+             "shown; <code>--kinematic</code> poses the joints exactly"],
             ["<code>docs/experiments/20261118-sr2_actuator_layout/data/</code>", "the JSON behind every table and figure"],
             ["<code>scripts/mechanisms/sr2_index_middle_clearance_replay.py</code>", "the earlier sphere replay (commit adc1a0d3b)"]]
     return table(["File", "Content"], rows, "Files.", num_from=9)

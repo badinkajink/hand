@@ -20,7 +20,7 @@ The analysis is on the result page
 | `concepts/20261118-layout_params.json` | every dimension of both layouts (mm, the fingers' cad_v3 body frames) |
 | `concepts/step/20261118-cad_v4_v4a_index_envelopes.step` | v4a's new parts as named solids (not in git; CAD files move by rsync) |
 | `concepts/step/20261118-cad_v4_v4b_index_envelopes.step` | v4b's new parts as named solids (not in git) |
-| `../mjcf/experimental/20261118-cad_v4/v4a.xml`, `v4b.xml` | MuJoCo scenes: the cad_v3 hand with both fingers rebuilt |
+| `../mjcf/experimental/20261118-cad_v4/v4a.xml`, `v4b.xml` | MuJoCo scenes: the cad_v3 hand with index and middle rebuilt; under physics, equality constraints keep the drive on the MCP and PIP joints |
 
 The STEP solids are in the index finger's mount frame at the zero pose, in mm: the origin is the point of the carriage's
 yaw axis that cad_v3's model calls `index_mount`, with P's axes (x from the thumb toward the index and middle fingers, y
@@ -32,6 +32,23 @@ v4a that do not change (yaw link, yaw servo, MCP servo, cassette and cap) are th
 Each finger's body frames follow the cad_v3 MJCF: x dorsal (+) and palmar (-), y along the MCP and PIP axes, z up. The
 servo bases of both fingers face +y as built. Joint angles are in the simulator's convention (`manta_hand.plan`
 JOINT_SIGN maps the servo readings).
+
+## Viewing the scenes
+
+    .venv/bin/python scripts/cad/cad_v4_layouts.py play v4a                # under physics
+    .venv/bin/python scripts/cad/cad_v4_layouts.py play v4b --kinematic    # joints take the sliders' values
+
+The viewer starts at the key `lifted` and is posed from the Control panel's sliders. The actuators are cad_v3's, in joint
+angles: `a_index_yaw`, `a_index_mcp`, `a_index_pip`, the same for the middle finger and the thumb, and six for the palm's
+pose. The idler, rod, coupler and PIP crank follow the MCP and PIP joints; in both layouts the PIP servo's crank turns at
+MCP + PIP. The least index-middle gap of the replay's collision sets (mm, with its pair of parts) is shown at the bottom
+left. Under physics touching parts push each other apart; with `--kinematic` they may overlap and the gap goes negative.
+The key `open` is the base scene's start pose, with the fingertips 3.9 mm into the floor.
+
+The scenes have no morphology slides (mount x and y, finger length): contact forces dragged them under physics. Mount
+positions and link lengths change in the params file, followed by `build`. The carriage's MorphIt spheres touch v4a's MCP
+plate at yaw -21 to -12 deg and MCP 31 to 50 deg, where the carriage's mesh is 3.45 mm away (`check`, key `carriage`).
+`python -m mujoco.viewer --mjcf=...` also opens a scene, at qpos0 with straight fingers; load a key from its panel.
 
 ## Rebuild
 
