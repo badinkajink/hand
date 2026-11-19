@@ -97,6 +97,7 @@ def main():
     ap.add_argument("--axis", choices=("z", "w"), default="z")
     ap.add_argument("--dist", type=float, default=5.0)
     ap.add_argument("--speed", type=float, default=1.0, help="mm/s (cycles)")
+    ap.add_argument("--acc", type=float, default=0.02, help="m/s^2 of the drag legs (0.5 gives 20 mm/s within 0.4 mm)")
     ap.add_argument("--cycles", type=int, default=2)
     ap.add_argument("--step", type=float, default=0.5, help="deg: the MCP's step in the hold and the step back")
     ap.add_argument("--dwell", type=float, default=1.0)
@@ -185,7 +186,7 @@ def main():
 
     write({"what": "S4(b) drag", "mode": "protocol" if a.protocol else "cycles", "finger": f, "normals": normals,
            "speeds": a.speeds if a.protocol else [a.speed], "rests": a.rests if a.protocol else None, "axis": a.axis,
-           "axis_B": axis_B.tolist(), "dist_mm": a.dist, "cycles": a.cycles, "F0_N": F0.tolist(), "F0_sd_N": sd0.tolist(),
+           "axis_B": axis_B.tolist(), "dist_mm": a.dist, "acc_m_s2": a.acc, "cycles": a.cycles, "F0_N": F0.tolist(), "F0_sd_N": sd0.tolist(),
            "R_PH": R_PH.tolist(), "start_joints": start, "guards": {"max_n": a.max_n, "stop_n": a.stop_n,
                                                                     "max_temp": a.max_temp, "stop_temp": a.stop_temp},
            "joint": a.joint, "sign": sg, "step_deg": a.step, "dwell_s": a.dwell, "hold_load": a.hold_load,
@@ -330,7 +331,7 @@ def main():
                     T = T0.copy()
                     T[:3, 3] = T0[:3, 3] + d_mm * axis_B
                     tl0 = time.time()
-                    lw, moved = arm.move(T, v / 1e3, 0.02, a.stop_n, a.dist / v + 6.0,
+                    lw, moved = arm.move(T, v / 1e3, a.acc, a.stop_n, a.dist / v + 6.0,
                                          f"drag {N:g} N {v:g} mm/s rest {rest:g} s to {d_mm:+g} mm", check=guard)
                     time.sleep(0.3)
                     tl1 = time.time()
