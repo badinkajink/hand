@@ -319,6 +319,16 @@ air and then against a force sensor. Contact and the blind validation trials nee
   middle's board read nothing in 18 of 20 trials. A contact on the middle tip's side would read the same. A press of
   the middle's pad face would show whether its board reads a face load. The index's two face presses give the lines
   of the 16:4x entry again.
+- W3, films of the night's twists beside the replays (11-18 18:4x; `sim/20261118-night_trial_film.py`;
+  `media/20261118-night_twist_194243_0344_hand_vs_replay.mp4` and `..._1918_...`). Both tracking cameras filmed every
+  trial of the night at 960 x 540 and 30 fps (`hom_trial.py --video-dir`, on corvus in
+  `logs/20261116-hom_trials/20261117-night_repeats*/`). The 22 films of the tips-off trials are copied to
+  `logs/20261117-night_trial_films/`. The script draws the replay from each camera's calibrated pose beside the
+  hand's frames, with each object's x and y axes and the two twist traces. The server's record and corvus's share the
+  trial's start to 0.3 ms. In trial 19:42:43 the hand's sphere turned about 30 deg between 5.0 and 5.3 s. The tag
+  under the sphere blurs in one frame, and the fingertips' housings move little: the sphere slipped in the grasp. The
+  replay (S3 plant, 2.0 N m/rad bend, stiff pads, friction 1.0) starts to turn at 5.1 s and adds 27 deg by 6.5 s
+  without a slip. It ends at 34.6 deg, against the hand's 50.9.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
