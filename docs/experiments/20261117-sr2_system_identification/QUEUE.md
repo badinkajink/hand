@@ -465,6 +465,21 @@ air and then against a force sensor. Contact and the blind validation trials nee
   the index's side thus drives the twist and the thumb's pad brakes it. The thumb pad's friction on the sphere's tape
   is unmeasured: phase C dragged it on the tag plate (0.55-0.64). The index's PLA side on the tape is the other
   unmeasured value; the owner gave the go for its drag at 11-19 12:0x ("we can go for the pla on tape tests").
+- S4(b), the index's PLA side on the tape (11-19 13:2x; lab 42f915451 and db72de364; records 20261119-123219 loaded,
+  122906 and 130711 free-air controls; `sim/20261118-s4b_drag_friction.py`, `data/s3/20261119-pla_side_friction.json`).
+  The hand was turned -92 deg, and the index's yaw held the lower end of its DIP link on the taped plate. The arm
+  dragged it 5 mm up and down with phase A's rests and speeds. The yaw held 0.47-0.49 N at the 0.5 N level. At the 1
+  and 2 N levels it stopped at its load cap near 1.0 N, so those two levels repeat one force. The two free-air controls
+  followed the same arm path with the finger 14 mm off the plate. The cable and the HEX-E alone gave 0.075-0.131 N
+  along the drag at 0.2 mm/s and 0.163-0.216 N at 2 mm/s (half the down-up difference). Along the normal they gave
+  -0.13 to -0.20 N. With the pooled controls subtracted leg by leg, the side slid at 0.43-0.54 of the normal force at
+  0.8-1.1 N (median 0.47): 0.48 at 0.2 mm/s and 0.46 at 2 mm/s. At 0.6-0.7 N it slid at 0.39-0.59. Without the
+  controls the same legs gave 0.61-1.12. A force of 0.06-0.19 N along x_P, across the drag, added at most 0.05. One
+  leg of 36 started above its plateau by more than the noise. The PLA side thus slides on the tape like the index pad,
+  at about half the friction of 1.0 the scenes give it. The replays with the index at 0.43 (W3, 22:0x) used about this
+  value and turned the sphere 32.6 deg. The pads' drags of 11-18 ran without a control. If their bias matched these
+  controls, their friction at 1-2 N would fall by 0.04-0.09 at 0.2 mm/s, and the cable would account for 0.04-0.08 of
+  their 0.10 rise with speed. The lab plans controls at those poses.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

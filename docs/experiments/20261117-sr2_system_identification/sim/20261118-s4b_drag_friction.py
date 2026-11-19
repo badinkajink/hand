@@ -53,8 +53,9 @@ STUDY = HERE.parent
 RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "20261118-185120_index_drag2N_z"]
 PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
 SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
-CONTROLS = ["20261119-122906_index_protocol"]
-SIDE_PROTOCOLS = {}  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
+CONTROLS = ["20261119-122906_index_protocol", "20261119-130711_index_protocol"]
+SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
+    "20261119-123219_index_protocol": ["20261119-122906_index_protocol", "20261119-130711_index_protocol"]}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
@@ -160,6 +161,8 @@ def protocol(stem, control=None):
     F3 = np.convolve(FP @ ax, np.ones(n) / n, "same")
     Fn_raw = np.convolve(FP @ nax, np.ones(n) / n, "same")
     Fn = sgn * Fn_raw
+    lat = np.cross(nax, ax)
+    Fl = np.convolve(FP @ (lat / np.linalg.norm(lat)), np.ones(n) / n, "same")
     z = np.interp(th, tt, zt)
     out = []
     for k, lg in enumerate(legs):
@@ -181,7 +184,8 @@ def protocol(stem, control=None):
                     "plateau_N": round(plateau, 3), "normal_N": round(normal, 3), "swing_N": round(swing, 3),
                     "overshoot_N": round(over, 3), "noise_max_N": round(noise, 3),
                     "overshoot_at_mm": round(float(trav[first][j]), 2),
-                    "normal_raw_N": round(float(np.median(Fn_raw[s][pl])), 3)})
+                    "normal_raw_N": round(float(np.median(Fn_raw[s][pl])), 3),
+                    "lateral_N": round(float(np.median(Fl[s][pl])), 3)})
     bias = {}
     if control:
         cl = [r for c in ([control] if isinstance(control, str) else control) for r in protocol(c)[0]["legs"]]
@@ -190,7 +194,8 @@ def protocol(stem, control=None):
                 c = [r for r in cl if (r["speed_mm_s"], r["dir"]) == (v, d)]
                 if c:
                     bias[(v, d)] = (float(np.median([r["plateau_N"] for r in c])),
-                                    sgn * float(np.median([r["normal_raw_N"] for r in c])))
+                                    sgn * float(np.median([r["normal_raw_N"] for r in c])),
+                                    float(np.median([r["lateral_N"] for r in c])))
     fric = []
     for N in sorted({r["N"] for r in out}):
         for v in sorted({r["speed_mm_s"] for r in out}):
@@ -206,9 +211,12 @@ def protocol(stem, control=None):
                         bu, bd = bias[(v, "up")], bias[(v, "down")]
                         fc = fk - (bd[0] - bu[0]) / 2
                         nc = nn - (bd[1] + bu[1]) / 2
+                        lc = (dn[0]["lateral_N"] - bd[2] + up[0]["lateral_N"] - bu[2]) / 2
                         row = {**row, "friction_N": round(fc, 3), "normal_N": round(nc, 3),
                                "mu": round(fc / nc, 3) if nc > 0.1 else None, "control_friction_N":
                                round((bd[0] - bu[0]) / 2, 3), "control_normal_N": round((bd[1] + bu[1]) / 2, 3),
+                               "lateral_N": round(lc, 3),
+                               "mu_with_lateral": round(float(np.hypot(fc, lc)) / nc, 3) if nc > 0.1 else None,
                                "friction_uncorrected_N": row["friction_N"], "normal_uncorrected_N": row["normal_N"],
                                "mu_uncorrected": row["mu"]}
                     fric.append(row)
