@@ -1,0 +1,268 @@
+[
+ {
+  "run": "20261118-163331_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": -1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "taped",
+  "contact": {
+   "step": 7,
+   "offset": 2.328,
+   "reading": -0.8788999999999998,
+   "N": 0.1545
+  },
+  "slope_N_per_deg": null,
+  "max_N": 1.5017,
+  "max_at_offset": 12.348,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 0.52
+ },
+ {
+  "run": "20261118-163734_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": -1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "taped",
+  "contact": {
+   "step": 8,
+   "offset": 1.656,
+   "reading": -2.050775,
+   "N": 0.204
+  },
+  "slope_N_per_deg": 0.229,
+  "max_N": 1.0653,
+  "max_at_offset": 8.02,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": -0.102
+ },
+ {
+  "run": "20261118-164235_middle_yaw_head_on.jsonl",
+  "finger": "middle",
+  "sign": -1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "taped",
+  "contact": {
+   "step": 9,
+   "offset": 1.57,
+   "reading": -2.6367562500000012,
+   "N": 0.3506
+  },
+  "slope_N_per_deg": null,
+  "max_N": 1.8045,
+  "max_at_offset": 8.848,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 0.812
+ },
+ {
+  "run": "20261118-164626_middle_yaw_head_on.jsonl",
+  "finger": "middle",
+  "sign": -1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "taped",
+  "contact": {
+   "step": 9,
+   "offset": 1.863,
+   "reading": -2.6367562500000012,
+   "N": 0.1529
+  },
+  "slope_N_per_deg": 0.337,
+  "max_N": 1.8535,
+  "max_at_offset": 12.141,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 1.02
+ },
+ {
+  "run": "20261118-165112_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": 1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "tag",
+  "contact": {
+   "step": 13,
+   "offset": 1.52,
+   "reading": 5.27344375,
+   "N": 0.1982
+  },
+  "slope_N_per_deg": 0.243,
+  "max_N": 1.8903,
+  "max_at_offset": 12.357,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": -0.117
+ },
+ {
+  "run": "20261118-165559_middle_yaw_head_on.jsonl",
+  "finger": "middle",
+  "sign": 1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "tag",
+  "contact": {
+   "step": 12,
+   "offset": 1.605,
+   "reading": 4.394493749999999,
+   "N": 0.153
+  },
+  "slope_N_per_deg": 0.206,
+  "max_N": 1.1481,
+  "max_at_offset": 9.969,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": -0.152
+ },
+ {
+  "run": "20261118-165930_middle_yaw_head_on.jsonl",
+  "finger": "middle",
+  "sign": 1,
+  "step_deg": 2.0,
+  "dwell_s": 1.0,
+  "plate": "tag",
+  "contact": {
+   "step": 3,
+   "offset": 1.02,
+   "reading": 5.273399999999999,
+   "N": 0.3218
+  },
+  "slope_N_per_deg": 0.115,
+  "max_N": 1.4681,
+  "max_at_offset": 10.969,
+  "stop": "load 900.0 reached 900",
+  "back_release_offset": -0.152
+ },
+ {
+  "run": "20261118-170114_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": 1,
+  "step_deg": 2.0,
+  "dwell_s": 1.0,
+  "plate": "tag",
+  "contact": {
+   "step": 4,
+   "offset": 1.848,
+   "reading": 6.15235,
+   "N": 0.4713
+  },
+  "slope_N_per_deg": 0.225,
+  "max_N": 2.148,
+  "max_at_offset": 14.332,
+  "stop": "load 915.0 reached 900",
+  "back_release_offset": 0.676
+ },
+ {
+  "run": "20261118-170157_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": 1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "tag",
+  "contact": {
+   "step": 13,
+   "offset": 1.52,
+   "reading": 5.5664125,
+   "N": 0.1695
+  },
+  "slope_N_per_deg": 0.147,
+  "max_N": 1.9982,
+  "max_at_offset": 13.504,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 1.176
+ },
+ {
+  "run": "20261118-170630_index_yaw_head_on.jsonl",
+  "finger": "index",
+  "sign": -1,
+  "step_deg": 2.0,
+  "dwell_s": 1.0,
+  "plate": "taped",
+  "contact": {
+   "step": 2,
+   "offset": 2.242,
+   "reading": -0.5859312499999998,
+   "N": 0.1525
+  },
+  "slope_N_per_deg": 0.243,
+  "max_N": 1.5283,
+  "max_at_offset": 11.848,
+  "stop": "load -900.0 reached 900",
+  "back_release_offset": -0.102
+ },
+ {
+  "run": "20261118-170804_middle_yaw_head_on.jsonl",
+  "finger": "middle",
+  "sign": -1,
+  "step_deg": 2.0,
+  "dwell_s": 1.0,
+  "plate": "taped",
+  "contact": {
+   "step": 2,
+   "offset": 1.363,
+   "reading": -2.6367562500000012,
+   "N": 0.2774
+  },
+  "slope_N_per_deg": 0.219,
+  "max_N": 1.6354,
+  "max_at_offset": 7.555,
+  "stop": "load -900.0 reached 900",
+  "back_release_offset": 1.02
+ },
+ {
+  "run": "20261118-170955_thumb_yaw_head_on.jsonl",
+  "finger": "thumb",
+  "sign": -1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "taped",
+  "contact": {
+   "step": 17,
+   "offset": 0.883,
+   "reading": -6.738306250000001,
+   "N": 0.1527
+  },
+  "slope_N_per_deg": 0.196,
+  "max_N": 1.4834,
+  "max_at_offset": 10.211,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 0.797
+ },
+ {
+  "run": "20261118-171422_thumb_yaw_head_on.jsonl",
+  "finger": "thumb",
+  "sign": 1,
+  "step_deg": 0.5,
+  "dwell_s": 2.0,
+  "plate": "tag",
+  "contact": {
+   "step": 3,
+   "offset": 0.621,
+   "reading": 1.4648187499999992,
+   "N": 0.1747
+  },
+  "slope_N_per_deg": 0.225,
+  "max_N": 2.179,
+  "max_at_offset": 13.742,
+  "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, 'pip': 0.0}",
+  "back_release_offset": 1.035
+ },
+ {
+  "run": "20261118-171707_thumb_yaw_head_on.jsonl",
+  "finger": "thumb",
+  "sign": 1,
+  "step_deg": 2.0,
+  "dwell_s": 1.0,
+  "plate": "tag",
+  "contact": {
+   "step": 1,
+   "offset": 1.121,
+   "reading": 1.7577874999999992,
+   "N": 0.2962
+  },
+  "slope_N_per_deg": 0.23,
+  "max_N": 2.27,
+  "max_at_offset": 13.656,
+  "stop": "load -915.0 reached 900",
+  "back_release_offset": 0.828
+ }
+]

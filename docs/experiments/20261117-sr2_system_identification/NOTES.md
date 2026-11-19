@@ -190,3 +190,29 @@ watcher's log is `logs/20261118-sr2_tags/arm_watch.jsonl`.
   a downward part about 0.8 times the horizontal one: friction on the tape as the yaw's arc lifts the tip, plus the
   HEX-E's drift. hand-4a predicted 0.19 N per deg, and 2.8 N at 14-15 deg unless the servo stops near the MCP's
   0.17 N m. The slope agrees, but the yaw's overload trips at 1.0-1.7 N, 0.09-0.15 N m at 88 mm.
+
+## 2026-11-18, 16:46-17:18: the yaw series, unattended (owner away)
+
+- **Presses.** Fourteen head-on yaw presses, all with the hand turned -92 deg and the tip's side 13 mm above the
+  tag's height (`lab/s3_yaw_summary.py` -> `data/s3/20261118-yaw_head_on_summary.json`):
+  - index and middle toward -y into the taped plate, and toward +y into the tag plate;
+  - the thumb both ways;
+  - slow (0.5 deg every 2 s) and fast (2 deg every 1 s).
+- **Results.**
+  - Contact came once the target ran 0.6-2.3 deg past the reading.
+  - The force then rose 0.12-0.34 N per deg of target offset (median about 0.22).
+  - It stalled, often jumped with a 1.5-2 deg jump of the reading, and peaked at 1.07-2.27 N at 7.6-14.3 deg of
+    offset: 0.09-0.20 N m at 88 mm. The +y presses into the tag plate reached the most (index 1.9-2.15 N, thumb
+    2.18-2.27 N).
+  - Slow runs ended at the yaw's overload flag (status 32, loads 600-795); fast runs at the tool's 900-load limit,
+    with forces like the slow runs'.
+  - On the step back the force held until the target came within -0.15 to +1.2 deg of the reading (the clutch
+    plant's hold rule).
+  - hand-4a's 2.8 N at 14-15 deg did not appear: the yaws saturate near 0.1-0.2 N m.
+- **Moves.** Each finger's approach was planned with the CAD spheres and moved without contact; the guards changed at
+  most 1.8 N. The tag-plate presses hide the tag, so they ran without block tracking, and the hand rose 64 mm before
+  each new plan. The thumb's +y side met the tag plate after about 1.5 deg of yaw, about 3 mm sooner than the model
+  said; the 5 mm margins took it.
+- **Parked** at 17:18: palm origin 152 mm straight above the session's start, the wrist back within 0.06 deg of its
+  first orientation, every finger at zero, torque on. The splitter's file `20261118-155402-mux.bin` holds all of
+  today's presses.
