@@ -118,7 +118,10 @@ LEDE = (
     "model, against 513&#8202;&#181;T with five. Side by side it adds 2,928&#8202;&#181;T with four and 4,162&#8202;&#181;T "
     "with five. On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a neighbour at the home layout by at most "
     "5.4&#8202;&#181;T. With no compensation the contact viewer would show a contact in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames with nothing touching. "
-    "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, at most 3 of 14,916 to 21,000 frames per board show one, over 11 layouts. A model learned on one tip misses on another by "
+    "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, at most 3 of 14,916 to 21,000 frames per board show one, over 11 layouts. "
+    "On the hand, the index board&#8217;s estimate rose 0.26&#8211;0.38&#8202;N per newton of force on a taped plate. "
+    "A press on a tip&#8217;s side did not change the boards&#8217; estimates. "
+    "A model learned on one tip misses on another by "
     "1.0&#8211;2.5&#8202;mm, so each tip&#8217;s own presses must be in its training. With them, the other tips&#8217; presses "
     "lower the error further: on v3 IDs 4 to 6, from 0.83 to 0.66&#8202;mm at held-out points. With each board change scaled by its magnets&#8217; "
     "strength, v2 ID 1&#8217;s contacts are placed within 0.64&#8202;mm by a model of the v1 tips. Under a "
@@ -681,7 +684,22 @@ median), against 7.4&#8202;ms on the recordings of 16 November. The trial&#8217;
 boards was stopped at 3.54&#8202;s, when three targets in a row were missing. Before the evening&#8217;s trials the
 estimator was moved to a process of its own. In the first two trials after the move, the three boards were estimated
 in 16.8 to 18.8&#8202;ms (medians). Neither was stopped for a missing target
-([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md), the two sections on the state of 17 November).</p>"""),
+([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md), the two sections on the state of 17 November).</p>
+<p>On 18 November the boards were checked against the HEX-E on the hand. The hand was mounted on the UR5 through
+the HEX-E, and the index fingertip, v3 ID 3, was pressed onto a taped plate. With the estimator of the HOM trials, the
+board&#8217;s estimate rose 0.26&#8202;N per newton of the HEX-E&#8217;s normal force when the MCP joint pushed the pad head
+on. Over the steps above 1.5&#8202;N, the HEX-E&#8217;s median force was 2.51&#8202;N and the estimate&#8217;s 0.95&#8202;N.
+At the steps under 0.1&#8202;N, with the estimator&#8217;s threshold off, the estimate was 0.31&#8202;N. When the yaw joint
+pushed the pad along the tape, the estimate rose 0.38&#8202;N per newton along the plate&#8217;s normal and 0.60 along the
+tape. Without the own-pose GP&#8217;s term the first slope was 0.38. These lines come from one tip, one plate and two
+presses ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand),
+Section 17).</p>
+<p>In 14 more presses the yaw joints pushed the sides of the index, middle and thumb tips into the plates. There the
+boards&#8217; estimates did not rise with the force. At each press&#8217;s largest force, 1.06 to 2.27&#8202;N, the two GP
+estimates were 0.07 to 0.38&#8202;N. Before contact they were 0.14 to 0.31&#8202;N. By the identification study&#8217;s
+account, the plates met the DIP link, which is 3&#8202;mm wider than the pad on each side
+([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand),
+Table 35).</p>"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
@@ -978,6 +996,7 @@ FUTURE = [
     'Facing finger: record the board with a second tip&#8217;s magnets at 20&#8211;40&#8202;mm and compare with the dipole prediction before subtracting it from the joint angles.',
     'Steel at known distances and forces: touch the 100&#8202;g mass and the ruler through printed spacers of 0.5 to 10&#8202;mm, then set the mass on the face (0.98&#8202;N). Run <code>scripts/fingertip/fingertip_foreign_field.py touches</code> on each stretch. A spacer reading over 100&#8202;&#181;T with &#923; under 25 means the test misses steel. A joint fit of a contact and the far field within 0.3&#8202;N of 0.98&#8202;N would measure presses made with steel.',
     'Temperature: with the pad at rest and the viewer logging, hold a warm hand around the finger for 60&#8202;s and take it away. Run <code>scripts/fingertip/fingertip_contact_estimation_study.py thermal</code> on that stretch. No contact should show while the chips warm by 2&#8211;3&#8202;&#176;C. A drift that grows with the temperature after the correction means the magnets need a coefficient of their own. Firmware with TCMP_EN 1 is the alternative, to be tested the same way.',
+    'Face presses of the middle and thumb pads on the hand: press each pad&#8217;s face onto the taped plate with the MCP joint, as for the index. Run <code>docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py</code> on them ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Section 17). If the slopes of v3 IDs 1 and 2 are also 0.26 to 0.38, the low estimate is common to the v3 tips on the hand.',
     'Mount end on the SR2 hand: the contact viewer has run on the hand since 2026-11-05 with the board GP refitted with the rig&#8217;s holds (<code>docs/experiments/20261022-ur5_tip_calibration/data/20261105-board_gp_v3_id1_id3_rig_id3_id6.npz</code>), on v3 IDs 1 to 3. Press a tip&#8217;s mount end with a known load (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R33). An error over 2&#8202;mm there refutes it.',
     'The ensemble&#8217;s mean in the contact viewer (<code>docs/experiments/20261022-ur5_tip_calibration/QUEUE.md</code> R34, not decided): take the point and force from the MLP ensemble, and keep the GP&#8217;s weight for the blend with the physical model. Score the blend on the coverage gaps of the calibration page&#8217;s Table 33. A location error over the GP&#8217;s 1.24&#8202;mm keeps the GP&#8217;s mean.',
     'Fingertips beside each other on the hand (owner, 2026-10-25): the sweeps of 2026-11-04 and 11-05 are analysed at 11 layouts (<code>scripts/fingertip/sr2_crosstalk_hand.py</code>). The pads came no closer than 27&#8202;mm. A plan of its own brings them within 25&#8202;mm, where a magnet-model gain near 1 at cad_v3&#8217;s finger spacing supports the CAD&#8217;s finger positions. Laid against each other on the desk, three fingertips moved each other&#8217;s rest by 210 to 991&#8202;&#181;T. With the re-zero, no contact was shown at rest in 39 minutes (<code>src/sr2hand/driver/reskin5x/README.md</code>). The viewer has yet to run on the hand with the own-angle GP subtracted live, with each tip pressed at a known force at the HEX-E. A false contact while the fingers move, or a press error above the injected one, falsifies the compensation.',
