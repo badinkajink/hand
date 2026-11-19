@@ -244,3 +244,40 @@ The owner, 18:3x: "ok go ahead on these plans".
     because the legs' guard (4 N) counts change from each leg's start. The servos kept no flags.
 - **Parked** at 18:54: palm origin 231 mm above the session's start, unturned, every finger near zero, torque on, no
   flags.
+
+## Night of 2026-11-18 (19:17-21:42): the calibration suite, unattended
+
+- **Go and plan.** The owner gave the go by relay through hand-4a (owner, 19:1x: "yea you have the go ahead to run
+  tonight's session"). hand-4a's plan:
+  1. pad friction for all three pads at 0.5-3 N, drag speeds 0.2 and 2 mm/s, rests of 1, 10 and 60 s;
+  2. the three PIPs and the thumb's MCP, three slow presses each;
+  3. the thumb's board, an MCP face press and angle presses at PIP 15 and 30 deg.
+- **Changes** (hand-4a agreed):
+  - No 3 N hold: the queue's 3 N rule. Drag legs stop at 3 N absolute (x_P, y_P).
+  - The thumb's friction ran on the tag plate: its pad faces the tag's side, and the taped plate needs a 180 deg wrist
+    turn (the owner OK'd 90).
+  - Runs were grouped by finger.
+- **Scripts** are in `lab/night/`; logs in `logs/20261118-sr2_night/`; boards in
+  `logs/20261118-three_finger_mux/20261118-191744-mux.bin` (344 MB). All of it is rsynced to the workstation.
+- **Friction** (`lab/s4b_drag.py --protocol`; `data/s3/20261118-*_protocol.jsonl`, raw in logs). Index (19:18-19:43)
+  and middle (20:03-20:28) on the tape, thumb (20:46-21:11) on the tag plate. Each held 0.5, 1 and 2 N; for each speed
+  and rest, 5 mm up, then rest, then 5 mm down, along z. Each rest's raw segment gives the HEX-E's z drift for the leg
+  after it. No early stops. The MCPs reached 33-34 C.
+- **Index PIP**, three presses (`*_index_pip_press.jsonl`): contact at a PIP reading near 10 deg. The force reached
+  2.6-2.95 N when the 35 deg target travel ran out; the reading advanced about 15 deg past contact, since the MCP
+  behind gives too.
+- **Middle PIP**, three presses (`*_middle_pip_press.jsonl`): each reached the 3 N stop at a target of 31.5 deg
+  (readings 23.1-24.6 deg, offsets 6.9-8.4 deg).
+- **Thumb MCP**, three presses on the tag plate (`*_thumb_mcp_press.jsonl`):
+  1. stopped when the MCP reached 55 C, at 2.6 N, offset 12.9 deg, load -705;
+  2. reached the 3 N stop at offset 10.1 deg;
+  3. overload flag (status 32) at 2.26 N, offset 14.3 deg.
+- **Thumb PIP**, three presses (`*_thumb_pip_press.jsonl`): 3.07 N and 3.00 N at the stop; the third hit the overload
+  flag at 2.38 N, offset 13.6 deg.
+- **Rule breach.** The scripts waited 60 s between presses, so the thumb's second and third MCP presses started above
+  the queue's 40 C resume limit. The 55 C stop held. Next time the scripts wait under 40 C.
+- **Not run: the thumb's angle presses** (PIP 15 and 30). The lab lights went off by 21:40 (frames' mean luma 16,
+  against 137 at 20:02, as at 21:25 the night before). The planner refused without the tag, and I did not approach the
+  block blind. Phase C first stopped at 21:39 for the same reason: the tag was not seen after the 80 mm rise.
+- **Parked** at 21:42: palm origin z_B 356.7 over the session's start, unturned; all fingers within 3 deg of zero; no
+  flags; servos 21-32 C; torque on; arm running (mode 7). Splitter stopped.
