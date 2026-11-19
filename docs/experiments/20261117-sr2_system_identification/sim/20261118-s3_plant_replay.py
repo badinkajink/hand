@@ -1,0 +1,150 @@
+"""The night's g0 twists replayed on a plant set to S3's presses (W3 of the identification queue, 2026-11-18): do servos
+as strong as S3 measured them close the replays' twist deficit?
+
+S3 on the owner's 80/20 post (data/s3/; sim/20261118-s3_yaw_head_on_fits.py) measured the static force at the pad
+against the servo's error (target - reading):
+  - yaws (eleven head-on presses of the index and middle): 0.82 N at 5 deg of error and 1.5 N at 10 deg, largest
+    1.64 N (medians), at 88 mm: 0.83 N m/rad through zero, up to 0.144 N m;
+  - the thumb's yaw (three presses): 1.16 N at 5 deg, largest 2.18 N: 1.17 N m/rad, up to 0.19 N m;
+  - the index's MCP (one press): 1.73 N at 4 deg and 2.57 N at 6.2 deg, then flat to the overload flag, at 67 mm:
+    1.6 N m/rad, up to 0.17 N m; the PIPs and the thumb's MCP and PIP take the same values;
+  - no backdrive: on every step back the force held until the target came within about 1 deg of the reading.
+The replay plant of data/20261118-night_trials_replay.json (7v5: kp 0.825, the index's and middle's yaws 0.525,
+tau_max 0.27 N m, forward friction 0.6 |servo torque|) pushes 0.4 kp per rad, at most 0.108 N m. Here the clutch plant
+keeps its hold rule (a load that would drive a joint backward is held) and loses its forward friction (c = 0); each
+joint's servo is kp_j (target - q) up to tau_j. Two dampings: "s3" sets the free-air top speed, tau_j / damping, to the
+7v5 plant's 9.8 rad/s (the SCS0009 at 7.5 V turns about 10 rad/s); "s3tc" keeps the 7v5y plant's free-air time constant,
+damping / (0.4 kp) = 33 ms. The scenes' friction 1.0 (the grip tape) against S3's 0.5 for the pad on the tape.
+Everything else is night_replay.py's (logs/20261117-g13_open_pose): the hand's recorded targets, open loop from its
+measured start, the table removed at the lift.
+
+--kc adds the give that S3's head-on yaw presses measured past the index's and middle's yaw potentiometers (median
+2.04 N m/rad over eleven presses, sim/20261118-s3_yaw_head_on_fits.py): sim/20261118-yaw_give_replay.py's spring between
+each yaw's shaft (its reading) and its link, on this plant, with the gear's forward efficiency 1.
+
+    HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 SCALE_HAND=cad_v2 OMP_NUM_THREADS=1 \\
+        .venv/bin/python sim/20261118-s3_plant_replay.py OUT.jsonl [--plants s3 s3tc] [--mu 1.0 0.5] \\
+        [--contacts pads pads_stiff point] [--kc 2.0] [--tips off] [--trials STAMP ...] [--workers 6]
+"""
+import argparse
+import importlib.util
+import json
+import os
+import sys
+from pathlib import Path
+
+import numpy as np
+
+HERE = Path(__file__).resolve().parent
+STUDY = HERE.parent
+ROOT = STUDY.parents[2]
+sys.path.insert(0, str(ROOT / "logs/20261117-g13_open_pose"))
+import night_replay as NR  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location("yaw_give_replay", HERE / "20261118-yaw_give_replay.py")
+YG = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(YG)
+
+JOINTS = {"yaw": 0, "mcp": 1, "pip": 2}               # the order of a finger's actuators and dofs in the plant
+S3 = {("index", "yaw"): (0.83, 0.144), ("middle", "yaw"): (0.83, 0.144), ("thumb", "yaw"): (1.17, 0.19)}
+S3_FLEX = (1.6, 0.17)                                # every MCP and PIP: kp (N m/rad), tau_max (N m)
+W_TOP = 9.8                                          # rad/s, the 7v5 plant's free-air top speed (0.4 x 0.27 / 0.011)
+T_FREE = 0.033                                       # s, the 7v5y plant's free-air time constant (0.011 / (0.4 x 0.825))
+PLANT = None                                         # "s3" or "s3tc", set per job
+MU = 1.0
+JUMP_DEG = 8.0
+
+
+def s3_class():
+    base = NR.RPL.RC2.clutch_class()
+
+    class S3Plant(base):
+        """The clutch plant without forward friction and with each joint's servo as S3 measured it (module docstring)."""
+
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            m = self.m
+            self.c = 0.0
+            self.s3 = {}
+            for f in ("thumb", "index", "middle"):
+                for j, i in JOINTS.items():
+                    kp, tau = S3.get((f, j), S3_FLEX)
+                    damp = tau / W_TOP if PLANT == "s3" else T_FREE * kp
+                    a_, v = int(self.act[f][i]), int(self.vadr[f][i])
+                    m.actuator_gainprm[a_, 0] = kp
+                    m.actuator_biasprm[a_, 1] = -kp
+                    m.actuator_forcerange[a_] = (-tau, tau)
+                    m.dof_damping[v] = damp
+                    self.s3[f"{f}.{j}"] = (kp, tau, round(damp, 4))
+            m.geom_friction[:, 0] = MU
+
+    return S3Plant
+
+
+def run_s3(job):
+    global PLANT, MU
+    PLANT, MU = job["plant"], job["mu"]
+    YG.K_C, YG.ETA, YG.BACKDRIVE = job["k_c"], 1.0, False
+    return NR.run(job)
+
+
+def jumps(t, tw):
+    t, tw = np.asarray(t, float), np.asarray(tw, float)
+    ok = np.isfinite(tw) & (t >= 2.0)
+    d = tw[ok][2:] - tw[ok][:-2]
+    return (round(float(d.max()), 1), int((d > JUMP_DEG).sum())) if len(d) else (None, 0)
+
+
+def main():
+    import multiprocessing as mp
+    ap = argparse.ArgumentParser()
+    ap.add_argument("out")
+    ap.add_argument("--plants", nargs="+", default=["s3", "s3tc"], choices=["s3", "s3tc"])
+    ap.add_argument("--mu", type=float, nargs="+", default=[1.0, 0.5])
+    ap.add_argument("--contacts", nargs="+", default=["pads", "pads_stiff", "point"], choices=list(NR.RPL.SCENES))
+    ap.add_argument("--kc", type=float, nargs="+", default=[None], help="the yaw give's stiffness (N m/rad)")
+    ap.add_argument("--tips", default="off", choices=["off", "on", "all"])
+    ap.add_argument("--trials", nargs="*", default=None)
+    ap.add_argument("--workers", type=int, default=6)
+    a = ap.parse_args()
+    NR.RPL.RG.gear_class = lambda: YG.give_class(s3_class())
+    NR.RPL.RC2.STIFF, NR.RPL.RC2.BREAKAWAY = True, 0.0
+    NR.RPL.RG.RF.RL.rows_file()
+    rep = json.loads((STUDY / "data/20261118-night_trials_replay.json").read_text())
+    tips = {t["stamp"]: t["tips"] for t in rep["trials"]}
+    tl = [t for t in NR.trials() if (a.tips == "all" or tips.get(t["stamp"]) == a.tips)
+          and (not a.trials or t["stamp"] in a.trials)]
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    done = set()
+    if out.exists():
+        for x in out.read_text().splitlines():
+            r = json.loads(x) if x.strip() else None
+            if r and "error" not in r:
+                done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"]))
+    jobs = [{**t, "contact": c, "volts": "7v5", "plant": p, "mu": mu, "k_c": k,
+             "variant": f"{p} mu{mu:g}" + (f" kc{k:g}" if k else "")} for k in a.kc for p in a.plants for mu in a.mu
+            for c in a.contacts for t in tl if (t["stamp"], c, p, mu, k) not in done]
+    print(f"{len(jobs)} replays on {a.workers} workers ({len(done)} done)", flush=True)
+    with open(out, "a") as fo, mp.get_context("fork").Pool(a.workers, initializer=NR.RPL.RG.init,
+                                                           initargs=(str(NR.RPL.RG.RF.SCENE),), maxtasksperchild=4) as pool:
+        for r in pool.imap_unordered(run_s3, jobs):
+            if "trace" in r:
+                r["replay_jumps"] = jumps(r["trace"]["t"], r["trace"]["twist_replay"])
+            fo.write(json.dumps(r) + "\n")
+            fo.flush()
+            os.fsync(fo.fileno())
+            if "error" in r or r.get("diverged"):
+                print(r["stamp"], r["contact"], r["variant"], "ERROR" if "error" in r else "DIVERGED", r.get("error", ""),
+                      flush=True)
+                continue
+            jr = r["joint_rms_deg"]
+            print(f"{r['stamp']} {r['contact']:10s} {r['variant']:10s}: track hand {r['hand']['track'].get('score')} "
+                  f"replay {r['replay']['track'].get('score')} | twist {r['hand']['motion'].get('twist_end_deg')} / "
+                  f"{r['replay']['motion'].get('twist_end_deg')} | rise {r['replay']['motion'].get('rise_max_mm')} | "
+                  f"joints approach {jr['approach']['all']} | yaw bias task {jr['task']['bias']['index.aa']:+.1f}/"
+                  f"{jr['task']['bias']['middle.aa']:+.1f} | jumps {r['replay_jumps']} | {r['wall_s']} s", flush=True)
+
+
+if __name__ == "__main__":
+    main()

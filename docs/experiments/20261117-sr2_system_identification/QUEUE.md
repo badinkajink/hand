@@ -257,6 +257,59 @@ air and then against a force sensor. Contact and the blind validation trials nee
   On the taped plate the board thus reads 0.26-0.38 of the normal force. By these lines the night's 0.8 N on the
   index was 1.3-1.9 N, against the 2.8 N that the yaw's slope gives at 14-15 deg of offset. The lines come from one
   pad and two contact points on a flat plate; the sphere's contacts and the other boards need their own.
+- W3, S3's head-on yaw presses against the prediction (11-18 17:3x; lab 8c439dbe6, `data/s3/*_yaw_head_on.jsonl`,
+  NOTES "16:46-17:18"; `sim/20261118-s3_yaw_head_on_fits.py`: `data/s3/20261118-yaw_head_on_fits.json`). The error
+  below is the servo's target minus its reading; the forces are the HEX-E's in x_P and y_P, at 88 mm from the yaw
+  axis. The slope agreed with the prediction, and the force did not. Past contact the force rose 0.12-0.34 N per deg
+  of error (the lab's median 0.22; predicted 0.19). The yaws stopped at 1.07-2.27 N (0.09-0.20 N m), where 2.8 N at
+  14-15 deg was predicted. The index and middle gave 0.82 N at 5 deg of error and 1.5 N at 10 deg (medians of
+  eleven presses), largest 1.64 N (0.144 N m). The thumb gave 1.16 N at 5 deg, largest 2.18 N (0.19 N m). The night's
+  targets move the index's yaw toward -1 and the middle's toward +1. In those directions the index stopped at
+  1.07-1.53 N and the middle at 1.15-1.47 N: 0.094-0.135 N m, against the 7.5 V plant's forward limit of 0.108 N m.
+  The force rose only when the reading moved. Between moves the duty climbed about 50 per deg of error, and the force
+  stayed flat. The reading then moved 0.3-2 deg at once, 5-11 times per press: the gear train sticks. Per N the reading
+  advanced 2.0-3.6 deg on the index and middle and 0.7-1.0 deg on the thumb. About the yaw axis that is 1.4-2.5 N m/rad
+  (median 2.04) and 5-7 N m/rad. The predicted 1.3 deg per N came from the tangential press, with the pad's face on the
+  tape. On the -1 side the DIP link's flat side met the plate, so this compliance lies in the finger, not in the pad.
+  The step backs held the force until the target came within -0.15 to +1.2 deg of the reading, as predicted. In the
+  night's squeeze the yaw targets ran 14-15 deg past the readings, so each yaw pushed at its limit. Over 2.04 N m/rad,
+  0.13-0.144 N m bends the chain 3.7-4.0 deg, and the night's readings ran 3.5-4.1 deg past the pads' contact. The
+  morning's give had the right bend: its servo was 2.7 times too weak and its spring 2.7 times too soft.
+- W3, the night's twists on a plant set to S3 (11-18 17:3x; `sim/20261118-s3_plant_replay.py`, rows
+  `logs/20261118-night_replay/s3_plant.jsonl`, table `data/20261118-s3_plant_replay.json` by
+  `sim/20261118-yaw_give_summary.py`). The clutch plant keeps its hold rule and loses its forward friction (c = 0).
+  Each servo pushes kp_j (target - q) up to tau_j. The index's and middle's yaws take 0.83 N m/rad up to 0.144 N m,
+  and the thumb's yaw 1.17 N m/rad up to 0.19 N m. Every MCP and PIP takes 1.6 N m/rad up to 0.17 N m (the index's MCP
+  press). Two dampings set the free air: "s3" a top speed of 9.8 rad/s, as the 7.5 V plant's, and "s3tc" the 7v5y
+  plant's time constant of 33 ms. Each ran the 11 tips-off twists with soft pads, stiff pads and point contact, at
+  friction 1.0 and 0.5 (132 replays). Stronger servos do not close the twist deficit. At friction 1.0 and with "s3tc",
+  the sphere turned 35.9 deg on soft pads (rigid 36.7), 31.6 deg on stiff pads (30.8) and 35.7 deg with point contact
+  (37.1). The hand turned it 49.6 deg. Friction 0.5 adds 3-4 deg: 40.6, 33.6 and 40.2 deg. On the soft contacts the
+  task's yaw shortfall falls from 3.7 deg to 1.5-2.2 deg at friction 1.0, and to -1.0 to +1.6 deg at 0.5. The sphere
+  then rises 17-23 mm (rigid 10, hand 3.0). On the stiff pads the rise stays at 0.7-1.7 mm and the yaws stay 2.2-3.5
+  deg short. "s3tc" keeps the free-air joint RMS at 0.76 deg; "s3" raises it to 0.91 deg. The grasp's joint RMS stays
+  at 2.3 deg in every variant. Stiff pads leave no room for the finger's 4 deg of bend, and soft contacts make room by
+  lifting the sphere.
+- W3, prediction for the S3 plant with the measured give (11-18 17:3x, written before the run). The plant is "s3tc"
+  with a spring of 2.0 N m/rad between each of the index's and middle's yaw shafts and links (`--kc 2.0`). On stiff
+  pads the yaw readings run 3.6-4 deg past the pads' contact, as on the hand. The grasp's joint RMS falls from 2.3 to
+  about 1.1 deg. The sphere turns 40-46 deg (the 0.76 give on the 7.5 V plant: 45.6) and rises under 2 mm. On soft
+  pads the readings overrun the hand's by 2-4 deg, and the rise stays at 17-23 mm.
+- W3, the S3 plant with the measured give, result (11-18 17:4x; 66 replays in `logs/20261118-night_replay/s3_plant.jsonl`,
+  table rows "<contact> s3tc mu<friction> kc2" in `data/20261118-s3_plant_replay.json`). The readings came out as
+  predicted; the twist did not. On stiff pads at friction 1.0 the yaws ran 0.8 deg past the hand's readings (3.2 deg
+  short without the give). The grasp's joint RMS fell from 2.3 to 1.8 deg, where 1.1 was predicted. The sphere turned
+  31.7 deg (predicted 40-46; without the give 31.6; hand 49.6) and rose 0.8 mm. At friction 0.5 it turned 33.3 deg. On
+  soft pads the yaws ran 1.7-2.2 deg past the hand's, the sphere turned 35.5 deg and it rose 16 mm. In every S3 variant
+  the thumb's MCP stopped 4.3-4.8 deg short of the hand's in the grasp; on stiff pads it stayed 5.9-6.2 deg short in the
+  task. That chain bends as well: in S3 the index MCP's reading ran 5.5 deg past first contact at 2.55 N. The servos'
+  strength and the yaw chains' bend leave the twist deficit where it was; friction 0.5 recovers 2-4 deg of its 18 deg.
+  On the hand the twist rose more than 8 deg within 0.2 s 3.8 times per trial, at most 23.9 deg (means over the 11
+  trials). In the S3 replays it did so 0.1-1.6 times, at most 6.8-11.4 deg. Two mechanisms of the hand can store a turn
+  and release it at once. S3 showed one: the gears stick, and the force rose only when the reading jumped. The other is
+  a static friction at the pads above their sliding friction. MuJoCo's friction has one coefficient for both, and the
+  replay plant's gears do not stick. S4(b), the pad dragged across the taped plate, measures the pad's static and
+  sliding friction.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

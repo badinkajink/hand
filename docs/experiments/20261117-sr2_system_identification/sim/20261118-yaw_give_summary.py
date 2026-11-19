@@ -7,10 +7,13 @@ from 2.0 s; the joint RMS against the read-backs in free air (0-0.6 s), in the g
 2.0 s); the index's and middle's yaw shortfall (how far the replay's reading stops short of the hand's, toward the
 sphere; the bias of the yaw against the read-backs, sign set so that positive is short); and the jumps (the largest
 twist rise over 0.2 s from 2.0 s, and the number of 0.2 s windows that rose more than 8 deg). Rows replayed with
---backdrive (no spring; the load may push the two yaw servos back) form the rows "<contact> backdrive".
+--backdrive (no spring; the load may push the two yaw servos back) form the rows "<contact> backdrive", and rows of
+sim/20261118-s3_plant_replay.py the rows "<contact> <plant> mu<friction>".
 
     python3 sim/20261118-yaw_give_summary.py logs/20261118-night_replay/yaw_give.jsonl \\
         logs/20261118-night_replay/yaw_backdrive.jsonl [--out data/20261118-yaw_give_replay.json]
+    python3 sim/20261118-yaw_give_summary.py logs/20261118-night_replay/s3_plant.jsonl \\
+        --out data/20261118-s3_plant_replay.json
 """
 import argparse
 import json
@@ -22,6 +25,10 @@ HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent
 ROOT = STUDY.parents[2]
 SHORT = {"index.aa": -1.0, "middle.aa": 1.0}          # servo-frame bias sign that points away from the sphere
+
+
+def label(r):
+    return r.get("variant") or ("backdrive" if r.get("backdrive") else f"kc{r['k_c']:g}")
 
 
 def mean(v):
@@ -78,12 +85,8 @@ def main():
     for c in sorted({r["contact"] for r in rows}):
         ms = [from_rigid(trials[s]["replays"][f"{c}/7v5"]) for s in stamps if f"{c}/7v5" in trials[s]["replays"]]
         table[f"{c} rigid"] = agg(ms)
-        for k in sorted({r["k_c"] for r in rows if r["contact"] == c and not r.get("backdrive")}):
-            table[f"{c} kc{k:g}"] = agg([from_give(r) for r in rows if r["contact"] == c and r["k_c"] == k
-                                         and not r.get("backdrive")])
-        bd = [from_give(r) for r in rows if r["contact"] == c and r.get("backdrive")]
-        if bd:
-            table[f"{c} backdrive"] = agg(bd)
+        for v in sorted({label(r) for r in rows if r["contact"] == c}):
+            table[f"{c} {v}"] = agg([from_give(r) for r in rows if r["contact"] == c and label(r) == v])
     for name, v in table.items():
         ys = v["yaw_short_task_deg"]
         print(f"{name:18s} n {v['trials']:2d} track {v['track']} twist {v['twist_end_deg']} rise {v['rise_max_mm']} "
@@ -93,13 +96,12 @@ def main():
            "scripts": ["docs/experiments/20261117-sr2_system_identification/sim/20261118-yaw_give_replay.py",
                        "docs/experiments/20261117-sr2_system_identification/sim/20261118-yaw_give_summary.py"],
            "rows": a.rows, "trials": stamps,
-           "failed": [(r["stamp"], r["contact"], r.get("k_c"), bool(r.get("backdrive"))) for r in bad],
+           "failed": [(r["stamp"], r["contact"], label(r)) for r in bad],
            "table": table,
-           "per_trial": [{"stamp": r["stamp"], "contact": r["contact"], "k_c": r["k_c"],
+           "per_trial": [{"stamp": r["stamp"], "contact": r["contact"], "variant": label(r), "k_c": r["k_c"],
                           "backdrive": bool(r.get("backdrive")), **from_give(r),
                           "hand": trials[r["stamp"]]["hand"], "hand_jumps": trials[r["stamp"]]["hand_jumps"]}
-                         for r in sorted(rows, key=lambda r: (r["contact"], bool(r.get("backdrive")), r["k_c"] or 0.0,
-                                                              r["stamp"]))]}
+                         for r in sorted(rows, key=lambda r: (r["contact"], label(r), r["stamp"]))]}
     Path(a.out).write_text(json.dumps(out, indent=1) + "\n")
     print("wrote", a.out)
 

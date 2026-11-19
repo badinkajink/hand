@@ -47,8 +47,8 @@ GIVE = ("index", "middle")
 JUMP_DEG = 8.0
 
 
-def give_class():
-    base = NR.RPL.RC2.clutch_class()
+def give_class(base=None):
+    base = base or NR.RPL.RC2.clutch_class()
     SR2Plant = base.__mro__[1]
     RC2 = NR.RPL.RC2
 

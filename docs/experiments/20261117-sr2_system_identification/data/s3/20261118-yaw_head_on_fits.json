@@ -1,0 +1,1212 @@
+{
+ "what": "S3's fourteen head-on yaw presses of 2026-11-18 (lab, 16:33-17:17; data/s3/*_yaw_head_on.jsonl) against the prediction of W3 (QUEUE, \"The block as built\" and \"S3's index presses against the replay plant\"), and the numbers a replay plant takes from them.",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_yaw_head_on_fits.py",
+ "L_m": 0.088,
+ "prediction": {
+  "slope_N_per_deg_error": 0.19,
+  "force_at_14_15_deg_N": 2.8,
+  "reading_deg_per_N": 1.3,
+  "step_back": "the force holds until the target passes the reading"
+ },
+ "medians": {
+  "F_per_reading_N_per_deg": 0.458,
+  "k_past_pot_Nm_per_rad": 2.31,
+  "F_at_error_5_N": 0.825,
+  "F_at_error_10_N": 1.505,
+  "stall_N": 1.03,
+  "F_max_N": 1.72,
+  "tau_max_Nm": 0.151,
+  "overload_duty": 690.0
+ },
+ "presses": [
+  {
+   "run": "20261118-163331_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "slow",
+   "steps": 37,
+   "contact": {
+    "step": 7,
+    "error_deg": 2.33,
+    "reading_deg": -0.88,
+    "F_N": 0.15
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.275,
+    "offset_N": 0.04,
+    "deg_per_N": 3.64,
+    "k_past_pot_Nm_per_rad": 1.39,
+    "n": 30
+   },
+   "F_at_error_5_N": 0.87,
+   "F_at_error_10_N": 1.44,
+   "F_max_N": 1.5,
+   "error_at_max_deg": 12.35,
+   "tau_max_Nm": 0.132,
+   "stall": {
+    "step": 20,
+    "F_N": 1.01,
+    "error_deg": 5.31
+   },
+   "slips": [
+    {
+     "step": 8,
+     "jump_deg": 0.88,
+     "F_before_N": 0.15,
+     "F_after_N": 0.28,
+     "duty_before": 135
+    },
+    {
+     "step": 9,
+     "jump_deg": 0.29,
+     "F_before_N": 0.28,
+     "F_after_N": 0.35,
+     "duty_before": 120
+    },
+    {
+     "step": 12,
+     "jump_deg": 0.88,
+     "F_before_N": 0.36,
+     "F_after_N": 0.53,
+     "duty_before": 180
+    },
+    {
+     "step": 15,
+     "jump_deg": 0.88,
+     "F_before_N": 0.56,
+     "F_after_N": 0.76,
+     "duty_before": 210
+    },
+    {
+     "step": 19,
+     "jump_deg": 0.29,
+     "F_before_N": 0.79,
+     "F_after_N": 0.94,
+     "duty_before": 270
+    },
+    {
+     "step": 20,
+     "jump_deg": 0.29,
+     "F_before_N": 0.94,
+     "F_after_N": 1.01,
+     "duty_before": 285
+    },
+    {
+     "step": 23,
+     "jump_deg": 0.29,
+     "F_before_N": 1.04,
+     "F_after_N": 1.01,
+     "duty_before": 360
+    },
+    {
+     "step": 30,
+     "jump_deg": 1.76,
+     "F_before_N": 1.03,
+     "F_after_N": 1.44,
+     "duty_before": 525
+    }
+   ],
+   "overload_duty": 630,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-163734_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "slow",
+   "steps": 35,
+   "contact": {
+    "step": 8,
+    "error_deg": 1.66,
+    "reading_deg": -2.05,
+    "F_N": 0.2
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.339,
+    "offset_N": -0.05,
+    "deg_per_N": 2.95,
+    "k_past_pot_Nm_per_rad": 1.71,
+    "n": 27
+   },
+   "F_at_error_5_N": 0.75,
+   "F_at_error_10_N": 1.05,
+   "F_max_N": 1.07,
+   "error_at_max_deg": 8.02,
+   "tau_max_Nm": 0.094,
+   "stall": {
+    "step": 20,
+    "F_N": 1.05,
+    "error_deg": 5.02
+   },
+   "slips": [
+    {
+     "step": 8,
+     "jump_deg": 0.59,
+     "F_before_N": 0.01,
+     "F_after_N": 0.2,
+     "duty_before": 105
+    },
+    {
+     "step": 10,
+     "jump_deg": 0.59,
+     "F_before_N": 0.22,
+     "F_after_N": 0.35,
+     "duty_before": 135
+    },
+    {
+     "step": 12,
+     "jump_deg": 0.59,
+     "F_before_N": 0.37,
+     "F_after_N": 0.46,
+     "duty_before": 150
+    },
+    {
+     "step": 14,
+     "jump_deg": 0.29,
+     "F_before_N": 0.46,
+     "F_after_N": 0.59,
+     "duty_before": 180
+    },
+    {
+     "step": 16,
+     "jump_deg": 0.29,
+     "F_before_N": 0.62,
+     "F_after_N": 0.72,
+     "duty_before": 210
+    },
+    {
+     "step": 20,
+     "jump_deg": 0.88,
+     "F_before_N": 0.75,
+     "F_after_N": 1.05,
+     "duty_before": 300
+    }
+   ],
+   "overload_duty": 660,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-164235_middle_yaw_head_on.jsonl",
+   "finger": "middle",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "slow",
+   "steps": 39,
+   "contact": {
+    "step": 9,
+    "error_deg": 1.57,
+    "reading_deg": -2.64,
+    "F_N": 0.35
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.404,
+    "offset_N": 0.25,
+    "deg_per_N": 2.47,
+    "k_past_pot_Nm_per_rad": 2.04,
+    "n": 30
+   },
+   "F_at_error_5_N": 0.83,
+   "F_at_error_10_N": 1.74,
+   "F_max_N": 1.8,
+   "error_at_max_deg": 8.85,
+   "tau_max_Nm": 0.159,
+   "stall": {
+    "step": 20,
+    "F_N": 1.15,
+    "error_deg": 5.61
+   },
+   "slips": [
+    {
+     "step": 9,
+     "jump_deg": 0.59,
+     "F_before_N": 0.12,
+     "F_after_N": 0.35,
+     "duty_before": 105
+    },
+    {
+     "step": 14,
+     "jump_deg": 0.44,
+     "F_before_N": 0.48,
+     "F_after_N": 0.66,
+     "duty_before": 210
+    },
+    {
+     "step": 15,
+     "jump_deg": 0.15,
+     "F_before_N": 0.66,
+     "F_after_N": 0.71,
+     "duty_before": 195
+    },
+    {
+     "step": 17,
+     "jump_deg": 0.29,
+     "F_before_N": 0.68,
+     "F_after_N": 0.83,
+     "duty_before": 255
+    },
+    {
+     "step": 20,
+     "jump_deg": 0.59,
+     "F_before_N": 0.84,
+     "F_after_N": 1.15,
+     "duty_before": 300
+    },
+    {
+     "step": 22,
+     "jump_deg": 0.44,
+     "F_before_N": 1.17,
+     "F_after_N": 1.2,
+     "duty_before": 345
+    },
+    {
+     "step": 30,
+     "jump_deg": 1.76,
+     "F_before_N": 1.08,
+     "F_after_N": 1.8,
+     "duty_before": 525
+    },
+    {
+     "step": 31,
+     "jump_deg": 0.29,
+     "F_before_N": 1.8,
+     "F_after_N": 1.77,
+     "duty_before": 480
+    },
+    {
+     "step": 35,
+     "jump_deg": 0.29,
+     "F_before_N": 1.76,
+     "F_after_N": 1.75,
+     "duty_before": 592
+    },
+    {
+     "step": 37,
+     "jump_deg": 0.44,
+     "F_before_N": 1.75,
+     "F_after_N": 1.73,
+     "duty_before": 615
+    }
+   ],
+   "overload_duty": 705,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-164626_middle_yaw_head_on.jsonl",
+   "finger": "middle",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "slow",
+   "steps": 36,
+   "contact": {
+    "step": 9,
+    "error_deg": 1.86,
+    "reading_deg": -2.64,
+    "F_N": 0.15
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.497,
+    "offset_N": 0.13,
+    "deg_per_N": 2.01,
+    "k_past_pot_Nm_per_rad": 2.5,
+    "n": 27
+   },
+   "F_at_error_5_N": 0.85,
+   "F_at_error_10_N": 1.49,
+   "F_max_N": 1.85,
+   "error_at_max_deg": 12.14,
+   "tau_max_Nm": 0.163,
+   "stall": {
+    "step": 16,
+    "F_N": 0.84,
+    "error_deg": 3.9
+   },
+   "slips": [
+    {
+     "step": 11,
+     "jump_deg": 0.59,
+     "F_before_N": 0.18,
+     "F_after_N": 0.32,
+     "duty_before": 150
+    },
+    {
+     "step": 13,
+     "jump_deg": 0.29,
+     "F_before_N": 0.38,
+     "F_after_N": 0.32,
+     "duty_before": 165
+    },
+    {
+     "step": 15,
+     "jump_deg": 0.29,
+     "F_before_N": 0.46,
+     "F_after_N": 0.68,
+     "duty_before": 195
+    },
+    {
+     "step": 16,
+     "jump_deg": 0.29,
+     "F_before_N": 0.68,
+     "F_after_N": 0.84,
+     "duty_before": 210
+    },
+    {
+     "step": 22,
+     "jump_deg": 0.29,
+     "F_before_N": 0.87,
+     "F_after_N": 1.12,
+     "duty_before": 360
+    },
+    {
+     "step": 25,
+     "jump_deg": 0.29,
+     "F_before_N": 1.13,
+     "F_after_N": 1.34,
+     "duty_before": 390
+    },
+    {
+     "step": 29,
+     "jump_deg": 0.59,
+     "F_before_N": 1.23,
+     "F_after_N": 1.43,
+     "duty_before": 495
+    },
+    {
+     "step": 31,
+     "jump_deg": 0.29,
+     "F_before_N": 1.52,
+     "F_after_N": 1.48,
+     "duty_before": 525
+    },
+    {
+     "step": 32,
+     "jump_deg": 0.29,
+     "F_before_N": 1.48,
+     "F_after_N": 1.51,
+     "duty_before": 525
+    },
+    {
+     "step": 35,
+     "jump_deg": 0.59,
+     "F_before_N": 1.55,
+     "F_after_N": 1.76,
+     "duty_before": 615
+    }
+   ],
+   "overload_duty": 645,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-165112_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "slow",
+   "steps": 43,
+   "contact": {
+    "step": 13,
+    "error_deg": 1.52,
+    "reading_deg": 5.27,
+    "F_N": 0.2
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.47,
+    "offset_N": 0.14,
+    "deg_per_N": 2.13,
+    "k_past_pot_Nm_per_rad": 2.37,
+    "n": 30
+   },
+   "F_at_error_5_N": 0.59,
+   "F_at_error_10_N": 1.86,
+   "F_max_N": 1.89,
+   "error_at_max_deg": 12.36,
+   "tau_max_Nm": 0.166,
+   "stall": {
+    "step": 17,
+    "F_N": 0.54,
+    "error_deg": 2.93
+   },
+   "slips": [
+    {
+     "step": 13,
+     "jump_deg": 0.29,
+     "F_before_N": 0.14,
+     "F_after_N": 0.2,
+     "duty_before": 105
+    },
+    {
+     "step": 15,
+     "jump_deg": 0.29,
+     "F_before_N": 0.24,
+     "F_after_N": 0.34,
+     "duty_before": 135
+    },
+    {
+     "step": 17,
+     "jump_deg": 0.29,
+     "F_before_N": 0.4,
+     "F_after_N": 0.54,
+     "duty_before": 165
+    },
+    {
+     "step": 20,
+     "jump_deg": 0.29,
+     "F_before_N": 0.56,
+     "F_after_N": 0.58,
+     "duty_before": 240
+    },
+    {
+     "step": 23,
+     "jump_deg": 0.29,
+     "F_before_N": 0.6,
+     "F_after_N": 0.9,
+     "duty_before": 300
+    },
+    {
+     "step": 24,
+     "jump_deg": 0.29,
+     "F_before_N": 0.9,
+     "F_after_N": 0.89,
+     "duty_before": 315
+    },
+    {
+     "step": 33,
+     "jump_deg": 0.29,
+     "F_before_N": 0.91,
+     "F_after_N": 0.91,
+     "duty_before": 540
+    },
+    {
+     "step": 34,
+     "jump_deg": 1.76,
+     "F_before_N": 0.91,
+     "F_after_N": 1.86,
+     "duty_before": 570
+    },
+    {
+     "step": 37,
+     "jump_deg": 0.29,
+     "F_before_N": 1.86,
+     "F_after_N": 1.86,
+     "duty_before": 540
+    },
+    {
+     "step": 39,
+     "jump_deg": 0.29,
+     "F_before_N": 1.87,
+     "F_after_N": 1.86,
+     "duty_before": 570
+    },
+    {
+     "step": 42,
+     "jump_deg": 0.15,
+     "F_before_N": 1.88,
+     "F_after_N": 1.89,
+     "duty_before": 660
+    }
+   ],
+   "overload_duty": 652,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-165559_middle_yaw_head_on.jsonl",
+   "finger": "middle",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "slow",
+   "steps": 42,
+   "contact": {
+    "step": 12,
+    "error_deg": 1.6,
+    "reading_deg": 4.39,
+    "F_N": 0.15
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.341,
+    "offset_N": 0.18,
+    "deg_per_N": 2.93,
+    "k_past_pot_Nm_per_rad": 1.72,
+    "n": 30
+   },
+   "F_at_error_5_N": 0.66,
+   "F_at_error_10_N": 1.14,
+   "F_max_N": 1.15,
+   "error_at_max_deg": 9.97,
+   "tau_max_Nm": 0.101,
+   "stall": {
+    "step": 20,
+    "F_N": 0.68,
+    "error_deg": 4.14
+   },
+   "slips": [
+    {
+     "step": 13,
+     "jump_deg": 0.29,
+     "F_before_N": 0.15,
+     "F_after_N": 0.26,
+     "duty_before": 120
+    },
+    {
+     "step": 16,
+     "jump_deg": 0.44,
+     "F_before_N": 0.32,
+     "F_after_N": 0.4,
+     "duty_before": 180
+    },
+    {
+     "step": 18,
+     "jump_deg": 0.29,
+     "F_before_N": 0.39,
+     "F_after_N": 0.42,
+     "duty_before": 210
+    },
+    {
+     "step": 20,
+     "jump_deg": 0.59,
+     "F_before_N": 0.48,
+     "F_after_N": 0.68,
+     "duty_before": 255
+    },
+    {
+     "step": 23,
+     "jump_deg": 0.29,
+     "F_before_N": 0.66,
+     "F_after_N": 0.69,
+     "duty_before": 285
+    },
+    {
+     "step": 26,
+     "jump_deg": 0.88,
+     "F_before_N": 0.71,
+     "F_after_N": 1.07,
+     "duty_before": 375
+    },
+    {
+     "step": 32,
+     "jump_deg": 0.29,
+     "F_before_N": 1.06,
+     "F_after_N": 1.05,
+     "duty_before": 465
+    },
+    {
+     "step": 34,
+     "jump_deg": 0.29,
+     "F_before_N": 1.08,
+     "F_after_N": 1.15,
+     "duty_before": 540
+    },
+    {
+     "step": 36,
+     "jump_deg": 0.29,
+     "F_before_N": 1.08,
+     "F_after_N": 1.1,
+     "duty_before": 585
+    },
+    {
+     "step": 38,
+     "jump_deg": 0.29,
+     "F_before_N": 1.14,
+     "F_after_N": 1.1,
+     "duty_before": 615
+    }
+   ],
+   "overload_duty": 735,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-165930_middle_yaw_head_on.jsonl",
+   "finger": "middle",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "fast",
+   "steps": 11,
+   "contact": {
+    "step": 3,
+    "error_deg": 1.02,
+    "reading_deg": 5.27,
+    "F_N": 0.32
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.487,
+    "offset_N": -0.06,
+    "deg_per_N": 2.05,
+    "k_past_pot_Nm_per_rad": 2.46,
+    "n": 9
+   },
+   "F_at_error_5_N": 0.82,
+   "F_at_error_10_N": 1.36,
+   "F_max_N": 1.47,
+   "error_at_max_deg": 10.97,
+   "tau_max_Nm": 0.129,
+   "stall": null,
+   "slips": [
+    {
+     "step": 3,
+     "jump_deg": 0.88,
+     "F_before_N": 0.02,
+     "F_after_N": 0.32,
+     "duty_before": 0
+    },
+    {
+     "step": 5,
+     "jump_deg": 0.88,
+     "F_before_N": 0.34,
+     "F_after_N": 0.8,
+     "duty_before": 195
+    },
+    {
+     "step": 8,
+     "jump_deg": 0.88,
+     "F_before_N": 0.83,
+     "F_after_N": 1.27,
+     "duty_before": 450
+    },
+    {
+     "step": 9,
+     "jump_deg": 0.29,
+     "F_before_N": 1.27,
+     "F_after_N": 1.47,
+     "duty_before": 510
+    },
+    {
+     "step": 10,
+     "jump_deg": 0.44,
+     "F_before_N": 1.47,
+     "F_after_N": 1.42,
+     "duty_before": 600
+    }
+   ],
+   "overload_duty": null,
+   "stop": "load 900.0 reached 900"
+  },
+  {
+   "run": "20261118-170114_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "fast",
+   "steps": 13,
+   "contact": {
+    "step": 4,
+    "error_deg": 1.85,
+    "reading_deg": 6.15,
+    "F_N": 0.47
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.446,
+    "offset_N": 0.3,
+    "deg_per_N": 2.24,
+    "k_past_pot_Nm_per_rad": 2.25,
+    "n": 10
+   },
+   "F_at_error_5_N": 0.79,
+   "F_at_error_10_N": 2.13,
+   "F_max_N": 2.15,
+   "error_at_max_deg": 14.33,
+   "tau_max_Nm": 0.189,
+   "stall": {
+    "step": 9,
+    "F_N": 2.12,
+    "error_deg": 9.21
+   },
+   "slips": [
+    {
+     "step": 4,
+     "jump_deg": 0.88,
+     "F_before_N": 0.07,
+     "F_after_N": 0.47,
+     "duty_before": 75
+    },
+    {
+     "step": 6,
+     "jump_deg": 0.29,
+     "F_before_N": 0.76,
+     "F_after_N": 0.81,
+     "duty_before": 240
+    },
+    {
+     "step": 7,
+     "jump_deg": 1.17,
+     "F_before_N": 0.81,
+     "F_after_N": 1.42,
+     "duty_before": 315
+    },
+    {
+     "step": 9,
+     "jump_deg": 1.17,
+     "F_before_N": 1.43,
+     "F_after_N": 2.12,
+     "duty_before": 465
+    },
+    {
+     "step": 10,
+     "jump_deg": 0.29,
+     "F_before_N": 2.12,
+     "F_after_N": 2.13,
+     "duty_before": 510
+    },
+    {
+     "step": 11,
+     "jump_deg": 0.59,
+     "F_before_N": 2.13,
+     "F_after_N": 2.14,
+     "duty_before": 615
+    }
+   ],
+   "overload_duty": null,
+   "stop": "load 915.0 reached 900"
+  },
+  {
+   "run": "20261118-170157_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "slow",
+   "steps": 45,
+   "contact": {
+    "step": 13,
+    "error_deg": 1.52,
+    "reading_deg": 5.57,
+    "F_N": 0.17
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.496,
+    "offset_N": 0.17,
+    "deg_per_N": 2.01,
+    "k_past_pot_Nm_per_rad": 2.5,
+    "n": 32
+   },
+   "F_at_error_5_N": 0.79,
+   "F_at_error_10_N": 0.81,
+   "F_max_N": 2.0,
+   "error_at_max_deg": 13.5,
+   "tau_max_Nm": 0.176,
+   "stall": {
+    "step": 21,
+    "F_N": 0.8,
+    "error_deg": 4.64
+   },
+   "slips": [
+    {
+     "step": 13,
+     "jump_deg": 0.29,
+     "F_before_N": 0.11,
+     "F_after_N": 0.17,
+     "duty_before": 105
+    },
+    {
+     "step": 16,
+     "jump_deg": 0.29,
+     "F_before_N": 0.3,
+     "F_after_N": 0.39,
+     "duty_before": 165
+    },
+    {
+     "step": 21,
+     "jump_deg": 0.59,
+     "F_before_N": 0.5,
+     "F_after_N": 0.8,
+     "duty_before": 270
+    },
+    {
+     "step": 33,
+     "jump_deg": 0.59,
+     "F_before_N": 0.81,
+     "F_after_N": 0.81,
+     "duty_before": 555
+    },
+    {
+     "step": 35,
+     "jump_deg": 0.29,
+     "F_before_N": 0.82,
+     "F_after_N": 0.82,
+     "duty_before": 615
+    },
+    {
+     "step": 36,
+     "jump_deg": 2.05,
+     "F_before_N": 0.82,
+     "F_after_N": 1.96,
+     "duty_before": 630
+    },
+    {
+     "step": 41,
+     "jump_deg": 0.29,
+     "F_before_N": 1.97,
+     "F_after_N": 1.98,
+     "duty_before": 645
+    },
+    {
+     "step": 44,
+     "jump_deg": 0.15,
+     "F_before_N": 1.99,
+     "F_after_N": 2.0,
+     "duty_before": 705
+    }
+   ],
+   "overload_duty": 750,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-170630_index_yaw_head_on.jsonl",
+   "finger": "index",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "fast",
+   "steps": 11,
+   "contact": {
+    "step": 2,
+    "error_deg": 2.24,
+    "reading_deg": -0.59,
+    "F_N": 0.15
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.33,
+    "offset_N": -0.09,
+    "deg_per_N": 3.03,
+    "k_past_pot_Nm_per_rad": 1.66,
+    "n": 10
+   },
+   "F_at_error_5_N": 1.08,
+   "F_at_error_10_N": 1.52,
+   "F_max_N": 1.53,
+   "error_at_max_deg": 11.85,
+   "tau_max_Nm": 0.134,
+   "stall": {
+    "step": 7,
+    "F_N": 1.51,
+    "error_deg": 7.85
+   },
+   "slips": [
+    {
+     "step": 2,
+     "jump_deg": 0.59,
+     "F_before_N": 0.01,
+     "F_after_N": 0.15,
+     "duty_before": 60
+    },
+    {
+     "step": 3,
+     "jump_deg": 1.46,
+     "F_before_N": 0.15,
+     "F_after_N": 0.52,
+     "duty_before": 135
+    },
+    {
+     "step": 4,
+     "jump_deg": 0.88,
+     "F_before_N": 0.52,
+     "F_after_N": 0.83,
+     "duty_before": 165
+    },
+    {
+     "step": 5,
+     "jump_deg": 0.88,
+     "F_before_N": 0.83,
+     "F_after_N": 1.09,
+     "duty_before": 225
+    },
+    {
+     "step": 7,
+     "jump_deg": 1.17,
+     "F_before_N": 1.07,
+     "F_after_N": 1.51,
+     "duty_before": 375
+    },
+    {
+     "step": 11,
+     "jump_deg": 0.59,
+     "F_before_N": 1.52,
+     "F_after_N": 1.5,
+     "duty_before": 750
+    }
+   ],
+   "overload_duty": null,
+   "stop": "load -900.0 reached 900"
+  },
+  {
+   "run": "20261118-170804_middle_yaw_head_on.jsonl",
+   "finger": "middle",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "fast",
+   "steps": 11,
+   "contact": {
+    "step": 2,
+    "error_deg": 1.36,
+    "reading_deg": -2.64,
+    "F_N": 0.28
+   },
+   "F_vs_reading": {
+    "N_per_deg": 0.397,
+    "offset_N": -0.37,
+    "deg_per_N": 2.52,
+    "k_past_pot_Nm_per_rad": 2.0,
+    "n": 10
+   },
+   "F_at_error_5_N": 0.83,
+   "F_at_error_10_N": 1.62,
+   "F_max_N": 1.64,
+   "error_at_max_deg": 7.55,
+   "tau_max_Nm": 0.144,
+   "stall": {
+    "step": 7,
+    "F_N": 1.64,
+    "error_deg": 7.55
+   },
+   "slips": [
+    {
+     "step": 2,
+     "jump_deg": 1.46,
+     "F_before_N": 0.02,
+     "F_after_N": 0.28,
+     "duty_before": 0
+    },
+    {
+     "step": 3,
+     "jump_deg": 0.88,
+     "F_before_N": 0.28,
+     "F_after_N": 0.6,
+     "duty_before": 105
+    },
+    {
+     "step": 4,
+     "jump_deg": 0.29,
+     "F_before_N": 0.6,
+     "F_after_N": 0.66,
+     "duty_before": 157
+    },
+    {
+     "step": 5,
+     "jump_deg": 0.88,
+     "F_before_N": 0.66,
+     "F_after_N": 0.9,
+     "duty_before": 240
+    },
+    {
+     "step": 6,
+     "jump_deg": 0.29,
+     "F_before_N": 0.9,
+     "F_after_N": 0.89,
+     "duty_before": 300
+    },
+    {
+     "step": 7,
+     "jump_deg": 1.46,
+     "F_before_N": 0.89,
+     "F_after_N": 1.64,
+     "duty_before": 390
+    }
+   ],
+   "overload_duty": null,
+   "stop": "load -900.0 reached 900"
+  },
+  {
+   "run": "20261118-170955_thumb_yaw_head_on.jsonl",
+   "finger": "thumb",
+   "sign": -1,
+   "plate": "taped",
+   "rate": "slow",
+   "steps": 47,
+   "contact": {
+    "step": 17,
+    "error_deg": 0.88,
+    "reading_deg": -6.74,
+    "F_N": 0.15
+   },
+   "F_vs_reading": {
+    "N_per_deg": 1.0,
+    "offset_N": 0.11,
+    "deg_per_N": 1.0,
+    "k_past_pot_Nm_per_rad": 5.04,
+    "n": 30
+   },
+   "F_at_error_5_N": 0.72,
+   "F_at_error_10_N": 1.48,
+   "F_max_N": 1.48,
+   "error_at_max_deg": 10.21,
+   "tau_max_Nm": 0.131,
+   "stall": {
+    "step": 24,
+    "F_N": 0.72,
+    "error_deg": 3.8
+   },
+   "slips": [
+    {
+     "step": 18,
+     "jump_deg": 0.29,
+     "F_before_N": 0.15,
+     "F_after_N": 0.2,
+     "duty_before": 90
+    },
+    {
+     "step": 22,
+     "jump_deg": 0.29,
+     "F_before_N": 0.5,
+     "F_after_N": 0.56,
+     "duty_before": 165
+    },
+    {
+     "step": 30,
+     "jump_deg": 0.59,
+     "F_before_N": 0.72,
+     "F_after_N": 1.2,
+     "duty_before": 360
+    },
+    {
+     "step": 32,
+     "jump_deg": 0.29,
+     "F_before_N": 1.2,
+     "F_after_N": 1.21,
+     "duty_before": 375
+    },
+    {
+     "step": 39,
+     "jump_deg": 0.15,
+     "F_before_N": 1.48,
+     "F_after_N": 1.46,
+     "duty_before": 555
+    },
+    {
+     "step": 45,
+     "jump_deg": 0.29,
+     "F_before_N": 1.35,
+     "F_after_N": 1.37,
+     "duty_before": 705
+    }
+   ],
+   "overload_duty": 735,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-171422_thumb_yaw_head_on.jsonl",
+   "finger": "thumb",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "slow",
+   "steps": 31,
+   "contact": {
+    "step": 3,
+    "error_deg": 0.62,
+    "reading_deg": 1.46,
+    "F_N": 0.17
+   },
+   "F_vs_reading": {
+    "N_per_deg": 1.408,
+    "offset_N": -0.53,
+    "deg_per_N": 0.71,
+    "k_past_pot_Nm_per_rad": 7.1,
+    "n": 28
+   },
+   "F_at_error_5_N": 1.16,
+   "F_at_error_10_N": 1.79,
+   "F_max_N": 2.18,
+   "error_at_max_deg": 13.74,
+   "tau_max_Nm": 0.192,
+   "stall": {
+    "step": 13,
+    "F_N": 1.17,
+    "error_deg": 5.04
+   },
+   "slips": [
+    {
+     "step": 3,
+     "jump_deg": 0.59,
+     "F_before_N": 0.02,
+     "F_after_N": 0.17,
+     "duty_before": 0
+    },
+    {
+     "step": 5,
+     "jump_deg": 0.29,
+     "F_before_N": 0.22,
+     "F_after_N": 0.4,
+     "duty_before": 75
+    },
+    {
+     "step": 12,
+     "jump_deg": 0.29,
+     "F_before_N": 0.92,
+     "F_after_N": 1.1,
+     "duty_before": 240
+    },
+    {
+     "step": 18,
+     "jump_deg": 0.59,
+     "F_before_N": 1.19,
+     "F_after_N": 1.8,
+     "duty_before": 390
+    },
+    {
+     "step": 27,
+     "jump_deg": 0.29,
+     "F_before_N": 1.89,
+     "F_after_N": 2.13,
+     "duty_before": 600
+    },
+    {
+     "step": 28,
+     "jump_deg": 0.29,
+     "F_before_N": 2.13,
+     "F_after_N": 2.15,
+     "duty_before": 600
+    }
+   ],
+   "overload_duty": 690,
+   "stop": "a servo flag {'yaw': 32.0, 'mcp': 0.0, '"
+  },
+  {
+   "run": "20261118-171707_thumb_yaw_head_on.jsonl",
+   "finger": "thumb",
+   "sign": 1,
+   "plate": "tag",
+   "rate": "fast",
+   "steps": 9,
+   "contact": {
+    "step": 1,
+    "error_deg": 1.12,
+    "reading_deg": 1.76,
+    "F_N": 0.3
+   },
+   "F_vs_reading": {
+    "N_per_deg": 1.158,
+    "offset_N": 0.57,
+    "deg_per_N": 0.86,
+    "k_past_pot_Nm_per_rad": 5.84,
+    "n": 9
+   },
+   "F_at_error_5_N": 1.29,
+   "F_at_error_10_N": 2.26,
+   "F_max_N": 2.27,
+   "error_at_max_deg": 13.66,
+   "tau_max_Nm": 0.2,
+   "stall": null,
+   "slips": [
+    {
+     "step": 2,
+     "jump_deg": 0.29,
+     "F_before_N": 0.3,
+     "F_after_N": 0.8,
+     "duty_before": 75
+    },
+    {
+     "step": 3,
+     "jump_deg": 0.59,
+     "F_before_N": 0.8,
+     "F_after_N": 1.16,
+     "duty_before": 165
+    },
+    {
+     "step": 6,
+     "jump_deg": 0.59,
+     "F_before_N": 1.52,
+     "F_after_N": 2.26,
+     "duty_before": 450
+    }
+   ],
+   "overload_duty": null,
+   "stop": "load -915.0 reached 900"
+  }
+ ]
+}
