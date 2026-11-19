@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from statistics import median
 
@@ -12,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[2]
 UR5D =ROOT / "docs/experiments/20261022-ur5_tip_calibration/data"
 V3D = ROOT / "docs/experiments/20261027-v3_tip_calibration_and_crosstalk/data"
 RIGD = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data"
+# the identification study of the SR2 hand: its S3 pressed the index fingertip onto a taped plate with the HEX-E (2026-11-18)
+IDENT = ROOT / "docs/experiments/20261117-sr2_system_identification"
 
 
 # the tests of data/20261105-v3_ids456_pooled_with_ids123.json in the page's order
@@ -216,6 +219,18 @@ def sections(N, F, P, link, L):
     dloc, dfe = strict("gp_direction", "loc_mm"), strict("gp_direction", "force_rel_err", 100)
     bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
+    # the index board on the SR2 hand against the HEX-E in S3 (commit b462a66a of 2026-11-18): the study's least-squares
+    # lines per press and estimator, and the medians that its queue quotes
+    HHJ = jl(IDENT / "data/s3/20261118-board_vs_hexe.json")
+    HH, HH_MUX = HHJ["presses"], HHJ["mux"]
+    hhf = lambda p, e, k="n_vs_xy": HH[p]["estimators"][e]["fits"][k]  # noqa: E731
+    hh_on = [s for s in HH["mcp"]["estimators"]["gp_own_pose"]["steps"] if s["board_n_N"] is not None]
+    hh_hi = [s for s in hh_on if s["hexe_xy_N"] > 1.5]
+    hh_lo = [s for s in hh_on if s["hexe_xy_N"] < 0.1]
+    r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
+    hh_sl = [r2(x) for x in sorted((hhf("mcp", "gp_own_pose")["slope"], hhf("yaw", "gp_own_pose", "x_P")["slope"]))]
+    assert len(hh_hi) == 45 and round(median(s["hexe_xy_N"] for s in hh_hi), 2) == 2.51, "the queue's 45 steps at 2.51 N"
+
     lede = (
         "In twenty-eight sessions, eleven printed fingertips were pressed against spheres and a rod by the lab's UR5, with "
         f"an OptoForce HEX-E on the flange as the reference: {n_hold:,} holds. Trained on a tip's own presses, a Gaussian "
@@ -227,7 +242,9 @@ def sections(N, F, P, link, L):
         f"them its contacts are placed {min(wo):.2f}–{max(wo):.2f} mm off, and by another tip's GP "
         f"{min(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f}–{max(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f} mm "
         f"off (Section 12). Pooled with the other v3 tips' holds, v3 IDs 4 to 6 go from {plm(PL_PTS, 'own')} to "
-        f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered.")
+        f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered. On the SR2 hand, "
+        f"the index board's estimate rose {hh_sl[0]}–{hh_sl[1]} N per newton of the HEX-E's normal force on a "
+        "taped plate (Section 17).")
     summary = (
         f"UR5 + HEX-E calibration of eleven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 11-04): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
@@ -274,7 +291,9 @@ def sections(N, F, P, link, L):
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
         f"1.42 mm against 0.39 mm on the v1 tips and {xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm against "
-        f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm between the four-magnet tips.")
+        f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm between the four-magnet tips; on the SR2 hand (2026-11-18) the "
+        f"index board's estimate rose {hh_sl[0]}-{hh_sl[1]} N per newton of the HEX-E's normal force on a "
+        "taped plate.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -572,7 +591,7 @@ def sections(N, F, P, link, L):
         "from 09:41, once the HEX-E was back, and the rod's session from 10:27 (Section 11). v3 ID 2 ran its suite of "
         "488 actions from 18:44 on 2026-10-28 to 08:13 on 10-29 (Section 12). v3 ID 3 ran its suite of 501 actions "
         "from 13:45 on 10-29 to 14:49 on 10-30, all ok. Two HEX-E losses stopped its tall stage 2, which was resumed "
-        "each time (Section 17). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
+        "each time (Section 18). Its sessions were analysed on 10-30 from copies of the lab's session folders, with "
         + P.code("scripts/ur5/ur5_tip_calibration_analysis.py") + ". The physical model is checked on their holds ("
         + link(L["phys"], "physical-model page") + ", Section 9), and Section 14 gives the board GP's errors. v3 IDs "
         "6, 5 and 4 were pressed on the inverted rig from 14:50 on 11-02 to 13:17 on 11-04, and v3 ID 3 on its seat 1 from "
@@ -1894,6 +1913,65 @@ def sections(N, F, P, link, L):
     )
     S.append(("shared", "Board GP shared by the six v3 tips", body))
 
+    # Section 17: the index board on the SR2 hand against the HEX-E, S3 of the identification study (2026-11-18)
+    EST3 = (("gp_own_pose", "Board GP with the own-angle term (HOM trials)"), ("gp", "Board GP without it"),
+            ("physical", "Physical model alone"))
+    FORCES = (("mcp", "n_vs_xy", "MCP", "Normal force"), ("mcp", "x_P", "MCP", "Along the plate's normal"),
+              ("yaw", "x_P", "Yaw", "Along the plate's normal"), ("yaw", "y_P", "Yaw", "Along the tape"))
+    rows_hh = [[pr, fo, nm] + [f"{hhf(p, e, k)[c]:.3f}".replace("-", "−") for c in ("slope", "offset_N", "rms_N")]
+               for p, k, pr, fo in FORCES for e, nm in EST3]
+    nst = {p: hhf(p, "gp_own_pose")["n"] for p in ("mcp", "yaw")}
+    hm, hmx, hy = hhf("mcp", "gp_own_pose"), hhf("mcp", "physical", "x_P"), hhf("yaw", "gp_own_pose", "y_P")
+    hdir = HH["mcp"]["file"]
+    body = (
+        f"<p>On the SR2 hand the index board's estimate rose {hh_sl[0]} to {hh_sl[1]} N per newton of the normal force "
+        "that the HEX-E measured. On 18 November the index fingertip, v3 ID 3, was pressed onto a taped plate in test S3 "
+        "of the hand's identification study. The estimator was the one used in the HOM trials on the hand. Over the "
+        f"{len(hh_hi)} steps above 1.5 N, the HEX-E's median force was {r2(median(s['hexe_xy_N'] for s in hh_hi))} N and "
+        f"the estimator's {r2(median(s['board_n_N'] for s in hh_hi))} N.</p>"
+        "<p>The hand was carried by the UR5 on the HEX-E, which measured the force on the whole hand. On the table stood "
+        "a square extrusion of 20 mm with a plate on one face, covered in grip tape. The arm stopped the pad 4.6 mm from "
+        "the plate. One joint's target was then stepped 0.5° past its reading every 2 s, toward the plate, and stepped "
+        "back after a stop. In the first press the MCP joint pushed the pad's face onto the plate "
+        "head on. In the second the MCP held the pad on the tape at 2 N, and the yaw joint pushed the pad along the tape. "
+        "In each step the HEX-E's change of force from before the first step was averaged over the last second of the "
+        "step. Only its two horizontal axes were used, because its vertical axis drifted by 0.4 N a minute. The board's "
+        "estimate was averaged over the same second.</p>"
+        "<p>The estimator of the HOM trials first subtracts the field change that the finger's own joint angles cause. "
+        "That change is predicted by the own-angle GP fitted on the poses of Table 9 of the "
+        + link(L["crosstalk"], "crosstalk page") + ". The board GP of Section 16 then gives the contact point and force. "
+        "Its rest field was taken from 1 s that ended 2.2 s before the first step. Its threshold and force gate "
+        "were turned off, so every step had an estimate. The same steps were also estimated by the board GP without the "
+        "own-angle term, and by the physical model alone.</p>"
+        f"<p>In the MCP press the estimator's normal force was {r2(hm['offset_N'])} N plus {r2(hm['slope'])} times the "
+        f"HEX-E's force, within an RMS of {r2(hm['rms_N'])} N (Table 34). At the steps under 0.1 N on the HEX-E, the "
+        f"estimate was {r2(median(s['board_n_N'] for s in hh_lo))} N. Without the own-angle term the slope was "
+        f"{r2(hhf('mcp', 'gp')['slope'])}. The physical model's normal force rose {r2(hhf('mcp', 'physical')['slope'])} N "
+        f"per newton. Along the plate's normal its force was {r2(hmx['offset_N'])} N plus {r2(hmx['slope'])} times the "
+        f"HEX-E's (Figure 21a). In the yaw press the estimator's force rose {hh_sl[1]} N per newton along the plate's "
+        f"normal. Along the tape it rose {r2(hy['slope'])} N per newton. The lines come from one pad, one plate and two "
+        f"presses. The study's analysis is "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py") + ", with its "
+        "numbers in " + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json")
+        + f". The recordings are in {P.code(hdir.rsplit('/', 1)[0] + '/')} and the boards' log in "
+        + P.code(HH_MUX) + ", on the workstation and the lab computer.</p>"
+        + P.table(["Press", "Force", "Estimator", "Slope", "Offset (N)", "RMS (N)"], rows_hh, num_cols=(3, 4, 5), n=34,
+                  caption="The index board's estimate against the HEX-E's force on the SR2 hand in S3 of 2026-11-18. "
+                  f"Least-squares lines of the identification study over every step of a press and its step back, "
+                  f"{nst['mcp']} steps in the MCP press and {nst['yaw']} in the yaw press. Normal force: the board's normal "
+                  "force against the HEX-E's horizontal force. Along the plate's normal, along the tape: the components of "
+                  "the two forces in the hand's palm frame. Slope: newtons of the board's estimate per newton of the "
+                  "HEX-E's force. Offset: the line's estimate at zero force. RMS: of the steps about the line.")
+        + P.fig(21, F["hand_hexe"], "The index board's estimate against the HEX-E's force on the SR2 hand, per step of "
+                "S3's two presses on the taped plate (2026-11-18). (a) The MCP pushing the pad's face onto the plate: the "
+                "components along the plate's normal. (b, c) The yaw pushing the pad along the tape while the MCP holds it "
+                "on: the components along the plate's normal and along the tape. Filled circles: the board GP with the "
+                "own-angle term, as in the HOM trials. Filled squares: the board GP without it. Open triangles: the "
+                "physical model alone. Lines: the study's least-squares fits. Dotted: equal force. Drawn from "
+                + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json") + ".")
+    )
+    S.append(("hand", "Index board's force on the SR2 hand against the HEX-E", body))
+
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
         "Its link was lost nine times in the robot's logs since 10-25, which cover 62.1 h in 23 sessions ("
@@ -1923,7 +2001,7 @@ def sections(N, F, P, link, L):
         "Wrist order and the HEX-E's link: run each tall stage 2 in the new order of "
         + P.code("scripts/ur5/ur5_tip_calibration_next_tip_suite.py") + ", and count the losses with "
         + P.code("scripts/ur5/ur5_hexe_link_losses.py") + ". The order comes from an exact search over the orders that move "
-        "each action at most four places. It has no upward travel (Section 17). No travel in it takes wrist 1 across 0° "
+        "each action at most four places. It has no upward travel (Section 18). No travel in it takes wrist 1 across 0° "
         "with a swing over 40°, against 23 in the old order. The wrists travel 2,701° in all, against 5,144°. The path "
         "check flags no action and gives the same least margins (mount 3.73 mm, finger 1.07 mm). v3 ID 3's last 55 tall "
         "actions ran in this order from 11:15 to 13:20 on 10-30 with no loss. Twice they reached the pose of the 11:02 "
@@ -1943,6 +2021,11 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
+        "Boards against the HEX-E at other contacts on the hand: S3's head-on yaw presses of 18 November pushed the sides "
+        "of the index and middle tips into the plates. The thumb's tip was pushed in as well, and all three boards were "
+        "recorded. Run " + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py")
+        + f" on them. Slopes of {hh_sl[0]} to {hh_sl[1]} on v3 IDs 1 and 2 as well would make the low estimate of "
+        "Section 17 common to the v3 tips on the hand.",
         "Mount end on the SR2 hand: the contact viewer has run on the hand with the model of Section 16 since 11-05, on v3 IDs 1 "
         "to 3 (commit 84572398). Press a tip's mount end with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",

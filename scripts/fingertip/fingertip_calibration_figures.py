@@ -1036,6 +1036,50 @@ def fig_gp_mlp_curve():
     save(fig, "20261111-v3_gp_mlp_curve.png")
 
 
+# ------------------------------------------------------------------------------------------------ figure: the board on the hand
+# S3 of the identification study (2026-11-18, commit b462a66a): the index board's estimate against the HEX-E on the SR2 hand
+HAND_HEXE = ROOT / "docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json"
+HAND_EST = (("gp_own_pose", "Board GP with the own-angle term (HOM trials)", "#2e5fa8", "o"),
+            ("gp", "Board GP without it", "#b06010", "s"),
+            ("physical", "Physical model alone", "#555555", "^"))
+
+
+def fig_hand_hexe():
+    """The index board's force estimate on the SR2 hand against the HEX-E's force change, per step of S3's two index
+    presses on the taped plate (the identification study's sim/20261118-s3_board_vs_hexe.py): (a) the MCP pushing the pad
+    head on, the component along the plate's normal; (b, c) the yaw pushing the pad along the tape while the MCP holds it
+    on, the components along the normal and along the tape. Each estimator's line is the study's least-squares fit; the
+    dotted line is equal force."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    d = json.loads(at_head(HAND_HEXE))["presses"]
+    panels = (("mcp", "x_P", 0, "(a) MCP press, along the normal"), ("yaw", "x_P", 0, "(b) Yaw press, along the normal"),
+              ("yaw", "y_P", 1, "(c) Yaw press, along the tape"))
+    fig, axes = plt.subplots(1, 3, figsize=(11.0, 4.3))
+    for ax, (press, key, i, ttl) in zip(axes, panels):
+        lo, hi = np.inf, -np.inf
+        for en, _, col, mk in HAND_EST:
+            E = d[press]["estimators"][en]
+            st = [s for s in E["steps"] if s["board_P_N"] is not None]
+            x = np.array([s["hexe_P_N"][i] for s in st])
+            y = np.array([s["board_P_N"][i] for s in st])
+            ax.plot(x, y, mk, ms=4.5, color=col, mfc="none" if en == "physical" else col, alpha=0.8, mew=1.1)
+            f = E["fits"][key]
+            xs = np.array([x.min(), x.max()])
+            ax.plot(xs, f["offset_N"] + f["slope"] * xs, "-", color=col, lw=1.8)
+            lo, hi = min(lo, x.min()), max(hi, x.max())
+        ax.plot([lo, hi], [lo, hi], ":", color="0.3", lw=1.4)            # equal force over the HEX-E's range
+        ax.set_xlabel("HEX-E's force (N)")
+        ax.set_title(ttl)
+    axes[0].set_ylabel("Board's estimate (N)")
+    h = [Line2D([], [], ls="-", marker=mk, ms=6, lw=1.8, color=col, mfc="none" if en == "physical" else col, label=nm)
+         for en, nm, col, mk in HAND_EST] + [Line2D([], [], ls=":", lw=1.4, color="0.3", label="Equal force")]
+    fig.legend(handles=h, loc="lower center", ncol=2, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.17, 1, 1))
+    save(fig, "20261118-index_board_vs_hexe_on_the_hand.png")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--only", nargs="*", default=None)
@@ -1045,7 +1089,7 @@ def main():
                 four_five=fig_four_five, v3id3=v3id3_sessions, data_curve=fig_data_curve, rig=rig_sessions,
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
                 rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
-                gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve)
+                gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve, hand_hexe=fig_hand_hexe)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)
