@@ -1,0 +1,459 @@
+{
+ "what": "S4(b) of the identification queue (lab, 2026-11-18 18:48-18:53; lab/s4b_drag.py; data/s3/*_index_drag*_z*.jsonl): the index pad's friction on the taped plate, while sliding and at the start of a slide, and whether it sticks and slips.",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-s4b_drag_friction.py",
+ "runs": [
+  {
+   "run": "20261118-184813_index_drag0.5N_z",
+   "normal_set_N": 0.5,
+   "legs": [
+    {
+     "cycle": 1,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795052910.4567838,
+     "plateau_along_N": -0.369,
+     "plateau_normal_N": 0.537,
+     "mu": 0.687,
+     "roughness_N": 0.094,
+     "reversal": {
+      "swing_N": -0.322,
+      "travel_20_mm": 0.018,
+      "travel_80_mm": 0.039,
+      "slope_N_per_mm": 8.94
+     },
+     "overshoot_N": 0.017,
+     "mu_at_peak": 0.749,
+     "after_rest": true,
+     "plateau_max_dev_N": 0.048
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795052915.962854,
+     "plateau_along_N": 0.235,
+     "plateau_normal_N": 0.791,
+     "mu": 0.297,
+     "roughness_N": 0.073,
+     "reversal": {
+      "swing_N": 0.604,
+      "travel_20_mm": 0.027,
+      "travel_80_mm": 0.092,
+      "slope_N_per_mm": 5.57
+     },
+     "overshoot_N": 0.046,
+     "mu_at_peak": 0.386,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.142
+    },
+    {
+     "cycle": 1,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795052921.5277662,
+     "plateau_along_N": 0.305,
+     "plateau_normal_N": 0.802,
+     "mu": 0.38,
+     "roughness_N": 0.096
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795052927.0943086,
+     "plateau_along_N": -0.282,
+     "plateau_normal_N": 0.587,
+     "mu": 0.48,
+     "roughness_N": 0.108,
+     "reversal": {
+      "swing_N": -0.587,
+      "travel_20_mm": 0.003,
+      "travel_80_mm": 0.13,
+      "slope_N_per_mm": 2.77
+     },
+     "overshoot_N": 0.146,
+     "mu_at_peak": 0.782,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.167
+    },
+    {
+     "cycle": 2,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795052932.6623545,
+     "plateau_along_N": -0.419,
+     "plateau_normal_N": 0.564,
+     "mu": 0.743,
+     "roughness_N": 0.088
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795052938.2404952,
+     "plateau_along_N": 0.205,
+     "plateau_normal_N": 0.763,
+     "mu": 0.269,
+     "roughness_N": 0.089,
+     "reversal": {
+      "swing_N": 0.624,
+      "travel_20_mm": 0.025,
+      "travel_80_mm": 0.176,
+      "slope_N_per_mm": 2.48
+     },
+     "overshoot_N": 0.101,
+     "mu_at_peak": 0.429,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.112
+    },
+    {
+     "cycle": 2,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795052943.8058546,
+     "plateau_along_N": 0.293,
+     "plateau_normal_N": 0.767,
+     "mu": 0.383,
+     "roughness_N": 0.088
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795052949.3841202,
+     "plateau_along_N": -0.382,
+     "plateau_normal_N": 0.58,
+     "mu": 0.66,
+     "roughness_N": 0.109,
+     "reversal": {
+      "swing_N": -0.676,
+      "travel_20_mm": 0.0,
+      "travel_80_mm": 0.287,
+      "slope_N_per_mm": 1.41
+     },
+     "overshoot_N": -0.003,
+     "mu_at_peak": 0.696,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.158
+    }
+   ],
+   "cycles": [
+    {
+     "cycle": 1,
+     "friction_N": 0.298,
+     "normal_N": 0.679,
+     "mu": 0.438
+    },
+    {
+     "cycle": 2,
+     "friction_N": 0.325,
+     "normal_N": 0.668,
+     "mu": 0.486
+    }
+   ],
+   "hold_roughness_N": 0.074
+  },
+  {
+   "run": "20261118-184948_index_drag1N_z",
+   "normal_set_N": 1.0,
+   "legs": [
+    {
+     "cycle": 1,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795053008.8267708,
+     "plateau_along_N": -0.397,
+     "plateau_normal_N": 0.662,
+     "mu": 0.599,
+     "roughness_N": 0.085,
+     "reversal": {
+      "swing_N": -0.295,
+      "travel_20_mm": 0.049,
+      "travel_80_mm": 0.093,
+      "slope_N_per_mm": 4.02
+     },
+     "overshoot_N": 0.17,
+     "mu_at_peak": 0.528,
+     "after_rest": true,
+     "plateau_max_dev_N": 0.081
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795053014.4274917,
+     "plateau_along_N": 0.42,
+     "plateau_normal_N": 0.95,
+     "mu": 0.443,
+     "roughness_N": 0.081,
+     "reversal": {
+      "swing_N": 0.817,
+      "travel_20_mm": 0.014,
+      "travel_80_mm": 0.183,
+      "slope_N_per_mm": 2.9
+     },
+     "overshoot_N": -0.063,
+     "mu_at_peak": 0.411,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.08
+    },
+    {
+     "cycle": 1,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795053020.004637,
+     "plateau_along_N": 0.522,
+     "plateau_normal_N": 1.042,
+     "mu": 0.501,
+     "roughness_N": 0.093
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795053025.578963,
+     "plateau_along_N": -0.23,
+     "plateau_normal_N": 0.825,
+     "mu": 0.279,
+     "roughness_N": 0.092,
+     "reversal": {
+      "swing_N": -0.752,
+      "travel_20_mm": 0.011,
+      "travel_80_mm": 0.179,
+      "slope_N_per_mm": 2.68
+     },
+     "overshoot_N": 0.11,
+     "mu_at_peak": 0.416,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.169
+    },
+    {
+     "cycle": 2,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795053031.1553793,
+     "plateau_along_N": -0.301,
+     "plateau_normal_N": 0.806,
+     "mu": 0.373,
+     "roughness_N": 0.096
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795053036.7309918,
+     "plateau_along_N": 0.514,
+     "plateau_normal_N": 1.136,
+     "mu": 0.452,
+     "roughness_N": 0.084,
+     "reversal": {
+      "swing_N": 0.815,
+      "travel_20_mm": 0.0,
+      "travel_80_mm": 0.249,
+      "slope_N_per_mm": 1.97
+     },
+     "overshoot_N": 0.138,
+     "mu_at_peak": 0.584,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.089
+    },
+    {
+     "cycle": 2,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795053042.299391,
+     "plateau_along_N": 0.615,
+     "plateau_normal_N": 1.196,
+     "mu": 0.515,
+     "roughness_N": 0.101
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795053047.8683174,
+     "plateau_along_N": -0.345,
+     "plateau_normal_N": 0.891,
+     "mu": 0.387,
+     "roughness_N": 0.093,
+     "reversal": {
+      "swing_N": -0.96,
+      "travel_20_mm": 0.02,
+      "travel_80_mm": 0.192,
+      "slope_N_per_mm": 3.36
+     },
+     "overshoot_N": 0.057,
+     "mu_at_peak": 0.433,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.161
+    }
+   ],
+   "cycles": [
+    {
+     "cycle": 1,
+     "friction_N": 0.392,
+     "normal_N": 0.87,
+     "mu": 0.451
+    },
+    {
+     "cycle": 2,
+     "friction_N": 0.444,
+     "normal_N": 1.007,
+     "mu": 0.441
+    }
+   ],
+   "hold_roughness_N": 0.086
+  },
+  {
+   "run": "20261118-185120_index_drag2N_z",
+   "normal_set_N": 2.0,
+   "legs": [
+    {
+     "cycle": 1,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795053116.5607808,
+     "plateau_along_N": -0.767,
+     "plateau_normal_N": 2.144,
+     "mu": 0.358,
+     "roughness_N": 0.102,
+     "reversal": {
+      "swing_N": -0.393,
+      "travel_20_mm": 0.068,
+      "travel_80_mm": 0.127,
+      "slope_N_per_mm": 3.97
+     },
+     "overshoot_N": 0.18,
+     "mu_at_peak": 0.442,
+     "after_rest": true,
+     "plateau_max_dev_N": 0.106
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795053122.1285474,
+     "plateau_along_N": 0.924,
+     "plateau_normal_N": 2.877,
+     "mu": 0.321,
+     "roughness_N": 0.087,
+     "reversal": {
+      "swing_N": 1.691,
+      "travel_20_mm": 0.046,
+      "travel_80_mm": 0.518,
+      "slope_N_per_mm": 2.15
+     },
+     "overshoot_N": 0.043,
+     "mu_at_peak": 0.329,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.188
+    },
+    {
+     "cycle": 1,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795053127.7050831,
+     "plateau_along_N": 1.085,
+     "plateau_normal_N": 2.931,
+     "mu": 0.37,
+     "roughness_N": 0.098
+    },
+    {
+     "cycle": 1,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795053133.2804654,
+     "plateau_along_N": -0.748,
+     "plateau_normal_N": 2.128,
+     "mu": 0.351,
+     "roughness_N": 0.092,
+     "reversal": {
+      "swing_N": -1.833,
+      "travel_20_mm": 0.001,
+      "travel_80_mm": 0.571,
+      "slope_N_per_mm": 1.93
+     },
+     "overshoot_N": 0.021,
+     "mu_at_peak": 0.358,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.15
+    },
+    {
+     "cycle": 2,
+     "leg": "plus",
+     "dir": "up",
+     "t0": 1795053138.8566613,
+     "plateau_along_N": -0.783,
+     "plateau_normal_N": 2.128,
+     "mu": 0.368,
+     "roughness_N": 0.089
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "down",
+     "t0": 1795053144.431137,
+     "plateau_along_N": 0.877,
+     "plateau_normal_N": 2.839,
+     "mu": 0.309,
+     "roughness_N": 0.103,
+     "reversal": {
+      "swing_N": 1.66,
+      "travel_20_mm": 0.061,
+      "travel_80_mm": 0.479,
+      "slope_N_per_mm": 2.39
+     },
+     "overshoot_N": 0.024,
+     "mu_at_peak": 0.319,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.063
+    },
+    {
+     "cycle": 2,
+     "leg": "minus",
+     "dir": "down",
+     "t0": 1795053149.9994226,
+     "plateau_along_N": 1.056,
+     "plateau_normal_N": 2.903,
+     "mu": 0.364,
+     "roughness_N": 0.105
+    },
+    {
+     "cycle": 2,
+     "leg": "back",
+     "dir": "up",
+     "t0": 1795053155.576653,
+     "plateau_along_N": -0.736,
+     "plateau_normal_N": 2.114,
+     "mu": 0.348,
+     "roughness_N": 0.091,
+     "reversal": {
+      "swing_N": -1.792,
+      "travel_20_mm": 0.0,
+      "travel_80_mm": 0.411,
+      "slope_N_per_mm": 2.61
+     },
+     "overshoot_N": 0.092,
+     "mu_at_peak": 0.393,
+     "after_rest": false,
+     "plateau_max_dev_N": 0.12
+    }
+   ],
+   "cycles": [
+    {
+     "cycle": 1,
+     "friction_N": 0.881,
+     "normal_N": 2.52,
+     "mu": 0.35
+    },
+    {
+     "cycle": 2,
+     "friction_N": 0.863,
+     "normal_N": 2.496,
+     "mu": 0.346
+    }
+   ],
+   "hold_roughness_N": 0.088
+  }
+ ]
+}

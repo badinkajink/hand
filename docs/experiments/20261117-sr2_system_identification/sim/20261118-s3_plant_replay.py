@@ -22,9 +22,14 @@ measured start, the table removed at the lift.
 2.04 N m/rad over eleven presses, sim/20261118-s3_yaw_head_on_fits.py): sim/20261118-yaw_give_replay.py's spring between
 each yaw's shaft (its reading) and its link, on this plant, with the gear's forward efficiency 1.
 
+--stick MU_S MU_K gives the friction two levels, as S4(b) measured the pad on the tape (sim/20261118-s4b_drag_friction.py:
+sliding 0.44-0.49 at 0.7-1.0 N and 0.35 at 2.5 N; after a 20 s rest the slide began 1.2-1.4 times higher). Every geom's
+friction is MU_S while the object turns slower than 0.2 rad/s, and MU_K from then until it turns slower than 0.05 rad/s
+again; MuJoCo's friction otherwise has one coefficient for both.
+
     HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 SCALE_HAND=cad_v2 OMP_NUM_THREADS=1 \\
         .venv/bin/python sim/20261118-s3_plant_replay.py OUT.jsonl [--plants s3 s3tc] [--mu 1.0 0.5] \\
-        [--contacts pads pads_stiff point] [--kc 2.0] [--tips off] [--trials STAMP ...] [--workers 6]
+        [--contacts pads pads_stiff point] [--kc 2.0] [--stick 0.55 0.40] [--tips off] [--trials STAMP ...] [--workers 6]
 """
 import argparse
 import importlib.util
@@ -52,6 +57,8 @@ W_TOP = 9.8                                          # rad/s, the 7v5 plant's fr
 T_FREE = 0.033                                       # s, the 7v5y plant's free-air time constant (0.011 / (0.4 x 0.825))
 PLANT = None                                         # "s3" or "s3tc", set per job
 MU = 1.0
+STICK = None                                         # (friction at rest, friction while sliding), set per job
+W_ON, W_OFF = 0.2, 0.05                              # rad/s: the object's turn rate that starts and ends a slide
 JUMP_DEG = 8.0
 
 
@@ -81,9 +88,35 @@ def s3_class():
     return S3Plant
 
 
+def stick_class(base):
+    class StickPlant(base):
+        """Friction MU_S while the object rests in the grasp and MU_K while it slides (module docstring)."""
+
+        def __init__(self, *a, **k):
+            super().__init__(*a, **k)
+            self.sliding = False
+            self.n_slides = 0
+
+        def advance(self, t1: float):
+            if not STICK:
+                return super().advance(t1)
+            m, d = self.m, self.d
+            h = float(m.opt.timestep)
+            while d.time < t1 - 1e-9:
+                w = float(np.linalg.norm(d.qvel[self.va + 3:self.va + 6]))
+                was = self.sliding
+                self.sliding = w > (W_OFF if self.sliding else W_ON)
+                self.n_slides += int(self.sliding and not was)
+                m.geom_friction[:, 0] = STICK[1] if self.sliding else STICK[0]
+                super().advance(min(t1, d.time + h))
+
+    return StickPlant
+
+
 def run_s3(job):
-    global PLANT, MU
+    global PLANT, MU, STICK
     PLANT, MU = job["plant"], job["mu"]
+    STICK = tuple(job["stick"]) if job.get("stick") else None
     YG.K_C, YG.ETA, YG.BACKDRIVE = job["k_c"], 1.0, False
     return NR.run(job)
 
@@ -103,11 +136,12 @@ def main():
     ap.add_argument("--mu", type=float, nargs="+", default=[1.0, 0.5])
     ap.add_argument("--contacts", nargs="+", default=["pads", "pads_stiff", "point"], choices=list(NR.RPL.SCENES))
     ap.add_argument("--kc", type=float, nargs="+", default=[None], help="the yaw give's stiffness (N m/rad)")
+    ap.add_argument("--stick", type=float, nargs=2, default=None, help="friction at rest and while sliding")
     ap.add_argument("--tips", default="off", choices=["off", "on", "all"])
     ap.add_argument("--trials", nargs="*", default=None)
     ap.add_argument("--workers", type=int, default=6)
     a = ap.parse_args()
-    NR.RPL.RG.gear_class = lambda: YG.give_class(s3_class())
+    NR.RPL.RG.gear_class = lambda: stick_class(YG.give_class(s3_class()))
     NR.RPL.RC2.STIFF, NR.RPL.RC2.BREAKAWAY = True, 0.0
     NR.RPL.RG.RF.RL.rows_file()
     rep = json.loads((STUDY / "data/20261118-night_trials_replay.json").read_text())
@@ -121,10 +155,14 @@ def main():
         for x in out.read_text().splitlines():
             r = json.loads(x) if x.strip() else None
             if r and "error" not in r:
-                done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"]))
-    jobs = [{**t, "contact": c, "volts": "7v5", "plant": p, "mu": mu, "k_c": k,
-             "variant": f"{p} mu{mu:g}" + (f" kc{k:g}" if k else "")} for k in a.kc for p in a.plants for mu in a.mu
-            for c in a.contacts for t in tl if (t["stamp"], c, p, mu, k) not in done]
+                done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"], tuple(r.get("stick") or ())))
+    st = tuple(a.stick or ())
+    mus = [a.stick[0]] if a.stick else a.mu
+    lab = f" stick{a.stick[0]:g}/{a.stick[1]:g}" if a.stick else ""
+    jobs = [{**t, "contact": c, "volts": "7v5", "plant": p, "mu": mu, "k_c": k, "stick": list(st) or None,
+             "variant": (f"{p} mu{mu:g}" if not a.stick else f"{p}") + (f" kc{k:g}" if k else "") + lab}
+            for k in a.kc for p in a.plants for mu in mus for c in a.contacts for t in tl
+            if (t["stamp"], c, p, mu, k, st) not in done]
     print(f"{len(jobs)} replays on {a.workers} workers ({len(done)} done)", flush=True)
     with open(out, "a") as fo, mp.get_context("fork").Pool(a.workers, initializer=NR.RPL.RG.init,
                                                            initargs=(str(NR.RPL.RG.RF.SCENE),), maxtasksperchild=4) as pool:

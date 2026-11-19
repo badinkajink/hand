@@ -329,6 +329,40 @@ air and then against a force sensor. Contact and the blind validation trials nee
   under the sphere blurs in one frame, and the fingertips' housings move little: the sphere slipped in the grasp. The
   replay (S3 plant, 2.0 N m/rad bend, stiff pads, friction 1.0) starts to turn at 5.1 s and adds 27 deg by 6.5 s
   without a slip. It ends at 34.6 deg, against the hand's 50.9.
+- S4(b), the index pad dragged on the taped plate (11-18 19:0x; lab 6324edabe, NOTES "18:34-18:54";
+  `sim/20261118-s4b_drag_friction.py`: `data/s3/20261118-s4b_friction.json`). The MCP held the pad face on the tape
+  while the arm dragged the hand 5 mm up and down at 1 mm/s, twice, at about 0.5, 1 and 2 N. Half the difference of
+  the downward and upward plateaus, which removes the HEX-E z's drift, gives the sliding friction. It was 0.44-0.49 of
+  the normal force at 0.67-1.0 N and 0.35 at 2.5 N; the scenes use 1.0 for the tape. While sliding, the force varied
+  by 0.07-0.11 N (standard deviation of 0.1 s means), as at rest (0.07-0.09 N): the pad does not stick and slip. At
+  the reversals the force crossed from one plateau to the other within 0.1-0.6 mm of travel. Pad, finger and arm in
+  series give 1.4-3.4 N/mm. At a reversal the pad started to slide within the noise of the sliding force: the
+  overshoot of 0.3 s means was -0.06 to +0.15 N, against the plateaus' own largest deviations of 0.06-0.19 N. The first
+  leg of each run began after the pad had rested about 20 s. There the force rose 0.17 and 0.18 N above the sliding
+  force in the 1 N and 2 N runs, over the noise's 0.08 and 0.11 N. That is 1.43 and 1.23 times the sliding friction.
+  The 0.5 N run showed no such rise (0.02 N).
+- W3, prediction for a resting and a sliding friction (11-18 19:1x, written before the run;
+  `sim/20261118-s3_plant_replay.py --stick 0.55 0.40`). On the S3 plant with the 2.0 N m/rad bend, every geom's
+  friction is 0.55 while the sphere turns slower than 0.2 rad/s. It is 0.40 from then until the sphere turns slower than
+  0.05 rad/s. On stiff pads the twist rises more than 8 deg within 0.2 s in most trials. It ends 3-8 deg beyond the
+  replays at a constant 0.40 and 0.55.
+- W3, the resting and sliding friction, result (11-18 19:2x; rows "<contact> s3tc kc2 stick0.55/0.4" and the controls
+  "<contact> s3tc mu0.4 kc2" and "mu0.55 kc2" in `data/20261118-s3_plant_replay.json`). On stiff pads the twist grew
+  as the friction fell: 31.7 deg at 1.0, 32.8 at 0.55, 37.6 at 0.40. With 0.55 at rest and 0.40 while sliding it
+  reached 39.4 deg (hand 49.6). The two levels add 1.9 deg to the constant 0.40, where 3-8 deg was predicted. The
+  twist rose more than 8 deg within 0.2 s 2.1 times per trial (0.40: 1.5; hand 3.8), at most 10.4 deg (hand 23.9).
+  The sphere rose 7.7 mm (0.40: 8.7; 0.55: 1.1; hand 3.0). Against the hand's twist trace the RMS fell from 15.1 deg at
+  1.0 to 9.9 deg, and the tracking rose from 0.28 to 0.38 (hand 0.43). On soft pads and with point contact, friction
+  0.40 lost the sphere: it rose 32 mm, and the index's and middle's yaws closed 7-9 deg past the hand's. The measured
+  friction thus recovers 6-8 deg of the stiff pads' twist and lifts the sphere 5 mm more than the hand did. The
+  resting level adds turns of about 10 deg within 0.2 s, against the hand's 24 deg.
+- W2, the boards in the pad-face presses of 18:36-18:45 (`data/s3/20261118-board_vs_hexe.json`, from the splitter's
+  file `20261118-183613-mux.bin`). The middle's board reads a face load. In its MCP press the trials' estimator read
+  1.34 N at 3.13 N, a line of 0.26 N + 0.36 times the HEX-E's force (RMS 0.04 N); the index's was 0.31 N + 0.26 times.
+  Its silence in 18 of 20 night trials thus means that the middle's pad face took no load, as a side contact would
+  give. With the PIP bent 15 and 30 deg, which moves the contact along the pad, the boards read more per N. The index
+  read 0.55 and 0.57 times the force, the middle 0.44 and 0.45 (trials' estimator; without the own-pose term
+  0.55-0.78). Between PIP 0 and 30 deg the index board's gain changes 2.2 times, the middle's 1.25 times.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
