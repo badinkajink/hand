@@ -1053,17 +1053,19 @@ def fig_hand_hexe():
     from matplotlib.lines import Line2D
     from fingertip_calibration_text import at_head
     plt = plt_setup()
-    d = json.loads(at_head(HAND_HEXE))["presses"]
-    panels = (("mcp", "x_P", 0, "(a) MCP press, along the normal"), ("yaw", "x_P", 0, "(b) Yaw press, along the normal"),
-              ("yaw", "y_P", 1, "(c) Yaw press, along the tape"))
+    J = json.loads(at_head(HAND_HEXE))
+    mcp = next(p for p in J["presses"] if p["finger"] == "index" and p["joint"] == "mcp")
+    d = {"mcp": mcp, "yaw": next(p for p in J["presses"] if p["approach"] == mcp["approach"] and p["joint"] == "yaw")}
+    panels = (("mcp", "x_P", "x", "(a) MCP press, along the normal"), ("yaw", "x_P", "x", "(b) Yaw press, along the normal"),
+              ("yaw", "y_P", "y", "(c) Yaw press, along the tape"))
     fig, axes = plt.subplots(1, 3, figsize=(11.0, 4.3))
     for ax, (press, key, i, ttl) in zip(axes, panels):
         lo, hi = np.inf, -np.inf
         for en, _, col, mk in HAND_EST:
             E = d[press]["estimators"][en]
-            st = [s for s in E["steps"] if s["board_P_N"] is not None]
-            x = np.array([s["hexe_P_N"][i] for s in st])
-            y = np.array([s["board_P_N"][i] for s in st])
+            st = [r for r in (dict(zip(J["cols"], row)) for row in E["steps"]) if r[f"board_{i}_P_N"] is not None]
+            x = np.array([r[f"hexe_{i}_P_N"] for r in st])
+            y = np.array([r[f"board_{i}_P_N"] for r in st])
             ax.plot(x, y, mk, ms=4.5, color=col, mfc="none" if en == "physical" else col, alpha=0.8, mew=1.1)
             f = E["fits"][key]
             xs = np.array([x.min(), x.max()])

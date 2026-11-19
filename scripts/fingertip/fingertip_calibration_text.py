@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import subprocess
 from decimal import ROUND_HALF_UP, Decimal
+from math import hypot
 from pathlib import Path
 from statistics import median
 
@@ -219,17 +220,23 @@ def sections(N, F, P, link, L):
     dloc, dfe = strict("gp_direction", "loc_mm"), strict("gp_direction", "force_rel_err", 100)
     bloc, bfe = strict("gp", "loc_mm"), strict("gp", "force_rel_err", 100)
 
-    # the index board on the SR2 hand against the HEX-E in S3 (commit b462a66a of 2026-11-18): the study's least-squares
-    # lines per press and estimator, and the medians that its queue quotes
+    # the boards on the SR2 hand against the HEX-E in S3 (commits b462a66a and 72ac716b of 2026-11-18): the study's
+    # least-squares lines per press and estimator, and the medians that its queue quotes. The index's two face presses
+    # share the MCP press's approach; the other presses pushed the tips' sides into the plates with the yaw joints.
     HHJ = jl(IDENT / "data/s3/20261118-board_vs_hexe.json")
-    HH, HH_MUX = HHJ["presses"], HHJ["mux"]
+    HH_MUX, hh_cols = HHJ["mux"], HHJ["cols"]
+    hh_mcp = next(p for p in HHJ["presses"] if p["finger"] == "index" and p["joint"] == "mcp")
+    HH = {"mcp": hh_mcp, "yaw": next(p for p in HHJ["presses"] if p["approach"] == hh_mcp["approach"] and p["joint"] == "yaw")}
+    hh_side = [p for p in HHJ["presses"] if p["approach"] != hh_mcp["approach"]]
     hhf = lambda p, e, k="n_vs_xy": HH[p]["estimators"][e]["fits"][k]  # noqa: E731
-    hh_on = [s for s in HH["mcp"]["estimators"]["gp_own_pose"]["steps"] if s["board_n_N"] is not None]
-    hh_hi = [s for s in hh_on if s["hexe_xy_N"] > 1.5]
-    hh_lo = [s for s in hh_on if s["hexe_xy_N"] < 0.1]
+    hh_xy = lambda r: hypot(r["hexe_x_P_N"], r["hexe_y_P_N"])  # noqa: E731
+    hh_rows = lambda p, e: [dict(zip(hh_cols, r)) for r in p["estimators"][e]["steps"]]  # noqa: E731
+    hh_on = [s for s in hh_rows(HH["mcp"], "gp_own_pose") if s["board_n_N"] is not None]
+    hh_hi = [s for s in hh_on if hh_xy(s) > 1.5]
+    hh_lo = [s for s in hh_on if hh_xy(s) < 0.1]
     r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
     hh_sl = [r2(x) for x in sorted((hhf("mcp", "gp_own_pose")["slope"], hhf("yaw", "gp_own_pose", "x_P")["slope"]))]
-    assert len(hh_hi) == 45 and round(median(s["hexe_xy_N"] for s in hh_hi), 2) == 2.51, "the queue's 45 steps at 2.51 N"
+    assert len(hh_hi) == 45 and round(median(hh_xy(s) for s in hh_hi), 2) == 2.51, "the queue's 45 steps at 2.51 N"
 
     lede = (
         "In twenty-eight sessions, eleven printed fingertips were pressed against spheres and a rod by the lab's UR5, with "
@@ -244,7 +251,7 @@ def sections(N, F, P, link, L):
         f"off (Section 12). Pooled with the other v3 tips' holds, v3 IDs 4 to 6 go from {plm(PL_PTS, 'own')} to "
         f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered. On the SR2 hand, "
         f"the index board's estimate rose {hh_sl[0]}–{hh_sl[1]} N per newton of the HEX-E's normal force on a "
-        "taped plate (Section 17).")
+        "taped plate. Presses on the tips' sides did not change the boards' estimates (Section 17).")
     summary = (
         f"UR5 + HEX-E calibration of eleven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 11-04): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
@@ -293,7 +300,7 @@ def sections(N, F, P, link, L):
         f"1.42 mm against 0.39 mm on the v1 tips and {xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm against "
         f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm between the four-magnet tips; on the SR2 hand (2026-11-18) the "
         f"index board's estimate rose {hh_sl[0]}-{hh_sl[1]} N per newton of the HEX-E's normal force on a "
-        "taped plate.")
+        f"taped plate, and the boards' estimates did not rise in {len(hh_side)} presses of the tips' sides.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -1927,9 +1934,9 @@ def sections(N, F, P, link, L):
         f"<p>On the SR2 hand the index board's estimate rose {hh_sl[0]} to {hh_sl[1]} N per newton of the normal force "
         "that the HEX-E measured. On 18 November the index fingertip, v3 ID 3, was pressed onto a taped plate in test S3 "
         "of the hand's identification study. The estimator was the one used in the HOM trials on the hand. Over the "
-        f"{len(hh_hi)} steps above 1.5 N, the HEX-E's median force was {r2(median(s['hexe_xy_N'] for s in hh_hi))} N and "
+        f"{len(hh_hi)} steps above 1.5 N, the HEX-E's median force was {r2(median(hh_xy(s) for s in hh_hi))} N and "
         f"the estimator's {r2(median(s['board_n_N'] for s in hh_hi))} N.</p>"
-        "<p>The hand was carried by the UR5 on the HEX-E, which measured the force on the whole hand. On the table stood "
+        "<p>The hand was mounted on the UR5 through the HEX-E, which measured the force on the whole hand. On the table stood "
         "a square extrusion of 20 mm with a plate on one face, covered in grip tape. The arm stopped the pad 4.6 mm from "
         "the plate. One joint's target was then stepped 0.5° past its reading every 2 s, toward the plate, and stepped "
         "back after a stop. In the first press the MCP joint pushed the pad's face onto the plate "
@@ -1969,6 +1976,36 @@ def sections(N, F, P, link, L):
                 "own-angle term, as in the HOM trials. Filled squares: the board GP without it. Open triangles: the "
                 "physical model alone. Lines: the study's least-squares fits. Dotted: equal force. Drawn from "
                 + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json") + ".")
+    )
+    GP2 = ("gp_own_pose", "gp")
+    hh_peak = lambda p, e: max(hh_rows(p, e), key=hh_xy)  # noqa: E731   the step of a press's largest force
+    hh_pre = lambda p, e: median(r["board_n_N"] for r in hh_rows(p, e) if hh_xy(r) < 0.1 and r["board_n_N"] is not None)  # noqa: E731
+    hh_slope = lambda ps, es: [p["estimators"][e]["fits"]["n_vs_xy"]["slope"] for p in ps for e in es]  # noqa: E731
+    span = lambda v, f=r2: f"{f(min(v))} to {f(max(v))}"  # noqa: E731
+    gsl, pf = hh_slope(hh_side, GP2), [p["estimators"]["physical"]["fits"]["n_vs_xy"] for p in hh_side]
+    body += (
+        f"<p>In {len(hh_side)} more presses, the yaw joints pushed the sides of the index's, the middle's and the thumb's "
+        "tips into the plates (Table 35). The boards' estimates did not rise with the force in any of them. The lines of "
+        "the two GP estimators "
+        f"rose {span(gsl)} N per newton of the HEX-E's force. At each press's largest force, "
+        f"{span([hh_xy(hh_peak(p, 'gp')) for p in hh_side])} N, the two GP estimates were "
+        f"{span([hh_peak(p, e)['board_n_N'] for p in hh_side for e in GP2])} N. Before contact they were "
+        f"{span([hh_pre(p, e) for p in hh_side for e in GP2])} N. The physical model's lines rose "
+        f"{r2(max(f['slope'] for f in pf))} N per newton at most. By the study's account, the plates met the DIP link, which "
+        "is 3 mm wider than the pad on each side.</p>"
+        + P.table(["Finger", "Presses", "Largest force on the HEX-E (N)", "GP estimators there (N)",
+                   "GP estimators before contact (N)", "Slope, board GP with the own-angle term", "Slope, board GP without it",
+                   "Slope, physical model alone"],
+                  [[f.capitalize(), str(len(ps)), span([hh_xy(hh_peak(p, "gp")) for p in ps]),
+                    span([hh_peak(p, e)["board_n_N"] for p in ps for e in GP2]), span([hh_pre(p, e) for p in ps for e in GP2]),
+                    span(hh_slope(ps, ("gp_own_pose",))), span(hh_slope(ps, ("gp",))), span(hh_slope(ps, ("physical",)))]
+                   for f in ("index", "middle", "thumb") for ps in [[p for p in hh_side if p["finger"] == f]]],
+                  num_cols=tuple(range(1, 8)), n=35,
+                  caption="The boards against the HEX-E in S3's presses of the tips' sides on 2026-11-18, per finger: ranges "
+                  "over the presses. Largest force: the HEX-E's horizontal force at a press's largest step. GP estimators "
+                  "there and before contact: the normal force of the board GP with and without the own-angle term at that "
+                  "step, and their median over the steps under 0.1 N. Slope: of the identification study's least-squares "
+                  "line from the HEX-E's force to the estimate's normal force, as in Table 34.")
     )
     S.append(("hand", "Index board's force on the SR2 hand against the HEX-E", body))
 
@@ -2021,11 +2058,11 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
-        "Boards against the HEX-E at other contacts on the hand: S3's head-on yaw presses of 18 November pushed the sides "
-        "of the index and middle tips into the plates. The thumb's tip was pushed in as well, and all three boards were "
-        "recorded. Run " + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py")
-        + f" on them. Slopes of {hh_sl[0]} to {hh_sl[1]} on v3 IDs 1 and 2 as well would make the low estimate of "
-        "Section 17 common to the v3 tips on the hand.",
+        "Face presses of the middle and thumb pads on the hand: press each pad's face onto the taped plate with the MCP "
+        "joint, as for the index in Section 17. Run "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py") + " on them. "
+        f"If the slopes of v3 IDs 1 and 2 are also {hh_sl[0]} to {hh_sl[1]}, the low estimate is common to the v3 tips on "
+        "the hand.",
         "Mount end on the SR2 hand: the contact viewer has run on the hand with the model of Section 16 since 11-05, on v3 IDs 1 "
         "to 3 (commit 84572398). Press a tip's mount end with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",
