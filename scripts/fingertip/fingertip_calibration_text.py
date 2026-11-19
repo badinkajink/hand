@@ -287,6 +287,15 @@ def sections(N, F, P, link, L):
                for f in SIDE for c in PC[f]["friction"]), "the corrected pads' raw coefficients are Table 39's"
     side_hi = {f: [c["mu"] for c in PS[f]["friction"] if c["N"] >= 1.0] for f in SIDE}    # the 1 and 2 N settings
     side_n = [c["normal_N"] for f in SIDE for c in PS[f]["friction"] if c["N"] >= 1.0]
+    # where the drags' forces act, from the HEX-E's moments (the study's 20261119-drag_line_of_action, f651a1c0)
+    LOA = {r["what"]: r for r in jl(IDENT / "data/s3/20261119-drag_line_of_action.json")["runs"]}
+    assert sorted(LOA) == ["index PLA side", "index pad", "middle PLA side", "middle pad"]
+    assert all(LOA[f"{f} pad"]["run"] == FRP[f]["run"] and LOA[f"{f} PLA side"]["run"] == PS[f]["run"] for f in SIDE)
+    LOA_RMS = sorted(r["moment_rms_Nmm"] for r in LOA.values())
+    LOA_DZ = sorted(r["fit_minus_lead_mm"][2] for r in LOA.values())
+    assert LOA_DZ[0] > 0, "every fitted contact nearer the sensor than planned"
+    loy = lambda k, planned: (f"{LOA[k]['lead_P_mm'][1]:.1f}" if planned  # noqa: E731   along y_P, fitted or planned
+                              else f"{LOA[k]['y_lever_friction_mm']:.0f}").replace("-", "−")
     hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]]
                                     + [hh_fs(p)["slope"] for p in hh_face + hh_pp])]
     hh_bs = [r2(x) for x in sorted(hh_fs(p)["slope"] for p in hh_bent.values())]
@@ -2308,6 +2317,20 @@ def sections(N, F, P, link, L):
         "pad's. By the arm's plans, all four contacts were dragged over one patch of the tape. The thumb's pose on the tag "
         "plate had no control. The analysis of 19 November is in the same script, with its numbers in "
         + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261119-pla_side_friction.json") + ".</p>"
+        "<p>To locate where each drag's force acted, one contact was fitted to the HEX-E's moments over each run's 36 "
+        f"legs. The fits were within {span(LOA_RMS, lambda x: f'{x:.1f}')} N mm RMS. In all four runs, however, the "
+        f"fitted contact lay {span(LOA_DZ, lambda x: f'{x:.0f}')} mm closer to the sensor than planned. Along the palm "
+        f"frame's y axis, across the hand, the index pad's friction acted at {loy('index pad', 0)} mm, against "
+        f"{loy('index pad', 1)} mm planned. The middle pad's acted at {loy('middle pad', 0)} mm, against "
+        f"{loy('middle pad', 1)} mm. These levers are consistent with a crosstalk from the HEX-E's moments into its forces "
+        "that raises the middle's drag force and lowers the index's. The sides' levers, "
+        f"{loy('index PLA side', 0)} and {loy('middle PLA side', 0)} mm against {loy('index PLA side', 1)} and "
+        f"{loy('middle PLA side', 1)} mm planned, are not consistent with it. The moments thus did not show whether the middle's higher friction comes from its contact "
+        "or from the HEX-E. The study's fit is "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261119-drag_line_of_action.py") + ", with "
+        "its numbers in "
+        + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261119-drag_line_of_action.json")
+        + ".</p>"
         + P.table(["Contact", "Normal force set (N)", "Normal force (N)", "0.2 mm/s after 1 s",
                    "0.2 mm/s after 10 s", "0.2 mm/s after 60 s", "2 mm/s after 1 s", "2 mm/s after 10 s",
                    "2 mm/s after 60 s", "Without the control", "Legs that began above the plateau's largest deviation"],
