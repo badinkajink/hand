@@ -1,0 +1,157 @@
+{
+ "what": "Where the forces of the S4(b) drags act, from the HEX-E's moments (identification queue, 2026-11-19): whether the middle's friction of 1.8-2 times the index's comes from its contact or from the measurement.",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261119-drag_line_of_action.py",
+ "hexe_tool_face_P_mm": [
+  5.44,
+  -0.0,
+  103.9
+ ],
+ "runs": [
+  {
+   "run": "20261118-191748_index_protocol",
+   "what": "index pad",
+   "plan": "20261118-191629_approach_index",
+   "controls": [
+    "20261119-134601_index_protocol"
+   ],
+   "lead_P_mm": [
+    34.4,
+    88.6,
+    -88.2
+   ],
+   "contact_fit_P_mm": [
+    19.3,
+    86.5,
+    -25.5
+   ],
+   "fit_minus_lead_mm": [
+    -15.1,
+    -2.1,
+    62.8
+   ],
+   "T0_Nmm": [
+    51.7,
+    7.4,
+    36.8
+   ],
+   "moment_rms_Nmm": 10.7,
+   "legs": 36,
+   "y_lever_friction_mm": 112.2,
+   "y_lever_friction_range_mm": [
+    70.0,
+    119.9
+   ],
+   "y_lever_normal_mm": 69.9
+  },
+  {
+   "run": "20261118-200305_middle_protocol",
+   "what": "middle pad",
+   "plan": "20261118-200220_approach_middle",
+   "controls": [
+    "20261119-135018_middle_protocol"
+   ],
+   "lead_P_mm": [
+    34.2,
+    -83.6,
+    -88.2
+   ],
+   "contact_fit_P_mm": [
+    16.4,
+    -63.7,
+    -32.9
+   ],
+   "fit_minus_lead_mm": [
+    -17.8,
+    20.0,
+    55.4
+   ],
+   "T0_Nmm": [
+    -17.8,
+    23.3,
+    -5.9
+   ],
+   "moment_rms_Nmm": 4.96,
+   "legs": 36,
+   "y_lever_friction_mm": -63.7,
+   "y_lever_friction_range_mm": [
+    -68.8,
+    -57.7
+   ],
+   "y_lever_normal_mm": -72.2
+  },
+  {
+   "run": "20261119-123219_index_protocol",
+   "what": "index PLA side",
+   "plan": "20261119-122743_approach_index_yaw_pad",
+   "controls": [
+    "20261119-122906_index_protocol",
+    "20261119-130711_index_protocol"
+   ],
+   "lead_P_mm": [
+    44.4,
+    77.6,
+    -87.8
+   ],
+   "contact_fit_P_mm": [
+    31.1,
+    62.8,
+    -47.7
+   ],
+   "fit_minus_lead_mm": [
+    -13.3,
+    -14.8,
+    40.1
+   ],
+   "T0_Nmm": [
+    20.1,
+    -2.3,
+    4.4
+   ],
+   "moment_rms_Nmm": 5.37,
+   "legs": 36,
+   "y_lever_friction_mm": 63.3,
+   "y_lever_friction_range_mm": [
+    46.2,
+    81.9
+   ],
+   "y_lever_normal_mm": null
+  },
+  {
+   "run": "20261119-131412_middle_protocol",
+   "what": "middle PLA side",
+   "plan": "20261119-131019_approach_middle_yaw_pad",
+   "controls": [
+    "20261119-131125_middle_protocol",
+    "20261119-134049_middle_protocol"
+   ],
+   "lead_P_mm": [
+    45.6,
+    -94.2,
+    -87.8
+   ],
+   "contact_fit_P_mm": [
+    40.1,
+    -90.1,
+    -35.2
+   ],
+   "fit_minus_lead_mm": [
+    -5.5,
+    4.1,
+    52.6
+   ],
+   "T0_Nmm": [
+    -20.6,
+    -8.5,
+    -1.3
+   ],
+   "moment_rms_Nmm": 4.88,
+   "legs": 36,
+   "y_lever_friction_mm": -91.1,
+   "y_lever_friction_range_mm": [
+    -117.7,
+    -79.1
+   ],
+   "y_lever_normal_mm": null
+  }
+ ]
+}

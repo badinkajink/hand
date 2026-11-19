@@ -508,6 +508,19 @@ air and then against a force sensor. Contact and the blind validation trials nee
   assumed the turned hand's bias, and it does not hold. By the plans all four contacts of 11-18 and 11-19 sit on one
   patch of tape (lab, 14:0x), so the middle's higher friction comes from the finger or its measurement path. The
   thumb's pose on the tag plate had no control.
+- S4(b), where the drags' forces act, from the HEX-E's moments (11-19 14:4x, lab request;
+  `sim/20261119-drag_line_of_action.py`, `data/s3/20261119-drag_line_of_action.json`). With the controls subtracted,
+  one contact T = (c - o) x F + T0 was fitted to each run's 36 legs, with o the HEX-E's tool face in P. The moments fit
+  it to 5-11 N mm RMS. In all four runs the fitted contact lies 40-63 mm closer to the sensor along z_P than the planned
+  contact, so the moments have a systematic error of their own against the cad_v3 chain (origin or scale). Along y_P
+  the index pad's friction acts at 112 mm (median; 70-120 over the rows) and its normal force at 70 mm. The middle
+  pad's act at -64 and -72 mm. The plan puts the pads at 88.6 and -83.6 mm. A moment-into-force crosstalk that
+  raises the middle's drag force and lowers the index's would give this pattern for the pads. The sides do not show it:
+  the index side's friction acts at 63 mm (plan 77.6), the middle side's at -91 mm (plan -94.2). The moments thus
+  cannot tell the finger from the measurement. In the flexion presses the middle's PIP gain (1.27-1.29 N m/rad) was
+  1.36 times the index's (0.93-0.96). Those were the presses in which its tangential force reached 0.79-0.92 of the
+  normal. A known weight hung from each fingertip with the hand pointing down would load z_P at y = +-85 mm, and the
+  HEX-E should read the same weight at both.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
