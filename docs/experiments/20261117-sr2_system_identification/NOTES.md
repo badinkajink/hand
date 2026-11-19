@@ -340,3 +340,51 @@ The owner, 18:3x: "ok go ahead on these plans".
     held the pattern (lesson 9 of CLAUDE.md). The index's second control started 8 min late. Nothing moved meanwhile.
 - **Parked** at 13:53: palm origin z_B 356.8 over the session's start, unturned. Fingers within 4.4 deg of zero, no
   flags, servos 19-23 C, torque on, arm running (mode 7). Splitter stopped.
+
+## 2026-11-19, 14:21-16:0x: the boards against the HEX-E, faster drags, and the friction's drift
+
+- **Go.** The owner to the workstation session, 14:0x-14:19, relayed by hand-4a: "can we also run some magnetic
+  fingertip calibrations? what else can we do with this before we take out this mount?", then "you have my go ahead on
+  whatever runs". Scripts in `lab/day/`; records and raws in `data/s3/` (all under 2 MB); boards in
+  `logs/20261119-three_finger_mux/20261119-142714-mux.bin`.
+- **Angle presses for the boards** (`day/20261119_board_presses.sh`). Each pad face on with its PIP pre-bent 15 and
+  30 deg, so the contact moves along the pad; the MCP pressed, each press with its own approach.
+  - The index's first press (PIP 15, 1 deg steps) stuck at 1.95 N for six steps while the MCP's load built from 285 to
+    585. Then the gear slipped and the force jumped to 3.48 N, over the 3 N rule.
+  - The rest stopped at 2.6 N or at the MCP's load 450, in 0.5 deg steps every 0.5 s: index PIP 30 at the load cap with
+    1.99 N; middle PIP 15 and 30 at 2.96 and 2.62 N; thumb PIP 15 and 30 (on the tag plate, last night's unrun pair)
+    at 2.62 and 2.65 N.
+  - The index's MCP stalls near 2 N in both pre-bent presses, so it cannot reach 3 N on this rig without such a jump.
+- **Shear across the finger** (`day/20261119_shear_across.sh`): each pad head on at PIP 0, the MCP holding 0 (free
+  air), 1 and 2 N, the arm dragging +-5 mm along the plate's width at 1 mm/s. hand-4a (31ce8b2f2): the pads stayed put
+  and the fingers gave as springs, 0.15-0.28 N/mm with 1-2 deg of yaw. That is known shear at a fixed contact for the
+  boards, and no friction.
+- **20 mm/s** (`day/20261119_fast_legs.sh`, `_more.sh`; `s4b_drag.py --acc 0.5`, which reaches 20 mm/s within
+  0.4 mm). The index pad at phase A's pose, with free-air controls at the same speeds.
+  - At 1 N, three pairs each at 2 and 20 mm/s.
+  - The 2 N level stopped on its first 2 mm/s down leg: the normal force rose from 2.2 to 3.27 N and the 3 N guard caught
+    it at 3.03 N.
+  - An extra run held 1.5 N for five pairs at 20 mm/s.
+  - hand-4a (9c4e7e6d4): the pad slid at 0.63 at 2 mm/s and 0.72 at 20 mm/s, against 0.40 at the same pose last night.
+- **A-B-A** (`day/20261119_aba.sh`, hand-4a's question): index, middle, index pad at 1 N and 2 mm/s, each with a
+  free-air control. The index slid at 0.71 and 0.59, the middle at 0.82 between them (hand-4a, 4e8c7f559). Within one
+  session the middle grips 1.2-1.4 times the index. Most of the 1.8-2 times of 11-18 was the index's pad rising from
+  0.40 (11-18 19:4x) to 0.6-0.7 today.
+- **Thumb pad on the tape: not run.** The pad faces +x_P, and the taped face needs a 180 deg turn of the wrist. The
+  owner's rule is no big joint-6 turns (11-16), with 90 OK'd on 11-18; a strip of the tape on the tag plate would do
+  instead. Both are with the owner.
+- **The boards' free-air sweep at the trials' layout** (from 15:12). Gantries to (70, 110) (`hom_setup.py layout`,
+  filmed). Then 327 steps of `20261104-sr2_hand_crosstalk/lab/run_plan.py` at the park, the motors kept homed. Plan
+  `data/sweep/20261119-plan_random_x70y110.json`: make_random_at.py, seed 4, 300 random poses at least 12 mm finger to
+  finger at the station's mounts (-28.82, 2.40; 28.82, 51.60; 28.82, -51.60). make_random_at.py takes the station's
+  mount coordinates, not a plan's d6_P_mm; the first plan, built from d6_P_mm, overstated the clearances by up to 6 mm
+  and is kept as `logs/20261119-sr2_boards_sweep/20261119-plan_random_x70y110_WRONG_MOUNTS.json`. Events and
+  telemetry in `logs/20261119-sr2_boards_sweep/s1/`.
+  - "plan done" at 15:55: all 327 steps, no safety stop, every pose reached
+    (`data/sweep/20261119-sweep_x70y110_events.jsonl`; the 38 MB telemetry stays in logs, rsynced).
+  - The measured clearance at the measured joints and the station's mounts was 11.7 mm at least (median 21.1). The
+    settle error had a median of 1.4 deg; 11 poses ended over 3 deg, at most 4.0.
+  - The boards recorded throughout (`20261119-142714-mux.bin`, 215 MB, rsynced).
+- **End, 15:57.** The gantries are back at the roll layout (85, 170), filmed like the move out
+  (`logs/20261119-sr2_boards_sweep/*_layout_*.mp4`). The hand is parked unturned over the session's start, all
+  fingers within 0.6 deg of zero, no flags, servos 21-26 C, torque on, arm running (mode 7). Splitter stopped.
