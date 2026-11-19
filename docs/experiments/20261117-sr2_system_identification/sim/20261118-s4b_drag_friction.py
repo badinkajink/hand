@@ -21,7 +21,15 @@ the legs' axis_P (nearly z_P), and the normal force its x_P component. Per leg:
                on the hold before the first leg: a stick-slip shows as roughness above the hold's
 Writes data/s3/20261118-s4b_friction.json and, with --fig, the friction loops (force along the drag against the travel).
 
-    python3 sim/20261118-s4b_drag_friction.py [--fig FILE.png]
+Phase A of the night of 2026-11-18 (lab/s4b_drag.py --protocol; data/s3/20261118-191748_index_protocol.jsonl, raw in
+logs/20261118-sr2_s3_press/) dragged the index pad 5 mm up or down after rests of 1, 10 and 60 s with the pad loaded, at
+0.2 and 2 mm/s, at about 0.5, 1 and 2 N. Per leg (protocol): the level before it (median of the rest's last half: the
+pad stuck, holding the last slide's shear), the plateau (median over the travel from 2.5 mm to the end), the swing
+between them, and the overshoot (the largest 0.3 s mean beyond the plateau in the swing's direction within the first
+2.5 mm, minus the plateau) against the noise (the plateau's own largest 0.3 s deviation over the same travel). The
+sliding friction per N, speed and rest is half the difference of the down and up plateaus.
+
+    python3 sim/20261118-s4b_drag_friction.py [--fig FILE.png] [--protocol-fig FILE.png]
 """
 import argparse
 import json
@@ -32,6 +40,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 STUDY = HERE.parent
 RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "20261118-185120_index_drag2N_z"]
+PROTOCOLS = ["20261118-191748_index_protocol"]
+ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
 
@@ -100,10 +110,68 @@ def run(stem):
             "hold_roughness_N": round(rough(Ft[hold]), 3) if hold.sum() > 100 else None}, (z, Ft, Fn, th, legs)
 
 
+def protocol(stem):
+    """Per leg of a --protocol run: level before, plateau, swing, overshoot and the noise's own largest deviation."""
+    L = [json.loads(x) for x in (STUDY / "data/s3" / f"{stem}.jsonl").read_text().splitlines() if x.strip()]
+    h = L[0]
+    segs = [x for x in L if x.get("phase") in ("rest", "leg")]
+    raw = [json.loads(x) for x in (ROOT / "logs/20261118-sr2_s3_press" / f"{stem}_raw.jsonl").read_text().splitlines()
+           if x.strip()]
+    th = np.concatenate([r["hexe_t"] for r in raw])
+    FH = np.concatenate([np.array(r["hexe"])[:, :3] for r in raw])
+    o = np.argsort(th)
+    th, FH = th[o], FH[o]
+    tt = np.concatenate([[q[0] for q in r["tcp"]] for r in raw])
+    zt = np.concatenate([[q[1][2] for q in r["tcp"]] for r in raw]) * 1e3
+    o = np.argsort(tt)
+    tt, zt = tt[o], zt[o]
+    FP = (FH - np.array(h["F0_N"])) @ np.array(h["R_PH"]).T
+    legs = [x for x in segs if x["phase"] == "leg"]
+    ax = np.array(legs[0]["axis_P"], float)
+    ax /= np.linalg.norm(ax)
+    n = max(1, int(round(0.3 / np.median(np.diff(th)))))
+    F3 = np.convolve(FP @ ax, np.ones(n) / n, "same")
+    Fn = np.convolve(FP[:, 0], np.ones(n) / n, "same")
+    z = np.interp(th, tt, zt)
+    out = []
+    for k, lg in enumerate(legs):
+        rest = next(x for x in reversed(segs[:segs.index(lg)]) if x["phase"] == "rest")
+        rm = (th >= (rest["t0"] + rest["t1"]) / 2) & (th <= rest["t1"])
+        s = (th >= lg["t0"]) & (th <= lg["t1"])
+        trav = np.abs(z[s] - z[s][0])
+        before = float(np.median(F3[rm]))
+        pl = trav >= 2.5
+        plateau, normal = float(np.median(F3[s][pl])), float(np.median(Fn[s][pl]))
+        swing = plateau - before
+        sg = np.sign(swing)
+        first = trav < 2.5
+        over = float(np.max(sg * (F3[s][first] - plateau)))
+        noise = float(np.max(sg * (F3[s][pl] - plateau)))
+        j = int(np.argmax(sg * (F3[s][first] - plateau)))
+        out.append({"N": lg["N"], "speed_mm_s": lg["speed_mm_s"], "rest_s": lg["rest_s"],
+                    "dir": "up" if lg["to_mm"] > 0 else "down", "t0": lg["t0"], "before_N": round(before, 3),
+                    "plateau_N": round(plateau, 3), "normal_N": round(normal, 3), "swing_N": round(swing, 3),
+                    "overshoot_N": round(over, 3), "noise_max_N": round(noise, 3),
+                    "overshoot_at_mm": round(float(trav[first][j]), 2)})
+    fric = []
+    for N in sorted({r["N"] for r in out}):
+        for v in sorted({r["speed_mm_s"] for r in out}):
+            for rs in sorted({r["rest_s"] for r in out}):
+                up = [r for r in out if (r["N"], r["speed_mm_s"], r["rest_s"], r["dir"]) == (N, v, rs, "up")]
+                dn = [r for r in out if (r["N"], r["speed_mm_s"], r["rest_s"], r["dir"]) == (N, v, rs, "down")]
+                if up and dn:
+                    fk = (dn[0]["plateau_N"] - up[0]["plateau_N"]) / 2
+                    nn = (dn[0]["normal_N"] + up[0]["normal_N"]) / 2
+                    fric.append({"N": N, "speed_mm_s": v, "rest_s": rs, "friction_N": round(fk, 3),
+                                 "normal_N": round(nn, 3), "mu": round(fk / nn, 3)})
+    return {"run": stem, "legs": out, "friction": fric}, (th, z, F3, legs)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(STUDY / "data/s3/20261118-s4b_friction.json"))
     ap.add_argument("--fig", default=None)
+    ap.add_argument("--protocol-fig", default=None)
     a = ap.parse_args()
     res, curves = [], []
     for stem in RUNS:
@@ -115,9 +183,21 @@ def main():
             print("   ", g["cycle"], g["leg"], g["dir"], "plateau", g["plateau_along_N"], "normal", g["plateau_normal_N"], "mu",
                   g["mu"], "rough", g["roughness_N"], "rev", g.get("reversal"), "overshoot", g.get("overshoot_N"),
                   "plateau max dev", g.get("plateau_max_dev_N"), "mu at peak", g.get("mu_at_peak"))
+    prot, pcurves = [], []
+    for stem in PROTOCOLS:
+        r, c = protocol(stem)
+        prot.append(r)
+        pcurves.append(c)
+        for g in r["legs"]:
+            print(f"  {g['N']:3g} N {g['speed_mm_s']:3g} mm/s rest {g['rest_s']:3g} s {g['dir']:4s} before {g['before_N']:+.2f} "
+                  f"plateau {g['plateau_N']:+.2f} normal {g['normal_N']:.2f} swing {g['swing_N']:+.2f} overshoot "
+                  f"{g['overshoot_N']:.2f} (noise {g['noise_max_N']:.2f}) at {g['overshoot_at_mm']} mm")
+        for f in r["friction"]:
+            print("   friction", json.dumps(f))
     Path(a.out).write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "),
                                        "script": "docs/experiments/20261117-sr2_system_identification/sim/"
-                                                 "20261118-s4b_drag_friction.py", "runs": res}, indent=1) + "\n")
+                                                 "20261118-s4b_drag_friction.py", "runs": res, "protocols": prot},
+                                      indent=1) + "\n")
     print("wrote", a.out)
     if a.fig:
         import matplotlib

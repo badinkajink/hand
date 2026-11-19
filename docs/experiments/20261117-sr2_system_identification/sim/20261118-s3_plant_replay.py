@@ -22,6 +22,12 @@ measured start, the table removed at the lift.
 2.04 N m/rad over eleven presses, sim/20261118-s3_yaw_head_on_fits.py): sim/20261118-yaw_give_replay.py's spring between
 each yaw's shaft (its reading) and its link, on this plant, with the gear's forward efficiency 1.
 
+--zshift MM moves the object's start up along z_P by MM (S1(b)'s tags sat 3.86 mm below the hand's model, shared by
+the three fingers), and --zeros takes S1(b)'s shared-height model ("dz" in data/s1/20261118-s1b_tag_fit.json): its
+joint zeros are added to every joint, so the hand's readings and targets become the model's angles plus the zeros and
+the replayed angles are compared after taking them off again, and its mount offsets (mx, my) move each finger's mount
+body in P.
+
 --stick MU_S MU_K gives the friction two levels, as S4(b) measured the pad on the tape (sim/20261118-s4b_drag_friction.py:
 sliding 0.44-0.49 at 0.7-1.0 N and 0.35 at 2.5 N; after a 20 s rest the slide began 1.2-1.4 times higher). Every geom's
 friction is MU_S while the object turns slower than 0.2 rad/s, and MU_K from then until it turns slower than 0.05 rad/s
@@ -29,7 +35,8 @@ again; MuJoCo's friction otherwise has one coefficient for both.
 
     HOS_PLANT=kp0.55_kv0_fr0.18_fl0_dp0.011 SCALE_HAND=cad_v2 OMP_NUM_THREADS=1 \\
         .venv/bin/python sim/20261118-s3_plant_replay.py OUT.jsonl [--plants s3 s3tc] [--mu 1.0 0.5] \\
-        [--contacts pads pads_stiff point] [--kc 2.0] [--stick 0.55 0.40] [--tips off] [--trials STAMP ...] [--workers 6]
+        [--contacts pads pads_stiff point] [--kc 2.0] [--stick 0.55 0.40] [--zshift 3.86] [--zeros] [--tips off] \\
+        [--trials STAMP ...] [--workers 6]
 """
 import argparse
 import importlib.util
@@ -58,6 +65,9 @@ T_FREE = 0.033                                       # s, the 7v5y plant's free-
 PLANT = None                                         # "s3" or "s3tc", set per job
 MU = 1.0
 STICK = None                                         # (friction at rest, friction while sliding), set per job
+ZSHIFT = 0.0                                         # mm, the object's start moved up along z_P, set per job
+ZEROS = None                                         # {finger: [yaw, mcp, pip] deg}, added to the readings, set per job
+S1B = STUDY / "data/s1/20261118-s1b_tag_fit.json"
 W_ON, W_OFF = 0.2, 0.05                              # rad/s: the object's turn rate that starts and ends a slide
 JUMP_DEG = 8.0
 
@@ -84,6 +94,10 @@ def s3_class():
                     m.dof_damping[v] = damp
                     self.s3[f"{f}.{j}"] = (kp, tau, round(damp, 4))
             m.geom_friction[:, 0] = MU
+            if ZEROS:
+                pf = json.loads(S1B.read_text())["shared"]["dz"]["per_finger"]
+                for f in ("thumb", "index", "middle"):
+                    m.body_pos[m.body(f"{f}_mount").id][:2] += np.array([pf[f]["mx"], pf[f]["my"]]) / 1e3
 
     return S3Plant
 
@@ -113,10 +127,46 @@ def stick_class(base):
     return StickPlant
 
 
+def s1b_zeros():
+    pf = json.loads(S1B.read_text())["shared"]["dz"]["per_finger"]
+    return {f: [pf[f]["yaw"], pf[f]["mcp"], pf[f]["pip"]] for f in pf}
+
+
+def patch_kinematics():
+    """Wrap the start pose and the servo-sim mapping of night_replay once per worker for ZSHIFT and ZEROS."""
+    from sr2hand.control import hom_bench as HB
+    if getattr(HB, "_s3_patched", False):
+        return
+    s2s, s2v, sp = HB.sim_from_servo, HB.servo_from_sim, NR.start_pose
+
+    def sim_from_servo(joints):
+        q = s2s(joints)
+        if ZEROS:
+            q = {f: np.asarray(q[f], float) + np.radians(ZEROS[f]) for f in q}
+        return q
+
+    def servo_from_sim(q):
+        if ZEROS:
+            q = {f: np.asarray(q[f], float) - np.radians(ZEROS[f]) for f in q}
+        return s2v(q)
+
+    def start_pose(setup, first):
+        pos, quat, yaw, tilt = sp(setup, first)
+        pos = np.asarray(pos, float).copy()
+        pos[2] += ZSHIFT / 1e3
+        return pos, quat, yaw, tilt
+
+    HB.sim_from_servo, HB.servo_from_sim, NR.start_pose = sim_from_servo, servo_from_sim, start_pose
+    HB._s3_patched = True
+
+
 def run_s3(job):
-    global PLANT, MU, STICK
+    global PLANT, MU, STICK, ZSHIFT, ZEROS
     PLANT, MU = job["plant"], job["mu"]
     STICK = tuple(job["stick"]) if job.get("stick") else None
+    ZSHIFT = float(job.get("zshift") or 0.0)
+    ZEROS = s1b_zeros() if job.get("zeros") else None
+    patch_kinematics()
     YG.K_C, YG.ETA, YG.BACKDRIVE = job["k_c"], 1.0, False
     return NR.run(job)
 
@@ -137,6 +187,8 @@ def main():
     ap.add_argument("--contacts", nargs="+", default=["pads", "pads_stiff", "point"], choices=list(NR.RPL.SCENES))
     ap.add_argument("--kc", type=float, nargs="+", default=[None], help="the yaw give's stiffness (N m/rad)")
     ap.add_argument("--stick", type=float, nargs=2, default=None, help="friction at rest and while sliding")
+    ap.add_argument("--zshift", type=float, nargs="+", default=[0.0], help="mm, the object's start moved up along z_P")
+    ap.add_argument("--zeros", action="store_true", help="S1(b)'s joint zeros (shared-height model)")
     ap.add_argument("--tips", default="off", choices=["off", "on", "all"])
     ap.add_argument("--trials", nargs="*", default=None)
     ap.add_argument("--workers", type=int, default=6)
@@ -155,14 +207,17 @@ def main():
         for x in out.read_text().splitlines():
             r = json.loads(x) if x.strip() else None
             if r and "error" not in r:
-                done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"], tuple(r.get("stick") or ())))
+                done.add((r["stamp"], r["contact"], r["plant"], r["mu"], r["k_c"], tuple(r.get("stick") or ()),
+                          float(r.get("zshift") or 0.0), bool(r.get("zeros"))))
     st = tuple(a.stick or ())
     mus = [a.stick[0]] if a.stick else a.mu
     lab = f" stick{a.stick[0]:g}/{a.stick[1]:g}" if a.stick else ""
     jobs = [{**t, "contact": c, "volts": "7v5", "plant": p, "mu": mu, "k_c": k, "stick": list(st) or None,
-             "variant": (f"{p} mu{mu:g}" if not a.stick else f"{p}") + (f" kc{k:g}" if k else "") + lab}
-            for k in a.kc for p in a.plants for mu in mus for c in a.contacts for t in tl
-            if (t["stamp"], c, p, mu, k, st) not in done]
+             "zshift": zs, "zeros": a.zeros,
+             "variant": (f"{p} mu{mu:g}" if not a.stick else f"{p}") + (f" kc{k:g}" if k else "") + lab
+             + (f" z{zs:+g}" if zs else "") + (" zeros" if a.zeros else "")}
+            for k in a.kc for p in a.plants for mu in mus for zs in a.zshift for c in a.contacts for t in tl
+            if (t["stamp"], c, p, mu, k, st, zs, a.zeros) not in done]
     print(f"{len(jobs)} replays on {a.workers} workers ({len(done)} done)", flush=True)
     with open(out, "a") as fo, mp.get_context("fork").Pool(a.workers, initializer=NR.RPL.RG.init,
                                                            initargs=(str(NR.RPL.RG.RF.SCENE),), maxtasksperchild=4) as pool:

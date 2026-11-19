@@ -363,6 +363,31 @@ air and then against a force sensor. Contact and the blind validation trials nee
   give. With the PIP bent 15 and 30 deg, which moves the contact along the pad, the boards read more per N. The index
   read 0.55 and 0.57 times the force, the middle 0.44 and 0.45 (trials' estimator; without the own-pose term
   0.55-0.78). Between PIP 0 and 30 deg the index board's gain changes 2.2 times, the middle's 1.25 times.
+- S4(b), phase A of the night: the index pad's friction against rest and speed (11-18 20:1x; lab 5da1ec7ed;
+  `sim/20261118-s4b_drag_friction.py`, "protocols" in `data/s3/20261118-s4b_friction.json`). After rests of 1, 10 and
+  60 s with the pad loaded, the arm dragged it 5 mm up, then 5 mm down, at 0.2 and 2 mm/s, at about 0.5, 1 and 2 N:
+  36 legs. The sliding friction rose with speed. At 1-2 N it was 0.32-0.34 of the normal force at 0.2 mm/s and
+  0.42-0.45 at 2 mm/s; at 0.5 N it was 0.43-0.45 and 0.43-0.49. It did not change with the rest: at 2 N and 0.2 mm/s it
+  was 0.338, 0.341 and 0.344 after 1, 10 and 60 s. No leg began above its sliding force by more than the noise. The
+  overshoot of 0.3 s means had a median of 0.11-0.13 N at each rest, against medians of 0.15-0.16 N for the plateaus'
+  own largest deviations, and 6 of 36 legs exceeded theirs. The 0.17-0.18 N of the 18:48 runs' first legs did not
+  repeat. The pad's friction on the tape grows with speed and has no resting excess, so it damps a slip, and the
+  replays' 0.55 at rest has no measurement behind it. The hand's slips need another cause: the gears' sticking, or a
+  contact other than a pad face, as the middle's silent board suggests.
+- W3, the replays' sensitivity to the finger geometry, and the parts that touch the sphere (11-18 20:4x;
+  `sim/20261118-s3_plant_replay.py --zshift --zeros`, table rows "... z+3.86", "... z-3.86" and "... zeros";
+  `sim/20261118-replay_contacts.py`: `data/20261118-replay_contacts.json`). All on the S3 plant with the 2.0 N m/rad
+  bend and stiff pads. Moving the sphere's start 3.86 mm up or down changed the twist by at most 0.6 deg: 37.4-38.1
+  deg at friction 0.40, 31.6 at 1.0. S1(b)'s shared-height model (joint zeros and mount offsets) broke the grasp: the
+  twist ended between -21 and +18 deg, and the tracking fell to 0.00-0.03. That model was fitted at MCP 48-58 deg and
+  PIP 69-80 deg only. It does not hold at the grasp, where the model as built meets the tracked sphere within about
+  1 mm. In the 11 replays at friction 0.40 the thumb touched the sphere with its pad in every period, with 3.5 N in the
+  task (median). The index touched it with rigid parts in 99.7 % of the task's periods, with 3.5 N: the collision
+  spheres of its top cover, its cassette and its DIP link. Its pad touched in 2 % of them; in 3 of 11 trials it did so
+  about half the time. The middle touched with rigid parts in 47 % of the task and with its pad in 57 %, with 2.6 and
+  3.1 N. In the grasp both touched with rigid parts only. The yaw squeeze thus presses the sides of the index's and
+  middle's tips on the sphere, which fits the middle's silent board on the hand. The friction that sets the twist is
+  then that of the tips' PLA sides on the taped sphere, which no S4 run has measured.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

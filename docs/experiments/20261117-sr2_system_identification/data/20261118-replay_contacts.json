@@ -1,0 +1,595 @@
+{
+ "what": "Which parts of each finger touch the sphere in the replays of the night's g0 twists (W3 of the identification queue, 2026-11-18): the pads or the fingers' rigid parts, and with how much normal force.",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261118-replay_contacts.py",
+ "plant": {
+  "plant": "s3tc",
+  "mu": 0.4,
+  "kc": 2.0,
+  "contact": "pads_stiff"
+ },
+ "medians": {
+  "thumb": {
+   "grasp": {
+    "pad_share": 1.0,
+    "rigid_share": 0.0,
+    "pad_N_median": 5.73,
+    "rigid_N_median": 0.0
+   },
+   "task": {
+    "pad_share": 1.0,
+    "rigid_share": 0.0,
+    "pad_N_median": 3.46,
+    "rigid_N_median": 0.0
+   }
+  },
+  "index": {
+   "grasp": {
+    "pad_share": 0.0,
+    "rigid_share": 1.0,
+    "pad_N_median": 0.0,
+    "rigid_N_median": 3.672
+   },
+   "task": {
+    "pad_share": 0.022,
+    "rigid_share": 0.997,
+    "pad_N_median": 0.068,
+    "rigid_N_median": 3.528
+   }
+  },
+  "middle": {
+   "grasp": {
+    "pad_share": 0.0,
+    "rigid_share": 1.0,
+    "pad_N_median": 0.0,
+    "rigid_N_median": 2.955
+   },
+   "task": {
+    "pad_share": 0.572,
+    "rigid_share": 0.472,
+    "pad_N_median": 3.065,
+    "rigid_N_median": 2.637
+   }
+  }
+ },
+ "trials": [
+  {
+   "stamp": "20261117-194243",
+   "twist_end_deg": 44.5,
+   "hand_twist_end_deg": 50.9,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.465,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.635,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.672
+     },
+     "task": {
+      "pad_share": 0.003,
+      "rigid_share": 0.997,
+      "pad_N_median": 0.022,
+      "rigid_N_median": 3.579
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 2.711
+     },
+     "task": {
+      "pad_share": 0.519,
+      "rigid_share": 0.484,
+      "pad_N_median": 2.371,
+      "rigid_N_median": 2.601
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-194506",
+   "twist_end_deg": 27.3,
+   "hand_twist_end_deg": 53.8,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.883,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 6.504,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.549,
+      "pad_N_median": 2.531,
+      "rigid_N_median": 0.481
+     },
+     "task": {
+      "pad_share": 0.579,
+      "rigid_share": 1.0,
+      "pad_N_median": 2.382,
+      "rigid_N_median": 2.404
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.817,
+      "pad_N_median": 2.14,
+      "rigid_N_median": 0.848
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.487,
+      "pad_N_median": 3.314,
+      "rigid_N_median": 1.853
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-195313",
+   "twist_end_deg": 40.0,
+   "hand_twist_end_deg": 47.8,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.73,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.303,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.63
+     },
+     "task": {
+      "pad_share": 0.0,
+      "rigid_share": 0.997,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.701
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.197
+     },
+     "task": {
+      "pad_share": 0.572,
+      "rigid_share": 0.428,
+      "pad_N_median": 3.195,
+      "rigid_N_median": 3.143
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-195517",
+   "twist_end_deg": 42.1,
+   "hand_twist_end_deg": 50.7,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.804,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.882,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.797
+     },
+     "task": {
+      "pad_share": 0.047,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.068,
+      "rigid_N_median": 3.448
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.003
+     },
+     "task": {
+      "pad_share": 0.541,
+      "rigid_share": 0.459,
+      "pad_N_median": 2.535,
+      "rigid_N_median": 3.004
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-200137",
+   "twist_end_deg": 39.7,
+   "hand_twist_end_deg": 45.2,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 6.054,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.317,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 4.143
+     },
+     "task": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 4.071
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 2.955
+     },
+     "task": {
+      "pad_share": 0.84,
+      "rigid_share": 0.425,
+      "pad_N_median": 3.434,
+      "rigid_N_median": 3.3
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-200542",
+   "twist_end_deg": 33.6,
+   "hand_twist_end_deg": 50.9,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.932,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.46,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 4.022
+     },
+     "task": {
+      "pad_share": 0.0,
+      "rigid_share": 0.991,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.661
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 2.983
+     },
+     "task": {
+      "pad_share": 0.739,
+      "rigid_share": 0.443,
+      "pad_N_median": 3.296,
+      "rigid_N_median": 2.725
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-210621",
+   "twist_end_deg": 42.2,
+   "hand_twist_end_deg": 48.4,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.814,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.383,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.75
+     },
+     "task": {
+      "pad_share": 0.0,
+      "rigid_share": 0.997,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.478
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.076
+     },
+     "task": {
+      "pad_share": 0.557,
+      "rigid_share": 0.443,
+      "pad_N_median": 3.065,
+      "rigid_N_median": 2.928
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-210830",
+   "twist_end_deg": 28.0,
+   "hand_twist_end_deg": 53.0,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.052,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 6.205,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.493,
+      "pad_N_median": 2.982,
+      "rigid_N_median": 0.029
+     },
+     "task": {
+      "pad_share": 0.538,
+      "rigid_share": 0.918,
+      "pad_N_median": 3.323,
+      "rigid_N_median": 2.23
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.817,
+      "pad_N_median": 2.129,
+      "rigid_N_median": 1.067
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.516,
+      "pad_N_median": 2.912,
+      "rigid_N_median": 1.506
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-211615",
+   "twist_end_deg": 29.3,
+   "hand_twist_end_deg": 51.5,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.269,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.922,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 2.978,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 0.538,
+      "rigid_share": 0.972,
+      "pad_N_median": 3.038,
+      "rigid_N_median": 2.045
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.845,
+      "pad_N_median": 1.617,
+      "rigid_N_median": 1.743
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.525,
+      "pad_N_median": 3.036,
+      "rigid_N_median": 2.004
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-211835",
+   "twist_end_deg": 42.4,
+   "hand_twist_end_deg": 45.8,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.625,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.199,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.564
+     },
+     "task": {
+      "pad_share": 0.022,
+      "rigid_share": 0.997,
+      "pad_N_median": 0.13,
+      "rigid_N_median": 3.555
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 3.258
+     },
+     "task": {
+      "pad_share": 0.528,
+      "rigid_share": 0.472,
+      "pad_N_median": 3.167,
+      "rigid_N_median": 2.637
+     }
+    }
+   }
+  },
+  {
+   "stamp": "20261117-212455",
+   "twist_end_deg": 44.0,
+   "hand_twist_end_deg": 47.1,
+   "fingers": {
+    "thumb": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 5.873,
+      "rigid_N_median": 0.0
+     },
+     "task": {
+      "pad_share": 1.0,
+      "rigid_share": 0.0,
+      "pad_N_median": 3.351,
+      "rigid_N_median": 0.0
+     }
+    },
+    "index": {
+     "grasp": {
+      "pad_share": 1.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.161,
+      "rigid_N_median": 4.055
+     },
+     "task": {
+      "pad_share": 0.126,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.188,
+      "rigid_N_median": 3.528
+     }
+    },
+    "middle": {
+     "grasp": {
+      "pad_share": 0.0,
+      "rigid_share": 1.0,
+      "pad_N_median": 0.0,
+      "rigid_N_median": 2.686
+     },
+     "task": {
+      "pad_share": 0.525,
+      "rigid_share": 0.569,
+      "pad_N_median": 2.669,
+      "rigid_N_median": 2.286
+     }
+    }
+   }
+  }
+ ]
+}
