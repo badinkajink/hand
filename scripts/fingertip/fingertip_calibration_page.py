@@ -69,6 +69,8 @@ def build():
              gp_mlp=MEDIA / "20261105-v3_gp_vs_mlp.png", gp_mlp_curve=MEDIA / "20261111-v3_gp_mlp_curve.png",
              hand_hexe=MEDIA / "20261118-index_board_vs_hexe_on_the_hand.png",
              hand_faces=MEDIA / "20261118-board_face_presses_on_the_hand.png",
+             hand_pips=MEDIA / "20261118-board_pip_presses_on_the_hand.png",
+             pad_friction=MEDIA / "20261118-pad_friction_protocol_on_the_hand.png",
              id3_film=UR5 / "lab/20261104-tipcal-timelapse_short.mp4",
              film=UR5 / "media/20261022-lab_sphere2_overhead.mp4", film_poster=UR5 / "media/20261022-lab_sphere2_overhead.png")
     S, lede, summary, film_html = sections(N, F, P, link, L)

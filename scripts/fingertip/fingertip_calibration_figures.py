@@ -1083,27 +1083,24 @@ def fig_hand_hexe():
 
 
 # S3's face presses (commit 3fba0e16): the MCP pushing the index's and the middle's pad faces onto the taped plate, the PIP
-# straight (15:54, 18:36) or bent 15 and 30° beforehand (18:40-18:45)
+# straight (15:54, 18:36) or bent 15 and 30° beforehand (18:40-18:45); the thumb's onto the tag plate from 21:12 (0d3f6aa1).
+# The night's PIP presses (0d3f6aa1): each PIP curling its pad onto a plate from straight, three per finger.
 HAND_PIP = ((0, "PIP straight", "#2e5fa8", "o"), (15, "PIP bent 15°", "#c07018", "s"), (30, "PIP bent 30°", "#7a3d9a", "D"))
+HAND_TTL = (("index", "(a) Index pad, v3 ID 3"), ("middle", "(b) Middle pad, v3 ID 2"),
+            ("thumb", "(c) Thumb pad, v3 ID 1, tag plate"))
+PRESS_K = (("First press", "#2e5fa8", "o"), ("Second press", "#c07018", "s"), ("Third press", "#7a3d9a", "D"))
 
 
-def fig_hand_faces():
-    """The board's normal force (GP with the own-angle term, as in the HOM trials) against the HEX-E's horizontal force,
-    per step of S3's face presses: (a) the index pad, v3 ID 3; (b) the middle pad, v3 ID 2. The PIP's angle is the press's
-    starting reading, rounded to the nearest 15°. Each line is the study's least-squares fit; the dotted line is equal force."""
-    from matplotlib.lines import Line2D
-    from fingertip_calibration_text import IDENT, at_head
-    plt = plt_setup()
-    J = json.loads(at_head(HAND_HEXE))
-    fig, axes = plt.subplots(1, 2, figsize=(9.0, 4.4), sharey=True)
-    for ax, (finger, ttl) in zip(axes, (("index", "(a) Index pad, v3 ID 3"), ("middle", "(b) Middle pad, v3 ID 2"))):
-        top = 0.0
-        for p in (p for p in J["presses"] if p["joint"] == "mcp" and p["finger"] == finger):
-            stem = Path(p["file"]).stem
-            head = next(f for f in (IDENT / "data/s3").glob(stem + "_*.jsonl")
-                        if f.name.endswith(("_press.jsonl", "_pip_prebend.jsonl")))
-            pip = json.loads(at_head(head).splitlines()[0])["start_joints"]["pip"]
-            _, _, col, mk = next(h for h in HAND_PIP if abs(h[0] - pip) < 7.5)
+def _hand_grid(plt, J, joint, style, handles, name):
+    """Three panels of the board's normal force (GP with the own-angle term, as in the HOM trials) against the HEX-E's
+    horizontal force, one per finger, with the legend in the fourth: for each press of the finger's joint, its steps and the
+    study's least-squares line; the dotted line is equal force."""
+    fig, axes = plt.subplots(2, 2, figsize=(9.0, 8.0), sharex=True, sharey=True)
+    top = 0.0
+    for ax, (finger, ttl) in zip(axes.flat, HAND_TTL):
+        for k, p in enumerate(sorted((p for p in J["presses"] if p["joint"] == joint and p["finger"] == finger),
+                                     key=lambda p: p["file"])):
+            col, mk = style(p, k)
             E = p["estimators"]["gp_own_pose"]
             st = [r for r in (dict(zip(J["cols"], row)) for row in E["steps"]) if r["board_n_N"] is not None]
             x = np.array([math.hypot(r["hexe_x_P_N"], r["hexe_y_P_N"]) for r in st])
@@ -1112,15 +1109,88 @@ def fig_hand_faces():
             xs = np.array([x.min(), x.max()])
             ax.plot(xs, f["offset_N"] + f["slope"] * xs, "-", color=col, lw=1.8)
             top = max(top, x.max())
-        ax.plot([0, top], [0, top], ":", color="0.3", lw=1.4)              # equal force over the HEX-E's range
-        ax.set_xlabel("HEX-E's force (N)")
         ax.set_title(ttl)
-    axes[0].set_ylabel("Board's normal force (N)")
+    for ax in axes.flat[:3]:
+        ax.plot([0, top], [0, top], ":", color="0.3", lw=1.4)              # equal force over the HEX-E's range
+    for ax in (axes[0, 1], axes[1, 0]):
+        ax.set_xlabel("HEX-E's force (N)")
+        ax.xaxis.set_tick_params(labelbottom=True)
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Board's normal force (N)")
+    axes[1, 1].axis("off")
+    axes[1, 1].legend(handles=handles, loc="center", frameon=False, fontsize=13)
+    fig.tight_layout()
+    save(fig, name)
+
+
+def fig_hand_faces():
+    """S3's face presses: (a) the index pad, v3 ID 3, and (b) the middle pad, v3 ID 2, on the taped plate; (c) the thumb
+    pad, v3 ID 1, on the tag plate. The PIP's angle is the press's starting reading, rounded to the nearest 15°."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import IDENT, at_head
+    plt = plt_setup()
+    J = json.loads(at_head(HAND_HEXE))
+
+    def style(p, k):
+        stem = Path(p["file"]).stem
+        head = next(f for f in (IDENT / "data/s3").glob(stem + "_*.jsonl")
+                    if f.name.endswith(("_press.jsonl", "_pip_prebend.jsonl")))
+        pip = json.loads(at_head(head).splitlines()[0])["start_joints"]["pip"]
+        return next(h[2:] for h in HAND_PIP if abs(h[0] - pip) < 7.5)
     h = [Line2D([], [], ls="-", marker=mk, ms=6, lw=1.8, color=col, label=nm) for _, nm, col, mk in HAND_PIP]
     h.append(Line2D([], [], ls=":", lw=1.4, color="0.3", label="Equal force"))
-    fig.legend(handles=h, loc="lower center", ncol=4, frameon=False, fontsize=12, bbox_to_anchor=(0.5, 0.0))
-    fig.tight_layout(rect=(0, 0.09, 1, 1))
-    save(fig, "20261118-board_face_presses_on_the_hand.png")
+    _hand_grid(plt, J, "mcp", style, h, "20261118-board_face_presses_on_the_hand.png")
+
+
+def fig_hand_pips():
+    """S3's PIP presses of the night of 2026-11-18, three per finger: each PIP curled its pad onto a plate from straight,
+    (a) the index's and (b) the middle's onto the taped plate, (c) the thumb's onto the tag plate."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import at_head
+    plt = plt_setup()
+    J = json.loads(at_head(HAND_HEXE))
+    h = [Line2D([], [], ls="-", marker=mk, ms=6, lw=1.8, color=col, label=nm) for nm, col, mk in PRESS_K]
+    h.append(Line2D([], [], ls=":", lw=1.4, color="0.3", label="Equal force"))
+    _hand_grid(plt, J, "pip", lambda p, k: PRESS_K[k][1:], h, "20261118-board_pip_presses_on_the_hand.png")
+
+
+def fig_pad_friction():
+    """The night's S4(b) protocol (2026-11-18): each pad's friction coefficient against the rest under load before the
+    drag, per normal force set on the MCP and drag speed; (a) the index pad and (b) the middle pad on the taped plate,
+    (c) the thumb pad on the tag plate. The coefficient is the study's: half the difference of the downward and upward
+    plateaus over their mean normal force."""
+    from matplotlib.lines import Line2D
+    from fingertip_calibration_text import IDENT, at_head
+    plt = plt_setup()
+    PR = {p["finger"]: p for p in json.loads(at_head(IDENT / "data/s3/20261118-s4b_friction.json"))["protocols"]}
+    NC = ((0.5, "#2e5fa8"), (1.0, "#c07018"), (2.0, "#7a3d9a"))
+    VS = ((0.2, "--", "s", "Drag at 0.2 mm/s"), (2.0, "-", "o", "Drag at 2 mm/s"))
+    ttl = (("index", "(a) Index pad, v3 ID 3, tape"), ("middle", "(b) Middle pad, v3 ID 2, tape"),
+           ("thumb", "(c) Thumb pad, v3 ID 1, tag plate"))
+    fig, axes = plt.subplots(2, 2, figsize=(9.0, 8.0), sharex=True, sharey=True)
+    for ax, (finger, t) in zip(axes.flat, ttl):
+        for N, col in NC:
+            for v, ls, mk, _ in VS:
+                cs = sorted((c for c in PR[finger]["friction"] if c["N"] == N and c["speed_mm_s"] == v),
+                            key=lambda c: c["rest_s"])
+                ax.plot([c["rest_s"] for c in cs], [c["mu"] for c in cs], ls=ls, marker=mk, color=col, lw=1.6, ms=6)
+        ax.set_xscale("log")
+        ax.set_xticks([1, 10, 60])
+        ax.set_xticklabels(["1", "10", "60"])
+        ax.minorticks_off()
+        ax.set_title(t)
+        ax.grid(alpha=0.3)
+    for ax in (axes[0, 1], axes[1, 0]):
+        ax.set_xlabel("Rest under load before the drag (s)")
+        ax.xaxis.set_tick_params(labelbottom=True)
+    for ax in axes[:, 0]:
+        ax.set_ylabel("Friction coefficient")
+    h = [Line2D([], [], ls="-", lw=1.6, color=col, label=f"Normal force set to {N:g} N") for N, col in NC]
+    h += [Line2D([], [], ls=ls, marker=mk, ms=6, lw=1.6, color="0.3", label=nm) for _, ls, mk, nm in VS]
+    axes[1, 1].axis("off")
+    axes[1, 1].legend(handles=h, loc="center", frameon=False, fontsize=13)
+    fig.tight_layout()
+    save(fig, "20261118-pad_friction_protocol_on_the_hand.png")
 
 
 def main():
@@ -1133,7 +1203,7 @@ def main():
                 rig_curve=fig_rig_curve, rig_dense=fig_rig_dense, rig_tilt=rig_tilt, fig_tilt=fig_rig_tilt,
                 rig_id3=rig_id3, fig_id3=fig_rig_id3, poster_id3=poster_rig_id3, rig_cov=fig_rig_coverage, rig_pool=fig_rig_pool,
                 gp_mlp=fig_gp_mlp, gp_mlp_curve=fig_gp_mlp_curve, hand_hexe=fig_hand_hexe,
-                hand_faces=fig_hand_faces)
+                hand_faces=fig_hand_faces, hand_pips=fig_hand_pips, pad_friction=fig_pad_friction)
     if NUMBERS.exists():
         NUM.update(json.loads(NUMBERS.read_text()))
     DATA.mkdir(parents=True, exist_ok=True)

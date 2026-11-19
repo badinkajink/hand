@@ -231,16 +231,33 @@ def sections(N, F, P, link, L):
     HH = {"mcp": hh_mcp, "yaw": next(p for p in HHJ["presses"] if p["approach"] == hh_mcp["approach"] and p["joint"] == "yaw")}
     hh_side = [p for p in HHJ["presses"] if p["joint"] == "yaw" and p["approach"] != hh_mcp["approach"]]
     # the face presses (3fba0e16): the MCP pushing the index's or the middle's pad face onto the plate, the PIP straight
-    # (15:54, 18:36) or bent 15 and 30° beforehand (18:40-18:45); the PIP's reading from each press's header in data/s3
-    hh_face = sorted((p for p in HHJ["presses"] if p["joint"] == "mcp"), key=lambda p: (p["finger"] != "index", p["file"]))
-    hh_pip = {p["file"]: json.loads(at_head(next(
+    # (15:54, 18:36) or bent 15 and 30° beforehand (18:40-18:45); the thumb's three onto the tag plate from 21:12 (lab
+    # 2855d871, the study's analysis 0d3f6aa1); the PIP's reading and the stop from each press's record in data/s3
+    FINGERS = ("index", "middle", "thumb")
+    hh_order = lambda p: (FINGERS.index(p["finger"]), p["file"])  # noqa: E731
+    hh_face = sorted((p for p in HHJ["presses"] if p["joint"] == "mcp"), key=hh_order)
+    hh_rec = {p["file"]: at_head(next(
         f for f in (IDENT / "data/s3").glob(Path(p["file"]).stem + "_*.jsonl")
-        if f.name.endswith(("_press.jsonl", "_pip_prebend.jsonl")))).splitlines()[0])["start_joints"]["pip"] for p in hh_face}
+        if f.name.endswith(("_press.jsonl", "_pip_prebend.jsonl")))).splitlines() for p in HHJ["presses"] if p["joint"] != "yaw"}
+    hh_pip = {p["file"]: json.loads(hh_rec[p["file"]][0])["start_joints"]["pip"] for p in hh_face}
+    hh_end = {k: json.loads(v[-1])["reason"] for k, v in hh_rec.items()}
     hh_fs = lambda p, e="gp_own_pose": p["estimators"][e]["fits"]["n_vs_xy"]  # noqa: E731
     hh_mid = next(p for p in hh_face if p["finger"] == "middle" and hh_pip[p["file"]] < 7.5)
     hh_bent = {(p["finger"], 15 * round(hh_pip[p["file"]] / 15)): p for p in hh_face if hh_pip[p["file"]] > 7.5}
-    # S4(b): the index pad dragged up and down the tape at about 0.5, 1 and 2 N (lab 6324edab; the study's analysis 3fba0e16)
-    FR = jl(IDENT / "data/s3/20261118-s4b_friction.json")["runs"]
+    hh_thumb = [p for p in hh_face if p["finger"] == "thumb"]
+    assert [hh_end[p["file"]].split(" ")[0] for p in hh_thumb] == ["temperature", "|dF|", "a"] \
+        and "'mcp': 55.0" in hh_end[hh_thumb[0]["file"]] and "servo flag" in hh_end[hh_thumb[2]["file"]], "the thumb's stops"
+    assert all(hh_pip[p["file"]] < 7.5 for p in hh_thumb), "the thumb's face presses with the PIP straight"
+    # the night's PIP presses (lab 5da1ec7e, 97173bbc, 2855d871; 0d3f6aa1): each PIP curled its pad onto a plate from
+    # straight, the index's and middle's onto the taped plate, the thumb's onto the tag plate; the study's contact and
+    # largest step per press from its flexion fits
+    hh_pp = sorted((p for p in HHJ["presses"] if p["joint"] == "pip"), key=hh_order)
+    FPF = {p["run"].rsplit("_", 1)[0]: p for p in jl(IDENT / "data/s3/20261118-flexion_press_fits.json")["presses"]}
+    hh_flex = lambda p: FPF[Path(p["file"]).stem]  # noqa: E731
+    # S4(b): the index pad dragged up and down the tape at about 0.5, 1 and 2 N (lab 6324edab; the study's analysis 3fba0e16);
+    # the night's protocol of each pad at two speeds after three rests (lab 5da1ec7e to 2855d871; 56edd986, 0d3f6aa1)
+    FRJ = jl(IDENT / "data/s3/20261118-s4b_friction.json")
+    FR, FRP = FRJ["runs"], {p["finger"]: p for p in FRJ["protocols"]}
     fr_mu = lambda lo, hi: [c["mu"] for r in FR for c in r["cycles"] if lo <= c["normal_N"] < hi]  # noqa: E731
     fr_rest = {r["normal_set_N"]: next(lg for lg in r["legs"] if lg.get("after_rest")) for r in FR}
     hhf = lambda p, e, k="n_vs_xy": HH[p]["estimators"][e]["fits"][k]  # noqa: E731
@@ -252,13 +269,22 @@ def sections(N, F, P, link, L):
     r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
     hh_sl = [r2(x) for x in sorted((hhf("mcp", "gp_own_pose")["slope"], hhf("yaw", "gp_own_pose", "x_P")["slope"]))]
     assert len(hh_hi) == 45 and round(median(hh_xy(s) for s in hh_hi), 2) == 2.51, "the queue's 45 steps at 2.51 N"
-    assert len(hh_side) == 14 and len(hh_face) == 6 and len(hh_bent) == 4 and len(FR) == 3, "S3's presses and S4(b)'s runs"
-    hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]] + [hh_fs(p)["slope"] for p in hh_face])]
+    assert len(hh_side) == 14 and len(hh_face) == 9 and len(hh_bent) == 4 and len(hh_thumb) == 3 and len(hh_pp) == 9 \
+        and len(FR) == 3, "S3's presses and S4(b)'s runs"
+    assert sorted(FRP) == sorted(FINGERS) and all(len(p["legs"]) == 36 and len(p["friction"]) == 18 for p in FRP.values())
+    assert [p["surface"] for p in (FRP[f] for f in FINGERS)] == ["tape", "tape", "tag plate"], "the pads' plates"
+    hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]]
+                                    + [hh_fs(p)["slope"] for p in hh_face + hh_pp])]
     hh_bs = [r2(x) for x in sorted(hh_fs(p)["slope"] for p in hh_bent.values())]
     hh_tip = lambda p: p["estimators"]["gp_own_pose"]["rest"][p["finger"]]["calib"].split("v3_id_")[1][0]  # noqa: E731
     fr_n = lambda lo, hi: [c["normal_N"] for r in FR for c in r["cycles"] if lo <= c["normal_N"] < hi]  # noqa: E731
     fr_all = [r2(x) for x in sorted(fr_mu(0, 9))]
     assert r2(min(fr_mu(1.5, 9))) == r2(max(fr_mu(1.5, 9))), "one friction coefficient at 2.5 N"
+    rng = lambda v: f"{r2(min(v))}-{r2(max(v))}"  # noqa: E731
+    hh_ts = rng([hh_fs(p)["slope"] for p in hh_thumb])
+    hh_ps = rng([hh_fs(p)["slope"] for p in hh_pp])
+    # each pad's friction coefficients over the afternoon's runs and the night's protocol (the index), or the protocol
+    fr_pad = {f: [c["mu"] for c in FRP[f]["friction"]] + (fr_mu(0, 9) if f == "index" else []) for f in FINGERS}
 
     lede = (
         "In twenty-eight sessions, eleven printed fingertips were pressed against spheres and a rod by the lab's UR5, with "
@@ -272,8 +298,8 @@ def sections(N, F, P, link, L):
         f"{min(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f}–{max(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f} mm "
         f"off (Section 12). Pooled with the other v3 tips' holds, v3 IDs 4 to 6 go from {plm(PL_PTS, 'own')} to "
         f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered. On the SR2 hand, "
-        f"the index and middle boards' estimates rose {hh_all[0]}–{hh_all[-1]} N per newton of the HEX-E's force on a "
-        "taped plate. Presses on the tips' sides did not change the boards' estimates (Section 17).")
+        f"the three boards' estimates rose {hh_all[0]}–{hh_all[-1]} N per newton of the HEX-E's force when the pads "
+        "were pressed onto a plate. Presses on the tips' sides did not change the boards' estimates (Section 17).")
     summary = (
         f"UR5 + HEX-E calibration of eleven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 11-04): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
@@ -321,12 +347,13 @@ def sections(N, F, P, link, L):
         f"predicting none); a GP trained on another tip gives "
         f"1.42 mm against 0.39 mm on the v1 tips and {xf(*T3)['loc_mm']:.2f} and {xf(*T3[::-1])['loc_mm']:.2f} mm against "
         f"{pall(T3[1]):.2f} and {pall(T3[0]):.2f} mm between the four-magnet tips; on the SR2 hand (2026-11-18) the "
-        f"index and middle boards' estimates rose {hh_all[0]}-{hh_all[-1]} N per newton of the HEX-E's force on a taped "
-        f"plate ({r2(hh_fs(hh_mcp)['slope'])} and {r2(hh_fs(hh_mid)['slope'])} in face presses with the PIP straight, "
-        f"{hh_bs[0]}-{hh_bs[-1]} with it bent 15 and 30 deg), the boards' estimates did not rise in {len(hh_side)} "
-        f"presses of the tips' sides, and the index pad slid on the tape at {r2(min(fr_mu(0, 1.5)))}-"
-        f"{r2(max(fr_mu(0, 1.5)))} of the normal force at {r2(min(fr_n(0, 1.5)))}-{r2(max(fr_n(0, 1.5)))} N and "
-        f"{r2(min(fr_mu(1.5, 9)))} at {r2(min(fr_n(1.5, 9)))}-{r2(max(fr_n(1.5, 9)))} N.")
+        f"three boards' estimates rose {hh_all[0]}-{hh_all[-1]} N per newton of the HEX-E's force when the pads were "
+        f"pressed onto a plate ({r2(hh_fs(hh_mcp)['slope'])}, {r2(hh_fs(hh_mid)['slope'])} and {hh_ts} for the index, "
+        f"middle and thumb face on with the PIP straight, {hh_bs[0]}-{hh_bs[-1]} with it bent 15 and 30 deg, {hh_ps} "
+        f"when the PIP curled the pad onto the plate), the boards' estimates did not rise in {len(hh_side)} presses of "
+        f"the tips' sides, and the pads slid at {rng(fr_pad['index'])} (index) and {rng(fr_pad['middle'])} (middle) of "
+        f"the normal force on the tape and {rng(fr_pad['thumb'])} (thumb) on the tag plate, unchanged after rests of "
+        "1-60 s.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -1957,17 +1984,23 @@ def sections(N, F, P, link, L):
     hm, hmx, hy = hhf("mcp", "gp_own_pose"), hhf("mcp", "physical", "x_P"), hhf("yaw", "gp_own_pose", "y_P")
     hdir = HH["mcp"]["file"]
     body = (
-        f"<p>On the SR2 hand the index and middle boards' estimates rose {hh_all[0]} to {hh_all[-1]} N per newton of the "
+        f"<p>On the SR2 hand the three boards' estimates rose {hh_all[0]} to {hh_all[-1]} N per newton of the "
         "force that the HEX-E measured. On 18 November the index fingertip, v3 ID 3, was pressed onto a taped plate in "
         "test S3 of the hand's identification study. The estimator was the one used in the HOM trials on the hand. Over "
         f"the {len(hh_hi)} steps above 1.5 N, the HEX-E's median force was {r2(median(hh_xy(s) for s in hh_hi))} N and "
         f"the estimator's {r2(median(s['board_n_N'] for s in hh_hi))} N. In the same press of the middle fingertip, "
         f"v3 ID {hh_tip(hh_mid)}, the estimate rose {r2(hh_fs(hh_mid)['slope'])} N per newton. With the PIP joint bent "
-        f"beforehand, the slopes were {hh_bs[0]} to {hh_bs[-1]} (Table 36). When the index pad slid on the tape, the "
-        f"friction force was {fr_all[0]} to {fr_all[-1]} times the normal force (Table 37).</p>"
+        f"beforehand, the slopes were {hh_bs[0]} to {hh_bs[-1]} (Table 36). The thumb fingertip, v3 ID "
+        f"{hh_tip(hh_thumb[0])}, was pressed onto a second plate, the tag plate, which bore an AprilTag. Its estimate rose "
+        f"{hh_ts.replace('-', ' to ')} N per newton. When the PIP joints curled the pads onto the plates, the slopes were "
+        f"{hh_ps.replace('-', ' to ')} (Table 37). On the tape the index pad slid at {rng(fr_pad['index']).replace('-', ' to ')} "
+        f"times the normal force and the middle pad at {rng(fr_pad['middle']).replace('-', ' to ')} times. The thumb pad "
+        f"slid on the tag plate at {rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39).</p>"
         "<p>The hand was mounted on the UR5 through the HEX-E, which measured the force on the whole hand. On the table stood "
-        "a square extrusion of 20 mm with a plate on one face, covered in grip tape. The arm stopped the pad 4.6 mm from "
-        "the plate. One joint's target was then stepped 0.5° past its reading every 2 s, toward the plate, and stepped "
+        "a square extrusion of 20 mm with a plate of 45 by 45 mm on each of two opposite faces. One plate was covered in "
+        "grip tape. The other bore the printed AprilTag by which the camera located the extrusion. The arm "
+        "stopped the pad 4.6 mm from the plate. One joint's target was then stepped 0.5° past its reading every 2 s, toward "
+        "the plate, and stepped "
         "back after a stop. In the first press the MCP joint pushed the pad's face onto the plate "
         "head on. In the second the MCP held the pad on the tape at 2 N, and the yaw joint pushed the pad along the tape. "
         "In each step the HEX-E's change of force from before the first step was averaged over the last second of the "
@@ -2054,23 +2087,71 @@ def sections(N, F, P, link, L):
         f"{bent('middle', 15)} and {bent('middle', 30)} (Figure 22). From the straight PIP to 30°, the index's slope "
         f"grew {r2(hh_fs(hh_bent[('index', 30)])['slope'] / hh_fs(hh_mcp)['slope'])} times and the middle's "
         f"{r2(hh_fs(hh_bent[('middle', 30)])['slope'] / hh_fs(hh_mid)['slope'])} times. Without the own-angle term the "
-        f"bent presses' slopes were {span_f(hh_fs(p, 'gp')['slope'] for p in hh_bent.values())}. In the six face presses "
+        f"bent presses' slopes were {span_f(hh_fs(p, 'gp')['slope'] for p in hh_bent.values())}. From 21:12 the "
+        "thumb's MCP pushed its pad's face onto the tag plate three times, with the PIP straight. Its estimate was "
+        f"{span_f(hh_fs(p)['offset_N'] for p in hh_thumb)} N plus {span_f(hh_fs(p)['slope'] for p in hh_thumb)} times "
+        f"the HEX-E's force, within RMS of {span_f(hh_fs(p)['rms_N'] for p in hh_thumb)} N. The first press stopped when "
+        "the MCP servo reached 55 °C, and the third when the servo flagged an overload. In the nine face presses "
         f"the physical model's normal force rose {span_f(hh_fs(p, 'physical')['slope'] for p in hh_face)} N per newton, "
         f"with RMS of {span_f(hh_fs(p, 'physical')['rms_N'] for p in hh_face)} N.</p>"
         + P.table(["Finger, tip", "PIP (°)", "Steps", "Largest force on the HEX-E (N)", "Slope", "Offset (N)", "RMS (N)",
                    "Slope, board GP without the own-angle term", "Slope, physical model alone"], hf_rows,
                   num_cols=tuple(range(1, 9)), n=36,
                   caption="The boards against the HEX-E in S3's face presses on 2026-11-18. In each press the MCP pushed "
-                  "the pad's face onto the taped plate with the PIP held. PIP: its reading at the start of the press. "
+                  "the pad's face onto a plate with the PIP held: the index's and middle's onto the taped plate, the "
+                  "thumb's onto the tag plate. PIP: its reading at the start of the press. "
                   "Steps: of the press and its step back. Largest force: the HEX-E's horizontal force at the press's "
                   "largest step. Slope, offset and RMS: of the identification study's least-squares line from the "
                   "HEX-E's force to the normal force of the board GP with the own-angle term, as in Table 34. The "
                   "index's first row is the MCP press of Table 34.")
         + P.fig(22, F["hand_faces"], "The boards' normal force against the HEX-E's force in S3's face presses on the "
                 "SR2 hand (2026-11-18), with the PIP straight and bent beforehand. (a) The index pad, v3 ID "
-                f"{hh_tip(hh_mcp)}. (b) The middle pad, v3 ID {hh_tip(hh_mid)}. Points: the steps' estimates of the "
+                f"{hh_tip(hh_mcp)}. (b) The middle pad, v3 ID {hh_tip(hh_mid)}. (c) The thumb pad, v3 ID "
+                f"{hh_tip(hh_thumb[0])}, on the tag plate. Points: the steps' estimates of the "
                 "board GP with the own-angle term, as in the HOM trials. Lines: the study's least-squares fits; in (b) "
                 "the two bent presses' lines nearly coincide. Dotted: equal force. Drawn from "
+                + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json") + ".")
+    )
+    pp_by = lambda f: [p for p in hh_pp if p["finger"] == f]  # noqa: E731
+    assert all(hh_flex(p)["plate"] == ("tag" if p["finger"] == "thumb" else "taped") for p in hh_pp), "the PIP presses' plates"
+    assert {hh_end[p["file"]].split(" ")[0] for p in hh_pp} == {"the", "|dF|", "a"} \
+        and all("70 steps" in hh_end[p["file"]] for p in pp_by("index")), "3 N, the target's 35° travel, a servo flag"
+    pp_rows = [[f"{p['finger'].capitalize()}, v3 ID {hh_tip(p)}", "Tag" if p["finger"] == "thumb" else "Taped",
+                str(hh_fs(p)["n"]), f"{hh_flex(p)['contact']['reading_deg']:.1f}",
+                r2(max(hh_xy(r) for r in hh_rows(p, "gp_own_pose"))),
+                *(f"{hh_fs(p)[c]:.3f}" for c in ("slope", "offset_N", "rms_N")),
+                f"{hh_fs(p, 'gp')['slope']:.3f}", f"{hh_fs(p, 'physical')['slope']:.3f}"] for p in hh_pp]
+    body += (
+        "<p>From 19:43 each PIP joint curled its pad onto a plate in three presses, starting from the straight PIP. The "
+        "index's and middle's pads met the taped plate, and the thumb's the tag plate. The PIP's target was stepped as in "
+        "the MCP presses. The force on the HEX-E began to rise at PIP readings of "
+        f"{span(sorted(hh_flex(p)['contact']['reading_deg'] for p in hh_pp), lambda x: f'{x:.1f}')}°. The presses ended at 3 N, when the target's 35° "
+        "of travel ran out, or at an overload flag of the servo. On the index the estimates rose "
+        f"{span_f(hh_fs(p)['slope'] for p in pp_by('index'))} N per newton of the HEX-E's force (Table 37, Figure 23). "
+        f"They rose {span_f(hh_fs(p)['slope'] for p in pp_by('middle'))} on the middle and "
+        f"{span_f(hh_fs(p)['slope'] for p in pp_by('thumb'))} on the thumb. Their offsets were "
+        f"{span_f(hh_fs(p)['offset_N'] for p in hh_pp)} N, with RMS of {span_f(hh_fs(p)['rms_N'] for p in hh_pp)} N. "
+        f"Without the own-angle term the slopes were {span_f(hh_fs(p, 'gp')['slope'] for p in hh_pp)}. The physical "
+        f"model's normal force rose {span_f(hh_fs(p, 'physical')['slope'] for p in hh_pp)} N per newton. The readings at "
+        "contact are from "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_flexion_press_fits.py") + ", with "
+        "its numbers in "
+        + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-flexion_press_fits.json") + ".</p>"
+        + P.table(["Finger, tip", "Plate", "Steps", "PIP reading at contact (°)", "Largest force on the HEX-E (N)", "Slope",
+                   "Offset (N)", "RMS (N)", "Slope, board GP without the own-angle term", "Slope, physical model alone"],
+                  pp_rows, num_cols=tuple(range(2, 10)), n=37,
+                  caption="The boards against the HEX-E in S3's PIP presses on the night of 2026-11-18. In each press the "
+                  "PIP curled the pad onto a plate from straight, with the yaw and the MCP held. Steps: of the press and its "
+                  "step back. PIP reading at contact: at the first step with 0.15 N or more on the HEX-E, from the study's "
+                  "flexion fits. Largest force: the HEX-E's horizontal force at the press's largest step. Slope, offset and "
+                  "RMS: of the identification study's least-squares line from the HEX-E's force to the normal force of the "
+                  "board GP with the own-angle term, as in Table 34.")
+        + P.fig(23, F["hand_pips"], "The boards' normal force against the HEX-E's force in S3's PIP presses on the SR2 "
+                "hand (2026-11-18), three per finger. (a) The index pad, v3 ID "
+                f"{hh_tip(pp_by('index')[0])}, and (b) the middle pad, v3 ID {hh_tip(pp_by('middle')[0])}, on the taped "
+                f"plate. (c) The thumb pad, v3 ID {hh_tip(pp_by('thumb')[0])}, on the tag plate. Points: the steps' "
+                "estimates of the board GP with the own-angle term, as in the HOM trials. Lines: the study's least-squares "
+                "fits. Dotted: equal force. Drawn from "
                 + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-board_vs_hexe.json") + ".")
     )
     fr_rows = [[f"{r['normal_set_N']:g}", " and ".join(r2(c["normal_N"]) for c in r["cycles"]),
@@ -2082,7 +2163,7 @@ def sections(N, F, P, link, L):
         "moved the hand 5 mm up and 5 mm down at 1 mm/s, twice. The force along the tape was read on the HEX-E's vertical "
         "axis, which drifts. The friction force was therefore taken as half the difference between the downward and "
         f"upward legs' plateaus. It was {span_f(fr_mu(0, 1.5))} times the normal force at {span_f(fr_n(0, 1.5))} N. "
-        f"At {span_f(fr_n(1.5, 9))} N it was {r2(min(fr_mu(1.5, 9)))} times the normal force (Table 37). While the pad "
+        f"At {span_f(fr_n(1.5, 9))} N it was {r2(min(fr_mu(1.5, 9)))} times the normal force (Table 38). While the pad "
         "slid, the force varied by "
         f"{span_f(lg['roughness_N'] for r in FR for lg in r['legs'])} N. At rest it varied by "
         f"{span_f(r['hold_roughness_N'] for r in FR)} N, so the pad did not stick and slip. The first leg of each run "
@@ -2095,12 +2176,61 @@ def sections(N, F, P, link, L):
         + ".</p>"
         + P.table(["Normal force set (N)", "Normal force, cycles 1 and 2 (N)", "Friction coefficient, cycles 1 and 2",
                    "Variation while sliding (N)", "Variation at rest (N)", "Rise after the rest (N)"], fr_rows,
-                  num_cols=tuple(range(0, 6)), n=37,
+                  num_cols=tuple(range(0, 6)), n=38,
                   caption="The index pad dragged on the taped plate in S4(b) on 2026-11-18: per normal force set on the "
                   "MCP, two cycles of 5 mm up and down at 1 mm/s. Friction coefficient: half the difference between the "
                   "downward and upward legs' forces along the tape, over the normal force. Variation: the standard "
                   "deviation of 0.1 s means within each leg's plateau, the range over the legs, and in the hold before "
                   "the drag. Rise after the rest: the first leg's force above its plateau after about 20 s at rest.")
+    )
+    FS, SPEEDS, RESTS = (0.5, 1.0, 2.0), (0.2, 2.0), (1.0, 10.0, 60.0)
+    fp = lambda f, N=None, v=None, rs=None: [c for c in FRP[f]["friction"] if N in (None, c["N"])  # noqa: E731
+                                             and v in (None, c["speed_mm_s"]) and rs in (None, c["rest_s"])]
+    fpm = lambda f, v, lo=1.0: [c["mu"] for c in fp(f, v=v) if c["N"] >= lo]  # noqa: E731
+    fmean = lambda v: sum(v) / len(v)  # noqa: E731
+    over = lambda f, N=None: [g for g in FRP[f]["legs"] if g["overshoot_N"] > g["noise_max_N"] and N in (None, g["N"])]  # noqa: E731
+    TIP = {p["finger"]: hh_tip(p) for p in hh_face}
+    assert all(len(fp(f, N, v, rs)) == 1 for f in FINGERS for N in FS for v in SPEEDS for rs in RESTS)
+    fp_rows = [[f"{f.capitalize()}, v3 ID {TIP[f]}, {FRP[f]['surface'].replace('tape', 'taped plate')}", f"{N:g}",
+                span_f(c["normal_N"] for c in fp(f, N)), *(r2(fp(f, N, v, rs)[0]["mu"]) for v in SPEEDS for rs in RESTS),
+                f"{len(over(f, N))} of {sum(1 for g in FRP[f]['legs'] if g['N'] == N)}"] for f in FINGERS for N in FS]
+    rest_ix = [f"{fp('index', 2.0, 0.2, rs)[0]['mu']:.3f}" for rs in RESTS]
+    body += (
+        "<p>From 19:18 the night's protocol dragged each pad 5 mm up and then 5 mm down, at 0.2 and 2 mm/s. Before each "
+        "leg the pad rested on the plate under load for 1, 10 or 60 s. The MCP held the pad at about 0.5, 1 and 2 N, so "
+        "each pad made 36 legs. The index and middle pads slid on the tape and the thumb pad on the tag plate. The "
+        "friction force was again half the difference between the downward and upward legs' plateaus (Table 39, "
+        f"Figure 24). At 1 to 2 N the index pad's friction coefficient was {span_f(fpm('index', 0.2))} at 0.2 mm/s and "
+        f"{span_f(fpm('index', 2.0))} at 2 mm/s. The middle pad's was {span_f(fpm('middle', 0.2, 0))} and "
+        f"{span_f(fpm('middle', 2.0, 0))} at all three forces. The thumb pad's was {span_f(fpm('thumb', 0.2))} and "
+        f"{span_f(fpm('thumb', 2.0))} at 1 to 2 N. From the slower speed to the faster, the mean coefficient at 1 to 2 N "
+        f"rose by {r2(fmean(fpm('index', 2.0)) - fmean(fpm('index', 0.2)))} on the index pad and by "
+        f"{r2(fmean(fpm('middle', 2.0)) - fmean(fpm('middle', 0.2)))} on the middle pad. On the tag plate the thumb "
+        f"pad's fell by {r2(fmean(fpm('thumb', 0.2)) - fmean(fpm('thumb', 2.0)))}. The rest changed the coefficient "
+        f"little: at 2 N and 0.2 mm/s the index's was {rest_ix[0]}, {rest_ix[1]} and "
+        f"{rest_ix[2]} after 1, 10 and 60 s. A static friction above the sliding friction would show as a peak in the "
+        "first 2.5 mm of a leg. There the force's 0.3 s means exceeded the plateau by more than the plateau's own largest "
+        f"deviation in {len(over('index'))} of the index's 36 legs. They did so in {len(over('middle'))} of the "
+        f"middle's and {len(over('thumb'))} of the thumb's. The rise of "
+        f"{r2(fr_rest[1.0]['overshoot_N'])} and {r2(fr_rest[2.0]['overshoot_N'])} N in the afternoon's first legs did "
+        "not recur. The protocol's analysis is in the same script and file as the afternoon's.</p>"
+        + P.table(["Pad, tip and plate", "Normal force set (N)", "Normal force (N)", "0.2 mm/s after 1 s",
+                   "0.2 mm/s after 10 s", "0.2 mm/s after 60 s", "2 mm/s after 1 s", "2 mm/s after 10 s",
+                   "2 mm/s after 60 s", "Legs that began above the plateau's largest deviation"], fp_rows,
+                  num_cols=tuple(range(1, 10)), n=39,
+                  caption="The night's S4(b) protocol on 2026-11-18, per pad and normal force set on the MCP: the friction "
+                  "coefficient at each drag speed after each rest under load. Friction coefficient: half the difference "
+                  "between the downward and upward legs' plateaus along the drag, over the mean of their normal forces. "
+                  "Plateau: the median force over a leg's travel from 2.5 mm to its end. Normal force: the range of that "
+                  "mean over the six speeds and rests. Legs: of the 12 legs at that force, those whose largest 0.3 s mean "
+                  "within the first 2.5 mm exceeded the plateau by more than the plateau's own largest deviation of 0.3 s "
+                  "means.")
+        + P.fig(24, F["pad_friction"], "The pads' friction coefficient against the rest under load before the drag, in "
+                "the night's S4(b) protocol on the SR2 hand (2026-11-18). (a) The index pad, v3 ID "
+                f"{TIP['index']}, and (b) the middle pad, v3 ID {TIP['middle']}, on the taped plate. (c) The thumb pad, "
+                f"v3 ID {TIP['thumb']}, on the tag plate. Colours: the normal force set on the MCP. Dashed lines and "
+                "squares: drags at 0.2 mm/s. Solid lines and circles: drags at 2 mm/s. Drawn from "
+                + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/20261118-s4b_friction.json") + ".")
     )
     S.append(("hand", "Boards' force and pad friction on the SR2 hand against the HEX-E", body))
 
@@ -2153,11 +2283,12 @@ def sections(N, F, P, link, L):
         + link(L["motions"], "calibration motions page") + "). If the board's changes agree within 3° and the gains "
         "within 5 %, one 5 mm sphere on a column can stand for both. The session needs both indenters, which are off "
         "the table while the inverted rig's seat strip is on.",
-        "Face press of the thumb pad on the hand: press its face onto the taped plate with the MCP joint, as for the "
-        "index and the middle in Section 17. Press it with the PIP straight and bent 15° and 30°. Run "
+        "Angle presses of the thumb pad on the hand: bend the PIP 15° and 30°, then press the pad's face onto the tag "
+        "plate with the MCP. The index and the middle were pressed so in Section 17. They were left out on 18 November, "
+        "when the lab's lights went off and the camera lost the extrusion's tag. Run "
         + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261118-s3_board_vs_hexe.py") + " on them. "
-        f"If v3 ID 1's slope with the PIP straight is also {r2(hh_fs(hh_mcp)['slope'])} to "
-        f"{r2(hh_fs(hh_mid)['slope'])}, the low estimate is common to the three v3 tips on the hand.",
+        f"If v3 ID {hh_tip(hh_thumb[0])}'s slope stays within the straight presses' {hh_ts.replace('-', ' to ')}, the "
+        "rise of the boards' slopes with the bend is not common to the three tips.",
         "Mount end on the SR2 hand: the contact viewer has run on the hand with the model of Section 16 since 11-05, on v3 IDs 1 "
         "to 3 (commit 84572398). Press a tip's mount end with a known load (" + P.code("docs/experiments/20261022-ur5_tip_calibration/QUEUE.md")
         + " R33). An error over 2 mm there refutes it.",
