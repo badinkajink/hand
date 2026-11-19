@@ -480,6 +480,24 @@ air and then against a force sensor. Contact and the blind validation trials nee
   value and turned the sphere 32.6 deg. The pads' drags of 11-18 ran without a control. If their bias matched these
   controls, their friction at 1-2 N would fall by 0.04-0.09 at 0.2 mm/s, and the cable would account for 0.04-0.08 of
   their 0.10 rise with speed. The lab plans controls at those poses.
+- S4(b), the middle's PLA side on the tape (11-19 13:5x; records 20261119-131412 loaded, 131125 and 134049 free-air
+  controls; `data/s3/20261119-pla_side_friction.json`). The yaw held 0.50 N at the 0.5 N level and 0.99 N at the 1 N
+  level. At the 2 N level it stopped at its load cap at 1.31 N. In the controls the cable and the HEX-E gave
+  0.099-0.149 N along the drag at both speeds, and -0.16 to -0.23 N along the normal. With the pooled controls
+  subtracted, the side slid at 0.72-0.87 of the normal force at 0.9-1.35 N (median 0.78). At 0.5-0.6 N it slid at
+  0.61-0.89. Uncorrected, the same legs gave 0.97-1.86. The friction was 0.73 at 0.2 mm/s and 0.80 at 2 mm/s (medians
+  over all levels). Five of 36 legs started above their plateau by more than the noise. The index's side slid at 0.47
+  on the same plate, so the middle's friction is about 1.6 times the index's for the sides, as for the pads (0.59-0.77
+  against 0.32-0.45). The two fingers drag different strips of the tape.
+- W3, the twists with the measured friction of every part that touches (11-19 13:5x; `sim/20261118-s3_plant_replay.py
+  --mu-fingers`, rows "... t0.58/i0.47/m0.78", "t0.45/...", "t0.35/..."). S3 plant with the 2.0 N m/rad bend. The
+  index's geoms took its side's 0.47 and the middle's its side's 0.78; the thumb kept its pad's 0.58 from the tag
+  plate. Means over the 11 tips-off twists, against the hand's 49.6 deg: stiff pads turned the sphere 31.5 deg (the
+  three trials of the middle's loaded board 27.0, the other eight 33.2), soft pads 33.7 and point contact 35.1. The
+  soft models raised the sphere 19-20 mm (hand 3.0). The thumb pad on the sphere's tape is the one part not measured.
+  With the thumb at 0.45 stiff pads turned the sphere 37.4 deg (eight 41.4), and at 0.35 39.0 deg (eight 44.7, three
+  24.1, rise 9.3 mm). Prediction for a thumb drag on the tape: at 0.35-0.45 the eight trials turn 41-45 deg against the
+  hand's 48.4, and the three stay 26-29 deg short of its 52.8.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch

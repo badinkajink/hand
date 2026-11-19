@@ -53,9 +53,11 @@ STUDY = HERE.parent
 RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "20261118-185120_index_drag2N_z"]
 PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
 SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
-CONTROLS = ["20261119-122906_index_protocol", "20261119-130711_index_protocol"]
+CONTROLS = ["20261119-122906_index_protocol", "20261119-130711_index_protocol", "20261119-131125_middle_protocol",
+            "20261119-134049_middle_protocol"]
 SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
-    "20261119-123219_index_protocol": ["20261119-122906_index_protocol", "20261119-130711_index_protocol"]}
+    "20261119-123219_index_protocol": ["20261119-122906_index_protocol", "20261119-130711_index_protocol"],
+    "20261119-131412_middle_protocol": ["20261119-131125_middle_protocol", "20261119-134049_middle_protocol"]}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
 
