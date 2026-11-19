@@ -37,7 +37,9 @@ y_P). A free-air control ran first on the same arm path with the finger 14 mm of
 the HEX-E alone gave half the down-up difference along the drag of 0.005-0.11 N, growing with speed. For a run with a
 control, the control's median force along the drag and along the normal, at the leg's speed and direction, is
 subtracted from each leg before the friction is formed; the uncorrected values are kept beside. These runs go to
-data/s3/20261119-pla_side_friction.json, so the pads' file keeps its three protocols. A record is read from data/s3, or
+data/s3/20261119-pla_side_friction.json, so the pads' file keeps its three protocols. Controls at the poses of the
+index's and middle's pad drags (run on 2026-11-19, the hand unturned) correct those drags in the same file, under
+"pads_corrected"; the thumb's pose had none. A record is read from data/s3, or
 beside its raw file in logs/<date>-sr2_s3_press until the lab copies it.
 
     python3 sim/20261118-s4b_drag_friction.py [--fig FILE.png] [--protocol-fig FILE.png]
@@ -54,7 +56,10 @@ RUNS = ["20261118-184813_index_drag0.5N_z", "20261118-184948_index_drag1N_z", "2
 PROTOCOLS = ["20261118-191748_index_protocol", "20261118-200305_middle_protocol", "20261118-204610_thumb_protocol"]
 SURFACE = {"index": "tape", "middle": "tape", "thumb": "tag plate"}
 CONTROLS = ["20261119-122906_index_protocol", "20261119-130711_index_protocol", "20261119-131125_middle_protocol",
-            "20261119-134049_middle_protocol"]
+            "20261119-134049_middle_protocol", "20261119-134601_index_protocol", "20261119-135018_middle_protocol"]
+PAD_CONTROLS = {  # the pads' drags of 11-18 -> free-air controls run on 11-19 at the same poses (thumb: none)
+    "20261118-191748_index_protocol": ["20261119-134601_index_protocol"],
+    "20261118-200305_middle_protocol": ["20261119-135018_middle_protocol"]}
 SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air controls (their legs pooled)
     "20261119-123219_index_protocol": ["20261119-122906_index_protocol", "20261119-130711_index_protocol"],
     "20261119-131412_middle_protocol": ["20261119-131125_middle_protocol", "20261119-134049_middle_protocol"]}
@@ -274,8 +279,16 @@ def main():
         print(stem, r["finger"], r["joint"], "on the", r["surface"], "control", ctl)
         for f in r["friction"]:
             print("   friction", json.dumps(f))
+    side["pads_corrected"] = []
+    for stem, ctl in PAD_CONTROLS.items():
+        r = protocol(stem, control=ctl)[0]
+        side["pads_corrected"].append(r)
+        print(stem, r["finger"], "pad on the", r["surface"], "control", ctl)
+        for f in r["friction"]:
+            print("   friction", json.dumps(f))
     Path(a.side_out).write_text(json.dumps({"what": "S4(b) on 2026-11-19: the tips' PLA sides on the taped plate, "
-                                                    "with the free-air controls",
+                                                    "with the free-air controls, and the pads' drags of 2026-11-18 "
+                                                    "corrected by controls at their poses",
                                             "script": "docs/experiments/20261117-sr2_system_identification/sim/"
                                                       "20261118-s4b_drag_friction.py", **side}, indent=1) + "\n")
     print("wrote", a.side_out)

@@ -498,6 +498,16 @@ air and then against a force sensor. Contact and the blind validation trials nee
   With the thumb at 0.45 stiff pads turned the sphere 37.4 deg (eight 41.4), and at 0.35 39.0 deg (eight 44.7, three
   24.1, rise 9.3 mm). Prediction for a thumb drag on the tape: at 0.35-0.45 the eight trials turn 41-45 deg against the
   hand's 48.4, and the three stay 26-29 deg short of its 52.8.
+- S4(b), the pads' drags of 11-18 against free-air controls at their poses (11-19 14:0x; controls 20261119-134601 at
+  the index's phase A pose and 20261119-135018 at the middle's phase B pose, the hand unturned; "pads_corrected" in
+  `data/s3/20261119-pla_side_friction.json`). At these poses the cable and the HEX-E gave 0.02-0.05 N along the drag at
+  0.2 mm/s and -0.02 to +0.10 N at 2 mm/s. Along the normal they gave under 0.03 N. That is less than half the turned
+  hand's bias. Corrected, the index pad slid at 0.31 of the normal force at 0.2 mm/s and at 0.40 at 2 mm/s (1-2 N;
+  uncorrected 0.34 and 0.42). The middle pad slid at 0.62 and 0.74 (uncorrected 0.63 and 0.73). Both the pads' rise
+  with speed and the middle's 1.8-2.0 times the index's remain. The estimate of a 0.04-0.09 drop in the 13:2x entry
+  assumed the turned hand's bias, and it does not hold. By the plans all four contacts of 11-18 and 11-19 sit on one
+  patch of tape (lab, 14:0x), so the middle's higher friction comes from the finger or its measurement path. The
+  thumb's pose on the tag plate had no control.
 - W3, next (11-18). Fit the index and middle yaw gain, the give of their yaw chains (a spring between the servo's shaft
   and the link, W2 12:0x), the sliding friction and the contact's impratio to the replays'
   joints and object poses, the second block held out (CMA-ES as `scripts/hardware/sr2_hom_replay.py fit`, on the clutch
