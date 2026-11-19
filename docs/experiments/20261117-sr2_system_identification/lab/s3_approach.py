@@ -211,7 +211,8 @@ def cmd_plan(a):
     st, s, M, joints = state(HS, a)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    stem = out / (f"{time.strftime('%Y%m%d-%H%M%S')}_approach_{a.finger}" + ("_yaw" if a.press == "yaw" else ""))
+    stem = out / (f"{time.strftime('%Y%m%d-%H%M%S')}_approach_{a.finger}" + ("_yaw" if a.press == "yaw" else "")
+                  + (f"_{a.plate}" if a.plate else ""))
     loc = S3.locate_block(FT, a.edge, a.seconds, frames_to=str(stem))
     if S3.block_frame_B(loc) is None:
         raise SystemExit(f"the block's tag is not in view (detections {loc['dets']}, camera errors "
@@ -222,8 +223,9 @@ def cmd_plan(a):
     p, nh, w, boxes = mdl
     top = TABLE_Z + TOP
     up = np.array([0.0, 0.0, 1.0])
-    plate = "tag plate" if a.finger == "thumb" else "pad plate"
-    d_in = -nh if a.finger == "thumb" else nh                     # into the finger's plate
+    side = a.plate or ("tag" if a.finger == "thumb" else "pad")
+    plate = f"{side} plate"
+    d_in = -nh if side == "tag" else nh                            # into the chosen plate
     q = [float(joints[a.finger][k]) for k in JOINTS]
     _, _, tip, con = FT.fk(a.finger, M[a.finger], q)
     if a.press == "yaw":
@@ -265,7 +267,7 @@ def cmd_plan(a):
         rise += extra
         T_r = shifted(T0, [0.0, 0.0, rise])
         T_t = turned(T_r, deg)
-    s_t = a.gap if a.finger == "thumb" else -S3.BEHIND - a.tape - a.gap
+    s_t = a.gap if side == "tag" else -S3.BEHIND - a.tape - a.gap
     target = p + s_t * nh + a.dl * w + a.dz * up
     lead_t = T_t[:3, :3] @ lead_P + T_t[:3, 3]
     delta = target - lead_t
@@ -295,7 +297,7 @@ def cmd_plan(a):
                          "bad": bad})
         print(f"  {leg['name']:7s} {move}: " + "; ".join(f"{k} {num(v['mm'])} ({v['where']})" for k, v in cl.items())
               + (f"  -- TOO CLOSE: {bad}" if bad else ""))
-    rec = {"what": "S3 approach plan", "t": time.time(), "finger": a.finger, "press": a.press, "sign": sign,
+    rec = {"what": "S3 approach plan", "t": time.time(), "finger": a.finger, "press": a.press, "sign": sign, "plate": side,
            "turn_deg": deg, "press_off_deg": off, "gap_mm": a.gap, "tape_mm": a.tape,
            "noise_mm": {"l": a.noise_l, "z": a.noise_z, "n": noise_n}, "dl": a.dl, "dz": a.dz, "over": a.over,
            "base_clear": a.base_clear, "edge_mm": a.edge, "locate": loc, "arm_mode": mode, "T_BP0": T0.tolist(),
@@ -396,6 +398,8 @@ def main():
             p.add_argument("--sign", type=int, choices=(-1, 1), help="the yaw press's direction (default: index -1, "
                                                                      "middle +1, as in the night's squeezes)")
             p.add_argument("--max-turn", type=float, default=95.0, help="deg: the largest turn of the hand (owner: 90)")
+            p.add_argument("--plate", choices=("pad", "tag"), help="the plate to press: the taped one (default for "
+                                                                   "index and middle) or the tag's (default for the thumb)")
             p.add_argument("--gap", type=float, default=4.0, help="mm from the leading point to its plate")
             p.add_argument("--tape", type=float, default=1.0, help="mm of grip tape on the pad plate")
             p.add_argument("--dl", type=float, default=0.0, help="mm along the plates' width from the tag's centre")
