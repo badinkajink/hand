@@ -40,7 +40,9 @@ subtracted from each leg before the friction is formed; the uncorrected values a
 data/s3/20261119-pla_side_friction.json, so the pads' file keeps its three protocols. Controls at the poses of the
 index's and middle's pad drags (run on 2026-11-19, the hand unturned) correct those drags in the same file, under
 "pads_corrected"; the thumb's pose had none. A record is read from data/s3, or
-beside its raw file in logs/<date>-sr2_s3_press until the lab copies it.
+beside its raw file in logs/<date>-sr2_s3_press until the lab copies it. Legs at 10 mm/s or faster (the 20 mm/s legs
+of 2026-11-19, 0.5 m/s^2) slide steadily for about 0.1 s: they take 0.05 s means, and their plateau is the travel past
+2.5 mm where the TCP runs at 0.8 of the leg's speed or more.
 
     python3 sim/20261118-s4b_drag_friction.py [--fig FILE.png] [--protocol-fig FILE.png]
 """
@@ -65,6 +67,7 @@ SIDE_PROTOCOLS = {  # the PLA sides on the tape: loaded run -> its free-air cont
     "20261119-131412_middle_protocol": ["20261119-131125_middle_protocol", "20261119-134049_middle_protocol"]}
 ROOT = STUDY.parents[2]
 MEAN_S = 0.1
+FAST_MM_S, FAST_MEAN_S = 10.0, 0.05  # legs this fast: 0.05 s means, plateau where the TCP runs at 0.8 of the speed
 
 
 def run(stem):
@@ -164,21 +167,27 @@ def protocol(stem, control=None):
     legs = [x for x in segs if x["phase"] == "leg"]
     ax = np.array(legs[0]["axis_P"], float)
     ax /= np.linalg.norm(ax)
-    n = max(1, int(round(0.3 / np.median(np.diff(th)))))
-    F3 = np.convolve(FP @ ax, np.ones(n) / n, "same")
-    Fn_raw = np.convolve(FP @ nax, np.ones(n) / n, "same")
-    Fn = sgn * Fn_raw
     lat = np.cross(nax, ax)
-    Fl = np.convolve(FP @ (lat / np.linalg.norm(lat)), np.ones(n) / n, "same")
+    lat /= np.linalg.norm(lat)
+
+    def means(sec):
+        n = max(1, int(round(sec / np.median(np.diff(th)))))
+        return [np.convolve(FP @ u, np.ones(n) / n, "same") for u in (ax, nax, lat)]
+
+    slow, fast = means(0.3), means(FAST_MEAN_S)
     z = np.interp(th, tt, zt)
+    vz = np.interp(th, tt, np.gradient(zt, tt))
     out = []
     for k, lg in enumerate(legs):
+        quick = lg["speed_mm_s"] >= FAST_MM_S
+        F3, Fn_raw, Fl = fast if quick else slow
+        Fn = sgn * Fn_raw
         rest = next(x for x in reversed(segs[:segs.index(lg)]) if x["phase"] == "rest")
         rm = (th >= (rest["t0"] + rest["t1"]) / 2) & (th <= rest["t1"])
         s = (th >= lg["t0"]) & (th <= lg["t1"])
         trav = np.abs(z[s] - z[s][0])
         before = float(np.median(F3[rm]))
-        pl = trav >= 2.5
+        pl = (trav >= 2.5) & (np.abs(vz[s]) >= 0.8 * lg["speed_mm_s"]) if quick else trav >= 2.5
         plateau, normal = float(np.median(F3[s][pl])), float(np.median(Fn[s][pl]))
         swing = plateau - before
         sg = np.sign(swing)
