@@ -52,6 +52,7 @@ BLK2 = "assets/tracking/20261116-tag_blocks"
 JNT = "assets/tracking/20261116-cotter_joint"
 LRG = "assets/tracking/20261117-large_objects"
 MOD = "assets/tracking/20261117-modular_blocks"
+GLU = "assets/tracking/20261119-glued_objects"
 
 
 def rel(path):
@@ -84,6 +85,7 @@ def load():
     J["lrg_touch"] = json.loads(tl.read_text()) if tl.exists() else None
     J["lrg_ro"] = TP.large_rollouts()
     J["mod"] = json.loads((ROOT / f"{MOD}/20261117-modular_blocks.json").read_text())
+    J["glu"] = json.loads((ROOT / f"{GLU}/20261119-glued_objects.json").read_text())
     J["mod_rc"] = {s: json.loads((ROOT / f"{MOD}/20261117-root_clearance_{s}.json").read_text())["rows"]
                    for s in ("large", "20261112")}
     return J
@@ -211,6 +213,14 @@ def sec_files(J):
         ("Modular blocks and stems C25 and S40, for the cotter-joint objects of 2026-11-16",
          "<br>".join(flink(f"{MOD}/20261117-{p}_{k}_white.stl") for k in ("C25", "S40") for p in ("block", "stem")),
          " / ".join(f"{J['mod']['objects'][k]['stem']['length_mm']:.1f}" for k in ("C25", "S40")), "as above"),
+        ("Cylinder 45 mm and the 67 mm sphere's lower hemisphere with the glued spigot's socket (2026-11-19)",
+         "<br>".join(flink(f"{GLU}/20261119-{k}_white.stl") for k in ("cylinder", "sphere_lower")),
+         f"100.0 / {J['glu']['parts']['sphere_lower']['white']['bounds_mm'][1][2]:.1f}",
+         "stem glued in; upper hemisphere and dowels as on 2026-11-17"),
+        ("Stems C45 and S67 with the glued spigot (2026-11-19)",
+         "<br>".join(flink(f"{GLU}/20261119-stem_{k}_white.stl") for k in ("C45", "S67")),
+         " / ".join(f"{J['glu']['parts'][f'stem_{k}']['length_mm']:.1f}" for k in ("C45", "S67")),
+         "foot into the modular block, spigot glued into the object"),
         ("Fit test of the modular joint: the C45 block in white and a foot",
          "<br>".join(flink(f"{MOD}/20261117-test_{k}_white.stl") for k in ("block", "stem")),
          f"17.0 / {J['mod']['test_stem']['white']['bounds_mm'][1][2]:.1f}", "test print of the joint"),
@@ -266,6 +276,10 @@ def sec_files(J):
              J["mod"]["bambu_blocks"]),
          row(f"{MOD}/20261117-modular_stems_p1s.3mf", "the modular stems C45 and S67, two each, 5 mm brim "
              "(2026-11-17)", J["mod"]["bambu_stems"]),
+         row(f"{GLU}/20261119-glued_objects_p1s.3mf", "the 45 mm cylinder, the 67 mm sphere's halves and three dowels "
+             "with the glued spigot's socket, 20 % lightning infill, white only (2026-11-19)", J["glu"]["bambu_objects"]),
+         row(f"{GLU}/20261119-glued_stems_p1s.3mf", "the stems C45 and S67 with the glued spigot, two each, 5 mm brim "
+             "(2026-11-19)", J["glu"]["bambu_stems"]),
          row(f"{BRD}/20261112-charuco_board_p1s.3mf", "the board", B["bambu"]),
          row(f"{TAGP}/20261107-tag_prints_p1s.3mf", "test plate and step-3 block", T["bambu"])]
     t2 = table(["Bambu Studio project", "Parts", "Print time", "White (g)", "Black (g)", "Filaments (white, black)",
@@ -282,7 +296,8 @@ def sec_files(J):
                "project.", num_from=2)
     hw = ("<p>The mount is fixed with one M5 &times; 16 bolt and a nut, and the board with two M3 self-tapping screws "
           "of 10 to 12 mm. The stems of the first and second blocks and the dowels are glued with cyanoacrylate or "
-          "two-part epoxy; the blocks of the cotter joint take no glue. Each modular stem takes an M2 brass heat-set "
+          "two-part epoxy, as are the glued spigots of 2026-11-19; the blocks of the cotter joint take no glue. Each modular "
+          "stem takes an M2 brass heat-set "
           "insert (3.6 mm outside, 4 mm long), and an M2 &times; 8 screw joins it to its block. The cylinder's "
           "side is covered with about 0.8 mm of grip tape. The board's corner holes also fit M3 screws, for fixing it "
           "to another plate.</p>")
@@ -863,7 +878,8 @@ def sec_modular(J):
     steps = ["Heat-set the M2 insert into the end of the stem's shank, flush with the end.",
              "Push the stem's foot into the block's socket, the foot's cut corner to the socket's filled corner.",
              f"Turn the {scr} screw in from below until the stem no longer rocks.",
-             "Fit the stem's other end to the object with the cotter (Section 5).",
+             "Join the stem's other end to the object: C45 and S67 by the glued spigot of Section 8, C25 and S40 by "
+             "the cotter of Section 5.",
              "To replace a broken stem, take the screw out and pull the stem out; if the taper sticks, push the "
              "shank's end through the hole with the screwdriver."]
     p5 = ("<p>Assembly:</p><ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
@@ -871,6 +887,56 @@ def sec_modular(J):
           "checks and slices: <code>tracking_objects_print.py modular build|check|bambu</code>; the root's clearance: "
           "<code>object_tracking_rollouts.py --set large rootclear --root ...</code>.</p>")
     return p1 + f1 + p2 + tab + p3 + p4 + p5
+
+
+def sec_glued(J):
+    """The larger objects and their stems with the glued spigot (2026-11-19)."""
+    R = J["glu"]
+    sp, C, Pt = R["spigot"], R["checks"], R["parts"]
+    g, k = C["cylinder"]["glue_mm2"], C["cylinder"]["key_20261112_mm2"]
+    qo, qs = R["bambu_objects"]["reslice"], R["bambu_stems"]["reslice"]
+    p1 = ("<p>On 2026-11-19 the owner set the cotter joint aside: \"this cotter joint isnt going to cut it. this brass "
+          "insert bottom seat will probably be fine though ... let's redesign the objects and top of stems to go back to "
+          "the glued fastening. maybe we need a little more surface area / depth of contact to glue in these larger "
+          "objects?\" The larger objects of Section 6 and their C45 and S67 stems were redrawn for glue. The stem's foot "
+          "and the blocks are those of Section 7. The stem's top ends as on 2026-11-12, in a 45&deg; cone and a flat "
+          f"seat {sp['seat_d_mm']:g} mm across that sits on a flat cut into the object. Above the seat a square spigot "
+          f"{sp['side_mm']:g} mm across reaches {sp['depth_mm']:g} mm into the object (Figure {P.FIG[0] + 1}). Its "
+          f"socket is {sp['clear_mm']:g} mm wider per side, for the glue, and {sp['socket_extra_mm']:g} mm deeper than "
+          "the spigot.</p>")
+    f1 = img(ROOT / GLU / "20261119-glued_sections.png",
+             "Sections through the stem's axis of each larger object with its stem seated (blue), from the print files. "
+             "Left: the plane x_O = 0, where the spigot's cut corner shows on the &minus;z_O side. Right: the plane "
+             f"z_O = 0. The white band around the spigot is the {sp['clear_mm']:g} mm glue gap, and the band above "
+             f"its end is the socket's extra {sp['socket_extra_mm']:g} mm.")
+    p2 = (f"<p>The glue area, the stem's faces that the glue wets, is {g['total']:.0f} mm<sup>2</sup>. Of it, "
+          f"{g['spigot_sides']:.0f} mm<sup>2</sup> lie on the spigot's sides, {g['spigot_end']:.0f} on its end and "
+          f"{g['seat']:.0f} on the seat. The 4 mm key of 2026-11-12 had {k['total']:.0f} mm<sup>2</sup>: "
+          f"{k['key']:.0f} on the key and {k['seat']:.0f} on the seat. A side force on the block bends the joint, and "
+          "the socket's walls resist it over the spigot's length. That length is "
+          f"{sp['depth_mm']:g} mm against the key's 4 mm.</p>")
+    p3 = (f"<p>One corner of the spigot is cut {sp['key_cut_y_mm']:g} mm from the axis, and the socket's corner is "
+          "filled to match. Turned by 90&deg;, 180&deg; or 270&deg;, the spigot meets the filled corner "
+          f"({C['cylinder']['turned_overlap_mm3']['90']:.1f} mm<sup>3</sup> shared in the CAD) and does not go in. In the "
+          "standing cylinder the socket's corners point up and down, so its upper faces print at 45&deg; without "
+          "support; the filled corner forms its floor. In the sphere's lower hemisphere the socket is vertical. In the "
+          f"CAD the seated stem and the object share {C['cylinder']['seated_overlap_mm3']:g} mm<sup>3</sup> on both "
+          f"objects. As printed, the C45 stem is {Pt['stem_C45']['length_mm']:.1f} mm long and the S67 stem "
+          f"{Pt['stem_S67']['length_mm']:.1f} mm. The objects print on one white plate in {qo['hours']:.2f} h "
+          f"({qo['used_g']['1']:.1f} g, 20 % lightning infill). The four stems print on another in {qs['hours']:.2f} h "
+          f"({qs['used_g']['1']:.1f} g, 5 mm brim).</p>")
+    steps = ["Heat-set the M2 insert into the stem's foot and screw the stem to its block (Section 7): C45 on the "
+             "block with ids 32 to 37, S67 on 38 to 43.",
+             "Dry-fit the spigot in the object. The cut corner goes toward the socket's filled corner, and the seat "
+             "then lies on the flat.",
+             f"Wet the socket's walls and the seat with epoxy or gel cyanoacrylate, which fill the {sp['clear_mm']:g} mm "
+             "gap. Push the stem in until the seat meets the flat.",
+             "Let the glue cure with the block hanging straight below the object. Glue the hemispheres with the three "
+             "dowels."]
+    p4 = ("<p>Assembly:</p><ol>" + "".join(f"<li>{x}</li>" for x in steps) + "</ol>"
+          f"<p>Files and the full account: <a href=\"{rel(GLU + '/README.md')}\"><code>{GLU}/</code></a>; geometry, "
+          "checks, figure and slices: <code>tracking_objects_print.py --set large glued build|figure|bambu</code>.</p>")
+    return p1 + f1 + p2 + p3 + p4
 
 
 def sec_earlier():
@@ -894,7 +960,8 @@ def sec_earlier():
 def sec_limits():
     return ("<p>The objects and their blocks went to the printer on 2026-11-13, the cylinder without end tags, and "
             "have not been measured. The cotter joint's parts and coupons have not been printed, nor have the larger "
-            "objects and the modular blocks and stems of 2026-11-17. The larger sphere weighs about 31 g with its block, "
+            "objects and the modular blocks and stems of 2026-11-17. On 2026-11-19 the owner set the cotter joint aside "
+            "for glue; the glued objects and stems were sliced that day for the owner to print. The larger sphere weighs about 31 g with its block, "
             "stem, insert and screw, against the 25 g of the simulations. The insert's hole is drawn for a common M2 "
             "insert, 3.6 mm outside and 4 mm long; the inserts on hand were not measured. The cotter stays "
             "in place only if PLA's friction coefficient on PLA exceeds 0.10. The PLA board and its mount have not been "
@@ -914,11 +981,10 @@ def sec_limits():
 
 def sec_future():
     items = [
-        "Print the cotter joint's fit coupons (0.4 h). Push the stem coupon into each slice and the middle cotter in "
-        "until the stem no longer rocks. The joint works if one of the three cotters makes the stem firm with its thick "
-        "end inside the entry, and a push through the far opening then frees it. If none does, measure the post's slot "
-        "and the slice's floor with calipers and change <code>COT_T</code> in "
-        "<code>tracking_objects_print.py</code> by the difference.",
+        "Dry-fit each glued stem's spigot in its object before glueing. It should slide in by hand until the seat meets "
+        "the flat. If it binds, measure the spigot and the socket across their flats with calipers. Then raise "
+        "<code>G_CLEAR</code> in <code>tracking_objects_print.py</code> by half the shortfall. If it rocks by more "
+        "than the glue can fill, about 0.3 mm per side for epoxy, lower it.",
         "Print the modular fit test (0.38 h), heat-set the insert and screw the foot into its block with an M2 "
         "&times; 8. The joint works "
         "if the foot seats without rocking when the screw is firm, and comes out by hand once the screw is out. If the "
@@ -981,6 +1047,10 @@ def lede_and_summary(J):
             f"&minus;0.55 to +0.55 mm are taken up by three pins 0.25 mm apart in thickness. A 45 mm cylinder and a "
             f"67 mm sphere print on one white plate in {J['lrg']['bambu']['reslice']['hours']:.1f} h, their blocks "
             f"modular: one M2 screw draws a replaceable stem into the block's top face. "
+            f"On 2026-11-19 the larger objects were redrawn for glue. A 5 mm square spigot on the stem reaches 12 mm into "
+            f"the object, with {J['glu']['checks']['cylinder']['glue_mm2']['total']:.0f} mm<sup>2</sup> of glue area "
+            f"against {J['glu']['checks']['cylinder']['key_20261112_mm2']['total']:.0f} mm<sup>2</sup> for the key of "
+            f"2026-11-12. "
             f"For the cameras' calibration a paper ChArUco board fits the owner's "
             f"140 &times; 130 mm back. With that board at an unmeasured place on the hand, translations of the arm leave "
             f"each camera's position undetermined. Turns of &plusmn;10&deg; about three axes bring the palm's position "
@@ -993,7 +1063,10 @@ def lede_and_summary(J):
                f"joint on one white plate of {J['lrg']['bambu']['reslice']['hours']:.1f} h; a modular block and stem, "
                f"the stem's square foot drawn into the block's top face by one M2 screw into a brass insert, codes and "
                f"dimples naming each "
-               f"object's parts), a printed ChArUco board "
+               f"object's parts; on 2026-11-19 the larger objects redrawn for glue, a 5 mm square spigot 12 mm deep with "
+               f"{J['glu']['checks']['cylinder']['glue_mm2']['total']:.0f} mm2 of glue area against "
+               f"{J['glu']['checks']['cylinder']['key_20261112_mm2']['total']:.0f} mm2 for the first key), a printed "
+               f"ChArUco board "
                f"with its mount, and a paper ChArUco board for a 140 x 130 mm "
                f"back. With the board at an unmeasured place on the hand, translations alone leave each camera's "
                f"position undetermined; turns of +-10 deg about three axes give "
@@ -1029,6 +1102,7 @@ def main():
         ("joint", "Cotter joint between block and object", sec_joint(J)),
         ("large", "Larger cylinder and sphere with the cotter joint", sec_large(J)),
         ("modular", "Modular tag block and stem", sec_modular(J)),
+        ("glued", "Larger cylinder and sphere glued to their stems by a square spigot", sec_glued(J)),
         ("board", "ChArUco board and its mount on the hand", sec_board(J, "{{VIEWER_HAND}}")),
         ("views", "The board seen by the two cameras", sec_views(J)),
         ("calibration", "Lens and hand-eye calibration, and the paper checkerboard", sec_calibration(J)),
@@ -1042,7 +1116,7 @@ def main():
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(body, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {esc(hd)}</h2>{b}</section>' for k, (sid, hd, b) in enumerate(body, 1))
     lede, summary = lede_and_summary(J)
-    byline = ("Print files of 2026-11-07, 2026-11-12, 2026-11-16 and 2026-11-17, checked in CAD and in the slicer. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
+    byline = ("Print files of 2026-11-07, 2026-11-12, 2026-11-16, 2026-11-17 and 2026-11-19, checked in CAD and in the slicer. Plan: <a href=\"" + rel(PLAN) + "\"><code>" + PLAN + "</code></a>. Builder: "
               "<code>scripts/hardware/tracking_prints_page.py</code>; figures and viewers: "
               "<code>scripts/hardware/tracking_prints_media.py</code>.")
     page = TEMPLATE.read_text()
