@@ -216,3 +216,31 @@ watcher's log is `logs/20261118-sr2_tags/arm_watch.jsonl`.
 - **Parked** at 17:18: palm origin 152 mm straight above the session's start, the wrist back within 0.06 deg of its
   first orientation, every finger at zero, torque on. The splitter's file `20261118-155402-mux.bin` holds all of
   today's presses.
+
+## 2026-11-18, 18:34-18:54: the middle's pad-face press, the pads' angle presses and S4(b) (owner's go, 18:3x)
+
+The owner, 18:3x: "ok go ahead on these plans".
+
+- **Middle MCP into the taped plate** (`data/s3/20261118-183614_middle_mcp_press.jsonl`, pad face, slow).
+  - Contact came within 1 deg of MCP, about 5 mm sooner than the model said.
+  - The force rose 0.47 N per deg of offset to 2.0 N, then jumped to 2.63 N with a 1.5 deg jump of the reading, and
+    stopped at the 3 N cap.
+  - On the step back it held 3.07 N until the target came within about 1 deg of the reading.
+  - The middle's board recorded it (the splitter's new file from 18:36).
+- **Angle presses for the boards** (quick, 1 deg per s to 2 N, `*_pip_prebend.jsonl`), each pad pressed face on
+  with the PIP pre-bent 15 and 30 deg (0 deg: the slow presses), so that the contact moves along the pad.
+  - The index met the plate where the model said, within about 1-2 mm.
+  - The middle met it 7 mm (PIP 15) and 9 mm (PIP 30) sooner. The middle's model error grows with its flexion, as
+    S1(b)'s tag normals (12 deg) suggested; the planner's 10 and 14 mm gaps took it.
+  - The planner aims the pad's 11 mm ball (`--lead ball`) when the PIP is bent. Approach joints are now the median
+    of five readings, after a 2 deg single-sample jump of the thumb's PIP.
+- **S4(b)** (`lab/s4b_drag.py`; `data/s3/20261118-18*_index_drag*`, with the raw HEX-E, TCP and joints).
+  - Method: the index's MCP held the pad on the tape at 0.5, 1 and 2 N, and the arm dragged the hand 5 mm up and
+    down at 1 mm/s, twice each way.
+  - The drag runs along the HEX-E's z, which drifts about 0.4 N a minute, so the friction comes from half the
+    difference between the up and down legs' plateaus.
+  - At 1 N: about 0.4 N against 0.9 N normal (about 0.45). At 2 N: about 0.83 N against 2.1-2.9 N (about 0.3-0.4).
+  - The normal force rose on the downward legs, to 3.49 N at most in the 2 N run. That is over the queue's 3 N rule,
+    because the legs' guard (4 N) counts change from each leg's start. The servos kept no flags.
+- **Parked** at 18:54: palm origin 231 mm above the session's start, unturned, every finger near zero, torque on, no
+  flags.

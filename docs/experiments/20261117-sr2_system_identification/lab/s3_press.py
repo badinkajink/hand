@@ -648,6 +648,30 @@ def cmd_run(a):
     return 0
 
 
+def cmd_pose(a):
+    """One finger's joints to the given angles (the others' readings kept), at --speed, then waits until each reading is
+    within 1.5 deg; for the calibration presses' pre-bends, made with the hand clear of everything."""
+    FT, HS, SL = imports()
+    st = HS.Station(a.station, a.token_file)
+    s = st.state()
+    if s.get("servo_torque") != 1:
+        raise SystemExit("servo torque is not on")
+    cur = dict(HS.sim_joints(s)[a.finger])
+    goal = {k: (float(getattr(a, k)) if getattr(a, k) is not None else float(cur[k])) for k in JOINTS}
+    print(f"{a.finger}: {', '.join(f'{k} {cur[k]:+.1f} -> {goal[k]:+.1f}' for k in JOINTS)}")
+    if not a.go:
+        return 0
+    st.call("POST", "/api/v1/manual/joints", {"joints": {a.finger: goal}, "servo_speed": a.speed})
+    t0 = time.time()
+    while time.time() - t0 < 8.0:
+        time.sleep(0.3)
+        j = HS.sim_joints(st.state())[a.finger]
+        if all(abs(j[k] - goal[k]) <= 1.5 for k in JOINTS):
+            break
+    print(f"{a.finger} now " + ", ".join(f"{k} {j[k]:+.1f}" for k in JOINTS))
+    return 0
+
+
 def hold_arg(s):
     try:
         j, sg, n = s.split(":")
@@ -660,7 +684,7 @@ def hold_arg(s):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("check", "block", "run"):
+    for name in ("check", "block", "run", "pose"):
         p = sub.add_parser(name)
         p.add_argument("--station", default="http://10.99.99.2:8765")
         p.add_argument("--token-file", default=str(Path.home() / ".sr2_station_token"))
@@ -673,6 +697,12 @@ def main():
             p.add_argument("--seconds", type=float, default=3.0)
             p.add_argument("--pad-r", type=float, default=11.0, help="the finger's ball round the pad's centre, mm")
             p.add_argument("--max-deg", type=float, default=30.0)
+        if name == "pose":
+            p.add_argument("--finger", required=True, choices=FINGERS)
+            for k in JOINTS:
+                p.add_argument(f"--{k}", type=float)
+            p.add_argument("--speed", type=int, default=20)
+            p.add_argument("--go", action="store_true")
         if name == "run":
             p.add_argument("--finger", required=True, choices=FINGERS)
             p.add_argument("--joint", required=True, choices=JOINTS)
@@ -695,7 +725,7 @@ def main():
             p.add_argument("--note", default="")
             p.add_argument("--go", action="store_true")
     a = ap.parse_args()
-    return {"check": cmd_check, "block": cmd_block, "run": cmd_run}[a.cmd](a)
+    return {"check": cmd_check, "block": cmd_block, "run": cmd_run, "pose": cmd_pose}[a.cmd](a)
 
 
 if __name__ == "__main__":

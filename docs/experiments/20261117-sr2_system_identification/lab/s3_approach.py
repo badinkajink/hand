@@ -192,12 +192,19 @@ def leg_clearance(pts, leg, mdl, table_z, base_clear, press):
     return {k: {"mm": None if v[1] is None else round(v[0], 2), "where": v[1]} for k, v in least.items()}
 
 
-def state(HS, a):
+def state(HS, a, n=5):
+    """(station, state, mounts in P, joints): the joints the median of n readings 0.2 s apart (a potentiometer reading
+    jumps for one sample now and then: 1.5-2 deg on the thumb's yaw and PIP on 2026-11-18)."""
     import s1b_tags as S1
     st = HS.Station(a.station, a.token_file)
     s = st.state()
     M = S1.model_mounts(HS.load_plan(str(S3.PLAN)), s["mount_positions"])
-    return st, s, M, HS.sim_joints(s)
+    samples = [HS.sim_joints(s)]
+    for _ in range(n - 1):
+        time.sleep(0.2)
+        samples.append(HS.sim_joints(st.state()))
+    joints = {f: {k: float(np.median([x[f][k] for x in samples])) for k in JOINTS} for f in FINGERS}
+    return st, s, M, joints
 
 
 def num(x):
@@ -235,6 +242,11 @@ def cmd_plan(a):
     else:
         sign = None
         lead_P, dir_P = con, (con - tip) / np.linalg.norm(con - tip)
+        if a.lead == "ball":                  # a pre-bent PIP turns the apex away from the plate: aim the pad's ball
+            R0 = T0[:3, :3]
+            dir_P = R0.T @ d_in
+            dir_P = dir_P / np.linalg.norm(dir_P)
+            lead_P = tip + PAD_R * dir_P
 
     def horiz(v):
         v = v - (v @ up) * up
@@ -298,7 +310,7 @@ def cmd_plan(a):
         print(f"  {leg['name']:7s} {move}: " + "; ".join(f"{k} {num(v['mm'])} ({v['where']})" for k, v in cl.items())
               + (f"  -- TOO CLOSE: {bad}" if bad else ""))
     rec = {"what": "S3 approach plan", "t": time.time(), "finger": a.finger, "press": a.press, "sign": sign, "plate": side,
-           "turn_deg": deg, "press_off_deg": off, "gap_mm": a.gap, "tape_mm": a.tape,
+           "turn_deg": deg, "press_off_deg": off, "gap_mm": a.gap, "lead": getattr(a, "lead", "apex"), "tape_mm": a.tape,
            "noise_mm": {"l": a.noise_l, "z": a.noise_z, "n": noise_n}, "dl": a.dl, "dz": a.dz, "over": a.over,
            "base_clear": a.base_clear, "edge_mm": a.edge, "locate": loc, "arm_mode": mode, "T_BP0": T0.tolist(),
            "mounts_station": s.get("mount_positions"), "mounts_P": M, "joints": joints, "tag_B": p.tolist(),
@@ -321,11 +333,6 @@ def check_same(a, rec, FT, HS, want):
     if dp > 2.0 or dr > 0.5:
         raise SystemExit(f"the hand is {dp:.1f} mm and {dr:.2f} deg from where this leg starts")
     st, s, M, joints = state(HS, a)
-    samples = [joints]                                  # the median of 5 readings: a pot reading jumps for one sample
-    for _ in range(4):
-        time.sleep(0.2)
-        samples.append(HS.sim_joints(st.state()))
-    joints = {f: {k: float(np.median([x[f][k] for x in samples])) for k in JOINTS} for f in FINGERS}
     for f in FINGERS:
         if any(abs(joints[f][k] - rec["joints"][f][k]) > 1.0 for k in JOINTS):
             raise SystemExit(f"the {f}'s joints moved since the plan: {joints[f]} against {rec['joints'][f]}")
@@ -401,6 +408,8 @@ def main():
             p.add_argument("--plate", choices=("pad", "tag"), help="the plate to press: the taped one (default for "
                                                                    "index and middle) or the tag's (default for the thumb)")
             p.add_argument("--gap", type=float, default=4.0, help="mm from the leading point to its plate")
+            p.add_argument("--lead", choices=("apex", "ball"), default="apex",
+                           help="flex presses: the pad's apex, or its 11 mm ball's side facing the plate (pre-bent PIP)")
             p.add_argument("--tape", type=float, default=1.0, help="mm of grip tape on the pad plate")
             p.add_argument("--dl", type=float, default=0.0, help="mm along the plates' width from the tag's centre")
             p.add_argument("--dz", type=float, default=0.0, help="mm up from the tag's centre")
