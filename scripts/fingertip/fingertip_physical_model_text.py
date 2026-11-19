@@ -549,6 +549,27 @@ def sections(N, F, P, link, L):
         "places contacts within 0.26 mm, and 0.28 mm on v2 ID 1. The learned models, their training data and their "
         "transfer between tips are on " + link(L["cal"], "the calibration page") + ".</p>"
     )
+    # the untrained model on the SR2 hand: S3 of the identification study (commits b462a66a and 72ac716b of 2026-11-18)
+    import json
+    from decimal import ROUND_HALF_UP, Decimal
+    from fingertip_calibration_text import IDENT, at_head
+    hj = json.loads(at_head(IDENT / "data/s3/20261118-board_vs_hexe.json"))
+    hm = next(p for p in hj["presses"] if p["finger"] == "index" and p["joint"] == "mcp")
+    hside = [p for p in hj["presses"] if p["approach"] != hm["approach"]]
+    hf = lambda e, k="n_vs_xy": hm["estimators"][e]["fits"][k]  # noqa: E731
+    r2 = lambda x: str(Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)).replace("-", "−")  # noqa: E731
+    body += (
+        "<p>On the SR2 hand the untrained model was run on the index board's readings in test S3 of 18 November ("
+        + link(L["cal"], "calibration page") + ", Section 17). The hand was mounted on the UR5 through the HEX-E, and the "
+        "MCP joint pressed the pad's face onto a taped plate. The model's normal force rose "
+        f"{r2(hf('physical')['slope'])} N per newton of the HEX-E's force, with an RMS of {r2(hf('physical')['rms_N'])} N "
+        f"about its line. Along the plate's normal its force was {r2(hf('physical', 'x_P')['offset_N'])} N plus "
+        f"{r2(hf('physical', 'x_P')['slope'])} times the HEX-E's, with an RMS of {r2(hf('physical', 'x_P')['rms_N'])} N. "
+        f"With the board GP of the HOM trials, the estimate rose {r2(hf('gp_own_pose')['slope'])} N per newton, with an "
+        f"RMS of {r2(hf('gp_own_pose')['rms_N'])} N. In {len(hside)} presses of the tips' sides (" + link(L["cal"], "calibration "
+        "page") + ", Table 35), the model's lines rose "
+        f"{r2(max(p['estimators']['physical']['fits']['n_vs_xy']['slope'] for p in hside))} N per newton at most.</p>"
+    )
     S.append(("ur5", "The model against the UR5 presses", body))
 
     # ------------------------------------------------------------------------------------------------ limitations
