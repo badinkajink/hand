@@ -1,0 +1,9 @@
+{
+ "script": "scripts/cad/cad_v4_layouts.py",
+ "command": "render",
+ "params": "assets/cad_v4/concepts/20261118-layout_params.json",
+ "result": {
+  "side": "docs/experiments/20261118-sr2_actuator_layout/media/20261118-finger_layouts_side.png",
+  "front": "docs/experiments/20261118-sr2_actuator_layout/media/20261118-finger_layouts_front.png"
+ }
+}

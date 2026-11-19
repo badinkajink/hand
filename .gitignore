@@ -122,3 +122,6 @@ docs/experiments/20261112-inner_loop_benchmark/rows/uhas_twist_*_test.jsonl
 
 # The Onshape STEP of the v4b fingertip: rebuilt by scripts/cad/fingertip_v4b_onshape_export.py; CAD exchange files stay off GitHub (owner, 2026-11-06)
 assets/cad_v2/20261118-onshape_fingertip/*.step
+
+# cad_v4 STEP envelopes (scripts/cad/cad_v4_step.py) stay on the workstation like every CAD file
+assets/cad_v4/concepts/step/

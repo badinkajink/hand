@@ -1,5 +1,17 @@
 [
  {
+  "date": "2026-11-18",
+  "file": "docs/experiments/20261118-sr2_actuator_layout/20261118-sr2_finger_actuator_layouts.html",
+  "title": "PIP drive from the yaw link and a gimbal MCP for the SR2 finger",
+  "page_title": "PIP drive from the yaw link and a gimbal MCP for the SR2 finger",
+  "topic": "hardware",
+  "summary": "Two cad_v4 finger layouts take the PIP servo off the finger. The overlap of index and middle over the 65 bench trials falls from 15.1 % to 3.6 % (v4a), and the pinch force at the servo limit rises 1.80x at the median; a gimbal MCP (v4b) reaches every logged tip with 4.2 % overlap.",
+  "builder": "scripts/cad/cad_v4_page.py",
+  "artifact": "https://claude.ai/artifact/GXa6XWKun4Ne6NfH2pqazH",
+  "status": "current",
+  "mb": 0.7
+ },
+ {
   "date": "2026-11-17",
   "file": "docs/experiments/20261117-sr2_bench_session/20261117-sr2_hand_bench_session_7v5.html",
   "title": "SR2 hand bench session of 2026-11-17 at a 7.5 V servo supply",

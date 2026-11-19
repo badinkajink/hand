@@ -1,0 +1,41 @@
+{
+ "script": "scripts/cad/cad_v4_layouts.py",
+ "command": "joints",
+ "params": "assets/cad_v4/concepts/20261118-layout_params.json",
+ "result": {
+  "figure": "docs/experiments/20261118-sr2_actuator_layout/media/20261118-yaw_mcp_joint_space.png",
+  "driver_rectangle_motor_range_needed_at_1to1_deg": 277.0,
+  "max_ratio_containing_driver_rectangle": {
+   "scs0009": 1.08,
+   "sts3032": 1.3
+  },
+  "per_finger_trials": {
+   "index": {
+    "yaw_band": [
+     -41.9,
+     9.1
+    ],
+    "mcp_band": [
+     -14.8,
+     36.3
+    ],
+    "motor_range_needed_at_1to1_deg": 102.1,
+    "max_ratio_scs0009": 2.94,
+    "max_ratio_sts3032": 3.52
+   },
+   "middle": {
+    "yaw_band": [
+     1.1,
+     35.3
+    ],
+    "mcp_band": [
+     -15.0,
+     44.5
+    ],
+    "motor_range_needed_at_1to1_deg": 93.7,
+    "max_ratio_scs0009": 3.2,
+    "max_ratio_sts3032": 3.84
+   }
+  }
+ }
+}

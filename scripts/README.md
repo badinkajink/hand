@@ -20,7 +20,7 @@ transforms are in `sr2hand.geometry.rotations`, over scipy.
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 
 
-## cad/ (41)
+## cad/ (44)
 
 Printable parts: the DIP link, the UR5 mounts and the print plates.
 
@@ -37,6 +37,9 @@ Printable parts: the DIP link, the UR5 mounts and the print plates.
 | `cad_v3_assets.py` | assets/cad_v3: the whole SR2 hand as built for the UR5, read from the owner's Onshape export of 2026-11-04 (assets/cad_v2/full_cad: the assembly "hand v3 (anthro config)", the gantries gantry_v3 and gantry_v3_thumb, and  |
 | `cad_v3_film.py` | Stills and the film of the cad_v3 models, and the clocking of the hand read from the owner's photo of 2026-11-04, for the result page (scripts/cad/cad_v3_page.py, docs/experiments/20261104-cad_v3_hand/). |
 | `cad_v3_page.py` | Builds docs/experiments/20261104-cad_v3_hand/20261104-cad_v3_hand_on_ur5.html: the SR2 hand as built on the UR5 CB3, its MuJoCo models and the transform from the flange to the palm (owner, 2026-11-04: "1) generate a full |
+| `cad_v4_layouts.py` | Two actuator layouts for the SR2 finger (cad_v4), built on the cad_v3 hand, and their checks against the bench trials. |
+| `cad_v4_page.py` | Builds docs/experiments/20261118-sr2_actuator_layout/20261118-sr2_finger_actuator_layouts.html: two actuator layouts for the SR2 finger (cad_v4) against the hand as built (owner, 2026-11-18: "if we wanted to rotate the s |
+| `cad_v4_step.py` | STEP envelopes of the two cad_v4 finger layouts for detailing in Onshape or Inventor. |
 | `dip_b_four_compact_tip.py` | The 11/22 tip with four 3 x 2 mm magnets in a compact square centred on the board's centre chip U1, the tip that pad B05R4 is cut from. |
 | `dip_b_magnet_layouts_figure.py` | Four and five magnets in concept b's 11/22 pad (2026-10-20 evening): the layouts over the board's five chips (palmar view) and the readout model's force resolution and magnet travel against the magnets' depth under the a |
 | `dip_b_snap_fit_tips.py` | The 11/22 tips of pads 05R and 05R4 with snap-fit magnet slots, the tips that pads 05S and 05S4 are cut from. |
@@ -466,7 +469,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `viewer_roll_film.py` | The fingertip viewer (src/sr2hand/driver/reskin5x/host/wrench_viewer.py) replayed on a roll of the UR5 calibration, beside the roll as the robot recorded it, to show what the UR5 calibration changes (owner, 2026-11-10: " |
 | `viewer_roll_page.py` | Builds docs/experiments/20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html: the fingertip viewer replayed on a UR5 rod roll beside the roll, with the physical model and the GP of the UR5 calibrat |
 
-## hardware/ (71)
+## hardware/ (73)
 
 The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, plan export and the trajectory clearance gate.
 
@@ -533,6 +536,8 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `replay_real_v1_hardware_log.py` | Replay a real_v1 hardware command log in MuJoCo and emit an analysis-friendly NPZ. |
 | `run_tracker_service.sh` | Workstation companion launcher: the counterpart to ~/run_control_station.sh on the CB1. |
 | `servo_identification_protocol_page.py` | Page: identification protocol for the SR2 hand's serial-bus servos (draft, 2026-10-13). |
+| `sr2_bench_20261117_figdata.py` | Figure data of the SR2 hand bench session of 2026-11-17 (page: scripts/hardware/sr2_bench_20261117_page.py), from the committed trial records. |
+| `sr2_bench_20261117_page.py` | Result page of the SR2 hand bench session of 2026-11-17: the servos moved from 5 to 7.5 V, HOM's twist and press on the hand, the fingertip contacts in HOM's loop, the pick-up of a lying sphere by controlled slip, and th |
 | `sr2_hom_replay.py` | Open-loop replay of recorded HOM trials of the SR2 hand in the CPU MuJoCo plant of scripts/hom/hom_tasks.py, and a fit of that plant's parameters to the recorded joint angles and object poses. |
 | `sr2_servo_sysid_film.py` | Film of the yaw steps of 2026-11-06 (block c of the SR2 servo identification, QUEUE R36): the cad_v3 hand on the UR5 at the arm's pose of the SR2 night, each yaw replayed from its measured telemetry (holds_c.tsv) for the |
 | `sr2_servo_sysid_fit.py` | Fit the SR2 hand's nine SCS0009 servos to the free-space identification of 2026-11-06 (QUEUE R36). |
@@ -658,7 +663,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `uhas_sr2_cik.py` | The sphere controller of UHAS (Casas et al., "Cross-Embodiment Robot Manipulation via a Unified Hand Action Space", arXiv 2607.03570, 2026; code in docs/uhas/UHAS_sim) for the SR2 hand's layouts, in torch and batched ove |
 | `uhas_sr2_film.py` | A film of HOM and of the trained UHAS policy side by side on one layout, grasp and seed of the inner-loop benchmark (scripts/hom/uhas_sr2.py), for its page. |
 
-## mechanisms/ (37)
+## mechanisms/ (38)
 
 Reorientation mechanisms on the real_v1 hands: the open-loop carry, pinch and swing, gaits and the grasp-to-gait chain on the arm.
 
@@ -697,6 +702,7 @@ Reorientation mechanisms on the real_v1 hands: the open-loop carry, pinch and sw
 | `reorientation_journey_data.py` | Collect every chain sweep run on the real_v1 deployed hands into one JSON. |
 | `reorientation_journey_page.py` | Build the reorientation journey page from journey.json. |
 | `rv05_carry_band.sh` | The held floor-free turn, on the hand that PHYSICALLY EXISTS (rv05_manual_stored). |
+| `sr2_index_middle_clearance_replay.py` | Index-middle clearance of the SR2 hand over the logged bench trials, for the hand as built and two actuator layouts. |
 | `swing_reorient_data.py` | Collect the 2026-09-16 pinch-and-swing study into one JSON for the page builder. |
 | `swing_reorient_page.py` | Build the pinch-and-swing page from swing_reorient.json. |
 | `turn_mechanism_data.py` | Collect the 2026-09-16 turn-mechanism study into one JSON for the page builder. |

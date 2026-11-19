@@ -1,0 +1,288 @@
+{
+ "script": "scripts/cad/cad_v4_layouts.py",
+ "command": "check",
+ "params": "assets/cad_v4/concepts/20261118-layout_params.json",
+ "result": {
+  "v4a": {
+   "grid_points": 1332,
+   "least_mm": 0.75,
+   "points_under_0p5mm": 0,
+   "blocked_examples": [],
+   "least_by_pair": {
+    "coupler | rod": [
+     0.75,
+     0,
+     -3.0,
+     -15.0
+    ],
+    "coupler | mcplink_plate_base": [
+     4.0,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "pod | diplink_plate": [
+     4.22,
+     0,
+     -15.0,
+     45.0
+    ],
+    "mcp | rod": [
+     4.75,
+     0,
+     90.0,
+     72.0
+    ],
+    "pod | rod": [
+     5.12,
+     0,
+     -15.0,
+     36.0
+    ],
+    "pod | diplink": [
+     5.2,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "podservo | diplink_plate": [
+     6.76,
+     0,
+     -15.0,
+     39.0
+    ],
+    "podservo | rod": [
+     7.36,
+     0,
+     -15.0,
+     30.0
+    ],
+    "pod | mcplink": [
+     7.82,
+     0,
+     -15.0,
+     90.0
+    ],
+    "podservo | diplink": [
+     7.89,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "mcp | mcplink_plate_base": [
+     8.0,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "mcp | mcplink": [
+     8.0,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "podservo | mcplink": [
+     9.89,
+     0,
+     -15.0,
+     -18.0
+    ],
+    "mcp | diplink_plate": [
+     12.44,
+     0,
+     33.0,
+     48.0
+    ]
+   }
+  },
+  "v4b": {
+   "grid_points": 6660,
+   "least_mm": 0.34,
+   "points_under_0p5mm": 6660,
+   "blocked_examples": [
+    [
+     -85,
+     -15.0,
+     -18.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     -15.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     -12.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     -9.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     -6.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     -3.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     0.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     3.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     6.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     9.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     12.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ],
+    [
+     -85,
+     -15.0,
+     15.0,
+     0.5,
+     "mcpservo",
+     "mcplink_plate_horn"
+    ]
+   ],
+   "least_by_pair": {
+    "mcpservo | mcplink": [
+     0.34,
+     85,
+     30.0,
+     90.0
+    ],
+    "mcpservo | mcplink_plate_horn": [
+     0.5,
+     85,
+     90.0,
+     90.0
+    ],
+    "mcpservo | mcplink_plate_base": [
+     0.5,
+     85,
+     90.0,
+     90.0
+    ],
+    "pod | rod": [
+     0.69,
+     85,
+     -15.0,
+     -6.0
+    ],
+    "coupler | rod": [
+     0.75,
+     85,
+     -9.0,
+     -15.0
+    ],
+    "yoke | mcplink": [
+     1.26,
+     -85,
+     -15.0,
+     -18.0
+    ],
+    "pod | mcplink": [
+     1.8,
+     85,
+     -15.0,
+     90.0
+    ],
+    "pod | mcplink_plate_base": [
+     2.2,
+     -85,
+     -15.0,
+     -18.0
+    ],
+    "yoke | rod": [
+     2.92,
+     -85,
+     -15.0,
+     -18.0
+    ],
+    "pod | mcplink_plate_horn": [
+     3.01,
+     85,
+     -15.0,
+     90.0
+    ],
+    "mcpservo | rod": [
+     3.25,
+     85,
+     90.0,
+     72.0
+    ],
+    "podservo | rod": [
+     3.38,
+     -85,
+     -15.0,
+     24.0
+    ],
+    "coupler | mcplink_plate_base": [
+     4.0,
+     85,
+     39.0,
+     -18.0
+    ],
+    "podservo | mcplink": [
+     4.27,
+     85,
+     -15.0,
+     90.0
+    ]
+   }
+  }
+ }
+}

@@ -1,0 +1,101 @@
+{
+ "date": "2026-11-18",
+ "units": "mm, deg",
+ "frames": "each finger's body frames of the cad_v3 MJCF (assets/mjcf/experimental/20261104-cad_v3): x dorsal (+) / palmar (-), y along the MCP and PIP axes, z up. The yaw axis is x; v3's MCP axis lies 20.75 mm below it.",
+ "finger": {"yaw_link": 20.75, "mcp_pip": 30.8, "pip_tip": 36.36, "slab_half": 10.5},
+ "servos": {
+  "scs0009": {
+   "len": [-5.9, 17.3],
+   "tab_len": [-10.55, 21.95],
+   "half_t": 6.05,
+   "h_spline": 28.45,
+   "h_case": 25.0,
+   "h_tab": [16.8, 18.4],
+   "stall_Nm_6V": 0.2256,
+   "mass_g": 13.0,
+   "note": "len is along the case from the shaft (short end -, long end +); h is measured from the base to the spline top"
+  },
+  "sts3032": {
+   "len": [-5.9, 17.3],
+   "tab_len": [-10.29, 21.71],
+   "half_t": 6.0,
+   "h_spline": 31.9,
+   "h_case": 27.5,
+   "h_tab": [20.5, 22.0],
+   "stall_Nm_6V": 0.4413,
+   "mass_g": 20.6,
+   "note": "Feetech drawing STS3032-SCS2332 (2020-06-08)"
+  }
+ },
+ "lower_finger": {
+  "note": "the MCP link and DIP link of both designs once the PIP servo is off the finger; relative to the MCP axis (mcp_*) and the PIP axis (dip_*)",
+  "mcp_plate_horn_y": [-24.05, -19.55],
+  "mcp_plate_base_y": [9.9, 12.4],
+  "mcp_plate_x": [-8.0, 8.0],
+  "mcp_plate_z": [-15.5, 0.0],
+  "mcp_plate_cut": {"x_from": 1.0, "z_below": -8.0},
+  "mcp_web_x": [-9.0, 1.0],
+  "mcp_web_z": [-15.5, -12.5],
+  "mcp_core_x": [-7.0, 7.0],
+  "mcp_core_y": [-5.0, 5.0],
+  "mcp_core_z": [-27.0, -12.5],
+  "pip_boss_r": 5.0,
+  "dip_plate_y": [8.5, 10.5],
+  "dip_plate_x": [-6.5, 8.5],
+  "dip_plate_z": [-27.0, 6.0],
+  "dip_web_x": [3.0, 8.5],
+  "dip_web_z": [-25.0, -10.0],
+  "mcp_plate_top": {"x": [-5.66, 5.66], "z": [0.0, 5.66]}
+ },
+ "drive": {
+  "note": "idler on the MCP axis; a parallelogram rod to a crank on the DIP link; a parallel four-bar from the PIP servo's crank to a second arm of the idler",
+  "idler_y": [12.9, 19.9],
+  "idler_hub_r": 5.0,
+  "crank_r": 8.0,
+  "arm_r": 8.0,
+  "rod_r": 1.5,
+  "rod_y_upper": 14.15,
+  "rod_y_lower": 6.75,
+  "rod_jog_from_pin": [18.0, 20.5],
+  "coupler_y": 17.9,
+  "coupler_r": 1.5,
+  "support_plate_y": [20.4, 23.4],
+  "support_plate_x": [-8.0, 8.0],
+  "support_plate_z": [-12.0, 8.0],
+  "housing_wall": 2.0
+ },
+ "v4a": {
+  "title": "PIP servo on the yaw link",
+  "pip_servo": "sts3032",
+  "pip_shaft_xz": [30.55, -25.75],
+  "pip_spline_y": 16.4,
+  "pip_long_end": "down",
+  "note": "yaw frame coordinates; the yaw servo, yaw link and MCP servo are cad_v3's"
+ },
+ "v4b": {
+  "title": "Gimbal MCP with the MCP and PIP servos on the yoke",
+  "gimbal_z": 0.0,
+  "mcp_servo": "scs0009",
+  "yaw_servo": "scs0009",
+  "pip_servo": "sts3032",
+  "pip_shaft_xz": [20.0, 1.5],
+  "pip_spline_y": 16.4,
+  "pip_long_end": "up",
+  "yoke_plate": {"x": [28.6, 31.1], "y": [-9.0, 9.0], "z": [-21.0, 9.0]},
+  "yoke_bar": {"x": [28.6, 65.1], "y": [-9.0, 9.0], "z": [-21.0, -18.0]},
+  "yoke_back": {"x": [62.6, 65.1], "y": [-9.0, 9.0], "z": [-21.0, 3.0]},
+  "yoke_front": {"x": [6.55, 12.0], "y": [-9.0, 5.0], "z": [-9.0, 9.0]},
+  "yaw_spline_x": 31.1,
+  "yaw_housing": {"x": [33.1, 62.1], "y": [-8.55, 8.55], "z": [-13.05, 24.45]},
+  "carriage_box_x": [-10.55, 33.1],
+  "carriage_arm_x": [33.1, 62.1],
+  "note": "yoke frame coordinates, origin at the gimbal centre G on v3's yaw axis; the MCP servo stands on G, the PIP servo right behind it, the yaw servo behind both on the yaw axis; the yaw link's 20.75 mm moves into the MCP link (51.55 mm)",
+  "proximal": 51.55,
+  "carriage_cut_above_G": 31.0,
+  "low_variant": {
+   "gimbal_z": -20.75,
+   "proximal": 30.8,
+   "note": "gimbal at v3's MCP point, the 20.75 mm kept as a fixed metacarpal; replay only"
+  }
+ }
+}

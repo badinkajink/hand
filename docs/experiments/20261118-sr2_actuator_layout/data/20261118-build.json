@@ -1,0 +1,43 @@
+{
+ "script": "scripts/cad/cad_v4_layouts.py",
+ "command": "build",
+ "params": "assets/cad_v4/concepts/20261118-layout_params.json",
+ "result": {
+  "v4a": {
+   "index": {
+    "crank_beta_deg": 65.57,
+    "arm_alpha_deg": -15.9,
+    "coupler_mm": 30.96,
+    "pip_mid_deg": 24.43,
+    "dip_abs_mid_deg": 25.2
+   },
+   "middle": {
+    "crank_beta_deg": 65.57,
+    "arm_alpha_deg": -15.9,
+    "coupler_mm": 30.96,
+    "pip_mid_deg": 24.43,
+    "dip_abs_mid_deg": 25.2
+   }
+  },
+  "v4b": {
+   "index": {
+    "crank_beta_deg": 65.57,
+    "arm_alpha_deg": -29.48,
+    "coupler_mm": 20.06,
+    "pip_mid_deg": 24.43,
+    "dip_abs_mid_deg": 25.2,
+    "gimbal_z": 0.0,
+    "proximal": 51.55
+   },
+   "middle": {
+    "crank_beta_deg": 65.57,
+    "arm_alpha_deg": -29.48,
+    "coupler_mm": 20.06,
+    "pip_mid_deg": 24.43,
+    "dip_abs_mid_deg": 25.2,
+    "gimbal_z": 0.0,
+    "proximal": 51.55
+   }
+  }
+ }
+}
