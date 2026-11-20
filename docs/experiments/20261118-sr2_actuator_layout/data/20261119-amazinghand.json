@@ -1,0 +1,259 @@
+{
+ "script": "scripts/cad/amazinghand_differential.py",
+ "command": "analyse",
+ "source": "https://github.com/pollen-robotics/AmazingHand",
+ "commit": "3e8241074df3436a3044ced4881e3bb2133aa725",
+ "horn_limit_deg": 90.0,
+ "grid_step_deg": 0.5,
+ "trial_periods_per_finger": 10350,
+ "torque_floor_per_servo_limit": 1.0,
+ "bevel_diamond_scs0009_1to1_area_deg2": 45000.0,
+ "driver_rectangle_area_deg2": 18190.0,
+ "geometry": {
+  "horn_radius_mm": [
+   5.0,
+   5.0
+  ],
+  "rod_mm": [
+   33.0,
+   33.0
+  ],
+  "flexion_at_key_deg": 18.5,
+  "closure_check_max_error_deg": 0.0164,
+  "attach_offsets_mm": [
+   {
+    "palmar": 6.18,
+    "lateral": 7.7,
+    "along_finger": 0.43
+   },
+   {
+    "palmar": 6.18,
+    "lateral": -8.4,
+    "along_finger": 0.43
+   }
+  ],
+  "horn_below_joint_mm": [
+   32.38,
+   32.42
+  ]
+ },
+ "scales": {
+  "1": {
+   "horn_radius_mm": [
+    5.0,
+    5.0
+   ],
+   "rod_mm": [
+    33.0,
+    33.0
+   ],
+   "reachable_area_deg2": 3825.75,
+   "largest_flexion_span_deg": 107.0,
+   "largest_abduction_span_deg": 73.0,
+   "flexion_range_at_zero_abduction_deg": [
+    -38.5,
+    67.5
+   ],
+   "abduction_range_at_key_flexion_deg": [
+    -38.0,
+    35.0
+   ],
+   "trial_share_inside_best_shift": {
+    "index": {
+     "share": 0.9981,
+     "shift_yaw_deg": -19.0,
+     "shift_mcp_deg": 0.0
+    },
+    "middle": {
+     "share": 1.0,
+     "shift_yaw_deg": 16.0,
+     "shift_mcp_deg": -10.0
+    }
+   },
+   "driver_rectangle_share_inside_best_shift": 0.2074,
+   "flexion_torque_per_servo_limit_at_key": 2.366,
+   "abduction_torque_per_servo_limit_at_key": 3.235,
+   "flexion_torque_per_servo_limit_p10_p50_over_region": [
+    2.263,
+    2.475
+   ],
+   "abduction_torque_per_servo_limit_p10_p50_over_region": [
+    3.147,
+    3.308
+   ],
+   "servo_deg_per_joint_deg_at_key": {
+    "pure_flexion": 1.233,
+    "pure_abduction": 1.618
+   },
+   "joint_error_per_0.1mm_rod_play_at_key_deg": {
+    "abduction": 0.356,
+    "flexion": 0.487
+   },
+   "joint_error_per_1deg_horn_play_at_key_deg": {
+    "abduction": 0.309,
+    "flexion": 0.423
+   },
+   "horn_transmission_min_over_region": 0.009
+  },
+  "1.5": {
+   "horn_radius_mm": [
+    7.5,
+    7.5
+   ],
+   "rod_mm": [
+    33.0,
+    33.0
+   ],
+   "reachable_area_deg2": 10097.5,
+   "largest_flexion_span_deg": 131.0,
+   "largest_abduction_span_deg": 128.0,
+   "flexion_range_at_zero_abduction_deg": [
+    -43.0,
+    87.5
+   ],
+   "abduction_range_at_key_flexion_deg": [
+    -66.5,
+    58.5
+   ],
+   "trial_share_inside_best_shift": {
+    "index": {
+     "share": 1.0,
+     "shift_yaw_deg": -43.0,
+     "shift_mcp_deg": 7.0
+    },
+    "middle": {
+     "share": 1.0,
+     "shift_yaw_deg": -11.0,
+     "shift_mcp_deg": -4.0
+    }
+   },
+   "driver_rectangle_share_inside_best_shift": 0.5094,
+   "flexion_torque_per_servo_limit_at_key": 1.577,
+   "abduction_torque_per_servo_limit_at_key": 2.156,
+   "flexion_torque_per_servo_limit_p10_p50_over_region": [
+    1.27,
+    1.56
+   ],
+   "abduction_torque_per_servo_limit_p10_p50_over_region": [
+    1.918,
+    2.127
+   ],
+   "servo_deg_per_joint_deg_at_key": {
+    "pure_flexion": 0.822,
+    "pure_abduction": 1.079
+   },
+   "joint_error_per_0.1mm_rod_play_at_key_deg": {
+    "abduction": 0.356,
+    "flexion": 0.487
+   },
+   "joint_error_per_1deg_horn_play_at_key_deg": {
+    "abduction": 0.464,
+    "flexion": 0.634
+   },
+   "horn_transmission_min_over_region": 0.011
+  },
+  "2": {
+   "horn_radius_mm": [
+    10.0,
+    10.0
+   ],
+   "rod_mm": [
+    33.0,
+    33.0
+   ],
+   "reachable_area_deg2": 6755.25,
+   "largest_flexion_span_deg": 81.5,
+   "largest_abduction_span_deg": 98.0,
+   "flexion_range_at_zero_abduction_deg": [
+    -12.0,
+    66.0
+   ],
+   "abduction_range_at_key_flexion_deg": [
+    -45.5,
+    44.0
+   ],
+   "trial_share_inside_best_shift": {
+    "index": {
+     "share": 1.0,
+     "shift_yaw_deg": -36.0,
+     "shift_mcp_deg": -18.0
+    },
+    "middle": {
+     "share": 1.0,
+     "shift_yaw_deg": 12.0,
+     "shift_mcp_deg": -15.0
+    }
+   },
+   "driver_rectangle_share_inside_best_shift": 0.3657,
+   "flexion_torque_per_servo_limit_at_key": 1.183,
+   "abduction_torque_per_servo_limit_at_key": 1.617,
+   "flexion_torque_per_servo_limit_p10_p50_over_region": [
+    1.027,
+    1.128
+   ],
+   "abduction_torque_per_servo_limit_p10_p50_over_region": [
+    1.288,
+    1.528
+   ],
+   "servo_deg_per_joint_deg_at_key": {
+    "pure_flexion": 0.617,
+    "pure_abduction": 0.809
+   },
+   "joint_error_per_0.1mm_rod_play_at_key_deg": {
+    "abduction": 0.356,
+    "flexion": 0.487
+   },
+   "joint_error_per_1deg_horn_play_at_key_deg": {
+    "abduction": 0.618,
+    "flexion": 0.845
+   },
+   "horn_transmission_min_over_region": 0.02
+  },
+  "3": {
+   "horn_radius_mm": [
+    15.0,
+    15.0
+   ],
+   "rod_mm": [
+    33.0,
+    33.0
+   ],
+   "reachable_area_deg2": 0.0,
+   "largest_flexion_span_deg": 0.0,
+   "largest_abduction_span_deg": 0.0,
+   "flexion_range_at_zero_abduction_deg": null,
+   "abduction_range_at_key_flexion_deg": null,
+   "trial_share_inside_best_shift": {
+    "index": {
+     "share": 0.0,
+     "shift_yaw_deg": 0.0,
+     "shift_mcp_deg": 0.0
+    },
+    "middle": {
+     "share": 0.0,
+     "shift_yaw_deg": 0.0,
+     "shift_mcp_deg": 0.0
+    }
+   },
+   "driver_rectangle_share_inside_best_shift": 0.0,
+   "flexion_torque_per_servo_limit_at_key": 0.789,
+   "abduction_torque_per_servo_limit_at_key": 1.078,
+   "flexion_torque_per_servo_limit_p10_p50_over_region": null,
+   "abduction_torque_per_servo_limit_p10_p50_over_region": null,
+   "servo_deg_per_joint_deg_at_key": {
+    "pure_flexion": 0.411,
+    "pure_abduction": 0.539
+   },
+   "joint_error_per_0.1mm_rod_play_at_key_deg": {
+    "abduction": 0.356,
+    "flexion": 0.487
+   },
+   "joint_error_per_1deg_horn_play_at_key_deg": {
+    "abduction": 0.928,
+    "flexion": 1.268
+   },
+   "horn_transmission_min_over_region": null
+  }
+ },
+ "figure": "docs/experiments/20261118-sr2_actuator_layout/media/20261119-amazinghand_joint_space.png"
+}

@@ -1,0 +1,291 @@
+{
+ "source": "https://github.com/pollen-robotics/AmazingHand",
+ "commit": "3e8241074df3436a3044ced4881e3bb2133aa725",
+ "model": "Demo/AHSimulation/AHSimulation/AH_Right/mjcf/scene.xml, finger 1",
+ "joint_centre_mm": [
+  -5.499229497651747,
+  24.499999671638726,
+  102.19991666609576
+ ],
+ "axis_gap_mm": 0.00016666910232459716,
+ "abduction_axis": [
+  1.0,
+  -0.0,
+  -0.0
+ ],
+ "flexion_axis": [
+  6.422603627709304e-06,
+  0.9999922370549559,
+  -0.003940277728176514
+ ],
+ "pip_axis_point_mm": [
+  10.52136633091647,
+  26.23912540082259,
+  150.08483577982946
+ ],
+ "flexion_at_key_deg": 18.496080926015384,
+ "palmar": [
+  1.0,
+  0.0,
+  0.0
+ ],
+ "rods": [
+  {
+   "motor": "finger1_motor1",
+   "horn_axis": [
+    -1.0,
+    0.0,
+    0.0
+   ],
+   "horn_centre_mm": [
+    -0.6500000000000004,
+    30.55,
+    69.8
+   ],
+   "horn_zero_dir": [
+    0.0,
+    1.0,
+    3.858324144940905e-14
+   ],
+   "horn_radius_mm": 5.000000000000001,
+   "horn_angle_at_key_deg": 0.0017394540293935688,
+   "attach_mm": [
+    0.6857076035158931,
+    32.20211855850245,
+    102.60240260250725
+   ],
+   "rod_mm": 32.99999999999998,
+   "motor_range_deg": [
+    -90.0,
+    90.0
+   ]
+  },
+  {
+   "motor": "finger1_motor2",
+   "horn_axis": [
+    -1.0,
+    0.0,
+    0.0
+   ],
+   "horn_centre_mm": [
+    -0.6500000000000021,
+    18.450000000000003,
+    69.8
+   ],
+   "horn_zero_dir": [
+    0.0,
+    -1.0,
+    9.803097683553986e-16
+   ],
+   "horn_radius_mm": 4.999999999999999,
+   "horn_angle_at_key_deg": -0.0016980635582733183,
+   "attach_mm": [
+    0.6856059817320432,
+    16.10224857255441,
+    102.66585101337934
+   ],
+   "rod_mm": 32.99988134917375,
+   "motor_range_deg": [
+    -90.0,
+    90.0
+   ]
+  }
+ ],
+ "closure_check": {
+  "settle_steps": 4000,
+  "timestep_s": 0.002,
+  "rows": [
+   {
+    "command_deg": [
+     0,
+     0
+    ],
+    "motor_sim_deg": [
+     0.0,
+     -0.0
+    ],
+    "abduction_deg": -0.001,
+    "flexion_deg": 18.495,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     0.002,
+     0.0
+    ],
+    "closed_form_error_deg": 0.002,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     40,
+     -40
+    ],
+    "motor_sim_deg": [
+     40.0,
+     -40.0
+    ],
+    "abduction_deg": 0.085,
+    "flexion_deg": 48.069,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     40.003,
+     -40.0
+    ],
+    "closed_form_error_deg": 0.0028,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     -30,
+     30
+    ],
+    "motor_sim_deg": [
+     -30.0,
+     30.0
+    ],
+    "abduction_deg": 0.054,
+    "flexion_deg": -6.543,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     -29.998,
+     30.0
+    ],
+    "closed_form_error_deg": 0.0021,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     70,
+     -70
+    ],
+    "motor_sim_deg": [
+     70.0,
+     -70.0
+    ],
+    "abduction_deg": 0.247,
+    "flexion_deg": 63.923,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     70.006,
+     -70.0
+    ],
+    "closed_form_error_deg": 0.0056,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     30,
+     10
+    ],
+    "motor_sim_deg": [
+     30.0,
+     10.0
+    ],
+    "abduction_deg": -11.937,
+    "flexion_deg": 26.631,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     30.004,
+     9.999
+    ],
+    "closed_form_error_deg": 0.0036,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     -10,
+     -50
+    ],
+    "motor_sim_deg": [
+     -10.0,
+     -50.0
+    ],
+    "abduction_deg": 16.693,
+    "flexion_deg": 31.274,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     -9.999,
+     -49.997
+    ],
+    "closed_form_error_deg": 0.0026,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     60,
+     20
+    ],
+    "motor_sim_deg": [
+     60.0,
+     20.0
+    ],
+    "abduction_deg": -21.607,
+    "flexion_deg": 31.888,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     60.008,
+     19.998
+    ],
+    "closed_form_error_deg": 0.0078,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     -60,
+     0
+    ],
+    "motor_sim_deg": [
+     -60.0,
+     -0.0
+    ],
+    "abduction_deg": 15.888,
+    "flexion_deg": -5.358,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     -59.999,
+     0.001
+    ],
+    "closed_form_error_deg": 0.0014,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     85,
+     -60
+    ],
+    "motor_sim_deg": [
+     85.0,
+     -60.0
+    ],
+    "abduction_deg": -2.149,
+    "flexion_deg": 63.68,
+    "residual_turn_deg": 0.0004,
+    "motor_closed_form_deg": [
+     85.016,
+     -60.0
+    ],
+    "closed_form_error_deg": 0.0164,
+    "closure_gap_mm": 0.0
+   },
+   {
+    "command_deg": [
+     -45,
+     80
+    ],
+    "motor_sim_deg": [
+     -45.0,
+     80.0
+    ],
+    "abduction_deg": -4.785,
+    "flexion_deg": -27.942,
+    "residual_turn_deg": 0.0005,
+    "motor_closed_form_deg": [
+     -44.997,
+     79.991
+    ],
+    "closed_form_error_deg": 0.0094,
+    "closure_gap_mm": 0.0
+   }
+  ],
+  "max_error_deg": 0.0164
+ }
+}

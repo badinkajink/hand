@@ -20,12 +20,13 @@ transforms are in `sr2hand.geometry.rotations`, over scipy.
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 
 
-## cad/ (44)
+## cad/ (45)
 
 Printable parts: the DIP link, the UR5 mounts and the print plates.
 
 | script | what it does |
 |---|---|
+| `amazinghand_differential.py` | The AmazingHand's two-rod differential at the finger base, against the SR2 bench trials and a bevel differential. |
 | `cad_v1_collision_bench.py` | Step time of the screwdriver scene under four collision models of the finger (2026-10-13). |
 | `cad_v1_finger_media.py` | Figures and films of the cad_v1 finger for its result page (2026-10-13). |
 | `cad_v1_finger_page.py` | Page: MuJoCo model of the SR2 finger assembled from its CAD parts, with sphere collision geometry (2026-10-13). |
@@ -304,7 +305,7 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `topic_overview_page.py` | Build the topic overviews, docs/overviews/<file> (names in docs_inventory.OVERVIEW): what a collaborator new to the project needs from one topic of the result pages, with every finding linked to the page that measured it |
 | `workshop_briefing_page.py` | Build the workshop briefing page: the record behind the SR2 Hand paper. |
 
-## fingertip/ (158)
+## fingertip/ (159)
 
 The printed fingertip: its geometry and prints, finite elements, magnets and the MLX90393 readout, the wrench model, and the calibration and crosstalk pages.
 
@@ -339,6 +340,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `fe_contact_calibration_sim.py` | Simulator runs of the finite-element calibration (phases C, D1 and D2 of docs/experiments/20261018-fe_contact_calibration/plan.json): the calibrated moduli of fit/fits.json in Drake 1.57 and in the 1 mm pads, on the cont |
 | `fe_contact_calibration_summary.py` | Summary of the finite-element calibration (docs/experiments/20261018-fe_contact_calibration/): finite elements, fits, bed, the iCEM command replays (D1) and the D1-D8 replays (D2), with the plan's criteria applied per ti |
 | `fingertip_backends_page.py` | Build docs/experiments/20261006-fingertip_backends/20261006-fingertip_contact_backends.html. |
+| `fingertip_board_force_place_page.py` | Page: what the fingertip boards read against the HEX-E, by the indenter's size (the UR5 calibrations) and by where a contact lands on the pad (arm presses on the SR2 hand, 2026-11-19 evening). |
 | `fingertip_calibration_cell_render.py` | Figure 1 of the fingertip calibration page: the UR5 cell rendered in MuJoCo, with the pad at two touch-offs on the low sphere (owner, 2026-10-27: the coordinator's in-MuJoCo render of the calibration scene, "you can mayb |
 | `fingertip_calibration_figures.py` | Figures and numbers of the page on the fingertip's calibration on the UR5 (docs/experiments/20261026-fingertip_calibration/): the six motions of a session, the press targets on the pad, the learning set-up, location erro |
 | `fingertip_calibration_page.py` | Page on the calibration of the magnetic fingertip on the UR5 against the HEX-E (owner, 2026-10-26: "the calibration process, what motions we initiated, geometry of the calibration and the desired sensing result ... |
@@ -549,7 +551,7 @@ The bench hand: the servo plant and its fits, the tool tracker, the CB1 client, 
 | `tracking_prints_media.py` | Figures and viewer models of the page on the printed tracking objects and the calibration board (docs/experiments/20261113-tracking_prints/, built by scripts/hardware/tracking_prints_page.py). |
 | `tracking_prints_page.py` | Builds docs/experiments/20261113-tracking_prints/20261113-tracking_prints_and_calibration_board.html: the print files of the object seating and tracking plan (docs/notes/20261105-object_seating_and_tracking/) with render |
 
-## hom/ (107)
+## hom/ (108)
 
 Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the hand-object scale study, the layout landscapes and the FP toy.
 
@@ -659,6 +661,7 @@ Hand-object (HOM) control of the SR2 hand: the controller's rigs and tasks, the 
 | `karma_sr2.py` | KaRMA (Peticco and Agrawal, arXiv 2605.15548, 2026) on the SR2 hand's layout lattice, the kinematic inner-loop evaluator of the inner-loop benchmark (owner, 2026-11-12: "evaluate some of the other inner loop controls we  |
 | `scale_turn_cad_v1_page.py` | Page: the scale-turn study of 13-14 October repeated on the CAD-model hand (2026-10-14). |
 | `scale_turn_controllers_page.py` | Page: in-hand turn of cylinders on the scale-study layouts under HOM control and sampling MPC (2026-10-13). |
+| `twist_ranking_page.py` | Result page of 2026-11-19: the sphere twist's layouts ranked on the calibrated SR2 simulation, the ranking's agreement across contact models, seeds and plants, HOM's forces per layout, the short-window gap between the si |
 | `uhas_sr2.py` | UHAS (Casas et al., arXiv 2607.03570, 2026) trained and evaluated on the SR2 hand's layouts in MuJoCo-Warp with the sphere-pad fingertips: the learned inner-loop controller of the inner-loop benchmark (owner, 2026-11-12: |
 | `uhas_sr2_cik.py` | The sphere controller of UHAS (Casas et al., "Cross-Embodiment Robot Manipulation via a Unified Hand Action Space", arXiv 2607.03570, 2026; code in docs/uhas/UHAS_sim) for the SR2 hand's layouts, in torch and batched ove |
 | `uhas_sr2_film.py` | A film of HOM and of the trained UHAS policy side by side on one layout, grasp and seed of the inner-loop benchmark (scripts/hom/uhas_sr2.py), for its page. |

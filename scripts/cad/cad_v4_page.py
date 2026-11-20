@@ -4,10 +4,13 @@ for the SR2 finger (cad_v4) against the hand as built (owner, 2026-11-18: "if we
 skinny side facing, durable linkage/transmission design that didnt sacrifice torque ... we dont want to incur any new
 collisions/loss of operational workspace"; "is there any benefit to trying to put the mcp flexion and the
 abduction/adduction on a single spherical joint?"; "cad v4 can have two proposed designs (or three) if these two ideas
-cannot be neatly merged").
+cannot be neatly merged"). Owner, 2026-11-19, on the AmazingHand's differential: "can you verify that the amazing hand
+(please look it up) differential is not as good as what youve proposed here? or if it is and im just silly, a way to
+re-incorporate their design, but with our degrees of freedom".
 
 Data: the folder's data/20261118-{build,check,replay,forces,joints,render}.json from scripts/cad/cad_v4_layouts.py and
-the earlier sphere replay 20261118-index_middle_clearance_replay.json (scripts/mechanisms/sr2_index_middle_clearance_replay.py).
+the earlier sphere replay 20261118-index_middle_clearance_replay.json (scripts/mechanisms/sr2_index_middle_clearance_replay.py),
+and data/20261119-amazinghand{,_geometry}.json from scripts/cad/amazinghand_differential.py.
 
     .venv/bin/python scripts/cad/cad_v4_page.py
 """
@@ -41,6 +44,8 @@ def load():
          for k in ("build", "check", "replay", "forces", "joints", "render")}
     J["params"] = json.loads(PARAMS.read_text())
     J["sphere_replay"] = json.loads((D / "20261118-index_middle_clearance_replay.json").read_text())
+    J["amazing"] = json.loads((DATA / "20261119-amazinghand.json").read_text())
+    J["amazing_geom"] = json.loads((DATA / "20261119-amazinghand_geometry.json").read_text())
     return J
 
 
@@ -76,6 +81,15 @@ $a$ = 30.8 mm is the distance from the MCP axis to the PIP axis and $b$ = 36.36 
 the pad loads the yaw servo through this lever.</dd>
 <dt>Transmission angle $\\mu$</dt><dd>For a parallel four-bar or a parallelogram, 90&deg; less the crank's angle from the
 position perpendicular to the coupler. The rod's force rises as $1/\\sin\\mu$; 0&deg; is a dead point.</dd>
+<dt>Rod differential, horn radius $r$</dt><dd>Two servos in the palm turn horns of radius $r$. A rod with a ball joint at
+each end joins each horn to the proximal link beside the joint's centre. Pushing both rods flexes the finger; pushing one and
+pulling the other abducts it. A horn's dead points lie 90&deg; to either side of its zero, where the horn's ball moves across
+its rod.</dd>
+<dt>Reachable region</dt><dd>The abduction and flexion angles at which both rods close, both horns stay within
+&plusmn;90&deg; of their zero, and each joint can take at least one servo's torque. The region is taken on a 0.5&deg; grid, and
+only its connected part around the rest pose counts.</dd>
+<dt>Joint torque per servo limit</dt><dd>The largest torque about one joint, with no torque about the other, when each servo
+gives at most its limit $T$, divided by $T$. One servo per joint gives 1; a bevel differential at 1:1 gives 2.</dd>
 <dt>Differential ratio $g$, motor range $\\Theta$</dt><dd>Two servos can drive the yaw
 and the MCP together through a bevel differential. Then $g$ is a servo's turns per joint turn, and $\\Theta$ is the servo's
 travel: 300&deg; for the SCS0009 and 360&deg; for the STS3032 in position mode.</dd>
@@ -170,6 +184,58 @@ the MCP first. In that order the MCP link also turns about a second axis that th
 parallelogram drive of the PIP no longer works. Neither cad_v4 layout uses a differential.</p>"""
 
 
+def sec_amazing(J):
+    A, G = J["amazing"], J["amazing_geom"]
+    S = A["scales"]
+    s1, s15, s2, s3 = S["1"], S["1.5"], S["2"], S["3"]
+    off = A["geometry"]["attach_offsets_mm"]
+    tr = s1["trial_share_inside_best_shift"]
+    area = s1["reachable_area_deg2"] / A["bevel_diamond_scs0009_1to1_area_deg2"]
+    fr, ar = s1["flexion_range_at_zero_abduction_deg"], s1["abduction_range_at_key_flexion_deg"]
+    rat, rod, hrn = s1["servo_deg_per_joint_deg_at_key"], s1["joint_error_per_0.1mm_rod_play_at_key_deg"], \
+        s1["joint_error_per_1deg_horn_play_at_key_deg"]
+    fig = img(MEDIA / "20261119-amazinghand_joint_space.png",
+              f"(a) The AmazingHand's reachable region on each finger's bench trials, the SR2 driver's range and the bevel "
+              f"differential's diamond at 1:1 with the SCS0009. The index's region is turned by "
+              f"{mn(tr['index']['shift_yaw_deg'], 0)}&deg; of yaw, the middle's by {tr['middle']['shift_yaw_deg']:.0f}&deg; of yaw and "
+              f"{mn(tr['middle']['shift_mcp_deg'], 0)}&deg; of MCP. (b) The region in the AmazingHand's own angles with the angle of "
+              f"each horn, and the regions with horns 1.5 and 2 times longer.")
+    n = H.FIG[0]
+    return f"""<h3>The AmazingHand's rod differential</h3>
+<p>The AmazingHand's rod differential reached {pct(area)} of the area of the bevel differential's diamond (SCS0009, 1:1). It
+reached {pct(s1['driver_rectangle_share_inside_best_shift'])} of the driver's range of yaw and MCP. Turned onto each finger's
+trials, its region covered {pct(tr['index']['share'])} of the index's logged periods and {pct(tr['middle']['share'])} of the
+middle's (Figure {n}a). At rest each joint took {s1['flexion_torque_per_servo_limit_at_key']:.2f} (flexion) and
+{s1['abduction_torque_per_servo_limit_at_key']:.2f} (abduction) times one servo's torque.</p>
+<p>Pollen Robotics' AmazingHand (2025) drives each finger's universal joint with two SCS0009 servos in the palm. Its
+Enhanced version of April 2026 uses STS3032s on a new printed horn; the project's MuJoCo model is of the original. The geometry of
+the right hand's first finger was read from the project's MuJoCo model (commit {G['commit'][:7]}). Its horns have a radius of
+{A['geometry']['horn_radius_mm'][0]:.1f} mm, and its rods are {A['geometry']['rod_mm'][0]:.1f} mm between ball centres. The
+rods meet the proximal link {off[0]['palmar']:.1f} mm palmar of the joint centre, {off[0]['lateral']:.1f} and
+{-off[1]['lateral']:.1f} mm to either side. The rods were solved in closed form over abduction and flexion. At ten servo pairs
+the closed form and MuJoCo's own closure differed by at most {G['closure_check']['max_error_deg']:.3f}&deg;.</p>
+<p>A horn moves its rod at most {A['geometry']['horn_radius_mm'][0]:.0f} mm either way, at its dead points. The horns are kept within
+&plusmn;90&deg; of zero in the model and in the project's demo code. Over that range the finger flexed from {mn(fr[0])}&deg; to
+{fr[1]:.1f}&deg; at zero abduction. At its rest flexion of {A['geometry']['flexion_at_key_deg']:.1f}&deg; it abducted from
+{mn(ar[0])}&deg; to {ar[1]:.1f}&deg;; the project's own code limits abduction to &plusmn;20&deg;. Near rest a servo turned
+{rat['pure_flexion']:.2f}&deg; per degree of flexion and {rat['pure_abduction']:.2f}&deg; per degree of abduction. A bevel
+differential at 1:1 turns its servos 1&deg; per joint degree over their whole 300&deg;.</p>
+<p>Longer horns move the rods further for the same servo angle, at a lower torque. With {s15['horn_radius_mm'][0]:.1f} mm horns
+the region covered {pct(s15['driver_rectangle_share_inside_best_shift'])} of the driver's range, and the flexion torque at rest fell
+to {s15['flexion_torque_per_servo_limit_at_key']:.2f} times one servo's. With {s2['horn_radius_mm'][0]:.0f} mm horns the region
+shrank to {pct(s2['driver_rectangle_share_inside_best_shift'])} of the driver's range under the floor of one servo's torque. With
+{s3['horn_radius_mm'][0]:.0f} mm horns the rest pose itself fell below that floor, at
+{s3['flexion_torque_per_servo_limit_at_key']:.2f} in flexion. The rods push along the finger, and their moment arm about a
+joint shrinks as the joint turns away from rest (Figure {n}b). No horn length tried covered the driver's whole range; the
+bevel differential covers it at ratios up to {J['joints']['max_ratio_containing_driver_rectangle']['scs0009']:.2f}.</p>
+<p>At rest the finger moved up to {rod['flexion']:.2f}&deg; in flexion and {rod['abduction']:.2f}&deg; in abduction for
+0.1 mm of play at one ball joint. For one degree of play at one horn it moved {hrn['flexion']:.2f}&deg; and
+{hrn['abduction']:.2f}&deg;, so the servo's own play is divided by more than two at the joint. In the project's README the
+angle errors of its prototypes are put down to the prints, the hand-adjusted rods, the reworked horns and the plastic's
+flexibility.</p>
+{fig}"""
+
+
 def sec_clearance(J):
     R, S = J["replay"]["summary"], J["sphere_replay"]["summary"]
     names = [("as_built", "v3 as built"), ("as_built_index_mirrored", "v3, index finger mirrored"),
@@ -239,7 +305,8 @@ They are not printable parts, and the yoke of v4b and the carriage around it are
 The SCS0009's case height (25.0 mm) is estimated; the STS3032's dimensions are from Feetech's drawing. The rod's force,
 bearing loads and the stiffness of the printed links are not computed. The v4b rows of the replay keep the logged mounts
 and tip positions; plans made for v4b would choose their own. The pinch force uses the pad centre as the contact point and
-the pad normal as the force direction, and it ignores friction and the yaw servo.</p>"""
+the pad normal as the force direction, and it ignores friction and the yaw servo. The AmazingHand's region leaves out
+collisions of its rods and links with each other and with the neighbouring fingers, and the ball joints' angle limits.</p>"""
 
 
 def sec_future():
@@ -256,6 +323,10 @@ mirrored in <code>scripts/mechanisms/sr2_index_middle_clearance_replay.py</code>
 <li>Re-plan the HOM bench tasks for v4b with the gimbal on the yaw axis (<code>scripts/hom/hom_gpu.py</code> on a cad_v4 scene).
 Count the plans that bend the PIP back past &minus;18&deg;. If the share stays above 5 %, give the PIP stop more
 hyperextension or split the 20.75 mm between the MCP link and a fixed metacarpal.</li>
+<li>Give the AmazingHand's base the SR2 finger's PIP joint. A PIP servo on the gimbal, its shaft on the flexion axis, turns the
+crank of a parallelogram rod to the distal link; the crank replaces the four-bar's fixed pivot on the gimbal. Model it as a third layout in
+<code>scripts/cad/cad_v4_layouts.py</code> with 7.5 mm horns and replay the 65 trials. Fewer than 99 % of the trials' postures
+inside its reachable region, or an overlap share above v4a's, refutes it.</li>
 </ul>"""
 
 
@@ -267,6 +338,8 @@ def sec_files():
              "MuJoCo scenes on the cad_v3 hand. Under physics, equality constraints keep the drive on the MCP and PIP joints. "
              "<code>scripts/cad/cad_v4_layouts.py play v4a</code> opens one in the viewer with the least index-middle gap "
              "shown; <code>--kinematic</code> poses the joints exactly"],
+            ["<code>scripts/cad/amazinghand_differential.py</code>",
+             "the AmazingHand's rod differential: geometry from its MuJoCo model, closed-form rods, reachable region, torques"],
             ["<code>docs/experiments/20261118-sr2_actuator_layout/data/</code>", "the JSON behind every table and figure"],
             ["<code>scripts/mechanisms/sr2_index_middle_clearance_replay.py</code>", "the earlier sphere replay (commit adc1a0d3b)"]]
     return table(["File", "Content"], rows, "Files.", num_from=9)
@@ -278,18 +351,22 @@ def lede_and_summary(J):
     ratio = J["joints"]["max_ratio_containing_driver_rectangle"]
     ik = R["v4b_same_tips"]["ik"]
     n = 2 * R["v4b_same_tips"]["periods"]
+    am = J["amazing"]["scales"]["1"]
     lede = (f"Taking the PIP servo off the finger cut the index-middle overlap in the bench trials from "
             f"{pct(R['as_built']['share_overlap'])} to {pct(R['v4a']['share_overlap'])} of control periods. It raised the pinch force at "
             f"the servo limit by a factor of {r[1]:.2f} at the median. In v4a the PIP servo moves to the yaw link and drives the "
             f"distal link through a crank on the MCP axis and a parallelogram rod. v4b also puts the yaw and MCP axes through one "
             f"point. On the yaw axis this gimbal reaches every logged tip ({pct(R['v4b_same_tips']['share_overlap'])} overlap), but "
-            f"the PIP goes past &minus;18&deg; in {pct(ik['outside_driver_limits'] / n)} of finger-periods. With a two-servo "
+            f"the PIP goes past &minus;18&deg; in {pct(ik['outside_driver_limits'] / n)} of finger-periods. With a bevel "
             f"differential the driver's whole range lies inside the reachable diamond up to a ratio of {ratio['scs0009']:.2f} "
-            f"(SCS0009) or {ratio['sts3032']:.2f} (STS3032).")
+            f"(SCS0009) or {ratio['sts3032']:.2f} (STS3032). The AmazingHand's rod differential reached "
+            f"{pct(am['driver_rectangle_share_inside_best_shift'])} of that range, and "
+            f"{pct(min(v['share'] for v in am['trial_share_inside_best_shift'].values()))} or more of the logged postures.")
     summary = (f"Two cad_v4 finger layouts take the PIP servo off the finger. The overlap of index and middle over the 65 bench "
                f"trials falls from {pct(R['as_built']['share_overlap'])} to {pct(R['v4a']['share_overlap'])} (v4a), and the pinch force at the "
                f"servo limit rises {r[1]:.2f}x at the median; a gimbal MCP (v4b) reaches every logged tip with "
-               f"{pct(R['v4b_same_tips']['share_overlap'])} overlap.")
+               f"{pct(R['v4b_same_tips']['share_overlap'])} overlap. The AmazingHand's rod differential reaches "
+               f"{pct(am['driver_rectangle_share_inside_best_shift'])} of the driver's yaw and MCP range.")
     return lede, summary
 
 
@@ -297,7 +374,7 @@ def main():
     J = load()
     sections = [("terms", "Terms and metrics", sec_terms(J)),
                 ("layouts", "Two layouts with the PIP servo off the finger", sec_layouts(J) + sec_selfclear(J)),
-                ("jointspace", "Joint space of a two-servo differential at the MCP", sec_jointspace(J)),
+                ("jointspace", "Joint space of a two-servo differential at the MCP", sec_jointspace(J) + sec_amazing(J)),
                 ("clearance", "Index-middle clearance over the bench trials", sec_clearance(J)),
                 ("forces", "Pinch force at the servo limits, yaw lever and transmission angles", sec_forces(J)),
                 ("limits", "Limitations", sec_limits()),
