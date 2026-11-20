@@ -251,6 +251,8 @@ def main():
     ap.add_argument("--hot-c", type=float, default=55.0, help="pause before a trial with a servo this hot")
     ap.add_argument("--cool-c", type=float, default=40.0, help="go on when every servo is below this")
     ap.add_argument("--cool-wait-s", type=float, default=5400.0)
+    ap.add_argument("--level-hand-deg", type=float, default=2.0,
+                    help="z_P's tilt above which the hand is levelled before the recentre (clear, place, approach --fine)")
     ap.add_argument("--control", default=str(HERE / "series_control.txt"),
                     help="the control file read before every trial: 'hold' pauses, 'skip PREFIX' skips labels")
     ap.add_argument("--go", action="store_true")
@@ -307,11 +309,35 @@ def main():
                 sys.exit(f"STOP: the free-air sweep failed at {label}'s layout")
         if a.sweep_only:
             continue
+        # the hand level before the recentre (2026-11-20: a putdown that levels a tilted object tilts the hand, and
+        # letgo levels it again only within its --max-level, so t2 and t3 at (90, 135) g3 and t2 at (105, 100) g15
+        # started 12-25 deg off the planned grasp): above --level-hand-deg the fingers are lifted clear of the object,
+        # the hand levelled about the palm in steps at the grasp's height + 80 mm (place), and moved over the object at
+        # that height (approach --fine, no descent); the recentre then descends as after a new layout
+        rc, out = run([PY, "hom_setup.py", "status"], 60)
+        t = re.search(r"z_P tilted ([\d.]+) deg from base z", out)
+        if rc != 0 or t is None:
+            sys.exit(f"STOP: no arm pose before {label}'s recentre")
+        if float(t.group(1)) > a.level_hand_deg:
+            print(f"   the hand is tilted {float(t.group(1)):.1f} deg: lifted clear, levelled and moved over the object "
+                  "first", flush=True)
+            for cmd, ok in (([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--go"], "CLEAR OK"),
+                            ([PY, "hom_setup.py", "place", "--plan", plan, "--map", a.map, "--max-level", "45", "--go",
+                              "--video-dir", a.video_dir], "palm at ["),
+                            ([PY, "hom_setup.py", "approach", "--plan", plan, *common, "--fine", "--fine-max", "150",
+                              "--go", "--video-dir", a.video_dir], "after the lateral move")):
+                rc, out = run(cmd, 240)
+                if rc != 0 or ok not in out:
+                    sys.exit(f"STOP: levelling the hand before {label}'s recentre: {cmd[1]} {cmd[2]} did not finish")
         rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
                        "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
         if rc != 0 or m is None:
             sys.exit(f"STOP: ready failed for {label}")
+        tl = re.findall(r"ready: object in P .*?tilt ([\d.]+) deg", out)
+        ready_tilt = float(tl[-1]) if tl else None              # the object's axis against z_P at the trial's start
+        if ready_tilt is not None and ready_tilt > 5.0:
+            print(f"   {label}: the object stands {ready_tilt:.1f} deg off the hand's axis at the start", flush=True)
         if m.group(1) == "NOT READY" and (float(m.group(2)) > a.max_off or abs(float(m.group(3))) > a.max_yaw):
             sys.exit(f"STOP: {label} not ready ({m.group(2)} mm, {m.group(3)} deg)")
         # --plan: the trial's fingertip estimator places the boards' contacts with the plan's mounts (since 11-17)
@@ -325,7 +351,7 @@ def main():
         s = summary(rec.group(1))
         row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": label, "plan": plan, "port": int(port),
                "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))],
-               "servo_c_before": servo_c, **s}
+               "ready_tilt_deg": ready_tilt, "servo_c_before": servo_c, **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",

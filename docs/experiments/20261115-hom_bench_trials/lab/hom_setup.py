@@ -77,6 +77,7 @@ LOG = ROOT / "logs/20261116-hom_setup"
 T_EP = SR2Hand.load().T_E_P()
 ROT_N_PER_DEG = 0.9            # N of the guard's allowance per degree an arm move turns the hand (Arm.move)
 ROT_N_CAP = 12.0               # N: the largest guard limit a turn may reach
+LEVEL_STEP_DEG = 15.0          # deg: a levelling turn larger than this goes in steps (putdown, place; 2026-11-20)
 HAND = SR2Hand.load()
 FINGERS = ("thumb", "index", "middle")
 ZERO = {f: {k: 0.0 for k in ("yaw", "mcp", "pip")} for f in FINGERS}
@@ -751,11 +752,23 @@ def cmd_open(a):
             # small steps from the measured pose (owner, 2026-11-16: "if we slowly release the servos the block should
             # come to a flat rest")
             n = max(1, int(round(10 * a.ramp_s)))
+            skipped = 0
             for i in range(1, n + 1):
                 u = i / n
                 step = {f: {k: j[f][k] + (tgt[f][k] - j[f][k]) * u for k in tgt[f]} for f in tgt}
-                res = st.call("POST", "/api/v1/manual/joints", {"joints": step, "servo_speed": a.speed})
+                try:
+                    res = st.call("POST", "/api/v1/manual/joints", {"joints": step, "servo_speed": a.speed})
+                except SystemExit as e:
+                    # 2026-11-20 11:05: a twist had pushed the middle PIP to -17.3 deg, past the driver's -16.11, and
+                    # the station refused the ramp's first step (-16.25): a step outside the driver's range is skipped,
+                    # the later ones come inside it; the last, the open pose itself, must be taken
+                    if i == n or "maps outside" not in str(e):
+                        raise
+                    skipped += 1
+                    continue
                 time.sleep(0.1)
+            if skipped:
+                print(f"   {skipped} of the ramp's {n} steps lay outside the driver's range: skipped", flush=True)
         else:
             res = st.call("POST", "/api/v1/manual/joints", {"joints": tgt, "servo_speed": a.speed})
         time.sleep(a.wait_s)
@@ -876,12 +889,23 @@ def cmd_place(a):
             return 0
         arm.connect(a.stop_n is not None)
         T_BP = arm.T_BP()
-        R = rot_between(T_BP[:3, 2], [0.0, 0.0, 1.0]) @ T_BP[:3, :3] if a.level else T_BP[:3, :3]
-        T_goal = tf(R, T_BP[:3, 3] + [0.0, 0.0, dz]) @ tf_inv(T_EP)
+        R0 = T_BP[:3, :3]
+        R1 = rot_between(T_BP[:3, 2], [0.0, 0.0, 1.0]) @ R0 if a.level else R0
+        # a large levelling in steps of at most LEVEL_STEP_DEG, each with its own force reference (2026-11-20: the
+        # HEX-E turns with the hand and reads about 0.35 N a degree of turn from the hand's weight alone, against the
+        # turn's cap of ROT_N_CAP); a stopped step stops the place (it went on silently before)
+        rv = quat_to_rotvec(mat_to_quat(R1 @ R0.T))
+        n = max(1, math.ceil(tilt / LEVEL_STEP_DEG)) if a.level else 1
         meas, own = cameras(a, "place", track=False)
         try:
-            arm.move(T_goal, a.v, a.acc, a.stop_n, abs(dz) / (1e3 * a.v) + 6.0,
-                     f"place {dz:+.1f} mm in z" + (f", levelled {tilt:.2f} deg" if a.level else ""))
+            for k in range(1, n + 1):
+                T_goal = tf(quat_to_mat(quat_from_rotvec(rv * k / n)) @ R0,
+                            T_BP[:3, 3] + [0.0, 0.0, dz * k / n]) @ tf_inv(T_EP)
+                why, _ = arm.move(T_goal, a.v, a.acc, a.stop_n, abs(dz) / n / (1e3 * a.v) + 30.0,
+                                  f"place {dz:+.1f} mm in z" + (f", levelled {tilt:.2f} deg" if a.level else "")
+                                  + (f", step {k}/{n}" if n > 1 else ""))
+                if why:
+                    raise SystemExit(f"the place stopped: {why}; look before anything else")
         finally:
             if own:
                 meas.stop()
@@ -1115,9 +1139,13 @@ def cmd_putdown(a):
             ax = np.cross(up, [0.0, 0.0, 1.0])
             ax /= np.linalg.norm(ax)
             c = np.asarray(info["p_B"], float)
-            T_turn = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(lev))), None) @ tf(None, -c)
+            # in steps of at most LEVEL_STEP_DEG (2026-11-20: a 35 deg turn in one move ran past its 12 s after 96 mm,
+            # a 32 deg one after 89 mm, the HEX-E's change near 10 N from the hand's weight alone): each step the same
+            # turn about the object's centre, with its own force reference; the touch watched against the pose before
+            n = max(1, math.ceil(lev / LEVEL_STEP_DEG))
+            T_step = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(lev / n))), None) @ tf(None, -c)
             print(f"   the object's axis {tilt0:.1f} deg from vertical: the hand turns {lev:.1f} deg about its centre "
-                  f"toward level (to {tilt0 - lev:.1f} deg)", flush=True)
+                  f"toward level (to {tilt0 - lev:.1f} deg)" + (f", in {n} steps" if n > 1 else ""), flush=True)
             if a.go:
                 arm.connect(a.stop_n is not None)
                 ref = meas.latest(5, 0.5)
@@ -1125,10 +1153,13 @@ def cmd_putdown(a):
                     raise SystemExit("the tracker does not see the object: not moving")
                 # its own force limit: the HEX-E turns with the hand, so the hand's weight shifts in the sensor's frame
                 # by about its weight x the turn (2.11 N stopped a 6.4 deg turn at 13:53, 2026-11-16, in free air)
-                why, _ = arm.move(T_turn @ arm.T_BE(), a.v, a.acc, a.level_stop_n if a.stop_n is not None else None,
-                                  12.0, f"level {lev:.1f} deg", check=meas.watch_touch(ref[0], 2.0, 2.0))
-                if why:
-                    raise SystemExit(f"the levelling stopped: {why}; look before anything else")
+                for k in range(1, n + 1):
+                    why, _ = arm.move(T_step @ arm.T_BE(), a.v, a.acc,
+                                      a.level_stop_n if a.stop_n is not None else None, 12.0,
+                                      f"level {lev:.1f} deg" + (f", step {k}/{n}" if n > 1 else ""),
+                                      check=meas.watch_touch(ref[0], 2.0, 2.0))
+                    if why:
+                        raise SystemExit(f"the levelling stopped: {why}; look before anything else")
                 p_m, q_m, info = meas.pose(a.measure_s)
                 report("levelled", p_m, q_m, p_n, q_n, shape, info)
                 note({"cmd": "putdown", "step": "level", "tilt0_deg": tilt0, "turn_deg": lev})
