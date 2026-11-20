@@ -37,6 +37,23 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   move alone, `hom_setup.py approach --plan NEXT_PLAN --fine --fine-max 130 --go` (120 mm, no descent). The cylinder
   stood at x_B -44 mm, outside the fingers' path. t3's row was added by hand (field `note`), and the series restarted
   at 10:59 from entry 2 of the day file (`$(cut -d" " -f2- series_entries_20261120_day.txt)`), appending to the same log.
+- **11:02-11:05, A1_p35_x105y100g15_t2.** The 32 deg levelling ran out of time again (89 mm in 12 s). The putdown
+  without levelling then stopped on a 1.5 mm slip in the grasp (the lateral touch limit), the block still 41 mm up. The
+  series' "not seated" branch ran `letgo --tilt-ok`, which refused because of the height. So the row's putdown field
+  ("tilted; letgo --tilt-ok") is wrong. By hand: `putdown --touch-lat 3` stopped 4.5 mm up, on a 0.82 mm touch along
+  z_P with 2 tags seen. `letgo --seat-mm 6` then failed: the twist had left the middle PIP at -17.3 deg, and the
+  station refused the release ramp's first step (-16.25, the driver's limit -16.11). `letgo --seat-mm 6 --ramp-s 0` let
+  go at 11:05. Servo 0 had reached 51 C.
+- **Trials that started tilted.** The tilt at `ready` (the object's axis against z_P) was 1.2, 12.2 and 13.0 deg for
+  A1_r15_x90y135g3 t1-t3, and 0.6 and 25.5 deg for A1_p35_x105y100g15 t1-t2. The putdown stands the sphere up by tilting
+  the hand, and `letgo` levels the hand again only within its `--max-level`, so the next trial started tilted: three of
+  today's five were not the planned grasp. The 11-19 trials started within 0.3-1.5 deg.
+- **Fixes (11:1x):** levelling turns over 15 deg go in steps, each with its own force reference (`putdown`; `place`,
+  which also stops now when a step stops). The release ramp skips steps the driver refuses. `hom_series` levels the hand
+  before every recentre when z_P is over 2 deg from vertical: `pose_sweep.py clear`, `place --max-level 45`, then
+  `approach --fine --fine-max 150`. The rows carry `ready_tilt_deg`, and the putdown args add `--touch-lat 3`. Done by
+  hand at 11:07-11:10: the 36 deg levelling went in three 12 deg steps, the HEX-E at 4.8-5.4 N of 12. The series
+  restarted at 11:12 from entry 4 (`cut -d" " -f4-`, A1_anchor_x70y110g0_t1).
 
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 
