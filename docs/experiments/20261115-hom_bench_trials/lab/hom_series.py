@@ -500,7 +500,9 @@ def main():
                 if "LET GO" in out2 and t and float(t[-1]) <= a.upright_deg:
                     print(f"   {label}: released tilted, settled at {t[-1]} deg: going on", flush=True)
                     continue
-                if a.pickup and "LET GO" in out2 and a.object == "sphere":
+                if a.pickup and a.object == "sphere":
+                    # the release may stop short with the sphere already down and toppled (16:13: its lift stopped on
+                    # 3.65 mm; the sphere lay at 86 deg): the pick-up starts by lifting clear and levelling anyway
                     why = pickup(a, plan, label)
                     if why is None:
                         continue
