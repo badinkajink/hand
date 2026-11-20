@@ -1445,6 +1445,40 @@ def flex_back_release(a, plan, st, arm, meas, h, j, p_m, q_m, info):
     note({"cmd": "letgo", "step": "flex back done", "rise_mm": rise, "after": j3})
 
 
+def level_about_ball(a, arm, meas, info, p_m, q_m):
+    """A hand tilted round a released sphere, turned level about the ball's centre before the fingers straighten (2026-11-20
+    14:40, by hand: after a levelled putdown the hand stood 32 deg off level, and its straight lift hooked the ball; turned
+    about the ball's centre every finger keeps its distance to the ball, and the release then went as from a level grasp).
+    In steps of at most LEVEL_STEP_DEG, the object watched (within --ball-level-still mm in B) and the HEX-E guarding each
+    step. Returns the object's measurement after, or the one given when the hand is within --ball-level-deg of level."""
+    T_BP = arm.T_BP()
+    tilt = math.degrees(math.acos(min(1.0, float(T_BP[2, 2]))))
+    if a.ball_level_deg <= 0 or tilt <= a.ball_level_deg:
+        return p_m, q_m, info
+    c = np.asarray(info["p_B"], float)
+    ax = np.cross(T_BP[:3, 2], [0.0, 0.0, 1.0])
+    ax /= np.linalg.norm(ax)
+    n = max(1, math.ceil(tilt / LEVEL_STEP_DEG))
+    T_step = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(tilt / n))), None) @ tf(None, -c)
+    print(f"   the hand {tilt:.1f} deg off level round the released sphere: {n} turns of {tilt / n:.1f} deg about the "
+          f"ball's centre", flush=True)
+    if not a.go:
+        return p_m, q_m, info
+    if arm.c is None:
+        arm.connect(a.stop_n is not None)
+    ref = meas.latest(5, 0.5)
+    if ref is None:
+        raise SystemExit("the tracker does not see the object: not moving")
+    for k in range(1, n + 1):
+        why, _ = arm.move(T_step @ arm.T_BE(), a.v, a.acc, a.stop_n, 14.0, f"level about the ball, step {k}/{n}",
+                          check=meas.watch_still(ref[1], a.ball_level_still))
+        if why:
+            raise SystemExit(f"the levelling about the ball stopped: {why}; look before anything else")
+    p_m, q_m, info = meas.pose(a.measure_s)
+    note({"cmd": "letgo", "step": "level about the ball", "tilt_deg": tilt, "turns": n})
+    return p_m, q_m, info
+
+
 def letgo_sequence(a, plan, st, arm, meas, h):
     """Release, straighten, lift, after a touchdown (owner, 2026-11-16: "this release --> straighten --> lift should
     also be automated/skill-ified if not already. it works pretty reliably"; by hand at 12:52, 12:56 and 13:00): the
@@ -1461,6 +1495,8 @@ def letgo_sequence(a, plan, st, arm, meas, h):
         cmd_open(a)
         p_m, q_m, info = meas.pose(a.measure_s)
         report("released", p_m, q_m, p_n, q_n, shape, info)
+        if shape == "sphere":
+            p_m, q_m, info = level_about_ball(a, arm, meas, info, p_m, q_m)
         j = sim_joints(st.state())
         ok, text, rec = zero_path_check(a, plan, j, arm.T_BP(), p_m, q_m, info, h)
         print("   the path to zero: " + text, flush=True)
@@ -1729,6 +1765,10 @@ def _letgo_args(p):
                    help="mm a finger part that starts clear keeps from the object on the path to zero (one that starts "
                         "nearer may only move away)")
     p.add_argument("--clear", type=float, default=30.0, help="mm over the grasp's height the lift takes the palm to")
+    p.add_argument("--ball-level-deg", type=float, default=3.0,
+                   help="a hand tilted more than this round a released sphere turns level about the ball first (0: off)")
+    p.add_argument("--ball-level-still", type=float, default=4.0,
+                   help="mm the sphere may move in B while the hand turns level about it")
     p.add_argument("--lift-still-mm", type=float, default=3.0,
                    help="the object's motion in B that stops the lift (the fingers straight, nothing should touch it)")
     p.add_argument("--max-level", type=float, default=10.0,
