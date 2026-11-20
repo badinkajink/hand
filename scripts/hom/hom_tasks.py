@@ -613,7 +613,7 @@ class Schedule:
                 c = fc[f]
                 c.mode = "pinch"
                 c.weights = mode_weights(self.prm, "tripod")                   # free rolling (paper Exp. B)
-                c.force = 0.0 if t < T_CLOSE else self.prm["f_tripod"]
+                c.force = 0.0 if t < T_CLOSE else force_at(self.prm, "f_tripod", t)
                 _approach(c, t)
             if ph == "task" and rail:
                 # the rail roll (owner, 2026-11-09, after the paper's video): the thumb keeps the target it had when the
@@ -676,6 +676,17 @@ PRM = {"f_pinch": 3.0, "f_drive": 1.5, "f_press": 0.5, "rot_deg": 15.0, "rot_dps
 
 RAIL_ROLLERS = {1: ("index", "middle"), 2: ("index",)}   # prm rail: the fingers that roll the sphere on the thumb
 RAIL_OFF_S = 0.4                                           # s the middle backs off at 20 mm/s with one roller (8 mm)
+
+
+def force_at(prm, key, t):
+    """The commanded force prm[key] (N), or, when prm has key + '_knots' = [[t, f], ...] (s, N), that schedule
+    interpolated linearly in the task's time t and held beyond its first and last knots (2026-11-19, a time-varying
+    tripod force for the CEM refinement of the twist; Sunyu's suggestion of per-step impedance force targets)."""
+    kn = prm.get(key + "_knots")
+    if not kn:
+        return prm[key]
+    a = np.asarray(kn, float)
+    return float(np.interp(t, a[:, 0], a[:, 1]))
 
 
 def mode_weights(prm, role):

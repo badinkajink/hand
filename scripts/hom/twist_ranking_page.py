@@ -379,6 +379,27 @@ the two at seeds 0-2 under both models; the best setting then ran at the fresh s
         "Chosen, seeds 10-12", "Default, μ 0.6", "Chosen, μ 0.6"], t5, num=(1, 2, 3, 4, 5, 6, 7, 8),
        caption="HOM's forces chosen per layout. μ 0.6: point contact at friction 0.6, seeds 0-2.", n=5)}"""))
 
+    CEM = j(DATA / "20261119-cem_refine.json")
+    if CEM and CEM.get("picks"):
+        t8 = [[c["level"], xy_s(c["xy"]), str(c["k"]), f(c["start_seeds012"], 3), f(c["best_seeds012"], 3),
+               f(c["best_seeds101112"], 3), f(c["best_mu06"], 3), f(c["lat_start_deg"], 1), f(c["lat_deg"], 1),
+               esc(", ".join(f"{k2[1]:.2g}" for k2 in c["prm"]["f_tripod_knots"]) if c["prm"].get("f_tripod_knots")
+                   else f"{c['prm'].get('f_tripod', 2.5):.3g}")] for c in CEM["picks"]]
+        sec.append(("cem", "Grasp and HOM refined together", f"""
+<p>The cross-entropy method of the refinement study of 2026-11-03 (level full: the grasp's variables, the tripod's force
+and Eq. (2)'s spin, roll and slide weights together) ran on this simulation for each proposed layout, with the grasps
+held to the ground-clear constraints, so the contacts stay near the equator. A second level replaced the constant force
+by a schedule: the force at 1.6, 3.4, 4.9 and 6.4 s, interpolated linearly between them (hom_tasks.force_at), after
+Sunyu's suggestion of impedance force targets that change over the task. {CEM['pop']} candidates per iteration,
+{CEM['iters']} iterations, each scored by its mean tracking over seeds 0-2 under both contact models
+(sim/20261119-twist_cem_refine.py). Table 8 gives the start (the layout's grasp with HOM's defaults), the pick at the
+search's seeds and at fresh seeds, and the pick at friction 0.6.</p>
+{table(["Level", "Layout (mm)", "From grasp k", "Start", "Pick, seeds 0-2", "Pick, seeds 10-12", "Pick, μ 0.6",
+        "Latitude, start (°)", "Latitude, pick (°)", "Force (N)"], t8, num=tuple(range(2, 10)),
+       caption="CEM picks per layout. Tracking means over both contact models; μ 0.6: point contact at friction 0.6, "
+               "seeds 0-2. Latitude: the contacts' angle below the sphere's equator (v[6]). Force: f_tripod, or its "
+               "four knots.", n=8)}"""))
+
     if G:
         slip = [w for w in G["windows"] if w[0] == "pads" and w[3] == "task" and w[4] > 15.0]
         n_slip = len(slip)
@@ -423,11 +444,23 @@ out of the grasp or ended in an error.</p>
         t7 = []
         for p in TP["plans"]:
             pr = p["prediction"]
+            if "point" in pr:
+                cells = [f(pr["point"]["track_seeds012"], 3), f(pr["pads"]["track_seeds012"], 3),
+                         f(pr["point"]["twist_end_deg"], 1)]
+            else:                                          # a CEM pick: the mean over both models
+                cells = [f(pr["both_models_seeds012"], 3) + " (both)", f(pr["both_models_seeds101112"], 3) + " (fresh)",
+                         "&ndash;"]
+            forces = "default"
+            if p.get("prm"):
+                q = p["prm"]
+                forces = (f"f {' / '.join(f'{k2[1]:.2g}' for k2 in q['f_tripod_knots'])} N at "
+                          f"{', '.join(f'{k2[0]:g}' for k2 in q['f_tripod_knots'])} s" if q.get("f_tripod_knots")
+                          else f"f {q.get('f_tripod', 2.5):.3g} N")
+                forces += "; w " + ", ".join(f"{q[w]:.2g}" for w in ("w_spin_tripod", "w_roll_tripod", "w_slide_tripod")
+                                             if w in q)
             t7.append([esc(Path(p["plan"]).name.replace("_plan.json", "").replace("20261119-rank_", "")), p["role"],
-                       str(p.get("rank_among_deployable") or ""), xy_s(p["xy"]), str(p["k"]),
-                       esc(json.dumps(p.get("prm"))) if p.get("prm") else "default",
-                       f(pr["point"]["track_seeds012"], 3), f(pr["pads"]["track_seeds012"], 3),
-                       f(pr["point"]["twist_end_deg"], 1), "yes" if p.get("fits") else "no"])
+                       str(p.get("rank_among_deployable") or ""), xy_s(p["xy"]), str(p["k"]), esc(forces)] + cells +
+                      ["yes" if p.get("fits") else "no"])
         sec.append(("plans", "Layouts and plans for the hand on 2026-11-20", f"""
 <p>A layout is deployable when its mounts fit the gantries' travel boxes, its index and middle stay at least 15 mm
 apart in every simulated run of its grasp (on 2026-11-17 the hand's fingers came about 10 mm closer than the
@@ -438,10 +471,12 @@ the predicted range, and (70, 110) grasp 0, run 20 times on the hand on 2026-11-
 middle MCPs at −11.0 and −9.5° as in the lab's plans of 2026-11-17. Where stage E's forces scored at least 0.05 more at
 the fresh seeds and no less at friction 0.6, a second plan carries them. The predictions in Table 7 were written into
 each plan's meta.ranking before any trial ran.</p>
-{table(["Plan", "Role", "Rank", "Layout (mm)", "Grasp k", "HOM forces", "Predicted, point", "Predicted, pads",
+{table(["Plan", "Role", "Rank", "Layout (mm)", "Grasp k", "HOM forces", "Predicted (a)", "Predicted (b)",
         "Twist at the end (°)", "Fits"], t7, num=(2, 4, 6, 7, 8),
-       caption="Plans in docs/experiments/20261115-hom_bench_trials/plans/ (20261119-rank_*). Predicted: tracking, mean "
-               "of seeds 0-2.", n=7)}"""))
+       caption="Plans in docs/experiments/20261115-hom_bench_trials/plans/ (20261119-rank_*). Predicted tracking: for the "
+               "ranked and anchor plans (a) point contact and (b) the pads, mean of seeds 0-2; for the CEM plans (a) the "
+               "mean over both models at seeds 0-2 and (b) at the fresh seeds 10-12. HOM forces: the tripod's force f (or "
+               "its knots and their times) and the spin, roll and slide weights w where changed.", n=7)}"""))
 
     sec.append(("future", "Future work", """
 <ul>

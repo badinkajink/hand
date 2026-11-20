@@ -145,8 +145,9 @@ def bench_world(task, d6, v, prm=None, dt=None, plant="sv25", seed=0, variant=No
     shape = T.SHAPE[task]
     d6 = np.asarray(d6, float).reshape(6)
     v = np.asarray(v, float)
-    prm = {k: float(x) for k, x in (prm or {}).items()}
-    bad = set(prm) - set(T.PRM)
+    # a force's schedule, key + '_knots' = [[t, f], ...] (hom_tasks.force_at, 2026-11-19), is kept as pairs of floats
+    prm = {k: ([[float(a) for a in kn] for kn in x] if k.endswith("_knots") else float(x)) for k, x in (prm or {}).items()}
+    bad = {k for k in prm if (k[:-len("_knots")] if k.endswith("_knots") else k) not in T.PRM}
     if bad:
         raise ValueError(f"prm keys {sorted(bad)} are not hom_tasks.PRM keys")
     FP.set_sizes(**({"sph_d_mm": d_mm} if shape == "sphere" else {"cyl_d_mm": d_mm}))
