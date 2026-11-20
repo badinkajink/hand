@@ -34,6 +34,9 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - Whether to run the 19 layouts that have no feasible twist under HOM (block 2, A2, A3: 42 trials, about 3 h from about
   11:00). Their trials test the prediction "infeasible": the hand should fail them by stalls or contact between links.
   Proposed: run block 2 (the simulation's top layouts) in full and A2 at one trial each, or cut both if the day is short.
+  How (lab, 2de1e6306): hom_series reads lab/series_control.txt on corvus before every trial. A line "skip A2bad",
+  "skip A3drop" or "skip b2touch" drops that block without stopping the series; a line "hold" pauses before the next
+  trial until it is removed. Tell the lab session or edit the file.
 - A collision-aware HOM (a clearance term in its least squares) could give these layouts a feasible twist.
 - A controller rematch on the calibrated plant, with each method's force knob tuned: HOM, annealed and predictive
   sampling, and UHAS with a cost on target rate and the torque budget. This would run after block A's results.
