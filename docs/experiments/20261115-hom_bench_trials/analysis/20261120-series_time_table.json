@@ -1,0 +1,162 @@
+{
+ "what": "Where a bench series' time goes, from hom_series's logs (hand-4a, 2026-11-20 12:1x; owner, 11:4x: \"on the ur5, let's continually look for procedures/common events that can automated/added to a decision tree/accelerated ... we really want to maximize real world throughput\"; the lab asked for this table at 11:5x).",
+ "logs": [
+  "20261120-morning_series_seed20261120.log",
+  "20261120-day_series.log"
+ ],
+ "generated": "2026-11-20 12:13",
+ "summary": {
+  "setup": {
+   "n": 11,
+   "median_s": 69.0,
+   "total_min": 12.8,
+   "share": 0.143
+  },
+  "rest": {
+   "n": 11,
+   "median_s": 7.0,
+   "total_min": 1.2,
+   "share": 0.013
+  },
+  "trial": {
+   "n": 11,
+   "median_s": 11.0,
+   "total_min": 2.0,
+   "share": 0.022
+  },
+  "putdown": {
+   "n": 5,
+   "median_s": 45.0,
+   "total_min": 3.8,
+   "share": 0.043
+  },
+  "stopped": {
+   "n": 5,
+   "median_s": 879.0,
+   "total_min": 69.7,
+   "share": 0.779
+  }
+ },
+ "rows": [
+  {
+   "label": "A1_r15_x90y135g3_t1",
+   "header": "09:17:52",
+   "stop": null,
+   "setup": 86,
+   "rest": 6,
+   "trial": 12,
+   "putdown": 38,
+   "stopped": null
+  },
+  {
+   "label": "A1_r15_x90y135g3_t2",
+   "header": "09:20:14",
+   "stop": "putdown did not finish for A1_r15_x90y135g3_t2: the levelling stopped: TOUCHDOWN: the object moved -0.22 mm along z_P and 2.18 mm in P's xy against the hand (li",
+   "setup": 27,
+   "rest": 7,
+   "trial": 11,
+   "putdown": null,
+   "stopped": null
+  },
+  {
+   "label": "A1_r15_x90y135g3_t3",
+   "header": "10:43:30",
+   "stop": "putdown did not finish for A1_r15_x90y135g3_t3: levelling stopped; without levelling: not flexing back either: the hand holds its open pose over the object; loo",
+   "setup": 27,
+   "rest": 7,
+   "trial": 11,
+   "putdown": null,
+   "stopped": 879
+  },
+  {
+   "label": "A1_p35_x105y100g15_t1",
+   "header": "10:58:54",
+   "stop": null,
+   "setup": 86,
+   "rest": 7,
+   "trial": 11,
+   "putdown": 57,
+   "stopped": null
+  },
+  {
+   "label": "A1_p35_x105y100g15_t2",
+   "header": "11:01:35",
+   "stop": "A1_p35_x105y100g15_t2 ended tilted; released with letgo --tilt-ok (letgo did not finish, tilt after ? deg): stand the object up to go on",
+   "setup": 28,
+   "rest": 6,
+   "trial": 11,
+   "putdown": null,
+   "stopped": 595
+  },
+  {
+   "label": "A1_anchor_x70y110g0_t1",
+   "header": "11:12:15",
+   "stop": null,
+   "setup": 89,
+   "rest": 7,
+   "trial": 11,
+   "putdown": 45,
+   "stopped": null
+  },
+  {
+   "label": "A1_anchor_x70y110g0_t2",
+   "header": "11:14:47",
+   "stop": null,
+   "setup": 68,
+   "rest": 7,
+   "trial": 11,
+   "putdown": 46,
+   "stopped": null
+  },
+  {
+   "label": "A1_anchor_x70y110g0_t3",
+   "header": "11:16:59",
+   "stop": null,
+   "setup": 69,
+   "rest": 6,
+   "trial": 11,
+   "putdown": 44,
+   "stopped": null
+  },
+  {
+   "label": "A1_r3_x115y160g8_t1",
+   "header": "11:19:09",
+   "stop": "putdown did not finish for A1_r3_x115y160g8_t1: 100.6 mm is more than --max-down 80",
+   "setup": 141,
+   "rest": 6,
+   "trial": 9,
+   "putdown": null,
+   "stopped": 537
+  },
+  {
+   "label": "A1_r3_x115y160g8_t2",
+   "header": "11:30:43",
+   "stop": "putdown did not finish for A1_r3_x115y160g8_t2: levelling stopped; without levelling: no touchdown within 96.6 mm: the object may hang above the table; look bef",
+   "setup": 79,
+   "rest": 7,
+   "trial": 11,
+   "putdown": null,
+   "stopped": 1029
+  },
+  {
+   "label": "A1_r3_x115y160g8_t3",
+   "header": "11:49:29",
+   "stop": "A1_r3_x115y160g8_t3 toppled and the pick-up failed: no pick-up plan keeps 8 mm off the table and 4 deg from the joint limits",
+   "setup": 67,
+   "rest": 6,
+   "trial": 11,
+   "putdown": null,
+   "stopped": 1139
+  },
+  {
+   "label": "A1_r109_x70y90g1_t1",
+   "header": "12:09:52",
+   "stop": "layout failed for A1_r109_x70y90g1_t1",
+   "setup": null,
+   "rest": null,
+   "trial": null,
+   "putdown": null,
+   "stopped": null
+  }
+ ]
+}
