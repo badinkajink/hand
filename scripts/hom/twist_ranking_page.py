@@ -223,6 +223,46 @@ def fig_forces(FR):
     return png_uri(fg)
 
 
+def fig_cad(SCR, prop, cadprop, CADG=None):
+    import matplotlib
+    import matplotlib.pyplot as plt
+    fg, ax = plt.subplots(figsize=(8.2, 6.2))
+    L = SCR["layouts"]
+    x = np.array([l_["xy"][0] for l_ in L])
+    y = np.array([l_["xy"][1] for l_ in L])
+    g = np.array([l_["least_mm_both_models"] for l_ in L])
+    seen = {tuple(l_["xy"]) for l_ in L}
+    extra = {}
+    for r in (CADG or {}).get("plans", []):
+        if r["role"] in ("ranked", "anchor") and not r.get("prm") and tuple(r["xy"]) not in seen:
+            m_ = min(v["gap_mm"] for v in r["gaps"]["joints"].values())
+            extra[tuple(r["xy"])] = min(extra.get(tuple(r["xy"]), 99.0), m_)
+    if extra:
+        x = np.concatenate([x, [k_[0] for k_ in extra]])
+        y = np.concatenate([y, [k_[1] for k_ in extra]])
+        g = np.concatenate([g, list(extra.values())])
+    sc = ax.scatter(x, y, c=np.clip(g, 0, 20), cmap="viridis", vmin=0, vmax=20, s=70, edgecolors="k", linewidths=0.4)
+    touch = g < 2.0
+    ax.scatter(x[touch], y[touch], marker="x", c="#c23a3a", s=60, linewidths=2.0, label="links touch (< 2 mm)")
+    for pk in (prop or {}).get("pick", []):
+        ax.plot(*pk["xy"], "o", mfc="none", mec=C2, mew=2.0, ms=15)
+    for pk in (cadprop or {}).get("pick", []):
+        ax.plot(*pk["xy"], "s", mfc="none", mec=C4, mew=2.0, ms=15)
+    ax.plot([], [], "o", mfc="none", mec=C2, mew=2.0, ms=11, label="proposed at 20:52")
+    ax.plot([], [], "s", mfc="none", mec=C4, mew=2.0, ms=11, label="replacements at 22:1x")
+    cb = fg.colorbar(sc, ax=ax, shrink=0.85)
+    cb.set_label("least finger gap on the CAD spheres (mm)", fontsize=13)
+    cb.ax.tick_params(labelsize=12)
+    ax.set_xlabel(r"$x_{\mathrm{sep}}$ (mm)", fontsize=14)
+    ax.set_ylabel(r"$y_{\mathrm{sep}}$ (mm)", fontsize=14)
+    ax.set_xlim(37.5, 162.5)
+    ax.set_ylim(47.5, 172.5)
+    ax.set_aspect("equal")
+    ax.tick_params(labelsize=13)
+    ax.legend(fontsize=11, loc="upper left")
+    return png_uri(fg)
+
+
 def fig_trials(TV):
     import matplotlib.pyplot as plt
     fg, ax = plt.subplots(figsize=(8.0, 6.0))
@@ -290,6 +330,11 @@ def page():
     F_AGREE = next(nf)
     F_FORCE = next(nf) if FR_ok else None
     F_GAP = next(nf) if G else None
+    TIPF = j(DATA / "20261119-tip_forces_vs_sim.json")
+    CADG = j(DATA / "20261119-cad_finger_gaps.json")
+    SCR = j(DATA / "20261119-cad_gap_screen.json")
+    CADP = j(DATA / "20261119-trial_proposal_cad.json")
+    F_CAD = next(nf) if (CADG and SCR) else None
     TV = j(DATA / "20261120-trials_vs_prediction.json")
     TV_ok = bool(TV and TV.get("trials_scored"))
     F_TRIALS = next(nf) if TV_ok else None
@@ -298,6 +343,8 @@ def page():
     T_FORCE = next(nt) if FR_ok else None
     T_CEM = next(nt) if CEM_ok else None
     T_GAP = next(nt) if G else None
+    T_TIP = next(nt) if TIPF else None
+    T_CAD = next(nt) if (CADG and SCR) else None
     T_PLANS = next(nt) if TP else None
     T_TRIALS = next(nt) if TV_ok else None
     PLANS_REF = '<a href="#plans">the section on the layouts and plans for the hand</a>'
@@ -310,7 +357,16 @@ def page():
                  f"simulation's predictions, written before the trials. Over the {nl} layouts with default forces, "
                  f"Spearman's ρ between the predicted and the measured tracking is {f(rb.get('rho'))}"
                  + (f" (95 % interval over resampled trials {ci[0]:.2f} to {ci[1]:.2f})" if ci else "") + ". ")
-    if picks:
+    clear0 = None
+    if picks and TP:
+        ok_ = [e for e in TP["plans"] if e["role"] == "ranked" and not e.get("prm") and "_cem_" not in e["plan"]
+               and e.get("cad_least_mm") is not None and e["cad_least_mm"] >= 2.0]
+        clear0 = max(ok_, key=lambda e: e.get("score") or 0) if ok_ else None
+    if clear0:
+        lede += (f"On the calibrated SR2 simulation, the best layout for the sphere twist that is deployable and keeps "
+                 f"its fingers apart on the CAD collision spheres is {xy_s(clear0['xy'])} with grasp {clear0['k']}. "
+                 f"Its predicted tracking is {clear0['score']:.2f}. ")
+    elif picks:
         p0 = picks[0]
         lede += (f"The best deployable layout for the sphere twist on the calibrated SR2 simulation is "
                  f"{xy_s(p0['xy'])} with grasp {p0['k']}. Its predicted tracking is {p0['score']:.2f}, and {n_dep} of "
@@ -321,13 +377,18 @@ def page():
         lede += (f"The {spread['layouts']} best layouts differ little (standard deviation {spread['sd']:.3f}). Among "
                  f"them, ρ is {f(r_('point vs pads (stage D layouts)'))} between the two contact models and "
                  f"{min(plant_rho):.2f} to {max(plant_rho):.2f} between four other plants and their mean. ")
+    if CADG and SCR:
+        lede += ("Four of the eleven layouts first proposed, ranks 1, 2, 5 and 144 among the deployable ones, touch index "
+                 "to middle on those spheres in their simulated twists. Layouts at least 15 mm apart replace them in the "
+                 "trials' first block. ")
     if g_pads:
         lede += (f"Started from the hand's state in 0.5 s windows, the simulated hand turned the sphere "
                  f"{g_pads['twist_hand_mean'] + g_pads['twist_err_mean']:.1f}° per window; the real hand turned it "
                  f"{g_pads['twist_hand_mean']:.1f}°. ")
     if picks and n_plans:
-        lede += (f"The {n_plans} bench plans cover {len(picks)} deployable layouts over the predicted range and the "
-                 f"layout of the 11-17 trials; their predictions were written before any trial.")
+        n_lay = len({tuple(e["xy"]) for e in TP["plans"] if e["role"] == "ranked"})
+        lede += (f"The {n_plans} bench plans cover {n_lay} layouts over the predicted range and the layout of the 11-17 "
+                 f"trials; their predictions were written before any trial.")
     elif picks:
         lede += (f"{len(picks)} deployable layouts over the predicted range and the layout of the 11-17 trials are "
                  f"proposed for the hand.")
@@ -607,6 +668,81 @@ out of the grasp or ended in an error.</p>
        "middle yaws as strong as the other joints; ns: MuJoCo's noslip; μ: friction. Joint error: RMS over the nine "
        "joints at the window's end. Start shift: median motion of the sphere while the window's start resolved.", n=T_GAP)}"""))
 
+    if TIPF:
+        rows_ = []
+        for lab_, v in [(f"hand, boards (tips {k})", v) for k, v in TIPF["hand"].items()] + \
+                [(f"simulation, {'point contact' if k == 'point' else 'pads'}", v) for k, v in TIPF["sim"].items()]:
+            rows_.append([lab_] + [f"{v[f_]['median_N']:.2f} N, {100 * v[f_]['share']:.0f} %"
+                                   for f_ in ("thumb", "index", "middle")])
+        nh = len(TIPF["hand_trials"])
+        ho, so = TIPF["hand"].get("off") or {}, TIPF["sim"].get("point") or {}
+        tip_p = ""
+        if ho and so:
+            tip_p = (f" The thumb pressed throughout on the hand and in simulation, at {ho['thumb']['median_N']:.1f} and "
+                     f"{so['thumb']['median_N']:.1f} N. The index touched the sphere in {100 * ho['index']['share']:.0f} % "
+                     f"of the task on the hand and {100 * so['index']['share']:.0f} % in simulation, but at "
+                     f"{ho['index']['median_N']:.2f} N against {so['index']['median_N']:.2f} N. The middle lost contact "
+                     f"for {100 * (1 - ho['middle']['share']):.0f} % of the task on the hand and never in simulation.")
+        sec.append(("tips", "Fingertip forces on the hand and in simulation", f"""
+<p>HOM commands each finger's normal force (f_tripod, 2.5 N) through a joint offset at an assumed servo stiffness of
+0.55 N m/rad, so the force a finger exerts is not measured by HOM. The fingertip boards estimate each contact's normal
+force in every period, whether or not HOM uses them. Table {T_TIP} compares the boards over the {nh} twists of grasp 0 at
+(70, 110) of 2026-11-17 with the ranking's simulation of the same grasp at seeds 0-2, over the task window
+(sim/20261119-tip_forces_vs_sim.py).{tip_p} The boards' newtons are uncertain. The HEX-E read a 200 g dead weight at
+0.56-0.60 of its weight, and a flat contact on the proximal part of a pad reads about a third.</p>
+{table(["Source", "Thumb", "Index", "Middle"], rows_, num=(),
+       caption="Fingertip forces in the twist of (70, 110) grasp 0: median normal force while in contact and the share of "
+               "the task window (2.0-7.8 s) in contact (over 0.02 N).", n=T_TIP)}"""))
+
+    if CADG and SCR:
+        hand_ = CADG.get("hand_11_17") or []
+        g13 = [min(v["gap_mm"] for k_, v in r["gaps"].items() if k_ == "index-middle") for r in hand_
+               if r["label"].startswith("(105, 70)")]
+        g0 = [r["gaps"]["index-middle"]["gap_mm"] for r in hand_ if r["label"].startswith("(70, 110)")]
+        sim0 = [min(v["gap_mm"] for v in r["gaps"]["joints"].values()) for r in CADG["plans"]
+                if r["plan"] == "20261119-rank_x70_y110_twist_gr_g0_plan.json"]
+        LL = SCR["layouts"]
+        top60 = [l_ for l_ in LL if l_["rank_among_deployable"] <= 60]
+        tch = [l_ for l_ in top60 if l_["least_mm_both_models"] < 2.0]
+        t10 = []
+        best_ = {}
+        for r in CADG["plans"]:
+            k_ = r["plan"]
+            m_ = min(v["gap_mm"] for v in r["gaps"]["joints"].values())
+            pr_ = min(r["gaps"]["joints"].items(), key=lambda kv: kv[1]["gap_mm"])
+            if k_ not in best_ or m_ < best_[k_][0]:
+                best_[k_] = (m_, pr_[0], pr_[1]["parts"], pr_[1]["t_s"])
+        for k_, (m_, pair_, parts_, t_) in sorted(best_.items(), key=lambda kv: kv[1][0]):
+            t10.append([esc(k_.replace("_plan.json", "").replace("20261119-rank_", "")), f"{m_:.1f}", pair_,
+                        esc(parts_), f"{t_:.2f}"])
+        clr_p = (f"<p>The ranking's deployable test measured three balls per finger (tip pad, tip end, PIP joint). On "
+                 f"2026-11-19 the lab found that they miss the DIP link, which reaches 23 mm to the side: at (70, 90) "
+                 f"the thumb's and index's DIP links met in a free-air pose with the balls 27 mm apart. The cad_v3 "
+                 f"scene's collision spheres put them 0.6 mm into each other. Each plan's simulated twist (seed 0, both "
+                 f"models) was therefore put on the CAD collision spheres with the three balls "
+                 f"(sim/20261119-cad_finger_gaps.py). In four plans the index's MCP link and the middle's PIP link "
+                 f"touch during the twist's ramp (Table {T_CAD}).</p>")
+        if g13 and g0:
+            clr_p += (f"<p>The same check on the hand's measured joints of 2026-11-17 reads {min(g13):.1f} to "
+                      f"{max(g13):.1f} mm at (105, 70) grasp 13, where the index and middle met, in {len(g13)} trials. "
+                      f"At (70, 110) grasp 0 it reads {min(g0):.1f} to {max(g0):.1f} mm in {len(g0)} trials, where the "
+                      f"index and middle did not meet" + (f"; the simulation of that plan gives {min(sim0):.1f} mm"
+                                                          if sim0 else "")
+                      + ". The hand's index and middle thus come 8-13 mm closer than the simulation's.</p>")
+        clr_p += (f"<p>Over the 60 best deployable layouts (sim/20261119-cad_gap_screen.py), {len(tch)} touch, all with "
+                  rf"\(y_{{\mathrm{{sep}}}}\) at most {max(l_['xy'][1] for l_ in tch):g} mm and "
+                  rf"\(x_{{\mathrm{{sep}}}}\) at least {min(l_['xy'][0] for l_ in tch):g} mm (Figure {F_CAD}). "
+                  f"The four touching plans were replaced in the morning's first block by deployable layouts at least "
+                  f"15 mm apart on the CAD spheres (data/20261119-trial_proposal_cad.json), and run after it.</p>")
+        sec.append(("clearance", "Finger clearance on the CAD collision spheres", f"""{clr_p}
+{fig(F_CAD, fig_cad(SCR, prop, CADP, CADG), "Least finger-to-finger gap on the CAD collision spheres along the simulated twist "
+     "(seed 0, the smaller of point contact and the pads) at the screened deployable layouts and the proposed ones. "
+     "Red crosses: links "
+     "touching; orange circles: the layouts proposed at 20:52; purple squares: the replacements.")}
+{table(["Plan", "Least gap (mm)", "Pair", "Parts", "Time (s)"], t10, num=(1, 4),
+       caption="Least gap per plan on the CAD collision spheres along its simulated twist, over point contact and "
+               "the pads at seed 0.", n=T_CAD)}"""))
+
     if TP:
         t7 = []
         for p in TP["plans"]:
@@ -627,7 +763,7 @@ out of the grasp or ended in an error.</p>
                                              if w in q)
             t7.append([esc(Path(p["plan"]).name.replace("_plan.json", "").replace("20261119-rank_", "")), p["role"],
                        str(p.get("rank_among_deployable") or ""), xy_s(p["xy"]), str(p["k"]), esc(forces)] + cells +
-                      ["yes" if p.get("fits") else "no"])
+                      ["yes" if p.get("fits") else "no", f(p.get("cad_least_mm"), 1)])
         sec.append(("plans", "Layouts and plans for the hand on 2026-11-20", f"""
 <p>A layout is deployable when it passes three tests. Its mounts fit the gantries' travel boxes. Its index and middle
 stay at least 15 mm apart in every simulated run of its grasp; on 2026-11-17 the hand's fingers came about 10 mm closer
@@ -638,13 +774,16 @@ hand on 2026-11-17. Each plan was built as the plans of 2026-11-16 were (logs/20
 reproduces the g0 plan exactly). The open pose's index and middle MCPs were raised to −11.0 and −9.5° where lower, as in
 the lab's plans of 2026-11-17. A second plan has stage E's forces where they scored at least 0.05 more at the fresh
 seeds and no less at friction 0.6. The predictions in Table {T_PLANS} were written into each plan's meta.ranking before
-any trial ran.</p>
+any trial ran. Four plans whose index and middle links touch on the CAD spheres were replaced in the first block (see
+<a href="#clearance">the section on finger clearance</a>).</p>
 {table(["Plan", "Role", "Rank", "Layout (mm)", "Grasp k", "HOM forces", "Predicted (a)", "Predicted (b)",
-        "Twist at the end (°)", "Fits"], t7, num=(2, 4, 6, 7, 8),
+        "Twist at the end (°)", "Fits", "CAD gap (mm)"], t7, num=(2, 4, 6, 7, 8, 10),
        caption="Plans in docs/experiments/20261115-hom_bench_trials/plans/ (20261119-rank_*). Predicted tracking: for the "
-               "ranked and anchor plans (a) point contact and (b) the pads, mean of seeds 0-2; for the CEM plans (a) the "
-               "mean over both models at seeds 0-2 and (b) at the fresh seeds 10-12. HOM forces: the tripod's force f (or "
-               "its knots and their times) and the spin, roll and slide weights w where changed.", n=T_PLANS)}"""))
+               "default-force plans (a) point contact and (b) the pads, mean of seeds 0-2; for the plans with stage E's "
+               "forces and the CEM plans (a) the mean over both models at seeds 0-2 and (b) at the fresh seeds 10-12. "
+               "HOM forces: the tripod's force f (or its knots and their times) and the spin, roll and slide weights w "
+               "where changed. CAD gap: the least finger gap on the CAD collision spheres along the simulated twist.",
+       n=T_PLANS)}"""))
 
     if TV_ok:
         rr = TV["rho"]

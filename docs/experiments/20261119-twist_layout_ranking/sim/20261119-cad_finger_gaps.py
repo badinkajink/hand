@@ -51,10 +51,27 @@ def deg_dict(sim_rad):
     return {f: {k: math.degrees(float(v)) for k, v in zip(("yaw", "mcp", "pip"), sim_rad[f])} for f in FINGERS}
 
 
+def cem_setup(entry):
+    """The hom_tasks setup of a CEM plan's grasp: meta.hom.v on the layout, as sim/20261119-twist_cem_refine.py builds
+    it (setup_from_v); None for the other plans."""
+    if "_cem_" not in entry["plan"]:
+        return None
+    from sr2hand.robot import sr2_layouts as SL
+    sp = importlib.util.spec_from_file_location("twist_cem_refine_gaps", HERE / "20261119-twist_cem_refine.py")
+    CEM = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(CEM)
+    sys.modules["twist_search"] = SR                              # the CEM module loads its own copy; keep ours
+    v = json.loads((ROOT / entry["plan"]).read_text())["meta"]["hom"]["v"]
+    return CEM.setup_from_v(v, [float(x) for x in SL.sym6(*entry["xy"])])
+
+
 def simulated(entry, model):
     """[(t, joints deg, targets deg)] of the ranking's run of a plan list entry at seed 0."""
     from sr2hand.control import hom_bench as HB
     sim0, orig = HB.simulate, HB.HomBench
+    RP = SR._R["mod"].RG.RF._G["RP"]
+    setup0 = RP.toy_setup
+    su = cem_setup(entry)
     got = {}
 
     def keep(*a, **k):
@@ -70,12 +87,14 @@ def simulated(entry, model):
     HB.simulate = keep
     if prm:
         HB.HomBench = Bench
+    if su is not None:
+        RP.toy_setup = lambda *a, **k: su
     try:
         job = {**SR.base_job(int(entry["call"]), tuple(entry["xy"]), model, contact=model), "k": int(entry["k"]),
                "seed": 0}
         r = SR._run(job)
     finally:
-        HB.simulate, HB.HomBench = sim0, orig
+        HB.simulate, HB.HomBench, RP.toy_setup = sim0, orig, setup0
     out = []
     for s in (got.get("stream") or [])[::EVERY]:
         out.append((float(s["t"]), deg_dict(HB.sim_from_servo(s["joints"])), deg_dict(HB.sim_from_servo(s["targets"]))
@@ -107,6 +126,9 @@ def main():
     ap.add_argument("--plans", nargs="*", default=None, help="plan file names (default: every plan of the list)")
     ap.add_argument("--models", nargs="*", default=list(SR.MODELS))
     ap.add_argument("--out", default=str(STUDY / "data/20261119-cad_finger_gaps.json"))
+    ap.add_argument("--no-hand", action="store_true", help="skip the 11-17 hand records")
+    ap.add_argument("--list", default=str(STUDY / "data/20261119-trial_plans.json"), help="the plan list")
+    ap.add_argument("--merge", action="store_true", help="add the plans' rows to the --out file's, replacing the same plans")
     a = ap.parse_args()
     # the ranking's plant, as the search driver's run() sets it
     R = SR.load_replan()
@@ -115,10 +137,9 @@ def main():
     R.RG.RF.RL.rows_file()
     SR._R["mod"] = R
     SR._init()
-    lst = json.loads((STUDY / "data/20261119-trial_plans.json").read_text())["plans"]
+    lst = json.loads(Path(a.list).read_text())["plans"]
     if a.plans:
         lst = [e for e in lst if Path(e["plan"]).name in a.plans]
-    lst = [e for e in lst if "_cem_" not in e["plan"]]          # the CEM picks' grasps need their own setup
     trajs = []
     for e in lst:
         for m in a.models:
@@ -151,7 +172,7 @@ def main():
         print(f"{rows[-1]['plan']:58s} {m:5s} least {least[0]} {least[1]['gap_mm']:6.1f} mm ({least[1]['parts']}, "
               f"t {least[1]['t_s']} s); targets {min(v['gap_mm'] for v in g['targets'].values()):.1f} mm", flush=True)
     real = []
-    for p in sorted(glob.glob(str(RUNS / "2026111[789]-*_twist_d40_trial*.jsonl"))):
+    for p in ([] if a.no_hand else sorted(glob.glob(str(RUNS / "2026111[789]-*_twist_d40_trial*.jsonl")))):
         L = [json.loads(x) for x in open(p) if x.strip()]
         if not L or L[0].get("kind") != "header":
             continue
@@ -169,6 +190,11 @@ def main():
         least = min(g.items(), key=lambda kv: kv[1]["gap_mm"])
         print(f"hand {Path(p).name} {REAL[name]}: least {least[0]} {least[1]['gap_mm']:.1f} mm ({least[1]['parts']}, "
               f"t {least[1]['t_s']} s)", flush=True)
+    if a.merge and Path(a.out).exists():
+        old = json.loads(Path(a.out).read_text())
+        mine = {(r["plan"], r["model"]) for r in rows}
+        rows = [r for r in old["plans"] if (r["plan"], r["model"]) not in mine] + rows
+        real = real or old.get("hand_11_17", [])
     Path(a.out).write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "),
                                        "written": time.strftime("%F %H:%M"), "every_nth_period": EVERY,
                                        "plans": rows, "hand_11_17": real}, indent=1) + "\n")

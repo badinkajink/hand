@@ -9,19 +9,19 @@
   "builder": "scripts/hom/twist_ranking_page.py",
   "artifact": "https://claude.ai/artifact/XiBYaBDci8QPCjNzyZqSue",
   "status": "current",
-  "mb": 0.6
+  "mb": 0.7
  },
  {
   "date": "2026-11-19",
   "file": "docs/experiments/20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html",
-  "title": "Contact location, direction, twist and force from the magnetic fingertips of the SR2 hand",
-  "page_title": "Contact location, direction, twist and force from the magnetic fingertips of the SR2 hand",
+  "title": "Contact location, direction, twist and force from the magnetic fingertips of the SR2 hand. The magnetic fingertips sense where a contact is and which way it pushes. They do not sense twist, or the size of a small contact. Held out of the fit, the trials' GP places calibration contacts within 0.55-0.81 mm",
+  "page_title": "",
   "topic": "fingertip",
-  "summary": "The magnetic fingertips sense where a contact is and which way it pushes. They do not sense twist, or the size of a small contact. Held out of the fit, the trials' GP places calibration contacts within 0.55-0.81 mm (median), and their force's direction within 3.7-7.1 deg, from 0.5 N up. Below 0.5 N it pulls the place toward the pad's apex. On the SR2 hand the boards run at 150 Hz, and at 2.4 N a 50 ms place jitters by 0.28-0.90 mm along the pad. On bent fingers the boards and the DIP tags agree on the contact within a millimetre.",
+  "summary": "",
   "builder": "scripts/fingertip/fingertip_sensing_state_page.py",
   "artifact": null,
   "status": "current",
-  "mb": 0.5
+  "mb": 0.0
  },
  {
   "date": "2026-11-19",
