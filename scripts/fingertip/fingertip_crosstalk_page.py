@@ -1204,15 +1204,15 @@ def layouts_section(A, Ln, rn, fl, W, W19, V):
                             f"sweep&#8217;s poses, and what a GP refitted on them leaves. Numbers: <code>{SWEEP17.relative_to(ROOT)}</code> and <code>{SWEEP19.name}</code> beside it.")
     pd, pr_ = V["pool"]["deployed"], V["pool"]["x70y110"]
     p8 = (f"<p>That evening the lab ran a short sweep at each layout of the twist ranking&#8217;s bench series (owner, relayed at 18:1x: &#8220;a short free-air pose "
-          f"sweep at each layout ... just to see if it actually matters&#8221;). In each sweep the fingers took up to 11 named poses, from the open hand to every MCP and PIP at 40&#176;. "
+          f"sweep at each layout ... just to see if it actually matters&#8221;). In each sweep the fingers were moved through up to 11 named poses, from the open hand to every MCP and PIP at 40&#176;. "
           f"From {V['first']} to {V['last']}, {V['n_sweeps']} sweeps ran at {V['n_layouts']} layouts, two of them at (70, 110) (Table&#160;{TAB['sweeps19']}). "
-          f"Pooled over the {min(V['n_pool'])} or {max(V['n_pool'])} poses per board that moved a joint more than 3&#176;, the GP of Table&#160;{TAB['layouts_own']} left "
+          f"In the table&#8217;s last row the {min(V['n_pool'])} or {max(V['n_pool'])} poses per board that moved a joint more than 3&#176; are pooled. There the GP of Table&#160;{TAB['layouts_own']} left "
           f"{pd[0]:.1f}, {pd[1]:.1f} and {pd[2]:.1f}{uT} on the thumb&#8217;s, index&#8217;s and middle finger&#8217;s boards. That is {rng(V['pool_N'], '{:.2f}')}&#8202;N. "
           f"Its median per sweep ranged from {rng(V['per_sweep'])}{uT}, with no trend across the layouts. "
           f"The GP refitted at (70, 110) that afternoon left {pr_[0]:.1f}, {pr_[1]:.1f} and {pr_[2]:.1f}{uT}. "
           f"At (70, 110) itself it left {rng(V['same_refit'])}{uT} in the two evening sweeps, against {rng(vm('five_folds_new'))}{uT} over its five folds. "
           f"In the same two sweeps the GP of Table&#160;{TAB['layouts_own']} left {rng(V['same_dep'][0])}{uT} at {V['same_t'][0]} and {rng(V['same_dep'][1])}{uT} at {V['same_t'][1]}. "
-          f"The lab dropped the sweep at each new layout from the bench series, and the trials keep the GP of Table&#160;{TAB['layouts_own']} "
+          f"The lab dropped the sweep at each new layout from the bench series and kept the GP of Table&#160;{TAB['layouts_own']} in the trials "
           f"({link(str(L['sensing']) + '#hand2', 'contact sensing on the SR2 hand')}).</p>")
     three_ = lambda xs: " / ".join(f"{x:.1f}" for x in xs)  # noqa: E731
     tab_s = P.table(["Began", "Layout (mm)", "Poses with a joint moved", "Change, median: thumb / index / middle (&#181;T)",
@@ -1460,7 +1460,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
          "the middle finger toward each other. The random poses move all three fingers at once. In five folds, each fifth of the "
          "random poses is predicted by a GP trained on the other four fifths and the structured steps."),
         ("Layout", "The three mounts&#8217; positions in the palm frame, set by the stepper gantries. g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308 are grasp layouts of the transfer study. HOM roll, press, generalist, twist and cover are layouts of the HOM task-conflict study. "
-         "On 19 November a layout is named (x, y) by its spacings in mm: x across the palm, from the thumb&#8217;s mount to the line of the other two, and y between the index&#8217;s and the middle finger&#8217;s mounts."),
+         "On 19 November a layout is named (x, y) by its spacings in mm. Its x is the thumb&#8217;s mount&#8217;s distance across the palm from the line of the other two, and its y the distance between the index&#8217;s and the middle finger&#8217;s mounts."),
         ("Own-angle GP, layout left out, home only", f"The GP on the finger&#8217;s own three angles, with each change taken against the zero pose at the same layout. In Section&#160;{SEC['layouts']} its five folds split all of a "
          "board&#8217;s poses at random. With a layout left out, every pose of that layout is predicted by the GP fitted on the other layouts. Home only: the poses at the other layouts are predicted by the GP fitted at home."),
         ("Force equivalent", "A change in &#181;T over the tip&#8217;s change per newton on the UR5, 28.0 to 28.7&#8202;&#181;T/N."),
@@ -1657,7 +1657,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
         "The GP&#8217;s five folds predict random poses of the session that trained it, with the drift between zero dwells taken out.</p>"
         f"<p>In Section&#160;{SEC['layouts']} nothing touched the tips, so contacts are only injected, and a press on the hand also moves the finger, which the injection does not include. "
         "The pad frames come from the cad_v2 model at the stepper counts. "
-        f"The evening sweeps of 19 November took each named pose once, so a sweep&#8217;s median in Table&#160;{TAB['sweeps19']} rests on {min(int(n) for r in V['rows'] for n in r['moved'].split(', '))} to "
+        f"In the evening sweeps of 19 November each named pose was taken once, so a sweep&#8217;s median in Table&#160;{TAB['sweeps19']} rests on {min(int(n) for r in V['rows'] for n in r['moved'].split(', '))} to "
         f"{max(int(n) for r in V['rows'] for n in r['moved'].split(', '))} poses per board.</p>")))
 
     # 9. future work
