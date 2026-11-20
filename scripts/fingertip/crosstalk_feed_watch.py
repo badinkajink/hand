@@ -57,11 +57,16 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # Section 17 and the physical-model page's Section 9), and its pad friction, data/s3/*friction* (3fba0e16 and 0d3f6aa1, the
 # calibration page's Tables 38 and 39 and the overview's section on the fingertip in the simulations; the PLA sides' 38097ea3
 # to 8f770048, Table 40), the drags' line of action, data/s3/*drag* (f651a1c0 of 11-19, which the pattern missed), and
-# the flexion presses' fits and any shear analysis there (*press_fits*, *shear*: the afternoon runs of fd299780)
+# the flexion presses' fits and any shear analysis there (*press_fits*, *shear*: the afternoon runs of fd299780); and the
+# lab's sensing analyses of 11-19 and their pages (a482d935 to ef99bc6b: data/s3/*board_*, *arm_press*, *hexe_*, *twist*,
+# *contact_place*, *direction_gp*, *trial_contacts*, *estimate_stability*; the pages' folder *fingertip_sensing/ and the
+# board-force page and NOTES.md in the study's folder, which the pattern missed for 27dab96a, 8141686b and ef99bc6b)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
                       r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)|data/sweep/[^/]*own_pose"
-                      r"|data/s\d/[^/]*(board_vs_hexe|friction|drag|shear|press_fits))"
+                      r"|data/s\d/[^/]*(board_|friction|drag|shear|press_fits|arm_press|hexe_|twist|contact_place"
+                      r"|direction_gp|trial_contacts|estimate_stability)|\d{8}-[^/]*\.html|NOTES\.md)"
+                      r"|\d{8}-fingertip_sensing/"
                       r"|20261115-hom_bench_trials/data/\d{8}-tip_contacts/)")
 # the SR2 analysis's scripts change many times before its result page does (owner's high priority, 18:2x on 11-05): a commit
 # that changes only these is not news, whatever its subject; its page and data files are
