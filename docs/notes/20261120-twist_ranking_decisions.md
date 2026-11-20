@@ -182,6 +182,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   skip its third (13:4x).
 - 13:54, hand-4a: UHAS's published-settings training on the calibrated plant finished at 1024 worlds (lane_gpu3); its
   scoring on the 45 layouts runs.
+- 14:0x, hand-4a: UHAS with its published settings on the calibrated plant (1,024 worlds, 120 min): 0.659 / 0.632 at seeds
+  0-2 / 10-12, 20 and 24 of 135 runs dropped, 24.1 command reversals per joint per second (HOM and the planners 1.9-2.3).
+  Annealed sampling with 64 samples x 4 iterations at 1.0 N, its state 40 ms late (the run lane_gpu2 had started at
+  11:09): 0.832 / 0.837, 3 and 2 drops, 2.2 s per replanning for a chunk of 58 worlds; with 16 x 2 samples 0.584 / 0.555.
+  The rematch page carries them (Table 3, sorted, plain names).
 
 ## Waiting on owner
 

@@ -284,15 +284,38 @@ with 0.5 mm and 1&deg; of fresh noise per frame. That noise is about 20 times th
     # -------------------------------------------------- planners and UHAS
     names = {"ps": "Predictive sampling", "anneal": "Annealed sampling", "res_anneal": "HOM plus annealed residual",
              "uhas": "UHAS"}
+
+    def arm_name(k):
+        """A readable name for an arm of controller_rematch.py summary: method, samples x iterations, HOM's grip force
+        before the task, the force cost, the state's delay, the force channel."""
+        meth, _, tag = k.partition(" ")
+        if meth == "uhas":
+            return "UHAS, published settings (1,024 worlds, 120 min)"
+        n = re.search(r"_n(\d+)", tag)
+        it = re.search(r"k3i(\d+)", tag)
+        bits = [names[meth], f"{n.group(1) if n else 64} samples &times; {it.group(1) if it else 4} iterations"]
+        if meth == "res_anneal":
+            bits.append("HOM at 1.0 N, spin weight 0.5" if "prmftripod1" in tag else "HOM at 2.5 N")
+        else:
+            bits.append("grip 1.0 N" if "_ft1" in tag else "grip 2.5 N")
+        if "_fw" in tag:
+            bits.append("pad-force cost")
+        if "_d2" in tag:
+            bits.append("state 40 ms late")
+        if "_rf" in tag:
+            bits.append("force channel")
+        return ", ".join(bits)
     plan_rows = []
-    for k, v in sorted(S["arms"].items()):
+    for k, v in sorted(S["arms"].items(), key=lambda kv: -(kv[1].get("s101112") or 0)):
         meth = k.split(" ")[0]
         if meth in names and v.get("s101112") is not None:
-            plan_rows.append([esc(k), f(v.get("s012")), f(v.get("s101112")), str(v.get("s101112_dropped", 0)),
+            plan_rows.append([arm_name(k), f(v.get("s012")), f(v.get("s101112")), str(v.get("s101112_dropped", 0)),
                               f(v.get("reversals_ps"), 2), f(v.get("sat_frac"), 3), f(v.get("replan_s_mean"), 3)])
     if plan_rows:
-        t = """<p>Each planner ran with HOM's grip at 2.5 N and at 1.0 N before the task, and with a cost on each pad's normal
-force against 1.0 N. The arms' names give the method and its settings as the rows' files name them.</p>"""
+        t = """<p>Each sampling planner rolled out the simulated plant itself from its exact state, at a 2 ms step, and set the
+nine servo targets from the task's start (2.4 s). Before the task HOM gripped the sphere at 2.5 N or 1.0 N. The residual
+arms add the planner's joint offsets to HOM's targets every period. UHAS is the learned policy of the inner-loop
+benchmark, trained here for 120 min on the calibrated plant. Arms are sorted by their score at fresh seeds.</p>"""
         t += table(["Arm", "Score, seeds 0-2", "Score, seeds 10-12", "Dropped", "Reversals (1/s)", "Torque-limit share",
                     "Planning time per replanning (s)"], plan_rows, num=(1, 2, 3, 4, 5, 6),
                    caption="The planners and UHAS on the calibrated plant, 45 layouts.", n=nt())
@@ -347,6 +370,15 @@ from 2.5 N to {bf[0]} N, with the spin weight at {bf[1]}, raised HOM's score fro
 {f(b0['s101112'])} over 45 layouts at fresh seeds. The plant was ported to the GPU and agrees with the CPU plant,
 {f(gp['gpu_mean'])} against {f(gp['cpu_mean'])}. The sampling planners, UHAS, the tracker's rate and a clearance term were
 run on the same plant.</p>""")
+    A = S.get("arms") or {}
+    fa = next((v for k, v in A.items() if k.startswith("anneal ") and "_d2" in k and "k3i4" in k), None)
+    ra = next((v for k, v in A.items() if k.startswith("res_anneal ") and "prmftripod1" in k and "_rf" not in k), None)
+    ua = next((v for k, v in A.items() if k.split(" ")[0] == "uhas"), None)
+    if fa and ra and ua:
+        lede = lede.replace("</p>", f""" Among the planners, annealed sampling with 64 samples &times; 4 iterations scored
+{f(fa['s101112'])} with its state 40 ms late. HOM with an annealed-sampling residual scored {f(ra['s101112'])}; both planners
+roll out the simulated plant itself. UHAS scored {f(ua['s101112'])} and dropped the sphere in {ua.get('s101112_dropped')} of
+135 runs.</p>""")
     summary = (f"On the calibrated SR2 plant, HOM's commanded force changed its tracking most: {bf[0]} N in place of 2.5 N raised it "
                f"from {f(d0['s101112'])} to {f(b0['s101112'])} over 45 layouts at fresh seeds; the GPU port of the plant "
                f"matches the CPU plant ({f(gp['gpu_mean'])} against {f(gp['cpu_mean'])}).")

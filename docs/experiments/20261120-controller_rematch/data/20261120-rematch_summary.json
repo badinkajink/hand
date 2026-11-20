@@ -1,7 +1,37 @@
 {
  "what": "per arm of the controller rematch (controller_rematch.py summary)",
- "written": "2026-11-20 10:59",
+ "written": "2026-11-20 13:56",
  "arms": {
+  "anneal _ft1_d2_pdt2_n16_r10h15k3i2": {
+   "n": 270,
+   "s012": 0.5842,
+   "s012_n": 135,
+   "s012_dropped": 12,
+   "s101112": 0.5547,
+   "s101112_n": 135,
+   "s101112_dropped": 21,
+   "reversals_ps": 2.1049,
+   "cmd_rate_dps": 13.8056,
+   "sat_frac": 0.0,
+   "link_mean_N": 1.1733,
+   "pad_share": 0.5828,
+   "replan_s_mean": 0.4454
+  },
+  "anneal _ft1_d2_pdt2_r5h15k3i4": {
+   "n": 270,
+   "s012": 0.832,
+   "s012_n": 135,
+   "s012_dropped": 3,
+   "s101112": 0.8373,
+   "s101112_n": 135,
+   "s101112_dropped": 2,
+   "reversals_ps": 2.2491,
+   "cmd_rate_dps": 9.2686,
+   "sat_frac": 0.0,
+   "link_mean_N": 0.8156,
+   "pad_share": 0.5648,
+   "replan_s_mean": 2.2385
+  },
   "anneal _ft1_fw0.1_ftg1_pdt2_n16_r10h15k3i2": {
    "n": 270,
    "s012": 0.5973,
@@ -1290,19 +1320,19 @@
    "s101112_dropped": 4
   },
   "ps _ft1_d2_pdt2_n32_r5h15k3i1": {
-   "n": 224,
-   "s012": 0.6617,
-   "s012_n": 113,
+   "n": 270,
+   "s012": 0.6639,
+   "s012_n": 135,
    "s012_dropped": 4,
-   "s101112": 0.6309,
-   "s101112_n": 111,
-   "s101112_dropped": 7,
-   "reversals_ps": 1.9512,
-   "cmd_rate_dps": 18.9113,
+   "s101112": 0.6229,
+   "s101112_n": 135,
+   "s101112_dropped": 10,
+   "reversals_ps": 1.9992,
+   "cmd_rate_dps": 18.9239,
    "sat_frac": 0.0,
-   "link_mean_N": 1.3958,
-   "pad_share": 0.5952,
-   "replan_s_mean": 0.3687
+   "link_mean_N": 1.4371,
+   "pad_share": 0.5852,
+   "replan_s_mean": 0.3654
   },
   "ps _ft1_fw0.1_ftg1_pdt2_n32_r5h15k3i1": {
    "n": 270,
@@ -1378,6 +1408,20 @@
    "link_mean_N": 1.0616,
    "pad_share": 0.5656,
    "replan_s_mean": 0.9302
+  },
+  "uhas ": {
+   "n": 270,
+   "s012": 0.6591,
+   "s012_n": 135,
+   "s012_dropped": 20,
+   "s101112": 0.6323,
+   "s101112_n": 135,
+   "s101112_dropped": 24,
+   "reversals_ps": 24.0965,
+   "cmd_rate_dps": 348.9399,
+   "sat_frac": 0.0,
+   "link_mean_N": 1.5789,
+   "pad_share": 0.5713
   }
  }
 }

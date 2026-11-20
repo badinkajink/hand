@@ -17,7 +17,7 @@
   "title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",
   "page_title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",
   "topic": "design",
-  "summary": "On the calibrated SR2 plant, HOM's commanded force changed its tracking most: 1 N in place of 2.5 N raised it from 0.387 to 0.660 over 45 layouts at fresh seeds; the GPU port of the plant matches the CPU plant (0.390 against 0.395).",
+  "summary": "On the calibrated SR2 plant, HOM's commanded force changed its tracking most: 0.75 N in place of 2.5 N raised it from 0.387 to 0.678 over 45 layouts at fresh seeds; the GPU port of the plant matches the CPU plant (0.390 against 0.395).",
   "builder": "scripts/hom/controller_rematch_page.py",
   "artifact": null,
   "status": "current",
