@@ -1,0 +1,212 @@
+{
+ "what": "Each plant's prediction for the proposed layouts' default-force plans (hand-4a, 2026-11-19 21:2x), so that each plant can be scored against the trials on the hand: per proposed layout and its grasp k (data/20261119-trial_proposal.json), the mean tracking over seeds 0-2 under point contact and the pads (stages A-B) and under stage D's four plants (stage D where it ran the grasp, stage P of sim/20261119-twist_ranking_search.py for the rest).",
+ "written": "2026-11-19 21:16",
+ "plants": {
+  "point": "point contact, 7.5 V, friction 1.0",
+  "pads": "pads, 7.5 V, friction 1.0",
+  "pads_stiff": "pads at impratio 100",
+  "point_mu0.6": "point contact, friction 0.6",
+  "pads_mu0.6": "pads, friction 0.6",
+  "point_5v": "point contact, servos at 5 V"
+ },
+ "layouts": [
+  {
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 1,
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.6167,
+    "pads": 0.588,
+    "pads_stiff": 0.3557,
+    "point_mu0.6": 0.6347,
+    "pads_mu0.6": 0.4397,
+    "point_5v": 0.519
+   }
+  },
+  {
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": 2,
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "predicted": {
+    "point": 0.5393,
+    "pads": 0.5793,
+    "pads_stiff": 0.4097,
+    "point_mu0.6": 0.446,
+    "pads_mu0.6": 0.4483,
+    "point_5v": 0.4623
+   }
+  },
+  {
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 3,
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "predicted": {
+    "point": 0.541,
+    "pads": 0.546,
+    "pads_stiff": 0.435,
+    "point_mu0.6": 0.302,
+    "pads_mu0.6": 0.421,
+    "point_5v": 0.392
+   }
+  },
+  {
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 4,
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "predicted": {
+    "point": 0.5197,
+    "pads": 0.5643,
+    "pads_stiff": 0.3087,
+    "point_mu0.6": 0.4047,
+    "pads_mu0.6": 0.5777,
+    "point_5v": 0.421
+   }
+  },
+  {
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": 5,
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "predicted": {
+    "point": 0.5243,
+    "pads": 0.5563,
+    "pads_stiff": 0.396,
+    "point_mu0.6": 0.5457,
+    "pads_mu0.6": 0.5813,
+    "point_5v": 0.4633
+   }
+  },
+  {
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 40,
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "predicted": {
+    "point": 0.4713,
+    "pads": 0.4837,
+    "pads_stiff": 0.3987,
+    "point_mu0.6": 0.4807,
+    "pads_mu0.6": 0.4913,
+    "point_5v": 0.4183
+   }
+  },
+  {
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 75,
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.4437,
+    "pads": 0.4133,
+    "pads_stiff": 0.308,
+    "point_mu0.6": 0.4513,
+    "pads_mu0.6": 0.4377,
+    "point_5v": 0.372
+   }
+  },
+  {
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": 109,
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "predicted": {
+    "point": 0.397,
+    "pads": 0.399,
+    "pads_stiff": 0.241,
+    "point_mu0.6": 0.4387,
+    "pads_mu0.6": 0.408,
+    "point_5v": 0.3763
+   }
+  },
+  {
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 144,
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "predicted": {
+    "point": 0.3437,
+    "pads": 0.3577,
+    "pads_stiff": 0.2083,
+    "point_mu0.6": 0.3373,
+    "pads_mu0.6": 0.3677,
+    "point_5v": 0.2907
+   }
+  },
+  {
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 179,
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "predicted": {
+    "point": 0.032,
+    "pads": 0.024,
+    "pads_stiff": 0.0193,
+    "point_mu0.6": 0.0023,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.0
+   }
+  },
+  {
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.3903,
+    "pads": 0.3607,
+    "pads_stiff": 0.3027,
+    "point_mu0.6": 0.389,
+    "pads_mu0.6": 0.3813,
+    "point_5v": 0.3443
+   }
+  }
+ ]
+}

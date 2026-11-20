@@ -12,8 +12,9 @@ end (the drift guard, a lost stream, a controller error). Rho is given for both;
 
 Per layout of the default plans (roles ranked and anchor), the prediction is the mean tracking over both contact models
 at seeds 0-2 (the proposal's score) and per model; the measurement is the mean over the plan's trials. Spearman's rho
-between them, with a two-sided p from scipy and an interval from resampling each plan's trials (5000 draws). The CEM and
-stage-E plans are compared with their own layout's default plan.
+between them, with a two-sided p from scipy and an interval from resampling each plan's trials (5000 draws), and the
+same per plant from data/20261119-plant_predictions.json (point, pads and stage D's four plants). The CEM and stage-E
+plans are compared with their own layout's default plan.
 
     .venv/bin/python docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py [--since STAMP]
 Writes data/20261120-trials_vs_prediction.json and prints the table.
@@ -140,6 +141,14 @@ def main():
                        [{**x, "scores": x["scores_partial"], "n": len(x["scores_partial"]),
                          "measured_mean": x["measured_partial_mean"]} for x in default], "predicted_both")},
            "plans": plans}
+    # each plant's prediction (sim/20261119-plant_predictions.py) against the same trials
+    pp = STUDY / "data/20261119-plant_predictions.json"
+    if pp.exists():
+        P = {L["plan"]: L["predicted"] for L in json.loads(pp.read_text())["layouts"]}
+        out["rho_per_plant"] = {}
+        for m in sorted({m for v in P.values() for m in v}):
+            out["rho_per_plant"][m] = rho_ci([{**x, "pred_plant": (P.get(x["plan"]) or {}).get(m)} for x in default],
+                                             "pred_plant")
     # refined plans against their layout's default plan
     base = {(x["call"], x["k"]): x for x in default}
     out["refined_vs_default"] = [
@@ -155,6 +164,8 @@ def main():
               f"{x['measured_mean'] if x['measured_mean'] is not None else float('nan'):6.3f} "
               f"{x['measured_sd'] if x['measured_sd'] is not None else float('nan'):6.3f} {x['n']}")
     print(json.dumps(out["rho"], indent=1))
+    for m, v in (out.get("rho_per_plant") or {}).items():
+        print(f"  plant {m:12s} rho {v.get('rho')} over {v.get('layouts')} layouts, interval {v.get('rho_trials_resampled_95')}")
     print(f"{out['trials_scored']} trials scored, {len(skipped)} records skipped -> {a.out}")
 
 

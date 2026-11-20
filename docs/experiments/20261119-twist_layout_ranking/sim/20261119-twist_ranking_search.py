@@ -202,6 +202,16 @@ def jobs_for(stage):
                 out += [{**base_job(c, lays[c][0], name, contact=contact, volts=volts, mu=mu), "k": k, "seed": s}
                         for k in ks for s in (0, 1, 2)]
         return out
+    if stage == "P":           # stage D's plants on the proposed layouts' grasps (hand-4a, 11-19 21:2x), D's runs skipped
+        prop = json.loads((STUDY / "data/20261119-trial_proposal.json").read_text())
+        have = {key(r) for r in rows("D")}
+        out = []
+        for name, contact, volts, mu in PLANTS_D:
+            for p in prop["pick"] + prop["anchors"]:
+                c, k = int(p["call"]), int(p["k"])
+                out += [j for j in ({**base_job(c, lays[c][0], name, contact=contact, volts=volts, mu=mu), "k": k,
+                                     "seed": s} for s in (0, 1, 2)) if (name, c, k, j["seed"]) not in have]
+        return out
     raise ValueError(stage)
 
 
@@ -318,7 +328,7 @@ def run(stage, workers, limit=0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=("run", "jobs"))
-    ap.add_argument("--stage", choices=("A", "B", "C", "D"), required=True)
+    ap.add_argument("--stage", choices=("A", "B", "C", "D", "P"), required=True)
     ap.add_argument("--workers", type=int, default=14)
     ap.add_argument("--limit", type=int, default=0, help="run only the first N runs due (a size and memory check)")
     a = ap.parse_args()
