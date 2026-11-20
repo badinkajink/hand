@@ -313,6 +313,14 @@ def main():
         # station holds this plan at its mounts already (a plan's second and third trials)
         if new_layout or station_plan_file() != Path(plan).name:
             rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
+            if rc != 0 and "neither the zero nor the open pose" in out:
+                # the fingers left partly straight by letgo's partial release (2026-11-20 12:1x): straightened here, the
+                # palm already clear of the object (zero refuses while the fingers are round it), then layout again
+                rc, out = run([PY, "hom_setup.py", "zero", "--plan", plan, *common, "--go", "--video-dir", a.video_dir],
+                              120)
+                if rc != 0:
+                    sys.exit(f"STOP: the fingers could not be straightened before {label}'s layout")
+                rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
             if rc != 0 or "applied True" not in out:
                 sys.exit(f"STOP: layout failed for {label}")
         if new_layout and (a.sweep or a.sweep_only):
