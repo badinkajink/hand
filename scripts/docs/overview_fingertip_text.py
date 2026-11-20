@@ -603,6 +603,15 @@ out of its fit, it had been 6.6 to 8.4&#8202;&#181;T on 5 November. With one off
 5.5&#176;, the error was 6.3 to 8.4&#8202;&#181;T. A GP refitted on the sweep left 4.7 to 5.4&#8202;&#181;T over five folds
 ([crosstalk between fingertips](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts),
 Table 12).</p>
+<p>On the afternoon of 19 November the same sweep ran at the trials&#8217; layout, (70, 110). There the trials&#8217; GP left
+6.1 to 11.3&#8202;&#181;T at the median. A GP refitted on the sweep left 4.4 to 5.7&#8202;&#181;T over five folds. That
+evening the fingers were moved through up to 11 named poses at each of 12 layouts, in 13 short sweeps. Pooled over the
+sweeps, the trials&#8217; GP left 5.9, 7.4 and 8.0&#8202;&#181;T on the thumb&#8217;s, index&#8217;s and middle finger&#8217;s boards,
+or 0.21 to 0.29&#8202;N. Its medians per sweep showed no trend across the layouts. The afternoon&#8217;s refit left 6.1 to
+9.4&#8202;&#181;T, and 6.9 to 8.3&#8202;&#181;T at its own layout that evening. The lab kept the trials&#8217; GP and dropped the
+sweep at each new layout
+([crosstalk between fingertips](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts), Table 13;
+[contact sensing on the SR2 hand](exp:20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html#hand2)).</p>
 {{FIG sr2_film}}
 <p>On the SR2 hand at its home layout, a finger moving alone changed the other fingertips&#8217; boards by at most
 5.4&#8202;&#181;T, 0.19&#8202;N. Rest readings differ by 2.6 to 3.4&#8202;&#181;T. A tip&#8217;s own pose changed its board by up to
@@ -900,7 +909,7 @@ tip&#8217;s data, its presses are placed 0.54 and 0.53&#8202;mm off
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#motion_value),
 Section 13).</li>
 <li><b>Disturbances in the hand.</b> On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a
-neighbour at the home layout by at most 5.4&#8202;&#181;T ([on the SR2 hand](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#hand)). With a GP on the finger&#8217;s own angles subtracted, at most 3 frames per board show a contact with nothing touching, at a layout left out of its fit ([at 11 layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts)). Between two facing v3 tips on the UR5 the held boards changed by 55 to
+neighbour at the home layout by at most 5.4&#8202;&#181;T ([on the SR2 hand](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#hand)). With a GP on the finger&#8217;s own angles subtracted, at most 3 frames per board show a contact with nothing touching, at a layout left out of its fit ([at 11 layouts](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#layouts)). In 13 short sweeps at 12 layouts on 19 November it left 5.9 to 8.0&#8202;&#181;T at the median, with no trend across the layouts. Between two facing v3 tips on the UR5 the held boards changed by 55 to
 60&#8202;&#181;T at contact. The dipole model with each tip&#8217;s net moment leaves about 10&#8202;&#181;T of that
 ([magnetic crosstalk](exp:20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html#holder)). Side by side and touching, a four-magnet neighbour adds 2,928&#8202;&#181;T in the
 model, and a five-magnet one 4,162&#8202;&#181;T. The neighbour&#8217;s pose must be fitted from the boards. Steel touched to the face reads as a press of 9 to 17.5&#8202;N. The test against
