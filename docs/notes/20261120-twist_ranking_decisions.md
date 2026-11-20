@@ -59,6 +59,9 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   on the contacts helps too? I guess geometric contact from the tag is ultimately better." The lab measured 960 x 540 at
   60 fps on 11-13 (22 ms frame age against 42 ms, every tag decoded) and left the switch until a test with the block
   moving. lane_sense runs HOM with the measured tracker at 30 and 60 fps, with and without the pose filter.
+- 08:4x, hand-4a: the lab has not taken up A4feas or the new order: corvus's entries file is unchanged since 23:30 and its clone is
+  at fdd0f621e. The lights came on at 08:37, so the series starts near 08:47 with A1 as before. A4feas and the new order
+  must be in before A1 ends, near 13:00.
 - 08:5x, hand-4a: a clearance term in HOM's Eq. (2) on the CPU plant (`sim/20261120-clearance_hom.py` of the rematch;
   rows `logs/20261120-controller_rematch/rows_clear.jsonl`): rows that open a finger-to-finger gap below d_s on HOM's own
   link spheres, at seed 0 under both models with the CAD check. At d_s 20 mm and weight 10, 5 of the 17 near-touching
@@ -67,8 +70,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   still came within 9.3 mm; (115, 70) g7 kept 13.8 mm at 0.317 (0.552 without).
 - 08:5x, hand-4a: the queues asked resguard for 12 GB per run where a run holds 2 GB, so a CPU job beside them closed the
   gate (two refusals at 08:50 and 08:52); they were stopped between runs and restarted at 4-8 GB.
-- 09:17: the lights stayed on and the series started with the original order (A1 first, then A2bad, A3drop). corvus is
-  still at fdd0f621e: A4feas and the new order are not there. A1's 53 trials end near 13:15.
+- 09:17-09:21, lab: the series started with the original order and ran (90, 135) g3 t1 and t2 (twist -11 to 53 and -6
+  to 55 deg, rise 10.2 mm). It stopped in t2's putdown: the levelling turn stopped when the sphere moved 2.18 mm against
+  the hand (limit 2 mm). The sphere hung 49 mm above the table until 10:38; servo 0 reached 52 C, and servos 1, 3 and 6
+  flagged overload. A putdown without levelling set it down at 10:39. The lab session's login had reached its four-week
+  limit before 08:04, so it could not act on the messages of 08:0x until the owner logged in at 10:33.
 - 09:36, hand-4a: HOM with the tracker as measured on 11-13 (45 layouts, seeds 10-12, pads; `logs/20261120-controller_
   rematch/lane_sense.sh`). At 2.5 N: exact pose 0.386 (3 of 135 dropped), 30 fps 0.362 (11), 60 fps 0.382 (5). At 1.0 N
   and spin weight 0.5: exact 0.649 (0), 30 fps 0.539 (23), 60 fps 0.583 (13). The pose filter changed no score by more
@@ -84,16 +90,25 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   clearance term at 2.5 N, 7 have a feasible grasp, the best scoring 0.37. At 1.0 N without the term, 4 have one, scoring
   0.19-0.70: (70, 155) 0.699, (65, 145) 0.685, (55, 130) 0.664. The simulation's top layouts, (135, 65), (115, 70) and
   (105, 60), have none at 1.0 N. Feasibility depends on HOM's force: the landscape of 01:38 holds for 2.5 N only.
-- 08:4x: the lab has not taken up A4feas or the new order: corvus's entries file is unchanged since 23:30 and its clone is
-  at fdd0f621e. The lights came on at 08:37, so the series starts near 08:47 with A1 as before. A4feas and the new order
-  must be in before A1 ends, near 13:00.
+- 10:43, lab (the owner's order of 08:0x): the series restarted with A4feas after A1, 170 trials: the rest of A1 (51),
+  A4feas (40, t1 and t2 back to back), the (70, 110) anchors (9), b3E (18), b4cem (33), then b2touch, A2bad and A3drop at
+  t1 only (19). Order `lab/series_20261120_day_order.json` on corvus; rows still go to
+  `20261120-series_morning_seed20261120.jsonl`. hom_series now runs the putdown without levelling when the levelling stops.
+- 10:45, lab: stopped after trial 1 of 170, (90, 135) g3 t3 (twist -4.3 to 58.1 deg, rise 8.4 mm, drift 22.1 mm). After
+  the twist the sphere was 20.9 mm off its nominal position and tilted 49.6 deg; the levelling turn stopped at its 12 s
+  limit. The putdown without levelling released the sphere 18.1 mm off and tilted 34.9 deg, then refused both paths back
+  to zero: the index tip end would come 4.0 and 4.9 mm into the block. The hand held its open pose over the sphere.
+- 10:4x, hand-4a: the planners on the GPU plant with the exact pose (45 layouts, pads, seeds 0-2 / 10-12; the planners
+  roll out the plant itself at a 2 ms step from its exact state). Predictive sampling (32 samples) 0.641 / 0.637 at 2.5 N (7 and 6 of 135 dropped), 0.636 /
+  0.637 at 1.0 N. Annealed sampling (16 samples, 2 iterations) 0.582 / 0.578 at 2.5 N and 0.610 / 0.583 at 1.0 N, with 9-15
+  drops. Residual annealed sampling on HOM 0.776 / 0.768 on HOM at 2.5 N and 0.841 / 0.835 on HOM at 1.0 N (81 and 79 of
+  135 runs so far), no drops. Tuned HOM alone: 0.681 / 0.682 at 0.75 N. The force cost (weight 0.1, target 1 N) changed the
+  samplers by 0.03 or less (`data/20261120-rematch_summary.json`).
 
 ## Waiting on owner
 
-- The lab session (Remote Control) has not answered the two messages of 08:0x. Open it or tell it to splice A4feas after A1
-  and move the infeasible blocks to the end at one trial each; or allow hand-4a to edit
-  `series_entries_morning.txt` on corvus between trials.
+- A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,
+  about 4 h. The landscape of 01:38 holds for 2.5 N only (09:36).
 - The tracker's camera mode: 60 fps at 960 x 540 once the moving-block test is done (the lab's), with the simulated
-  effect from lane_sense.
-
+  effect from lane_sense (09:36).
 - tip_contacts.OWN_POSE: switch to the (70, 110) GP of 11-19 or not. The lab found no layout dependence (5.9-8.0 uT).
