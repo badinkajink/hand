@@ -391,6 +391,21 @@ def main():
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
                        "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
+        if "the object is not in the hand" in out:
+            # dropped during the trial (2026-11-20 12:36): the fingers straightened (zero refuses while they are round
+            # the object) and the hand lifted clear, then the pick-up when one plans at this layout, else a stop with
+            # the hand safe
+            row["putdown"] = "dropped in the trial: " + out.strip().splitlines()[-1][:150]
+            with open(a.out, "a") as f:
+                f.write(json.dumps(row) + "\n")
+            rc, out = run([PY, "hom_setup.py", "zero", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 120)
+            if rc != 0:
+                sys.exit(f"STOP: {label} dropped the object, and the fingers could not be straightened over it")
+            rc, out = run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--max-lift", "150", "--go"], 180)
+            why = pickup(a, plan, label) if a.pickup and a.object == "sphere" else "no --pickup"
+            if why is None:
+                continue
+            sys.exit(f"STOP: {label} dropped the object; the fingers straight and the hand lifted; the pick-up: {why}")
         if "LET GO" not in out and "the levelling stopped" in out:
             # 2026-11-20 09:21: the levelling turn stopped on the object moving 2.18 mm against the hand (limit 2), and
             # the series stopped with the sphere held 49 mm above the table until 10:38 (one servo at 52 C, three
