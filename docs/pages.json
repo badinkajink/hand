@@ -1,6 +1,18 @@
 [
  {
   "date": "2026-11-19",
+  "file": "docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twist_layout_ranking.html",
+  "title": "Sphere-twist layout ranking on the calibrated SR2 simulation",
+  "page_title": "Sphere-twist layout ranking on the calibrated SR2 simulation",
+  "topic": "design",
+  "summary": "Sphere twist ranked over 482 layouts on the calibrated SR2 simulation: best (110, 105) (point, tracking 0.63); point vs pads ρ 0.91; plans for 11 layouts on the hand.",
+  "builder": "scripts/hom/twist_ranking_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.6
+ },
+ {
+  "date": "2026-11-19",
   "file": "docs/experiments/20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html",
   "title": "Contact location, direction, twist and force from the magnetic fingertips of the SR2 hand",
   "page_title": "Contact location, direction, twist and force from the magnetic fingertips of the SR2 hand",

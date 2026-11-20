@@ -315,12 +315,12 @@ def page():
         lede += (f"The best deployable layout for the sphere twist on the calibrated SR2 simulation is "
                  f"{xy_s(p0['xy'])} with grasp {p0['k']}. Its predicted tracking is {p0['score']:.2f}, and {n_dep} of "
                  f"{prop['of']} layouts are deployable on the hand. ")
-    lede += (f"Over all {S['layouts']} layouts with ground-clear grasps, the orders under the two contact models agree "
-             f"at Spearman's ρ {f(r_('point vs pads (seeds 0-2)'))}. ")
+    lede += (f"Over all {S['layouts']} layouts with ground-clear grasps, Spearman's ρ between the orders under the two "
+             f"contact models is {f(r_('point vs pads (seeds 0-2)'))}. ")
     if plant_rho and spread:
         lede += (f"The {spread['layouts']} best layouts differ little (standard deviation {spread['sd']:.3f}). Among "
-                 f"them the two contact models agree at ρ {f(r_('point vs pads (stage D layouts)'))}, and four other "
-                 f"plants at {min(plant_rho):.2f} to {max(plant_rho):.2f}. ")
+                 f"them, ρ is {f(r_('point vs pads (stage D layouts)'))} between the two contact models and "
+                 f"{min(plant_rho):.2f} to {max(plant_rho):.2f} between four other plants and their mean. ")
     if g_pads:
         lede += (f"Started from the hand's state in 0.5 s windows, the simulated hand turned the sphere "
                  f"{g_pads['twist_hand_mean'] + g_pads['twist_err_mean']:.1f}° per window; the real hand turned it "
@@ -442,15 +442,15 @@ error of HOM's least squares (the SVD did not converge) and scored 0.</p>"""))
           for k, v in rho.items()]
     wc_rows = [[m, str(v["layouts"]), f(v["seeds012_mean"], 3), f(v["seeds101112_mean"], 3), f(v["change_mean"], 3),
                 f(v["rho_seeds012_vs_fresh"], 3)] for m, v in wc.items()]
-    agree_p = (f"Over all {rn('point vs pads (seeds 0-2)')} layouts, the orders under point contact and under the pads "
-               f"agree at ρ {f(r_('point vs pads (seeds 0-2)'))}. The order at seed 0 agrees with that at seeds 0-2 at "
-               f"ρ {f(r_('point: seed 0 vs seeds 0-2'))} under point contact. ")
+    agree_p = (f"Over all {rn('point vs pads (seeds 0-2)')} layouts, ρ between the orders under point contact and under "
+               f"the pads is {f(r_('point vs pads (seeds 0-2)'))}. Between seed 0 alone and seeds 0-2, it is "
+               f"{f(r_('point: seed 0 vs seeds 0-2'))} under point contact. ")
     if plant_rho and spread:
         agree_p += (f"The {spread['layouts']} best layouts lie close together: their mean over both models is "
-                    f"{spread['mean']:.3f}, with a standard deviation of {spread['sd']:.3f}. Among them, the orders under "
-                    f"the two models agree at ρ {f(r_('point vs pads (stage D layouts)'))}. Each of stage D's four plants "
-                    f"changes one part: the pads at impratio 100, friction 0.6 under either contact model, or the servos "
-                    f"at 5 V. Their orders agree with the mean of the two models at ρ {min(plant_rho):.2f} to "
+                    f"{spread['mean']:.3f}, with a standard deviation of {spread['sd']:.3f}. Among them, ρ between the two "
+                    f"models falls to {f(r_('point vs pads (stage D layouts)'))}. Each of stage D's four plants changes "
+                    f"one part: the pads at impratio 100, friction 0.6 under either contact model, or the servos at 5 V. "
+                    f"Between each plant's order and that of the two models' mean, ρ is {min(plant_rho):.2f} to "
                     f"{max(plant_rho):.2f}. ")
     if "point" in wc and "pads" in wc:
         agree_p += (f"At the fresh seeds, the 60 best layouts scored {-wc['point']['change_mean']:.3f} less under point "
