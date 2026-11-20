@@ -1,0 +1,1104 @@
+{
+ "what": "Bench plans for the layouts proposed for the hand (hand-4a, 2026-11-19), with the simulation's predictions written into each plan before any trial runs.",
+ "written": "2026-11-20 08:06",
+ "plans": [
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y170_twist_gr_g13_plan.json",
+   "role": "ranked",
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "k": 13,
+   "rank_among_deployable": null,
+   "score": 0.4455,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.454,
+     "track_seeds101112": null,
+     "twist_end_deg": 63.0,
+     "rise_max_mm": 20.36,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.437,
+     "track_seeds101112": null,
+     "twist_end_deg": 51.4,
+     "rise_max_mm": 21.17,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     81.6003
+    ],
+    "middle": [
+     46.3187,
+     -81.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y95_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "score": 0.4268,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.425,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.7,
+     "rise_max_mm": 10.34,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.428,
+     "track_seeds101112": null,
+     "twist_end_deg": 53.8,
+     "rise_max_mm": 10.41,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -13.11,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     44.1003
+    ],
+    "middle": [
+     36.3187,
+     -44.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x95_y165_twist_gr_g13_plan.json",
+   "role": "ranked",
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "k": 13,
+   "rank_among_deployable": null,
+   "score": 0.4214,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.446,
+     "track_seeds101112": null,
+     "twist_end_deg": 55.1,
+     "rise_max_mm": 15.15,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.397,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.2,
+     "rise_max_mm": 17.14,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -41.3188,
+     2.4004
+    ],
+    "index": [
+     41.3188,
+     79.1003
+    ],
+    "middle": [
+     41.3187,
+     -79.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y120_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.4249,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.432,
+     "track_seeds101112": null,
+     "twist_end_deg": 47.5,
+     "rise_max_mm": 10.09,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.418,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.0,
+     "rise_max_mm": 10.15,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     56.6003
+    ],
+    "middle": [
+     26.3187,
+     -56.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y80_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "score": 0.4336,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.448,
+     "track_seeds101112": null,
+     "twist_end_deg": 47.5,
+     "rise_max_mm": 8.2,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.419,
+     "track_seeds101112": null,
+     "twist_end_deg": 44.8,
+     "rise_max_mm": 8.76,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     36.6003
+    ],
+    "middle": [
+     28.8187,
+     -36.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x75_y120_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.4518,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.442,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.5,
+     "rise_max_mm": 9.09,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.462,
+     "track_seeds101112": null,
+     "twist_end_deg": 55.9,
+     "rise_max_mm": 11.61,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -31.318800000000003,
+     2.4004
+    ],
+    "index": [
+     31.318800000000003,
+     56.6003
+    ],
+    "middle": [
+     31.3187,
+     -56.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "score": 0.4975,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.486,
+     "track_seeds101112": null,
+     "twist_end_deg": 61.9,
+     "rise_max_mm": 13.84,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.509,
+     "track_seeds101112": null,
+     "twist_end_deg": 66.7,
+     "rise_max_mm": 16.2,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "middle": [
+     -12.49,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     64.1003
+    ],
+    "middle": [
+     46.3187,
+     -64.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y105_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.431,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.44,
+     "track_seeds101112": null,
+     "twist_end_deg": 47.9,
+     "rise_max_mm": 8.19,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.422,
+     "track_seeds101112": null,
+     "twist_end_deg": 48.9,
+     "rise_max_mm": 8.5,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -23.818800000000003,
+     2.4004
+    ],
+    "index": [
+     23.818800000000003,
+     49.1003
+    ],
+    "middle": [
+     23.8187,
+     -49.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x80_y115_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "score": 0.4602,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.443,
+     "track_seeds101112": null,
+     "twist_end_deg": 56.5,
+     "rise_max_mm": 10.45,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.477,
+     "track_seeds101112": null,
+     "twist_end_deg": 61.5,
+     "rise_max_mm": 13.88,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -33.8188,
+     2.4004
+    ],
+    "index": [
+     33.8188,
+     54.1003
+    ],
+    "middle": [
+     33.8187,
+     -54.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y140_twist_gr_g12_plan.json",
+   "role": "ranked",
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "k": 12,
+   "rank_among_deployable": null,
+   "score": 0.5012,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.504,
+     "track_seeds101112": null,
+     "twist_end_deg": 59.9,
+     "rise_max_mm": 12.3,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.499,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.3,
+     "rise_max_mm": 13.57,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     66.6003
+    ],
+    "middle": [
+     36.3187,
+     -66.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x90_y85_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "k": 9,
+   "rank_among_deployable": null,
+   "score": 0.4415,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.432,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.0,
+     "rise_max_mm": 9.83,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.451,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.5,
+     "rise_max_mm": 9.68,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -38.8188,
+     2.4004
+    ],
+    "index": [
+     38.8188,
+     39.1003
+    ],
+    "middle": [
+     38.8187,
+     -39.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x90_y100_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.465,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.463,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.9,
+     "rise_max_mm": 12.18,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.467,
+     "track_seeds101112": null,
+     "twist_end_deg": 57.2,
+     "rise_max_mm": 13.49,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -12.98,
+     -11.0
+    ],
+    "middle": [
+     -10.53,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -38.8188,
+     2.4004
+    ],
+    "index": [
+     38.8188,
+     46.6003
+    ],
+    "middle": [
+     38.8187,
+     -46.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x90_y115_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "score": 0.5011,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.486,
+     "track_seeds101112": null,
+     "twist_end_deg": 60.2,
+     "rise_max_mm": 11.77,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.516,
+     "track_seeds101112": 0.517,
+     "twist_end_deg": 62.3,
+     "rise_max_mm": 14.57,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -14.57,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -38.8188,
+     2.4004
+    ],
+    "index": [
+     38.8188,
+     54.1003
+    ],
+    "middle": [
+     38.8187,
+     -54.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x95_y130_twist_gr_g4_plan.json",
+   "role": "ranked",
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "k": 4,
+   "rank_among_deployable": null,
+   "score": 0.4783,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.474,
+     "track_seeds101112": null,
+     "twist_end_deg": 51.5,
+     "rise_max_mm": 6.36,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.482,
+     "track_seeds101112": null,
+     "twist_end_deg": 50.9,
+     "rise_max_mm": 9.14,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -41.3188,
+     2.4004
+    ],
+    "index": [
+     41.3188,
+     61.6003
+    ],
+    "middle": [
+     41.3187,
+     -61.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x95_y140_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.503,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.496,
+     "track_seeds101112": null,
+     "twist_end_deg": 62.3,
+     "rise_max_mm": 12.69,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.51,
+     "track_seeds101112": null,
+     "twist_end_deg": 65.4,
+     "rise_max_mm": 16.07,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -41.3188,
+     2.4004
+    ],
+    "index": [
+     41.3188,
+     66.6003
+    ],
+    "middle": [
+     41.3187,
+     -66.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x100_y145_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "score": 0.5135,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.549,
+     "track_seeds101112": 0.563,
+     "twist_end_deg": 60.4,
+     "rise_max_mm": 16.68,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.463,
+     "track_seeds101112": null,
+     "twist_end_deg": 45.6,
+     "rise_max_mm": 14.84,
+     "runs": 1,
+     "held": 1
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -43.8188,
+     2.4004
+    ],
+    "index": [
+     43.8188,
+     69.1003
+    ],
+    "middle": [
+     43.8187,
+     -69.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x100_y155_twist_gr_g10_plan.json",
+   "role": "ranked",
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "k": 10,
+   "rank_among_deployable": null,
+   "score": 0.4877,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.491,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.3,
+     "rise_max_mm": 14.02,
+     "runs": 1,
+     "held": 1
+    },
+    "pads": {
+     "track_seeds012": 0.516,
+     "track_seeds101112": 0.506,
+     "twist_end_deg": 61.1,
+     "rise_max_mm": 18.57,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -43.8188,
+     2.4004
+    ],
+    "index": [
+     43.8188,
+     74.1003
+    ],
+    "middle": [
+     43.8187,
+     -74.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y150_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "score": 0.5362,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.527,
+     "track_seeds101112": null,
+     "twist_end_deg": 78.7,
+     "rise_max_mm": 16.78,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.545,
+     "track_seeds101112": 0.514,
+     "twist_end_deg": 68.2,
+     "rise_max_mm": 20.02,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     71.6003
+    ],
+    "middle": [
+     46.3187,
+     -71.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y160_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.4293,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.424,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.8,
+     "rise_max_mm": 15.15,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.434,
+     "track_seeds101112": null,
+     "twist_end_deg": 51.0,
+     "rise_max_mm": 17.64,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     76.6003
+    ],
+    "middle": [
+     46.3187,
+     -76.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y165_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.5036,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.504,
+     "track_seeds101112": null,
+     "twist_end_deg": 69.8,
+     "rise_max_mm": 17.54,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.503,
+     "track_seeds101112": null,
+     "twist_end_deg": 68.9,
+     "rise_max_mm": 22.03,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -14.04,
+     -11.0
+    ],
+    "middle": [
+     -14.04,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     79.1003
+    ],
+    "middle": [
+     48.8187,
+     -79.1002
+    ]
+   }
+  }
+ ]
+}

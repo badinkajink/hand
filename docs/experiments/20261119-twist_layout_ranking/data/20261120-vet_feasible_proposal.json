@@ -1,0 +1,206 @@
+{
+ "what": "hand_deploy.py plan from docs/experiments/20261119-twist_layout_ranking/data/20261120-vet_feasible.json",
+ "pick": [
+  {
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "k": 13,
+   "score": 0.4455,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "k": 14,
+   "score": 0.4268,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "k": 13,
+   "score": 0.4214,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "k": 0,
+   "score": 0.4249,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "k": 6,
+   "score": 0.4336,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "k": 0,
+   "score": 0.4518,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "k": 8,
+   "score": 0.4975,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "k": 0,
+   "score": 0.431,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "k": 7,
+   "score": 0.4602,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "k": 12,
+   "score": 0.5012,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "k": 9,
+   "score": 0.4415,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "k": 5,
+   "score": 0.465,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "k": 6,
+   "score": 0.5011,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "k": 4,
+   "score": 0.4783,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "k": 0,
+   "score": 0.503,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "k": 6,
+   "score": 0.5135,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "k": 10,
+   "score": 0.4877,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "k": 7,
+   "score": 0.5362,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "k": 0,
+   "score": 0.4293,
+   "rank_among_deployable": null
+  },
+  {
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "k": 0,
+   "score": 0.5036,
+   "rank_among_deployable": null
+  }
+ ],
+ "anchors": []
+}

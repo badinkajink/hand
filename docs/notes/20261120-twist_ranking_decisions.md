@@ -28,16 +28,21 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   dropping layouts of the morning list: none has a grasp (of 16) whose simulated twist keeps the fingers 10 mm apart.
   The best reaches -0.0 to 9.2 mm, and the hand runs 8-13 mm closer. Under HOM they have no feasible twist; their
   feasible prediction is 0. The search over all 404 layouts runs overnight (lane6, done near 02:40).
+- 01:38, lane6: 214 of the 404 fitting layouts have a grasp whose simulated twist keeps the fingers 10 mm apart under
+  both models with the sphere held, and 94 keep 15 mm (`data/20261120-feasible_ranking.json`). The best feasible layout
+  is predicted 0.536, (105, 150) g7; the best layout overall, which touches, 0.637.
+- 08:0x, owner: "Sure on all three decisions. We don't have to run the full infeasible set, we should get more coverage
+  among the probably good and feasible set of hands first." Also: "Wish you would've run the control rematch while I
+  was sleeping."
+- 08:3x, hand-4a, relayed to the lab with the owner's words: a block A4feas of 20 layouts after A1, 2 trials each (40
+  trials). They are predicted 0.42-0.54 (median 0.463), keep 15 mm or more under both models at their best feasible
+  grasp, hold the sphere under all six plants, and lie between the morning list's layouts on the lattice
+  (`sim/20261120-feasible_proposal.py`, `data/20261120-vet_feasible.json`). The 19 infeasible layouts run last at one
+  trial each (19 trials in place of 42), block 2 first; they are the first to cut. The (70, 110) anchor set, b3E and
+  b4cem keep their places after A4feas.
+- 08:3x, owner's go (08:0x): the controller rematch and the collision-aware HOM start today, in simulation on the
+  workstation.
 
 ## Waiting on owner
 
-- Whether to run the 19 layouts that have no feasible twist under HOM (block 2, A2, A3: 42 trials, about 3 h from about
-  11:00). Their trials test the prediction "infeasible": the hand should fail them by stalls or contact between links.
-  Proposed: run block 2 (the simulation's top layouts) in full and A2 at one trial each, or cut both if the day is short.
-  How (lab, 2de1e6306): hom_series reads lab/series_control.txt on corvus before every trial. A line "skip A2bad",
-  "skip A3drop" or "skip b2touch" drops that block without stopping the series; a line "hold" pauses before the next
-  trial until it is removed. Tell the lab session or edit the file.
-- A collision-aware HOM (a clearance term in its least squares) could give these layouts a feasible twist.
-- A controller rematch on the calibrated plant, with each method's force knob tuned: HOM, annealed and predictive
-  sampling, and UHAS with a cost on target rate and the torque budget. This would run after block A's results.
 - tip_contacts.OWN_POSE: switch to the (70, 110) GP of 11-19 or not. The lab found no layout dependence (5.9-8.0 uT).

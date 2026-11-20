@@ -1,0 +1,5663 @@
+{
+ "what": "Each layout judged by its best feasible twist: among its ground-clear grasps, the best whose simulated twist keeps the fingers apart on the CAD collision spheres (hand-4a, 2026-11-20 00:0x; owner, 23:5x: \"we should not be filtering bad hands because of collisions from infeasible trajectories, we should be judging them by their feasible trajectories\").",
+ "written": "2026-11-20 08:02",
+ "clear_mm": 10.0,
+ "layouts": [
+  {
+   "call": 77,
+   "xy": [
+    55.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.4252,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 78,
+   "xy": [
+    55.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 7,
+   "default_score": 0.4052,
+   "k": 14,
+   "seed0": 0.3715,
+   "seeds012": 0.3685
+  },
+  {
+   "call": 79,
+   "xy": [
+    55.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 11,
+   "default_score": 0.4293,
+   "k": 11,
+   "seed0": 0.43,
+   "seeds012": 0.4293
+  },
+  {
+   "call": 80,
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 10,
+   "default_score": 0.4182,
+   "k": 10,
+   "seed0": 0.416,
+   "seeds012": 0.4182
+  },
+  {
+   "call": 81,
+   "xy": [
+    55.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.3822,
+   "k": 0,
+   "seed0": 0.387,
+   "seeds012": 0.3822
+  },
+  {
+   "call": 83,
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4048,
+   "k": 0,
+   "seed0": 0.4065,
+   "seeds012": 0.4048
+  },
+  {
+   "call": 84,
+   "xy": [
+    55.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.1405,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 85,
+   "xy": [
+    55.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4042,
+   "k": 0,
+   "seed0": 0.4,
+   "seeds012": 0.4042
+  },
+  {
+   "call": 86,
+   "xy": [
+    55.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 0,
+   "default_score": 0.411,
+   "k": 0,
+   "seed0": 0.4105,
+   "seeds012": 0.411
+  },
+  {
+   "call": 87,
+   "xy": [
+    55.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4022,
+   "k": 0,
+   "seed0": 0.398,
+   "seeds012": 0.4022
+  },
+  {
+   "call": 88,
+   "xy": [
+    55.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 13,
+   "default_score": 0.384,
+   "k": 13,
+   "seed0": 0.3795,
+   "seeds012": 0.384
+  },
+  {
+   "call": 89,
+   "xy": [
+    55.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 9,
+   "default_score": 0.361,
+   "k": 9,
+   "seed0": 0.3605,
+   "seeds012": 0.361
+  },
+  {
+   "call": 90,
+   "xy": [
+    55.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.3027,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 91,
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.1407,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 92,
+   "xy": [
+    55.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 1,
+   "default_score": 0.0808,
+   "k": 8,
+   "seed0": 0.0655,
+   "seeds012": 0.052
+  },
+  {
+   "call": 93,
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.0382,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 96,
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.0415,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 97,
+   "xy": [
+    55.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.236,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 102,
+   "xy": [
+    60.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.3773,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 103,
+   "xy": [
+    60.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 3,
+   "default_score": 0.4563,
+   "k": 3,
+   "seed0": 0.4575,
+   "seeds012": 0.4563
+  },
+  {
+   "call": 104,
+   "xy": [
+    60.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 0,
+   "default_score": 0.3717,
+   "k": 0,
+   "seed0": 0.368,
+   "seeds012": 0.3717
+  },
+  {
+   "call": 105,
+   "xy": [
+    60.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 11,
+   "default_score": 0.3772,
+   "k": 13,
+   "seed0": 0.399,
+   "seeds012": 0.397
+  },
+  {
+   "call": 106,
+   "xy": [
+    60.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.3875,
+   "k": 2,
+   "seed0": 0.3885,
+   "seeds012": 0.3855
+  },
+  {
+   "call": 107,
+   "xy": [
+    60.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 1,
+   "default_score": 0.4065,
+   "k": 0,
+   "seed0": 0.4095,
+   "seeds012": 0.4027
+  },
+  {
+   "call": 108,
+   "xy": [
+    60.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4113,
+   "k": 0,
+   "seed0": 0.413,
+   "seeds012": 0.4113
+  },
+  {
+   "call": 109,
+   "xy": [
+    60.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.416,
+   "k": 0,
+   "seed0": 0.418,
+   "seeds012": 0.416
+  },
+  {
+   "call": 110,
+   "xy": [
+    60.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4188,
+   "k": 0,
+   "seed0": 0.4265,
+   "seeds012": 0.4188
+  },
+  {
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.431,
+   "k": 0,
+   "seed0": 0.4335,
+   "seeds012": 0.431
+  },
+  {
+   "call": 112,
+   "xy": [
+    60.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 0,
+   "default_score": 0.4358,
+   "k": 0,
+   "seed0": 0.436,
+   "seeds012": 0.4358
+  },
+  {
+   "call": 113,
+   "xy": [
+    60.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 0,
+   "default_score": 0.4095,
+   "k": 0,
+   "seed0": 0.399,
+   "seeds012": 0.4095
+  },
+  {
+   "call": 114,
+   "xy": [
+    60.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 6,
+   "default_score": 0.3762,
+   "k": 6,
+   "seed0": 0.3755,
+   "seeds012": 0.3762
+  },
+  {
+   "call": 115,
+   "xy": [
+    60.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 7,
+   "default_score": 0.3677,
+   "k": 7,
+   "seed0": 0.362,
+   "seeds012": 0.3677
+  },
+  {
+   "call": 116,
+   "xy": [
+    60.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 0,
+   "default_score": 0.2817,
+   "k": 6,
+   "seed0": 0.227,
+   "seeds012": 0.229
+  },
+  {
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 8,
+   "default_score": 0.028,
+   "k": 1,
+   "seed0": 0.058,
+   "seeds012": 0.0197
+  },
+  {
+   "call": 118,
+   "xy": [
+    60.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.2353,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 119,
+   "xy": [
+    60.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.18,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 120,
+   "xy": [
+    60.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 3,
+   "default_score": 0.0787,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 121,
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.097,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 122,
+   "xy": [
+    60.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.2127,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 127,
+   "xy": [
+    65.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.3512,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 128,
+   "xy": [
+    65.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 12,
+   "default_score": 0.377,
+   "k": 12,
+   "seed0": 0.3915,
+   "seeds012": 0.377
+  },
+  {
+   "call": 129,
+   "xy": [
+    65.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 10,
+   "default_score": 0.4097,
+   "k": 10,
+   "seed0": 0.408,
+   "seeds012": 0.4097
+  },
+  {
+   "call": 130,
+   "xy": [
+    65.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 6,
+   "default_score": 0.3832,
+   "k": 6,
+   "seed0": 0.3815,
+   "seeds012": 0.3832
+  },
+  {
+   "call": 131,
+   "xy": [
+    65.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 3,
+   "default_score": 0.3667,
+   "k": 3,
+   "seed0": 0.3715,
+   "seeds012": 0.3667
+  },
+  {
+   "call": 132,
+   "xy": [
+    65.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 6,
+   "default_score": 0.4192,
+   "k": 6,
+   "seed0": 0.4195,
+   "seeds012": 0.4192
+  },
+  {
+   "call": 133,
+   "xy": [
+    65.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 15,
+   "default_score": 0.4162,
+   "k": 15,
+   "seed0": 0.4235,
+   "seeds012": 0.4162
+  },
+  {
+   "call": 134,
+   "xy": [
+    65.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 14,
+   "default_score": 0.5477,
+   "k": 0,
+   "seed0": 0.3755,
+   "seeds012": 0.376
+  },
+  {
+   "call": 135,
+   "xy": [
+    65.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 2,
+   "default_score": 0.48,
+   "k": 11,
+   "seed0": 0.3835,
+   "seeds012": 0.3915
+  },
+  {
+   "call": 136,
+   "xy": [
+    65.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.4192,
+   "k": 0,
+   "seed0": 0.4245,
+   "seeds012": 0.4192
+  },
+  {
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 0,
+   "default_score": 0.4285,
+   "k": 0,
+   "seed0": 0.4305,
+   "seeds012": 0.4285
+  },
+  {
+   "call": 138,
+   "xy": [
+    65.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 0,
+   "default_score": 0.448,
+   "k": 0,
+   "seed0": 0.4485,
+   "seeds012": 0.448
+  },
+  {
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 0,
+   "default_score": 0.4248,
+   "k": 0,
+   "seed0": 0.4165,
+   "seeds012": 0.4248
+  },
+  {
+   "call": 140,
+   "xy": [
+    65.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.3797,
+   "k": 0,
+   "seed0": 0.3795,
+   "seeds012": 0.3797
+  },
+  {
+   "call": 141,
+   "xy": [
+    65.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.2543,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 142,
+   "xy": [
+    65.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 0,
+   "default_score": 0.3262,
+   "k": 0,
+   "seed0": 0.3255,
+   "seeds012": 0.3262
+  },
+  {
+   "call": 143,
+   "xy": [
+    65.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 14,
+   "default_score": 0.3637,
+   "k": 14,
+   "seed0": 0.363,
+   "seeds012": 0.3637
+  },
+  {
+   "call": 144,
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.1632,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 145,
+   "xy": [
+    65.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.0502,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 146,
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.083,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 152,
+   "xy": [
+    70.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.4518,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 153,
+   "xy": [
+    70.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 14,
+   "default_score": 0.3588,
+   "k": 14,
+   "seed0": 0.3605,
+   "seeds012": 0.3588
+  },
+  {
+   "call": 154,
+   "xy": [
+    70.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 13,
+   "default_score": 0.3368,
+   "k": 5,
+   "seed0": 0.3265,
+   "seeds012": 0.3255
+  },
+  {
+   "call": 155,
+   "xy": [
+    70.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 0,
+   "default_score": 0.3333,
+   "k": 6,
+   "seed0": 0.183,
+   "seeds012": 0.1765
+  },
+  {
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 6,
+   "default_score": 0.4337,
+   "k": 6,
+   "seed0": 0.4295,
+   "seeds012": 0.4337
+  },
+  {
+   "call": 157,
+   "xy": [
+    70.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 7,
+   "default_score": 0.422,
+   "k": 7,
+   "seed0": 0.42,
+   "seeds012": 0.422
+  },
+  {
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 1,
+   "default_score": 0.398,
+   "k": 1,
+   "seed0": 0.3985,
+   "seeds012": 0.398
+  },
+  {
+   "call": 159,
+   "xy": [
+    70.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 0,
+   "default_score": 0.3557,
+   "k": 0,
+   "seed0": 0.359,
+   "seeds012": 0.3557
+  },
+  {
+   "call": 160,
+   "xy": [
+    70.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.3588,
+   "k": 0,
+   "seed0": 0.3545,
+   "seeds012": 0.3588
+  },
+  {
+   "call": 161,
+   "xy": [
+    70.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 13,
+   "default_score": 0.445,
+   "k": 13,
+   "seed0": 0.4505,
+   "seeds012": 0.445
+  },
+  {
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.3755,
+   "k": 0,
+   "seed0": 0.3825,
+   "seeds012": 0.3755
+  },
+  {
+   "call": 163,
+   "xy": [
+    70.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 7,
+   "default_score": 0.491,
+   "k": 0,
+   "seed0": 0.4175,
+   "seeds012": 0.4007
+  },
+  {
+   "call": 164,
+   "xy": [
+    70.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 0,
+   "default_score": 0.4425,
+   "k": 0,
+   "seed0": 0.45,
+   "seeds012": 0.4425
+  },
+  {
+   "call": 165,
+   "xy": [
+    70.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.2142,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 166,
+   "xy": [
+    70.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.1183,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 167,
+   "xy": [
+    70.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 0,
+   "default_score": 0.342,
+   "k": 0,
+   "seed0": 0.334,
+   "seeds012": 0.342
+  },
+  {
+   "call": 168,
+   "xy": [
+    70.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 0,
+   "default_score": 0.321,
+   "k": 13,
+   "seed0": 0.2025,
+   "seeds012": 0.1977
+  },
+  {
+   "call": 169,
+   "xy": [
+    70.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 4,
+   "default_score": 0.36,
+   "k": 4,
+   "seed0": 0.373,
+   "seeds012": 0.36
+  },
+  {
+   "call": 170,
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.0873,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 171,
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.1357,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 172,
+   "xy": [
+    70.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 3,
+   "default_score": 0.0,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 177,
+   "xy": [
+    75.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.4343,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 178,
+   "xy": [
+    75.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 9,
+   "default_score": 0.4495,
+   "k": 1,
+   "seed0": 0.3365,
+   "seeds012": 0.3355
+  },
+  {
+   "call": 179,
+   "xy": [
+    75.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 15,
+   "default_score": 0.3642,
+   "k": 15,
+   "seed0": 0.3605,
+   "seeds012": 0.3642
+  },
+  {
+   "call": 180,
+   "xy": [
+    75.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 4,
+   "default_score": 0.4127,
+   "k": 4,
+   "seed0": 0.4095,
+   "seeds012": 0.4127
+  },
+  {
+   "call": 181,
+   "xy": [
+    75.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 9,
+   "default_score": 0.3822,
+   "k": 9,
+   "seed0": 0.3805,
+   "seeds012": 0.3822
+  },
+  {
+   "call": 182,
+   "xy": [
+    75.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 1,
+   "default_score": 0.467,
+   "k": 1,
+   "seed0": 0.466,
+   "seeds012": 0.467
+  },
+  {
+   "call": 183,
+   "xy": [
+    75.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 11,
+   "default_score": 0.3657,
+   "k": 6,
+   "seed0": 0.2145,
+   "seeds012": 0.2392
+  },
+  {
+   "call": 184,
+   "xy": [
+    75.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 7,
+   "default_score": 0.5282,
+   "k": 15,
+   "seed0": 0.374,
+   "seeds012": 0.3612
+  },
+  {
+   "call": 185,
+   "xy": [
+    75.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 0,
+   "default_score": 0.3538,
+   "k": 0,
+   "seed0": 0.3605,
+   "seeds012": 0.3538
+  },
+  {
+   "call": 186,
+   "xy": [
+    75.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 6,
+   "default_score": 0.4057,
+   "k": 6,
+   "seed0": 0.4095,
+   "seeds012": 0.4057
+  },
+  {
+   "call": 187,
+   "xy": [
+    75.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 14,
+   "default_score": 0.4277,
+   "k": 14,
+   "seed0": 0.4415,
+   "seeds012": 0.4277
+  },
+  {
+   "call": 188,
+   "xy": [
+    75.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 4,
+   "default_score": 0.4942,
+   "k": 4,
+   "seed0": 0.496,
+   "seeds012": 0.4942
+  },
+  {
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 0,
+   "default_score": 0.4518,
+   "k": 0,
+   "seed0": 0.4515,
+   "seeds012": 0.4518
+  },
+  {
+   "call": 190,
+   "xy": [
+    75.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.431,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 191,
+   "xy": [
+    75.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.432,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 192,
+   "xy": [
+    75.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 0,
+   "default_score": 0.3685,
+   "k": 0,
+   "seed0": 0.364,
+   "seeds012": 0.3685
+  },
+  {
+   "call": 193,
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 5,
+   "default_score": 0.2705,
+   "k": 0,
+   "seed0": 0.2735,
+   "seeds012": 0.289
+  },
+  {
+   "call": 194,
+   "xy": [
+    75.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 10,
+   "default_score": 0.4363,
+   "k": 10,
+   "seed0": 0.433,
+   "seeds012": 0.4363
+  },
+  {
+   "call": 195,
+   "xy": [
+    75.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 13,
+   "default_score": 0.314,
+   "k": 13,
+   "seed0": 0.356,
+   "seeds012": 0.314
+  },
+  {
+   "call": 196,
+   "xy": [
+    75.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.2573,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 202,
+   "xy": [
+    80.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.345,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 203,
+   "xy": [
+    80.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 5,
+   "default_score": 0.342,
+   "k": 15,
+   "seed0": 0.3195,
+   "seeds012": 0.3148
+  },
+  {
+   "call": 204,
+   "xy": [
+    80.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 13,
+   "default_score": 0.4672,
+   "k": 13,
+   "seed0": 0.4685,
+   "seeds012": 0.4672
+  },
+  {
+   "call": 205,
+   "xy": [
+    80.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 14,
+   "default_score": 0.4138,
+   "k": 12,
+   "seed0": 0.286,
+   "seeds012": 0.282
+  },
+  {
+   "call": 206,
+   "xy": [
+    80.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 9,
+   "default_score": 0.6112,
+   "k": 4,
+   "seed0": 0.483,
+   "seeds012": 0.4848
+  },
+  {
+   "call": 207,
+   "xy": [
+    80.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 10,
+   "default_score": 0.4518,
+   "k": 5,
+   "seed0": 0.372,
+   "seeds012": 0.3672
+  },
+  {
+   "call": 208,
+   "xy": [
+    80.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 15,
+   "default_score": 0.4438,
+   "k": 9,
+   "seed0": 0.4475,
+   "seeds012": 0.4293
+  },
+  {
+   "call": 209,
+   "xy": [
+    80.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 2,
+   "default_score": 0.4608,
+   "k": 2,
+   "seed0": 0.463,
+   "seeds012": 0.4608
+  },
+  {
+   "call": 210,
+   "xy": [
+    80.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 2,
+   "default_score": 0.3923,
+   "k": 2,
+   "seed0": 0.388,
+   "seeds012": 0.3923
+  },
+  {
+   "call": 211,
+   "xy": [
+    80.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 12,
+   "default_k": 7,
+   "default_score": 0.4117,
+   "k": 7,
+   "seed0": 0.4105,
+   "seeds012": 0.4117
+  },
+  {
+   "call": 212,
+   "xy": [
+    80.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 7,
+   "default_score": 0.5265,
+   "k": 10,
+   "seed0": 0.4045,
+   "seeds012": 0.4043
+  },
+  {
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 7,
+   "default_score": 0.4602,
+   "k": 7,
+   "seed0": 0.4665,
+   "seeds012": 0.4602
+  },
+  {
+   "call": 214,
+   "xy": [
+    80.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 5,
+   "default_score": 0.4568,
+   "k": 5,
+   "seed0": 0.4625,
+   "seeds012": 0.4568
+  },
+  {
+   "call": 215,
+   "xy": [
+    80.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 0,
+   "default_score": 0.457,
+   "k": 0,
+   "seed0": 0.444,
+   "seeds012": 0.457
+  },
+  {
+   "call": 216,
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 15,
+   "default_score": 0.5103,
+   "k": 15,
+   "seed0": 0.498,
+   "seeds012": 0.5103
+  },
+  {
+   "call": 217,
+   "xy": [
+    80.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 15,
+   "default_score": 0.4947,
+   "k": 15,
+   "seed0": 0.4975,
+   "seeds012": 0.4947
+  },
+  {
+   "call": 218,
+   "xy": [
+    80.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 8,
+   "default_score": 0.4972,
+   "k": 8,
+   "seed0": 0.503,
+   "seeds012": 0.4972
+  },
+  {
+   "call": 219,
+   "xy": [
+    80.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 7,
+   "default_score": 0.38,
+   "k": 7,
+   "seed0": 0.383,
+   "seeds012": 0.38
+  },
+  {
+   "call": 220,
+   "xy": [
+    80.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 13,
+   "default_score": 0.3407,
+   "k": 13,
+   "seed0": 0.3775,
+   "seeds012": 0.3407
+  },
+  {
+   "call": 221,
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 5,
+   "default_score": 0.2825,
+   "k": 5,
+   "seed0": 0.3355,
+   "seeds012": 0.2825
+  },
+  {
+   "call": 222,
+   "xy": [
+    80.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 14,
+   "default_score": 0.2208,
+   "k": 9,
+   "seed0": 0.1545,
+   "seeds012": 0.1333
+  },
+  {
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.3507,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 228,
+   "xy": [
+    85.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 6,
+   "default_score": 0.5308,
+   "k": 4,
+   "seed0": 0.244,
+   "seeds012": 0.2568
+  },
+  {
+   "call": 229,
+   "xy": [
+    85.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 0,
+   "default_score": 0.3078,
+   "k": 4,
+   "seed0": 0.2675,
+   "seeds012": 0.2582
+  },
+  {
+   "call": 230,
+   "xy": [
+    85.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.4485,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 231,
+   "xy": [
+    85.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 0,
+   "default_score": 0.3085,
+   "k": 3,
+   "seed0": 0.3115,
+   "seeds012": 0.306
+  },
+  {
+   "call": 232,
+   "xy": [
+    85.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.4943,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 233,
+   "xy": [
+    85.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 3,
+   "default_score": 0.373,
+   "k": 14,
+   "seed0": 0.367,
+   "seeds012": 0.3663
+  },
+  {
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 14,
+   "default_score": 0.4268,
+   "k": 14,
+   "seed0": 0.4265,
+   "seeds012": 0.4268
+  },
+  {
+   "call": 235,
+   "xy": [
+    85.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 13,
+   "default_score": 0.5177,
+   "k": 3,
+   "seed0": 0.4555,
+   "seeds012": 0.459
+  },
+  {
+   "call": 236,
+   "xy": [
+    85.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 9,
+   "default_score": 0.528,
+   "k": 6,
+   "seed0": 0.414,
+   "seeds012": 0.393
+  },
+  {
+   "call": 237,
+   "xy": [
+    85.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 7,
+   "default_score": 0.4542,
+   "k": 7,
+   "seed0": 0.4565,
+   "seeds012": 0.4542
+  },
+  {
+   "call": 238,
+   "xy": [
+    85.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 13,
+   "default_score": 0.4435,
+   "k": 13,
+   "seed0": 0.4485,
+   "seeds012": 0.4435
+  },
+  {
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 15,
+   "default_score": 0.4775,
+   "k": 15,
+   "seed0": 0.4835,
+   "seeds012": 0.4775
+  },
+  {
+   "call": 240,
+   "xy": [
+    85.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 12,
+   "default_k": 0,
+   "default_score": 0.4558,
+   "k": 0,
+   "seed0": 0.4645,
+   "seeds012": 0.4558
+  },
+  {
+   "call": 241,
+   "xy": [
+    85.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 14,
+   "default_score": 0.4765,
+   "k": 14,
+   "seed0": 0.4765,
+   "seeds012": 0.4765
+  },
+  {
+   "call": 242,
+   "xy": [
+    85.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 3,
+   "default_score": 0.4022,
+   "k": 3,
+   "seed0": 0.407,
+   "seeds012": 0.4022
+  },
+  {
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 12,
+   "default_score": 0.5012,
+   "k": 12,
+   "seed0": 0.492,
+   "seeds012": 0.5012
+  },
+  {
+   "call": 244,
+   "xy": [
+    85.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 10,
+   "default_score": 0.3883,
+   "k": 10,
+   "seed0": 0.372,
+   "seeds012": 0.3883
+  },
+  {
+   "call": 245,
+   "xy": [
+    85.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 9,
+   "default_score": 0.3952,
+   "k": 9,
+   "seed0": 0.4055,
+   "seeds012": 0.3952
+  },
+  {
+   "call": 246,
+   "xy": [
+    85.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 2,
+   "default_score": 0.3178,
+   "k": 2,
+   "seed0": 0.3035,
+   "seeds012": 0.3178
+  },
+  {
+   "call": 247,
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 1,
+   "default_score": 0.2877,
+   "k": 1,
+   "seed0": 0.3565,
+   "seeds012": 0.2877
+  },
+  {
+   "call": 248,
+   "xy": [
+    85.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 1,
+   "default_score": 0.3373,
+   "k": 7,
+   "seed0": 0.329,
+   "seeds012": 0.2688
+  },
+  {
+   "call": 249,
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 2,
+   "default_score": 0.2477,
+   "k": 2,
+   "seed0": 0.253,
+   "seeds012": 0.2477
+  },
+  {
+   "call": 252,
+   "xy": [
+    90.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.5273,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 253,
+   "xy": [
+    90.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.37,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 254,
+   "xy": [
+    90.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.5658,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 255,
+   "xy": [
+    90.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 0,
+   "default_score": 0.292,
+   "k": 9,
+   "seed0": 0.1885,
+   "seeds012": 0.2068
+  },
+  {
+   "call": 256,
+   "xy": [
+    90.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 14,
+   "default_score": 0.343,
+   "k": 11,
+   "seed0": 0.3355,
+   "seeds012": 0.3287
+  },
+  {
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 9,
+   "default_score": 0.4415,
+   "k": 9,
+   "seed0": 0.4415,
+   "seeds012": 0.4415
+  },
+  {
+   "call": 258,
+   "xy": [
+    90.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 4,
+   "default_score": 0.4117,
+   "k": 4,
+   "seed0": 0.4205,
+   "seeds012": 0.4117
+  },
+  {
+   "call": 259,
+   "xy": [
+    90.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 9,
+   "default_score": 0.3995,
+   "k": 0,
+   "seed0": 0.3225,
+   "seeds012": 0.3247
+  },
+  {
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 5,
+   "default_score": 0.465,
+   "k": 5,
+   "seed0": 0.465,
+   "seeds012": 0.465
+  },
+  {
+   "call": 261,
+   "xy": [
+    90.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 13,
+   "default_score": 0.3827,
+   "k": 13,
+   "seed0": 0.4075,
+   "seeds012": 0.3827
+  },
+  {
+   "call": 262,
+   "xy": [
+    90.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 6,
+   "default_score": 0.5257,
+   "k": 6,
+   "seed0": 0.5285,
+   "seeds012": 0.5257
+  },
+  {
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 6,
+   "default_score": 0.5012,
+   "k": 6,
+   "seed0": 0.4975,
+   "seeds012": 0.5012
+  },
+  {
+   "call": 264,
+   "xy": [
+    90.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 8,
+   "default_score": 0.4743,
+   "k": 8,
+   "seed0": 0.483,
+   "seeds012": 0.4743
+  },
+  {
+   "call": 265,
+   "xy": [
+    90.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 3,
+   "default_score": 0.5018,
+   "k": 3,
+   "seed0": 0.508,
+   "seeds012": 0.5018
+  },
+  {
+   "call": 266,
+   "xy": [
+    90.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 10,
+   "default_score": 0.4868,
+   "k": 10,
+   "seed0": 0.4985,
+   "seeds012": 0.4868
+  },
+  {
+   "call": 267,
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 3,
+   "default_score": 0.5118,
+   "k": 3,
+   "seed0": 0.508,
+   "seeds012": 0.5118
+  },
+  {
+   "call": 268,
+   "xy": [
+    90.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 8,
+   "default_score": 0.4952,
+   "k": 8,
+   "seed0": 0.494,
+   "seeds012": 0.4952
+  },
+  {
+   "call": 269,
+   "xy": [
+    90.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4548,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 271,
+   "xy": [
+    90.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 15,
+   "default_score": 0.4152,
+   "k": 15,
+   "seed0": 0.4245,
+   "seeds012": 0.4152
+  },
+  {
+   "call": 272,
+   "xy": [
+    90.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 10,
+   "default_score": 0.4065,
+   "k": 3,
+   "seed0": 0.4435,
+   "seeds012": 0.397
+  },
+  {
+   "call": 273,
+   "xy": [
+    90.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 12,
+   "default_k": 4,
+   "default_score": 0.3793,
+   "k": 4,
+   "seed0": 0.4145,
+   "seeds012": 0.3793
+  },
+  {
+   "call": 274,
+   "xy": [
+    90.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 9,
+   "default_score": 0.372,
+   "k": 5,
+   "seed0": 0.41,
+   "seeds012": 0.3603
+  },
+  {
+   "call": 277,
+   "xy": [
+    95.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.491,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 278,
+   "xy": [
+    95.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 9,
+   "default_score": 0.4225,
+   "k": 4,
+   "seed0": 0.323,
+   "seeds012": 0.32
+  },
+  {
+   "call": 279,
+   "xy": [
+    95.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.522,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 280,
+   "xy": [
+    95.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.351,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 281,
+   "xy": [
+    95.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 2,
+   "default_score": 0.4873,
+   "k": 13,
+   "seed0": 0.275,
+   "seeds012": 0.278
+  },
+  {
+   "call": 282,
+   "xy": [
+    95.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.3828,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 283,
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 14,
+   "default_score": 0.3697,
+   "k": 14,
+   "seed0": 0.3565,
+   "seeds012": 0.3697
+  },
+  {
+   "call": 284,
+   "xy": [
+    95.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 9,
+   "default_score": 0.4385,
+   "k": 3,
+   "seed0": 0.243,
+   "seeds012": 0.2458
+  },
+  {
+   "call": 285,
+   "xy": [
+    95.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 5,
+   "default_score": 0.5402,
+   "k": 0,
+   "seed0": 0.3125,
+   "seeds012": 0.3035
+  },
+  {
+   "call": 286,
+   "xy": [
+    95.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 7,
+   "default_score": 0.542,
+   "k": 7,
+   "seed0": 0.5405,
+   "seeds012": 0.542
+  },
+  {
+   "call": 287,
+   "xy": [
+    95.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 5,
+   "default_score": 0.4622,
+   "k": 0,
+   "seed0": 0.3155,
+   "seeds012": 0.3113
+  },
+  {
+   "call": 288,
+   "xy": [
+    95.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 5,
+   "default_score": 0.5487,
+   "k": 14,
+   "seed0": 0.431,
+   "seeds012": 0.4412
+  },
+  {
+   "call": 289,
+   "xy": [
+    95.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 14,
+   "default_score": 0.334,
+   "k": 14,
+   "seed0": 0.3445,
+   "seeds012": 0.334
+  },
+  {
+   "call": 290,
+   "xy": [
+    95.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 5,
+   "default_score": 0.5115,
+   "k": 5,
+   "seed0": 0.565,
+   "seeds012": 0.5115
+  },
+  {
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 4,
+   "default_score": 0.4783,
+   "k": 4,
+   "seed0": 0.5065,
+   "seeds012": 0.4783
+  },
+  {
+   "call": 292,
+   "xy": [
+    95.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 9,
+   "default_score": 0.4763,
+   "k": 9,
+   "seed0": 0.482,
+   "seeds012": 0.4763
+  },
+  {
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.503,
+   "k": 0,
+   "seed0": 0.503,
+   "seeds012": 0.503
+  },
+  {
+   "call": 294,
+   "xy": [
+    95.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 11,
+   "default_score": 0.4847,
+   "k": 11,
+   "seed0": 0.49,
+   "seeds012": 0.4847
+  },
+  {
+   "call": 295,
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 11,
+   "default_score": 0.4815,
+   "k": 11,
+   "seed0": 0.4835,
+   "seeds012": 0.4815
+  },
+  {
+   "call": 296,
+   "xy": [
+    95.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4258,
+   "k": 0,
+   "seed0": 0.4485,
+   "seeds012": 0.4258
+  },
+  {
+   "call": 297,
+   "xy": [
+    95.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 5,
+   "default_score": 0.4222,
+   "k": 5,
+   "seed0": 0.464,
+   "seeds012": 0.4222
+  },
+  {
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 13,
+   "default_score": 0.4213,
+   "k": 13,
+   "seed0": 0.453,
+   "seeds012": 0.4213
+  },
+  {
+   "call": 299,
+   "xy": [
+    95.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4585,
+   "k": 0,
+   "seed0": 0.4995,
+   "seeds012": 0.4585
+  },
+  {
+   "call": 302,
+   "xy": [
+    100.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.499,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 303,
+   "xy": [
+    100.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.4242,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 304,
+   "xy": [
+    100.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.5343,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 305,
+   "xy": [
+    100.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 12,
+   "default_score": 0.4458,
+   "k": 4,
+   "seed0": 0.2465,
+   "seeds012": 0.243
+  },
+  {
+   "call": 306,
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 8,
+   "default_score": 0.3197,
+   "k": 8,
+   "seed0": 0.3175,
+   "seeds012": 0.3197
+  },
+  {
+   "call": 307,
+   "xy": [
+    100.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.3468,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 308,
+   "xy": [
+    100.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 5,
+   "default_score": 0.2737,
+   "k": 5,
+   "seed0": 0.293,
+   "seeds012": 0.2737
+  },
+  {
+   "call": 309,
+   "xy": [
+    100.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 2,
+   "default_score": 0.3225,
+   "k": 2,
+   "seed0": 0.329,
+   "seeds012": 0.3225
+  },
+  {
+   "call": 310,
+   "xy": [
+    100.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 7,
+   "default_score": 0.4817,
+   "k": 10,
+   "seed0": 0.3635,
+   "seeds012": 0.3765
+  },
+  {
+   "call": 311,
+   "xy": [
+    100.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 7,
+   "default_score": 0.47,
+   "k": 12,
+   "seed0": 0.301,
+   "seeds012": 0.3063
+  },
+  {
+   "call": 312,
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 5,
+   "default_score": 0.4965,
+   "k": 5,
+   "seed0": 0.49,
+   "seeds012": 0.4965
+  },
+  {
+   "call": 313,
+   "xy": [
+    100.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 15,
+   "default_score": 0.5277,
+   "k": 11,
+   "seed0": 0.313,
+   "seeds012": 0.3233
+  },
+  {
+   "call": 314,
+   "xy": [
+    100.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 1,
+   "default_score": 0.5258,
+   "k": 11,
+   "seed0": 0.462,
+   "seeds012": 0.4255
+  },
+  {
+   "call": 315,
+   "xy": [
+    100.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 10,
+   "default_score": 0.4407,
+   "k": 6,
+   "seed0": 0.3575,
+   "seeds012": 0.3612
+  },
+  {
+   "call": 316,
+   "xy": [
+    100.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.577,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 318,
+   "xy": [
+    100.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 7,
+   "default_score": 0.4598,
+   "k": 7,
+   "seed0": 0.4835,
+   "seeds012": 0.4598
+  },
+  {
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 14,
+   "default_score": 0.5013,
+   "k": 6,
+   "seed0": 0.5045,
+   "seeds012": 0.5135
+  },
+  {
+   "call": 320,
+   "xy": [
+    100.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 12,
+   "default_k": 0,
+   "default_score": 0.506,
+   "k": 0,
+   "seed0": 0.4975,
+   "seeds012": 0.506
+  },
+  {
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 6,
+   "default_score": 0.4897,
+   "k": 10,
+   "seed0": 0.501,
+   "seeds012": 0.4877
+  },
+  {
+   "call": 322,
+   "xy": [
+    100.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.4853,
+   "k": 11,
+   "seed0": 0.498,
+   "seeds012": 0.481
+  },
+  {
+   "call": 324,
+   "xy": [
+    100.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 6,
+   "default_score": 0.3892,
+   "k": 6,
+   "seed0": 0.482,
+   "seeds012": 0.3892
+  },
+  {
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.5403,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 328,
+   "xy": [
+    105.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.4068,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 329,
+   "xy": [
+    105.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.5063,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 330,
+   "xy": [
+    105.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 9,
+   "default_score": 0.5035,
+   "k": 2,
+   "seed0": 0.39,
+   "seeds012": 0.3853
+  },
+  {
+   "call": 331,
+   "xy": [
+    105.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.476,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 332,
+   "xy": [
+    105.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.4147,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 333,
+   "xy": [
+    105.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 7,
+   "default_score": 0.4658,
+   "k": 11,
+   "seed0": 0.2955,
+   "seeds012": 0.2948
+  },
+  {
+   "call": 334,
+   "xy": [
+    105.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.4548,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 335,
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 15,
+   "default_score": 0.349,
+   "k": 15,
+   "seed0": 0.348,
+   "seeds012": 0.349
+  },
+  {
+   "call": 336,
+   "xy": [
+    105.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.3617,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 337,
+   "xy": [
+    105.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 10,
+   "default_score": 0.4408,
+   "k": 10,
+   "seed0": 0.433,
+   "seeds012": 0.4408
+  },
+  {
+   "call": 338,
+   "xy": [
+    105.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 3,
+   "default_score": 0.4707,
+   "k": 0,
+   "seed0": 0.2925,
+   "seeds012": 0.283
+  },
+  {
+   "call": 339,
+   "xy": [
+    105.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 10,
+   "default_score": 0.4027,
+   "k": 10,
+   "seed0": 0.402,
+   "seeds012": 0.4027
+  },
+  {
+   "call": 340,
+   "xy": [
+    105.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.505,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 341,
+   "xy": [
+    105.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 8,
+   "default_score": 0.4378,
+   "k": 8,
+   "seed0": 0.456,
+   "seeds012": 0.4378
+  },
+  {
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 8,
+   "default_score": 0.4975,
+   "k": 8,
+   "seed0": 0.4925,
+   "seeds012": 0.4975
+  },
+  {
+   "call": 343,
+   "xy": [
+    105.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 6,
+   "default_score": 0.3973,
+   "k": 6,
+   "seed0": 0.392,
+   "seeds012": 0.3973
+  },
+  {
+   "call": 344,
+   "xy": [
+    105.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.391,
+   "k": 0,
+   "seed0": 0.407,
+   "seeds012": 0.391
+  },
+  {
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 3,
+   "default_score": 0.5378,
+   "k": 7,
+   "seed0": 0.558,
+   "seeds012": 0.5362
+  },
+  {
+   "call": 346,
+   "xy": [
+    105.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 1,
+   "default_score": 0.4403,
+   "k": 0,
+   "seed0": 0.492,
+   "seeds012": 0.4707
+  },
+  {
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 0,
+   "default_score": 0.4293,
+   "k": 0,
+   "seed0": 0.4155,
+   "seeds012": 0.4293
+  },
+  {
+   "call": 348,
+   "xy": [
+    105.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 7,
+   "default_score": 0.4415,
+   "k": 7,
+   "seed0": 0.4735,
+   "seeds012": 0.4415
+  },
+  {
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 13,
+   "default_score": 0.4455,
+   "k": 13,
+   "seed0": 0.439,
+   "seeds012": 0.4455
+  },
+  {
+   "call": 352,
+   "xy": [
+    110.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.5137,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 353,
+   "xy": [
+    110.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.4867,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 354,
+   "xy": [
+    110.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.5175,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 355,
+   "xy": [
+    110.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 3,
+   "default_score": 0.5457,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 356,
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.5795,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 357,
+   "xy": [
+    110.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.5915,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 358,
+   "xy": [
+    110.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.5,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 359,
+   "xy": [
+    110.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4813,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 360,
+   "xy": [
+    110.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 4,
+   "default_score": 0.3508,
+   "k": 12,
+   "seed0": 0.439,
+   "seeds012": 0.417
+  },
+  {
+   "call": 361,
+   "xy": [
+    110.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.637,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 362,
+   "xy": [
+    110.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 6,
+   "default_score": 0.5035,
+   "k": 9,
+   "seed0": 0.321,
+   "seeds012": 0.3187
+  },
+  {
+   "call": 363,
+   "xy": [
+    110.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 3,
+   "default_score": 0.4312,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 364,
+   "xy": [
+    110.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 2,
+   "default_score": 0.5307,
+   "k": 4,
+   "seed0": 0.3815,
+   "seeds012": 0.372
+  },
+  {
+   "call": 365,
+   "xy": [
+    110.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 13,
+   "default_score": 0.5657,
+   "k": 0,
+   "seed0": 0.308,
+   "seeds012": 0.2965
+  },
+  {
+   "call": 366,
+   "xy": [
+    110.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 5,
+   "default_score": 0.3813,
+   "k": 9,
+   "seed0": 0.3435,
+   "seeds012": 0.3192
+  },
+  {
+   "call": 367,
+   "xy": [
+    110.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 7,
+   "default_score": 0.405,
+   "k": 0,
+   "seed0": 0.3125,
+   "seeds012": 0.301
+  },
+  {
+   "call": 368,
+   "xy": [
+    110.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 1,
+   "default_score": 0.4257,
+   "k": 15,
+   "seed0": 0.426,
+   "seeds012": 0.4282
+  },
+  {
+   "call": 369,
+   "xy": [
+    110.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 4,
+   "default_score": 0.4138,
+   "k": 4,
+   "seed0": 0.436,
+   "seeds012": 0.4138
+  },
+  {
+   "call": 370,
+   "xy": [
+    110.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 12,
+   "default_score": 0.4978,
+   "k": 12,
+   "seed0": 0.5035,
+   "seeds012": 0.4978
+  },
+  {
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 3,
+   "default_score": 0.542,
+   "k": 3,
+   "seed0": 0.5555,
+   "seeds012": 0.542
+  },
+  {
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.5037,
+   "k": 0,
+   "seed0": 0.5275,
+   "seeds012": 0.5037
+  },
+  {
+   "call": 374,
+   "xy": [
+    110.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.2143,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 377,
+   "xy": [
+    115.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.4368,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 378,
+   "xy": [
+    115.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.535,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.5593,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 380,
+   "xy": [
+    115.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.4535,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 381,
+   "xy": [
+    115.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.499,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 382,
+   "xy": [
+    115.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.5017,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 383,
+   "xy": [
+    115.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4862,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 384,
+   "xy": [
+    115.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.3965,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 385,
+   "xy": [
+    115.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.5837,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 386,
+   "xy": [
+    115.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.5045,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 387,
+   "xy": [
+    115.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.3793,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 388,
+   "xy": [
+    115.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5107,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 389,
+   "xy": [
+    115.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.5122,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 390,
+   "xy": [
+    115.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.5368,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 391,
+   "xy": [
+    115.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 13,
+   "default_score": 0.4585,
+   "k": 0,
+   "seed0": 0.28,
+   "seeds012": 0.277
+  },
+  {
+   "call": 392,
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 8,
+   "default_score": 0.3058,
+   "k": 8,
+   "seed0": 0.319,
+   "seeds012": 0.3058
+  },
+  {
+   "call": 393,
+   "xy": [
+    115.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 3,
+   "default_k": 4,
+   "default_score": 0.5287,
+   "k": 14,
+   "seed0": 0.308,
+   "seeds012": 0.2835
+  },
+  {
+   "call": 394,
+   "xy": [
+    115.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 9,
+   "default_score": 0.4877,
+   "k": 9,
+   "seed0": 0.505,
+   "seeds012": 0.4877
+  },
+  {
+   "call": 395,
+   "xy": [
+    115.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 6,
+   "default_score": 0.3902,
+   "k": 0,
+   "seed0": 0.3775,
+   "seeds012": 0.3708
+  },
+  {
+   "call": 396,
+   "xy": [
+    115.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 2,
+   "default_score": 0.5467,
+   "k": 2,
+   "seed0": 0.5495,
+   "seeds012": 0.5467
+  },
+  {
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 8,
+   "default_score": 0.5435,
+   "k": 8,
+   "seed0": 0.565,
+   "seeds012": 0.5435
+  },
+  {
+   "call": 398,
+   "xy": [
+    115.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 1,
+   "default_score": 0.5103,
+   "k": 1,
+   "seed0": 0.5685,
+   "seeds012": 0.5103
+  },
+  {
+   "call": 399,
+   "xy": [
+    115.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 8,
+   "default_score": 0.4448,
+   "k": 8,
+   "seed0": 0.4455,
+   "seeds012": 0.4448
+  },
+  {
+   "call": 402,
+   "xy": [
+    120.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4735,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 403,
+   "xy": [
+    120.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5167,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 404,
+   "xy": [
+    120.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.5195,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 405,
+   "xy": [
+    120.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.3652,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 406,
+   "xy": [
+    120.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.4203,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 407,
+   "xy": [
+    120.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.493,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 408,
+   "xy": [
+    120.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.3152,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 409,
+   "xy": [
+    120.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5252,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 410,
+   "xy": [
+    120.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.526,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 411,
+   "xy": [
+    120.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.4818,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 412,
+   "xy": [
+    120.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.3808,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 413,
+   "xy": [
+    120.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.4317,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 414,
+   "xy": [
+    120.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.4073,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 415,
+   "xy": [
+    120.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 15,
+   "default_score": 0.4743,
+   "k": 6,
+   "seed0": 0.304,
+   "seeds012": 0.2927
+  },
+  {
+   "call": 416,
+   "xy": [
+    120.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 3,
+   "default_score": 0.4575,
+   "k": 0,
+   "seed0": 0.268,
+   "seeds012": 0.2883
+  },
+  {
+   "call": 417,
+   "xy": [
+    120.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 1,
+   "default_k": 3,
+   "default_score": 0.4765,
+   "k": 0,
+   "seed0": 0.289,
+   "seeds012": 0.3032
+  },
+  {
+   "call": 418,
+   "xy": [
+    120.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 3,
+   "default_score": 0.5188,
+   "k": 9,
+   "seed0": 0.515,
+   "seeds012": 0.5152
+  },
+  {
+   "call": 419,
+   "xy": [
+    120.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 6,
+   "default_score": 0.5383,
+   "k": 9,
+   "seed0": 0.477,
+   "seeds012": 0.4528
+  },
+  {
+   "call": 420,
+   "xy": [
+    120.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 14,
+   "default_score": 0.5277,
+   "k": 7,
+   "seed0": 0.542,
+   "seeds012": 0.5213
+  },
+  {
+   "call": 422,
+   "xy": [
+    120.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 12,
+   "default_k": 8,
+   "default_score": 0.4903,
+   "k": 8,
+   "seed0": 0.4995,
+   "seeds012": 0.4903
+  },
+  {
+   "call": 427,
+   "xy": [
+    125.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.4825,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 428,
+   "xy": [
+    125.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5368,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 429,
+   "xy": [
+    125.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.524,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 430,
+   "xy": [
+    125.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.5207,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 431,
+   "xy": [
+    125.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.4773,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 432,
+   "xy": [
+    125.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.5447,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 433,
+   "xy": [
+    125.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.4538,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 434,
+   "xy": [
+    125.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.4885,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 435,
+   "xy": [
+    125.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.2963,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 437,
+   "xy": [
+    125.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4783,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 438,
+   "xy": [
+    125.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.487,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 439,
+   "xy": [
+    125.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4648,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 440,
+   "xy": [
+    125.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.3418,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 441,
+   "xy": [
+    125.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.5258,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 442,
+   "xy": [
+    125.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.5352,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 443,
+   "xy": [
+    125.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 8,
+   "default_score": 0.4843,
+   "k": 14,
+   "seed0": 0.453,
+   "seeds012": 0.4553
+  },
+  {
+   "call": 444,
+   "xy": [
+    125.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 4,
+   "default_k": 14,
+   "default_score": 0.5115,
+   "k": 9,
+   "seed0": 0.523,
+   "seeds012": 0.5017
+  },
+  {
+   "call": 445,
+   "xy": [
+    125.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 11,
+   "default_score": 0.4205,
+   "k": 3,
+   "seed0": 0.385,
+   "seeds012": 0.3778
+  },
+  {
+   "call": 446,
+   "xy": [
+    125.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 0,
+   "default_score": 0.4038,
+   "k": 0,
+   "seed0": 0.4225,
+   "seeds012": 0.4038
+  },
+  {
+   "call": 452,
+   "xy": [
+    130.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.407,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 453,
+   "xy": [
+    130.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.5638,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 454,
+   "xy": [
+    130.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5178,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 455,
+   "xy": [
+    130.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.4923,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 456,
+   "xy": [
+    130.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.483,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 457,
+   "xy": [
+    130.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.5213,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 458,
+   "xy": [
+    130.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.4583,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 459,
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.2358,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 460,
+   "xy": [
+    130.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.5155,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 461,
+   "xy": [
+    130.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.5193,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 462,
+   "xy": [
+    130.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.2322,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 463,
+   "xy": [
+    130.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.5105,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 464,
+   "xy": [
+    130.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.5437,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 465,
+   "xy": [
+    130.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 3,
+   "default_score": 0.4907,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 466,
+   "xy": [
+    130.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.448,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 467,
+   "xy": [
+    130.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.4453,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 468,
+   "xy": [
+    130.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.3307,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 469,
+   "xy": [
+    130.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 5,
+   "default_score": 0.3995,
+   "k": 5,
+   "seed0": 0.412,
+   "seeds012": 0.3995
+  },
+  {
+   "call": 470,
+   "xy": [
+    130.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 6,
+   "default_k": 8,
+   "default_score": 0.5097,
+   "k": 8,
+   "seed0": 0.5065,
+   "seeds012": 0.5097
+  },
+  {
+   "call": 477,
+   "xy": [
+    135.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.2465,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.6023,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 479,
+   "xy": [
+    135.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.3775,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 480,
+   "xy": [
+    135.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.4442,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 481,
+   "xy": [
+    135.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4685,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 482,
+   "xy": [
+    135.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.4847,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 483,
+   "xy": [
+    135.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 6,
+   "default_score": 0.5315,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 484,
+   "xy": [
+    135.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.5405,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 485,
+   "xy": [
+    135.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.3983,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 486,
+   "xy": [
+    135.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.529,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 487,
+   "xy": [
+    135.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.509,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 488,
+   "xy": [
+    135.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.497,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 489,
+   "xy": [
+    135.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.437,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 490,
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.3375,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 491,
+   "xy": [
+    135.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.373,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 492,
+   "xy": [
+    135.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 13,
+   "default_score": 0.4653,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 493,
+   "xy": [
+    135.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.528,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 494,
+   "xy": [
+    135.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 10,
+   "default_k": 2,
+   "default_score": 0.3797,
+   "k": 0,
+   "seed0": 0.3755,
+   "seeds012": 0.2843
+  },
+  {
+   "call": 499,
+   "xy": [
+    135.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.3223,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 503,
+   "xy": [
+    140.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 2,
+   "default_score": 0.2592,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 504,
+   "xy": [
+    140.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.2735,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 505,
+   "xy": [
+    140.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.3265,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 506,
+   "xy": [
+    140.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.3955,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 507,
+   "xy": [
+    140.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.413,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 508,
+   "xy": [
+    140.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.5362,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 509,
+   "xy": [
+    140.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.4903,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 510,
+   "xy": [
+    140.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.5085,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 512,
+   "xy": [
+    140.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.4143,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 513,
+   "xy": [
+    140.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.5293,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 515,
+   "xy": [
+    140.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.4295,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 516,
+   "xy": [
+    140.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.3583,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 517,
+   "xy": [
+    140.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.4147,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 527,
+   "xy": [
+    145.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.327,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 528,
+   "xy": [
+    145.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.2375,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 529,
+   "xy": [
+    145.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.2933,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 530,
+   "xy": [
+    145.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.3155,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 531,
+   "xy": [
+    145.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.3132,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 532,
+   "xy": [
+    145.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.2553,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 533,
+   "xy": [
+    145.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.335,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 534,
+   "xy": [
+    145.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.2488,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 535,
+   "xy": [
+    145.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.434,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 536,
+   "xy": [
+    145.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.2672,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 537,
+   "xy": [
+    145.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.421,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 538,
+   "xy": [
+    145.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 14,
+   "default_score": 0.4903,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 539,
+   "xy": [
+    145.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.3255,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 540,
+   "xy": [
+    145.0,
+    125.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.4097,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 541,
+   "xy": [
+    145.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.3207,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 552,
+   "xy": [
+    150.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 12,
+   "default_score": 0.1408,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 553,
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.1777,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 554,
+   "xy": [
+    150.0,
+    70.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.2082,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 556,
+   "xy": [
+    150.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.3372,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 557,
+   "xy": [
+    150.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.2212,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 558,
+   "xy": [
+    150.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.3082,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 559,
+   "xy": [
+    150.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.2807,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 560,
+   "xy": [
+    150.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.34,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 561,
+   "xy": [
+    150.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 15,
+   "default_score": 0.2783,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 562,
+   "xy": [
+    150.0,
+    110.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 10,
+   "default_score": 0.359,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 563,
+   "xy": [
+    150.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.3305,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 564,
+   "xy": [
+    150.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.2828,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 577,
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 0,
+   "default_score": 0.0,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 580,
+   "xy": [
+    155.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 8,
+   "default_score": 0.2007,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 584,
+   "xy": [
+    155.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.2693,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 585,
+   "xy": [
+    155.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 9,
+   "default_score": 0.2095,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 586,
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 7,
+   "default_score": 0.2068,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 605,
+   "xy": [
+    160.0,
+    75.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 11,
+   "default_score": 0.2123,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 606,
+   "xy": [
+    160.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 4,
+   "default_score": 0.131,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 607,
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 1,
+   "default_score": 0.1163,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  },
+  {
+   "call": 608,
+   "xy": [
+    160.0,
+    90.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 0,
+   "default_k": 5,
+   "default_score": 0.211,
+   "k": null,
+   "seed0": 0.0,
+   "seeds012": 0.0
+  }
+ ]
+}

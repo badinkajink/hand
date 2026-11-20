@@ -1,0 +1,1772 @@
+{
+ "what": "hand_deploy.py vet",
+ "written": "2026-11-20 08:05",
+ "plant": "kp0.55_kv0_fr0.18_fl0_dp0.011",
+ "thresholds_mm": {
+  "clear": 15.0,
+  "marginal": 10.0,
+  "close": 2.0
+ },
+ "layouts": [
+  {
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "k": 13,
+   "fits": true,
+   "min_margin_mm": 3.3997,
+   "predicted_both": 0.4455,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4543,
+     "per_seed": [
+      0.429,
+      0.475,
+      0.459
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 63.0
+    },
+    "pads": {
+     "seeds012": 0.4367,
+     "per_seed": [
+      0.449,
+      0.449,
+      0.412
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.4
+    },
+    "pads_stiff": {
+     "seeds012": 0.4483,
+     "per_seed": [
+      0.458,
+      0.439,
+      0.448
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 45.7
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5073,
+     "per_seed": [
+      0.478,
+      0.55,
+      0.494
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 59.3
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.2737,
+     "per_seed": [
+      0.257,
+      0.478,
+      0.086
+     ],
+     "held": 2,
+     "runs": 3,
+     "twist_end_deg": 30.1
+    },
+    "point_5v": {
+     "seeds012": 0.465,
+     "per_seed": [
+      0.451,
+      0.474,
+      0.47
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 48.7
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 15.3,
+   "cad_pairs": {
+    "thumb-index": 19.8,
+    "thumb-middle": 15.3,
+    "index-middle": 18.9
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "k": 14,
+   "fits": true,
+   "min_margin_mm": 16.3187,
+   "predicted_both": 0.4268,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4253,
+     "per_seed": [
+      0.429,
+      0.429,
+      0.418
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 52.7
+    },
+    "pads": {
+     "seeds012": 0.4283,
+     "per_seed": [
+      0.424,
+      0.436,
+      0.425
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 53.8
+    },
+    "pads_stiff": {
+     "seeds012": 0.27,
+     "per_seed": [
+      0.237,
+      0.335,
+      0.238
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 32.0
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4527,
+     "per_seed": [
+      0.438,
+      0.418,
+      0.502
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 56.5
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4397,
+     "per_seed": [
+      0.431,
+      0.443,
+      0.445
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 57.3
+    },
+    "point_5v": {
+     "seeds012": 0.3897,
+     "per_seed": [
+      0.387,
+      0.407,
+      0.375
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.8
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.2,
+   "cad_pairs": {
+    "thumb-index": 22.9,
+    "thumb-middle": 26.4,
+    "index-middle": 18.2
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "k": 13,
+   "fits": true,
+   "min_margin_mm": 5.8997,
+   "predicted_both": 0.4214,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4457,
+     "per_seed": [
+      0.468,
+      0.434,
+      0.435
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 55.1
+    },
+    "pads": {
+     "seeds012": 0.397,
+     "per_seed": [
+      0.438,
+      0.43,
+      0.323
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.2
+    },
+    "pads_stiff": {
+     "seeds012": 0.3567,
+     "per_seed": [
+      0.351,
+      0.429,
+      0.29
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 42.9
+    },
+    "point_mu0.6": {
+     "seeds012": 0.535,
+     "per_seed": [
+      0.44,
+      0.557,
+      0.608
+     ],
+     "held": 1,
+     "runs": 3,
+     "twist_end_deg": 59.7
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.3497,
+     "per_seed": [
+      0.301,
+      0.385,
+      0.363
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 39.1
+    },
+    "point_5v": {
+     "seeds012": 0.4227,
+     "per_seed": [
+      0.4,
+      0.429,
+      0.439
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.7
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 15.5,
+   "cad_pairs": {
+    "thumb-index": 19.9,
+    "thumb-middle": 15.5,
+    "index-middle": 21.5
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 6.3187,
+   "predicted_both": 0.4249,
+   "predicted": {
+    "point": {
+     "seeds012": 0.432,
+     "per_seed": [
+      0.422,
+      0.444,
+      0.43
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.5
+    },
+    "pads": {
+     "seeds012": 0.4177,
+     "per_seed": [
+      0.411,
+      0.427,
+      0.415
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.0
+    },
+    "pads_stiff": {
+     "seeds012": 0.3373,
+     "per_seed": [
+      0.343,
+      0.338,
+      0.331
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 35.6
+    },
+    "point_mu0.6": {
+     "seeds012": 0.45,
+     "per_seed": [
+      0.434,
+      0.472,
+      0.444
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 49.6
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4063,
+     "per_seed": [
+      0.403,
+      0.397,
+      0.419
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.5
+    },
+    "point_5v": {
+     "seeds012": 0.3957,
+     "per_seed": [
+      0.397,
+      0.402,
+      0.388
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 41.7
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 21.1,
+   "cad_pairs": {
+    "thumb-index": 22.9,
+    "thumb-middle": 22.3,
+    "index-middle": 21.1
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "k": 6,
+   "fits": true,
+   "min_margin_mm": 8.8187,
+   "predicted_both": 0.4336,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4483,
+     "per_seed": [
+      0.44,
+      0.453,
+      0.452
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.5
+    },
+    "pads": {
+     "seeds012": 0.419,
+     "per_seed": [
+      0.419,
+      0.416,
+      0.422
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 44.8
+    },
+    "pads_stiff": {
+     "seeds012": 0.4107,
+     "per_seed": [
+      0.405,
+      0.413,
+      0.414
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 44.1
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4637,
+     "per_seed": [
+      0.447,
+      0.472,
+      0.472
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 48.4
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4323,
+     "per_seed": [
+      0.428,
+      0.435,
+      0.434
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 45.7
+    },
+    "point_5v": {
+     "seeds012": 0.4227,
+     "per_seed": [
+      0.422,
+      0.425,
+      0.421
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 45.4
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 16.8,
+   "cad_pairs": {
+    "thumb-index": 20.3,
+    "thumb-middle": 26.5,
+    "index-middle": 16.8
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 11.3187,
+   "predicted_both": 0.4518,
+   "predicted": {
+    "point": {
+     "seeds012": 0.442,
+     "per_seed": [
+      0.439,
+      0.446,
+      0.441
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.5
+    },
+    "pads": {
+     "seeds012": 0.4617,
+     "per_seed": [
+      0.464,
+      0.472,
+      0.449
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 55.9
+    },
+    "pads_stiff": {
+     "seeds012": 0.3467,
+     "per_seed": [
+      0.355,
+      0.344,
+      0.341
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 40.8
+    },
+    "point_mu0.6": {
+     "seeds012": 0.443,
+     "per_seed": [
+      0.444,
+      0.442,
+      0.443
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 55.8
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.52,
+     "per_seed": [
+      0.517,
+      0.532,
+      0.511
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 60.3
+    },
+    "point_5v": {
+     "seeds012": 0.413,
+     "per_seed": [
+      0.414,
+      0.421,
+      0.404
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.7
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 19.0,
+   "cad_pairs": {
+    "thumb-index": 22.8,
+    "thumb-middle": 23.6,
+    "index-middle": 19.0
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "k": 8,
+   "fits": true,
+   "min_margin_mm": 20.8997,
+   "predicted_both": 0.4975,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4857,
+     "per_seed": [
+      0.475,
+      0.516,
+      0.466
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 61.9
+    },
+    "pads": {
+     "seeds012": 0.5093,
+     "per_seed": [
+      0.51,
+      0.53,
+      0.488
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 66.7
+    },
+    "pads_stiff": {
+     "seeds012": 0.2387,
+     "per_seed": [
+      0.202,
+      0.301,
+      0.213
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 25.6
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5173,
+     "per_seed": [
+      0.504,
+      0.568,
+      0.48
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 67.3
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.545,
+     "per_seed": [
+      0.556,
+      0.583,
+      0.496
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 73.1
+    },
+    "point_5v": {
+     "seeds012": 0.4563,
+     "per_seed": [
+      0.451,
+      0.481,
+      0.437
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.6
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 15.6,
+   "cad_pairs": {
+    "thumb-index": 25.1,
+    "thumb-middle": 27.7,
+    "index-middle": 15.6
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 3.8187,
+   "predicted_both": 0.431,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4397,
+     "per_seed": [
+      0.439,
+      0.44,
+      0.44
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.9
+    },
+    "pads": {
+     "seeds012": 0.4223,
+     "per_seed": [
+      0.428,
+      0.42,
+      0.419
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 48.9
+    },
+    "pads_stiff": {
+     "seeds012": 0.3067,
+     "per_seed": [
+      0.315,
+      0.302,
+      0.303
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 34.9
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4573,
+     "per_seed": [
+      0.455,
+      0.446,
+      0.471
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 50.1
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4373,
+     "per_seed": [
+      0.445,
+      0.429,
+      0.438
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 49.2
+    },
+    "point_5v": {
+     "seeds012": 0.381,
+     "per_seed": [
+      0.386,
+      0.371,
+      0.386
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.2
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 20.1,
+   "cad_pairs": {
+    "thumb-index": 21.9,
+    "thumb-middle": 25.6,
+    "index-middle": 20.1
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "k": 7,
+   "fits": true,
+   "min_margin_mm": 13.8187,
+   "predicted_both": 0.4602,
+   "predicted": {
+    "point": {
+     "seeds012": 0.443,
+     "per_seed": [
+      0.452,
+      0.434,
+      0.443
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 56.5
+    },
+    "pads": {
+     "seeds012": 0.4773,
+     "per_seed": [
+      0.481,
+      0.464,
+      0.487
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 61.5
+    },
+    "pads_stiff": {
+     "seeds012": 0.325,
+     "per_seed": [
+      0.331,
+      0.309,
+      0.335
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 32.4
+    },
+    "point_mu0.6": {
+     "seeds012": 0.436,
+     "per_seed": [
+      0.451,
+      0.415,
+      0.442
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 58.1
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.5167,
+     "per_seed": [
+      0.546,
+      0.449,
+      0.555
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 66.3
+    },
+    "point_5v": {
+     "seeds012": 0.41,
+     "per_seed": [
+      0.417,
+      0.392,
+      0.421
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.8
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.4,
+   "cad_pairs": {
+    "thumb-index": 20.9,
+    "thumb-middle": 22.6,
+    "index-middle": 18.4
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "k": 12,
+   "fits": true,
+   "min_margin_mm": 16.3187,
+   "predicted_both": 0.5012,
+   "predicted": {
+    "point": {
+     "seeds012": 0.5037,
+     "per_seed": [
+      0.502,
+      0.511,
+      0.498
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 59.9
+    },
+    "pads": {
+     "seeds012": 0.4987,
+     "per_seed": [
+      0.482,
+      0.515,
+      0.499
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.3
+    },
+    "pads_stiff": {
+     "seeds012": 0.3803,
+     "per_seed": [
+      0.377,
+      0.36,
+      0.404
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 45.9
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5497,
+     "per_seed": [
+      0.536,
+      0.565,
+      0.548
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 63.6
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.513,
+     "per_seed": [
+      0.511,
+      0.516,
+      0.512
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 56.1
+    },
+    "point_5v": {
+     "seeds012": 0.4563,
+     "per_seed": [
+      0.454,
+      0.465,
+      0.45
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 48.1
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 20.1,
+   "cad_pairs": {
+    "thumb-index": 22.2,
+    "thumb-middle": 21.7,
+    "index-middle": 20.1
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "k": 9,
+   "fits": true,
+   "min_margin_mm": 14.1002,
+   "predicted_both": 0.4415,
+   "predicted": {
+    "point": {
+     "seeds012": 0.432,
+     "per_seed": [
+      0.431,
+      0.438,
+      0.427
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.0
+    },
+    "pads": {
+     "seeds012": 0.451,
+     "per_seed": [
+      0.452,
+      0.456,
+      0.445
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.5
+    },
+    "pads_stiff": {
+     "seeds012": 0.3633,
+     "per_seed": [
+      0.399,
+      0.379,
+      0.312
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 38.4
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4303,
+     "per_seed": [
+      0.432,
+      0.439,
+      0.42
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 45.5
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.447,
+     "per_seed": [
+      0.448,
+      0.45,
+      0.443
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.5
+    },
+    "point_5v": {
+     "seeds012": 0.4523,
+     "per_seed": [
+      0.453,
+      0.456,
+      0.448
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 49.5
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 16.2,
+   "cad_pairs": {
+    "thumb-index": 21.6,
+    "thumb-middle": 23.1,
+    "index-middle": 16.2
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "k": 5,
+   "fits": true,
+   "min_margin_mm": 18.8187,
+   "predicted_both": 0.465,
+   "predicted": {
+    "point": {
+     "seeds012": 0.463,
+     "per_seed": [
+      0.46,
+      0.465,
+      0.464
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.9
+    },
+    "pads": {
+     "seeds012": 0.467,
+     "per_seed": [
+      0.47,
+      0.466,
+      0.465
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 57.2
+    },
+    "pads_stiff": {
+     "seeds012": 0.3323,
+     "per_seed": [
+      0.329,
+      0.325,
+      0.343
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 35.4
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4713,
+     "per_seed": [
+      0.471,
+      0.476,
+      0.467
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 56.0
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4893,
+     "per_seed": [
+      0.488,
+      0.493,
+      0.487
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 58.2
+    },
+    "point_5v": {
+     "seeds012": 0.4103,
+     "per_seed": [
+      0.412,
+      0.415,
+      0.404
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.9
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 16.8,
+   "cad_pairs": {
+    "thumb-index": 21.9,
+    "thumb-middle": 25.9,
+    "index-middle": 16.8
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "k": 6,
+   "fits": true,
+   "min_margin_mm": 18.8187,
+   "predicted_both": 0.5011,
+   "predicted": {
+    "point": {
+     "seeds012": 0.486,
+     "per_seed": [
+      0.482,
+      0.481,
+      0.495
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 60.2
+    },
+    "pads": {
+     "seeds012": 0.5163,
+     "per_seed": [
+      0.513,
+      0.508,
+      0.528
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 63.0
+    },
+    "pads_stiff": {
+     "seeds012": 0.341,
+     "per_seed": [
+      0.343,
+      0.331,
+      0.349
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 40.4
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5317,
+     "per_seed": [
+      0.597,
+      0.458,
+      0.54
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 65.9
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.594,
+     "per_seed": [
+      0.575,
+      0.608,
+      0.599
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 67.2
+    },
+    "point_5v": {
+     "seeds012": 0.414,
+     "per_seed": [
+      0.424,
+      0.405,
+      0.413
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 49.4
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 16.8,
+   "cad_pairs": {
+    "thumb-index": 19.7,
+    "thumb-middle": 22.8,
+    "index-middle": 16.8
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "k": 4,
+   "fits": true,
+   "min_margin_mm": 21.3187,
+   "predicted_both": 0.4783,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4743,
+     "per_seed": [
+      0.496,
+      0.406,
+      0.521
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.5
+    },
+    "pads": {
+     "seeds012": 0.4823,
+     "per_seed": [
+      0.517,
+      0.418,
+      0.512
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 50.9
+    },
+    "pads_stiff": {
+     "seeds012": 0.416,
+     "per_seed": [
+      0.438,
+      0.364,
+      0.446
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 47.7
+    },
+    "point_mu0.6": {
+     "seeds012": 0.476,
+     "per_seed": [
+      0.505,
+      0.419,
+      0.504
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.6
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4947,
+     "per_seed": [
+      0.531,
+      0.417,
+      0.536
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 55.5
+    },
+    "point_5v": {
+     "seeds012": 0.4053,
+     "per_seed": [
+      0.407,
+      0.388,
+      0.421
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 39.8
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.1,
+   "cad_pairs": {
+    "thumb-index": 25.6,
+    "thumb-middle": 27.3,
+    "index-middle": 18.1
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 18.3997,
+   "predicted_both": 0.503,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4963,
+     "per_seed": [
+      0.495,
+      0.501,
+      0.493
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 62.3
+    },
+    "pads": {
+     "seeds012": 0.5097,
+     "per_seed": [
+      0.511,
+      0.509,
+      0.509
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 65.4
+    },
+    "pads_stiff": {
+     "seeds012": 0.3557,
+     "per_seed": [
+      0.35,
+      0.354,
+      0.363
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.4
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5097,
+     "per_seed": [
+      0.507,
+      0.533,
+      0.489
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 63.8
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.5483,
+     "per_seed": [
+      0.542,
+      0.539,
+      0.564
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 65.7
+    },
+    "point_5v": {
+     "seeds012": 0.4293,
+     "per_seed": [
+      0.418,
+      0.415,
+      0.455
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 42.5
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.4,
+   "cad_pairs": {
+    "thumb-index": 23.4,
+    "thumb-middle": 25.3,
+    "index-middle": 18.4
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "k": 6,
+   "fits": true,
+   "min_margin_mm": 15.8997,
+   "predicted_both": 0.5135,
+   "predicted": {
+    "point": {
+     "seeds012": 0.549,
+     "per_seed": [
+      0.546,
+      0.528,
+      0.573
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 59.4
+    },
+    "pads": {
+     "seeds012": 0.478,
+     "per_seed": [
+      0.463,
+      0.423,
+      0.548
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 48.3
+    },
+    "pads_stiff": {
+     "seeds012": 0.3137,
+     "per_seed": [
+      0.32,
+      0.321,
+      0.3
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.9
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5543,
+     "per_seed": [
+      0.53,
+      0.546,
+      0.587
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 53.9
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.5497,
+     "per_seed": [
+      0.564,
+      0.549,
+      0.536
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 60.6
+    },
+    "point_5v": {
+     "seeds012": 0.4583,
+     "per_seed": [
+      0.46,
+      0.431,
+      0.484
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.3
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.9,
+   "cad_pairs": {
+    "thumb-index": 20.7,
+    "thumb-middle": 18.9,
+    "index-middle": 19.5
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "k": 10,
+   "fits": true,
+   "min_margin_mm": 10.8997,
+   "predicted_both": 0.4877,
+   "predicted": {
+    "point": {
+     "seeds012": 0.459,
+     "per_seed": [
+      0.491,
+      0.516,
+      0.37
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 52.4
+    },
+    "pads": {
+     "seeds012": 0.5163,
+     "per_seed": [
+      0.511,
+      0.505,
+      0.533
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 60.1
+    },
+    "pads_stiff": {
+     "seeds012": 0.439,
+     "per_seed": [
+      0.459,
+      0.408,
+      0.45
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 55.3
+    },
+    "point_mu0.6": {
+     "seeds012": 0.5377,
+     "per_seed": [
+      0.563,
+      0.576,
+      0.474
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 68.9
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.508,
+     "per_seed": [
+      0.488,
+      0.531,
+      0.505
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.2
+    },
+    "point_5v": {
+     "seeds012": 0.4353,
+     "per_seed": [
+      0.421,
+      0.475,
+      0.41
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.1
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 19.2,
+   "cad_pairs": {
+    "thumb-index": 19.2,
+    "thumb-middle": 23.1,
+    "index-middle": 20.2
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "k": 7,
+   "fits": true,
+   "min_margin_mm": 13.3997,
+   "predicted_both": 0.5362,
+   "predicted": {
+    "point": {
+     "seeds012": 0.5273,
+     "per_seed": [
+      0.534,
+      0.568,
+      0.48
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 78.7
+    },
+    "pads": {
+     "seeds012": 0.545,
+     "per_seed": [
+      0.582,
+      0.496,
+      0.557
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 72.3
+    },
+    "pads_stiff": {
+     "seeds012": 0.376,
+     "per_seed": [
+      0.36,
+      0.371,
+      0.397
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 56.1
+    },
+    "point_mu0.6": {
+     "seeds012": 0.549,
+     "per_seed": [
+      0.554,
+      0.555,
+      0.538
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 81.6
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.519,
+     "per_seed": [
+      0.588,
+      0.486,
+      0.483
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 58.6
+    },
+    "point_5v": {
+     "seeds012": 0.5127,
+     "per_seed": [
+      0.517,
+      0.507,
+      0.514
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.3
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 15.0,
+   "cad_pairs": {
+    "thumb-index": 20.5,
+    "thumb-middle": 23.5,
+    "index-middle": 15.0
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 8.3997,
+   "predicted_both": 0.4293,
+   "predicted": {
+    "point": {
+     "seeds012": 0.4243,
+     "per_seed": [
+      0.401,
+      0.452,
+      0.42
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 43.8
+    },
+    "pads": {
+     "seeds012": 0.4343,
+     "per_seed": [
+      0.43,
+      0.457,
+      0.416
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.0
+    },
+    "pads_stiff": {
+     "seeds012": 0.345,
+     "per_seed": [
+      0.366,
+      0.377,
+      0.292
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 42.1
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4737,
+     "per_seed": [
+      0.451,
+      0.494,
+      0.476
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 54.7
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.454,
+     "per_seed": [
+      0.485,
+      0.445,
+      0.432
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 51.7
+    },
+    "point_5v": {
+     "seeds012": 0.4063,
+     "per_seed": [
+      0.421,
+      0.409,
+      0.389
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 41.1
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 18.6,
+   "cad_pairs": {
+    "thumb-index": 21.2,
+    "thumb-middle": 18.6,
+    "index-middle": 19.7
+   },
+   "verdict": "clear"
+  },
+  {
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "k": 0,
+   "fits": true,
+   "min_margin_mm": 5.8997,
+   "predicted_both": 0.5036,
+   "predicted": {
+    "point": {
+     "seeds012": 0.504,
+     "per_seed": [
+      0.536,
+      0.521,
+      0.455
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 69.8
+    },
+    "pads": {
+     "seeds012": 0.5033,
+     "per_seed": [
+      0.519,
+      0.468,
+      0.523
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 68.9
+    },
+    "pads_stiff": {
+     "seeds012": 0.3497,
+     "per_seed": [
+      0.367,
+      0.374,
+      0.308
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 46.3
+    },
+    "point_mu0.6": {
+     "seeds012": 0.4837,
+     "per_seed": [
+      0.501,
+      0.516,
+      0.434
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 72.7
+    },
+    "pads_mu0.6": {
+     "seeds012": 0.4777,
+     "per_seed": [
+      0.487,
+      0.423,
+      0.523
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 61.5
+    },
+    "point_5v": {
+     "seeds012": 0.4237,
+     "per_seed": [
+      0.434,
+      0.414,
+      0.423
+     ],
+     "held": 3,
+     "runs": 3,
+     "twist_end_deg": 42.4
+    }
+   },
+   "held_all": true,
+   "hom_errors": 0,
+   "cad_least_mm": 17.3,
+   "cad_pairs": {
+    "thumb-index": 21.6,
+    "thumb-middle": 17.6,
+    "index-middle": 17.3
+   },
+   "verdict": "clear"
+  }
+ ]
+}

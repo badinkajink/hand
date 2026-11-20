@@ -1,0 +1,333 @@
+{
+ "what": "More layouts for the hand from the predicted-good part of the feasible set (hand-4a, 2026-11-20 08:2x; owner, 08:0x: \"We don't have to run the full infeasible set, we should get more coverage among the probably good and feasible set of hands first\").",
+ "written": "2026-11-20 08:03",
+ "options": {
+  "n": 20,
+  "min": 0.42,
+  "clear": 15.0,
+  "out": "/home/humanoid/Programs/hand/docs/experiments/20261119-twist_layout_ranking/data/20261120-trial_proposal_feasible.json"
+ },
+ "pool_left": 26,
+ "layouts": [
+  {
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 13,
+   "default_score": 0.4455,
+   "k": 13,
+   "seed0": 0.439,
+   "seeds012": 0.4455,
+   "cad_least_mm": 15.3,
+   "spread_mm": 14.1
+  },
+  {
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 5,
+   "default_k": 14,
+   "default_score": 0.4268,
+   "k": 14,
+   "seed0": 0.4265,
+   "seeds012": 0.4268,
+   "cad_least_mm": 18.2,
+   "spread_mm": 11.2
+  },
+  {
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 13,
+   "default_score": 0.4213,
+   "k": 13,
+   "seed0": 0.453,
+   "seeds012": 0.4213,
+   "cad_least_mm": 15.5,
+   "spread_mm": 11.2
+  },
+  {
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 0,
+   "default_score": 0.4248,
+   "k": 0,
+   "seed0": 0.4165,
+   "seeds012": 0.4248,
+   "cad_least_mm": 21.1,
+   "spread_mm": 10.0
+  },
+  {
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 6,
+   "default_score": 0.4337,
+   "k": 6,
+   "seed0": 0.4295,
+   "seeds012": 0.4337,
+   "cad_least_mm": 16.8,
+   "spread_mm": 10.0
+  },
+  {
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 0,
+   "default_score": 0.4518,
+   "k": 0,
+   "seed0": 0.4515,
+   "seeds012": 0.4518,
+   "cad_least_mm": 19.0,
+   "spread_mm": 10.0
+  },
+  {
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 8,
+   "default_score": 0.4975,
+   "k": 8,
+   "seed0": 0.4925,
+   "seeds012": 0.4975,
+   "cad_least_mm": 15.6,
+   "spread_mm": 10.0
+  },
+  {
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.431,
+   "k": 0,
+   "seed0": 0.4335,
+   "seeds012": 0.431,
+   "cad_least_mm": 20.1,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 7,
+   "default_score": 0.4602,
+   "k": 7,
+   "seed0": 0.4665,
+   "seeds012": 0.4602,
+   "cad_least_mm": 18.4,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 12,
+   "default_score": 0.5012,
+   "k": 12,
+   "seed0": 0.492,
+   "seeds012": 0.5012,
+   "cad_least_mm": 20.1,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 7,
+   "default_k": 9,
+   "default_score": 0.4415,
+   "k": 9,
+   "seed0": 0.4415,
+   "seeds012": 0.4415,
+   "cad_least_mm": 16.2,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 8,
+   "default_k": 5,
+   "default_score": 0.465,
+   "k": 5,
+   "seed0": 0.465,
+   "seeds012": 0.465,
+   "cad_least_mm": 16.8,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 9,
+   "default_k": 6,
+   "default_score": 0.5012,
+   "k": 6,
+   "seed0": 0.4975,
+   "seeds012": 0.5012,
+   "cad_least_mm": 16.8,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 11,
+   "default_k": 4,
+   "default_score": 0.4783,
+   "k": 4,
+   "seed0": 0.5065,
+   "seeds012": 0.4783,
+   "cad_least_mm": 18.1,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 2,
+   "default_k": 0,
+   "default_score": 0.503,
+   "k": 0,
+   "seed0": 0.503,
+   "seeds012": 0.503,
+   "cad_least_mm": 18.4,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 14,
+   "default_k": 14,
+   "default_score": 0.5013,
+   "k": 6,
+   "seed0": 0.5045,
+   "seeds012": 0.5135,
+   "cad_least_mm": 18.9,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 6,
+   "default_score": 0.4897,
+   "k": 10,
+   "seed0": 0.501,
+   "seeds012": 0.4877,
+   "cad_least_mm": 19.2,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 13,
+   "default_k": 3,
+   "default_score": 0.5378,
+   "k": 7,
+   "seed0": 0.558,
+   "seeds012": 0.5362,
+   "cad_least_mm": 15.0,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 15,
+   "default_k": 0,
+   "default_score": 0.4293,
+   "k": 0,
+   "seed0": 0.4155,
+   "seeds012": 0.4293,
+   "cad_least_mm": 18.6,
+   "spread_mm": 7.1
+  },
+  {
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "grasps_run": 16,
+   "grasps_feasible": 16,
+   "default_k": 0,
+   "default_score": 0.5037,
+   "k": 0,
+   "seed0": 0.5275,
+   "seeds012": 0.5037,
+   "cad_least_mm": 17.3,
+   "spread_mm": 7.1
+  }
+ ]
+}

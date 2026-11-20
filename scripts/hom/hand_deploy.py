@@ -103,7 +103,10 @@ def _wrun(job):
 
 
 def _wcad(item):
+    SR = _load("twist_search", "20261119-twist_ranking_search.py")
     CS = _load("cad_gap_screen", "20261119-cad_gap_screen.py")
+    if CS.SR is not SR and "mod" not in CS.SR._R:  # cad_finger_gaps loads its own copy of the search module
+        CS.SR._R.update(SR._R)
     return CS.job(item)
 
 

@@ -53,8 +53,14 @@ def job(item):
             "seed": 0, "gaps": {p: v["gap_mm"] for p, v in r["gaps"].items()}}
     r = SR._run({**SR.base_job(item["call"], tuple(item["xy"]), item["model"], contact=item["model"]), "k": item["k"],
                  "seed": item["seed"]})
-    return {"call": item["call"], "xy": item["xy"], "k": item["k"], "model": item["model"], "seed": item["seed"],
-            "track": r.get("track"), "held": r.get("held"), "error": r.get("error")}
+    out = {"call": item["call"], "xy": item["xy"], "k": item["k"], "model": item["model"], "seed": item["seed"],
+           "track": r.get("track"), "held": r.get("held")}
+    return out | ({"error": r["error"]} if r.get("error") else {})
+
+
+def score(r):
+    """SR.score, with a row's "error": null read as no error (pass 2 wrote it on every row until 2026-11-20 08:1x)."""
+    return 0.0 if r.get("error") else float(r.get("track") or 0.0)
 
 
 def feasible(rr, clear):
@@ -66,7 +72,7 @@ def feasible(rr, clear):
     out = {}
     for key, m in by.items():
         if set(m) == set(SR.MODELS) and all(v["least_mm"] >= clear and v["held"] for v in m.values()):
-            out[key] = float(np.mean([SR.score(v) for v in m.values()]))
+            out[key] = float(np.mean([score(v) for v in m.values()]))
     return out
 
 
@@ -127,7 +133,7 @@ def main():
     fz = feasible(rr, a.clear)
     sc = {}
     for r in rr:
-        sc.setdefault((r["call"], r["k"]), {}).setdefault(r["model"], {})[r["seed"]] = SR.score(r)
+        sc.setdefault((r["call"], r["k"]), {}).setdefault(r["model"], {})[r["seed"]] = score(r)
     out = []
     xy = {c: xy for c, xy, n in SR.layouts()}
     cand = {c["call"]: c for c in S["candidates"]}
