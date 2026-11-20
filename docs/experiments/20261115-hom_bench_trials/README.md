@@ -55,8 +55,11 @@ trial. Three sets, run in this order: the 11 plans with HOM's default forces, th
   joints of 11-17 the same check read -2 to -5 mm in all six g13 trials at (105, 70), where the two met, so the hand
   runs 8-13 mm closer than the simulation for this pair. Block 1, the ranking test: 11 layouts (the seven others and
   four replacements, (90, 135) g3, (80, 130) g15, (95, 90) g14 and (75, 140) g5) in seeded random order, then the
-  anchor's stage E plan. Block 2: the four touching layouts, labelled `b2touch`. Block 3: the stage E plans of the
-  non-touching layouts. Stage F's CEM plans come after, when they land.
+  anchor's stage E plan, then the anchor's two CEM plans (stage F, 463cc988f: `cem_knots`, a four-knot force schedule,
+  and `cem_full`, 1.40 N without the spin rows). Block 2: the four touching layouts, labelled `b2touch`. Block 3: the
+  stage E plans of the non-touching layouts. Block 4: the other eleven CEM plans that keep the fingers apart on the CAD
+  spheres (the six at the touching layouts left out), shuffled. 105 trials on ports 47102-47136; at about 4.5 min a
+  trial the list runs past midday, and blocks 3 and 4 can be cut.
 
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 

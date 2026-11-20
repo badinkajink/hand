@@ -1,6 +1,6 @@
 {
  "seed": 20261120,
- "what": "the morning series of 2026-11-20 (the twist ranking's order of 86bc736b6, 21:5x on 11-19): block 1 the ranking test in seeded random order, then the anchor's stage E plan, block 2 the four layouts whose index and middle touch on the CAD spheres in the simulated twists, block 3 the stage E plans of the non-touching layouts; three trials each",
+ "what": "the morning series of 2026-11-20 (the twist ranking's order of 86bc736b6, 21:5x on 11-19): block 1 the ranking test in seeded random order, then the anchor's stage E plan, block 2 the four layouts whose index and middle touch on the CAD spheres in the simulated twists, block 3 the stage E plans of the non-touching layouts; three trials each; block 4 (463cc988f, 23:0x): stage F's CEM plans that keep the fingers apart on the CAD spheres, the anchor's knots and full plans first, the other eleven shuffled with seed 20261124; the anchor's two CEM plans moved up after its stage E plan (the peer, 23:0x: the most distinct test; the rest of block 4 waits behind block 3)",
  "order": [
   {
    "block": "b1",
@@ -75,6 +75,18 @@
    "label": "b1E_anchor_x70y110g0f"
   },
   {
+   "block": "b4cem",
+   "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "port": 47124,
+   "label": "b4cem_anchor_x70y110_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "port": 47125,
+   "label": "b4cem_anchor_x70y110_full"
+  },
+  {
    "block": "b2touch",
    "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
    "port": 47114,
@@ -133,6 +145,72 @@
    "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
    "port": 47123,
    "label": "b3E_r40_x85y120g15f"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "port": 47126,
+   "label": "b4cem_x70y90_full"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "port": 47127,
+   "label": "b4cem_x65y110_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "port": 47128,
+   "label": "b4cem_x65y110_full"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "port": 47129,
+   "label": "b4cem_x110y155_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "port": 47130,
+   "label": "b4cem_x85y120_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "port": 47131,
+   "label": "b4cem_x115y160_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "port": 47132,
+   "label": "b4cem_x85y120_full"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "port": 47133,
+   "label": "b4cem_x60y135_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "port": 47134,
+   "label": "b4cem_x70y90_knots"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "port": 47135,
+   "label": "b4cem_x110y155_full"
+  },
+  {
+   "block": "b4cem",
+   "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "port": 47136,
+   "label": "b4cem_x115y160_full"
   }
  ]
 }
