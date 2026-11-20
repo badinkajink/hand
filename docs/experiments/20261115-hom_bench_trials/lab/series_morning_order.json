@@ -1,216 +1,426 @@
 {
  "seed": 20261120,
- "what": "the morning series of 2026-11-20 (the twist ranking's order of 86bc736b6, 21:5x on 11-19): block 1 the ranking test in seeded random order, then the anchor's stage E plan, block 2 the four layouts whose index and middle touch on the CAD spheres in the simulated twists, block 3 the stage E plans of the non-touching layouts; three trials each; block 4 (463cc988f, 23:0x): stage F's CEM plans that keep the fingers apart on the CAD spheres, the anchor's knots and full plans first, the other eleven shuffled with seed 20261124; the anchor's two CEM plans moved up after its stage E plan (the peer, 23:0x: the most distinct test; the rest of block 4 waits behind block 3)",
+ "what": "the morning series of 2026-11-20, rebuilt 00:2x for the owner's denser spread (relayed 23:2x: \"we should shoot for higher density of evaluation ... to see if we can first ascertain a rough correspondence, including simulation-predicted bad morphologies\"; the twist ranking's 361206fa4). Block A1: block 1's 11 layouts (3 trials) and 10 new layouts over the predicted range (2 trials), shuffled together with seed 20261220; A2: 12 predicted-bad layouts, most touching on the CAD spheres (2 trials, shuffled); A3: 3 layouts that dropped the sphere in simulation (2 trials). Then the anchor's stage E and CEM plans, block 2 (touching, b2touch), block 3 (stage E), block 4 (the other CEM plans). Labels carry the predicted tracking x100 (p) or the rank (r).",
  "order": [
   {
-   "block": "b1",
-   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
-   "port": 47102,
-   "label": "b1_r179_x60y135g8"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
-   "port": 47103,
-   "label": "b1_r3_x115y160g8"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
-   "port": 47104,
-   "label": "b1_r16_x80y130g15"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
-   "port": 47105,
-   "label": "b1_r40_x85y120g15"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
-   "port": 47106,
-   "label": "b1_r4_x110y155g3"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
-   "port": 47107,
-   "label": "b1_r75_x65y110g0"
-  },
-  {
-   "block": "b1",
+   "block": "A1",
    "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
    "port": 47108,
-   "label": "b1_r15_x90y135g3"
+   "label": "A1_r15_x90y135g3",
+   "trials": 3
   },
   {
-   "block": "b1",
-   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
-   "port": 47109,
-   "label": "b1_r109_x70y90g1"
+   "block": "A1",
+   "plan": "20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "port": 47141,
+   "label": "A1_p35_x105y100g15",
+   "trials": 2
   },
   {
-   "block": "b1",
-   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
-   "port": 47110,
-   "label": "b1_r130_x95y90g14"
-  },
-  {
-   "block": "b1",
-   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
-   "port": 47111,
-   "label": "b1_r163_x75y140g5"
-  },
-  {
-   "block": "b1",
+   "block": "A1",
    "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
    "port": 47112,
-   "label": "b1_anchor_x70y110g0"
+   "label": "A1_anchor_x70y110g0",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "port": 47103,
+   "label": "A1_r3_x115y160g8",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "port": 47109,
+   "label": "A1_r109_x70y90g1",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x55_y90_twist_gr_g0_plan.json",
+   "port": 47140,
+   "label": "A1_p40_x55y90g0",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x55_y75_twist_gr_g10_plan.json",
+   "port": 47139,
+   "label": "A1_p42_x55y75g10",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x85_y170_twist_gr_g2_plan.json",
+   "port": 47146,
+   "label": "A1_p25_x85y170g2",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "port": 47102,
+   "label": "A1_r179_x60y135g8",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x100_y110_twist_gr_g5_plan.json",
+   "port": 47137,
+   "label": "A1_p50_x100y110g5",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "port": 47107,
+   "label": "A1_r75_x65y110g0",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x100_y80_twist_gr_g8_plan.json",
+   "port": 47142,
+   "label": "A1_p32_x100y80g8",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x85_y160_twist_gr_g1_plan.json",
+   "port": 47144,
+   "label": "A1_p29_x85y160g1",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "port": 47106,
+   "label": "A1_r4_x110y155g3",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "port": 47110,
+   "label": "A1_r130_x95y90g14",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x95_y150_twist_gr_g11_plan.json",
+   "port": 47138,
+   "label": "A1_p48_x95y150g11",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "port": 47111,
+   "label": "A1_r163_x75y140g5",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "port": 47105,
+   "label": "A1_r40_x85y120g15",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x115_y135_twist_gr_g8_plan.json",
+   "port": 47143,
+   "label": "A1_p31_x115y135g8",
+   "trials": 2
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "port": 47104,
+   "label": "A1_r16_x80y130g15",
+   "trials": 3
+  },
+  {
+   "block": "A1",
+   "plan": "20261119-rank_x80_y155_twist_gr_g5_plan.json",
+   "port": 47145,
+   "label": "A1_p28_x80y155g5",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x65_y155_twist_gr_g1_plan.json",
+   "port": 47156,
+   "label": "A2bad_p8_x65y155g1_cad-5.3",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x155_y60_twist_gr_g0_plan.json",
+   "port": 47158,
+   "label": "A2bad_p0_x155y60g0_cad-0.1",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x55_y155_twist_gr_g5_plan.json",
+   "port": 47157,
+   "label": "A2bad_p4_x55y155g5_cad-1",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x70_y155_twist_gr_g0_plan.json",
+   "port": 47152,
+   "label": "A2bad_p14_x70y155g0_cad3.6",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x160_y85_twist_gr_g1_plan.json",
+   "port": 47153,
+   "label": "A2bad_p12_x160y85g1_cad-0.5",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x155_y105_twist_gr_g7_plan.json",
+   "port": 47148,
+   "label": "A2bad_p21_x155y105g7_cad0.4",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x130_y95_twist_gr_g14_plan.json",
+   "port": 47147,
+   "label": "A2bad_p24_x130y95g14_cad1",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x60_y155_twist_gr_g7_plan.json",
+   "port": 47154,
+   "label": "A2bad_p10_x60y155g7_cad3.3",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x150_y65_twist_gr_g5_plan.json",
+   "port": 47149,
+   "label": "A2bad_p18_x150y65g5_cad-0",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x65_y145_twist_gr_g15_plan.json",
+   "port": 47150,
+   "label": "A2bad_p16_x65y145g15_cad8.2",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x55_y130_twist_gr_g12_plan.json",
+   "port": 47151,
+   "label": "A2bad_p14_x55y130g12_cad-2.3",
+   "trials": 2
+  },
+  {
+   "block": "A2bad",
+   "plan": "20261119-rank_x70_y150_twist_gr_g8_plan.json",
+   "port": 47155,
+   "label": "A2bad_p9_x70y150g8_cad7.6",
+   "trials": 2
+  },
+  {
+   "block": "A3drop",
+   "plan": "20261119-rank_x110_y80_twist_gr_g1_plan.json",
+   "port": 47159,
+   "label": "A3drop_p58_x110y80g1",
+   "trials": 2
+  },
+  {
+   "block": "A3drop",
+   "plan": "20261119-rank_x135_y125_twist_gr_g5_plan.json",
+   "port": 47160,
+   "label": "A3drop_p34_x135y125g5",
+   "trials": 2
+  },
+  {
+   "block": "A3drop",
+   "plan": "20261119-rank_x55_y140_twist_gr_g11_plan.json",
+   "port": 47161,
+   "label": "A3drop_p4_x55y140g11",
+   "trials": 2
   },
   {
    "block": "b1E",
    "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
    "port": 47113,
-   "label": "b1E_anchor_x70y110g0f"
+   "label": "b1E_anchor_x70y110g0f",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
    "port": 47124,
-   "label": "b4cem_anchor_x70y110_knots"
+   "label": "b4cem_anchor_x70y110_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
    "port": 47125,
-   "label": "b4cem_anchor_x70y110_full"
+   "label": "b4cem_anchor_x70y110_full",
+   "trials": 3
   },
   {
    "block": "b2touch",
    "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
    "port": 47114,
-   "label": "b2touch_r2_x115y70g7"
+   "label": "b2touch_r2_x115y70g7",
+   "trials": 3
   },
   {
    "block": "b2touch",
    "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
    "port": 47115,
-   "label": "b2touch_r5_x105y60g9"
+   "label": "b2touch_r5_x105y60g9",
+   "trials": 3
   },
   {
    "block": "b2touch",
    "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
    "port": 47116,
-   "label": "b2touch_r1_x135y65g0"
+   "label": "b2touch_r1_x135y65g0",
+   "trials": 3
   },
   {
    "block": "b2touch",
    "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
    "port": 47117,
-   "label": "b2touch_r144_x85y60g14"
+   "label": "b2touch_r144_x85y60g14",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
    "port": 47118,
-   "label": "b3E_r3_x115y160g8f"
+   "label": "b3E_r3_x115y160g8f",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
    "port": 47119,
-   "label": "b3E_r179_x60y135g8f"
+   "label": "b3E_r179_x60y135g8f",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
    "port": 47120,
-   "label": "b3E_r109_x70y90g1f"
+   "label": "b3E_r109_x70y90g1f",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
    "port": 47121,
-   "label": "b3E_r75_x65y110g0f"
+   "label": "b3E_r75_x65y110g0f",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
    "port": 47122,
-   "label": "b3E_r4_x110y155g3f"
+   "label": "b3E_r4_x110y155g3f",
+   "trials": 3
   },
   {
    "block": "b3E",
    "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
    "port": 47123,
-   "label": "b3E_r40_x85y120g15f"
+   "label": "b3E_r40_x85y120g15f",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
    "port": 47126,
-   "label": "b4cem_x70y90_full"
+   "label": "b4cem_x70y90_full",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
    "port": 47127,
-   "label": "b4cem_x65y110_knots"
+   "label": "b4cem_x65y110_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
    "port": 47128,
-   "label": "b4cem_x65y110_full"
+   "label": "b4cem_x65y110_full",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
    "port": 47129,
-   "label": "b4cem_x110y155_knots"
+   "label": "b4cem_x110y155_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
    "port": 47130,
-   "label": "b4cem_x85y120_knots"
+   "label": "b4cem_x85y120_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
    "port": 47131,
-   "label": "b4cem_x115y160_knots"
+   "label": "b4cem_x115y160_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
    "port": 47132,
-   "label": "b4cem_x85y120_full"
+   "label": "b4cem_x85y120_full",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
    "port": 47133,
-   "label": "b4cem_x60y135_knots"
+   "label": "b4cem_x60y135_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
    "port": 47134,
-   "label": "b4cem_x70y90_knots"
+   "label": "b4cem_x70y90_knots",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
    "port": 47135,
-   "label": "b4cem_x110y155_full"
+   "label": "b4cem_x110y155_full",
+   "trials": 3
   },
   {
    "block": "b4cem",
    "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
    "port": 47136,
-   "label": "b4cem_x115y160_full"
+   "label": "b4cem_x115y160_full",
+   "trials": 3
   }
  ]
 }
