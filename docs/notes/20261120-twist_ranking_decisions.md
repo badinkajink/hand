@@ -193,11 +193,20 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   rho 0.20. The best feasible layouts move from (115, 155), (115, 160), (95, 105), (110, 155), (105, 150) at 2.5 N (0.54-
   0.55) to (85, 170), (90, 165), (80, 150), (85, 115), (85, 155) at 1.0 N (0.74-0.77). The sim-to-real page's Figure 2
   shows both.
+- 15:01, lab: the series restarted at A1_r130_x95y90g14_t1 (entry 34 of 170); since 14:04, 23 trials ran and five stops
+  were recovered on the bench. A1_r4_x110y155g3_t3 set the sphere down seated but tilted 22.7 deg; released, it toppled;
+  a 5 N push freed it from the cables and the pinch stood it up (0.6 deg). Its row's putdown field ("settled at ?") is
+  wrong: the sphere toppled. The lab's reading: the wide layouts lose the sphere on the hand, (115, 160), (110, 155),
+  (85, 170) and (85, 160) (rise 12-29 mm, drift guard or drops, twists of 25-81 deg); the narrow and mid layouts hold it,
+  (65, 110), (70, 90), (55, 90), (55, 75) and (100, 80) (rise 2-7 mm, twists of 35-83 deg). Drop recovery: on bare table
+  the pinch pick-up worked first time all three times (13:31, 13:56, 14:58); among the cables a push or a pinch descent
+  hit them five times (3.2-3.6 N). Request relayed to the owner at 15:0x: route the blue and red cable bundle away from
+  the table's centre.
 
 ## Waiting on owner
 
-- The bench (since 12:36): someone at the bench stands the sphere upright near the table's centre; the series restarts
-  by itself.
+- The cables (lab, 15:01): someone routes the blue and red cable bundle away from the table's centre, so a dropped
+  sphere lies on bare table, where the pinch pick-up works.
 
 - The smoothed budget on the bench (`hom_server --budget-joint-tau 0.1 --target-tau 0.04`) from the next block boundary,
   yes or no (asked 12:1x). Without it HOM stays as it was.
