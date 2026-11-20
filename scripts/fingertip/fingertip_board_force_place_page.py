@@ -340,6 +340,7 @@ air. That is what the own-pose term should remove.</p>
          summary_rows(R, PM), num_cols=(1, 2, 3, 4, 5, 6, 7), n=2,
          caption="The arm presses. z runs along the pad from its proximal mount face (apex 10.86, distal end 21.41). The model's z is where the plate's normal meets the pad at the press's joints before load. The last two columns are force per HEX-E newton.")}"""))
     S.append(("geometry", "Where on the pad: the hand model and the patterns disagree", f"""
+<p><b>Corrected the same evening (19:xx).</b> The disagreement below is the normal-only pattern match's, not the boards'. The plates' friction leaned the force 15-26 deg, and a library of normal presses can only explain a leaning force by a more distal place. The trials' GP, which models shear, places the bent index's contacts 1.8-2.8 mm distal of the geometry at the joint readings, and within 1 mm of it with the DIP link 9.2 deg more flexed, as the DIP tags measured on 11-18. See <a href="../20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html">the fingertip sensing page</a>, Section 9.</p>
 <p>The hand model puts each contact where the plate&#8217;s normal meets the pad. For the straight index, that is 3.4 mm
 proximal of the apex, on the pad&#8217;s flat proximal half. That half turns only 12 deg over 11 mm, so a few degrees of
 lean move a flat contact by several mm. For PIP 10 and 20, the model puts the contact 1.7 and 4.1 mm distal of the apex.

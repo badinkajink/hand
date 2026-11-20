@@ -1,0 +1,665 @@
+{
+ "what": "Where the arm presses of 2026-11-19 touched the pad, four ways (the owner, 2026-11-19 18:1x: \"again the forces are much lower priority than contact pose\").",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261119-arm_press_contact_place.py",
+ "rows": [
+  {
+   "run": "20261119-170343_index_arm_press",
+   "group": "index, PIP 0",
+   "rep": 1,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.59,
+    -0.29,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.237,
+    2.465,
+    0.658
+   ],
+   "f_pad_N": [
+    -2.503,
+    -0.213,
+    -0.506
+   ],
+   "press_dir_pad": [
+    0.9976,
+    0.0349,
+    -0.0594
+   ],
+   "tilt_deg": 15.1,
+   "lean_pad": [
+    0.013,
+    0.049,
+    0.255
+   ],
+   "z_geometry": 7.51,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 12.29,
+   "z_force": 13.64,
+   "y_force": 0.53,
+   "z_gp": 8.36,
+   "y_gp": -0.0,
+   "z_pattern": 10.36,
+   "best_cos": 0.4397,
+   "normal_tilt_geometry_deg": 3.9,
+   "normal_tilt_force_deg": 12.4,
+   "normal_gp_vs_geometry_deg": 2.2
+  },
+  {
+   "run": "20261119-170343_index_arm_press",
+   "group": "index, PIP 0",
+   "rep": 2,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.59,
+    -0.29,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.118,
+    2.433,
+    0.739
+   ],
+   "f_pad_N": [
+    -2.474,
+    -0.097,
+    -0.593
+   ],
+   "press_dir_pad": [
+    0.9976,
+    0.0349,
+    -0.0594
+   ],
+   "tilt_deg": 16.9,
+   "lean_pad": [
+    0.017,
+    0.005,
+    0.29
+   ],
+   "z_geometry": 7.51,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 12.29,
+   "z_force": 14.12,
+   "y_force": 0.24,
+   "z_gp": 8.87,
+   "y_gp": -0.74,
+   "z_pattern": 8.37,
+   "best_cos": 0.3821,
+   "normal_tilt_geometry_deg": 3.9,
+   "normal_tilt_force_deg": 13.6,
+   "normal_gp_vs_geometry_deg": 8.7
+  },
+  {
+   "run": "20261119-170343_index_arm_press",
+   "group": "index, PIP 0",
+   "rep": 3,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.59,
+    -0.29,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.158,
+    2.489,
+    0.795
+   ],
+   "f_pad_N": [
+    -2.533,
+    -0.138,
+    -0.645
+   ],
+   "press_dir_pad": [
+    0.9976,
+    0.0349,
+    -0.0594
+   ],
+   "tilt_deg": 17.7,
+   "lean_pad": [
+    0.017,
+    0.02,
+    0.303
+   ],
+   "z_geometry": 7.51,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 12.29,
+   "z_force": 14.3,
+   "y_force": 0.33,
+   "z_gp": 9.61,
+   "y_gp": -0.0,
+   "z_pattern": 19.98,
+   "best_cos": 0.3612,
+   "normal_tilt_geometry_deg": 3.9,
+   "normal_tilt_force_deg": 14.6,
+   "normal_gp_vs_geometry_deg": 2.9
+  },
+  {
+   "run": "20261119-170846_middle_arm_press",
+   "group": "middle, PIP 0",
+   "rep": 1,
+   "finger": "middle",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.307,
+    2.352,
+    0.2
+   ],
+   "f_pad_N": [
+    -2.364,
+    -0.269,
+    -0.064
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    -0.0544
+   ],
+   "tilt_deg": 6.5,
+   "lean_pad": [
+    0.002,
+    0.079,
+    0.081
+   ],
+   "z_geometry": 7.79,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 13.09,
+   "z_force": 11.24,
+   "y_force": 0.73,
+   "z_gp": 7.34,
+   "y_gp": 0.0,
+   "z_pattern": 5.44,
+   "best_cos": 0.5468,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 6.7,
+   "normal_gp_vs_geometry_deg": 2.0
+  },
+  {
+   "run": "20261119-170846_middle_arm_press",
+   "group": "middle, PIP 0",
+   "rep": 2,
+   "finger": "middle",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.349,
+    2.491,
+    0.129
+   ],
+   "f_pad_N": [
+    -2.5,
+    -0.305,
+    0.016
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    -0.0544
+   ],
+   "tilt_deg": 5.7,
+   "lean_pad": [
+    -0.0,
+    0.087,
+    0.048
+   ],
+   "z_geometry": 7.79,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 13.09,
+   "z_force": 10.5,
+   "y_force": 0.78,
+   "z_gp": 6.12,
+   "y_gp": 0.01,
+   "z_pattern": 5.44,
+   "best_cos": 0.6088,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 7.0,
+   "normal_gp_vs_geometry_deg": 2.6
+  },
+  {
+   "run": "20261119-170846_middle_arm_press",
+   "group": "middle, PIP 0",
+   "rep": 3,
+   "finger": "middle",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    -0.29
+   ],
+   "F_hold_B_N": [
+    0.027,
+    0.056,
+    0.112
+   ],
+   "f_pad_N": [
+    -0.062,
+    -0.031,
+    -0.108
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    -0.0544
+   ],
+   "tilt_deg": 63.4,
+   "lean_pad": [
+    0.039,
+    0.225,
+    0.865
+   ],
+   "z_geometry": 7.79,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 13.09,
+   "z_force": 20.75,
+   "y_force": 1.28,
+   "z_gp": null,
+   "y_gp": null,
+   "z_pattern": null,
+   "best_cos": null,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 60.9
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press",
+   "group": "thumb, PIP 0",
+   "rep": 1,
+   "finger": "thumb",
+   "joints_sim_deg": [
+    -0.0,
+    0.29,
+    -0.0
+   ],
+   "F_hold_B_N": [
+    -0.198,
+    -2.439,
+    1.053
+   ],
+   "f_pad_N": [
+    -2.383,
+    -0.101,
+    -1.187
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    0.0545
+   ],
+   "tilt_deg": 23.3,
+   "lean_pad": [
+    -0.022,
+    0.006,
+    0.396
+   ],
+   "z_geometry": 11.64,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 11.64,
+   "z_force": 16.82,
+   "y_force": 0.23,
+   "z_gp": 8.36,
+   "y_gp": -0.25,
+   "z_pattern": 18.08,
+   "best_cos": 0.7463,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 26.6,
+   "normal_gp_vs_geometry_deg": 7.1
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press",
+   "group": "thumb, PIP 0",
+   "rep": 2,
+   "finger": "thumb",
+   "joints_sim_deg": [
+    -0.0,
+    0.29,
+    -0.0
+   ],
+   "F_hold_B_N": [
+    -0.225,
+    -2.098,
+    1.014
+   ],
+   "f_pad_N": [
+    -2.045,
+    -0.137,
+    -1.131
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    0.0545
+   ],
+   "tilt_deg": 25.8,
+   "lean_pad": [
+    -0.025,
+    0.027,
+    0.434
+   ],
+   "z_geometry": 11.64,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 11.64,
+   "z_force": 17.26,
+   "y_force": 0.35,
+   "z_gp": 9.86,
+   "y_gp": 0.25,
+   "z_pattern": 18.08,
+   "best_cos": 0.8355,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 29.1,
+   "normal_gp_vs_geometry_deg": 4.1
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press",
+   "group": "thumb, PIP 0",
+   "rep": 3,
+   "finger": "thumb",
+   "joints_sim_deg": [
+    -0.0,
+    0.29,
+    -0.0
+   ],
+   "F_hold_B_N": [
+    -0.218,
+    -2.452,
+    1.014
+   ],
+   "f_pad_N": [
+    -2.398,
+    -0.123,
+    -1.149
+   ],
+   "press_dir_pad": [
+    0.9979,
+    0.0346,
+    0.0545
+   ],
+   "tilt_deg": 22.5,
+   "lean_pad": [
+    -0.021,
+    0.014,
+    0.381
+   ],
+   "z_geometry": 11.64,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 11.64,
+   "z_force": 16.65,
+   "y_force": 0.28,
+   "z_gp": 8.86,
+   "y_gp": 0.74,
+   "z_pattern": 18.08,
+   "best_cos": 0.795,
+   "normal_tilt_geometry_deg": 3.7,
+   "normal_tilt_force_deg": 25.7,
+   "normal_gp_vs_geometry_deg": 6.9
+  },
+  {
+   "run": "20261119-171923_index_arm_press",
+   "group": "index, PIP 10",
+   "rep": 1,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    9.96
+   ],
+   "F_hold_B_N": [
+    0.083,
+    2.144,
+    0.938
+   ],
+   "f_pad_N": [
+    -2.011,
+    -0.08,
+    -1.197
+   ],
+   "press_dir_pad": [
+    0.9916,
+    0.035,
+    0.1242
+   ],
+   "tilt_deg": 23.6,
+   "lean_pad": [
+    -0.05,
+    0.002,
+    0.398
+   ],
+   "z_geometry": 12.62,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 14.76,
+   "z_force": 17.57,
+   "y_force": 0.2,
+   "z_gp": 14.57,
+   "y_gp": -0.25,
+   "z_pattern": 19.07,
+   "best_cos": 0.9719,
+   "normal_tilt_geometry_deg": 7.4,
+   "normal_tilt_force_deg": 30.8,
+   "normal_gp_vs_geometry_deg": 9.4
+  },
+  {
+   "run": "20261119-171923_index_arm_press",
+   "group": "index, PIP 10",
+   "rep": 2,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    9.96
+   ],
+   "F_hold_B_N": [
+    0.134,
+    2.476,
+    0.858
+   ],
+   "f_pad_N": [
+    -2.352,
+    -0.122,
+    -1.159
+   ],
+   "press_dir_pad": [
+    0.9916,
+    0.035,
+    0.1242
+   ],
+   "tilt_deg": 19.1,
+   "lean_pad": [
+    -0.041,
+    0.013,
+    0.324
+   ],
+   "z_geometry": 12.62,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 14.76,
+   "z_force": 16.77,
+   "y_force": 0.28,
+   "z_gp": 12.85,
+   "y_gp": -0.5,
+   "z_pattern": 19.07,
+   "best_cos": 0.9636,
+   "normal_tilt_geometry_deg": 7.4,
+   "normal_tilt_force_deg": 26.4,
+   "normal_gp_vs_geometry_deg": 6.6
+  },
+  {
+   "run": "20261119-171923_index_arm_press",
+   "group": "index, PIP 10",
+   "rep": 3,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    9.96
+   ],
+   "F_hold_B_N": [
+    0.134,
+    2.286,
+    0.906
+   ],
+   "f_pad_N": [
+    -2.156,
+    -0.127,
+    -1.182
+   ],
+   "press_dir_pad": [
+    0.9916,
+    0.035,
+    0.1242
+   ],
+   "tilt_deg": 21.6,
+   "lean_pad": [
+    -0.046,
+    0.019,
+    0.365
+   ],
+   "z_geometry": 12.62,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 14.76,
+   "z_force": 17.22,
+   "y_force": 0.31,
+   "z_gp": 14.07,
+   "y_gp": -0.25,
+   "z_pattern": 19.07,
+   "best_cos": 0.9656,
+   "normal_tilt_geometry_deg": 7.4,
+   "normal_tilt_force_deg": 28.9,
+   "normal_gp_vs_geometry_deg": 7.5
+  },
+  {
+   "run": "20261119-172508_index_arm_press",
+   "group": "index, PIP 20",
+   "rep": 1,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    20.21
+   ],
+   "F_hold_B_N": [
+    0.1,
+    2.096,
+    0.944
+   ],
+   "f_pad_N": [
+    -1.718,
+    -0.099,
+    -1.527
+   ],
+   "press_dir_pad": [
+    0.9537,
+    0.035,
+    0.2987
+   ],
+   "tilt_deg": 24.2,
+   "lean_pad": [
+    -0.123,
+    0.011,
+    0.391
+   ],
+   "z_geometry": 14.99,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 16.84,
+   "z_force": 19.16,
+   "y_force": 0.24,
+   "z_gp": 13.95,
+   "y_gp": -0.26,
+   "z_pattern": 19.07,
+   "best_cos": 0.99,
+   "normal_tilt_geometry_deg": 17.5,
+   "normal_tilt_force_deg": 41.7,
+   "normal_gp_vs_geometry_deg": 6.4
+  },
+  {
+   "run": "20261119-172508_index_arm_press",
+   "group": "index, PIP 20",
+   "rep": 2,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    20.21
+   ],
+   "F_hold_B_N": [
+    0.147,
+    2.43,
+    0.889
+   ],
+   "f_pad_N": [
+    -2.055,
+    -0.137,
+    -1.574
+   ],
+   "press_dir_pad": [
+    0.9537,
+    0.035,
+    0.2987
+   ],
+   "tilt_deg": 20.1,
+   "lean_pad": [
+    -0.103,
+    0.02,
+    0.327
+   ],
+   "z_geometry": 14.99,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 16.84,
+   "z_force": 18.6,
+   "y_force": 0.3,
+   "z_gp": 15.83,
+   "y_gp": -0.53,
+   "z_pattern": 19.07,
+   "best_cos": 0.9898,
+   "normal_tilt_geometry_deg": 17.5,
+   "normal_tilt_force_deg": 37.6,
+   "normal_gp_vs_geometry_deg": 8.0
+  },
+  {
+   "run": "20261119-172508_index_arm_press",
+   "group": "index, PIP 20",
+   "rep": 3,
+   "finger": "index",
+   "joints_sim_deg": [
+    0.29,
+    0.0,
+    20.21
+   ],
+   "F_hold_B_N": [
+    0.089,
+    2.475,
+    0.909
+   ],
+   "f_pad_N": [
+    -2.09,
+    -0.078,
+    -1.609
+   ],
+   "press_dir_pad": [
+    0.9537,
+    0.035,
+    0.2987
+   ],
+   "tilt_deg": 20.2,
+   "lean_pad": [
+    -0.103,
+    -0.003,
+    0.329
+   ],
+   "z_geometry": 14.99,
+   "y_geometry": 0.22,
+   "z_geometry_tags": 16.84,
+   "z_force": 18.62,
+   "y_force": 0.17,
+   "z_gp": 15.58,
+   "y_gp": -0.51,
+   "z_pattern": 19.07,
+   "best_cos": 0.9865,
+   "normal_tilt_geometry_deg": 17.5,
+   "normal_tilt_force_deg": 37.6,
+   "normal_gp_vs_geometry_deg": 7.3
+  }
+ ]
+}

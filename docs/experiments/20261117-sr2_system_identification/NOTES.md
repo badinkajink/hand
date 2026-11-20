@@ -496,3 +496,34 @@ post, you can also run experiments on the sphere".
     4.5 mm with the CAD map. Map A and the caliper-scaled map B differ by 0.5 mm rms: more views would firm it up.
   - Faces 37 and 38 decode with no bits corrected seen near head-on (margins 56 and 50). Their bit corrections at
     17:34-17:48 came from edge-on views.
+
+## 2026-11-19, 18:10-18:35: contact pose from the boards (owner, 18:1x: "the forces are much lower priority than contact pose"; 18:4x: smoothness, stability, throughput, then a pose filter with closed loop, then force)
+
+- **Arm presses, four places compared** (`sim/20261119-arm_press_contact_place.py`, `data/s3/20261119-arm_press_contact_place.json`):
+  the plate's geometry (the pad point whose normal is the press direction, from the hand model at the joints) puts the
+  contacts at z 7.5 (index PIP 0), 7.8 (middle), 11.6 (thumb), 12.6 (index PIP 10) and 15.0 (PIP 20), the page's model
+  values. The HEX-E's hold force leans 15-26 deg from the press direction toward the pad's distal end in every press but
+  the middle's (6 deg): friction. The boards agree it leans: fed g x F, the GP's force direction is 2-21 deg from the
+  HEX-E's in the pad frame, 12-42 deg from the press direction. The trials' GP places the bent-PIP contacts at z 12.9-15.8
+  (0-3 mm from the geometry); the normal-only pattern match's z 19.07 (4-6 mm distal, the same calibration point every
+  press) sits near where a frictionless contact would have to be for the leaning force (z 16.7-19.2). The page's
+  "boards and model disagree by 4-6 mm" was the pattern match's, not the boards'.
+- **Rig, held out** (`sim/20261119-board_contact_place_rig.py`, `data/s3/20261119-board_contact_place_rig.json`; the deployed
+  GP's recipe refitted at its length 1.94 and noise 0.3; holds of tips 1 and 3 rsynced from the workstation to logs/):
+  one session left out, the GP places presses, slides, rolls and twists within 0.55-0.81 mm median (p90 1.37-1.74),
+  normals 3.0-5.0 deg, force direction 3.7-7.1 deg; a whole tip left out 0.62-1.08 mm (p90 1.46-2.09). In sample 0.40-0.47
+  mm. The normal-only pattern match 0.99-1.96 mm, worse with lean (0.9-1.2 mm below lean 0.15, 1.5-2.3 above 0.35); the
+  GP's barely moves with lean. By force: 1.1-1.7 mm at 0.1-0.5 N, 0.5-0.8 above 1 N. Below 0.5 N the GP's error points
+  toward its mean place (z 10.45) in 85-98 % of holds (median 1.1-2.0 mm): the GP's prior, not noise. The tall-sphere
+  sessions no GP saw: 1.5-2.1 mm, with a constant -0.9 to -1.1 mm offset in y in both (the tall tool's registration).
+- **Torsion**: twisting the tip 5-20 deg about the normal at a fixed place leaves a field change beyond the 3D force
+  (local linear model field = a + J f from the session's presses and slides within 1.2 mm) of 2.5-8 uT chip to chip,
+  1.5-2.5x the repeat noise, growing linearly with the turn and the same at 1 N and 5 N. Torsion would grow 5-8x from
+  1 to 5 N (a stuck patch's torque ~ a^3, a slipping one's ~ F^4/3), so this is the board turning in the lab's field, not
+  torsion; the HEX-E's moment about the normal (tn) wanders +-4 N mm and cannot serve as truth.
+- **On the hand, stability and rate** (`sim/20261119-board_estimate_stability.py`, `data/s3/20261119-board_estimate_stability.json`):
+  150 Hz per board (longest gaps 10-24 ms); free-air noise 1.7-1.95 uT per component per record, 0.67-0.81 uT per 50 ms
+  mean; at about 2.4 N held, the 50 ms place jitters 0.13-0.32 mm (sd) across and 0.28-0.54 mm along (index, thumb;
+  middle 0.5-0.9), single records 2.5x more; force sd 0.06-0.1 N; drift within 2 s holds up to 0.5 mm/s. While loading,
+  the bent-PIP places start at the apex (z 10-11 at 0.3 N) and settle within about 1 mm from 1 N; the straight fingers'
+  flat contacts walk from z 10 to 3-4 as the force rises (outside the calibration: no pattern matched them above 0.45).
