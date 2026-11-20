@@ -407,6 +407,4966 @@
      "resid_deployed_median_uT": 11.35,
      "resid_x70y110_median_uT": 6.86
     }
+   },
+   "thumb_tag": {
+    "poses": [],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-192459_hom_film_x105_y70_twist_grg13_sweep.jsonl",
+   "design": "hom_film_x105_y70_twist_grg13",
+   "mounts": {
+    "thumb": {
+     "x": -46.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 46.3188,
+     "y": 31.600299999999997
+    },
+    "middle": {
+     "x": 46.3187,
+     "y": -31.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        2.64,
+        -4.1,
+        44.82
+       ],
+       "change_uT": 54.27,
+       "resid_deployed_uT": 4.58,
+       "resid_x70y110_uT": 5.23
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        29.59,
+        0.29
+       ],
+       "change_uT": 34.18,
+       "resid_deployed_uT": 9.55,
+       "resid_x70y110_uT": 8.69
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.0,
+        -0.29,
+        44.53
+       ],
+       "change_uT": 53.71,
+       "resid_deployed_uT": 4.04,
+       "resid_x70y110_uT": 4.8
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 94.91,
+       "resid_deployed_uT": 49.09,
+       "resid_x70y110_uT": 50.12
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 40.08,
+       "resid_deployed_uT": 11.08,
+       "resid_x70y110_uT": 10.07
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        0.29
+       ],
+       "change_uT": 31.58,
+       "resid_deployed_uT": 8.37,
+       "resid_x70y110_uT": 8.89
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 93.53,
+       "resid_deployed_uT": 11.9,
+       "resid_x70y110_uT": 15.34
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 2.52,
+       "resid_deployed_uT": 2.54,
+       "resid_x70y110_uT": 2.59
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 2.82,
+       "resid_deployed_uT": 3.54,
+       "resid_x70y110_uT": 3.56
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.37,
+        59.18
+       ],
+       "change_uT": 73.74,
+       "resid_deployed_uT": 24.39,
+       "resid_x70y110_uT": 24.84
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.65,
+        44.24,
+        9.67
+       ],
+       "change_uT": 61.01,
+       "resid_deployed_uT": 15.18,
+       "resid_x70y110_uT": 13.22
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 54.27,
+     "resid_deployed_median_uT": 11.08,
+     "resid_x70y110_median_uT": 10.07
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -7.32,
+        -10.55,
+        53.03
+       ],
+       "change_uT": 43.59,
+       "resid_deployed_uT": 6.5,
+       "resid_x70y110_uT": 7.4
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.0,
+        29.59,
+        1.76
+       ],
+       "change_uT": 38.64,
+       "resid_deployed_uT": 10.59,
+       "resid_x70y110_uT": 6.31
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        0.0,
+        44.82
+       ],
+       "change_uT": 47.7,
+       "resid_deployed_uT": 5.67,
+       "resid_x70y110_uT": 6.02
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        38.38,
+        39.55
+       ],
+       "change_uT": 82.8,
+       "resid_deployed_uT": 27.69,
+       "resid_x70y110_uT": 22.84
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.92,
+        1.76
+       ],
+       "change_uT": 40.02,
+       "resid_deployed_uT": 6.25,
+       "resid_x70y110_uT": 6.52
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        20.21,
+        2.05
+       ],
+       "change_uT": 34.16,
+       "resid_deployed_uT": 4.82,
+       "resid_x70y110_uT": 14.14
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.59,
+        -0.59,
+        2.05
+       ],
+       "change_uT": 5.7,
+       "resid_deployed_uT": 6.1,
+       "resid_x70y110_uT": 5.95
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        39.84,
+        49.51
+       ],
+       "change_uT": 76.61,
+       "resid_deployed_uT": 5.51,
+       "resid_x70y110_uT": 11.3
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.29,
+        1.76
+       ],
+       "change_uT": 5.35,
+       "resid_deployed_uT": 4.58,
+       "resid_x70y110_uT": 4.77
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.65,
+        39.55,
+        19.63
+       ],
+       "change_uT": 78.78,
+       "resid_deployed_uT": 27.63,
+       "resid_x70y110_uT": 33.31
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.65,
+        9.67,
+        59.47
+       ],
+       "change_uT": 69.33,
+       "resid_deployed_uT": 4.92,
+       "resid_x70y110_uT": 8.74
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 47.7,
+     "resid_deployed_median_uT": 6.25,
+     "resid_x70y110_median_uT": 8.74
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        8.5,
+        -9.08,
+        50.39
+       ],
+       "change_uT": 60.5,
+       "resid_deployed_uT": 6.53,
+       "resid_x70y110_uT": 13.38
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.59,
+        28.42,
+        -0.59
+       ],
+       "change_uT": 35.43,
+       "resid_deployed_uT": 11.45,
+       "resid_x70y110_uT": 10.62
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.59,
+        0.0,
+        44.82
+       ],
+       "change_uT": 55.88,
+       "resid_deployed_uT": 6.0,
+       "resid_x70y110_uT": 10.94
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        40.43
+       ],
+       "change_uT": 82.18,
+       "resid_deployed_uT": 11.71,
+       "resid_x70y110_uT": 16.27
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.06,
+        19.63,
+        -1.17
+       ],
+       "change_uT": 41.79,
+       "resid_deployed_uT": 7.11,
+       "resid_x70y110_uT": 6.7
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.48,
+        19.63,
+        -0.88
+       ],
+       "change_uT": 34.22,
+       "resid_deployed_uT": 6.7,
+       "resid_x70y110_uT": 5.8
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.29,
+        0.29,
+        0.29
+       ],
+       "change_uT": 3.77,
+       "resid_deployed_uT": 5.55,
+       "resid_x70y110_uT": 5.13
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.59,
+        0.29,
+        -0.29
+       ],
+       "change_uT": 5.57,
+       "resid_deployed_uT": 6.41,
+       "resid_x70y110_uT": 6.25
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.59,
+        39.26,
+        49.8
+       ],
+       "change_uT": 81.53,
+       "resid_deployed_uT": 11.73,
+       "resid_x70y110_uT": 9.75
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.06,
+        26.66,
+        49.8
+       ],
+       "change_uT": 88.47,
+       "resid_deployed_uT": 17.97,
+       "resid_x70y110_uT": 9.26
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        44.53,
+        29.59
+       ],
+       "change_uT": 75.13,
+       "resid_deployed_uT": 14.06,
+       "resid_x70y110_uT": 13.89
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 60.5,
+     "resid_deployed_median_uT": 11.45,
+     "resid_x70y110_median_uT": 10.62
+    }
+   },
+   "thumb_tag": {
+    "poses": [],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-210937_hom_film_x65_y110_twist_grg0_mcpstop_sweep.jsonl",
+   "design": "hom_film_x65_y110_twist_grg0_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -26.318800000000003,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 26.318800000000003,
+     "y": 51.6003
+    },
+    "middle": {
+     "x": 26.3187,
+     "y": -51.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -0.0,
+        -11.43,
+        43.36
+       ],
+       "change_uT": 40.18,
+       "resid_deployed_uT": 3.23,
+       "resid_x70y110_uT": 4.69
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        29.3,
+        -0.29
+       ],
+       "change_uT": 36.69,
+       "resid_deployed_uT": 5.54,
+       "resid_x70y110_uT": 4.4
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.59,
+        44.24
+       ],
+       "change_uT": 51.63,
+       "resid_deployed_uT": 3.22,
+       "resid_x70y110_uT": 6.06
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.26,
+        40.14
+       ],
+       "change_uT": 102.51,
+       "resid_deployed_uT": 17.53,
+       "resid_x70y110_uT": 19.38
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 37.72,
+       "resid_deployed_uT": 4.98,
+       "resid_x70y110_uT": 6.66
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 38.65,
+       "resid_deployed_uT": 7.91,
+       "resid_x70y110_uT": 7.18
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 103.62,
+       "resid_deployed_uT": 17.56,
+       "resid_x70y110_uT": 21.28
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 10.78,
+       "resid_deployed_uT": 10.29,
+       "resid_x70y110_uT": 10.31
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 9.74,
+       "resid_deployed_uT": 9.61,
+       "resid_x70y110_uT": 9.6
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 96.83,
+       "resid_deployed_uT": 17.39,
+       "resid_x70y110_uT": 18.65
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.94,
+        43.95,
+        9.67
+       ],
+       "change_uT": 74.35,
+       "resid_deployed_uT": 13.65,
+       "resid_x70y110_uT": 12.49
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 51.63,
+     "resid_deployed_median_uT": 7.91,
+     "resid_x70y110_median_uT": 7.18
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -16.41,
+        -10.25,
+        22.27
+       ],
+       "change_uT": 25.33,
+       "resid_deployed_uT": 10.76,
+       "resid_x70y110_uT": 9.13
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        30.18,
+        1.46
+       ],
+       "change_uT": 38.7,
+       "resid_deployed_uT": 10.43,
+       "resid_x70y110_uT": 5.78
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.59,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 50.31,
+       "resid_deployed_uT": 4.1,
+       "resid_x70y110_uT": 4.66
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.59,
+        39.84,
+        39.84
+       ],
+       "change_uT": 78.57,
+       "resid_deployed_uT": 10.63,
+       "resid_x70y110_uT": 7.99
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.65,
+        19.63,
+        2.05
+       ],
+       "change_uT": 44.53,
+       "resid_deployed_uT": 6.25,
+       "resid_x70y110_uT": 6.27
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        20.21,
+        2.05
+       ],
+       "change_uT": 33.64,
+       "resid_deployed_uT": 5.24,
+       "resid_x70y110_uT": 13.16
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        -0.29,
+        2.05
+       ],
+       "change_uT": 6.02,
+       "resid_deployed_uT": 5.48,
+       "resid_x70y110_uT": 5.6
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        39.84,
+        49.51
+       ],
+       "change_uT": 80.26,
+       "resid_deployed_uT": 7.32,
+       "resid_x70y110_uT": 5.59
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.59,
+        2.05
+       ],
+       "change_uT": 3.03,
+       "resid_deployed_uT": 3.03,
+       "resid_x70y110_uT": 3.03
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        39.55,
+        19.92
+       ],
+       "change_uT": 75.77,
+       "resid_deployed_uT": 17.9,
+       "resid_x70y110_uT": 13.81
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 71.61,
+       "resid_deployed_uT": 4.25,
+       "resid_x70y110_uT": 6.86
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 50.31,
+     "resid_deployed_median_uT": 7.32,
+     "resid_x70y110_median_uT": 6.86
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        16.99,
+        -8.2,
+        22.56
+       ],
+       "change_uT": 54.95,
+       "resid_deployed_uT": 9.4,
+       "resid_x70y110_uT": 5.27
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.42,
+        -0.88
+       ],
+       "change_uT": 43.97,
+       "resid_deployed_uT": 10.35,
+       "resid_x70y110_uT": 6.01
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.59,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 58.84,
+       "resid_deployed_uT": 7.57,
+       "resid_x70y110_uT": 8.25
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 82.47,
+       "resid_deployed_uT": 6.93,
+       "resid_x70y110_uT": 8.93
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.94,
+        19.63,
+        -0.59
+       ],
+       "change_uT": 42.6,
+       "resid_deployed_uT": 9.97,
+       "resid_x70y110_uT": 4.19
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 40.5,
+       "resid_deployed_uT": 7.25,
+       "resid_x70y110_uT": 6.19
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.29,
+        -0.29,
+        -0.29
+       ],
+       "change_uT": 5.36,
+       "resid_deployed_uT": 5.23,
+       "resid_x70y110_uT": 5.24
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.59,
+        -0.29,
+        -0.29
+       ],
+       "change_uT": 2.93,
+       "resid_deployed_uT": 2.22,
+       "resid_x70y110_uT": 2.32
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 86.39,
+       "resid_deployed_uT": 9.06,
+       "resid_x70y110_uT": 6.23
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        26.95,
+        49.8
+       ],
+       "change_uT": 93.49,
+       "resid_deployed_uT": 11.27,
+       "resid_x70y110_uT": 8.47
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.77,
+        44.82,
+        29.3
+       ],
+       "change_uT": 72.52,
+       "resid_deployed_uT": 6.63,
+       "resid_x70y110_uT": 11.84
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 58.84,
+     "resid_deployed_median_uT": 9.06,
+     "resid_x70y110_median_uT": 6.23
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -11.42582500000001,
+       43.3593625
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 46,
+      "n_tags": 1,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ],
+      "p_meas": [
+       -45.44,
+       1.895,
+       -88.857
+      ],
+      "p_pred": [
+       -40.257,
+       -0.0,
+       -87.796
+      ],
+      "d_mm": [
+       -5.183,
+       1.895,
+       -1.062
+      ],
+      "n_meas": [
+       -0.9993,
+       0.0186,
+       0.0335
+      ],
+      "n_pred": [
+       -1.0,
+       -0.0,
+       -0.0051
+      ],
+      "normal_deg": 2.46,
+      "sd_mm": [
+       2.669,
+       3.839,
+       0.368
+      ],
+      "seen_2cam": 1
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       29.296831249999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.5859812500000103,
+       44.23826875
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       40.13670625
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.51170625
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.667924999999993,
+       59.47264375
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       43.94526875,
+       9.667956249999996
+      ]
+     }
+    ],
+    "seen_poses": 1,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": 2.46
+   }
+  },
+  {
+   "sweep": "20261119-211356_hom_film_x70_y90_twist_grg1_sweep.jsonl",
+   "design": "hom_film_x70_y90_twist_grg1",
+   "mounts": {
+    "thumb": {
+     "x": -28.818800000000003,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 28.818800000000003,
+     "y": 41.6003
+    },
+    "middle": {
+     "x": 28.8187,
+     "y": -41.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        6.74,
+        -7.03,
+        23.73
+       ],
+       "change_uT": 40.26,
+       "resid_deployed_uT": 3.74,
+       "resid_x70y110_uT": 5.27
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.59,
+        -0.0
+       ],
+       "change_uT": 29.94,
+       "resid_deployed_uT": 11.51,
+       "resid_x70y110_uT": 10.05
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.0,
+        45.12
+       ],
+       "change_uT": 53.21,
+       "resid_deployed_uT": 9.28,
+       "resid_x70y110_uT": 8.74
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.59,
+        32.52,
+        39.55
+       ],
+       "change_uT": 89.51,
+       "resid_deployed_uT": 29.66,
+       "resid_x70y110_uT": 29.9
+      }
+     ],
+     "n_moved": 4,
+     "change_median_uT": 46.73,
+     "resid_deployed_median_uT": 10.39,
+     "resid_x70y110_median_uT": 9.39
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -11.13,
+        -9.08,
+        12.01
+       ],
+       "change_uT": 16.87,
+       "resid_deployed_uT": 8.91,
+       "resid_x70y110_uT": 9.06
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.88,
+        2.05
+       ],
+       "change_uT": 37.24,
+       "resid_deployed_uT": 10.92,
+       "resid_x70y110_uT": 5.4
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.59,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 53.14,
+       "resid_deployed_uT": 4.8,
+       "resid_x70y110_uT": 8.91
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        1.17,
+        33.98,
+        39.84
+       ],
+       "change_uT": 76.76,
+       "resid_deployed_uT": 23.88,
+       "resid_x70y110_uT": 19.42
+      }
+     ],
+     "n_moved": 4,
+     "change_median_uT": 45.19,
+     "resid_deployed_median_uT": 9.91,
+     "resid_x70y110_median_uT": 8.98
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        9.67,
+        -2.34,
+        17.29
+       ],
+       "change_uT": 43.01,
+       "resid_deployed_uT": 6.06,
+       "resid_x70y110_uT": 3.9
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.42,
+        0.0
+       ],
+       "change_uT": 44.03,
+       "resid_deployed_uT": 16.56,
+       "resid_x70y110_uT": 9.4
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 59.58,
+       "resid_deployed_uT": 11.75,
+       "resid_x70y110_uT": 5.95
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        38.67,
+        39.84
+       ],
+       "change_uT": 84.07,
+       "resid_deployed_uT": 5.67,
+       "resid_x70y110_uT": 8.7
+      }
+     ],
+     "n_moved": 4,
+     "change_median_uT": 51.8,
+     "resid_deployed_median_uT": 8.9,
+     "resid_x70y110_median_uT": 7.32
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       6.738256249999992,
+       -7.031293750000003,
+       23.730456250000003
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.5859625000000008,
+       29.589799999999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       45.117175
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.5859625000000008,
+       32.5194875,
+       39.55076875
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-211748_hom_film_x115_y70_twist_grg7_sweep.jsonl",
+   "design": "hom_film_x115_y70_twist_grg7",
+   "mounts": {
+    "thumb": {
+     "x": -51.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 51.3188,
+     "y": 31.600299999999997
+    },
+    "middle": {
+     "x": 51.3187,
+     "y": -31.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        2.64,
+        4.98,
+        34.57
+       ],
+       "change_uT": 52.07,
+       "resid_deployed_uT": 4.58,
+       "resid_x70y110_uT": 4.69
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.88,
+        0.29
+       ],
+       "change_uT": 32.99,
+       "resid_deployed_uT": 7.39,
+       "resid_x70y110_uT": 6.7
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        45.12
+       ],
+       "change_uT": 52.35,
+       "resid_deployed_uT": 5.39,
+       "resid_x70y110_uT": 5.61
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.29
+       ],
+       "change_uT": 39.76,
+       "resid_deployed_uT": 4.75,
+       "resid_x70y110_uT": 6.0
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.34,
+        -0.29
+       ],
+       "change_uT": 33.5,
+       "resid_deployed_uT": 3.47,
+       "resid_x70y110_uT": 4.03
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 86.83,
+       "resid_deployed_uT": 11.25,
+       "resid_x70y110_uT": 13.44
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        -0.0,
+        -0.29
+       ],
+       "change_uT": 3.01,
+       "resid_deployed_uT": 3.08,
+       "resid_x70y110_uT": 3.05
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 2.66,
+       "resid_deployed_uT": 2.57,
+       "resid_x70y110_uT": 2.58
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 45.91,
+     "resid_deployed_median_uT": 5.07,
+     "resid_x70y110_median_uT": 5.8
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -8.5,
+        -0.29,
+        38.67
+       ],
+       "change_uT": 41.95,
+       "resid_deployed_uT": 4.36,
+       "resid_x70y110_uT": 3.86
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.88,
+        1.76
+       ],
+       "change_uT": 37.31,
+       "resid_deployed_uT": 8.48,
+       "resid_x70y110_uT": 3.77
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        0.0,
+        44.82
+       ],
+       "change_uT": 48.11,
+       "resid_deployed_uT": 4.58,
+       "resid_x70y110_uT": 4.88
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.65,
+        19.92,
+        2.05
+       ],
+       "change_uT": 35.65,
+       "resid_deployed_uT": 7.13,
+       "resid_x70y110_uT": 6.67
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        19.92,
+        2.05
+       ],
+       "change_uT": 32.67,
+       "resid_deployed_uT": 5.82,
+       "resid_x70y110_uT": 13.25
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        -0.29,
+        1.76
+       ],
+       "change_uT": 4.89,
+       "resid_deployed_uT": 4.52,
+       "resid_x70y110_uT": 4.6
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.55,
+        49.51
+       ],
+       "change_uT": 74.2,
+       "resid_deployed_uT": 5.31,
+       "resid_x70y110_uT": 10.39
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.29,
+        2.05
+       ],
+       "change_uT": 5.74,
+       "resid_deployed_uT": 5.53,
+       "resid_x70y110_uT": 5.64
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 39.63,
+     "resid_deployed_median_uT": 5.56,
+     "resid_x70y110_median_uT": 5.78
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        2.05,
+        7.03,
+        33.69
+       ],
+       "change_uT": 57.63,
+       "resid_deployed_uT": 5.16,
+       "resid_x70y110_uT": 11.07
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.71,
+        -0.59
+       ],
+       "change_uT": 38.34,
+       "resid_deployed_uT": 11.37,
+       "resid_x70y110_uT": 8.07
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.59,
+        44.82
+       ],
+       "change_uT": 57.69,
+       "resid_deployed_uT": 8.19,
+       "resid_x70y110_uT": 8.53
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.88
+       ],
+       "change_uT": 44.29,
+       "resid_deployed_uT": 9.84,
+       "resid_x70y110_uT": 6.43
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.48,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 37.12,
+       "resid_deployed_uT": 5.25,
+       "resid_x70y110_uT": 5.06
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.59,
+        -0.29,
+        -0.29
+       ],
+       "change_uT": 3.86,
+       "resid_deployed_uT": 3.86,
+       "resid_x70y110_uT": 3.86
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.59,
+        -0.29,
+        -0.29
+       ],
+       "change_uT": 15.56,
+       "resid_deployed_uT": 15.56,
+       "resid_x70y110_uT": 15.56
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.59,
+        38.96,
+        49.8
+       ],
+       "change_uT": 81.8,
+       "resid_deployed_uT": 16.32,
+       "resid_x70y110_uT": 9.46
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 50.96,
+     "resid_deployed_median_uT": 9.02,
+     "resid_x70y110_median_uT": 8.3
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       2.636693749999999,
+       4.980424999999997,
+       34.5703
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       29.882768749999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.29301250000000323,
+       45.117175
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.628862499999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.335893749999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.51170625
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -4.3750000010334134e-05,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-211905_hom_film_x105_y60_twist_grg9_sweep.jsonl",
+   "design": "hom_film_x105_y60_twist_grg9",
+   "mounts": {
+    "thumb": {
+     "x": -46.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 46.3188,
+     "y": 26.600299999999997
+    },
+    "middle": {
+     "x": 46.3187,
+     "y": -26.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        0.59,
+        -11.43,
+        55.37
+       ],
+       "change_uT": 50.55,
+       "resid_deployed_uT": 5.04,
+       "resid_x70y110_uT": 5.13
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.0,
+        -0.0,
+        44.24
+       ],
+       "change_uT": 49.85,
+       "resid_deployed_uT": 4.07,
+       "resid_x70y110_uT": 2.77
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 38.07,
+       "resid_deployed_uT": 4.71,
+       "resid_x70y110_uT": 6.08
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 31.97,
+       "resid_deployed_uT": 5.73,
+       "resid_x70y110_uT": 3.86
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 3718.74,
+       "resid_deployed_uT": 3700.39,
+       "resid_x70y110_uT": 3700.26
+      }
+     ],
+     "n_moved": 5,
+     "change_median_uT": 49.85,
+     "resid_deployed_median_uT": 5.04,
+     "resid_x70y110_median_uT": 5.13
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -7.62,
+        -7.03,
+        48.63
+       ],
+       "change_uT": 45.32,
+       "resid_deployed_uT": 3.96,
+       "resid_x70y110_uT": 5.92
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 49.68,
+       "resid_deployed_uT": 5.2,
+       "resid_x70y110_uT": 4.26
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.92,
+        2.05
+       ],
+       "change_uT": 37.84,
+       "resid_deployed_uT": 9.4,
+       "resid_x70y110_uT": 6.67
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.92,
+        2.05
+       ],
+       "change_uT": 30.15,
+       "resid_deployed_uT": 8.29,
+       "resid_x70y110_uT": 10.64
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        -0.29,
+        2.05
+       ],
+       "change_uT": 5475.27,
+       "resid_deployed_uT": 5475.16,
+       "resid_x70y110_uT": 5475.23
+      }
+     ],
+     "n_moved": 4,
+     "change_median_uT": 41.58,
+     "resid_deployed_median_uT": 6.74,
+     "resid_x70y110_median_uT": 6.29
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -3.22,
+        4.69,
+        38.67
+       ],
+       "change_uT": 53.37,
+       "resid_deployed_uT": 7.92,
+       "resid_x70y110_uT": 11.12
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        0.0,
+        44.53
+       ],
+       "change_uT": 57.77,
+       "resid_deployed_uT": 8.44,
+       "resid_x70y110_uT": 9.57
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.06,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 43.15,
+       "resid_deployed_uT": 7.7,
+       "resid_x70y110_uT": 6.08
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.18,
+        19.92,
+        -0.59
+       ],
+       "change_uT": 32.81,
+       "resid_deployed_uT": 6.91,
+       "resid_x70y110_uT": 7.25
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.59,
+        0.29,
+        -0.88
+       ],
+       "change_uT": 3694.56,
+       "resid_deployed_uT": 3695.25,
+       "resid_x70y110_uT": 3695.12
+      }
+     ],
+     "n_moved": 4,
+     "change_median_uT": 48.26,
+     "resid_deployed_median_uT": 7.81,
+     "resid_x70y110_median_uT": 8.41
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       0.5859124999999992,
+       -11.42582500000001,
+       55.37108125
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -4.3750000010334134e-05,
+       44.23826875
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.921831249999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.804675
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212049_hom_film_x60_y135_twist_grg8_mcpstop_sweep.jsonl",
+   "design": "hom_film_x60_y135_twist_grg8_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -23.818800000000003,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 23.818800000000003,
+     "y": 64.1003
+    },
+    "middle": {
+     "x": 23.8187,
+     "y": -64.1002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        29.3,
+        0.29
+       ],
+       "change_uT": 41.46,
+       "resid_deployed_uT": 4.6,
+       "resid_x70y110_uT": 4.59
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 52.84,
+       "resid_deployed_uT": 3.98,
+       "resid_x70y110_uT": 4.1
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.0,
+        39.26,
+        40.14
+       ],
+       "change_uT": 89.83,
+       "resid_deployed_uT": 3.57,
+       "resid_x70y110_uT": 5.21
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 38.72,
+       "resid_deployed_uT": 3.99,
+       "resid_x70y110_uT": 3.8
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 35.14,
+       "resid_deployed_uT": 3.42,
+       "resid_x70y110_uT": 2.67
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.22
+       ],
+       "change_uT": 93.71,
+       "resid_deployed_uT": 6.6,
+       "resid_x70y110_uT": 10.14
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        -0.0,
+        0.29
+       ],
+       "change_uT": 4.25,
+       "resid_deployed_uT": 5.21,
+       "resid_x70y110_uT": 5.13
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        0.29
+       ],
+       "change_uT": 3.73,
+       "resid_deployed_uT": 4.59,
+       "resid_x70y110_uT": 4.54
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 91.42,
+       "resid_deployed_uT": 7.39,
+       "resid_x70y110_uT": 10.55
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.65,
+        44.24,
+        9.37
+       ],
+       "change_uT": 66.49,
+       "resid_deployed_uT": 5.25,
+       "resid_x70y110_uT": 4.66
+      }
+     ],
+     "n_moved": 8,
+     "change_median_uT": 59.66,
+     "resid_deployed_median_uT": 4.29,
+     "resid_x70y110_median_uT": 4.62
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.59,
+        29.88,
+        1.76
+       ],
+       "change_uT": 41.97,
+       "resid_deployed_uT": 6.98,
+       "resid_x70y110_uT": 6.64
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        -0.59,
+        44.53
+       ],
+       "change_uT": 44.27,
+       "resid_deployed_uT": 9.55,
+       "resid_x70y110_uT": 7.58
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 73.48,
+       "resid_deployed_uT": 8.38,
+       "resid_x70y110_uT": 9.67
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.06,
+        19.34,
+        1.76
+       ],
+       "change_uT": 36.68,
+       "resid_deployed_uT": 9.14,
+       "resid_x70y110_uT": 9.05
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        19.92,
+        1.76
+       ],
+       "change_uT": 34.49,
+       "resid_deployed_uT": 9.39,
+       "resid_x70y110_uT": 15.13
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        -0.29,
+        1.76
+       ],
+       "change_uT": 7.18,
+       "resid_deployed_uT": 7.39,
+       "resid_x70y110_uT": 7.17
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.26,
+        49.51
+       ],
+       "change_uT": 78.06,
+       "resid_deployed_uT": 8.33,
+       "resid_x70y110_uT": 11.63
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        0.29,
+        2.05
+       ],
+       "change_uT": 4.75,
+       "resid_deployed_uT": 5.66,
+       "resid_x70y110_uT": 5.15
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        40.14,
+        19.92
+       ],
+       "change_uT": 72.75,
+       "resid_deployed_uT": 12.83,
+       "resid_x70y110_uT": 12.71
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 68.9,
+       "resid_deployed_uT": 8.13,
+       "resid_x70y110_uT": 11.67
+      }
+     ],
+     "n_moved": 8,
+     "change_median_uT": 56.59,
+     "resid_deployed_median_uT": 8.76,
+     "resid_x70y110_median_uT": 10.65
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.59,
+        28.42,
+        -0.29
+       ],
+       "change_uT": 44.25,
+       "resid_deployed_uT": 8.33,
+       "resid_x70y110_uT": 8.84
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 56.98,
+       "resid_deployed_uT": 6.17,
+       "resid_x70y110_uT": 11.41
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.59,
+        39.26,
+        39.55
+       ],
+       "change_uT": 82.29,
+       "resid_deployed_uT": 8.16,
+       "resid_x70y110_uT": 13.78
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.94,
+        19.34,
+        0.0
+       ],
+       "change_uT": 42.86,
+       "resid_deployed_uT": 6.81,
+       "resid_x70y110_uT": 8.76
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 42.95,
+       "resid_deployed_uT": 5.13,
+       "resid_x70y110_uT": 7.05
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.29,
+        -0.59,
+        -0.59
+       ],
+       "change_uT": 6.37,
+       "resid_deployed_uT": 5.52,
+       "resid_x70y110_uT": 5.63
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        -0.29,
+        -0.59
+       ],
+       "change_uT": 3.19,
+       "resid_deployed_uT": 2.3,
+       "resid_x70y110_uT": 2.4
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 87.41,
+       "resid_deployed_uT": 7.58,
+       "resid_x70y110_uT": 11.2
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        26.66,
+        49.51
+       ],
+       "change_uT": 91.09,
+       "resid_deployed_uT": 8.11,
+       "resid_x70y110_uT": 13.84
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        44.53,
+        29.88
+       ],
+       "change_uT": 73.03,
+       "resid_deployed_uT": 6.1,
+       "resid_x70y110_uT": 14.58
+      }
+     ],
+     "n_moved": 8,
+     "change_median_uT": 65.0,
+     "resid_deployed_median_uT": 7.2,
+     "resid_x70y110_median_uT": 11.3
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -0.5859499999999969
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       29.296831249999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.29301250000000323,
+       44.82420625
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       39.25776875,
+       40.13670625
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.2187375
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.667924999999993,
+       59.47264375
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       44.2382375,
+       9.374987500000003
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212221_hom_film_x70_y110_twist_grg0_mcpstop_sweep.jsonl",
+   "design": "hom_film_x70_y110_twist_grg0_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -28.818800000000003,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 28.818800000000003,
+     "y": 51.6003
+    },
+    "middle": {
+     "x": 28.8187,
+     "y": -51.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -0.59,
+        -11.43,
+        45.7
+       ],
+       "change_uT": 43.77,
+       "resid_deployed_uT": 2.96,
+       "resid_x70y110_uT": 3.67
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.3,
+        0.29
+       ],
+       "change_uT": 35.22,
+       "resid_deployed_uT": 5.41,
+       "resid_x70y110_uT": 4.27
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.59,
+        45.12
+       ],
+       "change_uT": 53.49,
+       "resid_deployed_uT": 5.42,
+       "resid_x70y110_uT": 7.21
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 102.54,
+       "resid_deployed_uT": 18.1,
+       "resid_x70y110_uT": 20.12
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        20.21,
+        -0.0
+       ],
+       "change_uT": 39.21,
+       "resid_deployed_uT": 4.06,
+       "resid_x70y110_uT": 4.58
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        -0.29
+       ],
+       "change_uT": 36.23,
+       "resid_deployed_uT": 4.95,
+       "resid_x70y110_uT": 4.31
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 101.52,
+       "resid_deployed_uT": 16.39,
+       "resid_x70y110_uT": 20.16
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        0.29,
+        -0.29
+       ],
+       "change_uT": 7.83,
+       "resid_deployed_uT": 7.44,
+       "resid_x70y110_uT": 7.47
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.29
+       ],
+       "change_uT": 7.6,
+       "resid_deployed_uT": 7.44,
+       "resid_x70y110_uT": 7.46
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.37,
+        59.18
+       ],
+       "change_uT": 94.72,
+       "resid_deployed_uT": 17.57,
+       "resid_x70y110_uT": 17.31
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.94,
+        44.53,
+        9.67
+       ],
+       "change_uT": 74.31,
+       "resid_deployed_uT": 13.48,
+       "resid_x70y110_uT": 12.38
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 53.49,
+     "resid_deployed_median_uT": 5.42,
+     "resid_x70y110_median_uT": 7.21
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -16.99,
+        -10.25,
+        25.2
+       ],
+       "change_uT": 25.68,
+       "resid_deployed_uT": 8.92,
+       "resid_x70y110_uT": 6.6
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.88,
+        29.59,
+        1.46
+       ],
+       "change_uT": 39.44,
+       "resid_deployed_uT": 7.55,
+       "resid_x70y110_uT": 4.59
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 50.92,
+       "resid_deployed_uT": 4.5,
+       "resid_x70y110_uT": 7.42
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 79.32,
+       "resid_deployed_uT": 11.44,
+       "resid_x70y110_uT": 9.11
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        13.77,
+        19.63,
+        1.76
+       ],
+       "change_uT": 41.02,
+       "resid_deployed_uT": 5.77,
+       "resid_x70y110_uT": 6.45
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.48,
+        19.63,
+        1.76
+       ],
+       "change_uT": 34.1,
+       "resid_deployed_uT": 4.02,
+       "resid_x70y110_uT": 13.66
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.59,
+        -0.59,
+        1.76
+       ],
+       "change_uT": 4.6,
+       "resid_deployed_uT": 4.23,
+       "resid_x70y110_uT": 4.3
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.55,
+        49.51
+       ],
+       "change_uT": 80.0,
+       "resid_deployed_uT": 7.46,
+       "resid_x70y110_uT": 6.79
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        0.0,
+        1.76
+       ],
+       "change_uT": 1.93,
+       "resid_deployed_uT": 1.97,
+       "resid_x70y110_uT": 1.87
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.06,
+        40.14,
+        19.63
+       ],
+       "change_uT": 74.78,
+       "resid_deployed_uT": 16.99,
+       "resid_x70y110_uT": 11.86
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.06,
+        10.25,
+        59.47
+       ],
+       "change_uT": 72.33,
+       "resid_deployed_uT": 4.23,
+       "resid_x70y110_uT": 6.95
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 50.92,
+     "resid_deployed_median_uT": 7.46,
+     "resid_x70y110_median_uT": 6.95
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        17.87,
+        -8.2,
+        25.49
+       ],
+       "change_uT": 57.32,
+       "resid_deployed_uT": 10.46,
+       "resid_x70y110_uT": 6.98
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.71,
+        -0.29
+       ],
+       "change_uT": 43.8,
+       "resid_deployed_uT": 10.33,
+       "resid_x70y110_uT": 7.69
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        0.0,
+        45.12
+       ],
+       "change_uT": 57.45,
+       "resid_deployed_uT": 7.58,
+       "resid_x70y110_uT": 10.38
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.55
+       ],
+       "change_uT": 82.7,
+       "resid_deployed_uT": 5.06,
+       "resid_x70y110_uT": 11.72
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        15.23,
+        19.92,
+        -0.29
+       ],
+       "change_uT": 40.94,
+       "resid_deployed_uT": 8.69,
+       "resid_x70y110_uT": 7.37
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.48,
+        20.21,
+        -0.59
+       ],
+       "change_uT": 40.07,
+       "resid_deployed_uT": 7.73,
+       "resid_x70y110_uT": 8.33
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.29,
+        -0.29,
+        -0.88
+       ],
+       "change_uT": 4.71,
+       "resid_deployed_uT": 4.49,
+       "resid_x70y110_uT": 4.54
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.29,
+        -0.29,
+        -0.59
+       ],
+       "change_uT": 3.16,
+       "resid_deployed_uT": 2.48,
+       "resid_x70y110_uT": 2.6
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 86.13,
+       "resid_deployed_uT": 7.69,
+       "resid_x70y110_uT": 7.94
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        26.66,
+        49.8
+       ],
+       "change_uT": 91.88,
+       "resid_deployed_uT": 9.47,
+       "resid_x70y110_uT": 10.51
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        44.53,
+        30.18
+       ],
+       "change_uT": 72.98,
+       "resid_deployed_uT": 5.99,
+       "resid_x70y110_uT": 13.02
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 57.45,
+     "resid_deployed_median_uT": 7.73,
+     "resid_x70y110_median_uT": 8.33
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       -0.5859625000000008,
+       -11.42582500000001,
+       45.7031125
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       29.296831249999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.5859812500000103,
+       45.117175
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       39.8437375
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       20.214799999999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.628862499999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.51170625
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.374956249999993,
+       59.179675
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       44.53120625,
+       9.667956249999996
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212409_hom_film_x85_y60_twist_grg14_mcpstop_sweep.jsonl",
+   "design": "hom_film_x85_y60_twist_grg14_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -36.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 36.3188,
+     "y": 26.600299999999997
+    },
+    "middle": {
+     "x": 36.3187,
+     "y": -26.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -1.17,
+        -11.43,
+        46.58
+       ],
+       "change_uT": 46.61,
+       "resid_deployed_uT": 6.03,
+       "resid_x70y110_uT": 6.31
+      }
+     ],
+     "n_moved": 1,
+     "change_median_uT": 46.61,
+     "resid_deployed_median_uT": 6.03,
+     "resid_x70y110_median_uT": 6.31
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        2.93,
+        -10.25,
+        45.41
+       ],
+       "change_uT": 45.34,
+       "resid_deployed_uT": 3.49,
+       "resid_x70y110_uT": 7.24
+      }
+     ],
+     "n_moved": 1,
+     "change_median_uT": 45.34,
+     "resid_deployed_median_uT": 3.49,
+     "resid_x70y110_median_uT": 7.24
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        4.1,
+        -8.5,
+        44.24
+       ],
+       "change_uT": 58.75,
+       "resid_deployed_uT": 5.67,
+       "resid_x70y110_uT": 7.68
+      }
+     ],
+     "n_moved": 1,
+     "change_median_uT": 58.75,
+     "resid_deployed_median_uT": 5.67,
+     "resid_x70y110_median_uT": 7.68
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       -1.1719000000000008,
+       -11.42582500000001,
+       46.58201875
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212536_hom_film_x115_y160_twist_grg8_mcpstop_sweep.jsonl",
+   "design": "hom_film_x115_y160_twist_grg8_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -51.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 51.3188,
+     "y": 76.6003
+    },
+    "middle": {
+     "x": 51.3187,
+     "y": -76.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        4.98,
+        18.75,
+        43.65
+       ],
+       "change_uT": 69.42,
+       "resid_deployed_uT": 6.18,
+       "resid_x70y110_uT": 4.98
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        29.59,
+        -0.0
+       ],
+       "change_uT": 42.74,
+       "resid_deployed_uT": 7.35,
+       "resid_x70y110_uT": 8.13
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.0,
+        -0.0,
+        45.12
+       ],
+       "change_uT": 52.62,
+       "resid_deployed_uT": 5.92,
+       "resid_x70y110_uT": 7.66
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.26,
+        39.84
+       ],
+       "change_uT": 83.57,
+       "resid_deployed_uT": 5.05,
+       "resid_x70y110_uT": 3.93
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.34,
+        -0.0
+       ],
+       "change_uT": 40.45,
+       "resid_deployed_uT": 5.03,
+       "resid_x70y110_uT": 8.0
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.94,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 36.5,
+       "resid_deployed_uT": 4.44,
+       "resid_x70y110_uT": 3.92
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 89.19,
+       "resid_deployed_uT": 5.26,
+       "resid_x70y110_uT": 3.23
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        0.59,
+        0.29
+       ],
+       "change_uT": 6.29,
+       "resid_deployed_uT": 6.17,
+       "resid_x70y110_uT": 6.12
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.0,
+        0.88,
+        0.29
+       ],
+       "change_uT": 6.36,
+       "resid_deployed_uT": 6.38,
+       "resid_x70y110_uT": 6.32
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.37,
+        59.18
+       ],
+       "change_uT": 83.73,
+       "resid_deployed_uT": 5.42,
+       "resid_x70y110_uT": 8.94
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.94,
+        44.53,
+        9.67
+       ],
+       "change_uT": 65.3,
+       "resid_deployed_uT": 7.95,
+       "resid_x70y110_uT": 7.27
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 65.3,
+     "resid_deployed_median_uT": 5.42,
+     "resid_x70y110_median_uT": 7.27
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -36.62,
+        -10.25,
+        35.45
+       ],
+       "change_uT": 42.88,
+       "resid_deployed_uT": 10.34,
+       "resid_x70y110_uT": 13.01
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.88,
+        1.76
+       ],
+       "change_uT": 39.92,
+       "resid_deployed_uT": 6.9,
+       "resid_x70y110_uT": 5.66
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        0.0,
+        44.53
+       ],
+       "change_uT": 47.69,
+       "resid_deployed_uT": 6.66,
+       "resid_x70y110_uT": 7.6
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.59,
+        39.26,
+        39.84
+       ],
+       "change_uT": 71.75,
+       "resid_deployed_uT": 7.75,
+       "resid_x70y110_uT": 9.13
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.06,
+        19.92,
+        1.76
+       ],
+       "change_uT": 39.28,
+       "resid_deployed_uT": 6.76,
+       "resid_x70y110_uT": 8.43
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        19.63,
+        1.76
+       ],
+       "change_uT": 37.52,
+       "resid_deployed_uT": 10.56,
+       "resid_x70y110_uT": 17.79
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        0.0,
+        1.46
+       ],
+       "change_uT": 6.67,
+       "resid_deployed_uT": 6.11,
+       "resid_x70y110_uT": 6.07
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.55,
+        49.51
+       ],
+       "change_uT": 72.7,
+       "resid_deployed_uT": 9.68,
+       "resid_x70y110_uT": 12.63
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.59,
+        1.76
+       ],
+       "change_uT": 5.71,
+       "resid_deployed_uT": 5.72,
+       "resid_x70y110_uT": 5.72
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.06,
+        40.14,
+        19.63
+       ],
+       "change_uT": 74.25,
+       "resid_deployed_uT": 6.4,
+       "resid_x70y110_uT": 9.81
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 70.74,
+       "resid_deployed_uT": 7.09,
+       "resid_x70y110_uT": 9.72
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 47.69,
+     "resid_deployed_median_uT": 7.09,
+     "resid_x70y110_median_uT": 9.72
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        36.62,
+        -8.5,
+        37.21
+       ],
+       "change_uT": 88.19,
+       "resid_deployed_uT": 12.12,
+       "resid_x70y110_uT": 19.04
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.59,
+        28.71,
+        0.29
+       ],
+       "change_uT": 38.99,
+       "resid_deployed_uT": 8.05,
+       "resid_x70y110_uT": 9.31
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.59,
+        0.0,
+        44.53
+       ],
+       "change_uT": 53.6,
+       "resid_deployed_uT": 7.42,
+       "resid_x70y110_uT": 11.14
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.26
+       ],
+       "change_uT": 77.99,
+       "resid_deployed_uT": 9.95,
+       "resid_x70y110_uT": 12.64
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        15.23,
+        19.34,
+        -0.88
+       ],
+       "change_uT": 40.62,
+       "resid_deployed_uT": 5.6,
+       "resid_x70y110_uT": 9.78
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.34,
+        -0.59
+       ],
+       "change_uT": 35.25,
+       "resid_deployed_uT": 6.92,
+       "resid_x70y110_uT": 4.47
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        2.64,
+        0.29,
+        -0.88
+       ],
+       "change_uT": 4.81,
+       "resid_deployed_uT": 5.77,
+       "resid_x70y110_uT": 5.16
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.59,
+        0.0,
+        -0.59
+       ],
+       "change_uT": 2.58,
+       "resid_deployed_uT": 1.57,
+       "resid_x70y110_uT": 1.81
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.59,
+        39.26,
+        49.8
+       ],
+       "change_uT": 82.65,
+       "resid_deployed_uT": 9.81,
+       "resid_x70y110_uT": 12.03
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        26.66,
+        49.8
+       ],
+       "change_uT": 86.54,
+       "resid_deployed_uT": 12.18,
+       "resid_x70y110_uT": 14.87
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        44.53,
+        29.88
+       ],
+       "change_uT": 69.62,
+       "resid_deployed_uT": 9.09,
+       "resid_x70y110_uT": 10.29
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 69.62,
+     "resid_deployed_median_uT": 9.09,
+     "resid_x70y110_median_uT": 11.14
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       4.980443749999992,
+       18.749956249999997,
+       43.65233125
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       29.589799999999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -4.3750000010334134e-05,
+       45.117175
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       39.8437375
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.335893749999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.804675
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.5858937499999897,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.8788624999999968,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.374956249999993,
+       59.179675
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       44.53120625,
+       9.667956249999996
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212731_hom_film_x85_y120_twist_grg15_mcpstop_sweep.jsonl",
+   "design": "hom_film_x85_y120_twist_grg15_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -36.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 36.3188,
+     "y": 56.6003
+    },
+    "middle": {
+     "x": 36.3187,
+     "y": -56.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -0.29,
+        0.88,
+        37.21
+       ],
+       "change_uT": 47.04,
+       "resid_deployed_uT": 4.12,
+       "resid_x70y110_uT": 3.77
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.88,
+        -0.59
+       ],
+       "change_uT": 36.58,
+       "resid_deployed_uT": 3.62,
+       "resid_x70y110_uT": 2.23
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        45.12
+       ],
+       "change_uT": 53.08,
+       "resid_deployed_uT": 4.31,
+       "resid_x70y110_uT": 5.03
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.26,
+        40.14
+       ],
+       "change_uT": 91.26,
+       "resid_deployed_uT": 10.19,
+       "resid_x70y110_uT": 11.45
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.92,
+        -0.0
+       ],
+       "change_uT": 39.94,
+       "resid_deployed_uT": 5.34,
+       "resid_x70y110_uT": 5.11
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.92,
+        -0.0
+       ],
+       "change_uT": 33.62,
+       "resid_deployed_uT": 4.54,
+       "resid_x70y110_uT": 3.5
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 92.66,
+       "resid_deployed_uT": 9.21,
+       "resid_x70y110_uT": 12.2
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        0.29,
+        -0.0
+       ],
+       "change_uT": 4.56,
+       "resid_deployed_uT": 4.64,
+       "resid_x70y110_uT": 4.63
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        0.29,
+        -0.29
+       ],
+       "change_uT": 6.57,
+       "resid_deployed_uT": 6.52,
+       "resid_x70y110_uT": 6.53
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 87.84,
+       "resid_deployed_uT": 9.36,
+       "resid_x70y110_uT": 7.21
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.94,
+        44.24,
+        9.67
+       ],
+       "change_uT": 65.6,
+       "resid_deployed_uT": 9.4,
+       "resid_x70y110_uT": 6.96
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 53.08,
+     "resid_deployed_median_uT": 5.34,
+     "resid_x70y110_median_uT": 5.11
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -19.04,
+        -10.25,
+        32.23
+       ],
+       "change_uT": 30.32,
+       "resid_deployed_uT": 8.97,
+       "resid_x70y110_uT": 6.74
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.88,
+        2.05
+       ],
+       "change_uT": 41.31,
+       "resid_deployed_uT": 6.3,
+       "resid_x70y110_uT": 5.48
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.59,
+        -0.59,
+        44.53
+       ],
+       "change_uT": 49.85,
+       "resid_deployed_uT": 4.04,
+       "resid_x70y110_uT": 6.18
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.59,
+        39.26,
+        39.84
+       ],
+       "change_uT": 74.38,
+       "resid_deployed_uT": 8.67,
+       "resid_x70y110_uT": 6.22
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.65,
+        19.63,
+        1.46
+       ],
+       "change_uT": 39.89,
+       "resid_deployed_uT": 5.98,
+       "resid_x70y110_uT": 5.78
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        1.46
+       ],
+       "change_uT": 33.88,
+       "resid_deployed_uT": 4.49,
+       "resid_x70y110_uT": 14.69
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.59,
+        0.0,
+        1.46
+       ],
+       "change_uT": 2.09,
+       "resid_deployed_uT": 1.68,
+       "resid_x70y110_uT": 1.7
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.55,
+        49.51
+       ],
+       "change_uT": 77.02,
+       "resid_deployed_uT": 3.24,
+       "resid_x70y110_uT": 8.1
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.59,
+        2.05
+       ],
+       "change_uT": 2.24,
+       "resid_deployed_uT": 2.48,
+       "resid_x70y110_uT": 2.49
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        39.84,
+        19.63
+       ],
+       "change_uT": 73.46,
+       "resid_deployed_uT": 8.91,
+       "resid_x70y110_uT": 6.22
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.36,
+        9.96,
+        59.47
+       ],
+       "change_uT": 71.46,
+       "resid_deployed_uT": 3.9,
+       "resid_x70y110_uT": 7.38
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 49.85,
+     "resid_deployed_median_uT": 5.98,
+     "resid_x70y110_median_uT": 6.22
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        21.97,
+        -9.38,
+        22.56
+       ],
+       "change_uT": 61.24,
+       "resid_deployed_uT": 11.68,
+       "resid_x70y110_uT": 3.35
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.71,
+        -0.59
+       ],
+       "change_uT": 41.54,
+       "resid_deployed_uT": 9.03,
+       "resid_x70y110_uT": 7.93
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        0.0,
+        44.24
+       ],
+       "change_uT": 55.51,
+       "resid_deployed_uT": 6.66,
+       "resid_x70y110_uT": 11.7
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        40.14
+       ],
+       "change_uT": 82.66,
+       "resid_deployed_uT": 6.66,
+       "resid_x70y110_uT": 12.97
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.65,
+        19.63,
+        -0.88
+       ],
+       "change_uT": 40.8,
+       "resid_deployed_uT": 4.72,
+       "resid_x70y110_uT": 11.43
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        20.21,
+        -0.88
+       ],
+       "change_uT": 37.59,
+       "resid_deployed_uT": 5.33,
+       "resid_x70y110_uT": 5.47
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.88,
+        0.29,
+        -0.59
+       ],
+       "change_uT": 4.26,
+       "resid_deployed_uT": 4.97,
+       "resid_x70y110_uT": 4.98
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        0.29,
+        -0.59
+       ],
+       "change_uT": 2.18,
+       "resid_deployed_uT": 2.37,
+       "resid_x70y110_uT": 2.29
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 85.71,
+       "resid_deployed_uT": 7.23,
+       "resid_x70y110_uT": 8.88
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        26.95,
+        50.39
+       ],
+       "change_uT": 91.31,
+       "resid_deployed_uT": 9.48,
+       "resid_x70y110_uT": 11.46
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        43.95,
+        30.18
+       ],
+       "change_uT": 73.92,
+       "resid_deployed_uT": 6.07,
+       "resid_x70y110_uT": 13.27
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 61.24,
+     "resid_deployed_median_uT": 6.66,
+     "resid_x70y110_median_uT": 11.43
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.8788624999999968,
+       37.20701875
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       29.882768749999997,
+       -0.5859499999999969
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.29301250000000323,
+       45.117175
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       40.13670625
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.921831249999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.921831249999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.804675
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.667924999999993,
+       59.47264375
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       44.2382375,
+       9.667956249999996
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-212937_hom_film_x135_y65_twist_grg0_sweep.jsonl",
+   "design": "hom_film_x135_y65_twist_grg0",
+   "mounts": {
+    "thumb": {
+     "x": -61.3188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 61.3188,
+     "y": 29.100299999999997
+    },
+    "middle": {
+     "x": 61.3187,
+     "y": -29.1002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -1.17,
+        14.94,
+        39.55
+       ],
+       "change_uT": 57.44,
+       "resid_deployed_uT": 6.36,
+       "resid_x70y110_uT": 5.2
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.3,
+        0.29
+       ],
+       "change_uT": 35.36,
+       "resid_deployed_uT": 3.93,
+       "resid_x70y110_uT": 3.09
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.53
+       ],
+       "change_uT": 51.47,
+       "resid_deployed_uT": 3.87,
+       "resid_x70y110_uT": 3.63
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.34,
+        0.29
+       ],
+       "change_uT": 42.04,
+       "resid_deployed_uT": 4.99,
+       "resid_x70y110_uT": 4.5
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.65,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 33.46,
+       "resid_deployed_uT": 3.74,
+       "resid_x70y110_uT": 4.14
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        49.51
+       ],
+       "change_uT": 82.73,
+       "resid_deployed_uT": 11.87,
+       "resid_x70y110_uT": 12.24
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        0.88,
+        -0.0
+       ],
+       "change_uT": 3.68,
+       "resid_deployed_uT": 3.39,
+       "resid_x70y110_uT": 3.38
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.29,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 2.85,
+       "resid_deployed_uT": 2.76,
+       "resid_x70y110_uT": 2.77
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 46.75,
+     "resid_deployed_median_uT": 4.46,
+     "resid_x70y110_median_uT": 4.32
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -19.34,
+        7.62,
+        38.67
+       ],
+       "change_uT": 47.49,
+       "resid_deployed_uT": 6.65,
+       "resid_x70y110_uT": 5.64
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.88,
+        2.05
+       ],
+       "change_uT": 38.36,
+       "resid_deployed_uT": 7.83,
+       "resid_x70y110_uT": 4.5
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 49.26,
+       "resid_deployed_uT": 5.89,
+       "resid_x70y110_uT": 5.7
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.06,
+        19.34,
+        2.05
+       ],
+       "change_uT": 37.02,
+       "resid_deployed_uT": 8.76,
+       "resid_x70y110_uT": 6.42
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.63,
+        1.76
+       ],
+       "change_uT": 30.57,
+       "resid_deployed_uT": 7.38,
+       "resid_x70y110_uT": 12.88
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.59,
+        -0.29,
+        1.76
+       ],
+       "change_uT": 5.93,
+       "resid_deployed_uT": 6.36,
+       "resid_x70y110_uT": 6.38
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.29,
+        39.55,
+        49.51
+       ],
+       "change_uT": 73.68,
+       "resid_deployed_uT": 7.84,
+       "resid_x70y110_uT": 12.62
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.29,
+        1.76
+       ],
+       "change_uT": 4.55,
+       "resid_deployed_uT": 5.07,
+       "resid_x70y110_uT": 4.89
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 42.92,
+     "resid_deployed_median_uT": 7.61,
+     "resid_x70y110_median_uT": 6.06
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -9.38,
+        22.85,
+        24.02
+       ],
+       "change_uT": 51.12,
+       "resid_deployed_uT": 7.15,
+       "resid_x70y110_uT": 14.5
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        28.42,
+        -0.29
+       ],
+       "change_uT": 39.22,
+       "resid_deployed_uT": 7.34,
+       "resid_x70y110_uT": 10.26
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.0,
+        0.0,
+        44.82
+       ],
+       "change_uT": 56.57,
+       "resid_deployed_uT": 5.78,
+       "resid_x70y110_uT": 14.62
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        13.48,
+        19.92,
+        -0.88
+       ],
+       "change_uT": 41.75,
+       "resid_deployed_uT": 4.62,
+       "resid_x70y110_uT": 10.62
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.63,
+        -0.59
+       ],
+       "change_uT": 36.45,
+       "resid_deployed_uT": 4.1,
+       "resid_x70y110_uT": 6.32
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.0,
+        0.29,
+        -0.59
+       ],
+       "change_uT": 2.74,
+       "resid_deployed_uT": 4.22,
+       "resid_x70y110_uT": 3.82
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.29,
+        0.29,
+        -0.29
+       ],
+       "change_uT": 6.47,
+       "resid_deployed_uT": 7.4,
+       "resid_x70y110_uT": 7.08
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        39.26,
+        49.8
+       ],
+       "change_uT": 80.67,
+       "resid_deployed_uT": 12.26,
+       "resid_x70y110_uT": 11.85
+      }
+     ],
+     "n_moved": 6,
+     "change_median_uT": 46.44,
+     "resid_deployed_median_uT": 6.46,
+     "resid_x70y110_median_uT": 11.23
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       -1.1719000000000008,
+       14.941362499999997,
+       39.55076875
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       29.296831249999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.29301250000000323,
+       44.5312375
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.335893749999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       19.628862499999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       49.51170625
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.8788624999999968,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
+   }
+  },
+  {
+   "sweep": "20261119-213129_hom_film_x110_y155_twist_grg3_mcpstop_sweep.jsonl",
+   "design": "hom_film_x110_y155_twist_grg3_mcpstop",
+   "mounts": {
+    "thumb": {
+     "x": -48.8188,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 48.8188,
+     "y": 74.1003
+    },
+    "middle": {
+     "x": 48.8187,
+     "y": -74.1002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        5.57,
+        16.11,
+        44.82
+       ],
+       "change_uT": 67.15,
+       "resid_deployed_uT": 6.66,
+       "resid_x70y110_uT": 5.79
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.88,
+        0.29
+       ],
+       "change_uT": 38.65,
+       "resid_deployed_uT": 3.58,
+       "resid_x70y110_uT": 3.42
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 51.31,
+       "resid_deployed_uT": 2.91,
+       "resid_x70y110_uT": 3.49
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.59,
+        39.26,
+        39.84
+       ],
+       "change_uT": 79.96,
+       "resid_deployed_uT": 7.78,
+       "resid_x70y110_uT": 6.68
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.34,
+        -0.0
+       ],
+       "change_uT": 41.61,
+       "resid_deployed_uT": 3.99,
+       "resid_x70y110_uT": 6.43
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.94,
+        19.34,
+        -0.29
+       ],
+       "change_uT": 35.39,
+       "resid_deployed_uT": 4.87,
+       "resid_x70y110_uT": 4.47
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.26,
+        50.1
+       ],
+       "change_uT": 85.66,
+       "resid_deployed_uT": 9.01,
+       "resid_x70y110_uT": 8.93
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.0,
+        0.29,
+        -0.0
+       ],
+       "change_uT": 3.02,
+       "resid_deployed_uT": 2.81,
+       "resid_x70y110_uT": 2.8
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.0,
+        -0.0,
+        -0.0
+       ],
+       "change_uT": 4.22,
+       "resid_deployed_uT": 3.83,
+       "resid_x70y110_uT": 3.82
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.96,
+        60.06
+       ],
+       "change_uT": 83.28,
+       "resid_deployed_uT": 5.78,
+       "resid_x70y110_uT": 6.74
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.65,
+        44.53,
+        9.67
+       ],
+       "change_uT": 58.57,
+       "resid_deployed_uT": 7.01,
+       "resid_x70y110_uT": 5.89
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 58.57,
+     "resid_deployed_median_uT": 5.78,
+     "resid_x70y110_median_uT": 5.89
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -35.16,
+        -10.25,
+        38.67
+       ],
+       "change_uT": 41.0,
+       "resid_deployed_uT": 10.14,
+       "resid_x70y110_uT": 11.43
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.59,
+        29.59,
+        1.46
+       ],
+       "change_uT": 38.98,
+       "resid_deployed_uT": 7.1,
+       "resid_x70y110_uT": 5.48
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.59,
+        -0.29,
+        44.82
+       ],
+       "change_uT": 48.0,
+       "resid_deployed_uT": 5.73,
+       "resid_x70y110_uT": 6.33
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.29,
+        39.55,
+        39.84
+       ],
+       "change_uT": 68.83,
+       "resid_deployed_uT": 8.25,
+       "resid_x70y110_uT": 9.35
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        2.05
+       ],
+       "change_uT": 40.32,
+       "resid_deployed_uT": 2.82,
+       "resid_x70y110_uT": 4.52
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.36,
+        20.21,
+        2.05
+       ],
+       "change_uT": 34.26,
+       "resid_deployed_uT": 4.43,
+       "resid_x70y110_uT": 14.46
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        -0.29,
+        2.05
+       ],
+       "change_uT": 4.52,
+       "resid_deployed_uT": 5.14,
+       "resid_x70y110_uT": 5.01
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.26,
+        49.51
+       ],
+       "change_uT": 70.55,
+       "resid_deployed_uT": 8.03,
+       "resid_x70y110_uT": 11.52
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.59,
+        -0.88,
+        1.76
+       ],
+       "change_uT": 3.53,
+       "resid_deployed_uT": 3.66,
+       "resid_x70y110_uT": 3.45
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        40.14,
+        19.63
+       ],
+       "change_uT": 70.97,
+       "resid_deployed_uT": 7.24,
+       "resid_x70y110_uT": 8.63
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.65,
+        9.67,
+        59.47
+       ],
+       "change_uT": 68.8,
+       "resid_deployed_uT": 6.26,
+       "resid_x70y110_uT": 8.55
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 48.0,
+     "resid_deployed_median_uT": 7.1,
+     "resid_x70y110_median_uT": 8.63
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        35.16,
+        -8.79,
+        43.65
+       ],
+       "change_uT": 88.98,
+       "resid_deployed_uT": 11.26,
+       "resid_x70y110_uT": 18.25
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        0.29,
+        28.42,
+        0.29
+       ],
+       "change_uT": 39.94,
+       "resid_deployed_uT": 6.79,
+       "resid_x70y110_uT": 10.38
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        0.29,
+        0.0,
+        45.12
+       ],
+       "change_uT": 55.34,
+       "resid_deployed_uT": 5.31,
+       "resid_x70y110_uT": 12.57
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.29,
+        39.26,
+        39.55
+       ],
+       "change_uT": 80.11,
+       "resid_deployed_uT": 9.12,
+       "resid_x70y110_uT": 13.96
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        15.23,
+        19.34,
+        -0.88
+       ],
+       "change_uT": 41.91,
+       "resid_deployed_uT": 6.17,
+       "resid_x70y110_uT": 12.5
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.48,
+        19.92,
+        -0.59
+       ],
+       "change_uT": 37.6,
+       "resid_deployed_uT": 4.25,
+       "resid_x70y110_uT": 5.87
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.29,
+        -0.29,
+        0.59
+       ],
+       "change_uT": 5.75,
+       "resid_deployed_uT": 4.24,
+       "resid_x70y110_uT": 4.31
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.59,
+        0.0,
+        -0.29
+       ],
+       "change_uT": 4.5,
+       "resid_deployed_uT": 5.28,
+       "resid_x70y110_uT": 5.29
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.59,
+        39.26,
+        49.22
+       ],
+       "change_uT": 85.38,
+       "resid_deployed_uT": 7.37,
+       "resid_x70y110_uT": 13.11
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        27.54,
+        50.1
+       ],
+       "change_uT": 89.12,
+       "resid_deployed_uT": 11.3,
+       "resid_x70y110_uT": 14.54
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.77,
+        43.95,
+        29.3
+       ],
+       "change_uT": 70.53,
+       "resid_deployed_uT": 6.13,
+       "resid_x70y110_uT": 14.54
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 70.53,
+     "resid_deployed_median_uT": 6.79,
+     "resid_x70y110_median_uT": 13.11
+    }
+   },
+   "thumb_tag": {
+    "poses": [
+     {
+      "pose": "open",
+      "seen": 0,
+      "joints": [
+       5.566381249999992,
+       16.113237499999997,
+       44.82420625
+      ]
+     },
+     {
+      "pose": "zero",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -4.3750000010334134e-05,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "mcp 30",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       29.882768749999997,
+       0.29295625000000314
+      ]
+     },
+     {
+      "pose": "pip 45",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       -0.29301250000000323,
+       44.82420625
+      ]
+     },
+     {
+      "pose": "curl 40/40",
+      "seen": 0,
+      "joints": [
+       -0.5859625000000008,
+       39.25776875,
+       39.8437375
+      ]
+     },
+     {
+      "pose": "yaw +15",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       19.335893749999997,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "yaw -15",
+      "seen": 0,
+      "joints": [
+       -14.94143125,
+       19.335893749999997,
+       -0.29298124999999686
+      ]
+     },
+     {
+      "pose": "thumb curl",
+      "seen": 0,
+      "joints": [
+       -0.29299375000000083,
+       39.25776875,
+       50.09764375
+      ]
+     },
+     {
+      "pose": "index curl",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       0.29292499999999677,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "middle curl",
+      "seen": 0,
+      "joints": [
+       -2.5000000000829914e-05,
+       -4.3750000010334134e-05,
+       -1.2499999996862243e-05
+      ]
+     },
+     {
+      "pose": "mixed A",
+      "seen": 0,
+      "joints": [
+       14.355443749999996,
+       9.960893749999993,
+       60.05858125
+      ]
+     },
+     {
+      "pose": "mixed B",
+      "seen": 0,
+      "joints": [
+       -14.648462500000008,
+       44.53120625,
+       9.667956249999996
+      ]
+     }
+    ],
+    "seen_poses": 0,
+    "two_camera_poses": 0,
+    "d_mm_2cam_median": null,
+    "normal_deg_2cam_median": null,
+    "normal_deg_median": null
    }
   }
  ]

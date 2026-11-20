@@ -47,6 +47,7 @@ F_PATCH = S3 / "20261119-board_patch_size_calibration.json"
 F_DW = S3 / "20261119-hexe_dead_weight.json"
 F_DIRGP = S3 / "20261119-direction_gp_hand.json"
 F_TRIALS = S3 / "20261119-trial_contacts.json"
+F_SWEEPS = S3 / "20261119-pose_sweep_own_pose.json"
 GROUPS = ["index, PIP 0", "middle, PIP 0", "thumb, PIP 0", "index, PIP 10", "index, PIP 20"]
 C_GP, C_PAT, C_GEO, C_FORCE = "#1f4e9c", "#d9822b", "#111111", "#8a8a8a"
 F_EDGES = [0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0]
@@ -295,6 +296,22 @@ def build():
     tag_z = [v[1] for v in geo.values()]
     tag_off = [r["hold_place_z_mm"] - geo[r["group"]][1] for r in hold_b]
     dirgp = json.loads(F_DIRGP.read_text())
+    sweeps = json.loads(F_SWEEPS.read_text())["sweeps"]
+    sw_rows, pool = [], {"deployed": {f: [] for f in ("thumb", "index", "middle")},
+                         "x70y110": {f: [] for f in ("thumb", "index", "middle")}}
+    for sw in sweeps:
+        Fs = sw["fingers"]
+        lay = sw["design"].replace("hom_film_", "").split("_twist")[0].replace("x", "(").replace("_y", ", ") + ")"
+        sw_rows.append([f"{sw['sweep'][9:11]}:{sw['sweep'][11:13]}", lay, str(Fs["thumb"]["n_moved"]),
+                        " / ".join(f"{Fs[f]['resid_deployed_median_uT']:.1f}" for f in ("thumb", "index", "middle")),
+                        " / ".join(f"{Fs[f]['resid_x70y110_median_uT']:.1f}" for f in ("thumb", "index", "middle"))])
+        for k in pool:
+            for f in pool[k]:
+                pool[k][f] += [r[f"resid_{k}_uT"] for r in Fs[f]["poses"] if max(abs(x) for x in r["q"]) > 3]
+    sw_pool = {k: [float(np.median(v[f])) for f in ("thumb", "index", "middle")] for k, v in pool.items()}
+    same = [sw for sw in sweeps if "x70_y110" in sw["design"]]
+    sw_same = [[sw["fingers"][f]["resid_deployed_median_uT"] for f in ("thumb", "index", "middle")]
+               for sw in (same[0], same[-1])]
     dg_low_b = [r["board_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
     dg_low_d = [r["direction_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
     dg_tow_b = [r["board_gp"]["0.1-0.5"]["toward_share"] for r in dirgp["rig"] if r["board_gp"]["0.1-0.5"]["toward_share"]]
@@ -419,9 +436,11 @@ at rest. A contact needs an explained chi-square over 25 and 0.25 N to start, an
 </ol>
 <p>An estimate for three boards takes 17-19 ms, and the data reach the trial about 41 ms old. The board GP is
 {code('20261105-board_gp_v3_id1_id3_rig_id3_id6.npz')}: 14,185 holds of six tips, presses and slides, length 1.94 and
-noise 0.3. The own-pose GP the trials load is still the 11-04/05 fit. At the trials' layout (70, 110) it leaves
-6.1-11.3 uT, or 0.21-0.40 N. The 11-19 refit at that layout leaves 4.4-5.7 uT
-({code('20261119-own_pose_gp_sweep_x70y110_7v5.npz')}); switching is the owner's call ({link(L['queue'], 'QUEUE')}, W2).</p>"""))
+noise 0.3. The own-pose GP the trials load is the 11-04/05 fit over many layouts. In free-air sweeps at 11 layouts on
+the night of 11-19 it left a median of {rng(sw_pool['deployed'], '{:.1f}')} uT, about 0.2-0.3 N (Section §hand2§,
+Table 4). A refit at (70, 110) ({code('20261119-own_pose_gp_sweep_x70y110_7v5.npz')}) left 4.4-5.7 uT in its own
+session but no less than the deployed GP in later sweeps there, and more at the wide layouts. So the deployed GP
+stays.</p>"""))
     rig_body = (f"""
 <p>The UR5 pressed, slid, rolled and twisted spheres of R 2 and R 5 mm and a rod of R 12.5 mm on every tip. The HEX-E
 read the force, and the arm's registration gave the contact place and normal. To measure the trials' GP
@@ -564,9 +583,20 @@ series will add every ranked layout to this table
 <ul>
 <li>Own pose. With nothing touching, a finger's own motion changes its board by up to 166 uT, 5.8 N to the
 estimator; the median is 54-71 uT. Most of it is the board turning in fields fixed to the hand and the room. A GP on
-the finger's joints removes it to 4.4-7.3 uT when fitted at that layout or over many layouts. Fitted at one layout it
-leaves 11-22 uT at another. Under load it also removes real signal when the joints give: on 11-18 the GP's slopes fell
-from 0.64-0.86 to 0.44-0.56 with the term.</li>
+the finger's joints removes it to 4.4-7.3 uT when fitted at that layout or over many layouts. Under load it also
+removes real signal when the joints give: on 11-18 the GP's slopes fell from 0.64-0.86 to 0.44-0.56 with the
+term.</li>
+<li>Layouts. On the night of 11-19 the hand ran the same free-air poses at 11 layouts, (60, 135) to (135, 65)
+(Table 4). The many-layout GP left a median of {sw_pool['deployed'][0]:.1f}, {sw_pool['deployed'][1]:.1f} and
+{sw_pool['deployed'][2]:.1f} uT on the thumb, index and middle, with no trend across layouts. The same layout,
+(70, 110), left {rng(sw_same[0], '{:.1f}')} uT at 19:05 and {rng(sw_same[1], '{:.1f}')} uT at 21:22: the arm's pose
+and the hour move the term as much as the layout does. A refit at one layout is no better at the others, so a sweep
+at each new layout is not needed.</li>
+<li>Fingers touching each other. At (70, 90) the pose with every MCP and PIP at 40 deg stopped the thumb's and
+index's MCPs 6-7.5 deg short. On the CAD hand's collision spheres their DIP links meet in that pose (0.6 mm overlap);
+the bench's check, three balls per finger, had them 27 mm apart. Both boards read 12-13 uT above their own-pose
+prediction there, more than at any other layout in that pose; the middle's read nothing extra. Whether through the
+pads or through the joints giving under the load, the boards saw the collision.</li>
 <li>Turning the hand. The own-pose GP knows the palm only at the attitude of its sweep. Turned another way, each board
 sees the Earth's field from another angle: about 1 uT per degree (Section §torsion§), 0.07 N per degree. Re-zero after a wrist
 turn.</li>
@@ -577,11 +607,17 @@ closer than 20 mm.</li>
 <li>Blind spots. Contacts on the DIP link beside the pad read nothing: 14 side presses on 11-18. The middle board read
 nothing in 18 of 20 twists on 11-17. So &#8220;no contact&#8221; means no pad contact, not none at all.</li>
 </ul>
-<p>Sources: {link(L['xh'], 'the crosstalk page')}, {link(L['drift'], 'the drift page')}, {link(L['bench'], 'the bench README')}.</p>"""))
+{P.table(["sweep", "layout (mm)", "poses", "deployed GP: thumb / index / middle (uT)", "refit at (70, 110) (uT)"],
+          sw_rows, caption="The own-pose term at each layout, 2026-11-19 night: the median residual over the sweep's "
+          "poses with a joint moved more than 3 deg, from the hold's mean field against the GP's predicted change from the "
+          "zero pose. The sweeps after 21:10 ran in the dark; (70, 90) stopped at its fifth pose; (85, 60) kept two poses "
+          "at the bench's 30 mm margin.", n=4)}
+<p>Sources: {link(L['xh'], 'the crosstalk page')}, {link(L['drift'], 'the drift page')}, {link(L['bench'], 'the bench README')},
+{link(STUDY / 'sim/20261119-pose_sweep_own_pose.py', 'sim/20261119-pose_sweep_own_pose.py')}.</p>"""))
     S.append(("stability", "Smoothness, steadiness and rate on the hand", (f"""
 <p>The splitter logs 150 records a second, each with all three boards; the longest gaps in the presses were 10-24 ms.
 In free air the field's noise is {rng([r['noise_free_uT_record'] for r in hold])} uT per component per record and
-{rng([r['noise_free_uT_50ms'] for r in hold])} uT over the estimator's 50 ms window. Table 4 gives the place's jitter
+{rng([r['noise_free_uT_50ms'] for r in hold])} uT over the estimator's 50 ms window. Table 5 gives the place's jitter
 while the pad was held at a steady force for 2 s.</p>
 {P.table(["press", "force (N)", "place z (mm)", "jitter along / across, 50 ms (mm)", "per record (mm)", "drift (mm/s)",
           "force jitter (N)"],
@@ -590,7 +626,7 @@ while the pad was held at a steady force for 2 s.</p>
            f"{r['jitter_y_z_mm_record'][1]:.2f} / {r['jitter_y_z_mm_record'][0]:.2f}",
            f"{r['drift_y_z_mm_per_s'][1]:+.2f}", f"{r['force_sd_N_50ms']:.3f}"] for r in hold],
          num_cols=(1, 2, 3, 4, 5, 6), caption="The GP's place and force in the arm presses' 2 s holds: standard deviations "
-         "about a straight line in time, and that line's slope along the pad.", n=4)}
+         "about a straight line in time, and that line's slope along the pad.", n=5)}
 <p>So at 2.4 N a 50 ms place is steady to {rng(jz_bent)} mm (sd) on the bent index, where the pad curves, and to
 {rng(jz_straight)} mm on the straight fingers' flat half. Jitter scales roughly with the noise over the field, so at 0.5 N expect
 about five times more. Figure 3 shows the larger effect: while the force rises, the bent fingers' place starts at the
@@ -636,7 +672,7 @@ through the hand model. That needs the joint offsets fixed first (the index's DI
 from about 1 N (Figure 3), so a filter should not hold on to a low-force place.</li>
 <li>Grasp-level twist: the object's turn from the three contacts' places over time, and the twisting moment from each
 contact's lever arm and shear (Section §shear§), at 2-5 Hz.</li>
-<li>Rest: re-zero at the open pose before each grasp, with an own-pose GP fitted at the layout.</li>
+<li>Rest: re-zero at the open pose before each grasp, with the many-layout own-pose GP (Section §hand2§).</li>
 </ol>"""))
     S.append(("superseded", "What this page replaces", P.table(["earlier statement", "where", "now"], [
         ["the boards and the hand model disagree by 4-6 mm on the contact place", "force by place page, 11-19",
@@ -646,13 +682,15 @@ contact's lever arm and shear (Section §shear§), at 2-5 Hz.</li>
         ["the HEX-E is the force reference", "calibration protocol, 10-22",
          "its z read a dead weight at 0.56-0.60 (11-19); its lateral axes are untested"],
         ["the own-pose GP leaves 5.9-7.3 uT with layouts left out", "crosstalk page, 11-05",
-         "after the servos' re-zero of 11-17 it leaves 6.1-11.3 uT at (70, 110); the 11-19 refit 4.4-5.7"],
+         "5.9-8.0 uT over 11 layouts on 11-19, no trend with layout (Table 4)"],
+        ["a sweep and a GP refit at each new layout", "this page, 11-19 evening",
+         "not needed: a one-layout refit is no better elsewhere (Section §hand2§)"],
         ["the estimator inside the trial's process, 57-73 ms", "bench README, 11-17 morning", "its own process, 17-19 ms"],
         ["torsion may become a calibrated output on a better fixture", "calibration page, 11-04",
          "not detectable: the twist response is the board turning in the room's field (Section §torsion§)"],
         ["the dead weight read 0.56-0.58 or 0.58-0.60", "notes and index, 11-19", "0.56-0.60, from both steps"],
         ["board GP versions of 10-26 and 11-02", "calibration page", "the 11-05 pooled GP is the one in use"],
-    ], caption="Earlier results this page corrects or replaces.", n=5)))
+    ], caption="Earlier results this page corrects or replaces.", n=6)))
     S.append(("open", "Open questions, in order", f"""
 <ol>
 <li>Low force is the weak point, and the direction GP only eases it (Section §rig§): on the hand both GPs still sit
@@ -661,7 +699,9 @@ check whether a finer chip gain (item 5) lowers the noise floor that causes it.<
 <li>Fix the index's and middle's joint offsets: 9 and 12 deg at the DIP link with the PIP bent, perhaps none
 straight (Section §hand§). Plate presses at several PIP angles, and DIP tags seen at less curl, can tell a zero offset from
 backlash off the PIP's stop and from pots that read low near the top of their range.</li>
-<li>Load the per-layout own-pose GP in the trials, and run the short free-air sweep at each new layout.</li>
+<li>The own-pose term's last 6-8 uT moves with the arm's pose and the hour as much as with the layout (Table 4):
+try the palm's attitude as an input, or re-zero after any wrist turn. The thumb's DIP tag, now tracked in the sweep,
+sat 2.6 mm and 2.1 deg from the model at zero; its other poses need the lights on.</li>
 <li>The HEX-E's scale along its lateral axes: a dead weight whose line loads x or y.</li>
 <li>A finer chip gain: the four-magnet pads use under 5 mT of a 38.4 mT range. Does it lower the noise?</li>
 <li>Broad flat contacts on the straight fingers: calibrate a flat indenter on the proximal half, or keep the fingers
