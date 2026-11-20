@@ -300,13 +300,27 @@ class Lift(threading.Thread):
             r.disconnect()
 
 
+def cam_mode():
+    """(width, height, fps, exposure or None) of the bench's tracker: HOM_CAM_MODE "WxH@FPS" and HOM_CAM_EXPOSURE (0.1 ms,
+    the RealSense unit), set by hom_series --cam-mode/--cam-exposure (2026-11-20, owner: "id like to prioritize (within
+    reason) the 60fps tracking"); 1920x1080@30 at the calibration's exposure (live.SESSION, 166) without them."""
+    wh, fps = os.environ.get("HOM_CAM_MODE", "1920x1080@30").split("@")
+    w, h = (int(x) for x in wh.split("x"))
+    e = os.environ.get("HOM_CAM_EXPOSURE")
+    return w, h, int(fps), (float(e) if e else None)
+
+
 class VideoRecorder:
     """Each camera's frames during a trial (owner, 2026-11-16: "make sure to record video from the realsense's"): the
-    tracker's luma frames, halved to 960 x 540, into OUT/<stem>_<serial>.mp4 by a writer thread, with each frame's
-    camera time and number in OUT/<stem>_<serial>_frames.csv, so the film lines up with the trial's record."""
+    tracker's luma frames, at 960 x 540 (halved from 1080p), into OUT/<stem>_<serial>.mp4 at the tracker's rate by a
+    writer thread, with each frame's camera time and number in OUT/<stem>_<serial>_frames.csv, so the film lines up with
+    the trial's record."""
 
-    def __init__(self, stem, scale=0.5, fps=30.0):
+    def __init__(self, stem, scale=None, fps=None):
         import cv2
+        w, _h, f, _e = cam_mode()
+        scale = 960.0 / w if scale is None else scale
+        fps = float(f) if fps is None else fps
         self.cv2, self.stem, self.scale, self.fps = cv2, stem, scale, fps
         self.q = queue.Queue(maxsize=240)
         self.writers, self.stamps, self.dropped, self.written = {}, {}, 0, 0
@@ -353,9 +367,11 @@ def start_tracker(a, on_sample, on_frame=None):
     from sr2hand.tracking import live
     arm = live.ArmPose()
     arm.start()
+    w, h, fps, exposure = cam_mode()
     tracker = live.Tracker(live.load_cameras(CAL / "20261113-lens_board_k3_arm.json",
-                                             CAL / "20261113-handeye_tcp_fitted_lens_moved836.json"),
-                           live.load_map(a.map), arm=arm, T_EP=SR2Hand.load().T_E_P(), on_sample=on_sample)
+                                             CAL / "20261113-handeye_tcp_fitted_lens_moved836.json", width=w, height=h),
+                           live.load_map(a.map), fps=fps, arm=arm, T_EP=SR2Hand.load().T_E_P(), on_sample=on_sample,
+                           settings=None if exposure is None else dict(live.SESSION, exposure=exposure))
     if on_frame is not None:
         for w in tracker.workers:
             w.on_frame = on_frame

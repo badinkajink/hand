@@ -67,6 +67,20 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   `--max-down 150`. When neither the path to zero nor the flex-back is clear, `letgo` now takes the fingers along
   the path to zero as far as it stays clear (`partial_zero`, in tenths), slowly. If no tenth is clear, the fingers stay
   open; either way the watched lift follows. Restarted at 11:31 from entry 8 (A1_r3_x115y160g8_t2).
+- **11:3x-11:5x, jitter and 60 fps.** A1_r3_x115y160g8_t2 twisted to 65 deg; the sphere rose 20.6 mm and drifted
+  26.0 mm. The putdown's levelling stopped, and the owner pried the sphere out and reset it. The owner: "the controls
+  are way more jittery and cause a ton of drift". `analysis/20261120-command_jitter.py` finds the chatter in HOM's
+  commanded targets (01e8e60fc); the workstation is diagnosing it offline, and HOM stays unchanged all day.
+  - The owner's go (11:4x, by relay): "prioritize (within reason) the 60fps tracking". With the owner gone, the
+    moving-block test of 11-13 (the block turned by hand) could not run. Instead: a 15 s static check on the standing
+    sphere (`logs/20261120-tracker_modes/`). 1080p30 at 16.6 ms: 30.0 Hz, tracked 1.000, frame age 39 ms, sd 0.020-0.026
+    mm and 0.036 deg. 540p60 at 5 ms: 59.5 Hz, tracked 1.000, 22 ms, sd 0.040-0.057 mm and 0.089 deg. The twists are
+    the moving test.
+  - `hom_series --cam-mode 960x540@60 --cam-exposure 50` sets HOM_CAM_MODE and HOM_CAM_EXPOSURE for every step
+    (`hom_trial.cam_mode`; the recorder writes 960 x 540 at the tracker's rate), and every row carries `camera`.
+  - When `ready` refuses an object put back too far from the hand, the series lifts clear and moves over it
+    (`approach --fine`), then readies again.
+  - Restarted at 11:5x from entry 9 (A1_r3_x115y160g8_t3) at 540p60.
 
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 
