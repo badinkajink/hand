@@ -71,6 +71,12 @@ def table(head, body, num=(), caption=None, n=None):
     return f'<div class="tw"><table>{cap}<thead><tr>{th}</tr></thead><tbody>{tr}</tbody></table></div>'
 
 
+def film(n, rel, caption):
+    return (f'<figure id="fig{n}"><video controls muted loop playsinline preload="metadata" src="{rel}" '
+            f'style="width:100%"></video><figcaption>Figure {n}. {caption} (<a href="{rel}">{rel}</a>)</figcaption>'
+            f"</figure>")
+
+
 def f(x, nd=2):
     return "&ndash;" if x is None or (isinstance(x, float) and not np.isfinite(x)) else f"{x:.{nd}f}"
 
@@ -315,8 +321,15 @@ SVD did not converge) and score 0.</p>"""))
     for m in ("point", "pads"):
         for i, r in enumerate(S["top10"].get(m, [])):
             t2.append([m if i == 0 else "", str(i + 1), xy_s(r["xy"]), str(r["k"]), f(r["score"], 3), f(r["fresh"], 3)])
+    FILM = D / "media/20261119-simulated_twist_three_layouts.mp4"
+    film_html = ""
+    if FILM.exists() and picks:
+        film_html = film(0, "media/" + FILM.name, "The simulated twist (pads, seed 0) at the best, a middle and the "
+                         "lowest-ranked of the proposed layouts, from the ranking's run with the frames drawn "
+                         "(sim/20261119-twist_ranking_film.py). The red and blue segments are the sphere's body axes; "
+                         "they turn with the twist.")
     sec.append(("landscape", "The twist landscape", f"""
-<p>Figure 1 shows each layout's score under both contact models; Table 2 lists the ten best.</p>
+<p>Figure 1 shows each layout's score under both contact models; Table 2 lists the ten best.</p>{film_html}
 {fig(1, fig_landscape(S, prop), "Layout score over the lattice, under point contact (left) and the sphere pads "
      "(right); grey: no ground-clear grasp. White circles: the layouts proposed for the hand, numbered by rank "
      "among the deployable layouts (Section 7); orange square: (70, 110), run on the hand on 2026-11-17.")}
