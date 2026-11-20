@@ -39,7 +39,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[3]
-sys.path[:0] = [str(HERE), str(ROOT / "src")]
+sys.path[:0] = [str(HERE), str(ROOT / "src"), str(ROOT / "docs/experiments/20261117-sr2_system_identification/lab")]
 import hom_setup as HS  # noqa: E402
 from sr2hand.control import servo_limits as SL  # noqa: E402
 from sr2hand.geometry.rotations import quat_to_mat, tf, tf_inv  # noqa: E402
@@ -95,18 +95,26 @@ def lowest_B(plan, T_BP, poses):
 
 
 def finger_gap(plan, j0, j1, n=10):
-    """(mm, where): the least gap between parts of different fingers along the joints' straight path j0 -> j1."""
+    """(mm, where): the least gap between parts of different fingers along the joints' straight path j0 -> j1, on the
+    CAD hand's collision spheres (the cad_v3 scene's, on the mount, yaw, MCP and DIP-link bodies) with hom_setup's tip
+    pad, tip end and PIP balls (s3_approach.hand_points). Until 21:3x on 2026-11-19 this took the three balls alone:
+    they leave out the DIP link, which reaches 23 mm to the side by the PIP, and at (70, 90) "curl 40/40" (balls 27 mm
+    apart, CAD spheres -0.6 mm) the thumb's and index's DIP links met and stalled both MCPs 6-7.5 deg short."""
+    import fingertip_tag_check as FT
+    import s3_approach as SA
+    M = FT.mounts_P(plan)
     best = (math.inf, "")
     for i in range(n + 1):
         u = i / n
         q = {f: {k: j0[f][k] + (j1[f][k] - j0[f][k]) * u for k in J} for f in FINGERS}
-        pts = {f: HS.finger_pts(plan, f, q[f]) for f in FINGERS}
+        X, R, lab = SA.hand_points(FT, HS, M, q)
+        fing = np.array([x[0] for x in lab])
         for a_, b_ in (("thumb", "index"), ("thumb", "middle"), ("index", "middle")):
-            for (pa, ra), na in zip(pts[a_], HS.PARTS):
-                for (pb, rb), nb in zip(pts[b_], HS.PARTS):
-                    d = float(np.linalg.norm(pa - pb)) - ra - rb
-                    if d < best[0]:
-                        best = (d, f"{a_} {na} and {b_} {nb} at {u:.0%}")
+            ia, ib = np.where(fing == a_)[0], np.where(fing == b_)[0]
+            D = np.linalg.norm(X[ia][:, None] - X[ib][None], axis=2) - R[ia][:, None] - R[ib][None]
+            k = np.unravel_index(int(np.argmin(D)), D.shape)
+            if D[k] < best[0]:
+                best = (float(D[k]), f"{a_} {lab[ia[k[0]]][1]} and {b_} {lab[ib[k[1]]][1]} at {u:.0%}")
     return best
 
 

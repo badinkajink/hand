@@ -227,6 +227,12 @@ def main():
                          "series goes on; without it the series stops")
     ap.add_argument("--sweep", action="store_true",
                     help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
+    ap.add_argument("--sweep-args", default="",
+                    help="extra arguments for pose_sweep.py sweep, e.g. \"--ff-mm 30\": at (70, 90) the thumb and index "
+                         "MCPs stalled 6-7.5 deg short at curl 40/40 with the model's fingers 23 mm apart (21:14, 11-19)")
+    ap.add_argument("--sweep-only", action="store_true",
+                    help="clear, layout and the free-air sweep at each entry's layout, no trial (2026-11-19 21:1x: the "
+                         "lab's lights go off at night and the tracker sees nothing; the sweep needs no camera)")
     ap.add_argument("--serve", default="",
                     help="'TASK D MASS_G BUDGET', e.g. 'twist 40 28.8 0.56': start each plan's HOM server on the "
                          "workstation before its first trial and stop it after its last (hom_serve_budget.sh)")
@@ -247,7 +253,7 @@ def main():
         why, servo_c = servo_gate(a)
         if why:
             sys.exit(f"STOP before {label}: {why}")
-        if a.serve:
+        if a.serve and not a.sweep_only:
             why = server_start(a, plan, port)
             if why:
                 sys.exit(f"STOP: the HOM server for {label} did not start: {why}")
@@ -265,10 +271,13 @@ def main():
             rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
             if rc != 0 or "applied True" not in out:
                 sys.exit(f"STOP: layout failed for {label}")
-        if new_layout and a.sweep:
-            rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, "--go"], 300)
+        if new_layout and (a.sweep or a.sweep_only):
+            rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, *a.sweep_args.split(), "--go"],
+                          300)
             if rc != 0 or "SWEEP DONE" not in out:
                 sys.exit(f"STOP: the free-air sweep failed at {label}'s layout")
+        if a.sweep_only:
+            continue
         rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
                        "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
@@ -320,7 +329,7 @@ def main():
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")
             sys.exit(f"STOP: putdown did not finish for {label}: {row['putdown']}")
-    if a.go and a.serve:
+    if a.go and a.serve and not a.sweep_only:
         server_stop(a.entries[-1].split(":")[1])
     print(f"\n=== {time.strftime('%H:%M:%S')} series done", flush=True)
     return 0
