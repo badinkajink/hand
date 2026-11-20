@@ -18,6 +18,12 @@ splitter's file meanwhile, and the sweeps are the data that show whether the own
             go back to where the sweep began. A joint more than --max-err deg (yaw --max-err-yaw) from its target at
             the end of a hold, or torque off, stops the sweep and takes the fingers back. One JSON line per pose to
             --out (the hold's start and end, target, measured joints). Prints "SWEEP DONE".
+            The thumb's DIP tag (24, 14 mm) is tracked by both cameras through the sweep (--no-thumb-tag to skip; the
+            owner, relayed 11-19 18:1x: "maybe tracking the thumb fingertip tag would help us understand slop as
+            well?"): each pose's line carries the tag's median centre and normal in P over the hold against the hand
+            model's at the measured joints (fingertip_tag_check.fk). The cameras see it 12-39 deg off its normal in
+            half the poses (zero, mcp 30, the yaws, the open pose; 2.6 mm and 2.1 deg from the model at zero, 21:00).
+            Best effort: without cameras the sweep runs without it.
 
     /usr/bin/python3 pose_sweep.py clear --plan PLAN --map MAP [--go]
     /usr/bin/python3 pose_sweep.py sweep --plan PLAN --map MAP [--go]
@@ -36,7 +42,7 @@ ROOT = HERE.parents[3]
 sys.path[:0] = [str(HERE), str(ROOT / "src")]
 import hom_setup as HS  # noqa: E402
 from sr2hand.control import servo_limits as SL  # noqa: E402
-from sr2hand.geometry.rotations import tf, tf_inv  # noqa: E402
+from sr2hand.geometry.rotations import quat_to_mat, tf, tf_inv  # noqa: E402
 
 FINGERS = HS.FINGERS
 J = ("yaw", "mcp", "pip")
@@ -152,6 +158,78 @@ def cmd_clear(a):
     return 0
 
 
+class ThumbTag:
+    """The thumb's DIP tag from both cameras through the sweep (live.Tracker with tag 24's one-tag map, as
+    fingertip_tag_check.py measure); at() gives a hold's median against the model. A failure leaves self.error set."""
+
+    def __init__(self, plan):
+        import threading
+        self.got, self.lock, self.arm, self.tracker, self.error = [], threading.Lock(), None, None, None
+        try:
+            import fingertip_tag_check as F
+            import hom_trial as HT
+            self.F, self.M = F, F.mounts_P(plan)
+
+            class _A:
+                map = F.tag_map_file(24)
+            self.arm, self.tracker = HT.start_tracker(_A, self.on)
+        except Exception as e:                              # noqa: BLE001
+            self.error = repr(e)[:200]
+            print(f"   thumb tag: no tracker ({self.error})", flush=True)
+
+    def on(self, smp):
+        m = smp.msg
+        if m is not None and m.n_tags > 0 and np.all(np.isfinite(m.p_PO)):
+            with self.lock:
+                self.got.append((time.time(), np.array(m.p_PO, float), np.array(m.q_PO, float), int(m.n_tags)))
+
+    def at(self, t0, t1, joints):
+        if self.error or not joints:
+            return {"seen": 0, "error": self.error}
+        try:
+            with self.lock:
+                g = [x for x in self.got if t0 <= x[0] <= t1]
+            q = [joints["thumb"][k] for k in J]
+            p_pred, n_pred, _, _ = self.F.fk("thumb", self.M["thumb"], q)
+            if len(g) < 3:
+                return {"seen": len(g), "joints": q}
+            P = np.array([x[1] for x in g])
+            p_m = np.median(P, axis=0)
+            n_m = -np.mean([quat_to_mat(x[2])[:, 2] for x in g], axis=0)
+            n_m /= np.linalg.norm(n_m)
+            d = p_m - p_pred
+            return {"seen": len(g), "n_tags": int(np.median([x[3] for x in g])), "joints": q,
+                    "p_meas": np.round(p_m, 3).tolist(), "p_pred": np.round(p_pred, 3).tolist(),
+                    "d_mm": np.round(d, 3).tolist(), "n_meas": np.round(n_m, 4).tolist(),
+                    "n_pred": np.round(n_pred, 4).tolist(),
+                    "normal_deg": round(math.degrees(math.acos(float(np.clip(n_m @ n_pred, -1, 1)))), 2),
+                    "sd_mm": np.round(P.std(axis=0), 3).tolist(),
+                    # one camera's depth scatters 2.5 mm (sd) along its view, both cameras' 0.3 mm (21:05, 11-19)
+                    **self.two(g, p_pred, n_pred)}
+        except Exception as e:                              # noqa: BLE001
+            return {"seen": 0, "error": repr(e)[:200]}
+
+    @staticmethod
+    def two(g, p_pred, n_pred):
+        g2 = [x for x in g if x[3] >= 2]
+        if len(g2) < 3:
+            return {"seen_2cam": len(g2)}
+        P = np.array([x[1] for x in g2])
+        n_m = -np.mean([quat_to_mat(x[2])[:, 2] for x in g2], axis=0)
+        n_m /= np.linalg.norm(n_m)
+        return {"seen_2cam": len(g2), "d_mm_2cam": np.round(np.median(P, axis=0) - p_pred, 3).tolist(),
+                "normal_deg_2cam": round(math.degrees(math.acos(float(np.clip(n_m @ n_pred, -1, 1)))), 2),
+                "sd_mm_2cam": np.round(P.std(axis=0), 3).tolist()}
+
+    def stop(self):
+        for x in (self.tracker, self.arm):
+            try:
+                if x is not None:
+                    x.stop()
+            except Exception:                               # noqa: BLE001
+                pass
+
+
 def cmd_sweep(a):
     plan = HS.load_plan(a.plan)
     st = HS.Station(a.station, a.token_file)
@@ -196,6 +274,7 @@ def cmd_sweep(a):
                           "mounts": s.get("mount_positions"), "start": j_start, "T_BP": np.round(T_BP, 3).tolist(),
                           "skipped": [{"name": n, "why": w} for n, _, w, _, _ in rows if w], "t": time.time()}) + "\n")
     cur, stopped = j_start, None
+    tag = ThumbTag(plan) if a.thumb_tag else None
     try:
         for name, j, why, gap, clr in rows:
             if why:
@@ -208,9 +287,10 @@ def cmd_sweep(a):
             s2 = st.state()
             m = HS.sim_joints(s2)
             err = {f: {k: round(m[f][k] - j[f][k], 2) for k in J} for f in FINGERS} if m else None
+            tt = tag.at(th0 + 0.3, th1, m) if tag is not None else None
             log.write(json.dumps({"pose": name, "target": j, "measured": m, "error": err, "t_move": t0, "t_hold": th0,
                                   "t_end": th1, "torque": s2.get("servo_torque"), "gap_mm": round(gap, 1),
-                                  "above_object_mm": round(clr, 1)}) + "\n")
+                                  "above_object_mm": round(clr, 1), "thumb_tag": tt}) + "\n")
             log.flush()
             cur = j
             if s2.get("servo_torque") != 1:
@@ -222,8 +302,13 @@ def cmd_sweep(a):
                 if bad:
                     stopped = f"{name}: off target " + ", ".join(bad)
                     break
-            print(f"   {name:12s} held {th1 - th0:.1f} s", flush=True)
+            seen = "" if not tt else (f"; thumb tag {tt['seen']} poses" + (f", {np.linalg.norm(tt['d_mm']):.1f} mm "
+                                                                           f"and {tt['normal_deg']:.1f} deg from the model"
+                                                                           if "d_mm" in tt else ""))
+            print(f"   {name:12s} held {th1 - th0:.1f} s{seen}", flush=True)
     finally:
+        if tag is not None:
+            tag.stop()
         HS.ramp_joints(argparse.Namespace(speed=a.speed, wait_s=0.5), st, cur, j_start, a.ramp_s)
         log.write(json.dumps({"pose": "back", "target": j_start, "t": time.time(), "stopped": stopped}) + "\n")
         log.close()
@@ -261,6 +346,7 @@ def main():
     p.add_argument("--speed", type=int, default=40)
     p.add_argument("--max-err", type=float, default=6.0)
     p.add_argument("--max-err-yaw", type=float, default=10.0)
+    p.add_argument("--no-thumb-tag", dest="thumb_tag", action="store_false")
     p.add_argument("--out", default=None)
     a = ap.parse_args()
     return {"clear": cmd_clear, "sweep": cmd_sweep}[a.cmd](a)
