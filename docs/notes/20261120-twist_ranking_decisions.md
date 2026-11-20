@@ -163,8 +163,17 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   (`docs/experiments/20261119-twist_layout_ranking/data/20261120-smoothed_predictions.json`, c5844e356; both models,
   seeds 0-2): mean 0.393 with exact joint readings and 0.384 with the hand's flicker, against 0.373 for the plans'
   predictions; rho 0.89 and 0.87 with them.
+- 12:36, lab: stopped, needs a person. A1_p25_x85y170g2_t1 dropped the sphere in its twist (tracked twist -144 to 5.5
+  deg, drift 93 mm); it lies on its side. The putdown took it for held and started down until its guards stopped it
+  (HEX-E at most 4.5 N); fixed in 252be514a (the putdown refuses an object more than 45 mm from the grasp). The pick-up
+  failed: no pinch at (85, 170); at the (105, 70) pick-up layout a fingertip came down on the ball twice (1-2 tags see the
+  lying sphere, 6.5 mm between pad and ball). The hand is safe (fingers straight, level, high). Relayed to the owner by
+  push at 12:5x. Restart at A1_p25_x85y170g2_t2 once the sphere stands near the table's centre.
 
 ## Waiting on owner
+
+- The bench (since 12:36): someone at the bench stands the sphere upright near the table's centre; the series restarts
+  by itself.
 
 - The smoothed budget on the bench (`hom_server --budget-joint-tau 0.1 --target-tau 0.04`) from the next block boundary,
   yes or no (asked 12:1x). Without it HOM stays as it was.
