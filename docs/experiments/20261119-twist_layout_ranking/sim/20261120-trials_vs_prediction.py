@@ -23,6 +23,8 @@ tilted sphere up by tilting the hand and letgo re-levelled the hand only within 
 within 0.3-1.5 deg). The tilt is the series row's ready_tilt_deg (hom_series since 9a98f3cad, 11:12); for the rows written
 before, the values the lab read from the series log's ready lines (READY_TILT_LAB). Series rows are matched to the
 trials by corvus's record file; copy them from corvus's logs/20261116-hom_trials/ into runs_corvus/ with the records.
+Each trial also carries its camera mode (the row's "camera"; rows without it ran at 1920x1080@30, exposure 166, the lab
+11:5x) and its block (the label's prefix); rho is given again over the trials at 60 fps alone.
 
     .venv/bin/python docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py [--since STAMP]
 Writes data/20261120-trials_vs_prediction.json and prints the table.
@@ -52,6 +54,7 @@ SINCE = "20261119-210000"
 DRAWS = 5000
 SERIES = ROOT / "docs/experiments/20261115-hom_bench_trials/runs_corvus"   # hom_series's rows (*series*.jsonl)
 TILT_MAX_DEG = 5.0                 # deg: a start tilted more than this is reported apart
+CAM30 = "1920x1080@30, exposure 166"   # the camera of the rows written before the lab's 60 fps switch (11:5x)
 READY_TILT_LAB = {"A1_r15_x90y135g3_t1": 1.2, "A1_r15_x90y135g3_t2": 12.2, "A1_r15_x90y135g3_t3": 13.0,
                   "A1_p35_x105y100g15_t1": 0.6, "A1_p35_x105y100g15_t2": 25.5}   # the lab's message, 11-20 11:1x
 
@@ -149,7 +152,10 @@ def main():
         ended = rec["ended"].get("class")
         row = srows.get(Path((rec.get("corvus") or {}).get("file") or "").name)
         tilt = ready_tilt(row)
-        trials[plan].append({"stamp": rec["stamp"], "label": (row or {}).get("label"), "ready_tilt_deg": tilt,
+        label = (row or {}).get("label")
+        cam = (row or {}).get("camera") or (CAM30 if row else None)
+        trials[plan].append({"stamp": rec["stamp"], "label": label, "block": label.split("_")[0] if label else None,
+                             "camera": cam, "fps60": bool(cam and "@60" in cam), "ready_tilt_deg": tilt,
                              "tilted_start": tilt is not None and tilt > TILT_MAX_DEG, "track": tr, "ended": ended,
                              "track_held": (tr if ended == "end of schedule" else 0.0) if tr is not None else None,
                              "twist_task_end_deg": rec["track"].get("twist_task_end_deg"),
@@ -168,7 +174,11 @@ def main():
                       "scores_partial": [t["track"] for t in tt if t["track"] is not None],
                       "measured_sd": round(float(np.std(sc, ddof=1)), 3) if len(sc) > 1 else None,
                       "measured_partial_mean": round(float(np.mean([t["track"] for t in tt if t["track"] is not None])), 3)
-                      if tt else None, "trials": tt})
+                      if tt else None,
+                      "scores_60": [t["track_held"] for t in tt if t["fps60"] and t["track_held"] is not None],
+                      "blocks": sorted({t["block"] for t in tt if t["block"]}), "trials": tt})
+    for x in plans:
+        x["measured_mean_60"] = round(float(np.mean(x["scores_60"])), 3) if x["scores_60"] else None
     default = [x for x in plans if x["role"] in ("ranked", "anchor") and not x["prm"]]
     out = {"what": __doc__.split("\n\n")[0].replace("\n", " "), "script": str(Path(__file__).relative_to(ROOT)),
            "generated": time.strftime("%F %H:%M"), "since": a.since,
@@ -176,6 +186,9 @@ def main():
            "tilt_max_deg": TILT_MAX_DEG, "tilted_starts": tilted,
            "rho": {"both models": rho_ci(default, "predicted_both"), "point": rho_ci(default, "predicted_point"),
                    "pads": rho_ci(default, "predicted_pads"),
+                   "both models, 60 fps trials": rho_ci(
+                       [{**x, "scores": x["scores_60"], "n": len(x["scores_60"]), "measured_mean": x["measured_mean_60"]}
+                        for x in default], "predicted_both"),
                    "both models, partial trials scored": rho_ci(
                        [{**x, "scores": x["scores_partial"], "n": len(x["scores_partial"]),
                          "measured_mean": x["measured_partial_mean"]} for x in default], "predicted_both")},

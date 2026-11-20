@@ -1,6 +1,18 @@
 [
  {
   "date": "2026-11-20",
+  "file": "docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html",
+  "title": "Simulated and measured tracking of the twist layout ranking on the SR2 hand",
+  "page_title": "Simulated and measured tracking of the twist layout ranking on the SR2 hand",
+  "topic": "design",
+  "summary": "On the SR2 hand, the measured tracking of 5 layouts at HOM's default force correlated with the simulation's predictions at rho = -0.10 (95 % interval [-0.3, -0.1]). The anchor layout (70, 110) scored 0.367 against its prediction of 0.376. The largest miss was (115, 160) g8, 0.082 against 0.543. HOM's commands chattered on the hand, because the torque budget passed the joint readings' flicker into them. The simulation's joint readings are exact, and smooth commands were predicted.",
+  "builder": "scripts/hom/twist_sim_to_real_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.3
+ },
+ {
+  "date": "2026-11-20",
   "file": "docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html",
   "title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",
   "page_title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",

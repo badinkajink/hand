@@ -143,8 +143,18 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   and `--target-tau`; written atomically, the default path replays the records unchanged). Replayed open loop on the
   39 records: the budget's offsets from joints low-passed at 0.1 s cut the reversals from 45 % to 21 % (median); with HOM's
   targets low-passed at 0.04 s as well, to 11 %.
+- 12:14, lab (33ea534d0): the series restarted at A1_r109_x70y90g1_t1. letgo's partial release had left the fingers 35 deg
+  from zero, and layout refuses a pose that is neither zero nor open; the series now straightens them with a checked zero
+  and lays out again. 12:0x (36adb1cfd): after letgo --tilt-ok the series had read the sphere's tilt in a still-tilted
+  hand (34 deg) as toppled; the sphere stood 1.7 deg off vertical. A1_r3_x115y160g8_t3's putdown field ("settled at 34.27
+  deg") is that misreading. The day's first 89.5 min: stops 78 %, a clean cycle 142 s
+  (`docs/experiments/20261115-hom_bench_trials/analysis/20261120-series_time_table.py`).
+- 12:2x, hand-4a: the smoothing flags wait for the owner's yes (asked 12:2x); the lab will not switch without it.
 
 ## Waiting on owner
+
+- The smoothed budget on the bench (`hom_server --budget-joint-tau 0.1 --target-tau 0.04`) from the next block boundary,
+  yes or no (asked 12:2x). Without it HOM stays as it was.
 
 - A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,
   about 4 h. The landscape of 01:38 holds for 2.5 N only (09:36).

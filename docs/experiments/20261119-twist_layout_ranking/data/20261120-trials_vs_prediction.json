@@ -1,0 +1,3308 @@
+{
+ "what": "The twist layout ranking's trials on the hand against the simulation's predictions (hand-4a, 2026-11-19/20; owner, 2026-11-19 17:2x: deploy many layouts \"and seeing how well our real results match with sim\").",
+ "script": "docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py",
+ "generated": "2026-11-20 12:19",
+ "since": "20261119-210000",
+ "trials_scored": 10,
+ "skipped": [],
+ "tilt_max_deg": 5.0,
+ "tilted_starts": [
+  {
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "stamp": "20261120-092048",
+   "label": "A1_r15_x90y135g3_t2",
+   "block": "A1",
+   "camera": "1920x1080@30, exposure 166",
+   "fps60": false,
+   "ready_tilt_deg": 12.2,
+   "tilted_start": true,
+   "track": 0.534,
+   "ended": "end of schedule",
+   "track_held": 0.534,
+   "twist_task_end_deg": 60.6,
+   "twist_ref_end_deg": 90.6,
+   "notes": [],
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-092048_twist_d40_trial001.jsonl"
+  },
+  {
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "stamp": "20261120-104404",
+   "label": "A1_r15_x90y135g3_t3",
+   "block": "A1",
+   "camera": "1920x1080@30, exposure 166",
+   "fps60": false,
+   "ready_tilt_deg": 13.0,
+   "tilted_start": true,
+   "track": 0.429,
+   "ended": "end of schedule",
+   "track_held": 0.429,
+   "twist_task_end_deg": 46.81,
+   "twist_ref_end_deg": 90.6,
+   "notes": [],
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-104404_twist_d40_trial002.jsonl"
+  },
+  {
+   "plan": "20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "stamp": "20261120-110209",
+   "label": "A1_p35_x105y100g15_t2",
+   "block": "A1",
+   "camera": "1920x1080@30, exposure 166",
+   "fps60": false,
+   "ready_tilt_deg": 25.5,
+   "tilted_start": true,
+   "track": 0.538,
+   "ended": "end of schedule",
+   "track_held": 0.538,
+   "twist_task_end_deg": 76.33,
+   "twist_ref_end_deg": 90.6,
+   "notes": [],
+   "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-110209_twist_d40_trial001.jsonl"
+  }
+ ],
+ "rho": {
+  "both models": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.507,
+   "mean_abs_error": 0.174,
+   "mean_measured_minus_predicted": -0.014
+  },
+  "point": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.594,
+   "mean_abs_error": 0.18,
+   "mean_measured_minus_predicted": -0.013
+  },
+  "pads": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.427,
+   "mean_abs_error": 0.17,
+   "mean_measured_minus_predicted": -0.016
+  },
+  "both models, 60 fps trials": {
+   "layouts": 1,
+   "rho": null
+  },
+  "both models, partial trials scored": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.499,
+   "mean_abs_error": 0.171,
+   "mean_measured_minus_predicted": -0.011
+  }
+ },
+ "plans": [
+  {
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 1,
+   "prm": null,
+   "predicted_both": 0.6023,
+   "predicted_point": 0.617,
+   "predicted_pads": 0.588,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": 2,
+   "prm": null,
+   "predicted_both": 0.5593,
+   "predicted_point": 0.539,
+   "predicted_pads": 0.579,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": 2,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.661,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 3,
+   "prm": null,
+   "predicted_both": 0.5435,
+   "predicted_point": 0.541,
+   "predicted_pads": 0.546,
+   "n": 3,
+   "scores": [
+    0.0,
+    0.091,
+    0.155
+   ],
+   "measured_mean": 0.082,
+   "scores_partial": [
+    0.046,
+    0.091,
+    0.155
+   ],
+   "measured_sd": 0.078,
+   "measured_partial_mean": 0.097,
+   "scores_60": [
+    0.155
+   ],
+   "blocks": [
+    "A1"
+   ],
+   "trials": [
+    {
+     "stamp": "20261120-112136",
+     "label": "A1_r3_x115y160g8_t1",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 0.39,
+     "tilted_start": false,
+     "track": 0.046,
+     "ended": "drift guard",
+     "track_held": 0.0,
+     "twist_task_end_deg": 71.3,
+     "twist_ref_end_deg": 90.6,
+     "notes": [
+      "partial window: 2.00-6.58 s of 2.0-7.78 s"
+     ],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-112136_twist_d40_trial000.jsonl"
+    },
+    {
+     "stamp": "20261120-113209",
+     "label": "A1_r3_x115y160g8_t2",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 0.47,
+     "tilted_start": false,
+     "track": 0.091,
+     "ended": "end of schedule",
+     "track_held": 0.091,
+     "twist_task_end_deg": 55.66,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-113209_twist_d40_trial001.jsonl"
+    },
+    {
+     "stamp": "20261120-115042",
+     "label": "A1_r3_x115y160g8_t3",
+     "block": "A1",
+     "camera": "960x540@60, exposure 50",
+     "fps60": true,
+     "ready_tilt_deg": 0.48,
+     "tilted_start": false,
+     "track": 0.155,
+     "ended": "end of schedule",
+     "track_held": 0.155,
+     "twist_task_end_deg": 68.7,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-115042_twist_d40_trial002.jsonl"
+    }
+   ],
+   "measured_mean_60": 0.155
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 3,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "predicted_both": 0.686,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 4,
+   "prm": null,
+   "predicted_both": 0.542,
+   "predicted_point": 0.52,
+   "predicted_pads": 0.564,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 4,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "predicted_both": 0.7053,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": 5,
+   "prm": null,
+   "predicted_both": 0.5403,
+   "predicted_point": 0.524,
+   "predicted_pads": 0.556,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": 5,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.6473,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 40,
+   "prm": null,
+   "predicted_both": 0.4775,
+   "predicted_point": 0.471,
+   "predicted_pads": 0.484,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 40,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "predicted_both": 0.6613,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 75,
+   "prm": null,
+   "predicted_both": 0.4285,
+   "predicted_point": 0.444,
+   "predicted_pads": 0.413,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 75,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.6528,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": 109,
+   "prm": null,
+   "predicted_both": 0.398,
+   "predicted_point": 0.397,
+   "predicted_pads": 0.399,
+   "n": 2,
+   "scores": [
+    0.52,
+    0.594
+   ],
+   "measured_mean": 0.557,
+   "scores_partial": [
+    0.52,
+    0.594
+   ],
+   "measured_sd": 0.052,
+   "measured_partial_mean": 0.557,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [
+    {
+     "stamp": "20261120-121727",
+     "label": null,
+     "block": null,
+     "camera": null,
+     "fps60": false,
+     "ready_tilt_deg": null,
+     "tilted_start": false,
+     "track": 0.52,
+     "ended": "end of schedule",
+     "track_held": 0.52,
+     "twist_task_end_deg": 77.32,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-121727_twist_d40_trial000.jsonl"
+    },
+    {
+     "stamp": "20261120-121857",
+     "label": null,
+     "block": null,
+     "camera": null,
+     "fps60": false,
+     "ready_tilt_deg": null,
+     "tilted_start": false,
+     "track": 0.594,
+     "ended": "end of schedule",
+     "track_held": 0.594,
+     "twist_task_end_deg": 63.61,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-121857_twist_d40_trial001.jsonl"
+    }
+   ],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": 109,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.6653,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 144,
+   "prm": null,
+   "predicted_both": 0.3507,
+   "predicted_point": 0.344,
+   "predicted_pads": 0.358,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 144,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "predicted_both": 0.5265,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 179,
+   "prm": null,
+   "predicted_both": 0.028,
+   "predicted_point": 0.032,
+   "predicted_pads": 0.024,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 179,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.2362,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "role": "anchor",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.3755,
+   "predicted_point": 0.39,
+   "predicted_pads": 0.361,
+   "n": 3,
+   "scores": [
+    0.323,
+    0.389,
+    0.388
+   ],
+   "measured_mean": 0.367,
+   "scores_partial": [
+    0.323,
+    0.389,
+    0.388
+   ],
+   "measured_sd": 0.038,
+   "measured_partial_mean": 0.367,
+   "scores_60": [],
+   "blocks": [
+    "A1"
+   ],
+   "trials": [
+    {
+     "stamp": "20261120-111351",
+     "label": "A1_anchor_x70y110g0_t1",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 1.12,
+     "tilted_start": false,
+     "track": 0.323,
+     "ended": "end of schedule",
+     "track_held": 0.323,
+     "twist_task_end_deg": 31.7,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-111351_twist_d40_trial000.jsonl"
+    },
+    {
+     "stamp": "20261120-111602",
+     "label": "A1_anchor_x70y110g0_t2",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 0.59,
+     "tilted_start": false,
+     "track": 0.389,
+     "ended": "end of schedule",
+     "track_held": 0.389,
+     "twist_task_end_deg": 39.43,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-111602_twist_d40_trial001.jsonl"
+    },
+    {
+     "stamp": "20261120-111814",
+     "label": "A1_anchor_x70y110g0_t3",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 0.49,
+     "tilted_start": false,
+     "track": 0.388,
+     "ended": "end of schedule",
+     "track_held": 0.388,
+     "twist_task_end_deg": 42.42,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-111814_twist_d40_trial002.jsonl"
+    }
+   ],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "anchor",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "predicted_both": 0.6303,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "call": 267,
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 15,
+   "prm": null,
+   "predicted_both": 0.5118,
+   "predicted_point": 0.493,
+   "predicted_pads": 0.531,
+   "n": 1,
+   "scores": [
+    0.572
+   ],
+   "measured_mean": 0.572,
+   "scores_partial": [
+    0.572
+   ],
+   "measured_sd": null,
+   "measured_partial_mean": 0.572,
+   "scores_60": [],
+   "blocks": [
+    "A1"
+   ],
+   "trials": [
+    {
+     "stamp": "20261120-091924",
+     "label": "A1_r15_x90y135g3_t1",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 1.2,
+     "tilted_start": false,
+     "track": 0.572,
+     "ended": "end of schedule",
+     "track_held": 0.572,
+     "twist_task_end_deg": 62.73,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-091924_twist_d40_trial000.jsonl"
+    }
+   ],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 216,
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 16,
+   "prm": null,
+   "predicted_both": 0.5103,
+   "predicted_point": 0.509,
+   "predicted_pads": 0.512,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 283,
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 130,
+   "prm": null,
+   "predicted_both": 0.3697,
+   "predicted_point": 0.36,
+   "predicted_pads": 0.38,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 193,
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "k": 5,
+   "rank_among_deployable": 163,
+   "prm": null,
+   "predicted_both": 0.2705,
+   "predicted_point": 0.287,
+   "predicted_pads": 0.254,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x135_y65_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.6128,
+    "w_spin_tripod": 0.7853,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.9365
+   },
+   "predicted_both": 0.6673,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.4579,
+    "w_spin_tripod": 0.4327,
+    "w_roll_tripod": 0.0066,
+    "w_slide_tripod": 0.8454
+   },
+   "predicted_both": 0.647,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.2085,
+    "w_spin_tripod": 0.6646,
+    "w_roll_tripod": 0.0014,
+    "w_slide_tripod": 1.0
+   },
+   "predicted_both": 0.676,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.5485,
+    "w_spin_tripod": 0.2553,
+    "w_roll_tripod": 0.0396,
+    "w_slide_tripod": 0.9067
+   },
+   "predicted_both": 0.6617,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.5034,
+    "w_spin_tripod": 0.3819,
+    "w_roll_tripod": 0.0085,
+    "w_slide_tripod": 0.87
+   },
+   "predicted_both": 0.6545,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.6431,
+    "w_spin_tripod": 0.4369,
+    "w_roll_tripod": 0.0712,
+    "w_slide_tripod": 0.9773
+   },
+   "predicted_both": 0.618,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.407,
+    "w_spin_tripod": 0.2111,
+    "w_roll_tripod": 0.0326,
+    "w_slide_tripod": 0.9975
+   },
+   "predicted_both": 0.6397,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.0712,
+    "w_spin_tripod": 0.4256,
+    "w_roll_tripod": 0.0007,
+    "w_slide_tripod": 1.0
+   },
+   "predicted_both": 0.5755,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.4013,
+    "w_spin_tripod": 0.0,
+    "w_roll_tripod": 0.0973,
+    "w_slide_tripod": 0.8077
+   },
+   "predicted_both": 0.6975,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 2.0274,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.0274
+     ],
+     [
+      3.4,
+      1.9977
+     ],
+     [
+      4.9,
+      1.2704
+     ],
+     [
+      6.4,
+      1.3117
+     ]
+    ],
+    "w_spin_tripod": 0.5346,
+    "w_roll_tripod": 0.6224,
+    "w_slide_tripod": 1.0
+   },
+   "predicted_both": 0.6807,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.7237,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.7237
+     ],
+     [
+      3.4,
+      2.0399
+     ],
+     [
+      4.9,
+      1.9956
+     ],
+     [
+      6.4,
+      1.0182
+     ]
+    ],
+    "w_spin_tripod": 0.3402,
+    "w_roll_tripod": 0.0008,
+    "w_slide_tripod": 0.9135
+   },
+   "predicted_both": 0.6542,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 2.4978,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.4978
+     ],
+     [
+      3.4,
+      2.4148
+     ],
+     [
+      4.9,
+      1.1059
+     ],
+     [
+      6.4,
+      1.5425
+     ]
+    ],
+    "w_spin_tripod": 0.514,
+    "w_roll_tripod": 0.0002,
+    "w_slide_tripod": 0.8611
+   },
+   "predicted_both": 0.6685,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 3.9492,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.9492
+     ],
+     [
+      3.4,
+      1.6598
+     ],
+     [
+      4.9,
+      1.4625
+     ],
+     [
+      6.4,
+      1.2747
+     ]
+    ],
+    "w_spin_tripod": 0.2316,
+    "w_roll_tripod": 0.003,
+    "w_slide_tripod": 0.9737
+   },
+   "predicted_both": 0.6818,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 2.377,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.377
+     ],
+     [
+      3.4,
+      1.4994
+     ],
+     [
+      4.9,
+      1.6149
+     ],
+     [
+      6.4,
+      1.3626
+     ]
+    ],
+    "w_spin_tripod": 0.4498,
+    "w_roll_tripod": 0.1761,
+    "w_slide_tripod": 0.8779
+   },
+   "predicted_both": 0.6482,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.8899,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8899
+     ],
+     [
+      3.4,
+      1.8287
+     ],
+     [
+      4.9,
+      1.4225
+     ],
+     [
+      6.4,
+      1.5432
+     ]
+    ],
+    "w_spin_tripod": 0.8159,
+    "w_roll_tripod": 0.031,
+    "w_slide_tripod": 1.0
+   },
+   "predicted_both": 0.591,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 1.8135,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8135
+     ],
+     [
+      3.4,
+      1.7459
+     ],
+     [
+      4.9,
+      1.0
+     ],
+     [
+      6.4,
+      1.6783
+     ]
+    ],
+    "w_spin_tripod": 0.3827,
+    "w_roll_tripod": 0.0696,
+    "w_slide_tripod": 0.7849
+   },
+   "predicted_both": 0.6363,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 2.2649,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.2649
+     ],
+     [
+      3.4,
+      1.2377
+     ],
+     [
+      4.9,
+      1.1385
+     ],
+     [
+      6.4,
+      1.9105
+     ]
+    ],
+    "w_spin_tripod": 0.2622,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.7583
+   },
+   "predicted_both": 0.5345,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 2.31,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.31
+     ],
+     [
+      3.4,
+      1.2106
+     ],
+     [
+      4.9,
+      1.7674
+     ],
+     [
+      6.4,
+      1.1664
+     ]
+    ],
+    "w_spin_tripod": 0.013,
+    "w_roll_tripod": 0.0143,
+    "w_slide_tripod": 0.7633
+   },
+   "predicted_both": 0.258,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": {
+    "f_tripod": 3.2094,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.2094
+     ],
+     [
+      3.4,
+      3.1605
+     ],
+     [
+      4.9,
+      1.0704
+     ],
+     [
+      6.4,
+      1.418
+     ]
+    ],
+    "w_spin_tripod": 0.0595,
+    "w_roll_tripod": 0.0037,
+    "w_slide_tripod": 0.8505
+   },
+   "predicted_both": 0.6752,
+   "predicted_point": null,
+   "predicted_pads": null,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x100_y110_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 312,
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4965,
+   "predicted_point": 0.503,
+   "predicted_pads": 0.49,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x95_y150_twist_gr_g11_plan.json",
+   "role": "ranked",
+   "call": 295,
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4815,
+   "predicted_point": 0.516,
+   "predicted_pads": 0.447,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x55_y75_twist_gr_g10_plan.json",
+   "role": "ranked",
+   "call": 80,
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "k": 10,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4182,
+   "predicted_point": 0.426,
+   "predicted_pads": 0.41,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x55_y90_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 83,
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4048,
+   "predicted_point": 0.407,
+   "predicted_pads": 0.402,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 335,
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.349,
+   "predicted_point": 0.349,
+   "predicted_pads": 0.349,
+   "n": 1,
+   "scores": [
+    0.529
+   ],
+   "measured_mean": 0.529,
+   "scores_partial": [
+    0.529
+   ],
+   "measured_sd": null,
+   "measured_partial_mean": 0.529,
+   "scores_60": [],
+   "blocks": [
+    "A1"
+   ],
+   "trials": [
+    {
+     "stamp": "20261120-110027",
+     "label": "A1_p35_x105y100g15_t1",
+     "block": "A1",
+     "camera": "1920x1080@30, exposure 166",
+     "fps60": false,
+     "ready_tilt_deg": 0.6,
+     "tilted_start": false,
+     "track": 0.529,
+     "ended": "end of schedule",
+     "track_held": 0.529,
+     "twist_task_end_deg": 75.7,
+     "twist_ref_end_deg": 90.6,
+     "notes": [],
+     "file": "docs/experiments/20261115-hom_bench_trials/runs/20261120-110027_twist_d40_trial000.jsonl"
+    }
+   ],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x100_y80_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 306,
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.3197,
+   "predicted_point": 0.334,
+   "predicted_pads": 0.305,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x115_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 392,
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.3058,
+   "predicted_point": 0.309,
+   "predicted_pads": 0.302,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y160_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 247,
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.2877,
+   "predicted_point": 0.288,
+   "predicted_pads": 0.287,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x80_y155_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 221,
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.2825,
+   "predicted_point": 0.293,
+   "predicted_pads": 0.272,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y170_twist_gr_g2_plan.json",
+   "role": "ranked",
+   "call": 249,
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "k": 2,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.2477,
+   "predicted_point": 0.242,
+   "predicted_pads": 0.254,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x130_y95_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 459,
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.2358,
+   "predicted_point": 0.254,
+   "predicted_pads": 0.218,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x155_y105_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 586,
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.2068,
+   "predicted_point": 0.173,
+   "predicted_pads": 0.24,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x150_y65_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 553,
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.1777,
+   "predicted_point": 0.193,
+   "predicted_pads": 0.163,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y145_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 144,
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.1632,
+   "predicted_point": 0.224,
+   "predicted_pads": 0.103,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x55_y130_twist_gr_g12_plan.json",
+   "role": "ranked",
+   "call": 91,
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "k": 12,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.1407,
+   "predicted_point": 0.142,
+   "predicted_pads": 0.139,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y155_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 171,
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.1357,
+   "predicted_point": 0.144,
+   "predicted_pads": 0.127,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x160_y85_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 607,
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.1163,
+   "predicted_point": 0.122,
+   "predicted_pads": 0.111,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x60_y155_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 121,
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.097,
+   "predicted_point": 0.097,
+   "predicted_pads": 0.097,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y150_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 170,
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.0873,
+   "predicted_point": 0.086,
+   "predicted_pads": 0.089,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y155_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 146,
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.083,
+   "predicted_point": 0.088,
+   "predicted_pads": 0.078,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x55_y155_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 96,
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.0415,
+   "predicted_point": 0.043,
+   "predicted_pads": 0.04,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x155_y60_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 577,
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.0,
+   "predicted_point": 0.0,
+   "predicted_pads": 0.0,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y80_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 356,
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5795,
+   "predicted_point": 0.579,
+   "predicted_pads": 0.58,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x135_y125_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 490,
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.3375,
+   "predicted_point": 0.424,
+   "predicted_pads": 0.251,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x55_y140_twist_gr_g11_plan.json",
+   "role": "ranked",
+   "call": 93,
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.0382,
+   "predicted_point": 0.021,
+   "predicted_pads": 0.055,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y170_twist_gr_g13_plan.json",
+   "role": "ranked",
+   "call": 349,
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "k": 13,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4455,
+   "predicted_point": 0.454,
+   "predicted_pads": 0.437,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y95_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 234,
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4268,
+   "predicted_point": 0.425,
+   "predicted_pads": 0.428,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x95_y165_twist_gr_g13_plan.json",
+   "role": "ranked",
+   "call": 298,
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "k": 13,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4214,
+   "predicted_point": 0.446,
+   "predicted_pads": 0.397,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x65_y120_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 139,
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4249,
+   "predicted_point": 0.432,
+   "predicted_pads": 0.418,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x70_y80_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 156,
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4336,
+   "predicted_point": 0.448,
+   "predicted_pads": 0.419,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x75_y120_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 189,
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4518,
+   "predicted_point": 0.442,
+   "predicted_pads": 0.462,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 342,
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4975,
+   "predicted_point": 0.486,
+   "predicted_pads": 0.509,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x60_y105_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 111,
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.431,
+   "predicted_point": 0.44,
+   "predicted_pads": 0.422,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x80_y115_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 213,
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4602,
+   "predicted_point": 0.443,
+   "predicted_pads": 0.477,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x85_y140_twist_gr_g12_plan.json",
+   "role": "ranked",
+   "call": 243,
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "k": 12,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5012,
+   "predicted_point": 0.504,
+   "predicted_pads": 0.499,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x90_y85_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "call": 257,
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "k": 9,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4415,
+   "predicted_point": 0.432,
+   "predicted_pads": 0.451,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x90_y100_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 260,
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.465,
+   "predicted_point": 0.463,
+   "predicted_pads": 0.467,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x90_y115_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 263,
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5011,
+   "predicted_point": 0.486,
+   "predicted_pads": 0.516,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x95_y130_twist_gr_g4_plan.json",
+   "role": "ranked",
+   "call": 291,
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "k": 4,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4783,
+   "predicted_point": 0.474,
+   "predicted_pads": 0.482,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x95_y140_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 293,
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.503,
+   "predicted_point": 0.496,
+   "predicted_pads": 0.51,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x100_y145_twist_gr_g6_plan.json",
+   "role": "ranked",
+   "call": 319,
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "k": 6,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5135,
+   "predicted_point": 0.549,
+   "predicted_pads": 0.463,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x100_y155_twist_gr_g10_plan.json",
+   "role": "ranked",
+   "call": 321,
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "k": 10,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4877,
+   "predicted_point": 0.491,
+   "predicted_pads": 0.516,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y150_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 345,
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5362,
+   "predicted_point": 0.527,
+   "predicted_pads": 0.545,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x105_y160_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 347,
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.4293,
+   "predicted_point": 0.424,
+   "predicted_pads": 0.434,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  },
+  {
+   "plan": "20261119-rank_x110_y165_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 373,
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "prm": null,
+   "predicted_both": 0.5036,
+   "predicted_point": 0.504,
+   "predicted_pads": 0.503,
+   "n": 0,
+   "scores": [],
+   "measured_mean": null,
+   "scores_partial": [],
+   "measured_sd": null,
+   "measured_partial_mean": null,
+   "scores_60": [],
+   "blocks": [],
+   "trials": [],
+   "measured_mean_60": null
+  }
+ ],
+ "rho_per_plant": {
+  "pads": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.427,
+   "mean_abs_error": 0.17,
+   "mean_measured_minus_predicted": -0.016
+  },
+  "pads_mu0.6": {
+   "layouts": 5,
+   "rho": 0.3,
+   "p_two_sided": 0.623837664781073,
+   "rho_trials_resampled_95": [
+    0.1,
+    0.3
+   ],
+   "pearson_r": 0.266,
+   "mean_abs_error": 0.149,
+   "mean_measured_minus_predicted": -0.017
+  },
+  "pads_stiff": {
+   "layouts": 5,
+   "rho": -0.3,
+   "p_two_sided": 0.623837664781073,
+   "rho_trials_resampled_95": [
+    -0.6,
+    -0.1
+   ],
+   "pearson_r": -0.534,
+   "mean_abs_error": 0.216,
+   "mean_measured_minus_predicted": 0.075
+  },
+  "point": {
+   "layouts": 5,
+   "rho": -0.1,
+   "p_two_sided": 0.8728885715695384,
+   "rho_trials_resampled_95": [
+    -0.3,
+    -0.1
+   ],
+   "pearson_r": -0.595,
+   "mean_abs_error": 0.18,
+   "mean_measured_minus_predicted": -0.013
+  },
+  "point_5v": {
+   "layouts": 5,
+   "rho": 0.4,
+   "p_two_sided": 0.5046315754686912,
+   "rho_trials_resampled_95": [
+    0.2,
+    0.4
+   ],
+   "pearson_r": 0.116,
+   "mean_abs_error": 0.164,
+   "mean_measured_minus_predicted": 0.04
+  },
+  "point_mu0.6": {
+   "layouts": 5,
+   "rho": 0.9,
+   "p_two_sided": 0.03738607346849874,
+   "rho_trials_resampled_95": [
+    0.7,
+    0.9
+   ],
+   "pearson_r": 0.67,
+   "mean_abs_error": 0.115,
+   "mean_measured_minus_predicted": 0.004
+  }
+ },
+ "refined_vs_default": [
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.661,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.5593
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.686,
+   "default_measured_mean": 0.082,
+   "default_predicted_both": 0.5435
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.7053,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.542
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6473,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.5403
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6613,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4775
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6528,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4285
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6653,
+   "default_measured_mean": 0.557,
+   "default_predicted_both": 0.398
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.5265,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.3507
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.2362,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.028
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "anchor",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6303,
+   "default_measured_mean": 0.367,
+   "default_predicted_both": 0.3755
+  },
+  {
+   "plan": "20261119-rank_x135_y65_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6673,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.6023
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.647,
+   "default_measured_mean": 0.082,
+   "default_predicted_both": 0.5435
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.676,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.542
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6617,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.5403
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6545,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4775
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.618,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4285
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6397,
+   "default_measured_mean": 0.557,
+   "default_predicted_both": 0.398
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.5755,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.3507
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6975,
+   "default_measured_mean": 0.367,
+   "default_predicted_both": 0.3755
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6807,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.5593
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6542,
+   "default_measured_mean": 0.082,
+   "default_predicted_both": 0.5435
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6685,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.542
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6818,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.5403
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6482,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4775
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.591,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.4285
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6363,
+   "default_measured_mean": 0.557,
+   "default_predicted_both": 0.398
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.5345,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.3507
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.258,
+   "default_measured_mean": null,
+   "default_predicted_both": 0.028
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "measured_mean": null,
+   "n": 0,
+   "predicted_both": 0.6752,
+   "default_measured_mean": 0.367,
+   "default_predicted_both": 0.3755
+  }
+ ]
+}
