@@ -123,22 +123,24 @@ def fig_landscape(S, prop):
     ys = np.arange(50, 171, 5.0)
     fg, axs = plt.subplots(1, 2, figsize=(11.0, 5.0), sharey=True)
     picks = {tuple(p["xy"]): p for p in prop["pick"]} if prop else {}
+    cm = matplotlib.colormaps["viridis"].copy()
+    cm.set_bad("0.82")                                       # the lattice's layouts without a ground-clear grasp
     for ax, m, name in zip(axs, ("point", "pads"), ("point contact", "sphere pads")):
         Z = np.full((len(ys), len(xs)), np.nan)
         for L in S["per_layout"]:
             if m in L:
                 i, k = int(round((L["xy"][1] - 50) / 5)), int(round((L["xy"][0] - 40) / 5))
                 Z[i, k] = L[m]["score"]
-        im = ax.imshow(Z, origin="lower", extent=(37.5, 162.5, 47.5, 172.5), cmap="viridis", vmin=0,
+        im = ax.imshow(Z, origin="lower", extent=(37.5, 162.5, 47.5, 172.5), cmap=cm, vmin=0,
                        vmax=np.nanmax(Z) if np.isfinite(Z).any() else 1, aspect="equal")
         for (x, y), p in picks.items():
             ax.plot(x, y, "o", mfc="none", mec="w", mew=2.0, ms=11)
             ax.text(x + 3, y + 2, str(p["rank_among_deployable"]), color="w", fontsize=12, weight="bold")
         ax.plot(70, 110, "s", mfc="none", mec=C2, mew=2.0, ms=11)
         ax.set_title(f"Best grasp's tracking, {name}", fontsize=15)
-        ax.set_xlabel("x_sep (mm)", fontsize=14)
+        ax.set_xlabel(r"$x_{\mathrm{sep}}$ (mm)", fontsize=14)
         ax.tick_params(labelsize=13)
-    axs[0].set_ylabel("y_sep (mm)", fontsize=14)
+    axs[0].set_ylabel(r"$y_{\mathrm{sep}}$ (mm)", fontsize=14)
     cb = fg.colorbar(im, ax=axs, shrink=0.85, pad=0.02)
     cb.set_label("tracking, mean of seeds 0-2", fontsize=14)
     cb.ax.tick_params(labelsize=13)
@@ -221,6 +223,28 @@ def fig_forces(FR):
     return png_uri(fg)
 
 
+def fig_trials(TV):
+    import matplotlib.pyplot as plt
+    fg, ax = plt.subplots(figsize=(8.0, 6.0))
+    X = [x for x in TV["plans"] if x["role"] in ("ranked", "anchor") and not x.get("prm") and x["n"]]
+    for x in X:
+        c = C2 if x["role"] == "anchor" else C1
+        ax.plot([x["predicted_both"]] * x["n"], x["scores"], ".", color=c, alpha=0.45, ms=7)
+        ax.errorbar(x["predicted_both"], x["measured_mean"], yerr=x["measured_sd"] or 0, fmt="o", color=c, ms=8,
+                    capsize=3)
+        ax.annotate(f"{x['xy'][0]:g}, {x['xy'][1]:g}", (x["predicted_both"], x["measured_mean"]),
+                    textcoords="offset points", xytext=(6, 4), fontsize=12)
+    R_ = [x for x in TV["plans"] if (x["role"] not in ("ranked", "anchor") or x.get("prm")) and x["n"]]
+    for x in R_:
+        ax.plot(x["predicted_both"], x["measured_mean"], "D", mfc="none", mec=C3, mew=1.6, ms=8)
+    hi = max([0.7] + [x["predicted_both"] or 0 for x in X] + [max(x["scores"]) for x in X])
+    ax.plot([0, hi], [0, hi], "-", color="0.6", lw=1)
+    ax.set_xlabel("predicted tracking (both models, seeds 0-2)", fontsize=14)
+    ax.set_ylabel("tracking on the hand", fontsize=14)
+    ax.tick_params(labelsize=13)
+    return png_uri(fg)
+
+
 # ------------------------------------------------------------------ page
 def page():
     sys.path.insert(0, str(ROOT / "scripts/docs"))
@@ -251,20 +275,62 @@ def page():
     picks = prop["pick"] if prop else []
     n_plans = len(TP["plans"]) if TP else 0
     names = {"point": "point contact", "pads": "the sphere pads"}
-    best_s = " and ".join(f"{xy_s(top[m]['xy'])} under {names[m]} (tracking {top[m]['score']:.2f})" for m in top)
-    lede = (f"On the calibrated simulation of the SR2 hand, the sphere twist's best layout is {best_s}, out of "
-            f"{S['layouts']} layouts with ground-clear grasps. "
-            f"The two contact models rank the layouts with Spearman's ρ {f(r_('point vs pads (seeds 0-2)'))}. ")
-    if wc:
-        d = np.mean([wc[m]["change_mean"] for m in wc])
-        lede += f"At fresh seeds the {wc[next(iter(wc))]['layouts']} best layouts per model changed by {d:+.3f}. "
-    if g_pads:
-        lede += (f"Started from the hand's own state in 0.5 s windows, the simulated plant turned the sphere "
-                 f"{g_pads['twist_hand_mean'] + g_pads['twist_err_mean']:.1f}° per window against the hand's "
-                 f"{g_pads['twist_hand_mean']:.1f}°. ")
+    plant_rho = [r_(f"{p} vs mean of point and pads (stage D layouts)") for p in PLANT_NAMES]
+    plant_rho = [x for x in plant_rho if x is not None]
+    spread = S.get("stage_d_spread") or {}
+    # figure and table numbers in the order they appear; the optional sections take theirs only when present
+    FILM = D / "media/20261119-simulated_twist_three_layouts.mp4"
+    has_film = FILM.exists() and bool(picks)
+    FR_ok = bool(FR and FR.get("layouts"))
+    CEM = j(DATA / "20261119-cem_refine.json")
+    CEM_ok = bool(CEM and CEM.get("picks"))
+    nf = iter(range(1, 20))
+    F_LAND = next(nf)
+    F_FILM = next(nf) if has_film else None
+    F_AGREE = next(nf)
+    F_FORCE = next(nf) if FR_ok else None
+    F_GAP = next(nf) if G else None
+    TV = j(DATA / "20261120-trials_vs_prediction.json")
+    TV_ok = bool(TV and TV.get("trials_scored"))
+    F_TRIALS = next(nf) if TV_ok else None
+    nt = iter(range(1, 20))
+    T_SIM, T_TOP, T_RHO, T_FRESH = next(nt), next(nt), next(nt), next(nt)
+    T_FORCE = next(nt) if FR_ok else None
+    T_CEM = next(nt) if CEM_ok else None
+    T_GAP = next(nt) if G else None
+    T_PLANS = next(nt) if TP else None
+    T_TRIALS = next(nt) if TV_ok else None
+    PLANS_REF = '<a href="#plans">the section on the layouts and plans for the hand</a>'
+    lede = ""
+    if TV_ok:
+        rb = TV["rho"]["both models"]
+        nl = rb.get("layouts")
+        ci = rb.get("rho_trials_resampled_95")
+        lede += (f"On the hand, {TV['trials_scored']} twist trials of the proposed plans were scored against the "
+                 f"simulation's predictions, written before the trials. Over the {nl} layouts with default forces, "
+                 f"Spearman's ρ between the predicted and the measured tracking is {f(rb.get('rho'))}"
+                 + (f" (95 % interval over resampled trials {ci[0]:.2f} to {ci[1]:.2f})" if ci else "") + ". ")
     if picks:
-        lede += (f"{len(picks)} of the {n_dep} deployable layouts and the layout of the 11-17 trials have bench plans "
-                 f"({n_plans} plans), with the predictions written before any trial.")
+        p0 = picks[0]
+        lede += (f"The best deployable layout for the sphere twist on the calibrated SR2 simulation is "
+                 f"{xy_s(p0['xy'])} with grasp {p0['k']}. Its predicted tracking is {p0['score']:.2f}, and {n_dep} of "
+                 f"{prop['of']} layouts are deployable on the hand. ")
+    lede += (f"Over all {S['layouts']} layouts with ground-clear grasps, the orders under the two contact models agree "
+             f"at Spearman's ρ {f(r_('point vs pads (seeds 0-2)'))}. ")
+    if plant_rho and spread:
+        lede += (f"The {spread['layouts']} best layouts differ little (standard deviation {spread['sd']:.3f}). Among "
+                 f"them the two contact models agree at ρ {f(r_('point vs pads (stage D layouts)'))}, and four other "
+                 f"plants at {min(plant_rho):.2f} to {max(plant_rho):.2f}. ")
+    if g_pads:
+        lede += (f"Started from the hand's state in 0.5 s windows, the simulated hand turned the sphere "
+                 f"{g_pads['twist_hand_mean'] + g_pads['twist_err_mean']:.1f}° per window; the real hand turned it "
+                 f"{g_pads['twist_hand_mean']:.1f}°. ")
+    if picks and n_plans:
+        lede += (f"The {n_plans} bench plans cover {len(picks)} deployable layouts over the predicted range and the "
+                 f"layout of the 11-17 trials; their predictions were written before any trial.")
+    elif picks:
+        lede += (f"{len(picks)} deployable layouts over the predicted range and the layout of the 11-17 trials are "
+                 f"proposed for the hand.")
     m0 = next(iter(top))
     summary = (f"Sphere twist ranked over {S['layouts']} layouts on the calibrated SR2 simulation: best "
                f"{xy_s(top[m0]['xy'])} ({m0}, tracking {top[m0]['score']:.2f}); point vs pads ρ "
@@ -275,25 +341,27 @@ def page():
 <dl class="terms">
 <dt>Layout</dt><dd>The places of the three fingers' mounts on the palm, as a symmetric tripod: the thumb on the palm's
 \(x_P\) axis, the index and middle mirrored about it (sr2_layouts.sym6). \(x_{\mathrm{sep}}\) is the distance along
-\(x_P\) from the thumb's mount to the line through the index's and the middle's (mm), \(y_{\mathrm{sep}}\) the distance
-between the index's and the middle's mounts (mm). The lattice runs over 40-160 mm and 50-170 mm in 5 mm steps, 625
-layouts (the pose toy's grid2d).</dd>
-<dt>Ground-clear grasp</dt><dd>One of up to 16 tripod grasps per layout from the pose toy (rows grid2dgr): pad contact
-points on the 40 mm sphere whose fingers stay clear of a ground at the sphere's lowest point. 482 layouts have them; the
-other 143 have none. A grasp is named by its index k.</dd>
-<dt>Tracking</dt><dd>The twist's score on the hand and in simulation (sr2hand.control.trial_score): one less the RMS
-angle between the sphere's orientation and the commanded one over the RMS commanded rotation, over the task window
-(2.0 s to the end), at least 0; 0 when the sphere dropped:
+\(x_P\) from the thumb's mount to the line through the index's and the middle's mounts (mm). \(y_{\mathrm{sep}}\) is the
+distance between the index's and the middle's mounts (mm). The lattice of the pose toy (grid2d) runs over 40-160 mm and
+50-170 mm in 5 mm steps, 625 layouts.</dd>
+<dt>Ground-clear grasp</dt><dd>One of up to 16 tripod grasps per layout from the pose toy (rows grid2dgr). Its contacts
+lie on the 40 mm sphere, and its fingers stay clear of a ground plane at the sphere's lowest point. 482 layouts have such
+grasps; the other 143 have none. A grasp is named by its index k.</dd>
+<dt>Tracking</dt><dd>The twist's score on the hand and in simulation (sr2hand.control.trial_score), over the task window
+from 2.0 s to the end. The RMS angle between the sphere's orientation and the commanded one is divided by the RMS of the
+commanded rotation, and the ratio is subtracted from 1:
 \[ s = \max\!\left(0,\; 1 - \frac{\mathrm{RMS}_t\,\angle(R_t,\, R^{\mathrm{ref}}_t)}{\mathrm{RMS}_t\,\angle(R_0,\, R^{\mathrm{ref}}_t)}\right) \]
-1 means the commanded rotation was followed, 0 no better than holding the sphere still.</dd>
-<dt>Layout score</dt><dd>The tracking of the layout's best grasp, the mean over seeds 0, 1 and 2, among the grasps run
-at all three seeds. A seed sets the sphere's placement: seed 0 places it as planned, any other seed shifts it by up to 1
-mm in \(x\) and \(y\) and turns it by up to 2° about \(z\) (hom_tasks.Plant.reset).</dd>
-<dt>Fresh seeds</dt><dd>Seeds 10, 11 and 12, never used to choose a grasp or a layout; the change from seeds 0-2 to
-them is the selection's optimism.</dd>
+The score is 0 when the sphere dropped. A score of 1 means the commanded rotation was followed, and 0 no better than
+holding the sphere still.</dd>
+<dt>Layout score</dt><dd>The tracking of the layout's best grasp, as the mean over seeds 0, 1 and 2, among the grasps run
+at all three seeds. A seed sets the sphere's placement (hom_tasks.Plant.reset). Seed 0 places it as planned; any other
+seed shifts it by up to 1 mm in \(x\) and \(y\) and turns it by up to 2° about \(z\).</dd>
+<dt>Fresh seeds</dt><dd>Seeds 10, 11 and 12, which were never used to choose a grasp or a layout. The change in score
+from seeds 0-2 to them is the selection's optimism.</dd>
 <dt>Spearman's ρ</dt><dd>The correlation of the ranks of the same layouts under two scores (1: same order).</dd>
-<dt>Window gap</dt><dd>The plant's error over 0.5 s windows of a recorded trial, each started from the hand's measured
-joints and tracked sphere: the simulated twist about \(z_P\) over the window less the tracked one (°).</dd>
+<dt>Window gap</dt><dd>The plant's error over 0.5 s windows of a recorded trial. Each window starts from the hand's
+measured joints and tracked sphere. The gap is the simulated twist about \(z_P\) over the window less the tracked one
+(°).</dd>
 </dl>"""))
 
     tbl1 = table(["Part", "Setting"], [
@@ -305,79 +373,147 @@ joints and tracked sphere: the simulated twist about \(z_P\) over the window les
         ["contact", "soft tangential contact (impratio 1), friction 1.0, point contact or the sphere pads"],
         ["controller", "HOM as the bench server runs it: forces converted at 0.55 N m/rad under the torque budget 0.56 "
                        "N m, from the layout's own open pose (pads 8 mm off the sphere), contacts not given to HOM"],
-    ], caption="The simulation of the ranking (sim/20261117-g13_open_pose_replan.py's closed-loop run, unchanged).", n=1)
+    ], caption="The simulation of the ranking (sim/20261117-g13_open_pose_replan.py's closed-loop run, unchanged).", n=T_SIM)
     sec.append(("sim", "Simulation and runs", f"""
-<p>The ranking uses the simulation whose blind predictions came nearest the hand on 2026-11-17. For the 20 twists of
-grasp 0 at (70, 110) it predicted tracking 0.437 with point contact, against the hand's mean of 0.447 over the night's
-tips-off trials, and 0.406 with the pads (identification queue, "W3, A/B"). Its parts are in Table 1.</p>
+<p>The ranking was run on the simulation whose blind predictions came nearest the hand on 2026-11-17. For the 20
+twists of grasp 0 at (70, 110), it predicted a tracking of 0.437 with point contact and 0.406 with the pads. The hand's
+mean over that night's tips-off trials was 0.447 (identification queue, "W3, A/B"). Its parts are in Table
+{T_SIM}.</p>
 {tbl1}
-<p>Stage A ran every grasp of every layout at seed 0 under both contact models ({S['runs']['A']} runs). Stage B ran each
-layout's three best grasps at seeds 1 and 2 ({S['runs']['B']} runs). Stage C ran the 60 best layouts' two best grasps at
-the fresh seeds ({S['runs']['C']} runs), and stage D the 150 best layouts' two best grasps on four other plants
-({S['runs']['D']} runs). Of these, {sum(S['runs']['errors'].values())} runs ended in an error of HOM's least squares (the
-SVD did not converge) and score 0.</p>"""))
+<p>In stage A, every grasp of every layout was run at seed 0 under both contact models ({S['runs']['A']} runs). Stage B
+added each layout's three best grasps at seeds 1 and 2 ({S['runs']['B']} runs). In stage C, the two best grasps of the
+60 best layouts were run at the fresh seeds ({S['runs']['C']} runs). Stage D ran the two best grasps of the 150 best
+layouts on four other plants ({S['runs']['D']} runs). Of all these runs, {sum(S['runs']['errors'].values())} ended in an
+error of HOM's least squares (the SVD did not converge) and scored 0.</p>"""))
 
     t2 = []
     for m in ("point", "pads"):
         for i, r in enumerate(S["top10"].get(m, [])):
             t2.append([m if i == 0 else "", str(i + 1), xy_s(r["xy"]), str(r["k"]), f(r["score"], 3), f(r["fresh"], 3)])
-    FILM = D / "media/20261119-simulated_twist_three_layouts.mp4"
-    film_html = ""
-    if FILM.exists() and picks:
-        film_html = film(0, "media/" + FILM.name, "The simulated twist (pads, seed 0) at the best, a middle and the "
+    film_html, film_p = "", ""
+    if has_film:
+        film_p = (f" Figure {F_FILM} shows the simulated twist at three of the proposed layouts: the best, a middle one "
+                  f"and the lowest ranked.")
+        film_html = film(F_FILM, "media/" + FILM.name, "The simulated twist (pads, seed 0) at the best, a middle and the "
                          "lowest-ranked of the proposed layouts, from the ranking's run with the frames drawn "
                          "(sim/20261119-twist_ranking_film.py). The red and blue segments are the sphere's body axes; "
                          "they turn with the twist.")
+    excl = (prop or {}).get("excluded") or {}
+    cands = S.get("candidates") or []
+    excl_p = ""
+    if excl and cands:
+        b = cands[0]
+        ex = {k.split()[0]: v for k, v in excl.items()}           # "do", "sphere", "index-middle"
+        why = []
+        if not b["fits"]:
+            why.append("its mounts do not fit the gantries' travel boxes")
+        if not b["held_all"]:
+            why.append("the sphere dropped or HOM failed in one of its runs")
+        if (b["im_gap_min_mm"] or 0) < 15:
+            g = b["im_gap_min_mm"] or 0
+            why.append(f"its index and middle touched in one of its {b['runs']} runs" if g <= 0.05 else
+                       f"its index and middle came within {g:.1f} mm of each other in one of its {b['runs']} runs")
+        if why:
+            excl_p = (f" The best layout over both models, {xy_s(b['xy'])} with grasp {b['k']} at {b['score']:.2f}, is "
+                      f"not deployable: {' and '.join(why)}. Of the {prop['of']} layouts whose best grasp ran under both "
+                      f"models, {ex.get('do', 0)} do not fit the travel boxes. At {ex.get('sphere', 0)}, the sphere "
+                      f"dropped or HOM failed in one of the best grasp's runs. At {ex.get('index-middle', 0)}, the index "
+                      f"and middle came within 15 mm; a layout can fail more than one test ({PLANS_REF}).")
     sec.append(("landscape", "The twist landscape", f"""
-<p>Figure 1 shows each layout's score under both contact models; Table 2 lists the ten best.</p>{film_html}
-{fig(1, fig_landscape(S, prop), "Layout score over the lattice, under point contact (left) and the sphere pads "
+<p>Figure {F_LAND} shows each layout's score under both contact models; Table {T_TOP} lists the ten best.{excl_p}
+{film_p}</p>
+{fig(F_LAND, fig_landscape(S, prop), "Layout score over the lattice, under point contact (left) and the sphere pads "
      "(right); grey: no ground-clear grasp. White circles: the layouts proposed for the hand, numbered by rank "
-     "among the deployable layouts (Section 7); orange square: (70, 110), run on the hand on 2026-11-17.")}
+     "among the deployable layouts; orange square: (70, 110), run on the hand on 2026-11-17.")}
 {table(["Model", "Rank", "Layout (mm)", "Grasp k", "Tracking, seeds 0-2", "Tracking, seeds 10-12"], t2,
-       num=(1, 3, 4, 5), caption="The ten best layouts per contact model.", n=2)}"""))
+       num=(1, 3, 4, 5), caption="The ten best layouts per contact model.", n=T_TOP)}{film_html}"""))
 
-    t3 = [[esc(k), f(v["rho"], 3) if isinstance(v, dict) else esc(v), str(v["n"]) if isinstance(v, dict) else ""]
+    def rho_label(k):
+        for p, nm in PLANT_NAMES.items():
+            if k.startswith(p + " vs"):
+                return f"{nm[0].upper() + nm[1:]} vs the mean of point contact and the pads ({spread.get('layouts', 150)} best)"
+        return {"point vs pads (seeds 0-2)": "Point contact vs the pads",
+                "point vs pads (stage D layouts)": f"Point contact vs the pads ({spread.get('layouts', 150)} best)",
+                "point: seed 0 vs seeds 0-2": "Point contact: seed 0 vs seeds 0-2",
+                "pads: seed 0 vs seeds 0-2": "Pads: seed 0 vs seeds 0-2",
+                "point vs grid sv25r": "Point contact vs the GPU grid sv25r",
+                "pads vs grid sv25r": "Pads vs the GPU grid sv25r"}.get(k, k)
+    t3 = [[esc(rho_label(k)), f(v["rho"], 3) if isinstance(v, dict) else esc(v), str(v["n"]) if isinstance(v, dict) else ""]
           for k, v in rho.items()]
     wc_rows = [[m, str(v["layouts"]), f(v["seeds012_mean"], 3), f(v["seeds101112_mean"], 3), f(v["change_mean"], 3),
                 f(v["rho_seeds012_vs_fresh"], 3)] for m, v in wc.items()]
+    agree_p = (f"Over all {rn('point vs pads (seeds 0-2)')} layouts, the orders under point contact and under the pads "
+               f"agree at ρ {f(r_('point vs pads (seeds 0-2)'))}. The order at seed 0 agrees with that at seeds 0-2 at "
+               f"ρ {f(r_('point: seed 0 vs seeds 0-2'))} under point contact. ")
+    if plant_rho and spread:
+        agree_p += (f"The {spread['layouts']} best layouts lie close together: their mean over both models is "
+                    f"{spread['mean']:.3f}, with a standard deviation of {spread['sd']:.3f}. Among them, the orders under "
+                    f"the two models agree at ρ {f(r_('point vs pads (stage D layouts)'))}. Each of stage D's four plants "
+                    f"changes one part: the pads at impratio 100, friction 0.6 under either contact model, or the servos "
+                    f"at 5 V. Their orders agree with the mean of the two models at ρ {min(plant_rho):.2f} to "
+                    f"{max(plant_rho):.2f}. ")
+    if "point" in wc and "pads" in wc:
+        agree_p += (f"At the fresh seeds, the 60 best layouts scored {-wc['point']['change_mean']:.3f} less under point "
+                    f"contact and {-wc['pads']['change_mean']:.3f} less under the pads, on average (Table {T_FRESH}). "
+                    f"The standard deviations of these changes were {wc['point']['change_sd']:.3f} and "
+                    f"{wc['pads']['change_sd']:.3f}. ")
+    agree_p += (f"The ranking differs from the GPU landscape of the servo plant (ρ {f(r_('point vs grid sv25r'))} "
+                f"and {f(r_('pads vs grid sv25r'))}). That grid (rows grid2dff_v4b_sv25r) differs from this simulation in "
+                f"five ways at once. Its sphere is a bare ball without stem or table, and its 5 V servos of 0.72 N m/rad "
+                f"have gears that the load can backdrive. HOM converts its forces at 0.72, the contacts run at impratio "
+                f"100, and the 16 grasps come from the film grid in place of the ground-clear set.")
     sec.append(("agreement", "Agreement of the ranking", f"""
-<p>The contact models, the number of seeds and the plant each change the scores; Table 3 gives how far each changes the
-order, Figure 2 the first two, and Table 4 the change at fresh seeds. The GPU grid of the landscapes (rows
-grid2dff_v4b_sv25r) differs from this simulation in several ways at once: the bare ball without stem or table, the 5 V
-servo of 0.72 N m/rad with gears the load can backdrive, HOM converting at 0.72, impratio 100, and the 16 film-grid
-grasps in place of the ground-clear ones.</p>
-{fig(2, fig_agreement(S), "Left: each layout's score under point contact against the sphere pads. Right: the best "
-     "layouts' scores at the fresh seeds against seeds 0-2; points under the grey line lost at the fresh seeds.")}
+<p>The rank agreement of the layout scores between contact models, numbers of seeds and plants is in Table {T_RHO}, and
+the first two are plotted in Figure {F_AGREE}. {agree_p}</p>
+{fig(F_AGREE, fig_agreement(S), "Left: each layout's score under point contact against the sphere pads. Right: the "
+     "best layouts' scores at the fresh seeds against seeds 0-2; points under the grey line lost at the fresh seeds.")}
 {table(["Comparison", "Spearman's ρ", "Layouts"], t3, num=(1, 2), caption="Rank agreement of layout scores. Stage D's "
-       "plants are compared with the mean of the point and pads scores over its 150 layouts.", n=3)}
+       "plants are compared with the mean of the point and pads scores over its layouts, the best by that mean.",
+       n=T_RHO)}
 {table(["Model", "Layouts", "Seeds 0-2", "Seeds 10-12", "Change", "ρ"], wc_rows, num=(1, 2, 3, 4, 5),
-       caption="Mean tracking of the best layouts' chosen grasps at the selection's seeds and at fresh seeds.", n=4)}"""))
+       caption="Mean tracking of the best layouts' chosen grasps at the selection's seeds and at fresh seeds.",
+       n=T_FRESH)}"""))
 
     sr = S.get("search") or {}
     if sr:
         e, rr = sr["ea"]["runs_to_within_0.05"], sr["random"]["runs_to_within_0.05"]
         sec.append(("search", "Search by evolution and by sampling", f"""
 <p>Yang et al.'s elitist evolutionary search (hom_landscape.ea_search, population 64) and uniform sampling were replayed
-on stage A's point-contact scores, a layout costing its 16 grasps. The full grid cost {sr['ea']['grid_runs']} runs. The
-search found a layout within 0.05 of the grid's best in {e['found']} of {e['of']} runs, after a median of
-{e['median']:.0f} runs (quartiles {e['q25']:.0f} and {e['q75']:.0f}). Uniform sampling found one in {rr['found']} of
-{rr['of']}, after a median of {rr['median']:.0f} (quartiles {rr['q25']:.0f} and {rr['q75']:.0f}).</p>"""))
+{e['of']} times each on stage A's point-contact scores, at a cost of 16 runs per layout. The full grid cost
+{sr['ea']['grid_runs']} runs. A layout within 0.05 of the grid's best was reached by the evolutionary search in
+{e['found']} of {e['of']} replays, after a median of {e['median']:.0f} runs (quartiles {e['q25']:.0f} and
+{e['q75']:.0f}). With uniform sampling, one was reached in {rr['found']} of {rr['of']} replays, after a median of
+{rr['median']:.0f} runs (quartiles {rr['q25']:.0f} and {rr['q75']:.0f}).</p>"""))
 
     if FR and FR.get("layouts"):
         t5 = [[xy_s(L["xy"]), str(L["k"]), f"{L['best_prm']['f_tripod']:g}", f"{L['best_prm']['w_spin_tripod']:g}",
                f(L["default_seeds012"], 3), f(L["best_seeds012"], 3), f(L["best_seeds101112"], 3),
                f(L.get("default_mu06"), 3), f(L.get("best_mu06"), 3)] for L in FR["layouts"]]
+        FL = FR["layouts"]
+
+        def mean_of(key):
+            v = [L.get(key) for L in FL if L.get(key) is not None]
+            return float(np.mean(v)) if v else float("nan")
+        n_better = sum(1 for L in FL if L.get("best_seeds101112") is not None and L.get("default_seeds012") is not None
+                       and L["best_seeds101112"] >= L["default_seeds012"] + 0.05
+                       and (L.get("best_mu06") or 0) >= (L.get("default_mu06") or 0))
+        forces_res = (f" Over the {len(FL)} layouts, the chosen forces raised the mean tracking from "
+                      f"{mean_of('default_seeds012'):.3f} to {mean_of('best_seeds012'):.3f} at seeds 0-2. At the fresh "
+                      f"seeds the chosen forces scored {mean_of('best_seeds101112'):.3f}. At friction 0.6, the default "
+                      f"scored {mean_of('default_mu06'):.3f} and the chosen forces {mean_of('best_mu06'):.3f}. At "
+                      f"{n_better} layouts the chosen forces gained at least 0.05 at the fresh seeds and lost nothing at "
+                      f"friction 0.6; these have a second plan.")
         sec.append(("forces", "HOM's forces per layout", f"""
-<p>On the hand the twist stalls where the index and middle yaws and the thumb MCP reach the torque budget's cap; the
-grip's normal forces leave the yaws too little torque. HOM's tripod force f_tripod (default 2.5 N) and the weight of
-the spin rows in its Eq. (2), w_spin (default 1.0), set that balance. Each proposed layout's grasp ran on a grid of
-the two at seeds 0-2 under both models; the best setting then ran at the fresh seeds, and with the default at friction
-0.6 (Table 5, Figure 3).</p>
-{fig(3, fig_forces(FR), "Tracking against HOM's tripod force per proposed layout, at the spin weight chosen for it; "
+<p>On the hand, the twist stalls when the index and middle yaws and the thumb MCP reach the torque budget's cap. The
+grip's normal forces then leave the yaws too little torque to turn the sphere. That balance is set by HOM's tripod force
+f_tripod (default 2.5 N) and by the weight w_spin of the spin rows in HOM's least squares (default 1.0). Each proposed
+layout's grasp was run on a grid of the two, at seeds 0-2 under both models. The best setting was then run at the fresh
+seeds, and with the default at friction 0.6 (Table {T_FORCE}, Figure {F_FORCE}).{forces_res}</p>
+{fig(F_FORCE, fig_forces(FR), "Tracking against HOM's tripod force per proposed layout, at the spin weight chosen for it; "
      "dashed: the default 2.5 N.")}
 {table(["Layout (mm)", "Grasp k", "f_tripod (N)", "w_spin", "Default, seeds 0-2", "Chosen, seeds 0-2",
         "Chosen, seeds 10-12", "Default, μ 0.6", "Chosen, μ 0.6"], t5, num=(1, 2, 3, 4, 5, 6, 7, 8),
-       caption="HOM's forces chosen per layout. μ 0.6: point contact at friction 0.6, seeds 0-2.", n=5)}"""))
+       caption="HOM's forces chosen per layout. μ 0.6: point contact at friction 0.6, seeds 0-2.", n=T_FORCE)}"""))
 
     CEM = j(DATA / "20261119-cem_refine.json")
     if CEM and CEM.get("picks"):
@@ -385,30 +521,46 @@ the two at seeds 0-2 under both models; the best setting then ran at the fresh s
                f(c["best_seeds101112"], 3), f(c["best_mu06"], 3), f(c["lat_start_deg"], 1), f(c["lat_deg"], 1),
                esc(", ".join(f"{k2[1]:.2g}" for k2 in c["prm"]["f_tripod_knots"]) if c["prm"].get("f_tripod_knots")
                    else f"{c['prm'].get('f_tripod', 2.5):.3g}")] for c in CEM["picks"]]
+        CP = CEM["picks"]
+        ok_c = [c for c in CP if c.get("best_seeds101112") is not None and c.get("start_seeds012") is not None
+                and c["best_seeds101112"] >= c["start_seeds012"] + 0.05
+                and (c.get("best_mu06") or 0) >= c["best_seeds101112"] - 0.05]
+        cem_res = ""
+        for lev in sorted({c["level"] for c in CP}):
+            cc = [c for c in CP if c["level"] == lev and c.get("best_seeds101112") is not None]
+            if cc:
+                cem_res += (f" At level {lev}, the {len(cc)} picks scored {np.mean([c['best_seeds101112'] for c in cc]):.3f} "
+                            f"on average at the fresh seeds; their starts scored "
+                            f"{np.mean([c['start_seeds012'] for c in cc]):.3f} at seeds 0-2.")
+        cem_res += (f" {len(ok_c)} of the {len(CP)} picks gained at least 0.05 at the fresh seeds and lost at most 0.05 "
+                    f"at friction 0.6; these have a plan.")
         sec.append(("cem", "Grasp and HOM refined together", f"""
-<p>The cross-entropy method of the refinement study of 2026-11-03 (level full: the grasp's variables, the tripod's force
-and Eq. (2)'s spin, roll and slide weights together) ran on this simulation for each proposed layout, with the grasps
-held to the ground-clear constraints, so the contacts stay near the equator. A second level replaced the constant force
-by a schedule: the force at 1.6, 3.4, 4.9 and 6.4 s, interpolated linearly between them (hom_tasks.force_at), after
-Sunyu's suggestion of impedance force targets that change over the task. {CEM['pop']} candidates per iteration,
-{CEM['iters']} iterations, each scored by its mean tracking over seeds 0-2 under both contact models
-(sim/20261119-twist_cem_refine.py). Table 8 gives the start (the layout's grasp with HOM's defaults), the pick at the
-search's seeds and at fresh seeds, and the pick at friction 0.6.</p>
+<p>The cross-entropy method (CEM) of the refinement study of 2026-11-03 was run on this simulation for each proposed
+layout (sim/20261119-twist_cem_refine.py). Its level full searches the grasp's variables, the tripod's force and the
+spin, roll and slide weights of HOM's least squares together. The grasps are held to the ground-clear constraints, so
+the contacts stay near the equator. A second level, knots, replaces the constant force by a schedule, after Sunyu's
+suggestion of impedance force targets that change over the task. The force is set at 1.6, 3.4, 4.9 and 6.4 s and
+interpolated linearly between them (hom_tasks.force_at). Each of {CEM['iters']} iterations draws {CEM['pop']}
+candidates, each scored by its mean tracking over seeds 0-2 under both contact models. Table {T_CEM} gives the start
+(the layout's grasp with HOM's defaults), the pick at the search's seeds and at the fresh seeds, and the pick at
+friction 0.6.{cem_res}</p>
 {table(["Level", "Layout (mm)", "From grasp k", "Start", "Pick, seeds 0-2", "Pick, seeds 10-12", "Pick, μ 0.6",
         "Latitude, start (°)", "Latitude, pick (°)", "Force (N)"], t8, num=tuple(range(2, 10)),
        caption="CEM picks per layout. Tracking means over both contact models; μ 0.6: point contact at friction 0.6, "
                "seeds 0-2. Latitude: the contacts' angle below the sphere's equator (v[6]). Force: f_tripod, or its "
-               "four knots.", n=8)}"""))
+               "four knots.", n=T_CEM)}"""))
 
     if G:
         slip = [w for w in G["windows"] if w[0] == "pads" and w[3] == "task" and w[4] > 15.0]
         n_slip = len(slip)
         slip_sim = float(np.mean([w[5] for w in slip])) if slip else float("nan")
-        big = [w for w in G["windows"] if w[0] == "pads" and w[4] > 25.0]
+        big = [w for w in G["windows"] if w[0] == "pads" and w[3] == "task" and w[4] > 25.0]
+        nan2 = (float("nan"), float("nan"))
         big_trials = len({w[1] for w in big})
-        big_t = (min(w[2] for w in big), max(w[2] + 0.5 for w in big)) if big else (float("nan"), float("nan"))
-        big_hand = (min(w[4] for w in big), max(w[4] for w in big)) if big else (float("nan"), float("nan"))
-        big_sim = (min(w[5] for w in big), max(w[5] for w in big)) if big else (float("nan"), float("nan"))
+        big_t = (min(w[2] for w in big), max(w[2] for w in big)) if big else nan2
+        big_hand = (min(w[4] for w in big), max(w[4] for w in big)) if big else nan2
+        big_sim = (min(w[5] for w in big), max(w[5] for w in big)) if big else nan2
+        big_sim_med = float(np.median([w[5] for w in big])) if big else float("nan")
         t6 = []
         for k, v in sorted(gsum.items(), key=lambda kv: (kv[1].get("task") or {}).get("twist_err_rms") or 99):
             t, g = v.get("task") or {}, v.get("grasp") or {}
@@ -418,27 +570,30 @@ search's seeds and at fresh seeds, and the pick at friction 0.6.</p>
                        f(t["pos_err_rms"]), f(t["joint_rms_mean"]), f(g.get("rot_err_rms")), f(t["settle_mm_median"])])
         sec.append(("gap", "Short-window gap against the hand's twists", f"""
 <p>A full open-loop replay accumulates its error, so each of the 20 g0 twists of 2026-11-17 was cut into 0.5 s windows
-every 0.25 s. Each window starts the plant from the hand's measured joints and tracked sphere, holds the targets in
-force for 40 ms, and replays the hand's targets (sim/20261119-segment_gap.py). Table 6 compares 24 plants. In the task
-windows the hand turned the sphere {g_pads.get('twist_hand_mean', float('nan')):.1f}° per window on average and the
-pads plant {g_pads.get('twist_hand_mean', 0) + g_pads.get('twist_err_mean', 0):.1f}°. The twist error's RMS is
-{g_pads.get('twist_err_rms', float('nan')):.1f}° with the pads and within 1° of that for every plant at friction 1.0
-(Figure 4). In the {n_slip} windows where the hand turned the sphere more than 15°, the pads plant turned it
-{slip_sim:.1f}° on average. The largest come at one point of the schedule: in {big_trials} of the 20 trials a window
-between {big_t[0]:.1f} and {big_t[1]:.1f} s, midway through the twist's ramp (3.4-6.2 s), turned the sphere by
-{big_hand[0]:.0f}-{big_hand[1]:.0f}° on the hand and by {big_sim[0]:.0f} to {big_sim[1]:.0f}° in simulation. The sphere
-held while the commanded rotation built up and then slipped at once, as the films of 2026-11-18 show at 5.0-5.3 s. Starting a window moved the tracked sphere by a median of
-{g_pads.get('settle_mm_median', float('nan')):.1f} mm before it began: the tracked sphere and the model's fingertips
-disagree by that much. The pads with noslip are left out of Figure 4: from these starts most of their windows threw the sphere
+every 0.25 s (sim/20261119-segment_gap.py). Each window starts the plant from the hand's measured joints and tracked
+sphere. The first targets are held for 40 ms, and then the hand's targets are replayed. Table {T_GAP} compares
+{len(t6)} plants. In the task windows, the hand turned the sphere {g_pads.get('twist_hand_mean', float('nan')):.1f}° per
+window on average, and the simulated hand with the pads
+{g_pads.get('twist_hand_mean', 0) + g_pads.get('twist_err_mean', 0):.1f}°. The RMS of the twist error is
+{g_pads.get('twist_err_rms', float('nan')):.1f}° with the pads, and within 1° of that for every plant at friction 1.0
+(Figure {F_GAP}). In the {n_slip} windows where the hand turned the sphere more than 15°, the simulated hand turned it
+{slip_sim:.1f}° on average.</p>
+<p>The largest windows come midway through the twist's ramp (3.4-6.2 s). In {big_trials} of the 20 trials, a window
+starting between {big_t[0]:.2f} and {big_t[1]:.2f} s turned the sphere by {big_hand[0]:.0f}-{big_hand[1]:.0f}° on the
+hand. In simulation the same windows turned it by {big_sim[0]:.0f} to {big_sim[1]:.0f}°, with a median of
+{big_sim_med:.0f}°. On the hand the sphere held while the commanded rotation built up, and then slipped at once; the
+films of 2026-11-18 show this at 5.0-5.3 s. During the 40 ms before each window, the simulated sphere moved by a median
+of {g_pads.get('settle_mm_median', float('nan')):.1f} mm: the tracked sphere and the model's fingertips disagree by about
+that much. The pads with noslip are left out of Figure {F_GAP}. From these starts, most of their windows threw the sphere
 out of the grasp or ended in an error.</p>
-{fig(4, fig_gap(G), "Left: the sphere's twist over each 0.5 s window, simulated (pads, 7.5 V, friction 1.0) against "
+{fig(F_GAP, fig_gap(G), "Left: the sphere's twist over each 0.5 s window, simulated (pads, 7.5 V, friction 1.0) against "
      "tracked, from the hand's state at the window's start. Right: the RMS of the twist error over the task windows "
      "per plant (contact model, servo set, friction).")}
 {table(["Plant", "Task windows", "Twist error RMS (°)", "Twist error mean (°)", "Rotation error RMS (°)",
         "Position error RMS (mm)", "Joint error (°)", "Grasp windows: rotation (°)", "Start shift (mm)"], t6,
        num=tuple(range(1, 9)), caption="Window gap per plant. 7v5: the servos at 7.5 V; 7v5y: with the index and "
        "middle yaws as strong as the other joints; ns: MuJoCo's noslip; μ: friction. Joint error: RMS over the nine "
-       "joints at the window's end. Start shift: median motion of the sphere while the window's start resolved.", n=6)}"""))
+       "joints at the window's end. Start shift: median motion of the sphere while the window's start resolved.", n=T_GAP)}"""))
 
     if TP:
         t7 = []
@@ -462,32 +617,78 @@ out of the grasp or ended in an error.</p>
                        str(p.get("rank_among_deployable") or ""), xy_s(p["xy"]), str(p["k"]), esc(forces)] + cells +
                       ["yes" if p.get("fits") else "no"])
         sec.append(("plans", "Layouts and plans for the hand on 2026-11-20", f"""
-<p>A layout is deployable when its mounts fit the gantries' travel boxes, its index and middle stay at least 15 mm
-apart in every simulated run of its grasp (on 2026-11-17 the hand's fingers came about 10 mm closer than the
-simulation's), and the sphere stayed in the grasp in every run under both models; {n_dep} layouts are. The proposal
-takes the four best and six at evenly spaced ranks down to the lowest scoring deployable layout, so that the trials span
-the predicted range, and (70, 110) grasp 0, run 20 times on the hand on 2026-11-17. Each plan was built as the plans of
-2026-11-16 (logs/20261116-hom_setup/film_plan.py, which reproduces the g0 plan exactly), with the open pose's index and
-middle MCPs at −11.0 and −9.5° as in the lab's plans of 2026-11-17. Where stage E's forces scored at least 0.05 more at
-the fresh seeds and no less at friction 0.6, a second plan carries them. The predictions in Table 7 were written into
-each plan's meta.ranking before any trial ran.</p>
+<p>A layout is deployable when it passes three tests. Its mounts fit the gantries' travel boxes. Its index and middle
+stay at least 15 mm apart in every simulated run of its grasp; on 2026-11-17 the hand's fingers came about 10 mm closer
+than the simulation's. The sphere stayed in the grasp in every run under both models. Of {prop['of'] if prop else ''}
+layouts, {n_dep} pass. The proposal takes the four best deployable layouts and six at evenly spaced ranks down to the
+lowest scoring one, so that the trials span the predicted range. It adds (70, 110) with grasp 0, run 20 times on the
+hand on 2026-11-17. Each plan was built as the plans of 2026-11-16 were (logs/20261116-hom_setup/film_plan.py, which
+reproduces the g0 plan exactly). The open pose's index and middle MCPs were raised to −11.0 and −9.5° where lower, as in
+the lab's plans of 2026-11-17. A second plan has stage E's forces where they scored at least 0.05 more at the fresh
+seeds and no less at friction 0.6. The predictions in Table {T_PLANS} were written into each plan's meta.ranking before
+any trial ran.</p>
 {table(["Plan", "Role", "Rank", "Layout (mm)", "Grasp k", "HOM forces", "Predicted (a)", "Predicted (b)",
         "Twist at the end (°)", "Fits"], t7, num=(2, 4, 6, 7, 8),
        caption="Plans in docs/experiments/20261115-hom_bench_trials/plans/ (20261119-rank_*). Predicted tracking: for the "
                "ranked and anchor plans (a) point contact and (b) the pads, mean of seeds 0-2; for the CEM plans (a) the "
                "mean over both models at seeds 0-2 and (b) at the fresh seeds 10-12. HOM forces: the tripod's force f (or "
-               "its knots and their times) and the spin, roll and slide weights w where changed.", n=7)}"""))
+               "its knots and their times) and the spin, roll and slide weights w where changed.", n=T_PLANS)}"""))
 
-    sec.append(("future", "Future work", """
+    if TV_ok:
+        rr = TV["rho"]
+        t9 = []
+        for x in sorted(TV["plans"], key=lambda x: -(x["predicted_both"] or 0)):
+            if not x["n"]:
+                continue
+            t9.append([esc(x["plan"].replace("_plan.json", "").replace("20261119-rank_", "")), x["role"],
+                       xy_s(x["xy"]), str(x["k"]), f(x["predicted_both"], 3), f(x["predicted_point"], 3),
+                       f(x["predicted_pads"], 3), str(x["n"]), f(x["measured_mean"], 3), f(x["measured_sd"], 3),
+                       f(x["measured_partial_mean"], 3)])
+
+        def rho_s(key, label):
+            v = rr.get(key) or {}
+            if v.get("rho") is None:
+                return ""
+            ci = v.get("rho_trials_resampled_95")
+            return (f" {label}, ρ is {v['rho']:.2f} over {v['layouts']} layouts (p {v['p_two_sided']:.3f}"
+                    + (f"; 95 % interval over resampled trials {ci[0]:.2f} to {ci[1]:.2f}" if ci else "") + ").")
+        tri_p = (rho_s("both models", "Against the mean of both contact models") + rho_s("point", "Against point "
+                 "contact alone") + rho_s("pads", "Against the pads alone")
+                 + rho_s("both models, partial trials scored", "With trials that ended early scored over the periods "
+                         "that ran"))
+        vb = rr.get("both models") or {}
+        if vb.get("mean_measured_minus_predicted") is not None:
+            tri_p += (f" The hand's tracking differed from the prediction by {vb['mean_measured_minus_predicted']:+.3f} "
+                      f"on average, and by {vb['mean_abs_error']:.3f} in absolute value.")
+        sec.append(("trials", "Trials on the hand", f"""
+<p>Each plan of Table {T_PLANS} was run on the hand by the lab's series (lab/hom_series.py), three trials in a row per
+plan and the layouts in a seeded random order. Each trial was scored as the trials of 2026-11-16 and 11-17 were
+(scripts/hardware/hom_trial_tracking.py), and scored 0 when it did not end by the schedule's end, as a simulated run
+scores 0 when the sphere drops (sim/20261120-trials_vs_prediction.py). {TV['trials_scored']} trials were scored.{tri_p}
+Figure {F_TRIALS} plots the measured tracking against the prediction, and Table {T_TRIALS} lists the plans.</p>
+{fig(F_TRIALS, fig_trials(TV), "Tracking on the hand against the simulation's prediction per plan. Blue: the ranked "
+     "layouts; orange: (70, 110), run on 2026-11-17; small dots: single trials; circles and bars: their mean and "
+     "standard deviation; green diamonds: plans with refined forces or a CEM pick. Grey: equal tracking.")}
+{table(["Plan", "Role", "Layout (mm)", "Grasp k", "Predicted, both", "Predicted, point", "Predicted, pads", "Trials",
+        "Measured", "SD", "Measured, partial"], t9, num=(3, 4, 5, 6, 7, 8, 9, 10),
+       caption="Trials per plan. Measured: mean tracking, 0 for a trial that did not end by the schedule's end; "
+               "partial: such trials scored over the periods that ran.", n=T_TRIALS)}"""))
+
+    gap_ref = f"Table {T_GAP}" if T_GAP else "the window gap of sim/20261119-segment_gap.py"
+    plans_t = f"Table {T_PLANS}" if T_PLANS else PLANS_REF
+    sec.append(("future", "Future work", f"""
 <ul>
-<li>Run the plans of Section 7 on the hand, three trials each, in a random order of layouts, with the fingertip boards
-recorded and both cameras filming; score them with trial_score and compute Spearman's ρ between the predicted and the
-measured tracking over the layouts. A ρ near 0 over ten layouts falsifies the claim that this simulation ranks twist
-layouts for this hand.</li>
-<li>Fit the offset between the tracked sphere and the model's fingertips per trial at the grasp, and rerun
+<li>Run each plan of {plans_t} three times on the hand, in a random order of layouts, with the fingertip boards
+recorded and both cameras filming. Score the trials with trial_score and compute Spearman's ρ between the predicted
+and the measured tracking over the layouts. A ρ near 0 over ten layouts falsifies the claim that this simulation ranks
+twist layouts for this hand.</li>
+<li>Run stage D's four plants on the proposed layouts outside its {spread.get('layouts', 150)} and score each plant's
+predictions against the trials. A plant whose ρ with the hand exceeds that of the plant used here replaces it in the
+next search.</li>
+<li>Fit the offset between the tracked sphere and the model's fingertips at the grasp of each trial. Rerun
 sim/20261119-segment_gap.py with it, so that a window starts without the 2-4 mm shift.</li>
-<li>Add a slip model of the gear train or the pads (a static friction above the sliding one, or the joints' give past
-the potentiometers) to the plant and compare its window gap with Table 6.</li>
+<li>Add a slip model to the plant: a static friction above the sliding one in the gear train or the pads, or the joints'
+give past the potentiometers. Compare its window gap with {gap_ref}.</li>
 <li>Film the best, a middle and the worst proposed layout's simulated twist beside the hand's trial of the same
 plan.</li>
 </ul>"""))

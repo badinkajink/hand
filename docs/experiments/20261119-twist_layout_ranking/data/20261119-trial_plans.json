@@ -108,21 +108,26 @@
    "rank_among_deployable": 2,
    "score": 0.5593,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.539,
-     "track_seeds101112": 0.544,
-     "twist_end_deg": 67.5,
-     "rise_max_mm": 21.5,
-     "runs": 6,
-     "held": 6
-    },
-    "pads": {
-     "track_seeds012": 0.579,
-     "track_seeds101112": 0.57,
-     "twist_end_deg": 67.5,
-     "rise_max_mm": 24.62,
-     "runs": 6,
-     "held": 6
+    "both_models_seeds012": 0.661,
+    "both_models_seeds101112": 0.6623,
+    "point_mu06_seeds012": 0.7043,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.539,
+      "track_seeds101112": 0.544,
+      "twist_end_deg": 67.5,
+      "rise_max_mm": 21.5,
+      "runs": 6,
+      "held": 6
+     },
+     "pads": {
+      "track_seeds012": 0.579,
+      "track_seeds101112": 0.57,
+      "twist_end_deg": 67.5,
+      "rise_max_mm": 24.62,
+      "runs": 6,
+      "held": 6
+     }
     }
    },
    "mcp_moved": {},
@@ -258,21 +263,26 @@
    "rank_among_deployable": 3,
    "score": 0.5435,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.541,
-     "track_seeds101112": 0.472,
-     "twist_end_deg": 61.9,
-     "rise_max_mm": 14.18,
-     "runs": 6,
-     "held": 6
-    },
-    "pads": {
-     "track_seeds012": 0.546,
-     "track_seeds101112": 0.546,
-     "twist_end_deg": 72.0,
-     "rise_max_mm": 24.36,
-     "runs": 6,
-     "held": 6
+    "both_models_seeds012": 0.686,
+    "both_models_seeds101112": 0.6892,
+    "point_mu06_seeds012": 0.689,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.541,
+      "track_seeds101112": 0.472,
+      "twist_end_deg": 61.9,
+      "rise_max_mm": 14.18,
+      "runs": 6,
+      "held": 6
+     },
+     "pads": {
+      "track_seeds012": 0.546,
+      "track_seeds101112": 0.546,
+      "twist_end_deg": 72.0,
+      "rise_max_mm": 24.36,
+      "runs": 6,
+      "held": 6
+     }
     }
    },
    "mcp_moved": {
@@ -417,21 +427,26 @@
    "rank_among_deployable": 4,
    "score": 0.542,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.52,
-     "track_seeds101112": null,
-     "twist_end_deg": 56.0,
-     "rise_max_mm": 17.11,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.564,
-     "track_seeds101112": 0.557,
-     "twist_end_deg": 80.9,
-     "rise_max_mm": 26.81,
-     "runs": 6,
-     "held": 6
+    "both_models_seeds012": 0.7053,
+    "both_models_seeds101112": 0.7052,
+    "point_mu06_seeds012": 0.672,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.52,
+      "track_seeds101112": null,
+      "twist_end_deg": 56.0,
+      "rise_max_mm": 17.11,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.564,
+      "track_seeds101112": 0.557,
+      "twist_end_deg": 80.9,
+      "rise_max_mm": 26.81,
+      "runs": 6,
+      "held": 6
+     }
     }
    },
    "mcp_moved": {
@@ -567,21 +582,26 @@
    "rank_among_deployable": 5,
    "score": 0.5403,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.524,
-     "track_seeds101112": null,
-     "twist_end_deg": 63.7,
-     "rise_max_mm": 19.9,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.556,
-     "track_seeds101112": 0.551,
-     "twist_end_deg": 62.0,
-     "rise_max_mm": 23.35,
-     "runs": 6,
-     "held": 6
+    "both_models_seeds012": 0.6473,
+    "both_models_seeds101112": 0.6442,
+    "point_mu06_seeds012": 0.6853,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.524,
+      "track_seeds101112": null,
+      "twist_end_deg": 63.7,
+      "rise_max_mm": 19.9,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.556,
+      "track_seeds101112": 0.551,
+      "twist_end_deg": 62.0,
+      "rise_max_mm": 23.35,
+      "runs": 6,
+      "held": 6
+     }
     }
    },
    "mcp_moved": {},
@@ -717,21 +737,26 @@
    "rank_among_deployable": 40,
    "score": 0.4775,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.471,
-     "track_seeds101112": null,
-     "twist_end_deg": 52.9,
-     "rise_max_mm": 11.09,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.484,
-     "track_seeds101112": null,
-     "twist_end_deg": 52.9,
-     "rise_max_mm": 12.77,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.6613,
+    "both_models_seeds101112": 0.6522,
+    "point_mu06_seeds012": 0.633,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.471,
+      "track_seeds101112": null,
+      "twist_end_deg": 52.9,
+      "rise_max_mm": 11.09,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.484,
+      "track_seeds101112": null,
+      "twist_end_deg": 52.9,
+      "rise_max_mm": 12.77,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {
@@ -876,21 +901,26 @@
    "rank_among_deployable": 75,
    "score": 0.4285,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.444,
-     "track_seeds101112": null,
-     "twist_end_deg": 50.7,
-     "rise_max_mm": 9.91,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.413,
-     "track_seeds101112": null,
-     "twist_end_deg": 51.8,
-     "rise_max_mm": 9.85,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.6528,
+    "both_models_seeds101112": 0.6528,
+    "point_mu06_seeds012": 0.6463,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.444,
+      "track_seeds101112": null,
+      "twist_end_deg": 50.7,
+      "rise_max_mm": 9.91,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.413,
+      "track_seeds101112": null,
+      "twist_end_deg": 51.8,
+      "rise_max_mm": 9.85,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {
@@ -1026,21 +1056,26 @@
    "rank_among_deployable": 109,
    "score": 0.398,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.397,
-     "track_seeds101112": null,
-     "twist_end_deg": 43.0,
-     "rise_max_mm": 10.0,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.399,
-     "track_seeds101112": null,
-     "twist_end_deg": 43.4,
-     "rise_max_mm": 10.49,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.6653,
+    "both_models_seeds101112": 0.6618,
+    "point_mu06_seeds012": 0.7077,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.397,
+      "track_seeds101112": null,
+      "twist_end_deg": 43.0,
+      "rise_max_mm": 10.0,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.399,
+      "track_seeds101112": null,
+      "twist_end_deg": 43.4,
+      "rise_max_mm": 10.49,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {},
@@ -1176,21 +1211,26 @@
    "rank_among_deployable": 144,
    "score": 0.3507,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.344,
-     "track_seeds101112": null,
-     "twist_end_deg": 45.2,
-     "rise_max_mm": 7.73,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.358,
-     "track_seeds101112": null,
-     "twist_end_deg": 46.1,
-     "rise_max_mm": 8.24,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.5265,
+    "both_models_seeds101112": 0.5253,
+    "point_mu06_seeds012": 0.448,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.344,
+      "track_seeds101112": null,
+      "twist_end_deg": 45.2,
+      "rise_max_mm": 7.73,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.358,
+      "track_seeds101112": null,
+      "twist_end_deg": 46.1,
+      "rise_max_mm": 8.24,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {
@@ -1335,21 +1375,26 @@
    "rank_among_deployable": 179,
    "score": 0.028,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.032,
-     "track_seeds101112": null,
-     "twist_end_deg": 5.5,
-     "rise_max_mm": 0.89,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.024,
-     "track_seeds101112": null,
-     "twist_end_deg": 3.3,
-     "rise_max_mm": 0.91,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.2362,
+    "both_models_seeds101112": 0.2335,
+    "point_mu06_seeds012": 0.069,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.032,
+      "track_seeds101112": null,
+      "twist_end_deg": 5.5,
+      "rise_max_mm": 0.89,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.024,
+      "track_seeds101112": null,
+      "twist_end_deg": 3.3,
+      "rise_max_mm": 0.91,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {
@@ -1494,21 +1539,26 @@
    "rank_among_deployable": null,
    "score": 0.3755,
    "prediction": {
-    "point": {
-     "track_seeds012": 0.39,
-     "track_seeds101112": null,
-     "twist_end_deg": 54.2,
-     "rise_max_mm": 10.4,
-     "runs": 3,
-     "held": 3
-    },
-    "pads": {
-     "track_seeds012": 0.361,
-     "track_seeds101112": null,
-     "twist_end_deg": 48.2,
-     "rise_max_mm": 9.68,
-     "runs": 3,
-     "held": 3
+    "both_models_seeds012": 0.6303,
+    "both_models_seeds101112": 0.625,
+    "point_mu06_seeds012": 0.6197,
+    "default_forces": {
+     "point": {
+      "track_seeds012": 0.39,
+      "track_seeds101112": null,
+      "twist_end_deg": 54.2,
+      "rise_max_mm": 10.4,
+      "runs": 3,
+      "held": 3
+     },
+     "pads": {
+      "track_seeds012": 0.361,
+      "track_seeds101112": null,
+      "twist_end_deg": 48.2,
+      "rise_max_mm": 9.68,
+      "runs": 3,
+      "held": 3
+     }
     }
    },
    "mcp_moved": {
@@ -1585,5 +1635,6 @@
     }
    }
   }
- ]
+ ],
+ "relabelled": "2026-11-19 21:1x: the prediction of each plan with stage E's forces set to those forces' scores (force_refine.best_seeds012, best_seeds101112, best_mu06), which the 21:06 list had under force_refine and gave the default forces' prediction as 'prediction'; no number changed"
 }

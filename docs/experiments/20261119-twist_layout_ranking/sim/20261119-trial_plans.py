@@ -69,6 +69,13 @@ def prediction(rs, call, k):
     return out
 
 
+def refined_prediction(ref, pred):
+    """The prediction of a plan with stage E's forces: their mean tracking over both models at seeds 0-2 and 10-12 and
+    under point contact at friction 0.6 (data/20261119-force_refine.json), with the default forces' prediction kept."""
+    return {"both_models_seeds012": ref.get("best_seeds012"), "both_models_seeds101112": ref.get("best_seeds101112"),
+            "point_mu06_seeds012": ref.get("best_mu06"), "default_forces": pred}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--proposal", default=str(STUDY / "data/20261119-trial_proposal.json"))
@@ -134,7 +141,8 @@ def main():
             plan2["meta"]["ranking"]["force_refine"] = ref
             path2 = PLANS / name.replace("_plan.json", f"_f{prm['f_tripod']:g}_w{prm['w_spin_tripod']:g}_plan.json")
             path2.write_text(json.dumps(plan2, indent=1) + "\n")
-            listing.append({**entry, "plan": str(path2.relative_to(ROOT)), "prm": prm, "force_refine": ref})
+            listing.append({**entry, "plan": str(path2.relative_to(ROOT)), "prm": prm, "force_refine": ref,
+                            "prediction": refined_prediction(ref, pred)})
             print(path2.name, "ok (refined forces)", prm, flush=True)
     if not a.dry:
         Path(a.out).write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "),

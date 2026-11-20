@@ -175,6 +175,11 @@ def main():
     except Exception as e:                                  # noqa: BLE001
         cmp["grid sv25r"] = f"not read: {e!r}"[:200]
     both = {c: (v["point"][c] + v["pads"][c]) / 2 for c in set(v["point"]) & set(v["pads"])}
+    dc = {int(r["call"]) for r in RD}
+    if dc:          # the two models over stage D's layouts alone, the plants' baseline over the same narrow range
+        cmp["point vs pads (stage D layouts)"] = rho({c: v["point"][c] for c in dc if c in v["point"]}, v["pads"])
+        out["stage_d_spread"] = {"layouts": len(dc), "mean": round(float(np.mean([both[c] for c in dc if c in both])), 4),
+                                 "sd": round(float(np.std([both[c] for c in dc if c in both])), 4)}
     for p in PLANTS_D:
         sp = layout_scores(RD, p)
         if sp:
@@ -231,6 +236,7 @@ def main():
             rep = SL.layout_report(SL.sym6(*xy[c]))
             best["fits"] = bool(rep["fits"])
             cand.append(best)
+    out["candidates"] = sorted(cand, key=lambda b: -b["score"])   # each layout's best grasp over both models
     ok = [b for b in cand if b["fits"] and b["held_all"] and (b["im_gap_min_mm"] or 0) >= GAP_MM]
     ok.sort(key=lambda b: -b["score"])
     pick = ok[:4]
@@ -249,7 +255,10 @@ def main():
                     f"{GAP_MM:g} mm in every simulated run, held in every run under both models), and the two anchors run "
                     "on the hand before. score = mean tracking over both contact models and seeds 0-2.",
             "deployable": len(ok), "of": len(cand),
-            "pick": [{**b, "rank_among_deployable": rank[id(b)]} for b in pick], "anchors": anchors}
+            "excluded": {"do not fit the travel boxes": sum(not b["fits"] for b in cand),
+                         "sphere dropped or HOM failed in a run": sum(not b["held_all"] for b in cand),
+                         f"index-middle gap under {GAP_MM:g} mm": sum((b["im_gap_min_mm"] or 0) < GAP_MM for b in cand)},
+            "pick":[{**b, "rank_among_deployable": rank[id(b)]} for b in pick], "anchors": anchors}
     out["search"] = search_replay({c: s for c, (k, s) in S["point"]["s0"].items()}, xy) if S["point"]["s0"] else None
     out["top10"] = {m: [{"call": c, "xy": list(xy[c]), "k": k, "score": round(s, 4),
                          "fresh": round(S[m]["fresh"][c], 4) if c in S[m]["fresh"] else None}
