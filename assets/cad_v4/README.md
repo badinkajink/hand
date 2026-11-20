@@ -45,8 +45,9 @@ MCP + PIP. The least index-middle gap of the replay's collision sets (mm, with i
 left. Under physics touching parts push each other apart; with `--kinematic` they may overlap and the gap goes negative.
 The key `open` is the base scene's start pose, with the fingertips 3.9 mm into the floor.
 
-The scenes have no morphology slides (mount x and y, finger length): contact forces dragged them under physics. Mount
-positions and link lengths change in the params file, followed by `build`. The carriage's MorphIt spheres touch v4a's MCP
+The scenes have no morphology slides (mount x and y, finger length): contact forces dragged them under physics. The
+mounts stay at cad_v3's positions, and v4a keeps cad_v3's link lengths. v4b's MCP link length and gimbal height are
+`proximal` and `gimbal_z` in the params file, followed by `build`. The carriage's MorphIt spheres touch v4a's MCP
 plate at yaw -21 to -12 deg and MCP 31 to 50 deg, where the carriage's mesh is 3.45 mm away (`check`, key `carriage`).
 `python -m mujoco.viewer --mjcf=...` also opens a scene, at qpos0 with straight fingers; load a key from its panel.
 
