@@ -81,6 +81,18 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   - When `ready` refuses an object put back too far from the hand, the series lifts clear and moves over it
     (`approach --fine`), then readies again.
   - Restarted at 11:5x from entry 9 (A1_r3_x115y160g8_t3) at 540p60.
+- **12:0x-12:31, four more stops, each closed in code.** Stops took 78 % of the logged time (the workstation's
+  `analysis/20261120-series_time_table.py`; a clean cycle is 142 s).
+  - A released sphere standing at 1.7 deg was taken for toppled: the series read its tilt in a hand still tilted
+    35 deg. `letgo` now prints the block's axis from vertical, and the series reads that (36adb1cfd).
+  - Layout refused fingers left partly straight by the partial release. The series now straightens them (`zero`,
+    checked) and lays out again (33ea534d0).
+  - A descent stopped 65 mm up on 3.5 mm of slip in the grasp. A stop on the object's motion more than `--touch-window`
+    above the expected touchdown now counts as slip, and the leg goes on, at most `--max-slips` 3 times (310276959).
+  - letgo's lift levels z_P about the palm when the tilt is within `--max-level` (10). A 9.3 deg turn swung the thumb
+    into the ball, which moved 3 mm, and the lift stopped. On the model, a straight lift took the thumb away (1.1 mm
+    clear at the start, 9.4 mm at 20 mm up). The series' putdown args add `--max-level 0`, so the lift goes straight up
+    and the hand is levelled before the next recentre, after the clear. Restarted at 12:31 at A1_p42_x55y75g10_t2.
 
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 
