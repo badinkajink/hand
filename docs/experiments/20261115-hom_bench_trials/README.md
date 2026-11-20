@@ -4,6 +4,32 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
+
+The owner's go (relayed 18:1x): "if you finish analysis early, i give you the go ahead to just start running the
+experiments", "we can do the top 10 x N trials". The plans are the twist ranking's
+(`docs/experiments/20261119-twist_layout_ranking`, its `data/20261119-trial_plans.json`, commit 6e925ca45): ten of the
+179 deployable layouts and the anchor (70, 110) g0, each with its prediction in `meta.ranking`, written before any
+trial. Three sets, run in this order: the 11 plans with HOM's default forces, then the 10 with stage E's lower forces
+(`_f.._w..` in the name; the anchor's first), then stage F's CEM plans (about 23:15).
+
+- `lab/series_plan.py` keeps the list's rows by role and forces (`--forces default|refined|both`), shuffles the plans
+  with a printed seed, repeats each three times in a row, writes `lab/series_entries.txt` and prints the hom_series
+  command.
+- `lab/hom_series.py --serve 'twist 40 28.8 0.56'` starts each plan's HOM server on the workstation
+  (`hom_serve_budget.sh`) before its first trial and stops it after its last: one server at a time, 410 MB each.
+- Before each trial it reads the station's servo diagnostics: torque on all nine, and with a servo at 55 C or more it
+  waits, the hand idle after letgo, until all are below 40 C.
+- The sweep tracks the thumb's DIP tag (24) through both cameras (`--no-thumb-tag` to skip). Each pose's line has the
+  tag's place and normal over the hold against the hand model at the measured joints; `d_mm_2cam` uses the samples
+  both cameras saw. One camera's depth scatters 2.5 mm (sd) along its view, both cameras' 0.3 mm. At the zero pose
+  (21:00, (105, 70)) both cameras put the tag 2.6 mm and 2.1 deg from the model.
+- The first pass, started 21:08 (seed 210748, ports 47102-47112): (65,110) g0, (70,90) g1, (115,70) g7, (105,60) g9,
+  (60,135) g8, anchor (70,110) g0, (85,60) g14, (115,160) g8, (85,120) g15, (135,65) g0, (110,155) g3. The sweep's
+  dry run skips "mixed B" at (105, 60) and "yaw +15" and "mixed A" at (85, 60) (fingers under 8 mm apart). Log
+  `logs/20261116-hom_trials/20261119-series_rank_seed210748.log`, one line per trial in `...seed210748.jsonl`, the
+  session's films in `logs/20261116-hom_trials/20261119-2108_session/`.
+
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 
 The owner's go (18:1x, relayed; 18:4x direct): run the ranked layouts' twist trials unattended, and interim trials.
