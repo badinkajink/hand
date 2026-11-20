@@ -4,6 +4,40 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
+
+The owner's go (18:1x, relayed; 18:4x direct): run the ranked layouts' twist trials unattended, and interim trials.
+Both objects stand in view on their stems (the sphere seen by camera 1918 only, tags 14-15; 5 tags in all). Servers on
+the workstation run on its CPU (`hom_serve.sh`, `CUDA_VISIBLE_DEVICES=` empty), so they do not compete with GPU work.
+
+- `lab/pose_sweep.py clear` lifts the palm (HEX-E guarded, at most 70 mm) until the fingers, straight and in the sweep's
+  poses, clear the object's top by 25 mm. Letgo leaves the palm only 30 mm over the grasp's height with the straight
+  fingers beside the object, so a gantry move needs it. `pose_sweep.py sweep` holds the same 12 free-air poses (the plan's
+  open pose first) for 3 s each at a new layout, each checked on the hand model first, about 50 s; logs in
+  `logs/20261119-pose_sweeps/`, scored by the study's `sim/20261119-pose_sweep_own_pose.py`.
+- `lab/hom_series.py` now runs clear before a layout change and, with `--sweep`, the sweep after it; it skips the layout
+  step when the station holds the plan at its mounts; it passes `--plan` to the trial (the fingertip estimator needs it).
+- The first sweep (19:05, (70, 110), the arm parked high): 12 of 12 poses, joints within 1.5 deg except the middle MCP
+  at negative angles (4.5 deg short at the open pose). The deployed own-pose GP leaves 7.2, 10.5 and 11.4 uT (thumb,
+  index, middle), the (70, 110) refit 7.0, 7.2 and 6.9.
+- Start of the evening (19:07-19:08): `place --clear 201.7` levelled the parked palm (3.8 deg) at its height; `approach
+  --max-lat 400 --max-dz 400` moved 140 mm across and 200 mm down onto the sphere: READY at 0.12 mm.
+- The layout step refuses when the fingers are more than 5 deg from both the zero and the open pose; the middle's MCP
+  stops about 5 deg short of the open pose's -15 deg. After a stopped series, run `letgo` (not `zero`, which refuses
+  round the object) before starting again.
+- **Servers need `--torque-budget 0.56` at 7.5 V.** `hom_serve.sh` passes no budget, and the server's default, 0.84 in its
+  5 V units, reset all nine servos 2 s into the first rehearsal trial (19:12): the sphere drifted 30 mm and stayed upright
+  on the table, torque off. `logs/20261116-hom_setup/hom_serve_budget.sh` on the workstation takes the same arguments
+  plus the budget. Recovery: `torque-on --go` (every MCP under 0), `zero` (the object 40 mm below the grasp's height
+  after the trial's lift), then the series again.
+- **Topples (19:2x).** g13 at (105, 70) over-rotated at budget 0.56 (72 deg, 9.4 mm rise, tilted 42 deg in the hand);
+  the putdown's default levelling takes out at most 8 deg, so the block was not seated, and `letgo --tilt-ok` let the
+  sphere topple (94 deg). The controlled-slip pick-up stood it up again in 5 min (19:28-19:33; plan at the station's
+  layout, contacts 5 deg above the equator: joint margin 4.9 deg, 8.5-9.3 mm off the table; 85 -> 35 deg in the lift,
+  4.3 deg after the slip; set down upright at 1.2 deg and the wrist turned back). For the series: `--putdown-args="--level-frac
+  1 --level-max 35"` (the 11-17 recovery's levelling) and `--pickup` (hom_series runs that pick-up after a topple and
+  goes on; any failed step stops it).
+
 ## State on 2026-11-17 19:30: the evening's commands, and the night's runs
 
 The evening's results are on the session page

@@ -19,6 +19,7 @@ formulas (corvus has no TeX).
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -44,6 +45,8 @@ F_STAB = S3 / "20261119-board_estimate_stability.json"
 F_TWIST = S3 / "20261119-board_twist_residual.json"
 F_PATCH = S3 / "20261119-board_patch_size_calibration.json"
 F_DW = S3 / "20261119-hexe_dead_weight.json"
+F_DIRGP = S3 / "20261119-direction_gp_hand.json"
+F_TRIALS = S3 / "20261119-trial_contacts.json"
 GROUPS = ["index, PIP 0", "middle, PIP 0", "thumb, PIP 0", "index, PIP 10", "index, PIP 20"]
 C_GP, C_PAT, C_GEO, C_FORCE = "#1f4e9c", "#d9822b", "#111111", "#8a8a8a"
 F_EDGES = [0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0]
@@ -291,6 +294,18 @@ def build():
     gp_off = [r["hold_place_z_mm"] - geo[r["group"]][0] for r in hold_b]
     tag_z = [v[1] for v in geo.values()]
     tag_off = [r["hold_place_z_mm"] - geo[r["group"]][1] for r in hold_b]
+    dirgp = json.loads(F_DIRGP.read_text())
+    dg_low_b = [r["board_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
+    dg_low_d = [r["direction_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
+    dg_tow_b = [r["board_gp"]["0.1-0.5"]["toward_share"] for r in dirgp["rig"] if r["board_gp"]["0.1-0.5"]["toward_share"]]
+    dg_tow_d = [r["direction_gp"]["0.1-0.5"]["toward_share"] for r in dirgp["rig"]
+                if r["direction_gp"]["0.1-0.5"]["toward_share"]]
+    dg_all_b = [r["board_gp"]["all"]["place_mm"] for r in dirgp["rig"]]
+    dg_all_d = [r["direction_gp"]["all"]["place_mm"] for r in dirgp["rig"]]
+    hb = [r for r in dirgp["hand"] if r["board_gp"]["force_per_hexe_N"]]
+    dg_st = [r["direction_gp"]["hold_z"] for r in hb if r["group"] in ("index, PIP 0", "middle, PIP 0")]
+    dg_st_b = [r["board_gp"]["hold_z"] for r in hb if r["group"] in ("index, PIP 0", "middle, PIP 0")]
+    dg_low_hand = [r[k]["low_force_z"] - r[k]["hold_z"] for r in hb if r["group"] in GROUPS[3:] for k in ("board_gp", "direction_gp")]
     tilt = [r["tilt_deg"] for r in arm["rows"] if r.get("z_gp") is not None and r["group"] != "middle, PIP 0"]
     by_turn = {}
     for r in tw["rows"]:
@@ -324,25 +339,25 @@ def build():
 <p>The owner asked on 2026-11-19 for one place with the current understanding of the fingertip sensing, stale results
 dropped. The priorities are contact pose first (location, direction and, ideally, orientation), then its smoothness,
 steadiness and rate, then a pose filter with closed-loop control, and force last. Table 1 is the answer in brief; each
-row names the section with its evidence. Section 15 lists what this page replaces.</p>
+row names the section with its evidence. Section §superseded§ lists what this page replaces.</p>
 {P.table(["quantity", "how well", "where it holds", "section"], [
         ["location on the pad", f"{rng(med(sess))} mm median, {rng(p90(sess))} mm 90th percentile (session held out); "
-         f"{rng(med(tipo))} mm with the whole tip held out", "0.5 N and up, where a calibrated indenter reached", "5"],
+         f"{rng(med(tipo))} mm with the whole tip held out", "0.5 N and up, where a calibrated indenter reached", "§rig§"],
         ["location, low force", f"1.1-1.7 mm median at 0.1-0.5 N; {tow_low * 100:.0f} % of the errors point toward the apex",
-         "below 0.5 N", "5"],
+         "below 0.5 N", "§rig§"],
         ["location on the hand", "bent fingers: within 1 mm of the plate's geometry once the DIP tags' finger pose is used",
-         "the arm presses of 11-19", "9"],
-        ["surface normal", f"{rng(med(sess, 'normal_deg'), '{:.1f}')} deg median", "follows from the location", "5"],
+         "the arm presses of 11-19", "§hand§"],
+        ["surface normal", f"{rng(med(sess, 'normal_deg'), '{:.1f}')} deg median", "follows from the location", "§rig§"],
         ["force direction", f"{rng(med(sess, 'force_dir_deg'), '{:.1f}')} deg median; 2-21 deg from the HEX-E on the hand",
-         "contacts with shear up to slip", "6, 9"],
+         "contacts with shear up to slip", "§shear§, §hand§"],
         ["Shear", f"{rng(sh_med('error_N'))} N median vector error; direction within {rng(sh_by('1.0-2.0'), '{:.0f}')} deg "
-         "at 1-2 N of shear", "shear over about 0.3 N", "6"],
-        ["twist about the normal", "not detectable", "the physics of a 7.5 mm deep sensor", "7"],
-        ["contact size", "not for patches of a few mm; a line contact changes the pattern", "extended contacts only", "8"],
+         "at 1-2 N of shear", "shear over about 0.3 N", "§shear§"],
+        ["twist about the normal", "not detectable", "the physics of a 7.5 mm deep sensor", "§torsion§"],
+        ["contact size", "not for patches of a few mm; a line contact changes the pattern", "extended contacts only", "§area§"],
         ["rate and latency", "150 Hz per board; 50 ms means; estimate 17-19 ms; data about 41 ms old at the trial",
-         "the trials' estimator since 11-17", "4, 11"],
-        ["jitter at a steady 2.4 N", f"{rng(jz)} mm along, {rng(jy)} mm across (50 ms means)", "the arm presses' holds", "11"],
-        ["force size", "within 7 % on the rig; 0.26-0.57 N per HEX-E newton on the hand", "lower priority", "12"],
+         "the trials' estimator since 11-17", "§estimator§, §stability§"],
+        ["jitter at a steady 2.4 N", f"{rng(jz)} mm along, {rng(jy)} mm across (50 ms means)", "the arm presses' holds", "§stability§"],
+        ["force size", "within 7 % on the rig; 0.26-0.57 N per HEX-E newton on the hand", "lower priority", "§force§"],
     ], caption="What the boards give, how well, and where the evidence is. Rig figures are the UR5 calibrations of the "
        "hand's three tips; hand figures are the arm presses of 2026-11-19.", n=1)}"""))
     S.append(("sensor", "The sensor and its signal", f"""
@@ -366,7 +381,7 @@ three boards.</li>
 a chip. A finer gain has never been tried.</li>
 <li>Temperature: each chip's gain falls 0.65-0.70 % per deg C. One degree on the centre chip is 53 uT, twice a 1 N
 press. The correction leaves about 9 uT over a warm-up and 4-21 uT overnight.</li>
-<li>Outside fields: the Earth's field, about 44 uT, turns with the board (Section 7). Steel near a pad reads as 9-17 N;
+<li>Outside fields: the Earth's field, about 44 uT, turns with the board (Section §torsion§). Steel near a pad reads as 9-17 N;
 a test against a uniform field plus a gradient catches most of it but is off by default.</li>
 <li>Mechanics: the pad must not move on the board; 1 um reads as 0.16 N. A pad that rocked in its seat (10-20) left
 standing contacts of 11-12 N, hence the cap's pin.</li>
@@ -387,7 +402,7 @@ measure twist: about 4 N mm between holds, against the 1-3 N mm a twist makes. T
 <p>Coverage limits what the boards can learn. The error grows with the distance to the nearest training press: 0.32 mm
 within 1 mm, 0.98 mm at 1.5-2 mm and 6.1 mm beyond 4 mm. The robot reached the face and edges; the rig added the mount
 end and parts of the flanks. No press came within 1.5 mm of the tip's end. Nothing calibrated covers a broad flat
-contact on the proximal half (Section 9).</p>"""))
+contact on the proximal half (Section §hand§).</p>"""))
     S.append(("estimator", "The estimator the trials run", f"""
 <p>{link(L['tc'], 'tip_contacts.py')} has run the boards in the trials since 11-17, in a process of its own. Per
 board:</p>
@@ -443,7 +458,13 @@ direction, the change divided by its size, was tested in October on v2 ID 1 and 
 0.26-0.28 mm overall and 0.59-0.75 mm under 1 N. Trained on presses up to 2 N, it placed 2-8 N presses within
 0.25-0.31 mm and read their force within 5-6 %. There the board GP missed by 1-4 mm and read 45-87 % too little, falling
 back on its training mean. The direction GP was never deployed. Its input does not shrink with the force, which is what
-pulls the board GP toward the apex below 0.5 N.</p>"""))
+pulls the board GP toward the apex below 0.5 N.</p>
+<p>Tried tonight on the same held-out sessions, it helps but does not cure
+({link(STUDY / 'sim/20261119-direction_gp_hand.py', 'sim/20261119-direction_gp_hand.py')}). Overall it places contacts within {rng(dg_all_d)} mm against
+{rng(dg_all_b)} for the board GP. At 0.1-0.5 N it gives {rng(dg_low_d)} mm against {rng(dg_low_b)}. There
+{rng([x * 100 for x in dg_tow_d], '{:.0f}')} % of its errors point toward the apex, against
+{rng([x * 100 for x in dg_tow_b], '{:.0f}')} %. At such forces the field is 3-15 uT against 0.7 uT of noise per 50 ms,
+and no input transform can restore what the noise hides.</p>"""))
     S.append(("shear", "Shear: the force along the surface", (f"""
 <p>Shear is the part of the force along the pad's surface: friction, and what a twisting or sliding object exerts. With
 a session held out, the GP's shear vector is off by {rng(sh_med('error_N'))} N (median). Its size reads
@@ -508,7 +529,37 @@ the uncorrected joints, not the boards.</p>
 <p>The straight fingers press a flat face onto the pad's flat proximal half, where the 22 mm semi-axis keeps the
 surface within 12 deg of the apex normal. There the contact is a broad patch, no calibrated press matched its field
 above cosine 0.45, and the GP's place drifts with the force (Figure 3, left). On the flat half the place is also the
-least defined physically: a 1 deg change of the finger's lean moves a flat contact about 1 mm.</p>""")))
+least defined physically: a 1 deg change of the finger's lean moves a flat contact about 1 mm.
+The direction GP puts the straight index's and middle's contacts at z {rng(dg_st, '{:.1f}')} mm, near the geometry at
+the joint readings (7.5-7.8), where the board GP gives {rng(dg_st_b, '{:.1f}')}. If that is right, the extra flexion the
+tags saw is there with the PIP bent but not at PIP 0, as backlash off a stop would be. Both GPs extrapolate there, so
+this is a lead to test, not a result.</p>""")))
+    trials = [t for t in json.loads(F_TRIALS.read_text())["trials"] if not t.get("stop")
+              and min((t["fingers"].get("thumb") or {}).get("surface_mm", [-99])[1], 0) > -6]
+    trow = []
+    for t in trials:
+        for f in ("thumb", "index", "middle"):
+            g = t["fingers"].get(f) or {}
+            if not g.get("estimates"):
+                continue
+            trow.append([t["record"][:15] + ", " + f, f"{g['contact_share'] * 100:.0f} %", f"{g['place_z_mm'][1]:.1f}",
+                         f"{g['jitter_z_mm'][0]:.2f} / {g['jitter_z_mm'][1]:.2f}", f"{g['force_N'][0]:.2f}",
+                         f"{g['surface_mm'][1]:+.1f} ({g['surface_mm'][0]:+.1f} to {g['surface_mm'][2]:+.1f})"])
+    S.append(("twists", "In HOM twists on the hand", f"""
+<p>The trials' estimator records each finger's contact every 20 ms. In the anchor grasp's full twists of 19:14 and 19:17
+(g0 at (70, 110), torque budget 0.56, 50 deg of twist each), Table 3 gives what it said. The thumb pressed 2.5-2.7 N
+and was in contact almost throughout. The index and middle pressed 0.7 and 1.2 N, in contact a fifth to a half of the
+time. The place jitters 0.24-0.25 mm from one estimate to the next at the thumb's and middle's forces, and 0.7 mm at
+the index's 0.7 N, as the jitter's growth at low force predicts (Section §stability§).</p>
+<p>The tracked sphere gives the truth for one coordinate: a contact must lie on its surface. The estimated points lie
+1.6-3.6 mm inside it (medians). The pad's own indentation, 0.5-1.5 mm at these forces, accounts for part, since the
+estimate is a point of the undeformed pad. The rest fits fingers more flexed than their readings (Section §hand§). The night's
+series will add every ranked layout to this table
+({link(STUDY / 'sim/20261119-trial_contacts.py', 'sim/20261119-trial_contacts.py')}).</p>
+{P.table(["trial, finger", "contact", "place z (mm)", "jitter median / p90 (mm)", "force (N)", "to the surface (mm)"],
+         trow, num_cols=(1, 2, 3, 4, 5), caption="The trials' contacts in the two full twists: share of periods with a "
+         "contact, median place along the pad, change between estimates, median normal force, and the point's distance "
+         "from the tracked sphere's surface (negative inside; median and quartiles).", n=3)}"""))
     S.append(("hand2", "On the hand: own pose, drift, neighbours and blind spots", f"""
 <ul>
 <li>Own pose. With nothing touching, a finger's own motion changes its board by up to 166 uT, 5.8 N to the
@@ -517,7 +568,7 @@ the finger's joints removes it to 4.4-7.3 uT when fitted at that layout or over 
 leaves 11-22 uT at another. Under load it also removes real signal when the joints give: on 11-18 the GP's slopes fell
 from 0.64-0.86 to 0.44-0.56 with the term.</li>
 <li>Turning the hand. The own-pose GP knows the palm only at the attitude of its sweep. Turned another way, each board
-sees the Earth's field from another angle: about 1 uT per degree (Section 7), 0.07 N per degree. Re-zero after a wrist
+sees the Earth's field from another angle: about 1 uT per degree (Section §torsion§), 0.07 N per degree. Re-zero after a wrist
 turn.</li>
 <li>Drift. At rest the boards drift 18-22 uT over one to two hours, and each press leaves a 7 uT step, 0.29 of it
 lasting. Re-zero at the open pose before each grasp, as the trials do.</li>
@@ -530,7 +581,7 @@ nothing in 18 of 20 twists on 11-17. So &#8220;no contact&#8221; means no pad co
     S.append(("stability", "Smoothness, steadiness and rate on the hand", (f"""
 <p>The splitter logs 150 records a second, each with all three boards; the longest gaps in the presses were 10-24 ms.
 In free air the field's noise is {rng([r['noise_free_uT_record'] for r in hold])} uT per component per record and
-{rng([r['noise_free_uT_50ms'] for r in hold])} uT over the estimator's 50 ms window. Table 3 gives the place's jitter
+{rng([r['noise_free_uT_50ms'] for r in hold])} uT over the estimator's 50 ms window. Table 4 gives the place's jitter
 while the pad was held at a steady force for 2 s.</p>
 {P.table(["press", "force (N)", "place z (mm)", "jitter along / across, 50 ms (mm)", "per record (mm)", "drift (mm/s)",
           "force jitter (N)"],
@@ -539,7 +590,7 @@ while the pad was held at a steady force for 2 s.</p>
            f"{r['jitter_y_z_mm_record'][1]:.2f} / {r['jitter_y_z_mm_record'][0]:.2f}",
            f"{r['drift_y_z_mm_per_s'][1]:+.2f}", f"{r['force_sd_N_50ms']:.3f}"] for r in hold],
          num_cols=(1, 2, 3, 4, 5, 6), caption="The GP's place and force in the arm presses' 2 s holds: standard deviations "
-         "about a straight line in time, and that line's slope along the pad.", n=3)}
+         "about a straight line in time, and that line's slope along the pad.", n=4)}
 <p>So at 2.4 N a 50 ms place is steady to {rng(jz_bent)} mm (sd) on the bent index, where the pad curves, and to
 {rng(jz_straight)} mm on the straight fingers' flat half. Jitter scales roughly with the noise over the field, so at 0.5 N expect
 about five times more. Figure 3 shows the larger effect: while the force rises, the bent fingers' place starts at the
@@ -552,11 +603,11 @@ presses of 11-18 and 11-19 the trials' estimate rose 0.26-0.57 N per HEX-E newto
 <ul>
 <li>Where the contact lands. A straight finger's flat contact gives 6-7 uT/N in a pattern no calibration contains; a
 bent finger's gives 0.88-0.92 of its calibration.</li>
-<li>The own-pose term removes signal when the joints give under load (Section 10).</li>
+<li>The own-pose term removes signal when the joints give under load (Section §hand2§).</li>
 <li>The board GP loses about a quarter of a well-matched field: a linear estimate at the matched calibration place
 reads 0.83-0.87 where the GP reads 0.60-0.66.</li>
 </ul>
-<p>The HEX-E's own scale is open (Section 3). The direction GP, which read force within 5-6 % beyond its training range,
+<p>The HEX-E's own scale is open (Section §calibration§). The direction GP, which read force within 5-6 % beyond its training range,
 is the first thing to try.</p>"""))
     S.append(("loop", "Closed loop so far", f"""
 <ul>
@@ -584,13 +635,13 @@ through the hand model. That needs the joint offsets fixed first (the index's DI
 <li>Time constant: at 2.4 N, five 50 ms means bring the jitter on the curved half to about 0.15-0.2 mm. In a press the place settles only
 from about 1 N (Figure 3), so a filter should not hold on to a low-force place.</li>
 <li>Grasp-level twist: the object's turn from the three contacts' places over time, and the twisting moment from each
-contact's lever arm and shear (Section 6), at 2-5 Hz.</li>
+contact's lever arm and shear (Section §shear§), at 2-5 Hz.</li>
 <li>Rest: re-zero at the open pose before each grasp, with an own-pose GP fitted at the layout.</li>
 </ol>"""))
     S.append(("superseded", "What this page replaces", P.table(["earlier statement", "where", "now"], [
         ["the boards and the hand model disagree by 4-6 mm on the contact place", "force by place page, 11-19",
-         "the normal-only pattern match read the force's lean; GP and tag-corrected geometry agree within 1 mm (Section 9)"],
-        ["the boards read 0.26-0.38 of the HEX-E", "S3 presses, 11-18", "depends on where the contact lands (Section 12)"],
+         "the normal-only pattern match read the force's lean; GP and tag-corrected geometry agree within 1 mm (Section §hand§)"],
+        ["the boards read 0.26-0.38 of the HEX-E", "S3 presses, 11-18", "depends on where the contact lands (Section §force§)"],
         ["the fingertip model takes force within about 5 %", "HOM sensing page, 10-29", "true on the rig, not on the hand"],
         ["the HEX-E is the force reference", "calibration protocol, 10-22",
          "its z read a dead weight at 0.56-0.60 (11-19); its lateral axes are untested"],
@@ -598,24 +649,26 @@ contact's lever arm and shear (Section 6), at 2-5 Hz.</li>
          "after the servos' re-zero of 11-17 it leaves 6.1-11.3 uT at (70, 110); the 11-19 refit 4.4-5.7"],
         ["the estimator inside the trial's process, 57-73 ms", "bench README, 11-17 morning", "its own process, 17-19 ms"],
         ["torsion may become a calibrated output on a better fixture", "calibration page, 11-04",
-         "not detectable: the twist response is the board turning in the room's field (Section 7)"],
+         "not detectable: the twist response is the board turning in the room's field (Section §torsion§)"],
         ["the dead weight read 0.56-0.58 or 0.58-0.60", "notes and index, 11-19", "0.56-0.60, from both steps"],
         ["board GP versions of 10-26 and 11-02", "calibration page", "the 11-05 pooled GP is the one in use"],
-    ], caption="Earlier results this page corrects or replaces.", n=4)))
+    ], caption="Earlier results this page corrects or replaces.", n=5)))
     S.append(("open", "Open questions, in order", f"""
 <ol>
-<li>Run the direction GP offline on the hand's recorded presses and trials (11-16 to 11-19). Does it remove the
-low-force pull toward the apex and the quarter of force the board GP loses?</li>
-<li>Fix the index's and middle's joint offsets: 9 and 12 deg at the DIP link. Plate presses at several PIP angles, and
-DIP tags seen at less curl, can tell zero offsets from pots that read low near the top of their range.</li>
+<li>Low force is the weak point, and the direction GP only eases it (Section §rig§): on the hand both GPs still sit
+{rng([-x for x in dg_low_hand], '{:.1f}')} mm toward the apex at 0.3-0.6 N. Treat places below about 1 N as weak in the filter, and
+check whether a finer chip gain (item 5) lowers the noise floor that causes it.</li>
+<li>Fix the index's and middle's joint offsets: 9 and 12 deg at the DIP link with the PIP bent, perhaps none
+straight (Section §hand§). Plate presses at several PIP angles, and DIP tags seen at less curl, can tell a zero offset from
+backlash off the PIP's stop and from pots that read low near the top of their range.</li>
 <li>Load the per-layout own-pose GP in the trials, and run the short free-air sweep at each new layout.</li>
 <li>The HEX-E's scale along its lateral axes: a dead weight whose line loads x or y.</li>
 <li>A finer chip gain: the four-magnet pads use under 5 mT of a 38.4 mT range. Does it lower the noise?</li>
 <li>Broad flat contacts on the straight fingers: calibrate a flat indenter on the proximal half, or keep the fingers
 bent so their contacts land where the calibration is.</li>
-<li>The pose filter of Section 14 with the HOM loop, tested on recorded trials before the bench.</li>
+<li>The pose filter of Section §filter§ with the HOM loop, tested on recorded trials before the bench.</li>
 </ol>"""))
-    files = [STUDY / f"sim/20261119-{n}.py" for n in ("board_contact_place_rig", "arm_press_contact_place",
+    files = [STUDY / f"sim/20261119-{n}.py" for n in ("board_contact_place_rig", "arm_press_contact_place", "direction_gp_hand",
                                                      "board_estimate_stability", "board_twist_residual",
                                                      "board_patch_size_calibration", "arm_press_boards")]
     S.append(("data", "Data and scripts", "<ul>" + "".join(f"<li>{link(f, P.esc(str(f.relative_to(ROOT))))}</li>"
@@ -625,6 +678,8 @@ bent so their contacts land where the calibration is.</li>
               + " and " + code("docs/experiments/20261030-inverted_rig_seat_block/data/holds/") + "</li>"
               "<li>Lab notes: " + link(L["notes"], "NOTES.md") + ", 2026-11-19 18:10-18:35; the history behind this page "
               "is in " + link(L["ov"], "the printed fingertips overview") + " and the pages it lists.</li></ul>"))
+    secno = {sid: str(k) for k, (sid, _, _) in enumerate(S, 1)}
+    S = [(sid, hd, re.sub(r"§(\w+)§", lambda m: secno[m.group(1)], body)) for sid, hd, body in S]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body)
                      in enumerate(S, 1))

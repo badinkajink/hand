@@ -2,7 +2,11 @@
 experiment now"; the sphere "we can reliably not drop"): for each entry PLAN:PORT:LABEL, the established cycle of
 hom_setup.py and hom_trial.py, each step a subprocess whose output is checked before the next runs:
 
+    clear    only for a new layout (pose_sweep.py clear, 2026-11-19): the palm straight up until the fingers, straight
+             and in the sweep's poses, clear the object's top by 25 mm; after letgo they can hang beside it
     layout   only when the station's mounts are not the plan's (the gantries move with the fingers straight)
+    sweep    only for a new layout with --sweep (pose_sweep.py sweep): 12 free-air poses in about 50 s while the
+             boards record, the data for the own-pose term's dependence on the layout
     ready    the tracked recentre and the pre-grasp ramp; READY, or NOT READY within --max-off mm and --max-yaw deg
              (a finger's open pose nudging the object), else the series stops
     trial    hom_trial.py trial --live --arm --ft with --max-drift-mm, recorded into --video-dir
@@ -69,6 +73,59 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
+def pickup(a, plan, label):
+    """Stand a toppled sphere up again by the controlled-slip pick-up (pinch_pickup.py, the skill's steps; 2026-11-19
+    19:28 after g13 at (105, 70) toppled it): plan at the station's layout (the trial's plan as the base), contacts 5,
+    4, 6 then 3 deg above the equator until the touch keeps 8 mm off the table on both fingers and the joints 4 deg from
+    their limits; then grasp, lift, slip, putdown (--level-max 0) and unturn, each checked for its own success line.
+    Returns None when the sphere stands again, else the reason."""
+    pm = ["--map", a.map]
+    best = None
+    for lat in ("5", "4", "6", "3"):
+        rc, out = run([PY, "pinch_pickup.py", "plan", *pm, "--gap", "8", "--lat-deg", lat, "--base-plan", plan,
+                       "--turn"], 240)
+        m_margin = re.search(r"joint margin ([\d.]+) deg", out)
+        tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)", out.split("at touch:")[-1].split("\n")[0])] \
+            if "at touch:" in out else []
+        m_plan = re.search(r"plan -> (\S+_plan\.json)", out)
+        if rc == 0 and m_margin and m_plan and tables and float(m_margin.group(1)) >= 4.0 and min(tables) >= 8.0:
+            best = m_plan.group(1)
+            break
+    if best is None:
+        return "no pick-up plan keeps 8 mm off the table and 4 deg from the joint limits"
+    for step, token, extra, tmo in (("grasp", "GRASPED", [], 400), ("lift", "LIFTED", [], 400),
+                                    ("slip", "SLIP DONE", [], 500)):
+        rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, "--go", "--video-dir", a.video_dir], tmo)
+        if rc != 0 or token not in out:
+            return f"the pick-up's {step} did not finish"
+    rc, out = run([PY, "hom_setup.py", "putdown", "--plan", best, "--object", "sphere", *pm, "--level-max", "0", "--go",
+                   "--video-dir", a.video_dir], 450)
+    if rc != 0 or "LET GO" not in out:
+        return "the pick-up's putdown did not finish"
+    rc, out = run([PY, "pinch_pickup.py", "unturn", "--plan", best, *pm, "--go", "--video-dir", a.video_dir], 300)
+    if rc != 0 or ("UNTURNED" not in out and "no turn" not in out.lower()):
+        return "the pick-up's unturn did not finish"
+    print(f"   {label}: the sphere picked up and set down upright ({Path(best).name})", flush=True)
+    return None
+
+
+def station_plan_file():
+    """The file name of the plan the station holds (hom_setup.py layout records it in the plan's meta.plan_file); plans
+    can share a design name and differ in their poses (the mcpstop variants of 11-17)."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    pl = HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token")).state().get("plan") or {}
+    return (pl.get("meta") or {}).get("plan_file")
+
+
+def layout_differs(plan):
+    """Whether the station's mounts differ from the plan's (hom_setup.mounts_off, 1 mm)."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    st = HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token"))
+    return bool(HS.mounts_off(HS.load_plan(plan), st.state()))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("entries", nargs="+", help="PLAN:PORT:LABEL")
@@ -83,6 +140,17 @@ def main():
     ap.add_argument("--max-yaw", type=float, default=5.0)
     ap.add_argument("--upright-deg", type=float, default=8.0,
                     help="after a tilted release, go on when the object stands within this of vertical")
+    ap.add_argument("--ready-args", default="",
+                    help="extra arguments for ready, e.g. \"--watch-mm 3\": the descent's watch stopped at a 1.98 mm "
+                         "apparent move while the object stood still in B (19:18, 2026-11-19; fingers hiding tags)")
+    ap.add_argument("--putdown-args", default="",
+                    help="extra arguments for putdown and letgo, e.g. \"--no-centre\" while another object stands at the "
+                         "table's centre (2026-11-19)")
+    ap.add_argument("--pickup", action="store_true",
+                    help="a sphere that toppled at a release is picked up and stood up again (pinch_pickup.py) and the "
+                         "series goes on; without it the series stops")
+    ap.add_argument("--sweep", action="store_true",
+                    help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
     common = ["--object", a.object, "--map", a.map]
@@ -92,18 +160,34 @@ def main():
               flush=True)
         if not a.go:
             continue
-        # layout loads the plan into the station; its gantries move only where the mounts differ
-        rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
-        if rc != 0 or "applied True" not in out:
-            sys.exit(f"STOP: layout failed for {label}")
-        rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 300)
+        # a new layout (2026-11-19): after letgo the straight fingers may hang beside the object, so the palm goes up
+        # until they clear it before the gantries move (pose_sweep.py clear), and with --sweep the fingers then run
+        # the free-air pose sweep at the new mounts
+        new_layout = layout_differs(plan)
+        if new_layout:
+            rc, out = run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--go"], 180)
+            if rc != 0 or "CLEAR OK" not in out:
+                sys.exit(f"STOP: the palm could not clear the object before {label}'s layout")
+        # layout loads the plan into the station; its gantries move only where the mounts differ. Skipped when the
+        # station holds this plan at its mounts already (a plan's second and third trials)
+        if new_layout or station_plan_file() != Path(plan).name:
+            rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
+            if rc != 0 or "applied True" not in out:
+                sys.exit(f"STOP: layout failed for {label}")
+        if new_layout and a.sweep:
+            rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, "--go"], 300)
+            if rc != 0 or "SWEEP DONE" not in out:
+                sys.exit(f"STOP: the free-air sweep failed at {label}'s layout")
+        rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
+                       "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
         if rc != 0 or m is None:
             sys.exit(f"STOP: ready failed for {label}")
         if m.group(1) == "NOT READY" and (float(m.group(2)) > a.max_off or abs(float(m.group(3))) > a.max_yaw):
             sys.exit(f"STOP: {label} not ready ({m.group(2)} mm, {m.group(3)} deg)")
+        # --plan: the trial's fingertip estimator places the boards' contacts with the plan's mounts (since 11-17)
         rc, out = run([PY, "hom_trial.py", "trial", "--task", a.task, "--controller", f"{a.controller_host}:{port}",
-                       *common, "--station", "http://10.99.99.2:8765", "--live", "--arm", "--ft", "--out-dir",
+                       *common, "--plan", plan, "--station", "http://10.99.99.2:8765", "--live", "--arm", "--ft", "--out-dir",
                        str(TRIALS), "--video-dir", a.video_dir, "--label", label, "--max-drift-mm",
                        f"{a.max_drift_mm:g}"], 200)
         rec = re.search(r"-> (\S+_corvus\.jsonl)\s*$", out, re.M)
@@ -114,7 +198,8 @@ def main():
                "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))], **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
-        rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 400)
+        rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
+                       "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
         if rc == 0 and "LET GO" in out:
             with open(a.out, "a") as f:
@@ -134,6 +219,11 @@ def main():
                 if "LET GO" in out2 and t and float(t[-1]) <= a.upright_deg:
                     print(f"   {label}: released tilted, settled at {t[-1]} deg: going on", flush=True)
                     continue
+                if a.pickup and "LET GO" in out2 and a.object == "sphere":
+                    why = pickup(a, plan, label)
+                    if why is None:
+                        continue
+                    sys.exit(f"STOP: {label} toppled and the pick-up failed: {why}")
                 sys.exit(f"STOP: {label} ended tilted; released with letgo --tilt-ok "
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")

@@ -1,0 +1,413 @@
+{
+ "what": "How well the own-pose GPs predict the boards in the per-layout free-air sweeps of 2026-11-19 night (docs/experiments/20261115-hom_bench_trials/lab/pose_sweep.py; the owner, relayed 18:1x: \"a short free-air pose sweep at each layout ... just to see if it actually matters\").",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261119-pose_sweep_own_pose.py",
+ "sweeps": [
+  {
+   "sweep": "20261119-190559_hom_film_x70_y110_twist_grg0_sweep.jsonl",
+   "design": "hom_film_x70_y110_twist_grg0",
+   "mounts": {
+    "thumb": {
+     "x": -28.818800000000003,
+     "y": 2.4004
+    },
+    "index": {
+     "x": 28.818800000000003,
+     "y": 51.6003
+    },
+    "middle": {
+     "x": 28.8187,
+     "y": -51.6002
+    }
+   },
+   "fingers": {
+    "thumb": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -0.0,
+        -11.13,
+        46.0
+       ],
+       "change_uT": 41.46,
+       "resid_deployed_uT": 6.46,
+       "resid_x70y110_uT": 7.48
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.59,
+        -0.0
+       ],
+       "change_uT": 33.92,
+       "resid_deployed_uT": 7.22,
+       "resid_x70y110_uT": 5.89
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.0,
+        44.82
+       ],
+       "change_uT": 47.7,
+       "resid_deployed_uT": 5.96,
+       "resid_x70y110_uT": 3.34
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.0,
+        39.26,
+        39.84
+       ],
+       "change_uT": 92.7,
+       "resid_deployed_uT": 12.05,
+       "resid_x70y110_uT": 12.72
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 36.55,
+       "resid_deployed_uT": 5.8,
+       "resid_x70y110_uT": 4.3
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.94,
+        19.63,
+        -0.0
+       ],
+       "change_uT": 34.02,
+       "resid_deployed_uT": 6.4,
+       "resid_x70y110_uT": 4.14
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.29,
+        39.55,
+        49.51
+       ],
+       "change_uT": 91.71,
+       "resid_deployed_uT": 12.72,
+       "resid_x70y110_uT": 15.77
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.29,
+        0.59,
+        -0.0
+       ],
+       "change_uT": 4.98,
+       "resid_deployed_uT": 5.9,
+       "resid_x70y110_uT": 5.82
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.29,
+        -0.0,
+        0.29
+       ],
+       "change_uT": 4.47,
+       "resid_deployed_uT": 4.14,
+       "resid_x70y110_uT": 4.17
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        9.67,
+        59.47
+       ],
+       "change_uT": 86.89,
+       "resid_deployed_uT": 14.58,
+       "resid_x70y110_uT": 12.49
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -14.94,
+        44.53,
+        9.96
+       ],
+       "change_uT": 67.47,
+       "resid_deployed_uT": 8.36,
+       "resid_x70y110_uT": 6.96
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 47.7,
+     "resid_deployed_median_uT": 7.22,
+     "resid_x70y110_median_uT": 6.96
+    },
+    "index": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        -17.58,
+        -10.84,
+        25.2
+       ],
+       "change_uT": 24.01,
+       "resid_deployed_uT": 10.9,
+       "resid_x70y110_uT": 7.19
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.29,
+        29.59,
+        1.76
+       ],
+       "change_uT": 37.59,
+       "resid_deployed_uT": 9.72,
+       "resid_x70y110_uT": 4.63
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.29,
+        -0.59,
+        44.53
+       ],
+       "change_uT": 50.31,
+       "resid_deployed_uT": 4.37,
+       "resid_x70y110_uT": 3.69
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        0.0,
+        39.55,
+        40.72
+       ],
+       "change_uT": 76.59,
+       "resid_deployed_uT": 15.61,
+       "resid_x70y110_uT": 10.73
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.36,
+        19.63,
+        1.46
+       ],
+       "change_uT": 40.19,
+       "resid_deployed_uT": 12.65,
+       "resid_x70y110_uT": 9.06
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -14.06,
+        19.63,
+        1.46
+       ],
+       "change_uT": 27.38,
+       "resid_deployed_uT": 8.91,
+       "resid_x70y110_uT": 11.28
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        -0.88,
+        0.0,
+        2.05
+       ],
+       "change_uT": 5.08,
+       "resid_deployed_uT": 4.91,
+       "resid_x70y110_uT": 5.0
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        -0.59,
+        39.55,
+        49.51
+       ],
+       "change_uT": 77.26,
+       "resid_deployed_uT": 10.46,
+       "resid_x70y110_uT": 5.89
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        0.0,
+        -0.29,
+        2.05
+       ],
+       "change_uT": 2.75,
+       "resid_deployed_uT": 3.3,
+       "resid_x70y110_uT": 3.13
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.36,
+        40.14,
+        19.63
+       ],
+       "change_uT": 73.31,
+       "resid_deployed_uT": 21.95,
+       "resid_x70y110_uT": 15.19
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        14.36,
+        9.96,
+        59.47
+       ],
+       "change_uT": 71.9,
+       "resid_deployed_uT": 8.08,
+       "resid_x70y110_uT": 5.27
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 50.31,
+     "resid_deployed_median_uT": 10.46,
+     "resid_x70y110_median_uT": 7.19
+    },
+    "middle": {
+     "poses": [
+      {
+       "pose": "open",
+       "q": [
+        17.87,
+        -9.96,
+        25.2
+       ],
+       "change_uT": 57.87,
+       "resid_deployed_uT": 12.83,
+       "resid_x70y110_uT": 5.89
+      },
+      {
+       "pose": "mcp 30",
+       "q": [
+        -0.0,
+        29.0,
+        -0.29
+       ],
+       "change_uT": 42.49,
+       "resid_deployed_uT": 11.35,
+       "resid_x70y110_uT": 6.2
+      },
+      {
+       "pose": "pip 45",
+       "q": [
+        -0.0,
+        0.0,
+        44.53
+       ],
+       "change_uT": 57.92,
+       "resid_deployed_uT": 11.64,
+       "resid_x70y110_uT": 6.86
+      },
+      {
+       "pose": "curl 40/40",
+       "q": [
+        -0.0,
+        38.96,
+        39.55
+       ],
+       "change_uT": 81.04,
+       "resid_deployed_uT": 10.21,
+       "resid_x70y110_uT": 7.77
+      },
+      {
+       "pose": "yaw +15",
+       "q": [
+        14.65,
+        19.63,
+        -0.59
+       ],
+       "change_uT": 40.56,
+       "resid_deployed_uT": 10.57,
+       "resid_x70y110_uT": 5.29
+      },
+      {
+       "pose": "yaw -15",
+       "q": [
+        -13.77,
+        19.92,
+        -0.59
+       ],
+       "change_uT": 37.85,
+       "resid_deployed_uT": 9.26,
+       "resid_x70y110_uT": 6.99
+      },
+      {
+       "pose": "thumb curl",
+       "q": [
+        0.88,
+        0.29,
+        0.29
+       ],
+       "change_uT": 6.73,
+       "resid_deployed_uT": 6.57,
+       "resid_x70y110_uT": 5.91
+      },
+      {
+       "pose": "index curl",
+       "q": [
+        0.29,
+        0.0,
+        -0.29
+       ],
+       "change_uT": 5.29,
+       "resid_deployed_uT": 4.95,
+       "resid_x70y110_uT": 4.83
+      },
+      {
+       "pose": "middle curl",
+       "q": [
+        -0.0,
+        39.26,
+        49.51
+       ],
+       "change_uT": 84.97,
+       "resid_deployed_uT": 12.62,
+       "resid_x70y110_uT": 6.03
+      },
+      {
+       "pose": "mixed A",
+       "q": [
+        14.94,
+        27.54,
+        50.1
+       ],
+       "change_uT": 91.83,
+       "resid_deployed_uT": 16.13,
+       "resid_x70y110_uT": 7.53
+      },
+      {
+       "pose": "mixed B",
+       "q": [
+        -13.48,
+        44.82,
+        29.59
+       ],
+       "change_uT": 71.0,
+       "resid_deployed_uT": 10.15,
+       "resid_x70y110_uT": 8.02
+      }
+     ],
+     "n_moved": 9,
+     "change_median_uT": 57.92,
+     "resid_deployed_median_uT": 11.35,
+     "resid_x70y110_median_uT": 6.86
+    }
+   }
+  }
+ ]
+}
