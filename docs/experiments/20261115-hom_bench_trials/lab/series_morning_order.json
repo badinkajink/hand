@@ -1,0 +1,138 @@
+{
+ "seed": 20261120,
+ "what": "the morning series of 2026-11-20 (the twist ranking's order of 86bc736b6, 21:5x on 11-19): block 1 the ranking test in seeded random order, then the anchor's stage E plan, block 2 the four layouts whose index and middle touch on the CAD spheres in the simulated twists, block 3 the stage E plans of the non-touching layouts; three trials each",
+ "order": [
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "port": 47102,
+   "label": "b1_r179_x60y135g8"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "port": 47103,
+   "label": "b1_r3_x115y160g8"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "port": 47104,
+   "label": "b1_r16_x80y130g15"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "port": 47105,
+   "label": "b1_r40_x85y120g15"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "port": 47106,
+   "label": "b1_r4_x110y155g3"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "port": 47107,
+   "label": "b1_r75_x65y110g0"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "port": 47108,
+   "label": "b1_r15_x90y135g3"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "port": 47109,
+   "label": "b1_r109_x70y90g1"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "port": 47110,
+   "label": "b1_r130_x95y90g14"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "port": 47111,
+   "label": "b1_r163_x75y140g5"
+  },
+  {
+   "block": "b1",
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "port": 47112,
+   "label": "b1_anchor_x70y110g0"
+  },
+  {
+   "block": "b1E",
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "port": 47113,
+   "label": "b1E_anchor_x70y110g0f"
+  },
+  {
+   "block": "b2touch",
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "port": 47114,
+   "label": "b2touch_r2_x115y70g7"
+  },
+  {
+   "block": "b2touch",
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "port": 47115,
+   "label": "b2touch_r5_x105y60g9"
+  },
+  {
+   "block": "b2touch",
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "port": 47116,
+   "label": "b2touch_r1_x135y65g0"
+  },
+  {
+   "block": "b2touch",
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "port": 47117,
+   "label": "b2touch_r144_x85y60g14"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "port": 47118,
+   "label": "b3E_r3_x115y160g8f"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "port": 47119,
+   "label": "b3E_r179_x60y135g8f"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "port": 47120,
+   "label": "b3E_r109_x70y90g1f"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "port": 47121,
+   "label": "b3E_r75_x65y110g0f"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "port": 47122,
+   "label": "b3E_r4_x110y155g3f"
+  },
+  {
+   "block": "b3E",
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "port": 47123,
+   "label": "b3E_r40_x85y120g15f"
+  }
+ ]
+}

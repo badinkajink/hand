@@ -45,11 +45,18 @@ trial. Three sets, run in this order: the 11 plans with HOM's default forces, th
   anywhere. The per-layout sweep is dropped from the series.
 - **The morning start:** `lab/wait_for_lights.py` (pid in `pgrep -af "[w]ait_for_lights"`) checks the cameras from
   07:00 every 5 min and, after three lit checks with the sphere seen, runs hom_series on `lab/series_entries_morning.txt`
-  (the 33 default-force trials in the seeded order, then the anchor's stage E plan
-  `20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json` three times on port 47113), without `--sweep`. The file is
-  read when it fires, so a new order can replace it until then. Log
-  `logs/20261116-hom_trials/20261120-morning_series_seed210748.log`; checks in `.../wait_for_lights.jsonl`. To cancel,
-  kill the watcher's pid.
+  without `--sweep`. The file is read when it fires, so a new order can replace it until then. Log
+  `logs/20261116-hom_trials/20261120-morning_series_seed20261120.log`, one line per trial in
+  `...20261120-series_morning_seed20261120.jsonl`; checks in `.../wait_for_lights.jsonl`. To cancel, kill the watcher's
+  pid.
+- **The morning's order** (the twist ranking's 86bc736b6, 21:5x; `lab/series_morning_order.json`, seed 20261120, 66
+  trials on ports 47102-47123). Along the simulated twists, on the CAD spheres, the index's MCP link and the middle's
+  PIP link touch at (135, 65) g0, (115, 70) g7, (105, 60) g9 and (85, 60) g14 and their stage E plans; on the hand's
+  joints of 11-17 the same check read -2 to -5 mm in all six g13 trials at (105, 70), where the two met, so the hand
+  runs 8-13 mm closer than the simulation for this pair. Block 1, the ranking test: 11 layouts (the seven others and
+  four replacements, (90, 135) g3, (80, 130) g15, (95, 90) g14 and (75, 140) g5) in seeded random order, then the
+  anchor's stage E plan. Block 2: the four touching layouts, labelled `b2touch`. Block 3: the stage E plans of the
+  non-touching layouts. Stage F's CEM plans come after, when they land.
 
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 
