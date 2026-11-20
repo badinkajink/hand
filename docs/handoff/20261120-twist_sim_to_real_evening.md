@@ -1,16 +1,16 @@
 Status: active
 Task: 2026-11-20, owner 11:5x: "we have ~9 hours left of light time ... you deliver me a wonderful chart showing whatever
-sim2real landscape/ranking correspondence we've determined"; owner 12:0x: "this jitter just seems highly problematic.
+sim2real landscape/ranking correspondence we've determined"; owner 11:5x: "this jitter just seems highly problematic.
 smooth control enables more predictable control, im highly confident about this". The owner is writing the paper and
 wants quiet: one message tonight with the page's local path and link.
 Read first: docs/notes/20261120-twist_ranking_decisions.md (every decision of the day, newest last);
 docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html (builder scripts/hom/twist_sim_to_real_page.py);
 docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html (scripts/hom/controller_rematch_page.py);
 docs/experiments/20261115-hom_bench_trials/analysis/20261120-command_jitter_*.py; memory project_controller_rematch_2026_11_20.md.
-State (12:4x):
+State (12:2x):
 - Sim-to-real page v1 built and pushed (61fe8ebd0): 5 layouts, 11 clean trials, rho -0.10; anchor 0.367 vs 0.376.
 - Jitter traced (af94c6028, 40268f626): budget passes joint flicker into targets (45 % reversals vs 17 %). Server flags
-  --budget-joint-tau 0.1 --target-tau 0.04 exist, off; the owner's yes or no is pending (asked 12:2x). Smoothed
+  --budget-joint-tau 0.1 --target-tau 0.04 exist, off; the owner's yes or no is pending (asked 12:1x). Smoothed
   predictions: data/20261120-smoothed_predictions.json (twist ranking), from 20261120-command_jitter_sim.py --predict.
 - Bench (corvus, lab session "Physical model vs GP calibration"): day order of 170 trials, 60 fps since 11:5x, rows carry
   "camera"; the lab will not switch the smoothing without the owner's yes.
