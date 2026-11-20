@@ -8,8 +8,8 @@ pad's surface by a Gaussian of --sigma mm in (y, z). The boards' field is linear
 contact spread over a patch should read d = sum_e G(p_e) f_e over the patch's elements. G changes sign within a few mm
 (chip 1's y goes from 0 at the apex to -19 uT/N 6 mm proximal on tip 3), so a long patch cancels much of it.
 
-The patch: the v4b pad's surface (tcd_ell7.4x8.5x11x22: semi-axes 7.4 across, 8.5 deep, 11 distal and 22 proximal of
-the apex at z 10.55 mm from the distal end face) on a 0.25 mm grid, a flat plate whose inward normal in the pad frame is
+The patch: the v4b pad's surface (tcd_ell7.4x8.5x11x22: semi-axes 7.4 across, 8.5 deep, 22 proximal and 11 distal of
+the apex at z 10.86 mm from the proximal mount face) on a 0.25 mm grid, a flat plate whose inward normal in the pad frame is
 (-1, -t_y, -t_z) pushed --delta mm into it (or a sphere of radius R), each element's force proportional to its overlap
 (a Winkler bed, as the simulator's pads). Over a grid of tilts, the prediction's cosine with the measured field per
 newton g (sim/20261119-arm_press_boards.py) and its magnitude; the best tilt's patch (its extent along z and y).
@@ -29,7 +29,10 @@ CORR = ROOT / "docs/experiments/20261022-ur5_tip_calibration/data/20261105-viewe
 RIG = ROOT / "docs/experiments/20261030-inverted_rig_seat_block/data/holds"
 CAL = {1: [CORR / "20261028-spherev3id1_twists"], 2: [CORR / "20261029-spherev3id2"],
        3: [CORR / "20261030-spherev3id3", RIG / "20261104-145215-id3pts11"]}   # tip 3's rig rod presses reach z < 4 mm
-AY, AX, AZD, AZP, ZA = 7.4, 8.5, 11.0, 22.0, 10.55       # the pad's semi-axes (mm) and the apex's z from the end face
+AY, AX, AZD, AZP, ZA = 7.4, 8.5, 11.0, 22.0, 10.86       # the pad's semi-axes (mm) and the apex's z from the mount face
+# The holds tables' pad frame runs z from the proximal mount face (0) to the distal end face (21.41): the "tip" region
+# sits at z 19-21 with its normal along +z. So the flat 22 mm half is proximal (z < 10.86), the 11 mm half distal.
+# (Until 17:4x on 11-19 this script had the halves the other way round.)
 
 
 def cal_points(tip):
@@ -64,7 +67,7 @@ def surface(step=0.25):
     y = np.arange(-AY, AY + 1e-9, step)
     z = np.arange(0.0, 21.41 + 1e-9, step)
     Y, Z = np.meshgrid(y, z)
-    az = np.where(Z < ZA, AZD, AZP)
+    az = np.where(Z < ZA, AZP, AZD)
     r = 1.0 - (Y / AY) ** 2 - ((Z - ZA) / az) ** 2
     m = r > 0
     X = AX * np.sqrt(np.where(m, r, 0.0))
@@ -111,7 +114,7 @@ def main():
             sup = ws > 0.5
             best = None
             sphere = "sphere" in pr["indenter"]
-            grid = ([(ty, tz, dl) for ty in np.linspace(-0.12, 0.12, 9) for tz in np.linspace(-0.35, 0.35, 29)
+            grid = ([(ty, tz, dl) for ty in np.linspace(-0.15, 0.15, 7) for tz in np.linspace(-0.9, 0.9, 61)
                      for dl in (0.15, 0.3, 0.5, 0.8)] if not sphere else
                     [(cy, cz, dl) for cy in np.linspace(-3, 3, 13) for cz in np.linspace(4, 18, 29) for dl in (0.15, 0.3, 0.5)])
             for p1, p2, dl in grid:

@@ -1,0 +1,185 @@
+{
+ "what": "The HEX-E against a dead weight (2026-11-19 17:4x; the owner hung a 200 g steel mass, with 4-10 g of cable, from the index fingertip while the arm stayed parked over the session's start). Reads the recorder's chunks (lab/day/20261119_record_hexe.py, 100 Hz, in logs/20261119-sr2_dead_weight/, 3-5 MB each, rsynced), finds the quiet plateaus (1 s means whose x and y spread stays under 0.12 N for 3 s) and the steps between them, and writes their sizes against m g with an HTML paragraph for the page (scripts/fingertip/fingertip_board_force_place_page.py).",
+ "mass_g": 200.0,
+ "cable_g": [
+  4.0,
+  10.0
+ ],
+ "weight_N": [
+  2.001,
+  2.059
+ ],
+ "samples": 150034,
+ "span": [
+  "17:31:01",
+  "17:56:05"
+ ],
+ "plateaus": [
+  {
+   "span": "17:31:05-17:32:43",
+   "seconds": 98,
+   "F_N": [
+    1.783,
+    -2.831,
+    672.077
+   ],
+   "T_Nm": [
+    1.4979,
+    -1.5154,
+    -0.0978
+   ]
+  },
+  {
+   "span": "17:33:36-17:34:03",
+   "seconds": 27,
+   "F_N": [
+    1.777,
+    -2.836,
+    672.178
+   ],
+   "T_Nm": [
+    1.5021,
+    -1.5149,
+    -0.0984
+   ]
+  },
+  {
+   "span": "17:34:13-17:38:52",
+   "seconds": 279,
+   "F_N": [
+    1.777,
+    -2.837,
+    672.12
+   ],
+   "T_Nm": [
+    1.5025,
+    -1.5149,
+    -0.0987
+   ]
+  },
+  {
+   "span": "17:39:52-17:41:48",
+   "seconds": 116,
+   "F_N": [
+    1.753,
+    -2.851,
+    672.098
+   ],
+   "T_Nm": [
+    1.5031,
+    -1.5212,
+    -0.0994
+   ]
+  },
+  {
+   "span": "17:43:01-17:47:17",
+   "seconds": 256,
+   "F_N": [
+    1.918,
+    -2.793,
+    673.24
+   ],
+   "T_Nm": [
+    1.5899,
+    -1.4342,
+    -0.1074
+   ]
+  },
+  {
+   "span": "17:47:19-17:56:05",
+   "seconds": 526,
+   "F_N": [
+    1.924,
+    -2.797,
+    673.161
+   ],
+   "T_Nm": [
+    1.5912,
+    -1.4324,
+    -0.107
+   ]
+  }
+ ],
+ "steps": [
+  {
+   "from_": "17:31:05-17:32:43",
+   "to": "17:33:36-17:34:03",
+   "dF_N": [
+    -0.006,
+    -0.005,
+    0.101
+   ],
+   "dT_Nm": [
+    0.0042,
+    0.0005,
+    -0.0006
+   ],
+   "size_N": 0.101
+  },
+  {
+   "from_": "17:33:36-17:34:03",
+   "to": "17:34:13-17:38:52",
+   "dF_N": [
+    -0.0,
+    -0.002,
+    -0.058
+   ],
+   "dT_Nm": [
+    0.0004,
+    -0.0,
+    -0.0003
+   ],
+   "size_N": 0.058
+  },
+  {
+   "from_": "17:34:13-17:38:52",
+   "to": "17:39:52-17:41:48",
+   "dF_N": [
+    -0.024,
+    -0.013,
+    -0.022
+   ],
+   "dT_Nm": [
+    0.0007,
+    -0.0063,
+    -0.0007
+   ],
+   "size_N": 0.035
+  },
+  {
+   "from_": "17:39:52-17:41:48",
+   "to": "17:43:01-17:47:17",
+   "dF_N": [
+    0.165,
+    0.057,
+    1.141
+   ],
+   "dT_Nm": [
+    0.0868,
+    0.0871,
+    -0.0079
+   ],
+   "size_N": 1.155
+  },
+  {
+   "from_": "17:43:01-17:47:17",
+   "to": "17:47:19-17:56:05",
+   "dF_N": [
+    0.006,
+    -0.004,
+    -0.079
+   ],
+   "dT_Nm": [
+    0.0013,
+    0.0018,
+    0.0004
+   ],
+   "size_N": 0.079
+  }
+ ],
+ "ratio_range": [
+  0.561,
+  0.577
+ ],
+ "html": "<p>A dead weight checks the HEX-E itself. The owner hung a 200 g steel mass, with 4-10 g of cable, from the index fingertip. The arm stayed parked. The weight is 2.00-2.06 N. The HEX-E, at 100 Hz, stepped between quiet plateaus as follows:</p><ul><li>17:39:52-17:41:48 to 17:43:01-17:47:17: a step of 1.16 N (dF [0.165, 0.057, 1.141] N)</li></ul><p>That is 0.56-0.58 of the weight. The board comparisons above do not depend on it, because the calibrations used the same sensor and reader. But absolute HEX-E forces would be about 1.7-1.8 times larger in true newtons. That touches the pads&#8217; modulus fit, the stall torques of the S3 presses, and the 3 N rule as applied. With that factor, the index MCP&#8217;s stall (2 N at 67 mm) becomes about 0.22 N m. That is the SCS0009&#8217;s rated stall torque.</p><p>Whether the sensor read this low in October is open, and the comparisons depend on it. If it did, the calibrations share the arm presses&#8217; units, and the ratios above stand. If its scale changed after the calibrations, every ratio to the calibration shrinks by the same factor. The PIP 20 presses would then read about half their calibration per true newton. The HEX-E was recabled to its own network on 11-16. Two weak hints point opposite ways. Its untared z barely moved: 651.25 N with the calibration tool on 10-22, 672.1 N with the hand now. A change of the box&#8217;s scale would have pulled it toward 390 N. But the October gravity sweep weighed that tool at 160 g, as the payload estimates of sensor and tool expect. At today&#8217;s scale the tool would have weighed 275 g.</p><p>A test without the HEX-E would decide it. A curled finger&#8217;s pad faces up, so a weighed mass can rest on it through a small ball at the apex. The boards&#8217; field for that known force can then be compared with the calibration&#8217;s (tip 3: about 13.5 uT per calibration newton).</p>"
+}

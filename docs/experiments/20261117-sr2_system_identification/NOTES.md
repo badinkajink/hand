@@ -453,3 +453,32 @@ post, you can also run experiments on the sphere".
   sphere's top. Sideways, the stem would tip it. The owner will not set up a fixed sphere tonight (17:2x, relayed).
 - At 17:30 the hand parked over the start and the post was cleared for removal (the owner's question, relayed by the
   coordinating session). It still stood in the cameras' frames at 17:34.
+
+## 2026-11-19, 17:31-17:55: the HEX-E against a dead weight, and the large tag blocks
+
+- **Dead weight** (owner, 17:4x: "ive acquired a 200g mass + some 4-10g in cable mass", then "ok there is a 200g mass
+  precariously hanging on the index fingertip"). The arm stayed parked over the start. `lab/day/20261119_record_hexe.py`
+  recorded the HEX-E at 100 Hz (`logs/20261119-sr2_dead_weight/`, 3-5 MB, rsynced). `sim/20261119-hexe_dead_weight.py`
+  finds the plateaus (`data/s3/20261119-hexe_dead_weight.json`).
+  - Between quiet plateaus (17:39:52-17:41:48 and 17:43:01-17:47:17) the force stepped (0.165, 0.057, 1.141) N,
+    |dF| 1.155 N. The weight is 2.00-2.06 N, so the HEX-E reads 0.56-0.58 of it. The camera frame of 17:48 shows the
+    mass hanging in free air.
+  - The torque stepped (0.087, 0.087, -0.008) N m. At the index's place in the hand model that is about 1.36 N of
+    weight, 10 deg off in direction.
+  - Repeats (lift and release) were asked for; none by 17:55.
+  - The board comparisons are in the same sensor's newtons as the calibrations, so they stand only if the HEX-E read the
+    same in October. The untared z argues for that: 651.25 N with the 160 g calibration tool on 10-22, 672.1 N with the
+    hand now, where a 0.6 scale change in the box would give about 390 N. The October gravity sweep's 160 g tool, matching
+    the payload estimates, argues against it.
+  - With 1/0.57 the S3 stall torques meet the SCS0009 datasheet (MCP 0.22 N m, yaw 0.24 N m; hand-4a, 17:5x).
+  - A test without the HEX-E: rest the weighed mass on an upturned pad (a curled finger's pad faces up) through a small
+    ball at the apex, and compare the boards with the calibration there.
+- **Large tag blocks** (owner via hand-9b, 17:2x; `docs/experiments/20261115-hom_bench_trials/lab/block_print_check.py`,
+  no motion; `logs/20261119-block_print_check/`). Two views, the owner turning the blocks in between.
+  - Every face of C45 (ids 32-37) and S67 (38-43) decodes with no bits corrected, except 37 and 38. Those two were seen
+    only edge-on (75-77 deg), with 1-2 bits corrected and margins 19-21.
+  - C45's faces 35-37 fit the CAD map at 1.30 px rms, against 0.59 px for 32-34 and 0.65 px for S67's 39-41. That is
+    about 0.2 mm at 6 px/mm, the owner's layer shift.
+  - Give C45 its own fitted map before tracking. Faces 37 and 38 still need a frontal view.
+- Page: `20261119-fingertip_board_force_by_contact_place.html`, by `scripts/fingertip/fingertip_board_force_place_page.py`
+  (built on corvus with DOCS_REFRESH=0; the docs index needs a refresh on the workstation).
