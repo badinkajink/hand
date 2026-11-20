@@ -54,6 +54,19 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   `approach --fine --fine-max 150`. The rows carry `ready_tilt_deg`, and the putdown args add `--touch-lat 3`. Done by
   hand at 11:07-11:10: the 36 deg levelling went in three 12 deg steps, the HEX-E at 4.8-5.4 N of 12. The series
   restarted at 11:12 from entry 4 (`cut -d" " -f4-`, A1_anchor_x70y110g0_t1).
+- **11:19-11:30, A1_r3_x115y160g8_t1 and the reversed twist.** The anchor's three trials started at 1.1, 0.6 and
+  0.5 deg, the series levelling the hand itself before t2 and t3 (15.5 and 16.1 deg, in two 7.8 deg steps at 3.3 N at
+  most). On (115, 160) g8, t1 twisted to 74 deg and ended on the trial's drift limit: the sphere was 26.7 mm up and
+  30.5 mm off in the grasp. The putdown refused the 100.6 mm descent (`--max-down 80`). The owner, at the bench, asked
+  to play the twist backwards ("just for fun"). `lab/reverse_twist.py` streams a record's targets last-first at half
+  speed, clipped to the safe range, the arm still. By 10 s the sphere's block had swung back near its start. In the
+  last second the fingers opened to the trial's first target, and the sphere dropped about 100 mm and fell over. The
+  owner stood it up: "ok yea that didn't work". t1's row was added by hand.
+- **The owner's release rule (11:3x):** "it's fine to lower there, slowly release the fingers, and ok if not released
+  fully to zero, just while it is collision free, and pray for a good reset". The series' putdown args add
+  `--max-down 150`. When neither the path to zero nor the flex-back is clear, `letgo` now takes the fingers along
+  the path to zero as far as it stays clear (`partial_zero`, in tenths), slowly. If no tenth is clear, the fingers stay
+  open; either way the watched lift follows. Restarted at 11:31 from entry 8 (A1_r3_x115y160g8_t2).
 
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 

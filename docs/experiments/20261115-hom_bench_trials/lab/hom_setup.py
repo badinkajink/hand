@@ -1343,6 +1343,17 @@ def ramp_joints(a, st, j_from, j_to, seconds):
     return sim_joints(st.state())
 
 
+def partial_zero(a, plan, j, caps, T_BP, info, h):
+    """The largest tenth u of the fingers' straight path from j to zero whose part from j stays clear of the object
+    (path_away, --zero-margin) and --table-clear above the table, or None."""
+    for u in np.arange(0.9, 0.05, -0.1):
+        tgt = {f: {k: j[f][k] + (ZERO[f][k] - j[f][k]) * float(u) for k in j[f]} for f in j}
+        ok, _, _ = path_away(plan, j, tgt, caps, a.zero_margin)
+        if ok and release_check(plan, j, tgt, T_BP, info["p_B"], info["q_B"], h, a)["table_mm"] >= a.table_clear:
+            return float(u)
+    return None
+
+
 def flex_back_release(a, plan, st, arm, meas, h, j, p_m, q_m, info):
     """The fallback when the fingers' straight path to zero is refused, the object seated on the table (owner,
     2026-11-17 18:5x: "if the object is already stably down, then moving the flexion joints far back (to 0 or even
@@ -1364,7 +1375,19 @@ def flex_back_release(a, plan, st, arm, meas, h, j, p_m, q_m, info):
           flush=True)
     note({"cmd": "letgo", "step": "flex back check", "ok": ok and ok_t, **rec, "table_mm": tab["table_mm"]})
     if not (ok and ok_t):
-        raise SystemExit("not flexing back either: the hand holds its open pose over the object; look")
+        # owner, 2026-11-20 11:3x: "slowly release the fingers, and ok if not released fully to zero, just while it is
+        # collision free, and pray for a good reset": the fingers along their straight path to zero only as far as it
+        # stays clear (path_away and --table-clear, in tenths of the path), slowly; then letgo's watched lift
+        u = partial_zero(a, plan, j, caps, arm.T_BP(), info, h)
+        if u is None:
+            print("   no tenth of the path to zero stays clear: the fingers stay open for the lift", flush=True)
+            note({"cmd": "letgo", "step": "partial zero", "u": 0.0})
+            return
+        tgt_u = {f: {k: j[f][k] + (ZERO[f][k] - j[f][k]) * u for k in j[f]} for f in j}
+        j1 = ramp_joints(a, st, j, tgt_u, a.flex_s)
+        print(f"   {u:.0%} of the path to zero, as far as it stays clear: " + show_pose("now", j1), flush=True)
+        note({"cmd": "letgo", "step": "partial zero", "u": u, "after": j1})
+        return
     j1 = ramp_joints(a, st, j, tgt, a.flex_s)
     print("   " + show_pose("flexed back", j1), flush=True)
     T_BP = arm.T_BP()
