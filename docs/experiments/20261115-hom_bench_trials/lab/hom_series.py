@@ -182,12 +182,14 @@ def plan_pinch(a, base):
 
 
 def lift_clear(a, plan):
-    """The hand straight up until the fingers clear the object, twice (a lift from a contact stops when the force it
-    started under lets go), then the fingers straight (zero, checked)."""
-    for _ in range(2):
-        run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--max-lift", "150", "--go"], 180)
+    """The hand out of a low, tight place round a lying object: straight up to 200 mm in base z without the tracker
+    (hom_setup.py up), the fingers straight (zero, checked), then levelled in steps at the grasp's height + 80 mm (place);
+    the pick-ups of 2026-11-20 that worked all started from a level hand."""
+    run([PY, "hom_setup.py", "up", "--to-z", "200", "--go"], 120)
     run([PY, "hom_setup.py", "zero", "--plan", plan, "--object", a.object, "--map", a.map, "--go", "--video-dir",
          a.video_dir], 120)
+    run([PY, "hom_setup.py", "place", "--plan", plan, "--map", a.map, "--max-level", "45", "--go", "--video-dir",
+         a.video_dir], 180)
 
 
 def pickup(a, plan, label):
@@ -204,25 +206,28 @@ def pickup(a, plan, label):
     os.environ["HOM_CAM_MODE"] = "1920x1080@30"
     os.environ.pop("HOM_CAM_EXPOSURE", None)
     try:
-        best = plan_pinch(a, plan)
-        if best is None:
+        lift_clear(a, plan)
+        # always at (105, 70) with its pinch plan of 11-19, after a push toward the table's centre when the sphere lies
+        # more than 40 mm from it (14:4x: a pinch that planned at the trial's own layout, (110, 155), put a fingertip on
+        # a ball lying among the cables, where the recovery by hand at (105, 70) with a push had worked twice)
+        if station_plan_file() != PICKUP_LAYOUT.name:
             rc, out = run([PY, "hom_setup.py", "layout", "--plan", str(PICKUP_LAYOUT), "--go", "--video-dir",
                            a.video_dir], 300)
             if rc != 0 or "applied True" not in out:
                 return "the layout for the pick-up failed"
-            rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14"], 120)
-            m = re.search(r"([\d.]+) mm from the table's centre", out)
-            if m and float(m.group(1)) > 40.0:
-                rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14", "--go",
-                               "--video-dir", a.video_dir], 240)
-                if rc != 0 or "PUSHED" not in out:
-                    lift_clear(a, str(PICKUP_LAYOUT))
-                else:
-                    run([PY, "hom_setup.py", "zero", "--plan", str(PICKUP_LAYOUT), "--object", a.object, *pm, "--go",
-                         "--video-dir", a.video_dir], 120)
-            best = plan_pinch(a, PICKUP_BASE)
-            if best is None:
-                return "no pick-up plan at (105, 70) either"
+        rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14"], 120)
+        m = re.search(r"([\d.]+) mm from the table's centre", out)
+        if m and float(m.group(1)) > 40.0:
+            rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14", "--go",
+                           "--video-dir", a.video_dir], 240)
+            if rc != 0 or "PUSHED" not in out:
+                lift_clear(a, str(PICKUP_LAYOUT))
+            else:
+                run([PY, "hom_setup.py", "zero", "--plan", str(PICKUP_LAYOUT), "--object", a.object, *pm, "--go",
+                     "--video-dir", a.video_dir], 120)
+        best = plan_pinch(a, PICKUP_BASE)
+        if best is None:
+            return "no pick-up plan at (105, 70)"
         for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "4"], 400),
                                         ("lift", "LIFTED", [], 400), ("slip", "SLIP DONE", [], 500)):
             rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, *extra, "--go", "--video-dir", a.video_dir],

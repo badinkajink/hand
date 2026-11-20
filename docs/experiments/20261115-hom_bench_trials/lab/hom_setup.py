@@ -1531,6 +1531,34 @@ def letgo_sequence(a, plan, st, arm, meas, h):
     return 0
 
 
+def cmd_up(a):
+    """The palm straight up in base z to --to-z mm, without the tracker, the HEX-E guarding (2026-11-20: out of a low,
+    tight place round a lying sphere before anything turns or moves sideways). A stop on the release of a force the hand
+    started under is followed by one more try from the new reference."""
+    arm = Arm(a.ur_ft, a.blank_s)
+    try:
+        z0 = float(arm.T_BP()[2, 3])
+        dz = a.to_z - z0
+        print(f"palm at z_B {z0:.1f} mm -> {a.to_z:.1f}: {dz:+.1f} mm", flush=True)
+        if dz <= 0.5 or not a.go:
+            print(f"UP: palm at z_B {z0:.1f} mm", flush=True)
+            return 0
+        arm.connect(a.stop_n is not None)
+        for k in range(2):
+            left = a.to_z - float(arm.T_BP()[2, 3])
+            if left <= 0.5:
+                break
+            T = arm.T_BE()
+            T[2, 3] += left
+            why, _ = arm.move(T, a.v, a.acc, a.stop_n, left / (1e3 * a.v) + 6.0, f"up {left:.1f} mm")
+            if why and k == 1:
+                raise SystemExit(f"the rise stopped: {why}")
+        print(f"UP: palm at z_B {arm.T_BP()[2, 3]:.1f} mm", flush=True)
+    finally:
+        arm.close()
+    return 0
+
+
 def cmd_letgo(a):
     """release -> straighten -> lift on its own, after any touchdown or a putdown that stopped with the object on the
     table (letgo_sequence), under one tracker (one recording with --video-dir). It refuses when the object's block is
@@ -1730,6 +1758,10 @@ def main():
             p.add_argument("--clear-up", type=float, default=60.0, help="--rise-open: mm up along z_P after zero")
             _letgo_args(p)
             _centre_args(p)
+    p = sub.add_parser("up")
+    common(p, plan=False)
+    p.add_argument("--to-z", type=float, default=200.0, help="mm of the palm in base z")
+    p.add_argument("--v", type=float, default=0.01)
     p = sub.add_parser("letgo")
     common(p)
     p.add_argument("--object", choices=("cylinder", "sphere"), required=True)
@@ -1753,7 +1785,7 @@ def main():
     a = ap.parse_args()
     return {"status": cmd_status, "diag": cmd_diag, "torque-on": cmd_torque_on, "open": cmd_open, "zero": cmd_zero, "layout": cmd_layout,
             "place": cmd_place, "approach": cmd_approach, "release": cmd_release, "ready": cmd_ready,
-            "putdown": cmd_putdown, "letgo": cmd_letgo}[a.cmd](a)
+            "putdown": cmd_putdown, "letgo": cmd_letgo, "up": cmd_up}[a.cmd](a)
 
 
 def _letgo_args(p):
