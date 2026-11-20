@@ -328,10 +328,28 @@ def sections(N, F, P, link, L):
     pm_v = lambda ks: [PMR[p["run"], p["rep"]]["pattern_slope"] for p in ap_k(ks)]  # noqa: E731
     sup_v = lambda ks: [SUP[p["run"], p["rep"]]["cos"] for p in ap_k(ks)]  # noqa: E731
     pr = lambda v, f: (lambda a, b: a if a == b else f"{a} to {b}")(f.format(min(v)), f.format(max(v)))  # noqa: E731
-    pr1, pr2 = (lambda v: pr(v, "{:.1f}")), (lambda v: pr(v, "{:.2f}"))   # the lab page's rounding
+    pr1, pr2, pr3 = (lambda v: pr(v, "{:.1f}")), (lambda v: pr(v, "{:.2f}")), (lambda v: pr(v, "{:.3f}"))   # the lab page's rounding
     (ap_tip,) = {p["tip"] for p in ap_k(P20)}
     ap_t = sorted(f"{r['run'][9:11]}:{r['run'][11:13]}" for r in APJ)
     (c20,) = {f"{x:.2f}" for x in ap_v(P20, "best_cos")}
+    # the lab's sensing analyses of 19 November (a482d935, 27dab96a, 8141686b): the calibration holds' field per newton by
+    # indenter at one place, the shared GP's recipe with a session or a tip held out, the twists' field beyond the force,
+    # and the HEX-E against a dead weight (dd23458f, 01fbfb32)
+    PSZ = jl(IDENT / "data/s3/20261119-board_patch_size_calibration.json")
+    psz = lambda ind, k: [v[ind][k][1] for v in PSZ.values() if ind in v]  # noqa: E731   the median of each tip
+    psz_ids = lambda ind: [k.split(" ")[0] for k, v in PSZ.items() if ind in v]  # noqa: E731
+    CPR = jl(IDENT / "data/s3/20261119-board_contact_place_rig.json")["runs"]
+    cpr = lambda prot, k="place_mm", q="median": [r["summary"]["all"][k][q] for r in CPR if r["protocol"] == prot]  # noqa: E731
+    cpf = lambda b: [r["summary"]["by_force_N"][b]["place_mm"]["median"] for r in CPR  # noqa: E731
+                     if r["protocol"] == "session left out"]
+    TOW = [r["board_gp"]["0.1-0.5"]["toward_share"] for r in jl(IDENT / "data/s3/20261119-direction_gp_hand.json")["rig"]]
+    TOW = [x for x in TOW if x is not None]   # the sessions with holds at 0.1-0.5 N
+    assert len(cpr("session left out")) == 7 and len(TOW) >= 5
+    TWR = jl(IDENT / "data/s3/20261119-board_twist_residual.json")["by_turn_and_load"]
+    tw_at = lambda a: [r["size_uT_median"] for r in TWR if r["turn_deg"] == a]  # noqa: E731   over the loads
+    DW = jl(IDENT / "data/s3/20261119-hexe_dead_weight.json")
+    dw_steps = [x["size_N"] for x in DW["steps"] if x["size_N"] > 1.0]
+    assert len(dw_steps) == 2 and all(k in DW["html"] for k in ("651.25 N", "672.1 N", "275 g", "390 N")), "the dead weight's hints"
     ap_rows = [[f"{f.capitalize()}, v3 ID {ap_k([(f, a)])[0]['tip']}",
                 "Tag" if ap_k([(f, a)])[0]["indenter"].startswith("tag") else "Taped", str(a), str(len(ap_k([(f, a)]))),
                 pr1(ap_v([(f, a)], "field_per_N_uT")), pr2(ap_v([(f, a)], "best_cos")), pr2(ap_v([(f, a)], "ratio")),
@@ -360,7 +378,7 @@ def sections(N, F, P, link, L):
         f"them its contacts are placed {min(wo):.2f}–{max(wo):.2f} mm off, and by another tip's GP "
         f"{min(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f}–{max(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f} mm "
         f"off (Section 12). Pooled with the other v3 tips' holds, v3 IDs 4 to 6 go from {plm(PL_PTS, 'own')} to "
-        f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered. On the SR2 hand, "
+        f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). The boards do not sense torsion (Section 11). On the SR2 hand, "
         "the boards' field per newton of the HEX-E's force depended on where a plate met the pad. On the pad's distal "
         f"part it was {pr2(ap_v(P20, 'ratio')).replace(' to ', '–')} of the calibration's, and the force from the "
         f"trials' GP was {pr2(ap_e(P20)).replace(' to ', '–')} of the HEX-E's. Presses on the tips' sides did not change the boards' "
@@ -406,7 +424,8 @@ def sections(N, F, P, link, L):
         f"{gmx('location_mm', GM_PTS, '{:.2f}', GM_MODELS[:1]).replace('–', '-')} mm at held-out points and "
         f"{gmx('location_mm', GM_G, '{:.2f}', GM_E).replace('–', '-')} against {gma('gp', GM_G)[0]:.2f} mm in "
         f"coverage gaps, where the GP's uncertainty ranks the errors better (Spearman {gmu('gp', GM_G)[0]:.2f} against "
-        f"{rg([gmu(m, GM_G)[0] for m in GM_E]).replace('–', '-')}); torsion not recovered "
+        f"{rg([gmu(m, GM_G)[0] for m in GM_E]).replace('–', '-')}); torsion not sensed (in the twists the field "
+        "beyond the force grew with the turn alone) nor recovered "
         f"(GP r {tw4['gp_twists']['r']:.2f}, "
         f"{tw5['gp_twists']['r']:.2f} and {tw2['gp_twists']['r']:.2f} on the twists; on v3 IDs 2 and 3 no better than "
         f"predicting none); a GP trained on another tip gives "
@@ -1101,7 +1120,12 @@ def sections(N, F, P, link, L):
         f"{tw4['gp_presses_and_twists']['r']:.2f} and {tw5['gp_presses_and_twists']['r']:.2f}. On v3 ID 1 the torsion's "
         f"median magnitude is {tw4['hexe_1N']['median_Nmm']:.2f} N mm at 1 N and {tw4['hexe_5N']['median_Nmm']:.2f} N mm "
         f"at 5 N. On v2 ID 1 it is {tw5['hexe_1N']['median_Nmm']:.2f} and {tw5['hexe_5N']['median_Nmm']:.2f} N mm "
-        "(Table 11).</p>"
+        "(Table 11). On 19 November the twists of every v3 tip's sphere session were compared with a local linear model "
+        "of the field from the 3D force, fitted to the same session's presses and slides near the twist's place ("
+        + link(str(L["sensing"]) + "#torsion", "the page on contact sensing") + ", Section 7). Beyond that model the field "
+        f"grew with the turn, to {pr1(tw_at(15.0))} µT at 15°, alike at loads of 1 to 5 N. The torsion of a stuck "
+        "patch grows about 5 times from 1 to 5 N and that of a slipping patch about 8 times. This field is therefore "
+        "taken as the board turning in the room's field, and the boards do not sense torsion.</p>"
         + P.table(["Quantity", "Four magnets, v3 ID 1", "Five magnets, v2 ID 1"],
                   [[f"Median torsion at {f} N (N mm)", f"{tw4['hexe_' + k]['median_Nmm']:.2f}",
                     f"{tw5['hexe_' + k]['median_Nmm']:.2f}"] for f, k in (("1", "1N"), ("2.5", "2.5N"), ("5", "5N"))]
@@ -1426,6 +1450,17 @@ def sections(N, F, P, link, L):
         f"{two(lambda t: sh(t, 'gp_loc_tall_mm'))} mm off. The cause of the difference is open. Both indenters, the rod "
         "and the holder come off the table for the inverted rig's strip of tip seats ("
         + link(L["rig"], "inverted rig page") + ", Section 8).</p>"
+        "<p><b>Contact size.</b> On 19 November the calibration's indenters were compared at the same place and force ("
+        + link(str(L["place"]) + "#calibration", "the page on the boards by contact place") + ", Section 2). On v3 IDs "
+        f"{' and '.join(psz_ids('sphere R2'))} the R 2 mm sphere changed the board by {pr2(psz('sphere R2', 'field_ratio'))} "
+        "times the R 5 mm sphere's field per newton, at the median. The rod changed it by "
+        f"{pr2(psz('rod R12.5', 'field_ratio'))} times on IDs {', '.join(psz_ids('rod R12.5')[:-1])} and "
+        f"{psz_ids('rod R12.5')[-1]}. The cosines of their patterns with the R 5 sphere's were "
+        f"{pr3(psz('sphere R2', 'cos_other'))} for the small sphere and {pr3(psz('rod R12.5', 'cos_other'))} for the rod. "
+        f"Between repeats of the R 5 sphere they were {pr3(psz('rod R12.5', 'cos_sphere_self'))}. Per newton, the "
+        f"R 2 sphere sank {pr2(psz('sphere R2', 'depth_ratio'))} times as far as the R 5 sphere, near the 1.36 of "
+        f"Hertz contact. The rod sank {pr2(psz('rod R12.5', 'depth_ratio'))} times as far. The field per newton thus does not "
+        "depend on the size of a small patch. The rod's line contact changes its pattern a little.</p>"
         f"<p><b>Robot time.</b> v3 ID 2's suite took {suite:.1f} h of robot time. Its slides took "
         f"{hrs('slide'):.1f} h and its touch-offs {hrs('touch-off'):.1f} h. The twists and rolls took "
         f"{hrs('twist', 'roll'):.1f} h. A suite of 10.7 h is proposed on the calibration motions page, in its Section "
@@ -2034,6 +2069,15 @@ def sections(N, F, P, link, L):
         "were still falling with all points in training. From 0.7 to all of the points, the GP's error falls by "
         f"{gc_fall(DT, 'gp')} mm on v3 IDs 1 to 3. On IDs 4 to 6 it falls by {gc_fall(RGT, 'gp')} mm. The ensemble's "
         f"error falls by {gc_fall(DT, 'mlp')} mm and by {gc_fall(RGT, 'mlp')} mm on the same tips.</p>"
+        "<p>On 19 November the shared GP's recipe was refitted with each of seven sessions of v3 IDs 1 to 3 left out. "
+        "Each left-out session's presses, slides, rolls and twists were then predicted ("
+        + link(str(L["sensing"]) + "#rig", "the page on contact sensing") + ", Section 5). The median location error was "
+        f"{pr2(cpr('session left out'))} mm, and the 90th percentile {pr2(cpr('session left out', q='p90'))} mm. The "
+        f"normal's median error was {pr1(cpr('session left out', 'normal_deg'))}°, and the force's direction "
+        f"{pr1(cpr('session left out', 'force_dir_deg'))}°. With the whole tip left out, the median location error was "
+        f"{pr2(cpr('tip left out'))} mm. With a session left out it was {pr2(cpf('0.1-0.5'))} mm at 0.1 to 0.5 N, and "
+        f"{pr2(cpf('1.0-2.0'))} mm from 1 to 2 N. Below 0.5 N, {100 * min(TOW):.0f} to {100 * max(TOW):.0f} % of the "
+        "errors pointed toward the GP's mean place, near the pad's apex.</p>"
         + P.fig(20, F["gp_mlp_curve"], "The board GP and the MLP ensemble of 64 units a layer against the number of "
                 "training holds, on the splits of the data curves of Sections 14 and 15. (a) v3 IDs 1 to 3 on the finger. "
                 "(b) v3 IDs 4 to 6 on the inverted rig, each tip's sessions pooled. Location error over the held-out holds of "
@@ -2484,6 +2528,16 @@ def sections(N, F, P, link, L):
 
     body = (
         "<p>The HEX-E is a weak reference. Its $F_z$ channel reads 0.78–0.87 of its other axes' gain in two gravity fits. "
+        f"On 19 November a {DW['mass_g']:g} g mass hung from the SR2 hand's index fingertip, with {DW['cable_g'][0]:g} "
+        f"to {DW['cable_g'][1]:g} g of cable ("
+        + link(str(L["place"]) + "#hexe", "the page on the boards by contact place") + ", Section 7). The arm stood "
+        "parked. Its weight is "
+        f"{DW['weight_N'][0]:.2f} to {DW['weight_N'][1]:.2f} N. The HEX-E's force stepped by {dw_steps[0]:.2f} N when "
+        f"the mass went on and by {dw_steps[1]:.2f} N when it came off, {DW['ratio_range'][0]:.2f} to "
+        f"{DW['ratio_range'][1]:.2f} of the weight. Whether it read as low in October is open, and every force on this "
+        "page is in its newtons. Its untared vertical force was 651.25 N with the calibration tool on 10-22 and 672.1 N "
+        "with the hand on 11-19. At 0.6 of its October scale it would have read about 390 N. In the gravity sweep of "
+        "October the tool weighed 160 g, its payload estimate. At the dead weight's scale it weighs 275 g. "
         "Its link was lost nine times in the robot's logs since 10-25, which cover 62.1 h in 23 sessions ("
         + P.code("docs/experiments/20261022-ur5_tip_calibration/20261030-hexe_losses/") + "). A loss is a gap of more "
         "than 1 s in its samples while the arm runs. On 10-30 the link dropped at 00:07, after 46 of v3 ID 3's 101 tall "
@@ -2519,9 +2573,10 @@ def sections(N, F, P, link, L):
         "were followed by a loss 4 times in 1,830. Losses "
         "more often than that in the new order would put their cause outside the upward travels. The cable was given "
         "more slack at 11:09, so a lower rate tests both changes together.",
-        "Torsion on the sensor's axis: clamp the finger with the face's normal along the force sensor's axis and twist at "
-        "5 N, so the torsion is read without the push's moment. A correlation above 0.8 between the GP's torsion and "
-        "the sensor's would make torsion a calibrated output.",
+        "A flat plate on the pad's proximal half: the straight fingers' boards on the SR2 hand changed in patterns that "
+        "no calibration press had (Table 42). Press a flat plate there on the UR5 and repeat the straight arm presses of "
+        "19 November. A cosine of 0.95 or more with the closest calibration press would show that the calibration "
+        "covers them.",
         "Flank coverage: add press targets on the flanks above the cover's walls until no reachable FE point lies more "
         "than 1 mm from a target (" + P.code("scripts/ur5/ur5_tip_calibration_coverage.py") + " reports the share by "
         f"region). With v2 ID 1's three indenters, {cvp(V2R, 'flank', 15)} % of the flanks' points lie within 1.5 mm of "
