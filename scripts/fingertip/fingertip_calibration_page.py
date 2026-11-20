@@ -47,6 +47,8 @@ L = dict(
     v3=EXP / "20261027-v3_tip_calibration_and_crosstalk/README.md",
     motions=EXP / "20261029-calibration_motions/20261029-calibration_motions_v3.html",
     rig=EXP / "20261029-inverted_calibration_rig/20261029-inverted_rig.html",
+    place=EXP / "20261117-sr2_system_identification/20261119-fingertip_board_force_by_contact_place.html",
+    sensing=EXP / "20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html",
 )
 
 

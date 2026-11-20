@@ -309,6 +309,33 @@ def sections(N, F, P, link, L):
     ab_ratio = sorted(ab[1]["mu"] / ab[i]["mu"] for i in (0, 2))
     pm_ix = [c["mu"] for p in (*PSP, PAB[0], PAB[2]) for c in p["friction"]]   # the index pad's coefficients on 11-19
     clock = lambda p: datetime.fromtimestamp(p["legs"][0]["t0"], ZoneInfo("America/Denver")).strftime("%H:%M")  # noqa: E731
+    # the arm presses of 19 November (lab a482d935; the study's analyses a482d935 and dd23458f)
+    APJ = jl(IDENT / "data/s3/20261119-arm_press_boards.json")["runs"]
+    AP = [dict(p, run=r["run"]) for r in APJ for p in r["presses"] if "error" not in p]
+    ap_h = APJ[0]["header"]
+    assert all(r["header"][k] == ap_h[k] for r in APJ for k in ("v_mm_s", "target_N", "hold_s", "reps"))
+    PMR = {(r["run"], r["rep"]): r for r in jl(IDENT / "data/s3/20261119-board_force_pattern_match.json")["rows"]}
+    SUP = {(p["run"], p["rep"]): p["best"] for p in jl(IDENT / "data/s3/20261119-board_patch_superposition.json")["presses"]
+           if p.get("best")}
+    kind = lambda p: (p["finger"], int(p["indenter"].rsplit("PIP ", 1)[1]))  # noqa: E731
+    KINDS, STR, P20 = (("index", 0), ("middle", 0), ("thumb", 0), ("index", 10), ("index", 20)), \
+        (("index", 0), ("middle", 0)), (("index", 20),)
+    assert len(AP) == len(PMR) == len(SUP) == 14 and {kind(p) for p in AP} == set(KINDS) \
+        and all((p["run"], p["rep"]) in PMR and (p["run"], p["rep"]) in SUP for p in AP)
+    ap_k = lambda ks: [p for p in AP if kind(p) in ks]  # noqa: E731
+    ap_v = lambda ks, k: [p[k] for p in ap_k(ks)]  # noqa: E731
+    ap_e = lambda ks: [p["estimators"]["gp_own_pose"]["slope"] for p in ap_k(ks)]  # noqa: E731   the trials' GP
+    pm_v = lambda ks: [PMR[p["run"], p["rep"]]["pattern_slope"] for p in ap_k(ks)]  # noqa: E731
+    sup_v = lambda ks: [SUP[p["run"], p["rep"]]["cos"] for p in ap_k(ks)]  # noqa: E731
+    pr = lambda v, f: (lambda a, b: a if a == b else f"{a} to {b}")(f.format(min(v)), f.format(max(v)))  # noqa: E731
+    pr1, pr2 = (lambda v: pr(v, "{:.1f}")), (lambda v: pr(v, "{:.2f}"))   # the lab page's rounding
+    (ap_tip,) = {p["tip"] for p in ap_k(P20)}
+    ap_t = sorted(f"{r['run'][9:11]}:{r['run'][11:13]}" for r in APJ)
+    (c20,) = {f"{x:.2f}" for x in ap_v(P20, "best_cos")}
+    ap_rows = [[f"{f.capitalize()}, v3 ID {ap_k([(f, a)])[0]['tip']}",
+                "Tag" if ap_k([(f, a)])[0]["indenter"].startswith("tag") else "Taped", str(a), str(len(ap_k([(f, a)]))),
+                pr1(ap_v([(f, a)], "field_per_N_uT")), pr2(ap_v([(f, a)], "best_cos")), pr2(ap_v([(f, a)], "ratio")),
+                pr2(ap_e([(f, a)])), pr2(pm_v([(f, a)])), pr2(sup_v([(f, a)]))] for f, a in KINDS]
     hh_all = [r2(x) for x in sorted([hhf("yaw", "gp_own_pose", "x_P")["slope"]]
                                     + [hh_fs(p)["slope"] for p in hh_face + hh_pp])]
     hh_bs = [r2(x) for x in sorted(hh_fs(p)["slope"] for p in hh_bent.values())]
@@ -334,8 +361,10 @@ def sections(N, F, P, link, L):
         f"{min(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f}–{max(xf(*T3)['loc_mm'], xf(*T3[::-1])['loc_mm']):.2f} mm "
         f"off (Section 12). Pooled with the other v3 tips' holds, v3 IDs 4 to 6 go from {plm(PL_PTS, 'own')} to "
         f"{plm(PL_PTS, 'combined')} mm at held-out points (Section 16). Torsion is not recovered. On the SR2 hand, "
-        f"the three boards' estimates rose {hh_all[0]}–{hh_all[-1]} N per newton of the HEX-E's force when the pads "
-        "were pressed onto a plate. Presses on the tips' sides did not change the boards' estimates (Section 17).")
+        "the boards' field per newton of the HEX-E's force depended on where a plate met the pad. On the pad's distal "
+        f"part it was {pr2(ap_v(P20, 'ratio')).replace(' to ', '–')} of the calibration's, and the force from the "
+        f"trials' GP was {pr2(ap_e(P20)).replace(' to ', '–')} of the HEX-E's. Presses on the tips' sides did not change the boards' "
+        "estimates (Section 17).")
     summary = (
         f"UR5 + HEX-E calibration of eleven printed magnetic fingertips ({n_hold:,} holds, 2026-10-22 to 11-04): a GP from the "
         f"15 readings locates new points within {rg(acc).replace('–', '-')} mm at 1.5 N and over on a tip's own presses "
@@ -392,7 +421,9 @@ def sections(N, F, P, link, L):
         f"1-60 s; after free-air controls the DIP links' PLA sides slid at {rng(side_hi['index'])} (index) and "
         f"{rng(side_hi['middle'])} (middle) at {rng(side_n)} N; on 11-19, after controls, the index pad slid at "
         f"{rng(pm_ix)}, and in drags of the two pads in turn the middle pad's coefficient was "
-        f"{ab_ratio[0]:.1f}-{ab_ratio[-1]:.1f} times the index's.")
+        f"{ab_ratio[0]:.1f}-{ab_ratio[-1]:.1f} times the index's; in the arm presses of 11-19 the index pad's distal "
+        f"part gave {pr2(ap_v(P20, 'ratio')).replace(' to ', '-')} of its calibration's field per newton at a pattern "
+        f"cosine of {c20}, and the straight pads a pattern no calibration press gave.")
     film = P.film(0, F["film"], F["film_poster"],
                   "The first UR5 session, sphere2, from the overhead camera: one frame every 2 s of its first touch-offs, "
                   "played at 12 frames a second. The pad touches the sphere on the right-hand fixture; the left-hand fixture "
@@ -2032,7 +2063,9 @@ def sections(N, F, P, link, L):
         f"beforehand, the slopes were {hh_bs[0]} to {hh_bs[-1]} (Table 36). The thumb fingertip, v3 ID "
         f"{hh_tip(hh_thumb[0])}, was pressed onto a second plate, the tag plate, which bore an AprilTag. Its estimate rose "
         f"{hh_ts.replace('-', ' to ')} N per newton. When the PIP joints curled the pads onto the plates, the slopes were "
-        f"{hh_ps.replace('-', ' to ')} (Table 37). On 18 November the index pad slid on the tape at "
+        f"{hh_ps.replace('-', ' to ')} (Table 37). Pressed by the arm on 19 November, the index pad's distal part "
+        f"changed its board by {pr2(ap_v(P20, 'ratio'))} of the calibration's field per newton (Table 42). "
+        "On 18 November the index pad slid on the tape at "
         f"{rng(fr_pad['index']).replace('-', ' to ')} times the normal force and the middle pad at "
         f"{rng(fr_pad['middle']).replace('-', ' to ')} times. The thumb pad slid on the tag plate at "
         f"{rng(fr_pad['thumb']).replace('-', ' to ')} times (Tables 38 and 39). A day later, with free-air controls "
@@ -2407,6 +2440,45 @@ def sections(N, F, P, link, L):
                   "control's downward and upward legs. Legs: the 5 mm legs at that force set and speed. At 20 mm/s the "
                   "arm accelerated at 0.5 m/s², so a leg slid steadily for about 0.1 s. Its plateau was taken over the "
                   "time at full speed. At the 2 N setting the drag stopped on its first downward leg, at the 3 N guard.")
+    )
+    # the arm presses of 19 November (lab a482d935; the analyses 20261119-arm_press_boards, -board_force_pattern_match
+    # and -board_patch_superposition, a482d935 and dd23458f): the arm pushes a pad straight into a plate, the servos holding
+    body += (
+        f"<p>On 19 November from {ap_t[0]} to {ap_t[-1]} the arm itself pressed the pads straight into the plates "
+        f"({link(L['place'], 'the page on the boards by contact place')}). The fingers' servos held the joints. The arm "
+        f"moved at {ap_h['v_mm_s']:g} mm/s until the HEX-E read {ap_h['target_N']:g} N, held for {ap_h['hold_s']:g} s "
+        f"and backed off, {('once', 'twice', 'three times')[ap_h['reps'] - 1]} per pose. The field per newton was the "
+        "slope of a line fitted from the HEX-E's force along the press to the change of the board's 15 readings. Its "
+        "pattern was compared, by cosine, with that of every calibration press of the same tip. The press with the "
+        "largest cosine is the closest (Table 42). With the PIP straight, the index's and the middle's boards changed by "
+        f"{pr1(ap_v(STR, 'field_per_N_uT'))} µT per newton. No calibration press had a field of their pattern: the largest "
+        f"cosines were {pr2(ap_v(STR, 'best_cos'))}. With the index's PIP bent 20°, the plate met the distal part of its "
+        f"pad. Its board then changed by {pr1(ap_v(P20, 'field_per_N_uT'))} µT/N, at a cosine of {c20} with the closest "
+        f"calibration press of tip {ap_tip}. That was {pr2(ap_v(P20, 'ratio'))} of the change per newton in that press.</p>"
+        f"<p>At PIP 20° the force from the trials' GP was {pr2(ap_e(P20))} of the HEX-E's. A linear least-squares "
+        f"estimate along the closest calibration press's field per newton was {pr2(pm_v(P20))} of it. With the PIP "
+        f"straight the two were {pr2(ap_e(STR))} and {pr2(pm_v(STR))} of it. "
+        "The calibration's point fields were also summed over flat patches on the pad. One such patch gave the PIP 20° "
+        f"presses' pattern at cosines of {pr2(sup_v(P20))}. For the straight index and middle no patch gave more than "
+        f"{max(sup_v(STR)):.2f}. These fields per newton are in the HEX-E's newtons, as are the calibration's. The "
+        "HEX-E's reading of a dead weight is in Section 18. The analyses are "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261119-arm_press_boards.py") + ", "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261119-board_force_pattern_match.py") + " and "
+        + P.code("docs/experiments/20261117-sr2_system_identification/sim/20261119-board_patch_superposition.py")
+        + ", with their numbers in " + P.code("docs/experiments/20261117-sr2_system_identification/data/s3/") + ".</p>"
+        + P.table(["Finger, tip", "Plate", "PIP (°)", "Presses", "Field per newton (µT/N)",
+                   "Cosine with the closest calibration press", "Share of that press's field per newton",
+                   "Trials' GP (N per N)", "Linear estimate along that press's field (N per N)",
+                   "Best cosine of a summed flat patch"], ap_rows, num_cols=tuple(range(2, 10)), n=42,
+                  caption="The boards against the HEX-E in the arm presses on the SR2 hand on 2026-11-19: ranges over a "
+                  "pose's presses. The arm pushed the pad straight into the plate at 0.2 mm/s to 2.5 N with the finger's "
+                  "servos holding. Field per newton: the length of the least-squares slope of the board's 15-component "
+                  "change against the HEX-E's force along the press. Closest calibration press: of the tip's calibration "
+                  "presses, the one whose field per newton has the largest cosine with that slope. Share: the field per "
+                  "newton over that press's. Trials' GP: the slope of the normal force of the board GP with the "
+                  "own-angle term against the HEX-E's force. Linear estimate: the slope of the least-squares force along "
+                  "that press's field per newton against the HEX-E's force. Summed flat patch: the "
+                  "calibration's point fields summed over a flat patch on the pad, its place and size fitted.")
     )
     S.append(("hand", "Boards' force against the HEX-E and fingertip friction on the SR2 hand", body))
 
