@@ -1154,7 +1154,9 @@ def cmd_putdown(a):
             c = np.asarray(info["p_B"], float)
             # in steps of at most LEVEL_STEP_DEG (2026-11-20: a 35 deg turn in one move ran past its 12 s after 96 mm,
             # a 32 deg one after 89 mm, the HEX-E's change near 10 N from the hand's weight alone): each step the same
-            # turn about the object's centre, with its own force reference; the touch watched against the pose before
+            # turn about the object's centre, with its own force reference; the object's motion against the hand watched
+            # against the pose before, past --carry-slip-mm only (in the air it can only be slip: 15:17, 2.01 mm of slip
+            # stopped a 35 deg levelling at its third step)
             n = max(1, math.ceil(lev / LEVEL_STEP_DEG))
             T_step = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(lev / n))), None) @ tf(None, -c)
             print(f"   the object's axis {tilt0:.1f} deg from vertical: the hand turns {lev:.1f} deg about its centre "
@@ -1170,7 +1172,7 @@ def cmd_putdown(a):
                     why, _ = arm.move(T_step @ arm.T_BE(), a.v, a.acc,
                                       a.level_stop_n if a.stop_n is not None else None, 12.0,
                                       f"level {lev:.1f} deg" + (f", step {k}/{n}" if n > 1 else ""),
-                                      check=meas.watch_touch(ref[0], 2.0, 2.0))
+                                      check=meas.watch_touch(ref[0], a.carry_slip_mm, a.carry_slip_mm))
                     if why:
                         raise SystemExit(f"the levelling stopped: {why}; look before anything else")
                 p_m, q_m, info = meas.pose(a.measure_s)
@@ -1202,7 +1204,7 @@ def cmd_putdown(a):
             return 0
         if arm.c is None:
             arm.connect(a.stop_n is not None)
-        touched, total, slips = None, 0.0, 0
+        touched, total, slips, forces = None, 0.0, 0, 0
         for name, dist, v, zmm in legs:
             left = dist
             while True:
@@ -1224,6 +1226,16 @@ def cmd_putdown(a):
                     slips += 1
                     print(f"   {d - total:.1f} mm above the expected touchdown: the object slipping in the grasp, "
                           f"not the table; going on ({slips} of {a.max_slips})", flush=True)
+                    continue
+                # a force stop well above the expected touchdown, over open table (15:26: 2.03 N 38 mm above it, and
+                # the same descent from a fresh reference went down to the touchdown): once more, at most twice, from a
+                # new reference after 1 s; a real obstacle stops it again
+                if (why and " changed " in why and "N (limit" in why and total < d - a.touch_window - 5.0
+                        and left > 0.5 and forces < 2):
+                    forces += 1
+                    print(f"   a force stop {d - total:.1f} mm above the expected touchdown: going on from a new "
+                          f"reference ({forces} of 2)", flush=True)
+                    time.sleep(1.0)
                     continue
                 break
             if why:
