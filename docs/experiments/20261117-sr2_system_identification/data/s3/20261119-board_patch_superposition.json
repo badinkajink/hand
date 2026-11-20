@@ -1,0 +1,440 @@
+{
+ "what": "Does a spread contact's field equal the sum of the calibration's point fields over its patch? (2026-11-19; the owner, 16:3x: \"is there any way to estimate the size of the contact patch and thus get better performance. can we try to learn that from our existing calibrations?\")",
+ "sigma_mm": 0.8,
+ "presses": [
+  {
+   "run": "20261119-170343_index_arm_press.jsonl",
+   "rep": 1,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 0",
+   "best": {
+    "cos": 0.5124,
+    "p1": 0.09,
+    "p2": -0.225,
+    "delta": 0.15,
+    "pred_uT_per_N": 15.29,
+    "meas_uT_per_N": 6.24,
+    "ratio_meas_over_pred": 0.408,
+    "patch_z": [
+     5.75,
+     9.25
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.55,
+     7.52
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 15.63,
+    "cos_point_at_centroid": 0.5266
+   },
+   "point_best_cos": 0.4397
+  },
+  {
+   "run": "20261119-170343_index_arm_press.jsonl",
+   "rep": 2,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 0",
+   "best": {
+    "cos": 0.4089,
+    "p1": 0.0,
+    "p2": -0.225,
+    "delta": 0.15,
+    "pred_uT_per_N": 13.87,
+    "meas_uT_per_N": 6.69,
+    "ratio_meas_over_pred": 0.482,
+    "patch_z": [
+     5.75,
+     9.25
+    ],
+    "patch_y": [
+     -1.15,
+     1.35
+    ],
+    "centroid": [
+     -0.0,
+     7.51
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 14.27,
+    "cos_point_at_centroid": 0.433
+   },
+   "point_best_cos": 0.3821
+  },
+  {
+   "run": "20261119-170343_index_arm_press.jsonl",
+   "rep": 3,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 0",
+   "best": {
+    "cos": 0.3169,
+    "p1": 0.12,
+    "p2": 0.35,
+    "delta": 0.15,
+    "pred_uT_per_N": 27.84,
+    "meas_uT_per_N": 7.02,
+    "ratio_meas_over_pred": 0.252,
+    "patch_z": [
+     20.25,
+     21.25
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.67,
+     21.01
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.7,
+    "cos_point_at_centroid": 0.3179
+   },
+   "point_best_cos": 0.3612
+  },
+  {
+   "run": "20261119-170846_middle_arm_press.jsonl",
+   "rep": 1,
+   "finger": "middle",
+   "indenter": "taped plate face, PIP 0",
+   "best": {
+    "cos": 0.5382,
+    "p1": 0.12,
+    "p2": -0.35,
+    "delta": 0.15,
+    "pred_uT_per_N": 20.44,
+    "meas_uT_per_N": 7.46,
+    "ratio_meas_over_pred": 0.365,
+    "patch_z": [
+     4.5,
+     7.75
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.69,
+     6.08
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 20.58,
+    "cos_point_at_centroid": 0.5373
+   },
+   "point_best_cos": 0.5468
+  },
+  {
+   "run": "20261119-170846_middle_arm_press.jsonl",
+   "rep": 2,
+   "finger": "middle",
+   "indenter": "taped plate face, PIP 0",
+   "best": {
+    "cos": 0.6129,
+    "p1": 0.12,
+    "p2": -0.35,
+    "delta": 0.15,
+    "pred_uT_per_N": 20.44,
+    "meas_uT_per_N": 7.21,
+    "ratio_meas_over_pred": 0.353,
+    "patch_z": [
+     4.5,
+     7.75
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.69,
+     6.08
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 20.58,
+    "cos_point_at_centroid": 0.6125
+   },
+   "point_best_cos": 0.6088
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press.jsonl",
+   "rep": 1,
+   "finger": "thumb",
+   "indenter": "tag plate face, PIP 0",
+   "best": {
+    "cos": 0.7496,
+    "p1": 0.06,
+    "p2": 0.075,
+    "delta": 0.8,
+    "pred_uT_per_N": 16.89,
+    "meas_uT_per_N": 10.15,
+    "ratio_meas_over_pred": 0.601,
+    "patch_z": [
+     7.25,
+     21.25
+    ],
+    "patch_y": [
+     -2.65,
+     3.35
+    ],
+    "centroid": [
+     0.36,
+     14.68
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 22.3,
+    "cos_point_at_centroid": 0.716
+   },
+   "point_best_cos": 0.7463
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press.jsonl",
+   "rep": 2,
+   "finger": "thumb",
+   "indenter": "tag plate face, PIP 0",
+   "best": {
+    "cos": 0.8075,
+    "p1": 0.09,
+    "p2": 0.125,
+    "delta": 0.15,
+    "pred_uT_per_N": 25.79,
+    "meas_uT_per_N": 12.44,
+    "ratio_meas_over_pred": 0.482,
+    "patch_z": [
+     13.5,
+     21.0
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.54,
+     17.23
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 28.3,
+    "cos_point_at_centroid": 0.8072
+   },
+   "point_best_cos": 0.8355
+  },
+  {
+   "run": "20261119-171311_thumb_arm_press.jsonl",
+   "rep": 3,
+   "finger": "thumb",
+   "indenter": "tag plate face, PIP 0",
+   "best": {
+    "cos": 0.7702,
+    "p1": 0.09,
+    "p2": 0.125,
+    "delta": 0.15,
+    "pred_uT_per_N": 25.79,
+    "meas_uT_per_N": 11.85,
+    "ratio_meas_over_pred": 0.459,
+    "patch_z": [
+     13.5,
+     21.0
+    ],
+    "patch_y": [
+     -0.65,
+     1.85
+    ],
+    "centroid": [
+     0.54,
+     17.23
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 28.3,
+    "cos_point_at_centroid": 0.7689
+   },
+   "point_best_cos": 0.795
+  },
+  {
+   "run": "20261119-171923_index_arm_press.jsonl",
+   "rep": 1,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 10",
+   "best": {
+    "cos": 0.9802,
+    "p1": 0.03,
+    "p2": 0.25,
+    "delta": 0.8,
+    "pred_uT_per_N": 26.71,
+    "meas_uT_per_N": 18.68,
+    "ratio_meas_over_pred": 0.699,
+    "patch_z": [
+     14.25,
+     21.25
+    ],
+    "patch_y": [
+     -2.65,
+     3.1
+    ],
+    "centroid": [
+     0.17,
+     18.99
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.85,
+    "cos_point_at_centroid": 0.9791
+   },
+   "point_best_cos": 0.9719
+  },
+  {
+   "run": "20261119-171923_index_arm_press.jsonl",
+   "rep": 2,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 10",
+   "best": {
+    "cos": 0.9723,
+    "p1": 0.03,
+    "p2": 0.25,
+    "delta": 0.8,
+    "pred_uT_per_N": 26.71,
+    "meas_uT_per_N": 18.73,
+    "ratio_meas_over_pred": 0.701,
+    "patch_z": [
+     14.25,
+     21.25
+    ],
+    "patch_y": [
+     -2.65,
+     3.1
+    ],
+    "centroid": [
+     0.17,
+     18.99
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.85,
+    "cos_point_at_centroid": 0.9706
+   },
+   "point_best_cos": 0.9636
+  },
+  {
+   "run": "20261119-171923_index_arm_press.jsonl",
+   "rep": 3,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 10",
+   "best": {
+    "cos": 0.973,
+    "p1": 0.03,
+    "p2": 0.225,
+    "delta": 0.5,
+    "pred_uT_per_N": 26.98,
+    "meas_uT_per_N": 19.07,
+    "ratio_meas_over_pred": 0.707,
+    "patch_z": [
+     15.0,
+     21.25
+    ],
+    "patch_y": [
+     -2.15,
+     2.35
+    ],
+    "centroid": [
+     0.17,
+     19.22
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.81,
+    "cos_point_at_centroid": 0.9719
+   },
+   "point_best_cos": 0.9656
+  },
+  {
+   "run": "20261119-172508_index_arm_press.jsonl",
+   "rep": 1,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 20",
+   "best": {
+    "cos": 0.9933,
+    "p1": 0.0,
+    "p2": 0.2,
+    "delta": 0.3,
+    "pred_uT_per_N": 26.85,
+    "meas_uT_per_N": 24.63,
+    "ratio_meas_over_pred": 0.917,
+    "patch_z": [
+     15.5,
+     21.25
+    ],
+    "patch_y": [
+     -1.65,
+     1.85
+    ],
+    "centroid": [
+     -0.0,
+     19.28
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.66,
+    "cos_point_at_centroid": 0.9925
+   },
+   "point_best_cos": 0.99
+  },
+  {
+   "run": "20261119-172508_index_arm_press.jsonl",
+   "rep": 2,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 20",
+   "best": {
+    "cos": 0.9934,
+    "p1": 0.0,
+    "p2": 0.2,
+    "delta": 0.3,
+    "pred_uT_per_N": 26.85,
+    "meas_uT_per_N": 24.93,
+    "ratio_meas_over_pred": 0.928,
+    "patch_z": [
+     15.5,
+     21.25
+    ],
+    "patch_y": [
+     -1.65,
+     1.85
+    ],
+    "centroid": [
+     -0.0,
+     19.28
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.66,
+    "cos_point_at_centroid": 0.9923
+   },
+   "point_best_cos": 0.9898
+  },
+  {
+   "run": "20261119-172508_index_arm_press.jsonl",
+   "rep": 3,
+   "finger": "index",
+   "indenter": "taped plate face, PIP 20",
+   "best": {
+    "cos": 0.9898,
+    "p1": 0.0,
+    "p2": 0.25,
+    "delta": 0.5,
+    "pred_uT_per_N": 27.2,
+    "meas_uT_per_N": 25.68,
+    "ratio_meas_over_pred": 0.944,
+    "patch_z": [
+     16.0,
+     21.25
+    ],
+    "patch_y": [
+     -2.15,
+     2.35
+    ],
+    "centroid": [
+     -0.0,
+     19.6
+    ],
+    "point_cal_at_centroid": null,
+    "point_cal_at_centroid_uT_per_N": 27.53,
+    "cos_point_at_centroid": 0.9892
+   },
+   "point_best_cos": 0.9865
+  }
+ ]
+}
