@@ -26,6 +26,7 @@ largest rise along z_P (the push into the hand) and its drift in P, from the cor
 import argparse
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -251,6 +252,9 @@ def main():
     ap.add_argument("--hot-c", type=float, default=55.0, help="pause before a trial with a servo this hot")
     ap.add_argument("--cool-c", type=float, default=40.0, help="go on when every servo is below this")
     ap.add_argument("--cool-wait-s", type=float, default=5400.0)
+    ap.add_argument("--cam-mode", default="1920x1080@30", help="the tracker's camera mode WxH@FPS (960x540@60)")
+    ap.add_argument("--cam-exposure", type=float, default=None,
+                    help="the cameras' exposure in 0.1 ms (50 = 5 ms); the calibration's 166 without it")
     ap.add_argument("--level-hand-deg", type=float, default=2.0,
                     help="z_P's tilt above which the hand is levelled before the recentre (clear, place, approach --fine)")
     ap.add_argument("--control", default=str(HERE / "series_control.txt"),
@@ -259,6 +263,15 @@ def main():
     a = ap.parse_args()
     import claude_login                                    # the login of the session watching the run (2026-11-20)
     print(claude_login.line(), flush=True)
+    # the tracker's camera mode for every step this series runs (hom_trial.cam_mode reads it; 2026-11-20, owner: "id
+    # like to prioritize (within reason) the 60fps tracking"), written into each row
+    os.environ["HOM_CAM_MODE"] = a.cam_mode
+    if a.cam_exposure:
+        os.environ["HOM_CAM_EXPOSURE"] = f"{a.cam_exposure:g}"
+    else:
+        os.environ.pop("HOM_CAM_EXPOSURE", None)
+    camera = f"{a.cam_mode}, exposure {a.cam_exposure or 166:g}"
+    print(f"camera: {camera}", flush=True)
     common = ["--object", a.object, "--map", a.map]
     served = None                                          # the port whose HOM server this series started last
     for k, e in enumerate(a.entries):
@@ -331,6 +344,19 @@ def main():
                     sys.exit(f"STOP: levelling the hand before {label}'s recentre: {cmd[1]} {cmd[2]} did not finish")
         rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
                        "--video-dir", a.video_dir], 300)
+        if rc != 0 and "too far to move" in out:
+            # an object put back by hand away from the hand (2026-11-20 11:5x, 98 mm off; the owner wants resets
+            # automated): the fingers lifted clear of it, the hand moved over it at that height, and ready again
+            print(f"   {label}: the object stands too far for the recentre: lifted clear and moved over it first",
+                  flush=True)
+            for cmd, ok in (([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--go"], "CLEAR OK"),
+                            ([PY, "hom_setup.py", "approach", "--plan", plan, *common, "--fine", "--fine-max", "150",
+                              "--go", "--video-dir", a.video_dir], "after the lateral move")):
+                rc, out = run(cmd, 240)
+                if rc != 0 or ok not in out:
+                    sys.exit(f"STOP: moving over the object before {label}'s recentre: {cmd[1]} {cmd[2]} did not finish")
+            rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
+                           "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
         if rc != 0 or m is None:
             sys.exit(f"STOP: ready failed for {label}")
@@ -351,7 +377,7 @@ def main():
         s = summary(rec.group(1))
         row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": label, "plan": plan, "port": int(port),
                "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))],
-               "ready_tilt_deg": ready_tilt, "servo_c_before": servo_c, **s}
+               "ready_tilt_deg": ready_tilt, "camera": camera, "servo_c_before": servo_c, **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
