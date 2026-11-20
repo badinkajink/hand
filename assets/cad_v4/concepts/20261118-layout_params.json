@@ -113,5 +113,23 @@
   "frame_post": {"x": [20.5, 27.0], "y": [-4.0, 4.0], "z": [-5.0, 23.0]},
   "housing": {"x": [12.5, 43.4], "y": [-13.55, 13.55], "z": [21.8, 56.8]},
   "codesign": "docs/experiments/20261118-sr2_actuator_layout/data/20261119-v4c_codesign.json"
+ },
+ "v4c_hw": {
+  "title": "v4c with bought joints (2026-11-19 night): rods with a spherical bearing at the horn and an offset knuckle at the lug",
+  "note": "mm, the finger's mount frame with the gimbal centre G at the origin: x dorsal, y lateral, z up (toward the palm). Base pair from scripts/cad/v4c_codesign.py hardware (r 10, h 10, w 10, L 25, shafts 18.6 mm apart so the 18 mm disc horns clear); Q0 = (h, +-w, 0) is the rod's lower bearing at rest, pin 1's foot sits knuckle_e back along the rod and rod_offset_c along pin 2. PIP from the sweep of 2026-11-19: servo flat, long end toward the PIP, horn knuckle, lug bearing on a bolt along y. gimbal_below_v3_yaw_axis follows from the x-stage beam's underside (21.9 mm above v3's yaw axis) less 1 mm, the rods' height L, the horn radius and the rod end's 8 mm boss.",
+  "plate_t": 3.175, "gimbal_below_v3_yaw_axis": 22.1, "proximal": 51.55,
+  "base": {"r": 10.0, "h": 10.0, "w": 10.0, "L": 25.0, "shaft_half": 9.3, "mcp_rest": 46.0, "yaw_rest": 0.0, "horn_limit_deg": 90.0,
+           "knuckle_e": 0.0, "rod_offset_c": 4.3, "rod_side": "dorsal",
+           "pin2_deg": {"toward_ear": 70.0, "away": 100.0}},
+  "pip": {"spline_x": 13.0, "spacer": 3.0, "r": 10.0, "spline_z": -20.0, "long_end": "down", "lug_r": 7.0, "lug_y": 0.0, "pip_rest": 20.0,
+          "knuckle_e": 5.0, "rod_offset_c": 4.3, "horn_limit_deg": 80.0},
+  "hardware": {
+   "disc_horn": {"note": "aluminium disc horn shipped with the STS3032 (Feetech sheet, accessories)", "d": 18.0, "flange_t": 2.0, "hub_d": 7.0, "hub_h": 2.5,
+                 "bolt_circle_d": 12.0, "bolt_holes": "8 x M2 tapped", "face_beyond_spline": 2.0},
+   "spherical_bearing": {"note": "steel spherical plain bearing, RS PRO 382-380 (d 3, D 12, inner ring W 4.8, outer ring H 3.6, ball 6); tilt on a 4 mm spacer", "d": 3.0, "D": 12.0, "W": 4.8, "H": 3.6, "ball_d": 6.0, "tilt_deg": 16.0},
+   "ball_bearing": {"note": "flanged miniature ball bearing MF63ZZ", "d": 3.0, "D": 6.0, "B": 2.5, "flange_d": 7.2, "flange_t": 0.6},
+   "shoulder_screw": {"note": "ISO 7379-style, 3 mm shoulder, M2.5 thread", "shoulder_d": 3.0, "thread": "M2.5"},
+   "servo_tab_holes": {"note": "STS3032 STEP (Feetech 2020-06-09): along the case from the spline, across from its centreline", "along": [-19.79, 8.21], "across": [-3.5, 3.5], "d": 2.5}
+  }
  }
 }
