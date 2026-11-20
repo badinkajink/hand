@@ -207,6 +207,13 @@ def pickup(a, plan, label):
     os.environ.pop("HOM_CAM_EXPOSURE", None)
     try:
         lift_clear(a, plan)
+        # a sphere still standing after a release that stopped short needs no pick-up (2026-11-20 16:57: the release's
+        # levelling about the ball stopped on 4.8 mm): lifted clear, the series goes on
+        rc, out = run([PY, "push_sphere.py", "--plan", plan, *pm, "--tip-z", "14"], 120)
+        m = re.search(r"tilt ([\d.]+) deg;", out)
+        if m and float(m.group(1)) < 15.0:
+            print(f"   {label}: the sphere stands ({m.group(1)} deg): no pick-up needed", flush=True)
+            return None
         # always at (105, 70) with its pinch plan of 11-19, after a push toward the table's centre when the sphere lies
         # more than 40 mm from it (14:4x: a pinch that planned at the trial's own layout, (110, 155), put a fingertip on
         # a ball lying among the cables, where the recovery by hand at (105, 70) with a push had worked twice)
