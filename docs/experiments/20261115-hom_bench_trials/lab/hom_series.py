@@ -494,7 +494,8 @@ def main():
                 # the object held tilted past --seat-deg: let go of it rather than hold it for hours under the servos'
                 # load, though it may topple (13:41, 2026-11-16), and stop: a person must stand it up again
                 rc2, out2 = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--max-level", "0",
-                                 "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
+                                 "--lift-still-mm", "6", "--ball-level-still", "6", "--go", "--video-dir", a.video_dir],
+                                300)
                 # released at 19.0 deg the sphere settled at 5.2 deg (13:50); at 21.6 deg it toppled (13:41): go on
                 # when it stands within --upright-deg after the release
                 # the block's tilt from vertical after letgo (not its tilt in P, which a tilted hand inflates)
