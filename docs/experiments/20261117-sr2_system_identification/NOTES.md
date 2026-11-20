@@ -388,3 +388,97 @@ The owner, 18:3x: "ok go ahead on these plans".
 - **End, 15:57.** The gantries are back at the roll layout (85, 170), filmed like the move out
   (`logs/20261119-sr2_boards_sweep/*_layout_*.mp4`). The hand is parked unturned over the session's start, all
   fingers within 0.6 deg of zero, no flags, servos 21-26 C, torque on, arm running (mode 7). Splitter stopped.
+
+## 2026-11-19, 16:36-17:45: what the fingertip boards read, and why "half the HEX-E"
+
+The owner, 16:3x: "the contact area vs force sensing is really disconcerting. is tehre any way to estimate the size of
+the contact patch and thus get better performance. can we try to learn that from our existing calibrations? ... you have
+my go ahead to execute plans to further our understanding of the existing models"; 16:4x: "you can calibrate more on the
+post, you can also run experiments on the sphere".
+
+- **The calibrations already vary the contact's size** (`sim/20261119-board_patch_size_calibration.py`,
+  `data/s3/20261119-board_patch_size_calibration.json`). The v3 tips were pressed with R 2 and R 5 mm spheres and an
+  R 12.5 mm rod (UR5 tip mode, 10-28 to 10-30; inverted rig, 11-02 to 11-04). Matched to the R 5 sphere at the same point
+  and force:
+  - the R 2 sphere reads 1.03-1.05 times its field per newton and the rod 0.93-1.09 (tips 2, 4, 5, 6);
+  - the depth per newton follows Hertz: 1.26-1.33 for the R 2 sphere, 0.68-0.91 for the rod;
+  - the field pattern differs little (cosine 0.96-0.996 against 0.995-0.999 repeat to repeat).
+  The boards measure force, not patch size. The four magnets sit 7.5 mm under the apex, and the patches are 1-2 mm.
+- **Arm presses** (`lab/arm_press.py`, new; `day/20261119_arm_press_plate.sh`, `_pip.sh`). The arm pushes one pad
+  straight into a plate at 0.2 mm/s to 2.5 N, holds 2 s and backs off, while the finger's servos hold. Three reps per set.
+  - The joints still give 0.6-1.5 deg in extension (servo loads 60-100). The finger yields about 0.45 N/mm at the tip,
+    so 2.5 N takes 3-5 mm past contact (`--travel 8`).
+  - The free-air check at the park (16:55) and the HEX-E's 100 Hz samples (+-0.2 N) led to a 0.1 s mean for the stops
+    and 0.4 s of blanking after a move starts.
+  - At 17:11 my own `s3_press.py check` opened a second HEX-E client, which reconfigured the DAQ and took the stream.
+    The middle's third press stopped in its air leg, untouched. **Never open a second HEX-E client while one runs.**
+- **Raw field per newton on the hand** (`sim/20261119-arm_press_boards.py`, `data/s3/20261119-arm_press_boards.json`).
+  This is the board's 15-component change against the HEX-E's force along the press, matched to the tip's calibration
+  presses anywhere on the pad by the cosine of the patterns:
+
+  | press (2.5 N) | uT/N | best cosine | calibration there | GP estimator | pattern-matched |
+  |---|---|---|---|---|---|
+  | index, PIP 0, taped plate | 6.2-7.0 | 0.36-0.44 | none matches | 0.20-0.28 | 0.24-0.26 |
+  | middle, PIP 0, taped plate | 7.2-7.5 | 0.55-0.61 | none matches | 0.30 | 0.16-0.18 |
+  | thumb, PIP 0, tag plate | 10.2-12.4 | 0.75-0.84 | 23-30 at z 15-18 | 0.23-0.34 | 0.25-0.33 |
+  | index, PIP 10 | 18.7-19.1 | 0.96-0.97 | 28 at z 19 | 0.43-0.45 | 0.63-0.64 |
+  | index, PIP 20 | 24.6-25.7 | 0.986-0.990 | 28 at z 19 | 0.60-0.63 | 0.83-0.87 |
+
+  - The pad frame's z runs from the proximal mount face (0) to the distal end (21.4); the apex is at 10.9.
+  - With the PIP bent 20 deg, the plate meets the distal part of the pad. There the boards read 0.88-0.92 of tip 3's
+    calibration, and their pattern matches it at 0.99. So the boards still hold their calibration, and the HEX-E is not
+    2x off.
+  - With the finger straight, the plate meets the pad's flat proximal end, and no calibrated contact gives that field.
+    The proximal half of the 11/22 pad turns only 12 deg over 11 mm, so a few degrees of lean slide the contact
+    there: the hand is tilted 2.7 deg and the joints give 1-1.5 deg. Tip 3's UR5 sphere presses start at z 4.3 mm.
+  - Summing the calibration's point fields over a flat-plate patch (Winkler,
+    `sim/20261119-board_patch_superposition.py`, with tip 3's rig rod presses down to z 0.6) reproduces PIP 20 at
+    cosine 0.993 and 0.92-0.94 of the field. No patch on the pad reproduces PIP 0 (at most 0.51).
+  - So at PIP 0 something besides the pad's surface carries part of the load, or the pad deforms in a way the calibration
+    never sampled. The DIP link's body just proximal of the pad is the first candidate. The cameras cannot see the
+    taped side.
+- **The 11-18 presses agree** (`sim/20261119-board_field_per_newton_hand.py`, `data/s3/20261119-board_field_per_newton_hand.json`).
+  Raw field per HEX-E newton is 0.37-0.68 of the calibration at the GP's point, and best-match cosines are 0.70-0.97.
+  In a joint-driven press the finger's own motion moves the board too: 1.7 uT per degree of MCP in free air, before
+  contact. The trials' own-pose term takes off part of the contact signal with it; without it, the GP's slopes were
+  0.64-0.86 on the bent-PIP presses against 0.44-0.56 with it. In the step back, the servo's load fell 200-400 at
+  constant force and the field moved 1-3 uT, so the motor current matters little.
+- **The estimator** (`sim/20261119-board_force_pattern_match.py`, `data/s3/20261119-board_force_pattern_match.json`).
+  - Take the calibration point whose field per newton is most nearly parallel to the measured field; the least-squares
+    force there reads 0.83-0.87 of the HEX-E at PIP 20, where the trials' GP reads 0.60-0.63.
+  - The GP itself loses a quarter of the force, and adds 0.15-0.3 N at zero force.
+  - The best cosine works as a trust flag: 0.99 when the force is right, under 0.7 when no calibrated contact explains
+    the field.
+- The sphere is not an indenter on this rig. A curled finger's pad faces the palm (up), so no pad can press down on the
+  sphere's top. Sideways, the stem would tip it. The owner will not set up a fixed sphere tonight (17:2x, relayed).
+- At 17:30 the hand parked over the start and the post was cleared for removal (the owner's question, relayed by the
+  coordinating session). It still stood in the cameras' frames at 17:34.
+
+## 2026-11-19, 17:31-17:55: the HEX-E against a dead weight, and the large tag blocks
+
+- **Dead weight** (owner, 17:4x: "ive acquired a 200g mass + some 4-10g in cable mass", then "ok there is a 200g mass
+  precariously hanging on the index fingertip"). The arm stayed parked over the start. `lab/day/20261119_record_hexe.py`
+  recorded the HEX-E at 100 Hz (`logs/20261119-sr2_dead_weight/`, 3-5 MB, rsynced). `sim/20261119-hexe_dead_weight.py`
+  finds the plateaus (`data/s3/20261119-hexe_dead_weight.json`).
+  - Between quiet plateaus (17:39:52-17:41:48 and 17:43:01-17:47:17) the force stepped (0.165, 0.057, 1.141) N,
+    |dF| 1.155 N. The weight is 2.00-2.06 N, so the HEX-E reads 0.56-0.58 of it. The camera frame of 17:48 shows the
+    mass hanging in free air.
+  - The torque stepped (0.087, 0.087, -0.008) N m. At the index's place in the hand model that is about 1.36 N of
+    weight, 10 deg off in direction.
+  - Repeats (lift and release) were asked for; none by 17:55.
+  - The board comparisons are in the same sensor's newtons as the calibrations, so they stand only if the HEX-E read the
+    same in October. The untared z argues for that: 651.25 N with the 160 g calibration tool on 10-22, 672.1 N with the
+    hand now, where a 0.6 scale change in the box would give about 390 N. The October gravity sweep's 160 g tool, matching
+    the payload estimates, argues against it.
+  - With 1/0.57 the S3 stall torques meet the SCS0009 datasheet (MCP 0.22 N m, yaw 0.24 N m; hand-4a, 17:5x).
+  - A test without the HEX-E: rest the weighed mass on an upturned pad (a curled finger's pad faces up) through a small
+    ball at the apex, and compare the boards with the calibration there.
+- **Large tag blocks** (owner via hand-9b, 17:2x; `docs/experiments/20261115-hom_bench_trials/lab/block_print_check.py`,
+  no motion; `logs/20261119-block_print_check/`). Two views, the owner turning the blocks in between.
+  - Every face of C45 (ids 32-37) and S67 (38-43) decodes with no bits corrected, except 37 and 38. Those two were seen
+    only edge-on (75-77 deg), with 1-2 bits corrected and margins 19-21.
+  - C45's faces 35-37 fit the CAD map at 1.30 px rms, against 0.59 px for 32-34 and 0.65 px for S67's 39-41. That is
+    about 0.2 mm at 6 px/mm, the owner's layer shift.
+  - Give C45 its own fitted map before tracking. Faces 37 and 38 still need a frontal view.
+- Page: `20261119-fingertip_board_force_by_contact_place.html`, by `scripts/fingertip/fingertip_board_force_place_page.py`
+  (built on corvus with DOCS_REFRESH=0; the docs index needs a refresh on the workstation).
