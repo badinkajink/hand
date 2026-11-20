@@ -1,0 +1,575 @@
+{
+ "what": "The fingertip forces of the twist at (70, 110) grasp 0 on the hand, read by the fingertip boards, against the contact forces of the ranking's simulation for the same grasp (hand-4a, 2026-11-19 21:3x; owner: \"dont we literally have fingertip force readings to verify?\").",
+ "written": "2026-11-19 21:20",
+ "commanded_N": 2.5,
+ "hand_trials": [
+  {
+   "file": "20261117-182123_twist_d40_trial000.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.431,
+    "mean_N_all_periods": 2.062
+   },
+   "index": {
+    "share": 0.313,
+    "median_N": 0.622,
+    "mean_N_all_periods": 0.194
+   },
+   "middle": {
+    "share": 0.54,
+    "median_N": 1.117,
+    "mean_N_all_periods": 0.606
+   }
+  },
+  {
+   "file": "20261117-194243_twist_d40_trial001.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.457,
+    "mean_N_all_periods": 2.205
+   },
+   "index": {
+    "share": 0.512,
+    "median_N": 0.592,
+    "mean_N_all_periods": 0.308
+   },
+   "middle": {
+    "share": 0.471,
+    "median_N": 1.069,
+    "mean_N_all_periods": 0.513
+   }
+  },
+  {
+   "file": "20261117-194506_twist_d40_trial000.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.86,
+    "mean_N_all_periods": 2.593
+   },
+   "index": {
+    "share": 0.577,
+    "median_N": 0.621,
+    "mean_N_all_periods": 0.366
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.704,
+    "mean_N_all_periods": 1.555
+   }
+  },
+  {
+   "file": "20261117-194727_twist_d40_trial001.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 3.448,
+    "mean_N_all_periods": 4.629
+   },
+   "index": {
+    "share": 0.633,
+    "median_N": 0.655,
+    "mean_N_all_periods": 0.425
+   },
+   "middle": {
+    "share": 0.655,
+    "median_N": 4.0,
+    "mean_N_all_periods": 3.305
+   }
+  },
+  {
+   "file": "20261117-194922_twist_d40_trial000.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.43,
+    "mean_N_all_periods": 2.126
+   },
+   "index": {
+    "share": 0.247,
+    "median_N": 0.833,
+    "mean_N_all_periods": 0.214
+   },
+   "middle": {
+    "share": 0.536,
+    "median_N": 1.291,
+    "mean_N_all_periods": 0.642
+   }
+  },
+  {
+   "file": "20261117-195313_twist_d40_trial002.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.529,
+    "mean_N_all_periods": 2.137
+   },
+   "index": {
+    "share": 0.299,
+    "median_N": 0.596,
+    "mean_N_all_periods": 0.178
+   },
+   "middle": {
+    "share": 0.495,
+    "median_N": 1.247,
+    "mean_N_all_periods": 0.616
+   }
+  },
+  {
+   "file": "20261117-195517_twist_d40_trial002.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.319,
+    "mean_N_all_periods": 2.1
+   },
+   "index": {
+    "share": 0.402,
+    "median_N": 0.574,
+    "mean_N_all_periods": 0.236
+   },
+   "middle": {
+    "share": 0.481,
+    "median_N": 1.154,
+    "mean_N_all_periods": 0.56
+   }
+  },
+  {
+   "file": "20261117-195738_twist_d40_trial002.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.344,
+    "mean_N_all_periods": 2.343
+   },
+   "index": {
+    "share": 0.529,
+    "median_N": 0.882,
+    "mean_N_all_periods": 0.496
+   },
+   "middle": {
+    "share": 0.897,
+    "median_N": 1.592,
+    "mean_N_all_periods": 1.371
+   }
+  },
+  {
+   "file": "20261117-195931_twist_d40_trial002.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.338,
+    "mean_N_all_periods": 2.253
+   },
+   "index": {
+    "share": 0.739,
+    "median_N": 0.728,
+    "mean_N_all_periods": 1.862
+   },
+   "middle": {
+    "share": 0.426,
+    "median_N": 1.008,
+    "mean_N_all_periods": 0.464
+   }
+  },
+  {
+   "file": "20261117-200137_twist_d40_trial003.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.34,
+    "mean_N_all_periods": 2.09
+   },
+   "index": {
+    "share": 0.292,
+    "median_N": 0.7,
+    "mean_N_all_periods": 0.203
+   },
+   "middle": {
+    "share": 0.498,
+    "median_N": 1.229,
+    "mean_N_all_periods": 0.62
+   }
+  },
+  {
+   "file": "20261117-200542_twist_d40_trial004.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.518,
+    "mean_N_all_periods": 2.2
+   },
+   "index": {
+    "share": 0.388,
+    "median_N": 0.692,
+    "mean_N_all_periods": 0.273
+   },
+   "middle": {
+    "share": 0.498,
+    "median_N": 1.219,
+    "mean_N_all_periods": 0.593
+   }
+  },
+  {
+   "file": "20261117-210621_twist_d40_trial004.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.479,
+    "mean_N_all_periods": 2.132
+   },
+   "index": {
+    "share": 0.405,
+    "median_N": 0.594,
+    "mean_N_all_periods": 0.242
+   },
+   "middle": {
+    "share": 0.481,
+    "median_N": 1.112,
+    "mean_N_all_periods": 0.532
+   }
+  },
+  {
+   "file": "20261117-210830_twist_d40_trial000.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.76,
+    "mean_N_all_periods": 2.471
+   },
+   "index": {
+    "share": 0.557,
+    "median_N": 0.651,
+    "mean_N_all_periods": 0.382
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.735,
+    "mean_N_all_periods": 1.537
+   }
+  },
+  {
+   "file": "20261117-211021_twist_d40_trial004.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.348,
+    "mean_N_all_periods": 2.286
+   },
+   "index": {
+    "share": 0.509,
+    "median_N": 0.787,
+    "mean_N_all_periods": 0.398
+   },
+   "middle": {
+    "share": 0.529,
+    "median_N": 1.177,
+    "mean_N_all_periods": 0.652
+   }
+  },
+  {
+   "file": "20261117-211226_twist_d40_trial000.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 0.948,
+    "median_N": 2.438,
+    "mean_N_all_periods": 2.096
+   },
+   "index": {
+    "share": 0.203,
+    "median_N": 0.86,
+    "mean_N_all_periods": 0.166
+   },
+   "middle": {
+    "share": 0.505,
+    "median_N": 1.456,
+    "mean_N_all_periods": 0.681
+   }
+  },
+  {
+   "file": "20261117-211615_twist_d40_trial005.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.794,
+    "mean_N_all_periods": 2.471
+   },
+   "index": {
+    "share": 0.553,
+    "median_N": 0.69,
+    "mean_N_all_periods": 0.389
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.617,
+    "mean_N_all_periods": 1.452
+   }
+  },
+  {
+   "file": "20261117-211835_twist_d40_trial001.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.529,
+    "mean_N_all_periods": 2.234
+   },
+   "index": {
+    "share": 0.223,
+    "median_N": 0.63,
+    "mean_N_all_periods": 0.14
+   },
+   "middle": {
+    "share": 0.522,
+    "median_N": 1.306,
+    "mean_N_all_periods": 0.664
+   }
+  },
+  {
+   "file": "20261117-212039_twist_d40_trial005.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.627,
+    "mean_N_all_periods": 2.245
+   },
+   "index": {
+    "share": 0.402,
+    "median_N": 0.799,
+    "mean_N_all_periods": 0.329
+   },
+   "middle": {
+    "share": 0.966,
+    "median_N": 1.4,
+    "mean_N_all_periods": 1.646
+   }
+  },
+  {
+   "file": "20261117-212250_twist_d40_trial001.jsonl",
+   "tips": "on",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.234,
+    "mean_N_all_periods": 2.03
+   },
+   "index": {
+    "share": 0.055,
+    "median_N": 0.885,
+    "mean_N_all_periods": 0.05
+   },
+   "middle": {
+    "share": 0.498,
+    "median_N": 1.364,
+    "mean_N_all_periods": 0.623
+   }
+  },
+  {
+   "file": "20261117-212455_twist_d40_trial006.jsonl",
+   "tips": "off",
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.491,
+    "mean_N_all_periods": 2.165
+   },
+   "index": {
+    "share": 0.309,
+    "median_N": 0.562,
+    "mean_N_all_periods": 0.177
+   },
+   "middle": {
+    "share": 0.495,
+    "median_N": 1.288,
+    "mean_N_all_periods": 0.661
+   }
+  }
+ ],
+ "sim_runs": [
+  {
+   "model": "point",
+   "seed": 0,
+   "track": 0.39,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.088,
+    "mean_N_all_periods": 2.16
+   },
+   "index": {
+    "share": 0.51,
+    "median_N": 1.822,
+    "mean_N_all_periods": 0.873
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.498,
+    "mean_N_all_periods": 1.465
+   }
+  },
+  {
+   "model": "point",
+   "seed": 1,
+   "track": 0.39,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.009,
+    "mean_N_all_periods": 2.097
+   },
+   "index": {
+    "share": 0.524,
+    "median_N": 1.704,
+    "mean_N_all_periods": 0.896
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.174,
+    "mean_N_all_periods": 1.351
+   }
+  },
+  {
+   "model": "point",
+   "seed": 2,
+   "track": 0.391,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.144,
+    "mean_N_all_periods": 2.227
+   },
+   "index": {
+    "share": 0.528,
+    "median_N": 1.844,
+    "mean_N_all_periods": 0.898
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.529,
+    "mean_N_all_periods": 1.527
+   }
+  },
+  {
+   "model": "pads",
+   "seed": 0,
+   "track": 0.375,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.143,
+    "mean_N_all_periods": 2.103
+   },
+   "index": {
+    "share": 0.514,
+    "median_N": 1.655,
+    "mean_N_all_periods": 0.762
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.587,
+    "mean_N_all_periods": 1.392
+   }
+  },
+  {
+   "model": "pads",
+   "seed": 1,
+   "track": 0.36,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.013,
+    "mean_N_all_periods": 2.046
+   },
+   "index": {
+    "share": 0.534,
+    "median_N": 1.442,
+    "mean_N_all_periods": 0.756
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.34,
+    "mean_N_all_periods": 1.311
+   }
+  },
+  {
+   "model": "pads",
+   "seed": 2,
+   "track": 0.347,
+   "held": true,
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.142,
+    "mean_N_all_periods": 2.175
+   },
+   "index": {
+    "share": 0.538,
+    "median_N": 1.689,
+    "mean_N_all_periods": 0.827
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.641,
+    "mean_N_all_periods": 1.467
+   }
+  }
+ ],
+ "hand": {
+  "off": {
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.505
+   },
+   "index": {
+    "share": 0.403,
+    "median_N": 0.621
+   },
+   "middle": {
+    "share": 0.623,
+    "median_N": 1.238
+   }
+  },
+  "on": {
+   "thumb": {
+    "share": 0.994,
+    "median_N": 2.389
+   },
+   "index": {
+    "share": 0.415,
+    "median_N": 0.816
+   },
+   "middle": {
+    "share": 0.627,
+    "median_N": 1.382
+   }
+  }
+ },
+ "sim": {
+  "point": {
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.088
+   },
+   "index": {
+    "share": 0.521,
+    "median_N": 1.822
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.498
+   }
+  },
+  "pads": {
+   "thumb": {
+    "share": 1.0,
+    "median_N": 2.142
+   },
+   "index": {
+    "share": 0.529,
+    "median_N": 1.655
+   },
+   "middle": {
+    "share": 1.0,
+    "median_N": 1.587
+   }
+  }
+ }
+}
