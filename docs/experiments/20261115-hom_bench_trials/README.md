@@ -29,6 +29,27 @@ trial. Three sets, run in this order: the 11 plans with HOM's default forces, th
   dry run skips "mixed B" at (105, 60) and "yaw +15" and "mixed A" at (85, 60) (fingers under 8 mm apart). Log
   `logs/20261116-hom_trials/20261119-series_rank_seed210748.log`, one line per trial in `...seed210748.jsonl`, the
   session's films in `logs/20261116-hom_trials/20261119-2108_session/`.
+- **The lights went off between 21:09:36 and 21:10:32** (frames' mean grey 20 and 29 lit, 16 dark), and the first
+  `ready` at (65, 110) got 0 poses of the sphere: the series stopped before any trial. They go off at 20:10-21:40 on
+  every night recorded; schedule tracked work before about 21:00.
+- **In the dark, the free-air sweeps at all 11 layouts** (`hom_series.py --sweep-only`, 21:13-21:32; log
+  `...20261119-sweeps_dark_seed210748.log`). At (70, 90) the pose "curl 40/40" stalled the thumb's and index's MCPs
+  6-7.5 deg short and the sweep stopped and took the fingers back: their DIP links met. The sweep's check then took
+  each finger as three balls (tip pad, tip end, PIP joint) and had them 27 mm apart; the cad_v3 scene's collision
+  spheres put them 0.6 mm into each other, and 8.6 mm apart at (65, 110), where the pose ran. The rest ran at a 30 mm
+  margin on the balls (`--sweep-args='--ff-mm 30'`), skipping the converging poses. Since 21:3x `pose_sweep.py`'s
+  finger gap uses the CAD spheres (s3_approach.hand_points) with the 8 mm margin; hom_setup's other checks still use
+  the balls.
+- **The own-pose term does not depend on the layout** (fingertip sensing page, Table 4): the 11-04/05 GP left a median
+  of 5.9, 7.4 and 8.0 uT (thumb, index, middle) over the 11 layouts, with no trend; the (70, 110) refit was no better
+  anywhere. The per-layout sweep is dropped from the series.
+- **The morning start:** `lab/wait_for_lights.py` (pid in `pgrep -af "[w]ait_for_lights"`) checks the cameras from
+  07:00 every 5 min and, after three lit checks with the sphere seen, runs hom_series on `lab/series_entries_morning.txt`
+  (the 33 default-force trials in the seeded order, then the anchor's stage E plan
+  `20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json` three times on port 47113), without `--sweep`. The file is
+  read when it fires, so a new order can replace it until then. Log
+  `logs/20261116-hom_trials/20261120-morning_series_seed210748.log`; checks in `.../wait_for_lights.jsonl`. To cancel,
+  kill the watcher's pid.
 
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 
