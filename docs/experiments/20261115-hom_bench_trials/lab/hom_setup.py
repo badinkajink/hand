@@ -1052,8 +1052,12 @@ def carry_to_centre(a, arm, meas, info, what="putdown"):
         T_goal = arm.T_BE()
         T_goal[:3, 3] += [mx, my, mz]
         L = math.hypot(mx, math.hypot(my, mz))
+        # the object's motion against the hand while the hand rises or carries it in the air is slip in the grasp, never
+        # the table (2026-11-20 14:02: 2.9-3.4 mm of creep in a loose grasp stopped the rise twice with the sphere
+        # held): only a slip past --carry-slip-mm, an object leaving the hand, stops it
         why, moved = arm.move(T_goal, a.v_carry, a.acc, a.stop_n, L / (1e3 * a.v_carry) + 6.0,
-                              f"{what}: {leg} {L:.1f} mm", check=meas.watch_touch(ref[0], 2.0, 2.0))
+                              f"{what}: {leg} {L:.1f} mm",
+                              check=meas.watch_touch(ref[0], a.carry_slip_mm, a.carry_slip_mm))
         if why:
             raise SystemExit(f"the {leg} stopped after {moved:.1f} mm: {why}; look before anything else")
     p_m, q_m, info = meas.pose(getattr(a, "measure_s", 0.5))
@@ -1071,6 +1075,8 @@ def _centre_args(p):
     p.add_argument("--no-centre", dest="centre", action="store_const", const=None, help="put it down where it is")
     p.add_argument("--centre-tol", type=float, default=5.0, help="mm from the centre within which no carry runs")
     p.add_argument("--carry-rise", type=float, default=30.0, help="mm up before the carry")
+    p.add_argument("--carry-slip-mm", type=float, default=8.0,
+                   help="mm the object may move against the hand during the carry's rise and move (slip)")
     p.add_argument("--v-carry", type=float, default=0.02, help="m/s of the carry")
     p.add_argument("--max-carry", type=float, default=300.0, help="mm: a longer carry is refused")
 

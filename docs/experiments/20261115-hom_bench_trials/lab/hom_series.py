@@ -162,40 +162,90 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
-def pickup(a, plan, label):
-    """Stand a toppled sphere up again by the controlled-slip pick-up (pinch_pickup.py, the skill's steps; 2026-11-19
-    19:28 after g13 at (105, 70) toppled it): plan at the station's layout (the trial's plan as the base), contacts 5,
-    4, 6 then 3 deg above the equator until the touch keeps 8 mm off the table on both fingers and the joints 4 deg from
-    their limits; then grasp, lift, slip, putdown (--level-max 0) and unturn, each checked for its own success line.
-    Returns None when the sphere stands again, else the reason."""
-    pm = ["--map", a.map]
-    best = None
+PICKUP_LAYOUT = HERE.parent / "plans/20261116-film_x105_y70_twist_gr_g12_plan.json"  # (105, 70), the pick-ups' layout
+PICKUP_BASE = HERE.parent / "plans/20261119-pinch_pickup_thumb_index_plan.json"      # its pinch plan of 11-19 (the base)
+
+
+def plan_pinch(a, base):
+    """The pinch plan at the station's layout on base: contacts 5, 4, 6 then 3 deg above the equator until the touch keeps
+    8 mm off the table on both fingers and the joints 4 deg from their limits; the file, or None."""
     for lat in ("5", "4", "6", "3"):
-        rc, out = run([PY, "pinch_pickup.py", "plan", *pm, "--gap", "8", "--lat-deg", lat, "--base-plan", plan,
-                       "--turn"], 240)
+        rc, out = run([PY, "pinch_pickup.py", "plan", "--map", a.map, "--gap", "8", "--lat-deg", lat, "--base-plan",
+                       str(base), "--turn", "--max-turn", "60"], 240)
         m_margin = re.search(r"joint margin ([\d.]+) deg", out)
-        tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)", out.split("at touch:")[-1].split("\n")[0])] \
-            if "at touch:" in out else []
+        tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)",
+                                               out.split("at touch:")[-1].split("\n")[0])] if "at touch:" in out else []
         m_plan = re.search(r"plan -> (\S+_plan\.json)", out)
         if rc == 0 and m_margin and m_plan and tables and float(m_margin.group(1)) >= 4.0 and min(tables) >= 8.0:
-            best = m_plan.group(1)
-            break
-    if best is None:
-        return "no pick-up plan keeps 8 mm off the table and 4 deg from the joint limits"
-    for step, token, extra, tmo in (("grasp", "GRASPED", [], 400), ("lift", "LIFTED", [], 400),
-                                    ("slip", "SLIP DONE", [], 500)):
-        rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, "--go", "--video-dir", a.video_dir], tmo)
-        if rc != 0 or token not in out:
-            return f"the pick-up's {step} did not finish"
-    rc, out = run([PY, "hom_setup.py", "putdown", "--plan", best, "--object", "sphere", *pm, "--level-max", "0", "--go",
-                   "--video-dir", a.video_dir], 450)
-    if rc != 0 or "LET GO" not in out:
-        return "the pick-up's putdown did not finish"
-    rc, out = run([PY, "pinch_pickup.py", "unturn", "--plan", best, *pm, "--go", "--video-dir", a.video_dir], 300)
-    if rc != 0 or ("UNTURNED" not in out and "no turn" not in out.lower()):
-        return "the pick-up's unturn did not finish"
-    print(f"   {label}: the sphere picked up and set down upright ({Path(best).name})", flush=True)
+            return m_plan.group(1)
     return None
+
+
+def lift_clear(a, plan):
+    """The hand straight up until the fingers clear the object, twice (a lift from a contact stops when the force it
+    started under lets go), then the fingers straight (zero, checked)."""
+    for _ in range(2):
+        run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--max-lift", "150", "--go"], 180)
+    run([PY, "hom_setup.py", "zero", "--plan", plan, "--object", a.object, "--map", a.map, "--go", "--video-dir",
+         a.video_dir], 120)
+
+
+def pickup(a, plan, label):
+    """Stand a toppled or dropped sphere up again by the controlled-slip pick-up (pinch_pickup.py, the skill's steps;
+    2026-11-19 19:28 after g13 at (105, 70) toppled it). The pinch is planned at the station's layout first. Where none
+    plans (the wide layouts), the gantries go to (105, 70), and a sphere more than 40 mm from the table's centre is pushed
+    toward it with the middle fingertip (push_sphere.py). That is the recovery done by hand twice on 2026-11-20: the
+    sphere lay among the cables, seen by 1-2 tags, and the pinch's descent put a fingertip on the ball until a push
+    brought it onto bare table. Then grasp, lift, slip, putdown (--level-max 0) and unturn, each checked for its own
+    success line, at 1920 x 1080 (twice the pixels per tag of 540p for a lying sphere's few tags). Returns None when the
+    sphere stands again, else the reason, the hand lifted clear."""
+    pm = ["--map", a.map]
+    mode, exposure = os.environ.get("HOM_CAM_MODE"), os.environ.get("HOM_CAM_EXPOSURE")
+    os.environ["HOM_CAM_MODE"] = "1920x1080@30"
+    os.environ.pop("HOM_CAM_EXPOSURE", None)
+    try:
+        best = plan_pinch(a, plan)
+        if best is None:
+            rc, out = run([PY, "hom_setup.py", "layout", "--plan", str(PICKUP_LAYOUT), "--go", "--video-dir",
+                           a.video_dir], 300)
+            if rc != 0 or "applied True" not in out:
+                return "the layout for the pick-up failed"
+            rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14"], 120)
+            m = re.search(r"([\d.]+) mm from the table's centre", out)
+            if m and float(m.group(1)) > 40.0:
+                rc, out = run([PY, "push_sphere.py", "--plan", str(PICKUP_LAYOUT), *pm, "--tip-z", "14", "--go",
+                               "--video-dir", a.video_dir], 240)
+                if rc != 0 or "PUSHED" not in out:
+                    lift_clear(a, str(PICKUP_LAYOUT))
+                else:
+                    run([PY, "hom_setup.py", "zero", "--plan", str(PICKUP_LAYOUT), "--object", a.object, *pm, "--go",
+                         "--video-dir", a.video_dir], 120)
+            best = plan_pinch(a, PICKUP_BASE)
+            if best is None:
+                return "no pick-up plan at (105, 70) either"
+        for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "4"], 400),
+                                        ("lift", "LIFTED", [], 400), ("slip", "SLIP DONE", [], 500)):
+            rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, *extra, "--go", "--video-dir", a.video_dir],
+                          tmo)
+            if rc != 0 or token not in out:
+                if step == "grasp":
+                    lift_clear(a, str(PICKUP_LAYOUT))
+                return f"the pick-up's {step} did not finish"
+        rc, out = run([PY, "hom_setup.py", "putdown", "--plan", best, "--object", "sphere", *pm, "--level-max", "0",
+                       "--go", "--video-dir", a.video_dir], 450)
+        if rc != 0 or "LET GO" not in out:
+            return "the pick-up's putdown did not finish"
+        rc, out = run([PY, "pinch_pickup.py", "unturn", "--plan", best, *pm, "--go", "--video-dir", a.video_dir], 300)
+        if rc != 0 or ("UNTURNED" not in out and "no turn" not in out.lower()):
+            return "the pick-up's unturn did not finish"
+        print(f"   {label}: the sphere picked up and set down upright ({Path(best).name})", flush=True)
+        return None
+    finally:
+        for k, v in (("HOM_CAM_MODE", mode), ("HOM_CAM_EXPOSURE", exposure)):
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 def station_plan_file():
