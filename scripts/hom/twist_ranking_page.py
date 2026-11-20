@@ -689,7 +689,11 @@ out of the grasp or ended in an error.</p>
 force in every period, whether or not HOM uses them. Table {T_TIP} compares the boards over the {nh} twists of grasp 0 at
 (70, 110) of 2026-11-17 with the ranking's simulation of the same grasp at seeds 0-2, over the task window
 (sim/20261119-tip_forces_vs_sim.py).{tip_p} The boards' newtons are uncertain. The HEX-E read a 200 g dead weight at
-0.56-0.60 of its weight, and a flat contact on the proximal part of a pad reads about a third.</p>
+0.56-0.60 of its weight, and a flat contact on the proximal part of a pad reads about a third. The boards also sense
+finger-to-finger contact. In three tips-on twists the middle's board read 6.0-8.6 N for 0.7-2.1 s, with its contact
+5-21 mm outside the tracked sphere and 1-12 mm from the thumb's tip: the thumb pressed on the middle finger (the lab's
+sim/20261119-thumb_middle_contact.py, fabb2533d). The CAD-sphere check of the next section puts the thumb's tip into the
+middle finger in the same trials.</p>
 {table(["Source", "Thumb", "Index", "Middle"], rows_, num=(),
        caption="Fingertip forces in the twist of (70, 110) grasp 0: median normal force while in contact and the share of "
                "the task window (2.0-7.8 s) in contact (over 0.02 N).", n=T_TIP)}"""))
