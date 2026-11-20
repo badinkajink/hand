@@ -97,5 +97,21 @@
    "proximal": 30.8,
    "note": "gimbal at v3's MCP point, the 20.75 mm kept as a fixed metacarpal; replay only"
   }
+ },
+ "v4c": {
+  "title": "Two-rod differential at a gimbal MCP, after the AmazingHand: two STS3032 in the carriage, the PIP servo flat on the MCP link with one rod",
+  "note": "mm. Base rods in the mount frame (= the yaw frame at yaw 0), origin at G on v3's yaw axis; the PIP drive in the MCP link frame. The base geometry is the codesign's (scripts/cad/v4c_codesign.py): lugs lug_x dorsal of G and lug_y to either side at the rest pose (yaw 0, MCP mcp_rest), horns of radius horn_r on shafts along x shaft_y to either side of the finger's plane, horn_z above G. pip.side is +1 for the index (rod on its outer side, +y) and -1 for the middle.",
+  "gimbal_z": 0.0, "proximal": 51.55, "carriage_cut_above_G": 21.0,
+  "base": {"servo": "sts3032", "horn_r": 10.0, "lug_x": 8.0, "lug_y": 8.0, "horn_z": 45.0, "shaft_y": 6.05, "spline_x": 10.0,
+           "mcp_rest": 46.0, "yaw_rest": 0.0, "rod_r": 1.2, "ball_r": 2.4, "horn_limit_deg": 90.0},
+  "pip": {"servo": "sts3032", "spline_x": 17.0, "horn_x": 21.0, "spline_z": -34.0, "long_end": "up", "horn_r": 10.0, "lug_r": 9.0,
+          "lug_y": 0.0, "pip_rest": 30.0,
+          "side": {"index": 1.0, "middle": -1.0}, "rod_r": 1.2, "ball_r": 2.4},
+  "mcp_link": {"plate_y": [6.3, 9.475], "plate_x": [-6.5, 6.0], "plate_z": [-56.0, 0.0], "plate_end_r": 6.5, "servo_zone_x": [-15.5, 6.0], "servo_zone_z": [-42.0, -9.0]},
+  "yoke": {"cheek_y": [10.9, 14.075], "cheek_x": [-6.0, 6.0], "cheek_z": [-6.0, 6.0], "arm_x": [6.0, 20.0], "arm_z": [-4.0, 4.0],
+           "bridge_x": [17.0, 20.0], "pin_x": [20.0, 26.0], "pin_r": 2.5},
+  "frame_post": {"x": [20.5, 27.0], "y": [-4.0, 4.0], "z": [-5.0, 23.0]},
+  "housing": {"x": [12.5, 43.4], "y": [-13.55, 13.55], "z": [21.8, 56.8]},
+  "codesign": "docs/experiments/20261118-sr2_actuator_layout/data/20261119-v4c_codesign.json"
  }
 }

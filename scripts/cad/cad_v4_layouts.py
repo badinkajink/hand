@@ -54,6 +54,7 @@ SIGN = {"yaw": -1.0, "mcp": 1.0, "pip": 1.0}  # manta_hand.plan JOINT_SIGN for i
 DRIVER = {"yaw": (-85.0, 85.0), "mcp": (-15.0, 92.0), "pip": (-18.0, 92.0)}  # servos.py nominal contract
 DRIVER_MCP_CAP = {"index": 64.75, "middle": 69.73}  # servos.py caps from the pot's dead zone
 STRIDE = 2
+TRIALS_LAST_DAY = "20261117"
 MARGIN = 0.02  # m; distances beyond it are reported as 20 mm
 P = json.loads(PARAMS.read_text())
 SILVER, DARK, STEEL, HOUSING = [0.66, 0.68, 0.72, 1], [0.12, 0.12, 0.13, 1], [0.42, 0.44, 0.50, 1], [0.85, 0.62, 0.38, 0.55]
@@ -70,6 +71,8 @@ def load_trials():
     rows, plans = [], {}
     limit = int(os.environ.get("CADV4_LIMIT", "0"))
     for path in sorted(glob.glob(str(RUNS / "*.jsonl"))):
+        if Path(path).name[:8] > TRIALS_LAST_DAY:  # the 65 runs of 16 and 17 November; later runs land in the same folder
+            continue
         lines = Path(path).read_text().splitlines()
         plan = json.loads(lines[0]).get("plan")
         if plan not in plans:
@@ -373,13 +376,171 @@ def build_spec(variant, pip_mid, th_mid):
             lower_finger(mj, spec, f, mcp, pip, pip_mid, prox)
             info[f] = drive(mj, f, yaw, (0.0, 0.0, 0.0), pip_shaft, pip_mid, th_mid, prox)
             info[f].update({"gimbal_z": G, "proximal": prox})
+        elif variant == "v4c":
+            info[f] = build_v4c(mj, spec, f, mount, yaw, mcp, pip, pip_mid)
     return spec, info
+
+
+# ----------------------------------------------------------------------------------------------- v4c
+V4C_RODS = (("p", 1.0), ("n", -1.0))
+
+
+def v4c_closed_form(f):
+    """v4c's rods in amazinghand_differential's geometry form (mm): the base pair in the mount frame (yaw about x, then
+    MCP about y, through G; rest at yaw_rest and mcp_rest) and the PIP rod in the MCP link frame (PIP about y through the
+    PIP axis; rest at pip_rest). The PIP lug is set square to its rod at rest."""
+    import amazinghand_differential as AD
+    V = P["v4c"]
+    B, Q = V["base"], V["pip"]
+    ax = np.array([1.0, 0.0, 0.0])
+
+    def rod(C, u, A, r):
+        C, u, A = (np.asarray(x, float) for x in (C, u, A))
+        v = np.cross(ax, u)
+        L = float(np.linalg.norm(A - (C + r * u)))
+        w = A - C
+        p_, q_ = w @ u, w @ v
+        k = (w @ w + r * r - L * L) / (2 * r)
+        acos = math.acos(float(np.clip(k / math.hypot(p_, q_), -1.0, 1.0)))
+        branch = min((1.0, -1.0), key=lambda b: abs(float(AD.wrap(math.atan2(q_, p_) + b * acos))))
+        return {"axis": ax, "u": u, "v": v, "C": C, "A": A, "r": r, "L": L, "th0": 0.0, "branch": branch}
+
+    G = V["gimbal_z"]
+    base = {"O": np.array([0.0, 0.0, G]), "e_a": ax, "e_f": np.array([0.0, 1.0, 0.0]), "f0": 0.0,
+            "rest": (math.radians(B["yaw_rest"]), math.radians(B["mcp_rest"])),
+            "rods": [rod((B["lug_x"], s * B["shaft_y"], G + B["horn_z"]), (0.0, s, 0.0), (B["lug_x"], s * B["lug_y"], G),
+                         B["horn_r"]) for _k, s in V4C_RODS]}
+    s = Q["side"][f]
+    O = np.array([0.0, 0.0, -V["proximal"]])
+    ball = np.array([Q["horn_x"], s * Q["horn_r"], Q["spline_z"]])
+    lug = O + np.array([Q["lug_r"], Q["lug_y"], 0.0])
+    for _ in range(12):  # the lug arm square to the rod's projection on the flexion plane
+        d = (ball - lug) * np.array([1.0, 0.0, 1.0])
+        d /= np.linalg.norm(d)
+        n = np.array([d[2], 0.0, -d[0]])
+        n = n if n[0] > 0 else -n
+        lug = O + Q["lug_r"] * n + np.array([0.0, Q["lug_y"], 0.0])
+    pip = {"O": O, "e_a": ax, "e_f": np.array([0.0, 1.0, 0.0]), "f0": 0.0, "rest": (0.0, math.radians(Q["pip_rest"])),
+           "rods": [rod((Q["horn_x"], 0.0, Q["spline_z"]), (0.0, s, 0.0), lug, Q["horn_r"])]}
+    return base, pip
+
+
+def v4c_state(closed, yaw, mcp, pip):
+    """Horn angles (rad), ball-joint quaternions of the rods (wxyz) and whether every rod closes with its horn within
+    the limit, at joint angles in rad: [(horn, quat) for the two base rods], (horn, quat) of the PIP rod, ok."""
+    import amazinghand_differential as AD
+    from sr2hand.geometry.rotations import mat_to_quat, rot_axis_angle, rot_between
+    lim = math.radians(P["v4c"]["base"]["horn_limit_deg"])
+    out, ok = [], True
+    for geom, a, f_ in ((closed[0], yaw, mcp), (closed[1], 0.0, pip)):
+        a_, f2 = np.array([a - geom["rest"][0]]), np.array([f_ - geom["rest"][1]])
+        th, good = AD.horn_angles(geom, a_, f2)
+        R = AD.pose(geom, a_, f2)[0]
+        res = []
+        for rod, t, g in zip(geom["rods"], th[:, 0], good[:, 0]):
+            t = float(np.clip(t, -lim, lim)) if np.isfinite(t) else 0.0
+            ok &= bool(g) and abs(t) < lim
+            ball = rod["C"] + rod["r"] * (rod["u"] * math.cos(t) + rod["v"] * math.sin(t))
+            lug = geom["O"] + R @ (rod["A"] - geom["O"])
+            d0 = rod["A"] - (rod["C"] + rod["r"] * rod["u"])
+            res.append((t, mat_to_quat(rot_between(d0, rot_axis_angle(rod["axis"], t).T @ (lug - ball)))))
+        out.append(res)
+    return out[0], out[1][0], ok
+
+
+def v4c_set_qpos(m, qpos, f, closed, yaw, mcp, pip):
+    """Write the horn angles and rod quaternions of finger f into qpos for joint angles in rad; returns whether the
+    pose is inside v4c's reach."""
+    import mujoco as mj
+    base, prod, ok = v4c_state(closed, yaw, mcp, pip)
+    adr = lambda n: m.jnt_qposadr[mj.mj_name2id(m, mj.mjtObj.mjOBJ_JOINT, n)]  # noqa: E731
+    for (k, _s), (t, q) in zip(V4C_RODS, base):
+        qpos[adr(f"{f}_bhorn_{k}_q")] = t
+        qpos[adr(f"{f}_brod_{k}_q"):adr(f"{f}_brod_{k}_q") + 4] = q
+    qpos[adr(f"{f}_phorn_q")] = prod[0]
+    qpos[adr(f"{f}_prod_q"):adr(f"{f}_prod_q") + 4] = prod[1]
+    return ok
+
+
+def build_v4c(mj, spec, f, mount, yaw, mcp, pip, pip_mid):
+    """v4c on one finger: the gimbal of v4b driven by two rods from STS3032s in the carriage, and the PIP servo lying
+    flat on the MCP link, driving the DIP link through one rod. Rods hang from their horns on ball joints; the
+    playable scene closes them on the lugs with connect constraints."""
+    from sr2hand.geometry.rotations import rot_y
+    V = P["v4c"]
+    B, Q, Lk, Y = V["base"], V["pip"], V["mcp_link"], V["yoke"]
+    G, prox = V["gimbal_z"], V["proximal"]
+    yaw.pos, mcp.pos = _mm((0, 0, G)), [0.0, 0.0, 0.0]
+    pip.pos = _mm((0, 0, -prox))
+    cut = G + V["carriage_cut_above_G"]
+    for g in list(yaw.geoms):
+        spec.delete(g)
+    for g in list(mount.geoms):
+        nm = g.name or ""
+        if nm in (f"{f}_servo_yaw_visual", f"{f}_carriage_visual") or (nm.startswith(f"{f}_mount_s") and g.pos[2] * 1e3 < cut):
+            spec.delete(g)
+    lower_finger(mj, spec, f, mcp, pip, pip_mid, prox)
+    for g in list(mcp.geoms):
+        if (g.name or "").startswith(f"{f}_v4_mcplink_") and g.name != f"{f}_v4_mcplink_pipboss":
+            spec.delete(g)
+    base, pr = v4c_closed_form(f)
+    for k, s in V4C_RODS:
+        servo_box(mj, mount, f"{f}_v4_baseservo_{k}", B["servo"], (B["spline_x"], s * B["shaft_y"], G + B["horn_z"]),
+                  (0, 0, -1), (-1, 0, 0), DARK)
+    hb, fp = V["housing"], V["frame_post"]
+    add_box(mj, mount, f"{f}_v4_basehousing", (hb["x"][0], hb["y"][0], G + hb["z"][0]), (hb["x"][1], hb["y"][1], G + hb["z"][1]),
+            HOUSING)
+    add_box(mj, mount, f"{f}_v4_framepost", (fp["x"][0], fp["y"][0], G + fp["z"][0]), (fp["x"][1], fp["y"][1], G + fp["z"][1]),
+            SILVER)
+    for k, s in V4C_RODS:
+        ya, yb = sorted((s * Y["cheek_y"][0], s * Y["cheek_y"][1]))
+        add_box(mj, yaw, f"{f}_v4_yoke_cheek_{k}", (Y["cheek_x"][0], ya, Y["cheek_z"][0]), (Y["cheek_x"][1], yb, Y["cheek_z"][1]),
+                SILVER)
+        add_box(mj, yaw, f"{f}_v4_yoke_arm_{k}", (Y["arm_x"][0], ya, Y["arm_z"][0]), (Y["arm_x"][1], yb, Y["arm_z"][1]), SILVER)
+    add_box(mj, yaw, f"{f}_v4_yoke_dorsal", (Y["bridge_x"][0], -Y["cheek_y"][1], Y["arm_z"][0]),
+            (Y["bridge_x"][1], Y["cheek_y"][1], Y["arm_z"][1]), SILVER)
+    add_capsule(mj, yaw, f"{f}_v4_yoke_pin", (Y["pin_x"][0], 0, 0), (Y["pin_x"][1], 0, 0), Y["pin_r"], STEEL)
+    for k, s in V4C_RODS:
+        ya, yb = sorted((s * Lk["plate_y"][0], s * Lk["plate_y"][1]))
+        add_box(mj, mcp, f"{f}_v4_mcplink_plate_{k}", (Lk["plate_x"][0], ya, Lk["plate_z"][0]), (Lk["plate_x"][1], yb, Lk["plate_z"][1]),
+                SILVER)
+        e = Lk["plate_end_r"] / math.sqrt(2.0)  # the square inscribed in the plate's round end about G
+        add_box(mj, mcp, f"{f}_v4_mcplink_plateend_{k}", (-e, ya, -e), (e, yb, e), SILVER)
+        add_box(mj, mcp, f"{f}_v4_mcplink_belly_{k}", (Lk["servo_zone_x"][0], ya, Lk["servo_zone_z"][0]),
+                (Lk["servo_zone_x"][1], yb, Lk["servo_zone_z"][1]), SILVER)
+    servo_box(mj, mcp, f"{f}_v4_pipservo", Q["servo"], (Q["spline_x"], 0.0, Q["spline_z"]),
+              (0, 0, 1) if Q.get("long_end") == "up" else (0, 0, -1), (1, 0, 0), DARK)
+    lim = math.radians(B["horn_limit_deg"])
+
+    def horn_and_rod(parent, name, rod, ball_r, rod_r, lug_body, lug_local):
+        h = add_body(parent, f"{f}_{name[0]}horn{name[1:]}", rod["C"], axis=[1, 0, 0])
+        j = spec.joint(f"{f}_{name[0]}horn{name[1:]}_q")
+        j.limited, j.range = mj.mjtLimited.mjLIMITED_TRUE, [-lim, lim]
+        arm = rod["r"] * rod["u"]
+        add_capsule(mj, h, f"{f}_v4_{name[0]}horn{name[1:]}", (0, 0, 0), arm, 2.0, STEEL)
+        rb = add_body(h, f"{f}_{name[0]}rod{name[1:]}", arm)
+        rb.add_joint(name=f"{f}_{name[0]}rod{name[1:]}_q", type=mj.mjtJoint.mjJNT_BALL)
+        end = rod["A"] - (rod["C"] + arm)
+        add_capsule(mj, rb, f"{f}_v4_{name[0]}rod{name[1:]}", (0, 0, 0), end, rod_r, STEEL)
+        rb.add_site(name=f"{f}_v4c_{name[0]}rod{name[1:]}_end", pos=_mm(end))
+        lug_body.add_site(name=f"{f}_v4c_{name[0]}lug{name[1:]}", pos=_mm(lug_local))
+        add_capsule(mj, lug_body, f"{f}_v4_{name[0]}lug{name[1:]}", lug_local, lug_local + np.array([0.0, 0.0, 0.5]), ball_r, STEEL)
+        return rod["L"]
+
+    R_rest = rot_y(math.radians(B["mcp_rest"]))
+    lens = [horn_and_rod(mount, f"b_{k}", rod, B["ball_r"], B["rod_r"], mcp, R_rest.T @ (rod["A"] - base["O"]))
+            for (k, _s), rod in zip(V4C_RODS, base["rods"])]
+    prod_ = pr["rods"][0]
+    R_pip = rot_y(math.radians(Q["pip_rest"]))
+    lens.append(horn_and_rod(mcp, "p", prod_, Q["ball_r"], Q["rod_r"], pip, R_pip.T @ (prod_["A"] - pr["O"])))
+    return {"gimbal_z": G, "proximal": prox, "rod_mm": [round(x, 2) for x in lens],
+            "pip_lug_mm": [round(float(x), 2) for x in prod_["A"]]}
 
 
 PALM_LIFT = 0.04  # m; the base scene's straight fingers reach 25 mm below the floor
 
 
-def make_playable(mj, spec):
+def make_playable(mj, spec, variant="v4a"):
     """What the written scenes need under physics, which kinematic posing (Model.set) does not: the base scene's
     morphology slides (mount x, y and finger length) removed, since contact forces drag them; equality constraints
     that keep the drive on drive_angles (a fixed tendon idler - MCP - PIP held at 0, joint couplings for the rest);
@@ -393,6 +554,22 @@ def make_playable(mj, spec):
     spec.key("open").qpos = []  # refilled by playable_key; the old one has the removed slides' entries
     spec.body("palm_pose").pos = np.asarray(spec.body("palm_pose").pos) + [0.0, 0.0, PALM_LIFT]
     have = {frozenset((x.bodyname1, x.bodyname2)) for x in spec.excludes}
+    if variant == "v4c":
+        stiff = [2.0 * 0.002, 1.0]
+        for f in FINGERS:
+            new = [f"{f}_{b}" for b in ("bhorn_p", "bhorn_n", "brod_p", "brod_n", "phorn", "prod")]
+            for b in new:
+                if b.endswith(("horn_p", "horn_n", "phorn")):
+                    spec.joint(f"{b}_q").armature = 1e-5
+            for rod, lug in (("brod_p", "blug_p"), ("brod_n", "blug_n"), ("prod", "plug")):
+                spec.add_equality(name=f"{f}_{rod}_close", type=mj.mjtEq.mjEQ_CONNECT, objtype=mj.mjtObj.mjOBJ_SITE,
+                                  name1=f"{f}_v4c_{rod}_end", name2=f"{f}_v4c_{lug}", solref=stiff)
+            own = [f"{f}_{b}" for b in ("mount", "yaw_frame", "mcp_frame", "len_frame", "pip_frame", "tip")] + ["palm_pose"]
+            for a, b in list(itertools.combinations(new, 2)) + [(a, b) for a in new for b in own]:
+                if frozenset((a, b)) not in have:
+                    spec.add_exclude(bodyname1=a, bodyname2=b)
+                    have.add(frozenset((a, b)))
+        return
     for f in FINGERS:
         for n in DRIVE_JOINTS:
             j = spec.joint(f"{f}_{n}")
@@ -416,7 +593,7 @@ def make_playable(mj, spec):
                 have.add(frozenset((a, b)))
 
 
-def playable_key(mj, spec, m):
+def playable_key(mj, spec, m, variant="v4a"):
     """The base scene's keyframe "open" mapped onto the new joints by name (MjSpec keeps the old qpos and appends
     zeros, which puts the old values on the wrong joints), with the drive on drive_angles and the palm where the base
     scene has it (its fingertips 3.9 mm into the floor), and a key "lifted" with the palm 40 mm higher."""
@@ -434,6 +611,9 @@ def playable_key(mj, spec, m):
         q[b:b + n] = kb.qpos[a:a + n]
     adr = lambda f, n: m.jnt_qposadr[m.joint(f"{f}_{n}").id]  # noqa: E731
     for f in FINGERS:
+        if variant == "v4c":
+            v4c_set_qpos(m, q, f, v4c_closed_form(f), q[adr(f, "yaw")], q[adr(f, "mcp")], q[adr(f, "pip")])
+            continue
         for n, v in drive_angles(q[adr(f, "mcp")], q[adr(f, "pip")]).items():
             q[adr(f, n)] = v
     ctrl = kb.ctrl.copy()
@@ -456,6 +636,8 @@ class Model:
         self.d = mj.MjData(self.m)
         self.jid = lambda n: mj.mj_name2id(self.m, mj.mjtObj.mjOBJ_JOINT, n)
         self.mount0 = {f: self.m.body_pos[mj.mj_name2id(self.m, mj.mjtObj.mjOBJ_BODY, f"{f}_mount")] * 1e3 for f in FINGERS}
+        self.v4c = {f: v4c_closed_form(f) for f in FINGERS} if variant == "v4c" else None
+        self.v4c_ok = {}
 
     def set(self, mounts, q):
         m, d = self.m, self.d
@@ -468,6 +650,8 @@ class Model:
                 j = self.jid(f"{f}_{name}")
                 if j >= 0:
                     d.qpos[m.jnt_qposadr[j]] = v
+            if self.v4c:
+                self.v4c_ok[f] = v4c_set_qpos(m, d.qpos, f, self.v4c[f], yaw, mcp, pip)
         self.mj.mj_kinematics(m, d)
         self.mj.mj_comPos(m, d)
 
@@ -505,19 +689,22 @@ def cmd_build(rows):
     MJCF_OUT.mkdir(parents=True, exist_ok=True)
     out = {}
     mj = mujoco()
-    for v in ("v4a", "v4b"):
+    for v in ("v4a", "v4b", "v4c"):
         spec, info = build_spec(v, pip_mid, th_mid)
-        make_playable(mj, spec)
-        playable_key(mj, spec, spec.compile())
+        make_playable(mj, spec, v)
+        playable_key(mj, spec, spec.compile(), v)
         spec.compile()
         spec.meshdir = "../20261104-cad_v3/meshes"
         spec.texturedir = "../20261104-cad_v3/meshes"
         spec.modelname = f"cad_v4_{v}_scene_screwdriver_medium"
         head, rest = spec.to_xml().split("\n", 1)
+        drive_note = ("     Equality constraints keep the idler, rod, coupler and PIP crank on the MCP and PIP joints; the idler\n"
+                      "     and the PIP servo's crank turn at MCP + PIP. The actuators are cad_v3's, in joint angles.\n")
+        if v == "v4c":
+            drive_note = ("     Connect constraints close the two base rods on the MCP link's lugs and the PIP rod on the DIP link's\n"
+                          "     lug; the horns stop at +-90 deg, where the reach ends. The actuators are cad_v3's, in joint angles.\n")
         note = (f"<!-- cad_v4 {v}, written by scripts/cad/cad_v4_layouts.py build from {PARAMS.relative_to(ROOT)}.\n"
-                "     Equality constraints keep the idler, rod, coupler and PIP crank on the MCP and PIP joints; the idler\n"
-                "     and the PIP servo's crank turn at MCP + PIP. The actuators are cad_v3's, in joint angles.\n"
-                f"     View: .venv/bin/python scripts/cad/cad_v4_layouts.py play {v} -->")
+                + drive_note + f"     View: .venv/bin/python scripts/cad/cad_v4_layouts.py play {v} -->")
         (MJCF_OUT / f"{v}.xml").write_text(f"{head}\n{note}\n{rest}")
         out[v] = info
         print("wrote", (MJCF_OUT / f"{v}.xml").relative_to(ROOT))
@@ -575,7 +762,100 @@ def cmd_check(rows):
         for k, w in list(res[v]["least_by_pair"].items())[:10]:
             print("   ", k, w)
     res["carriage"] = carriage_check(rows, pip_mid, th_mid)
+    res["v4c"] = check_v4c(pip_mid, th_mid)
+    res["v4c_limits"] = limits_v4c(pip_mid, th_mid)
     return res
+
+
+def check_v4c(pip_mid, th_mid):
+    """Self-clearance of v4c's index finger over the driver's ranges (yaw at five angles, MCP and PIP on a 3 and 6 deg
+    grid), at the poses inside its reach: the base rods, horns, servos, housing, frame post and yoke against the MCP
+    link, PIP drive and DIP link, and the PIP rod against its own link. Pairs joined by design (a rod and its lug, a
+    rod and the plate that carries its lug, a horn and its servo) are left out."""
+    M = Model("v4c", pip_mid, th_mid)
+    f = "index"
+    mj, m = M.mj, M.m
+    names = {g: mj.mj_id2name(m, mj.mjtObj.mjOBJ_GEOM, g) or "" for g in range(m.ngeom)}
+    pick = lambda keys: [g for g, n in names.items() if n.startswith(f + "_") and any(f"_v4_{k}" in n for k in keys)]  # noqa: E731
+    upper = pick(("baseservo", "basehousing", "framepost", "yoke", "bhorn", "brod"))
+    lower = pick(("mcplink", "blug", "pipservo", "phorn", "prod", "plug", "diplink")) + [
+        g for g, n in names.items() if n.startswith(f"{f}_cassette_s") or n.startswith(f"{f}_cap_s")]
+    joined = {("brod_p", "blug_p"), ("brod_n", "blug_n"), ("brod_p", "mcplink_plate_p"), ("brod_n", "mcplink_plate_n"),
+              ("brod_p", "mcplink_plateend_p"), ("brod_n", "mcplink_plateend_n"),
+              ("prod", "plug"), ("phorn", "pipservo"), ("prod", "phorn"), ("plug", "diplink")}
+    lab = lambda g: names[g].split("_v4_", 1)[-1] if "_v4_" in names[g] else label(mj, m, g)  # noqa: E731
+
+    def pairs(A, B):
+        out = []
+        for i in A:
+            for j in B:
+                a, b = lab(i), lab(j)
+                if any(a.startswith(x) and b.startswith(y) or a.startswith(y) and b.startswith(x) for x, y in joined) or i == j:
+                    continue
+                out.append((i, j))
+        return out
+    P1 = pairs(upper, lower)
+    P2 = pairs(pick(("prod",)), pick(("mcplink", "pipservo", "diplink")) + [g for g, n in names.items() if n.startswith(f"{f}_cassette_s")])
+    mounts = {ff: M.mount0[ff][:2] for ff in FINGERS}
+    worst, least, n_in, n_out = {}, 99.0, 0, 0
+    for yaw in (-85, -45, 0, 45, 85):
+        for mcp in np.arange(DRIVER["mcp"][0], DRIVER["mcp"][1] + 0.1, 3.0):
+            for pip in np.arange(DRIVER["pip"][0], DRIVER["pip"][1] + 0.1, 6.0):
+                M.set(mounts, {ff: (yaw, mcp, pip) for ff in FINGERS})
+                if not M.v4c_ok[f]:
+                    n_out += 1
+                    continue
+                n_in += 1
+                for i, j in P1 + P2:
+                    gap, _pair = set_gap(boxball(M, [i]), boxball(M, [j]), cutoff=10.0)
+                    key = f"{lab(i)} | {lab(j)}"
+                    if gap < worst.get(key, (99.0,))[0]:
+                        worst[key] = (round(float(gap), 2), yaw, float(mcp), float(pip))
+                    least = min(least, gap)
+    out = {"poses_in_reach": n_in, "poses_out_of_reach": n_out, "least_mm": round(float(least), 2),
+           "least_by_pair": dict(sorted(worst.items(), key=lambda kv: kv[1][0])[:14])}
+    print("v4c", json.dumps({k: out[k] for k in ("poses_in_reach", "poses_out_of_reach", "least_mm")}))
+    for k, w in list(out["least_by_pair"].items())[:10]:
+        print("   ", k, w)
+    return out
+
+
+def limits_v4c(pip_mid, th_mid):
+    """Where v4c's remaining contacts begin: a base rod against the other side's lug, plate, plate end or belly (the
+    largest yaw, either sign, at which every MCP angle inside the reach stays clear), and the PIP rod against the PIP
+    servo, the PIP boss and the MCP link's plates over the PIP range (yaw and MCP at 0)."""
+    M = Model("v4c", pip_mid, th_mid)
+    mj, m = M.mj, M.m
+    nm = {g: mj.mj_id2name(m, mj.mjtObj.mjOBJ_GEOM, g) or "" for g in range(m.ngeom)}
+    gid = lambda s: [g for g, n in nm.items() if n.startswith("index_v4_" + s)]  # noqa: E731
+    other = lambda k: gid(f"blug_{k}") + gid(f"mcplink_plate_{k}") + gid(f"mcplink_plateend_{k}") + gid(f"mcplink_belly_{k}")  # noqa: E731
+    base_pairs = [(gid("brod_p")[0], g) for g in other("n")] + [(gid("brod_n")[0], g) for g in other("p")]
+    pip_pairs = [(gid("prod")[0], g) for g in gid("pipservo") + gid("mcplink_pipboss") + gid("mcplink_plate") + gid("mcplink_belly")]
+    mounts = {f: M.mount0[f][:2] for f in FINGERS}
+    gap = lambda pairs: min(set_gap(boxball(M, [i]), boxball(M, [j]), cutoff=10.0)[0] for i, j in pairs)  # noqa: E731
+    base = {}
+    for yaw in np.arange(0.0, 85.01, 2.5):
+        worst = 99.0
+        for sgn in (1, -1):
+            for mcp in np.arange(DRIVER["mcp"][0], DRIVER["mcp"][1] + 0.01, 3.0):
+                M.set(mounts, {f: (sgn * yaw, mcp, 30.0) for f in FINGERS})
+                if M.v4c_ok["index"]:
+                    worst = min(worst, gap(base_pairs))
+        base[float(yaw)] = round(float(worst), 2)
+    pip = {}
+    for p in np.arange(DRIVER["pip"][0], DRIVER["pip"][1] + 0.01, 1.0):
+        M.set(mounts, {f: (0.0, 0.0, p) for f in FINGERS})
+        pip[float(p)] = round(float(gap(pip_pairs)), 2)
+    clear_yaw = 0.0
+    for y in sorted(base):
+        if base[y] < 0:
+            break
+        clear_yaw = y
+    clear_pip = [p for p, g in pip.items() if g >= 0]
+    out = {"base_clear_to_yaw_deg": clear_yaw, "base_gap_mm_by_yaw": base, "pip_clear_deg": [min(clear_pip), max(clear_pip)],
+           "pip_gap_mm_by_angle": pip}
+    print("v4c limits", json.dumps({k: out[k] for k in ("base_clear_to_yaw_deg", "pip_clear_deg")}))
+    return out
 
 
 def surface_samples(m, geoms, spacing=0.25e-3, seed=0):
@@ -712,7 +992,7 @@ def min_distance(M, sets):
 def cmd_replay(rows):
     _, pip_mid, th_mid = angle_stats(rows)
     variants = [("as_built", "v3", None), ("as_built_index_mirrored", "v3", "index"), ("v4a", "v4a", None),
-                ("v4b_same_tips", "v4b", None), ("v4b_low_same_tips", "v4b_low", None)]
+                ("v4b_same_tips", "v4b", None), ("v4b_low_same_tips", "v4b_low", None), ("v4c_same_tips", "v4c", None)]
     v3 = Model("v3", pip_mid, th_mid)
     tips = []
     for r in rows:
@@ -723,10 +1003,10 @@ def cmd_replay(rows):
     for name, var, mirror in variants:
         M = Model(var, pip_mid, th_mid)
         sets = collision_sets(M, mirror)
-        res, close, unreach, qs = [], collections.Counter(), 0, []
+        res, close, unreach, qs, outside_v4c = [], collections.Counter(), 0, [], 0
         for r, tp in zip(rows, tips):
             q = r["q"]
-            if var.startswith("v4b"):
+            if var.startswith("v4b") or var == "v4c":
                 q, ok = {}, {}
                 M.set(r["mount"], {ff: (0, 0, 0) for ff in FINGERS})
                 for f in FINGERS:
@@ -735,7 +1015,9 @@ def cmd_replay(rows):
                     unreach += (not ok[f])
                 qs.append([q[f] for f in FINGERS])
             M.set(r["mount"], q)
-            if var.startswith("v4b"):
+            if var == "v4c":
+                outside_v4c += sum(not M.v4c_ok[f] for f in FINGERS)
+            if var.startswith("v4b") or var == "v4c":
                 for f in FINGERS:
                     err = np.linalg.norm(M.tip(f) - tp[f])
                     if err > 0.05 and ok[f]:
@@ -751,7 +1033,9 @@ def cmd_replay(rows):
                          "median_mm": round(float(np.median(x)), 2), "share_overlap": round(float(np.mean(x < 0)), 4),
                          "share_under_5mm": round(float(np.mean(x < 5)), 4),
                          "closest_parts_under_5mm (index | middle)": close.most_common(8)}
-        if var.startswith("v4b"):
+        if var == "v4c":
+            summary[name]["finger_periods_outside_reach"] = int(outside_v4c)
+        if var.startswith("v4b") or var == "v4c":
             Q = np.array(qs)  # periods x finger x (yaw, mcp, pip)
             Q0 = np.array([[r["q"][f] for f in FINGERS] for r in rows])
             ik_stats = {"unreachable_finger_periods": int(unreach),
@@ -802,8 +1086,56 @@ def cmd_forces(rows):
            "driver_range_transmission_deg": {"rod": round(90 - max(abs(DRIVER['pip'][0] - pip_mid), abs(DRIVER['pip'][1] - pip_mid)), 1),
                                              "four_bar": round(90 - max(abs(-33 - th_mid), abs(184 - th_mid)), 1)},
            "angles": stats}
+    out["v4c"] = forces_v4c(rows, pip_mid, th_mid)
     print(json.dumps({k: v for k, v in out.items() if k != "angles"}, indent=1))
     return out
+
+
+def forces_v4c(rows, pip_mid, th_mid):
+    """Pinch force along the pad normal at the servo limits for v4c and v3 over the trials' tips, each servo at its
+    sheet stall torque at 6 V (v3: SCS0009 on each joint; v4c: STS3032 on each horn). v4c reaches the tips through the
+    gimbal (ik_gimbal); its MCP torque is the two rods' with no yaw torque, its PIP torque the PIP rod's."""
+    import amazinghand_differential as AD
+    v3, M = Model("v3", pip_mid, th_mid), Model("v4c", pip_mid, th_mid)
+    a3, a, b = P["finger"]["mcp_pip"], P["v4c"]["proximal"], P["finger"]["pip_tip"]
+    T3, T4 = P["servos"]["scs0009"]["stall_Nm_6V"], P["servos"]["sts3032"]["stall_Nm_6V"]
+    F3, F4, limit, outside = [], [], collections.Counter(), 0
+    lim = math.radians(P["v4c"]["base"]["horn_limit_deg"])
+    for r in rows:
+        v3.set(r["mount"], r["q"])
+        M.set(r["mount"], {ff: (0, 0, 0) for ff in FINGERS})
+        for f in FINGERS:
+            (yaw, mcp, pip), _ok = ik_gimbal(v3.tip(f), M.body_pos(f"{f}_yaw_frame"), r["q"][f], a)
+            base, pr = M.v4c[f]
+            ya, mc, pp = (np.array([math.radians(x)]) for x in (yaw, mcp, pip))
+            A_, F_ = ya - base["rest"][0], mc - base["rest"][1]
+            th, okb = AD.horn_angles(base, A_, F_)
+            Fp = pp - pr["rest"][1]
+            thp, okp = AD.horn_angles(pr, np.zeros(1), Fp)
+            if not (okb.all() and okp.all() and np.all(np.abs(th) <= lim) and np.all(np.abs(thp) <= lim)):
+                outside += 1
+                continue
+            cap_mcp = float(AD.axis_capacity(AD.statics(base, A_, F_, th)[0], 1)[0])
+            cap_pip = abs(float(AD.statics(pr, np.zeros(1), Fp, thp)[0][0, 1, 0]))
+            p3 = math.radians(r["q"][f][2])
+            F3.append(T3 * 1e3 * min(1 / (b + a3 * math.cos(p3)), 1 / b))
+            f_mcp, f_pip = cap_mcp / (b + a * math.cos(pp[0])), cap_pip / b
+            F4.append(T4 * 1e3 * min(f_mcp, f_pip))
+            limit["mcp" if f_mcp < f_pip else "pip"] += 1
+    F3, F4 = np.array(F3), np.array(F4)
+    pct = lambda x: [round(float(np.percentile(x, q)), 2) for q in (5, 50, 95)]  # noqa: E731
+    pr = M.v4c["index"][1]
+    pips = np.radians(np.arange(DRIVER["pip"][0], DRIVER["pip"][1] + 0.01, 0.5))
+    fp = pips - pr["rest"][1]
+    thp, okp = AD.horn_angles(pr, np.zeros_like(fp), fp)
+    tp = np.abs(AD.statics(pr, np.zeros_like(fp), fp, thp)[0][:, 1, 0])
+    reach = okp[0] & (np.abs(thp[0]) <= lim)
+    pip_drive = {"driver_range_reached": bool(reach.all()), "horn_deg_min_max": [round(float(np.degrees(thp[0].min())), 1),
+                                                                                round(float(np.degrees(thp[0].max())), 1)],
+                 "torque_sts_min_median": [round(float(tp[reach].min()), 3), round(float(np.median(tp[reach])), 3)]}
+    return {"pip_drive_over_driver_range": pip_drive, "finger_periods": int(F3.size), "finger_periods_outside_reach": outside, "torque_Nm": {"scs0009": T3, "sts3032": T4},
+            "pinch_N_v3_scs0009_p5_p50_p95": pct(F3), "pinch_N_v4c_sts3032_p5_p50_p95": pct(F4),
+            "ratio_v4c_over_v3_p5_p50_p95": pct(F4 / F3), "first_limit_v4c": dict(limit)}
 
 
 def rhombus(c, r):
@@ -882,7 +1214,7 @@ def cmd_render(rows):
     poses = {"open": (0, 0, 10), "curl": (0, 70, 80), "yaw 35°": (35, 30, 40)}
     views = {"side": (90, -5), "front": (180, -5)}
     tiles = {}
-    for v in ("v3", "v4a", "v4b"):
+    for v in ("v3", "v4a", "v4b", "v4c"):
         M = Model(v, pip_mid, th_mid)
         mj, m, d = M.mj, M.m, M.d
         root = mj.mj_name2id(m, mj.mjtObj.mjOBJ_BODY, "index_mount")
@@ -896,7 +1228,7 @@ def cmd_render(rows):
         for g in range(m.ngeom):
             nm = mj.mj_id2name(m, mj.mjtObj.mjOBJ_GEOM, g) or ""
             show = under(m.geom_bodyid[g]) and ("visual" in nm or "_v4_" in nm or "_v4vis_" in nm) and "_tabs" not in nm \
-                and "_case" not in nm and "_boss" not in nm and "bridge" not in nm
+                and ("_case" not in nm or v == "v4c") and "_boss" not in nm and "bridge" not in nm
             m.geom_group[g] = 2 if show else 5
         opt = mj.MjvOption()
         for k in range(6):
@@ -927,14 +1259,15 @@ def cmd_render(rows):
     W, H, top = 420, 640, 54
     paths = {}
     for vn in views:
-        sheet = Image.new("RGB", (W * 3, H * 3 + top), "white")
+        sheet = Image.new("RGB", (W * 3, H * 4 + top), "white")
         dr = ImageDraw.Draw(sheet)
         for ci, pn in enumerate(poses):
             dr.text((ci * W + 12, 10), pn, fill="black", font=font)
-        for ri, v in enumerate(("v3", "v4a", "v4b")):
+        for ri, v in enumerate(("v3", "v4a", "v4b", "v4c")):
             for ci, pn in enumerate(poses):
                 sheet.paste(tiles[(v, pn, vn)], (ci * W, top + ri * H))
-            dr.text((10, top + ri * H + 10), {"v3": "v3 as built", "v4a": "v4a", "v4b": "v4b"}[v], fill="black", font=font)
+            dr.text((10, top + ri * H + 10), {"v3": "v3 as built", "v4a": "v4a", "v4b": "v4b", "v4c": "v4c"}[v], fill="black",
+                    font=font)
         paths[vn] = MEDIA / f"20261118-finger_layouts_{vn}.png"
         sheet.save(paths[vn])
         print("wrote", paths[vn].relative_to(ROOT))
@@ -983,7 +1316,9 @@ def cmd_play(variant, kinematic=False, frames=None):
     mj.mj_resetDataKeyframe(m, d, m.key("lifted").id)
     M = types.SimpleNamespace(mj=mj, m=m, d=d)
     sets = collision_sets(M)
-    adr = {f: {n: m.jnt_qposadr[m.joint(f"{f}_{n}").id] for n in ("mcp", "pip") + DRIVE_JOINTS} for f in FINGERS}
+    names = ("yaw", "mcp", "pip") + (() if variant == "v4c" else DRIVE_JOINTS)
+    adr = {f: {n: m.jnt_qposadr[m.joint(f"{f}_{n}").id] for n in names} for f in FINGERS}
+    closed = {f: v4c_closed_form(f) for f in FINGERS} if variant == "v4c" else None
     acts = [(a, m.jnt_qposadr[m.actuator_trnid[a, 0]]) for a in range(m.nu)
             if m.actuator_trntype[a] == mj.mjtTrn.mjTRN_JOINT]
     steps = max(1, round(1.0 / 60.0 / m.opt.timestep))
@@ -996,6 +1331,9 @@ def cmd_play(variant, kinematic=False, frames=None):
                 for a, i in acts:
                     d.qpos[i] = d.ctrl[a]
                 for f in FINGERS:
+                    if closed:
+                        v4c_set_qpos(m, d.qpos, f, closed[f], *(d.qpos[adr[f][n]] for n in ("yaw", "mcp", "pip")))
+                        continue
                     for n, v in drive_angles(d.qpos[adr[f]["mcp"]], d.qpos[adr[f]["pip"]]).items():
                         d.qpos[adr[f][n]] = v
                 d.qvel[:] = 0.0
@@ -1017,7 +1355,7 @@ def main() -> int:
     if cmd == "play":
         args = sys.argv[2:]
         frames = int(args[args.index("--frames") + 1]) if "--frames" in args else None
-        print(cmd_play(next((a for a in args if a in ("v4a", "v4b")), "v4a"), "--kinematic" in args, frames), flush=True)
+        print(cmd_play(next((a for a in args if a in ("v4a", "v4b", "v4c")), "v4a"), "--kinematic" in args, frames), flush=True)
         os._exit(0)  # skips glfw's exit hook, which hung under Xvfb's software GL after the window closed
     rows = load_trials()
     print(f"{len(rows)} periods from the bench runs")

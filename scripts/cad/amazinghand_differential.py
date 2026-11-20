@@ -217,17 +217,18 @@ def axis_capacity(H, j):
     return best
 
 
-def region(G):
+def region(G, floor=None):
     """The joint angles the finger reaches: both rods close, both horns within HORN_LIMIT of their zero, and each joint
-    can take at least one servo's torque (TORQUE_FLOOR), in the connected piece that holds the key pose."""
+    can take at least `floor` times one servo's torque (default TORQUE_FLOOR), in the connected piece that holds the key
+    pose."""
     from scipy import ndimage
 
     a, f = np.meshgrid(np.radians(A_GRID), np.radians(F_GRID - G["f0"]), indexing="ij")
     th, ok = horn_angles(G, a, f)
     H, tn = statics(G, a, f, th)
     cap_f, cap_a = axis_capacity(H, 1), axis_capacity(H, 0)
-    inside = ok.all(0) & (np.abs(np.degrees(th)) <= HORN_LIMIT + 1e-9).all(0) & (cap_f >= TORQUE_FLOOR) & (
-        cap_a >= TORQUE_FLOOR)
+    floor = TORQUE_FLOOR if floor is None else floor
+    inside = ok.all(0) & (np.abs(np.degrees(th)) <= HORN_LIMIT + 1e-9).all(0) & (cap_f >= floor) & (cap_a >= floor)
     lab, _n = ndimage.label(inside)
     key = (int(np.argmin(np.abs(A_GRID))), int(np.argmin(np.abs(F_GRID - G["f0"]))))
     inside = lab == lab[key] if lab[key] else np.zeros_like(inside)

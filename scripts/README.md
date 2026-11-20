@@ -20,7 +20,7 @@ transforms are in `sr2hand.geometry.rotations`, over scipy.
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 
 
-## cad/ (45)
+## cad/ (46)
 
 Printable parts: the DIP link, the UR5 mounts and the print plates.
 
@@ -71,6 +71,7 @@ Printable parts: the DIP link, the UR5 mounts and the print plates.
 | `v2_tip_fit_sizes_xl.py` | Concept a's 11/22 tip at four key-channel interferences and concept b's 11/22 pad at four rail-groove fits, 85A, on one Prusa XL plate (tool 2), without magnets, for the fit on the printed v2 links and cover. |
 | `v2_tips_xl_plate.py` | Concept a's 11/22 tip and concept b's 11/22 pad (85A, five magnets) on one Prusa XL plate, tool 2. |
 | `v2_ur5_pla_plate.py` | One Bambu Lab P1S PLA plate with the PLA parts of DIP-link v2 a and b and of the UR5e calibration mount. |
+| `v4c_codesign.py` | Codesign of a two-rod differential for the SR2 finger's yaw and MCP joints (cad_v4c), with STS3032 servos. |
 
 ## cluster/ (6)
 
@@ -305,7 +306,7 @@ Builders of the home page, the topic overviews and the page indices, and the par
 | `topic_overview_page.py` | Build the topic overviews, docs/overviews/<file> (names in docs_inventory.OVERVIEW): what a collaborator new to the project needs from one topic of the result pages, with every finding linked to the page that measured it |
 | `workshop_briefing_page.py` | Build the workshop briefing page: the record behind the SR2 Hand paper. |
 
-## fingertip/ (159)
+## fingertip/ (160)
 
 The printed fingertip: its geometry and prints, finite elements, magnets and the MLX90393 readout, the wrench model, and the calibration and crosstalk pages.
 
@@ -372,6 +373,7 @@ The printed fingertip: its geometry and prints, finite elements, magnets and the
 | `fingertip_second_tip_transfer.py` | The UR5 run sphere2's calibration, made on the robot fingertip (board 9c:d0, all five poles one way), applied to a second fingertip on the workstation (board d9:94, poles (-1, -1, 1, 1, 1)), from the live viewer's stream |
 | `fingertip_second_tip_transfer_page.py` | Page of the second fingertip against the calibration of the UR5 fingertip (2026-10-23): the two pads' pole patterns and rest fits, the transfer in simulation, the owner's presses on the desk and each predictor's answers. |
 | `fingertip_second_tip_transfer_text.py` | The prose of the second-fingertip page (scripts/fingertip/fingertip_second_tip_transfer_page.py), from the two rounds' results. |
+| `fingertip_sensing_state_page.py` | Page: the state of contact sensing by the SR2 hand's magnetic fingertips, in one place (the owner, 2026-11-19 18:4x: "all this calibration stuff can go in one document, we can discard stale information/calibration analys |
 | `fingertip_shape_rerun_analysis.py` | Summaries of the fingertip-shape rerun's rows (docs/handoff/20261103-fingertip_shape_rerun.md); each subcommand reads rows under docs/experiments/20261104-fingertip_shape_rerun/ and writes one JSON summary beside them. |
 | `fingertip_shape_rerun_band.py` | Worst-case score over a band of scene frictions for the stage-3 tips of the fingertip-shape rerun (ledger step 12): the band option of scripts/hom/hom_grasp_refine.py (hand-20261104-hom_worst_case_score) with each tip in |
 | `fingertip_shape_rerun_bed.py` | The contact bed of the fingertip-shape rerun (docs/handoff/20261103-fingertip_shape_rerun.md, ledger step 3): the cases of 2026-10-15 (scripts/fingertip/curved_tips_bed.py, curved_tips_law.py) at 2.5 MPa, the scenes' mod |

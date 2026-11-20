@@ -1,6 +1,7 @@
-# CAD of the SR2 finger, version 4: two actuator layouts
+# CAD of the SR2 finger, version 4: three actuator layouts
 
-cad_v4 starts as two layouts of the finger that take the PIP servo off the finger (2026-11-18). Both are envelopes
+cad_v4 starts as two layouts of the finger that take the PIP servo off the finger (2026-11-18); a third, v4c
+(2026-11-19), drives the gimbal with two rods after the AmazingHand. All are envelopes
 (boxes and capsules for servo cases, housings, links, cranks and rods) placed on the cad_v3 hand, not printable parts.
 The analysis is on the result page
 `docs/experiments/20261118-sr2_actuator_layout/20261118-sr2_finger_actuator_layouts.html`.
@@ -12,6 +13,13 @@ The analysis is on the result page
 - **v4b, gimbal MCP.** The yaw axis passes through the MCP axis at G, on cad_v3's yaw axis. The MCP servo stands on the
   yoke with its shaft through G, the PIP servo sits on the yoke right behind it, and the yaw servo moves back along the yaw
   axis. The yaw link's 20.75 mm moves into the MCP link (51.55 mm). The distal drive is v4a's.
+- **v4c, two-rod differential at the gimbal.** v4b's gimbal, driven like the AmazingHand's finger: two STS3032s stand
+  side by side in the carriage, and their 10 mm horns push 45.7 mm ball-jointed rods to lugs on the MCP link, 8 mm
+  dorsal of G and 8 mm to either side. Both horns one way flex the MCP; opposite ways yaw the finger. The rods'
+  dimensions come from `scripts/cad/v4c_codesign.py`. The PIP servo lies flat on the MCP link (12 mm across the finger),
+  spline near the PIP, and its 10 mm horn on a 4 mm printed hub pushes one 27.7 mm rod, below the servo and between the
+  plates, to a 9 mm lug on the DIP link's centre plane. The flat parts are meant for
+  laser-cut 1/8-inch Delrin; the horns are printed; the ball links and M2 rods are bought.
 
 ## Files
 
@@ -20,7 +28,7 @@ The analysis is on the result page
 | `concepts/20261118-layout_params.json` | every dimension of both layouts (mm, the fingers' cad_v3 body frames) |
 | `concepts/step/20261118-cad_v4_v4a_index_envelopes.step` | v4a's new parts as named solids (not in git; CAD files move by rsync) |
 | `concepts/step/20261118-cad_v4_v4b_index_envelopes.step` | v4b's new parts as named solids (not in git) |
-| `../mjcf/experimental/20261118-cad_v4/v4a.xml`, `v4b.xml` | MuJoCo scenes: the cad_v3 hand with index and middle rebuilt; under physics, equality constraints keep the drive on the MCP and PIP joints |
+| `../mjcf/experimental/20261118-cad_v4/v4a.xml`, `v4b.xml`, `v4c.xml` | MuJoCo scenes: the cad_v3 hand with index and middle rebuilt; under physics, equality constraints keep the drive on the MCP and PIP joints (v4c: connect constraints close its three rods on their lugs) |
 
 The STEP solids are in the index finger's mount frame at the zero pose, in mm: the origin is the point of the carriage's
 yaw axis that cad_v3's model calls `index_mount`, with P's axes (x from the thumb toward the index and middle fingers, y
@@ -37,13 +45,15 @@ JOINT_SIGN maps the servo readings).
 
     .venv/bin/python scripts/cad/cad_v4_layouts.py play v4a                # under physics
     .venv/bin/python scripts/cad/cad_v4_layouts.py play v4b --kinematic    # joints take the sliders' values
+    .venv/bin/python scripts/cad/cad_v4_layouts.py play v4c                # the rods close on their lugs
 
 The viewer starts at the key `lifted` and is posed from the Control panel's sliders. The actuators are cad_v3's, in joint
 angles: `a_index_yaw`, `a_index_mcp`, `a_index_pip`, the same for the middle finger and the thumb, and six for the palm's
 pose. The idler, rod, coupler and PIP crank follow the MCP and PIP joints; in both layouts the PIP servo's crank turns at
 MCP + PIP. The least index-middle gap of the replay's collision sets (mm, with its pair of parts) is shown at the bottom
 left. Under physics touching parts push each other apart; with `--kinematic` they may overlap and the gap goes negative.
-The key `open` is the base scene's start pose, with the fingertips 3.9 mm into the floor.
+The key `open` is the base scene's start pose, with the fingertips 3.9 mm into the floor. In v4c the horns are passive
+joints limited to +-90 deg: a slider pushed past v4c's reach stops the finger where a horn reaches its limit.
 
 The scenes have no morphology slides (mount x and y, finger length): contact forces dragged them under physics. The
 mounts stay at cad_v3's positions, and v4a keeps cad_v3's link lengths. v4b's MCP link length and gimbal height are

@@ -122,6 +122,43 @@
      69.4
     ]
    }
+  },
+  "v4c": {
+   "pip_drive_over_driver_range": {
+    "driver_range_reached": true,
+    "horn_deg_min_max": [
+     -69.4,
+     78.5
+    ],
+    "torque_sts_min_median": [
+     0.984,
+     1.131
+    ]
+   },
+   "finger_periods": 18730,
+   "finger_periods_outside_reach": 1970,
+   "torque_Nm": {
+    "scs0009": 0.2256,
+    "sts3032": 0.4413
+   },
+   "pinch_N_v3_scs0009_p5_p50_p95": [
+    3.36,
+    3.46,
+    4.02
+   ],
+   "pinch_N_v4c_sts3032_p5_p50_p95": [
+    7.46,
+    8.36,
+    9.54
+   ],
+   "ratio_v4c_over_v3_p5_p50_p95": [
+    2.1,
+    2.35,
+    2.65
+   ],
+   "first_limit_v4c": {
+    "mcp": 18730
+   }
   }
  }
 }
