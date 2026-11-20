@@ -706,6 +706,14 @@ boards was stopped at 3.54&#8202;s, when three targets in a row were missing. Be
 estimator was moved to a process of its own. In the first two trials after the move, the three boards were estimated
 in 16.8 to 18.8&#8202;ms (medians). Neither was stopped for a missing target
 ([HOM trials on the SR2 hand](exp:20261115-hom_bench_trials/README.md), the two sections on the state of 17 November).</p>
+<p>On 19 November the lab examined six twists of 17 November at (70, 110) with the boards&#8217; contacts on. One ran
+at 18:24, and five between 19:47 and 20:08. In three of them the middle board&#8217;s force estimate had a median of 6.0 to
+8.6&#8202;N over 0.7 to 2.1&#8202;s. The estimated contact then lay 5 to 21&#8202;mm outside the tracked sphere and
+1 to 12&#8202;mm from the thumb&#8217;s tip. In the periods under 3&#8202;N the estimate was 0.8 to 1.6&#8202;N. There the contact
+lay 0 to 6&#8202;mm inside the sphere&#8217;s surface and 18 to 29&#8202;mm from the thumb. On the hand&#8217;s CAD collision
+spheres, the measured joints put the thumb&#8217;s tip 5 to 11&#8202;mm into the middle or index finger in four of the six.
+By the lab&#8217;s account the thumb pressed on the middle finger. In the trials&#8217; films the contact is not resolved
+([contact sensing on the SR2 hand](exp:20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html#hand2)).</p>
 <p>On 18 November the boards were checked against the HEX-E on the hand. The hand was mounted on the UR5 through
 the HEX-E, and the index fingertip, v3 ID 3, was pressed onto a taped plate. With the estimator of the HOM trials, the
 board&#8217;s estimate rose 0.26&#8202;N per newton of the HEX-E&#8217;s normal force when the MCP joint pushed the pad head
