@@ -119,7 +119,10 @@ LEDE = (
     "with five. On the SR2 hand a tip&#8217;s own pose changed its board by up to 166&#8202;&#181;T, and a neighbour at the home layout by at most "
     "5.4&#8202;&#181;T. With no compensation the contact viewer would show a contact in 15.9&#8202;% of the thumb&#8217;s 50&#8202;ms frames with nothing touching. "
     "With a Gaussian process on the finger&#8217;s own three joint angles subtracted, at most 3 of 14,916 to 21,000 frames per board show one, over 11 layouts. "
-    "On the hand, the three boards&#8217; estimates rose 0.26&#8211;0.57&#8202;N per newton of force when the pads were pressed onto a plate. "
+    "On the SR2 hand the boards&#8217; field per newton of force depended on where a plate met the pad. On the pad&#8217;s "
+    "distal part it was 0.88&#8211;0.92 of the calibration&#8217;s, and the force from the trials&#8217; Gaussian process was "
+    "0.61&#8211;0.66 of the reference&#8217;s. The boards sense where a contact is and which way it pushes, but neither twist "
+    "nor the size of a small contact (<a href='../experiments/20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html'>contact sensing on the SR2 hand</a>). "
     "A press on a tip&#8217;s side did not change the boards&#8217; estimates. "
     "A model learned on one tip misses on another by "
     "1.0&#8211;2.5&#8202;mm, so each tip&#8217;s own presses must be in its training. With them, the other tips&#8217; presses "
@@ -463,8 +466,17 @@ Section 9).</p>
 tool, made 98&#8202;% of that change, and the estimator absorbs it as a uniform field. A press leaves a step of 7&#8202;&#181;T
 along its own change. Of that step 0.29 lasts, and the rest fades with a time constant of 19&#8202;s. No learned zero beat a
 re-zero at rest before each press ([board drift](exp:20261022-ur5_tip_calibration/20261023-ur5_tip_board_drift.html)).</p>
+<p>On 19 November the trials&#8217; shared Gaussian process was refitted with each of seven sessions of v3 IDs 1 to 3
+left out. That session&#8217;s contacts were then placed within 0.55 to 0.81&#8202;mm at the median, and within 0.62 to
+1.08&#8202;mm with the whole tip left out. Below 0.5&#8202;N, 82 to 95&#8202;% of the errors pointed toward the pad&#8217;s apex.
+In twists of 5 to 20&#176; the boards&#8217; field beyond the force grew with the turn alone, alike at 1 and 5&#8202;N, so the
+boards do not sense torsion. At the same place, the field per newton under spheres of radius 2 and 5&#8202;mm agreed
+within 5&#8202;%, and under the rod within 10&#8202;%. The analyses are in [contact sensing on the SR2 hand](exp:20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html#rig), Sections 5, 7 and 8, and in
+[calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#shared), Sections 11, 13 and 16.</p>
 <p>The HEX-E is a weak reference. Its Fz channel reads 0.78 and 0.87 of the other axes&#8217; gain in two gravity fits, and
-its link failed in three of the first night&#8217;s eight runs. An ATI Mini45 of the lab is to replace it. It will first be
+its link failed in three of the first night&#8217;s eight runs. On 19 November it read a 200&#8202;g mass hung from the
+SR2 hand&#8217;s index fingertip at 0.56 to 0.60 of its weight. Whether it read as low during the calibrations is open
+([boards by contact place](exp:20261117-sr2_system_identification/20261119-fingertip_board_force_by_contact_place.html#hexe), Section 7). An ATI Mini45 of the lab is to replace it. It will first be
 calibrated on the UR5 with a weighed mass hung at five points (39 stations, about 27&#8202;min). In simulated sessions
 that calibration recovers the sensor to 0.021&#8202;N with the lab&#8217;s 100&#8202;g weight in a printed holder, and to
 0.005&#8202;N with a 0.5&#8202;kg mass (medians)
@@ -709,7 +721,15 @@ boards&#8217; estimates did not rise with the force. At each press&#8217;s large
 estimates were 0.07 to 0.38&#8202;N. Before contact they were 0.14 to 0.31&#8202;N. By the identification study&#8217;s
 account, the plates met the DIP link, which is 3&#8202;mm wider than the pad on each side
 ([calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand),
-Table 35).</p>"""),
+Table 35).</p>
+<p>On 19 November the arm itself pressed each pad straight into a plate, with the fingers&#8217; servos holding. With the
+PIP straight, the index&#8217;s and middle&#8217;s boards changed by 6.2 to 7.5&#8202;&#181;T per newton of the HEX-E&#8217;s
+force, in patterns that no calibration press had. With the index&#8217;s PIP bent 20&#176;, the plate met the pad&#8217;s
+distal part. There the board changed by 24.6 to 25.7&#8202;&#181;T/N, 0.88 to 0.92 of the closest calibration
+press&#8217;s, and the cosine between their patterns was 0.99. The force from the trials&#8217; Gaussian process was 0.61
+to 0.66 of the HEX-E&#8217;s there. A linear estimate along the closest press&#8217;s field was 0.83 to 0.86 of it
+([boards by contact place](exp:20261117-sr2_system_identification/20261119-fingertip_board_force_by_contact_place.html#place), Sections 4 and 6;
+[calibration on the UR5](exp:20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html#hand), Table 42).</p>"""),
     ("pads", "The fingertip in the simulations",
      r"""<p>The simulations represent the tip by sphere pads, which are 0.75&#8202;mm spheres on a 1&#8202;mm lattice over its surface.
 Each pad has stiffness \(K_i=E\,a_i/h_i\). In builder v2, the default since 2026-10-15, \(h_i\) is the pad&#8217;s depth
@@ -1074,6 +1094,10 @@ PAGES = [
      "False contacts of the contact viewer and the GP on the finger&#8217;s own angles on the SR2 hand: two days, 11 layouts, UR5 presses added to its frames"),
     ("Calibration", "20261110-fingertip_viewer_roll/20261110-fingertip_viewer_on_a_ur5_roll.html",
      "The contact viewer replayed on a UR5 rod roll of v3 ID 5, and a finite-element and field model of the roll"),
+    ("Calibration", "20261117-sr2_system_identification/20261119-fingertip_board_force_by_contact_place.html",
+     "The boards against the HEX-E on the SR2 hand by where a plate meets the pad, the calibration&#8217;s indenters compared, and the HEX-E against a dead weight"),
+    ("Calibration", "20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html",
+     "What the fingertips sense on the SR2 hand: location, direction, shear, twist, contact size, rate and steadiness"),
     ("Calibration", "20261023-ati_ft_calibration/20261023-ati_ft_calibration_plan.html",
      "Calibration of the lab&#8217;s ATI Mini45 with a weighed mass, to replace the HEX-E"),
     ("Hardware", "20261018-dip_link_board_mount/20261018-dip_link_magnetometer_board_mount.html",
