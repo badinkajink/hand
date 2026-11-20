@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""v4c with bought joints (19 November night): the rod differential of scripts/cad/v4c_codesign.py rebuilt from parts.
+"""v4c with real joints (19 November night): the rod differential of scripts/cad/v4c_codesign.py rebuilt from parts.
 
 Each base rod is a laser-cut link with a spherical plain bearing (3 mm bore, 12 mm outside) at the horn, on a shoulder
 bolt along the horn axis, and a miniature ball bearing at the lug, on pin 2 of an offset knuckle. The knuckle turns on
@@ -431,7 +431,7 @@ def pip_rest():
             "Pa0": Pa0, "Q0": Q0, "L": L, "x_a": x_a, "branch": rest_branch(Cs0, u, v, Q_["r"], lug, L)}
 
 
-def pip_solve(pip, iters=30):
+def pip_solve(pip, iters=200):  # 30 stalled short of closure near the end of the range
     """Horn angle th, knuckle angle psi (absolute, about x), rod points, over PIP angles (deg) in the link frame."""
     g = pip_rest()
     a = np.radians(np.asarray(pip, float) - HW["pip"]["pip_rest"])
@@ -471,7 +471,7 @@ def pip_range():
     Sp, _ = pip_solve(PIP + h)
     Sm, _ = pip_solve(PIP - h)
     dth = np.degrees(AD.wrap(Sp["th"] - Sm["th"])) / (2 * h)  # horn deg per PIP deg
-    tq = np.where(np.abs(dth) > 1e-9, 1.0 / np.abs(dth), 0.0) * T_STS / T_SCS  # PIP torque in SCS0009 limits
+    tq = np.abs(dth) * T_STS / T_SCS  # PIP torque per servo limit, in SCS0009 limits: by virtual work tau_PIP = tau_horn dth/dphi
     tilt = np.degrees(np.arccos(np.clip(np.abs(S["pb"][..., 1]), 0, 1)))  # bolt along y, the ring along pin b
     ok = S["ok"] & (np.abs(np.degrees(S["th"])) <= HW["pip"]["horn_limit_deg"]) & (tq >= 1.0) & \
         (tilt <= HW["hardware"]["spherical_bearing"]["tilt_deg"])

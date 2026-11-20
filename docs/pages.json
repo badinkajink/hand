@@ -1,6 +1,18 @@
 [
  {
   "date": "2026-11-19",
+  "file": "docs/experiments/20261119-v4b_build/20261119-v4b_finger_build.html",
+  "title": "Parts and clearances of a laser-cut v4b index finger",
+  "page_title": "Parts and clearances of a laser-cut v4b index finger",
+  "topic": "hardware",
+  "summary": "A v4b index finger from 15 acrylic plates, three STS3032s, five MF63ZZ bearings, a spherical plain bearing and three printed parts keeps its moving parts at least 0.50 mm apart over the driver's ranges, and its PIP drive gives 1.48 times the current hand's PIP torque. The cut sheet (DXF) and the bill of materials are in the folder.",
+  "builder": "scripts/cad/v4b_build_page.py",
+  "artifact": "https://claude.ai/artifact/VDjQHLiKz157eU9sNfXn4x",
+  "status": "current",
+  "mb": 0.4
+ },
+ {
+  "date": "2026-11-19",
   "file": "docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twist_layout_ranking.html",
   "title": "Sphere-twist layout ranking on the calibrated SR2 simulation",
   "page_title": "Sphere-twist layout ranking on the calibrated SR2 simulation",

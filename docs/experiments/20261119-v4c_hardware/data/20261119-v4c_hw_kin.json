@@ -14,7 +14,7 @@
    -5.0,
    13.0
   ],
-  "driver_share_ideal_bearings": 0.5462,
+  "driver_share_ideal_bearings": 0.4078,
   "yaw_reach_at_mcp_deg": {
    "-15": [
     -5.0,
@@ -89,14 +89,14 @@
   "rod_mm": 35.628,
   "range_deg": [
    -45.0,
-   135.0
+   109.0
   ],
-  "torque_scs0009_min_m25_92": 2.06,
-  "torque_scs0009_median_m25_92": 2.53,
+  "torque_scs0009_min_m25_92": 1.22,
+  "torque_scs0009_median_m25_92": 1.51,
   "bearing_tilt_deg_max": 9.1,
   "horn_deg": [
    62.0,
-   -66.2
+   -58.4
   ],
   "lug_mm": [
    6.18,

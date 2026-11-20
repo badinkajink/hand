@@ -1,0 +1,312 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "dxf",
+ "dxf": "docs/experiments/20261119-v4b_build/cut/20261119-v4b_acrylic_3mm.dxf",
+ "sheet_mm": [
+  300.0,
+  94.9
+ ],
+ "thickness_mm": 3.175,
+ "parts": [
+  {
+   "id": "L4",
+   "name": "L4 lower plate (+y)",
+   "body": "link",
+   "qty": 1,
+   "note": "MF63ZZ bearing for the PIP pin; slots for L6a, L6b",
+   "size_mm": [
+    53.5,
+    16.0
+   ],
+   "holes": 1,
+   "slots": 2,
+   "least_web_mm": 1.68,
+   "least_web_between": [
+    "outline",
+    "slot 1"
+   ]
+  },
+  {
+   "id": "L5",
+   "name": "L5 lower plate (-y)",
+   "body": "link",
+   "qty": 1,
+   "note": "MF63ZZ bearing for the PIP pin; slots for L6a, L6b",
+   "size_mm": [
+    53.5,
+    16.0
+   ],
+   "holes": 1,
+   "slots": 2,
+   "least_web_mm": 1.68,
+   "least_web_between": [
+    "outline",
+    "slot 1"
+   ]
+  },
+  {
+   "id": "L3",
+   "name": "L3 link cross plate",
+   "body": "link",
+   "qty": 1,
+   "note": "joins L1, L2 above and L4, L5 below",
+   "size_mm": [
+    47.8,
+    16.0
+   ],
+   "holes": 0,
+   "slots": 4,
+   "least_web_mm": 2.45,
+   "least_web_between": [
+    "outline",
+    "slot 1"
+   ]
+  },
+  {
+   "id": "M1",
+   "name": "M1 yaw servo plate",
+   "body": "mount",
+   "qty": 1,
+   "note": "behind the yaw servo's tabs; tabs into M2",
+   "size_mm": [
+    30.0,
+    40.9
+   ],
+   "holes": 4,
+   "slots": 1,
+   "least_web_mm": 1.11,
+   "least_web_between": [
+    "slot 1",
+    "hole 2.2 mm"
+   ]
+  },
+  {
+   "id": "Y2",
+   "name": "Y2 MCP servo plate",
+   "body": "yoke",
+   "qty": 1,
+   "note": "behind the MCP servo's tabs; tab into Y1",
+   "size_mm": [
+    43.5,
+    34.8
+   ],
+   "holes": 4,
+   "slots": 1,
+   "least_web_mm": 1.11,
+   "least_web_between": [
+    "slot 1",
+    "hole 2.2 mm"
+   ]
+  },
+  {
+   "id": "C2",
+   "name": "C2 servo seat coupon",
+   "body": "none",
+   "qty": 1,
+   "note": "cut first: an STS3032 must drop in and screw down without cracking the webs",
+   "size_mm": [
+    19.0,
+    34.5
+   ],
+   "holes": 4,
+   "slots": 1,
+   "least_web_mm": 1.11,
+   "least_web_between": [
+    "slot 1",
+    "hole 2.2 mm"
+   ]
+  },
+  {
+   "id": "M2",
+   "name": "M2 top plate",
+   "body": "mount",
+   "qty": 1,
+   "note": "mounting face (test stand, later the carriage)",
+   "size_mm": [
+    68.0,
+    30.0
+   ],
+   "holes": 4,
+   "slots": 2,
+   "least_web_mm": 2.95,
+   "least_web_between": [
+    "outline",
+    "slot 1"
+   ]
+  },
+  {
+   "id": "L1",
+   "name": "L1 link horn plate",
+   "body": "link",
+   "qty": 1,
+   "note": "4 x M2 into the MCP servo's disc horn; tab into L3",
+   "size_mm": [
+    20.0,
+    27.7
+   ],
+   "holes": 5,
+   "slots": 0,
+   "least_web_mm": 2.4,
+   "least_web_between": [
+    "hole 2.2 mm",
+    "hole 5 mm"
+   ]
+  },
+  {
+   "id": "L2",
+   "name": "L2 link idler plate",
+   "body": "link",
+   "qty": 1,
+   "note": "MF63ZZ bearing on the idler shoulder screw; tab into L3",
+   "size_mm": [
+    16.0,
+    24.2
+   ],
+   "holes": 1,
+   "slots": 0,
+   "least_web_mm": 3.49,
+   "least_web_between": [
+    "outline",
+    "hole 6 mm"
+   ]
+  },
+  {
+   "id": "Y1",
+   "name": "Y1 yoke back plate",
+   "body": "yoke",
+   "qty": 1,
+   "note": "4 x M2 into the yaw servo's disc horn",
+   "size_mm": [
+    39.7,
+    23.0
+   ],
+   "holes": 5,
+   "slots": 2,
+   "least_web_mm": 1.59,
+   "least_web_between": [
+    "outline",
+    "slot 2"
+   ]
+  },
+  {
+   "id": "C1",
+   "name": "C1 fit coupon",
+   "body": "none",
+   "qty": 1,
+   "note": "cut first: pick the bearing holes and slot width",
+   "size_mm": [
+    92.0,
+    22.0
+   ],
+   "holes": 7,
+   "slots": 4,
+   "least_web_mm": 2.0,
+   "least_web_between": [
+    "outline",
+    "slot 1"
+   ]
+  },
+  {
+   "id": "R1",
+   "name": "R1 PIP rod",
+   "body": "rod",
+   "qty": 1,
+   "note": "MF63ZZ at pin b; spherical plain bearing (d 3, D 12) pressed in at the lug",
+   "size_mm": [
+    50.4,
+    16.0
+   ],
+   "holes": 2,
+   "slots": 0,
+   "least_web_mm": 2.0,
+   "least_web_between": [
+    "outline",
+    "hole 6 mm"
+   ]
+  },
+  {
+   "id": "M3",
+   "name": "M3 gusset (+y)",
+   "body": "mount",
+   "qty": 1,
+   "note": "glued to M1 and M2",
+   "size_mm": [
+    14.6,
+    14.6
+   ],
+   "holes": 0,
+   "slots": 0,
+   "least_web_mm": null,
+   "least_web_between": null
+  },
+  {
+   "id": "M3",
+   "name": "M3 gusset (-y)",
+   "body": "mount",
+   "qty": 1,
+   "note": "glued to M1 and M2",
+   "size_mm": [
+    14.6,
+    14.6
+   ],
+   "holes": 0,
+   "slots": 0,
+   "least_web_mm": null,
+   "least_web_between": null
+  },
+  {
+   "id": "H1",
+   "name": "H1 PIP horn arm",
+   "body": "phorn",
+   "qty": 1,
+   "note": "2 x M2 into the PIP servo's disc horn (holes at 180 and 135 deg); MF63ZZ for pin a",
+   "size_mm": [
+    26.0,
+    12.2
+   ],
+   "holes": 4,
+   "slots": 0,
+   "least_web_mm": 1.75,
+   "least_web_between": [
+    "outline",
+    "hole 6 mm"
+   ]
+  },
+  {
+   "id": "L6b",
+   "name": "L6b PIP servo strip, long end",
+   "body": "link",
+   "qty": 1,
+   "note": "behind the PIP servo's tabs; tabs into L4, L5",
+   "size_mm": [
+    20.4,
+    5.6
+   ],
+   "holes": 2,
+   "slots": 0,
+   "least_web_mm": 1.39,
+   "least_web_between": [
+    "outline",
+    "hole 2.2 mm"
+   ]
+  },
+  {
+   "id": "L6a",
+   "name": "L6a PIP servo strip, short end",
+   "body": "link",
+   "qty": 1,
+   "note": "behind the PIP servo's tabs; tabs into L4, L5",
+   "size_mm": [
+    20.4,
+    4.4
+   ],
+   "holes": 2,
+   "slots": 0,
+   "least_web_mm": 1.01,
+   "least_web_between": [
+    "outline",
+    "hole 2.2 mm"
+   ]
+  }
+ ]
+}

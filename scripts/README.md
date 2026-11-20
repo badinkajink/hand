@@ -20,7 +20,7 @@ transforms are in `sr2hand.geometry.rotations`, over scipy.
 This file is written by `scripts/docs/scripts_map.py` from the scripts' docstrings.
 
 
-## cad/ (46)
+## cad/ (49)
 
 Printable parts: the DIP link, the UR5 mounts and the print plates.
 
@@ -71,7 +71,10 @@ Printable parts: the DIP link, the UR5 mounts and the print plates.
 | `v2_tip_fit_sizes_xl.py` | Concept a's 11/22 tip at four key-channel interferences and concept b's 11/22 pad at four rail-groove fits, 85A, on one Prusa XL plate (tool 2), without magnets, for the fit on the printed v2 links and cover. |
 | `v2_tips_xl_plate.py` | Concept a's 11/22 tip and concept b's 11/22 pad (85A, five magnets) on one Prusa XL plate, tool 2. |
 | `v2_ur5_pla_plate.py` | One Bambu Lab P1S PLA plate with the PLA parts of DIP-link v2 a and b and of the UR5e calibration mount. |
+| `v4b_build.py` | v4b built from parts (2026-11-19 night): cad_v4's serial gimbal MCP with STS3032s and the single-rod PIP drive of scripts/cad/v4c_hardware.py, as 1/8-inch laser-cut plates, two printed parts and stock hardware. |
+| `v4b_build_page.py` | Builds docs/experiments/20261119-v4b_build/20261119-v4b_finger_build.html: the v4b index finger as laser-cut plates, STS3032 servos, ball bearings and three printed parts, with its clearance check, PIP drive, cut sheet a |
 | `v4c_codesign.py` | Codesign of a two-rod differential for the SR2 finger's yaw and MCP joints (cad_v4c), with STS3032 servos. |
+| `v4c_hardware.py` | v4c with real joints (19 November night): the rod differential of scripts/cad/v4c_codesign.py rebuilt from parts. |
 
 ## cluster/ (6)
 

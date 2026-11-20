@@ -1,0 +1,453 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "check --fine",
+ "params": {
+  "Gz": -7.0,
+  "proximal": 60.0,
+  "beam_z": 21.9,
+  "beam_y": [
+   -12.5,
+   11.3
+  ],
+  "half_width": 28.4,
+  "yaw_spline_x": 37.0,
+  "mcp_spline_y": -18.0,
+  "idler_gap": 2.5,
+  "l2_y3_gap": 0.925,
+  "cross_r": 14.5,
+  "cut_clear": 0.1,
+  "pip": {
+   "spline_x": 13.0,
+   "spline_z": -28.0,
+   "spacer": 5.0,
+   "r": 12.0,
+   "lug_r": 9.0,
+   "lug_y": 0.0,
+   "pip_rest": 0.0,
+   "knuckle_e": 5.0,
+   "rod_offset_c": 5.5,
+   "horn_limit_deg": 80.0
+  },
+  "disc": {
+   "d": 18.0,
+   "flange": 2.0,
+   "hub_d": 7.0,
+   "hub_h": 2.5,
+   "bolt_r": 6.0
+  },
+  "mf63": {
+   "D": 6.0,
+   "B": 2.5,
+   "flange_d": 7.2,
+   "flange_t": 0.6
+  },
+  "sph": {
+   "D": 12.0,
+   "W": 4.8,
+   "H": 3.6
+  },
+  "shoulder": {
+   "d": 3.0,
+   "head_d": 5.0,
+   "head_h": 1.3,
+   "thread": 4.0
+  },
+  "nut": {
+   "corners": 4.62,
+   "t": 1.6
+  },
+  "boss": {
+   "d": 4.0,
+   "h": 0.5
+  },
+  "dip_cheek_y": [
+   3.7,
+   6.1
+  ],
+  "lower_y": 7.0,
+  "tip_box": {
+   "x": [
+    -11.0,
+    9.0
+   ],
+   "y": 10.5,
+   "z": [
+    -44.0,
+    -20.0
+   ]
+  }
+ },
+ "module_half_width_mm": [
+  27.04,
+  [
+   "Y1 yoke back plate",
+   5.0,
+   90.0,
+   92.0
+  ]
+ ],
+ "pip_closes": true,
+ "pip_rod_mm": 37.41,
+ "least": [
+  [
+   "link:flange_L45 | dip:dip_cheek",
+   [
+    0.3,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:flange_L45 | dip:dip_lugarm",
+   [
+    0.3,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "phorn:H1 PIP horn arm | rod:R1 PIP rod",
+   [
+    0.5,
+    85.0,
+    90.0,
+    -25.0
+   ]
+  ],
+  [
+   "yoke:Y2 MCP servo plate | link:L3 link cross plate",
+   [
+    0.57,
+    -85.0,
+    27.0,
+    -25.0
+   ]
+  ],
+  [
+   "dip:dip_cheek | rod:R1 PIP rod",
+   [
+    0.63,
+    85.0,
+    90.0,
+    41.0
+   ]
+  ],
+  [
+   "dip:dip_lugarm | rod:R1 PIP rod",
+   [
+    0.77,
+    85.0,
+    90.0,
+    23.0
+   ]
+  ],
+  [
+   "dip:dip_cheek | rod:sph_ring",
+   [
+    0.87,
+    85.0,
+    90.0,
+    5.0
+   ]
+  ],
+  [
+   "dip:dip_lugarm | rod:sph_ring",
+   [
+    0.89,
+    -85.0,
+    -15.0,
+    11.0
+   ]
+  ],
+  [
+   "link:L4 lower plate + | dip:dip_cheek",
+   [
+    0.9,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L4 lower plate + | dip:dip_lugarm",
+   [
+    0.9,
+    85.0,
+    90.0,
+    89.0
+   ]
+  ],
+  [
+   "link:L5 lower plate - | dip:dip_cheek",
+   [
+    0.9,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L5 lower plate - | dip:dip_lugarm",
+   [
+    0.9,
+    85.0,
+    90.0,
+    77.0
+   ]
+  ],
+  [
+   "yoke:Y3 yoke idler plate | link:L2 link idler plate",
+   [
+    0.92,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "yoke:Y2 MCP servo plate | link:L5 lower plate -",
+   [
+    1.15,
+    85.0,
+    27.0,
+    92.0
+   ]
+  ],
+  [
+   "phorn:pipdisc | rod:R1 PIP rod",
+   [
+    1.15,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "link:L6b PIP servo strip, long end | rod:R1 PIP rod",
+   [
+    1.44,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "phorn:flange_H1 | rod:R1 PIP rod",
+   [
+    1.44,
+    -85.0,
+    -15.0,
+    41.0
+   ]
+  ],
+  [
+   "yoke:Y1 yoke back plate | knuckle:knuckle",
+   [
+    1.45,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "beam:beam | yoke:Y1 yoke back plate",
+   [
+    1.86,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_case | link:flange_L2",
+   [
+    1.9,
+    85.0,
+    87.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_boss | link:L1 link horn plate",
+   [
+    2.0,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:pipservo_boss | phorn:H1 PIP horn arm",
+   [
+    2.0,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "beam:beam | link:L3 link cross plate",
+   [
+    2.08,
+    -70.0,
+    90.0,
+    -25.0
+   ]
+  ],
+  [
+   "link:L6b PIP servo strip, long end | dip:dip_cheek",
+   [
+    2.12,
+    85.0,
+    90.0,
+    47.0
+   ]
+  ],
+  [
+   "mount:yawservo_boss | yoke:Y2 MCP servo plate",
+   [
+    2.21,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "phorn:flange_H1 | rod:flange_R1",
+   [
+    2.22,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "phorn:H1 PIP horn arm | rod:flange_R1",
+   [
+    2.43,
+    -85.0,
+    -15.0,
+    11.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_case | link:L2 link idler plate",
+   [
+    2.5,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:Y1 yoke back plate | knuckle:pin_a_head",
+   [
+    2.5,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_tabs | link:L3 link cross plate",
+   [
+    2.59,
+    85.0,
+    30.0,
+    92.0
+   ]
+  ],
+  [
+   "link:pipservo_tabs | dip:dip_cheek",
+   [
+    2.93,
+    85.0,
+    90.0,
+    41.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_tabs | link:L5 lower plate -",
+   [
+    3.09,
+    85.0,
+    30.0,
+    92.0
+   ]
+  ],
+  [
+   "link:pipservo_case | dip:tip",
+   [
+    3.09,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L6b PIP servo strip, long end | rod:sph_ring",
+   [
+    3.4,
+    85.0,
+    90.0,
+    -25.0
+   ]
+  ],
+  [
+   "link:flange_L45 | rod:R1 PIP rod",
+   [
+    3.5,
+    85.0,
+    90.0,
+    23.0
+   ]
+  ],
+  [
+   "beam:beam | link:L1 link horn plate",
+   [
+    3.54,
+    -70.0,
+    12.0,
+    92.0
+   ]
+  ],
+  [
+   "link:pipservo_tabs | rod:R1 PIP rod",
+   [
+    3.59,
+    85.0,
+    90.0,
+    -25.0
+   ]
+  ],
+  [
+   "link:flange_L45 | rod:sph_ring",
+   [
+    3.61,
+    -85.0,
+    -15.0,
+    11.0
+   ]
+  ],
+  [
+   "link:L4 lower plate + | rod:R1 PIP rod",
+   [
+    3.63,
+    -85.0,
+    -15.0,
+    35.0
+   ]
+  ],
+  [
+   "link:pipservo_case | rod:R1 PIP rod",
+   [
+    3.64,
+    85.0,
+    90.0,
+    -25.0
+   ]
+  ]
+ ]
+}

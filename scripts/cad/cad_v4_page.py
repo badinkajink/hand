@@ -36,6 +36,7 @@ OUT = D / "20261118-sr2_finger_actuator_layouts.html"
 TEMPLATE = ROOT / "scripts/cad/cad_v3_page.template.html"
 TEX_CACHE = D / "texsvg_cache.json"
 PARAMS = ROOT / "assets/cad_v4/concepts/20261118-layout_params.json"
+V4B_PAGE = "../20261119-v4b_build/20261119-v4b_finger_build.html"
 table, img, esc = H.table, H.img, H.esc
 
 
@@ -51,6 +52,7 @@ def load():
     J["hw_kin"] = json.loads((HWD / "20261119-v4c_hw_kin.json").read_text())
     J["hw_balls"] = json.loads((HWD / "20261119-v4c_hw_balls.json").read_text())
     J["hw_codesign"] = json.loads((DATA / "20261119-v4c_codesign_hardware.json").read_text())
+    J["v4b_pip"] = json.loads((ROOT / "docs/experiments/20261119-v4b_build/data/20261119-v4b_pip.json").read_text())
     return J
 
 
@@ -390,8 +392,11 @@ down to a diamond around the rest flexion. The real joints then narrow its wides
 Over the driver's range inside the reach it is at least {kb['torque_scs0009_min_in_window']['yaw']:.1f} times it in yaw and
 {kb['torque_scs0009_min_in_window']['mcp']:.2f} times in MCP. The PIP drive works with the same parts: a universal joint at the PIP servo's horn and a
 spherical plain bearing at a {hw['pip']['lug_r']:.0f} mm lug on the DIP link. It keeps at least
-{kp['torque_scs0009_min_m25_92']:.2f} times one SCS0009 from &minus;25&deg; to 92&deg; of PIP, and it moves to the v4b build.
-The kinematics are in <code>scripts/cad/v4c_hardware.py</code>.</p>"""
+{kp['torque_scs0009_min_m25_92']:.2f} times one SCS0009 from &minus;25&deg; to 92&deg; of PIP. An earlier version of this
+page gave 2.06 times; the code had inverted the ratio of horn turn to PIP turn. The v4b build uses the drive with a
+{J['v4b_pip']['params']['r']:.0f} mm horn arm and a {J['v4b_pip']['params']['lug_r']:.0f} mm lug, which give
+{J['v4b_pip']['torque_scs0009_min_m25_92']:.2f} times (<a href="{V4B_PAGE}">its page</a>). The kinematics are in
+<code>scripts/cad/v4c_hardware.py</code>.</p>"""
 
 
 def sec_clearance(J):
@@ -471,7 +476,7 @@ at 6 V.</p>"""
 
 
 def sec_future():
-    return """<ul>
+    return f"""<ul>
 <li>Detail v4a in Onshape from the STEP envelopes (<code>assets/cad_v4/concepts/step/</code>, written by
 <code>freecadcmd scripts/cad/cad_v4_step.py</code>): the yaw link's housing, the idler on MR52 bearings, a 3 mm steel rod with
 pressed pins. The claim to test is the overlap share: rerun <code>scripts/cad/cad_v4_layouts.py replay</code> on the detailed
@@ -488,10 +493,9 @@ hyperextension or split the 20.75 mm between the MCP link and a fixed metacarpal
 crank of a parallelogram rod to the distal link; the crank replaces the four-bar's fixed pivot on the gimbal. Model it as a third layout in
 <code>scripts/cad/cad_v4_layouts.py</code> with 7.5 mm horns and replay the 65 trials. Fewer than 99 % of the trials' postures
 inside its reachable region, or an overlap share above v4a's, refutes it.</li>
-<li>Build a v4b index finger with the PIP drive of Section SEC[v4c]: a universal joint at the PIP servo's horn and a
-spherical plain bearing at the DIP lug. Its plates are 1/8-inch acrylic, its horns the STS3032's aluminium discs, and every pin
-turns in ball bearings. Drive it through the driver's yaw and MCP ranges and the PIP from &minus;25&deg; to 92&deg;, with the
-D435 tracking the DIP link. A PIP
+<li>Assemble the v4b index finger of the build page (<a href="{V4B_PAGE}">its page</a>): 1/8-inch acrylic plates, the
+STS3032's aluminium disc horns, steel pins in ball bearings and the PIP drive of Section SEC[v4c]. Drive it through the
+driver's yaw and MCP ranges and the PIP from &minus;25&deg; to 92&deg;, with the D435 tracking the DIP link. A PIP
 range that stops above &minus;18&deg;, or more than 1&deg; of give at any joint under 2 N at the pad beyond the servos' own,
 refutes the design.</li>
 </ul>"""
