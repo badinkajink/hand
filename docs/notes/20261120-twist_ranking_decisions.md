@@ -159,6 +159,10 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   force channel for the residual planners (`inner_loop_mpc.py --res-force K`: a tenth planned number per knot scales
   HOM's commanded finger forces by 1 + K u, clipped to 0.5-1.5). Queued after UHAS with a smoke run
   (`logs/20261120-controller_rematch/force_res_arms.sh`); the full annealed-sampling runs are cut.
+- 12:28, hand-4a: predictions of the 70 morning plans under the smoothed budget, written before any smoothed trial
+  (`docs/experiments/20261119-twist_layout_ranking/data/20261120-smoothed_predictions.json`, c5844e356; both models,
+  seeds 0-2): mean 0.393 with exact joint readings and 0.384 with the hand's flicker, against 0.373 for the plans'
+  predictions; rho 0.89 and 0.87 with them.
 
 ## Waiting on owner
 
