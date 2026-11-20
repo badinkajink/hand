@@ -1,5 +1,17 @@
 [
  {
+  "date": "2026-11-20",
+  "file": "docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html",
+  "title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",
+  "page_title": "Inner-loop controllers with tuned contact forces on the calibrated SR2 plant",
+  "topic": "design",
+  "summary": "On the calibrated SR2 plant, HOM's commanded force changed its tracking most: 1 N in place of 2.5 N raised it from 0.387 to 0.660 over 45 layouts at fresh seeds; the GPU port of the plant matches the CPU plant (0.390 against 0.395).",
+  "builder": "scripts/hom/controller_rematch_page.py",
+  "artifact": null,
+  "status": "current",
+  "mb": 0.2
+ },
+ {
   "date": "2026-11-19",
   "file": "docs/experiments/20261119-v4b_build/20261119-v4b_finger_build.html",
   "title": "Parts and clearances of a laser-cut v4b index finger",

@@ -9,16 +9,16 @@ Read first: docs/experiments/20261119-twist_layout_ranking/sim/20261119-twist_ra
 stages, rows, heartbeat); logs/20261119-twist_layout_ranking/lane.sh and lane.log; the 11-17 model it reuses,
 docs/experiments/20261117-sr2_system_identification/QUEUE.md "W3, A/B" (blind predictions 0.437 vs the hand's 0.447);
 docs/experiments/20261115-hom_bench_trials/README.md (how trials run); memory project_sr2_identification_night_2026_11_17.md.
-State: 23:5x (hand-4a). Owner 23:2x-23:5x: a denser spread first (done: 25 more plans, 361206fa4; the lab's order
-7a6ea81eb, 155 trials on 60 plans, about 12 h from 07:00: block A = A1 21 clear layouts, A2 12 bad-end layouts that touch,
-A3 3 droppers; then the anchor's stage E and CEM plans, block 2, block 3, block 4); a deployment protocol (done:
-docs/notes/20261120-hand_deploy_protocol.md, local skill hand-deploy, scripts/hom/hand_deploy.py vet/plan/brief/score,
-cf510eb97); judge layouts by feasible trajectories (the 19 touching or dropping layouts have no grasp whose twist keeps
-10 mm under HOM; lane6 searches all 404 layouts overnight, ends ~02:40, data/20261120-feasible_ranking.json). Decision
-log for the owner: docs/notes/20261120-twist_ranking_decisions.md. Page artifact v3 (463cc988f) predates the dense set
-and the feasible search. Owner's further asks (waiting on their go): a controller rematch on the calibrated plant with
-each method's force knob tuned (HOM, annealed and predictive sampling, UHAS with a target-rate cost and the torque
-budget); a collision-aware HOM.
+State: 11-20 08:5x (hand-4a; autopilot disarmed 08:0x, the task is back in this window). lane6 ended 01:38: 214 of the
+404 fitting layouts have a feasible grasp (data/20261120-feasible_ranking.json; its seeds 1-2 were scored 0 until the fix
+of 08:1x, 0ec04cd54). Owner 08:0x, "Sure on all three decisions": block A4feas (20 predicted-good feasible layouts, 2
+trials each; plans pushed 0ec04cd54) after A1, the 19 infeasible layouts last at one trial each; the lab session has not
+taken it up (corvus entries unchanged at 08:4x; the lights came on at 08:37 only briefly). Controller rematch
+(docs/experiments/20261120-controller_rematch/, dc5852e71): the GPU cal75 plant in the stem scenes matches the CPU plant
+(HOM 0.390 against 0.395); HOM's best shared force 1.0 N, spin weight 0.25: 0.660 at seeds 10-12 against 0.386 at the
+defaults. Queues in logs/20261120-controller_rematch/: lane_sense.sh (HOM with the measured tracker at 30 and 60 fps,
+pose filter) -> lane_gpu.sh (E2 grid, planners) -> lane_uhas.sh (two UHAS trainings); the clearance term on the CPU plant
+(sim/20261120-clearance_hom.py). Decision log docs/notes/20261120-twist_ranking_decisions.md is current.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Check the CPU lane: lane.log, heartbeat.json (rewritten after every run), LANE_DONE / LANE_STOPPED / FAILED_<… Done 11-19 21:11: hand-4a 20:52: stages A-D and the report done (15424+5784+720+3408 runs, 148 errors); report rerun 20:5x with exclusion counts and candidates (picks unchanged)

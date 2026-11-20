@@ -1,0 +1,1016 @@
+{
+ "what": "Predictions of the morning plans of 2026-11-20 under the bench's 30 fps tag tracker, written before their trials (hand-4a, 2026-11-20 09:xx; owner, 08:4x: \"why don't we run tracking at 60hz?\"; the stage E prediction of 0.61 assumed an exact object pose).",
+ "written": "2026-11-20 09:37",
+ "plans": [
+  {
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.6023,
+   "cad_least_mm": -0.1,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": null,
+   "cpu_exact": 0.5593,
+   "cad_least_mm": -0.1,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.661,
+   "cad_least_mm": -0.0,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.5435,
+   "cad_least_mm": 13.4,
+   "group": null,
+   "gpu_exact": 0.5252,
+   "gpu_cam30": 0.5565
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "cpu_exact": 0.686,
+   "cad_least_mm": 16.0,
+   "group": null,
+   "gpu_exact": 0.6905,
+   "gpu_cam30": 0.0
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": null,
+   "cpu_exact": 0.542,
+   "cad_least_mm": 10.6,
+   "group": null,
+   "gpu_exact": 0.5058,
+   "gpu_cam30": 0.1325
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "cpu_exact": 0.7053,
+   "cad_least_mm": 15.8,
+   "group": null,
+   "gpu_exact": 0.7385,
+   "gpu_cam30": 0.521
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": null,
+   "cpu_exact": 0.5403,
+   "cad_least_mm": -0.0,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.6473,
+   "cad_least_mm": -0.0,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": null,
+   "cpu_exact": 0.4775,
+   "cad_least_mm": 17.8,
+   "group": null,
+   "gpu_exact": 0.4296,
+   "gpu_cam30": 0.4444
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "cpu_exact": 0.6613,
+   "cad_least_mm": 15.8,
+   "group": null,
+   "gpu_exact": 0.7363,
+   "gpu_cam30": 0.7442
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.4285,
+   "cad_least_mm": 18.8,
+   "group": null,
+   "gpu_exact": 0.393,
+   "gpu_cam30": 0.3898
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.6528,
+   "cad_least_mm": 16.7,
+   "group": null,
+   "gpu_exact": 0.7061,
+   "gpu_cam30": 0.7218
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": null,
+   "cpu_exact": 0.398,
+   "cad_least_mm": 15.0,
+   "group": null,
+   "gpu_exact": 0.349,
+   "gpu_cam30": 0.358
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.6653,
+   "cad_least_mm": 9.9,
+   "group": null,
+   "gpu_exact": 0.6387,
+   "gpu_cam30": 0.6521
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": null,
+   "cpu_exact": 0.3507,
+   "cad_least_mm": 0.9,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "cpu_exact": 0.5265,
+   "cad_least_mm": -0.0,
+   "group": null,
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.028,
+   "cad_least_mm": 8.5,
+   "group": null,
+   "gpu_exact": 0.0289,
+   "gpu_cam30": 0.0
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.2362,
+   "cad_least_mm": 8.9,
+   "group": null,
+   "gpu_exact": 0.1907,
+   "gpu_cam30": 0.1903
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.3755,
+   "cad_least_mm": 16.9,
+   "group": null,
+   "gpu_exact": 0.396,
+   "gpu_cam30": 0.3992
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "cpu_exact": 0.6303,
+   "cad_least_mm": 13.3,
+   "group": null,
+   "gpu_exact": 0.6786,
+   "gpu_cam30": 0.7103
+  },
+  {
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "k": 3,
+   "prm": null,
+   "cpu_exact": 0.5118,
+   "cad_least_mm": 17.6,
+   "group": null,
+   "gpu_exact": 0.4136,
+   "gpu_cam30": 0.4135
+  },
+  {
+   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "k": 15,
+   "prm": null,
+   "cpu_exact": 0.5103,
+   "cad_least_mm": 19.2,
+   "group": null,
+   "gpu_exact": 0.4696,
+   "gpu_cam30": 0.4779
+  },
+  {
+   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "k": 14,
+   "prm": null,
+   "cpu_exact": 0.3697,
+   "cad_least_mm": 15.5,
+   "group": null,
+   "gpu_exact": 0.3109,
+   "gpu_cam30": 0.302
+  },
+  {
+   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.2705,
+   "cad_least_mm": 15.0,
+   "group": null,
+   "gpu_exact": 0.3595,
+   "gpu_cam30": 0.33
+  },
+  {
+   "plan": "20261119-rank_x100_y110_twist_gr_g5_plan.json",
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.4965,
+   "cad_least_mm": 16.0,
+   "group": "dense",
+   "gpu_exact": 0.4356,
+   "gpu_cam30": 0.4427
+  },
+  {
+   "plan": "20261119-rank_x95_y150_twist_gr_g11_plan.json",
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "k": 11,
+   "prm": null,
+   "cpu_exact": 0.4815,
+   "cad_least_mm": 19.9,
+   "group": "dense",
+   "gpu_exact": 0.3898,
+   "gpu_cam30": 0.3217
+  },
+  {
+   "plan": "20261119-rank_x55_y75_twist_gr_g10_plan.json",
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "k": 10,
+   "prm": null,
+   "cpu_exact": 0.4182,
+   "cad_least_mm": 15.6,
+   "group": "dense",
+   "gpu_exact": 0.386,
+   "gpu_cam30": 0.3847
+  },
+  {
+   "plan": "20261119-rank_x55_y90_twist_gr_g0_plan.json",
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.4048,
+   "cad_least_mm": 18.7,
+   "group": "dense",
+   "gpu_exact": 0.3631,
+   "gpu_cam30": 0.3664
+  },
+  {
+   "plan": "20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "k": 15,
+   "prm": null,
+   "cpu_exact": 0.349,
+   "cad_least_mm": 12.5,
+   "group": "dense",
+   "gpu_exact": 0.3516,
+   "gpu_cam30": 0.3577
+  },
+  {
+   "plan": "20261119-rank_x100_y80_twist_gr_g8_plan.json",
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.3197,
+   "cad_least_mm": 10.0,
+   "group": "dense",
+   "gpu_exact": 0.2313,
+   "gpu_cam30": 0.2435
+  },
+  {
+   "plan": "20261119-rank_x115_y135_twist_gr_g8_plan.json",
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.3058,
+   "cad_least_mm": 10.3,
+   "group": "dense",
+   "gpu_exact": 0.2982,
+   "gpu_cam30": 0.2931
+  },
+  {
+   "plan": "20261119-rank_x85_y160_twist_gr_g1_plan.json",
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "k": 1,
+   "prm": null,
+   "cpu_exact": 0.2877,
+   "cad_least_mm": 13.1,
+   "group": "dense",
+   "gpu_exact": 0.4598,
+   "gpu_cam30": 0.237
+  },
+  {
+   "plan": "20261119-rank_x80_y155_twist_gr_g5_plan.json",
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.2825,
+   "cad_least_mm": 14.1,
+   "group": "dense",
+   "gpu_exact": 0.4417,
+   "gpu_cam30": 0.1457
+  },
+  {
+   "plan": "20261119-rank_x85_y170_twist_gr_g2_plan.json",
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "k": 2,
+   "prm": null,
+   "cpu_exact": 0.2477,
+   "cad_least_mm": 11.9,
+   "group": "dense",
+   "gpu_exact": 0.4803,
+   "gpu_cam30": 0.173
+  },
+  {
+   "plan": "20261119-rank_x130_y95_twist_gr_g14_plan.json",
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "k": 14,
+   "prm": null,
+   "cpu_exact": 0.2358,
+   "cad_least_mm": 1.0,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x155_y105_twist_gr_g7_plan.json",
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "k": 7,
+   "prm": null,
+   "cpu_exact": 0.2068,
+   "cad_least_mm": 0.4,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x150_y65_twist_gr_g5_plan.json",
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.1777,
+   "cad_least_mm": -0.0,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x65_y145_twist_gr_g15_plan.json",
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "k": 15,
+   "prm": null,
+   "cpu_exact": 0.1632,
+   "cad_least_mm": 8.2,
+   "group": "dense",
+   "gpu_exact": 0.0134,
+   "gpu_cam30": 0.0
+  },
+  {
+   "plan": "20261119-rank_x55_y130_twist_gr_g12_plan.json",
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "k": 12,
+   "prm": null,
+   "cpu_exact": 0.1407,
+   "cad_least_mm": -2.3,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x70_y155_twist_gr_g0_plan.json",
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.1357,
+   "cad_least_mm": 3.6,
+   "group": "dense",
+   "gpu_exact": 0.0,
+   "gpu_cam30": 0.0
+  },
+  {
+   "plan": "20261119-rank_x160_y85_twist_gr_g1_plan.json",
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "k": 1,
+   "prm": null,
+   "cpu_exact": 0.1163,
+   "cad_least_mm": -0.5,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x60_y155_twist_gr_g7_plan.json",
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "k": 7,
+   "prm": null,
+   "cpu_exact": 0.097,
+   "cad_least_mm": 3.3,
+   "group": "dense",
+   "gpu_exact": 0.1236,
+   "gpu_cam30": 0.1441
+  },
+  {
+   "plan": "20261119-rank_x70_y150_twist_gr_g8_plan.json",
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.0873,
+   "cad_least_mm": 7.6,
+   "group": "dense",
+   "gpu_exact": 0.1352,
+   "gpu_cam30": 0.1317
+  },
+  {
+   "plan": "20261119-rank_x65_y155_twist_gr_g1_plan.json",
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "k": 1,
+   "prm": null,
+   "cpu_exact": 0.083,
+   "cad_least_mm": -5.3,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x55_y155_twist_gr_g5_plan.json",
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.0415,
+   "cad_least_mm": -1.0,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x155_y60_twist_gr_g0_plan.json",
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.0,
+   "cad_least_mm": -0.1,
+   "group": "dense",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x110_y80_twist_gr_g1_plan.json",
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "k": 1,
+   "prm": null,
+   "cpu_exact": 0.5795,
+   "cad_least_mm": -0.0,
+   "group": "dropper",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x135_y125_twist_gr_g5_plan.json",
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.3375,
+   "cad_least_mm": -3.0,
+   "group": "dropper",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x55_y140_twist_gr_g11_plan.json",
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "k": 11,
+   "prm": null,
+   "cpu_exact": 0.0382,
+   "cad_least_mm": 8.5,
+   "group": "dropper",
+   "gpu_exact": null,
+   "gpu_cam30": null
+  },
+  {
+   "plan": "20261119-rank_x105_y170_twist_gr_g13_plan.json",
+   "xy": [
+    105.0,
+    170.0
+   ],
+   "k": 13,
+   "prm": null,
+   "cpu_exact": 0.4455,
+   "cad_least_mm": 15.3,
+   "group": null,
+   "gpu_exact": 0.3835,
+   "gpu_cam30": 0.4591
+  },
+  {
+   "plan": "20261119-rank_x85_y95_twist_gr_g14_plan.json",
+   "xy": [
+    85.0,
+    95.0
+   ],
+   "k": 14,
+   "prm": null,
+   "cpu_exact": 0.4268,
+   "cad_least_mm": 18.2,
+   "group": null,
+   "gpu_exact": 0.4067,
+   "gpu_cam30": 0.4018
+  },
+  {
+   "plan": "20261119-rank_x95_y165_twist_gr_g13_plan.json",
+   "xy": [
+    95.0,
+    165.0
+   ],
+   "k": 13,
+   "prm": null,
+   "cpu_exact": 0.4214,
+   "cad_least_mm": 15.5,
+   "group": null,
+   "gpu_exact": 0.4324,
+   "gpu_cam30": 0.4588
+  },
+  {
+   "plan": "20261119-rank_x65_y120_twist_gr_g0_plan.json",
+   "xy": [
+    65.0,
+    120.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.4249,
+   "cad_least_mm": 21.1,
+   "group": null,
+   "gpu_exact": 0.4584,
+   "gpu_cam30": 0.4809
+  },
+  {
+   "plan": "20261119-rank_x70_y80_twist_gr_g6_plan.json",
+   "xy": [
+    70.0,
+    80.0
+   ],
+   "k": 6,
+   "prm": null,
+   "cpu_exact": 0.4336,
+   "cad_least_mm": 16.8,
+   "group": null,
+   "gpu_exact": 0.3924,
+   "gpu_cam30": 0.3999
+  },
+  {
+   "plan": "20261119-rank_x75_y120_twist_gr_g0_plan.json",
+   "xy": [
+    75.0,
+    120.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.4518,
+   "cad_least_mm": 19.0,
+   "group": null,
+   "gpu_exact": 0.4141,
+   "gpu_cam30": 0.4246
+  },
+  {
+   "plan": "20261119-rank_x105_y135_twist_gr_g8_plan.json",
+   "xy": [
+    105.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": null,
+   "cpu_exact": 0.4975,
+   "cad_least_mm": 15.6,
+   "group": null,
+   "gpu_exact": 0.4731,
+   "gpu_cam30": 0.5063
+  },
+  {
+   "plan": "20261119-rank_x60_y105_twist_gr_g0_plan.json",
+   "xy": [
+    60.0,
+    105.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.431,
+   "cad_least_mm": 20.1,
+   "group": null,
+   "gpu_exact": 0.3741,
+   "gpu_cam30": 0.381
+  },
+  {
+   "plan": "20261119-rank_x80_y115_twist_gr_g7_plan.json",
+   "xy": [
+    80.0,
+    115.0
+   ],
+   "k": 7,
+   "prm": null,
+   "cpu_exact": 0.4602,
+   "cad_least_mm": 18.4,
+   "group": null,
+   "gpu_exact": 0.4341,
+   "gpu_cam30": 0.4499
+  },
+  {
+   "plan": "20261119-rank_x85_y140_twist_gr_g12_plan.json",
+   "xy": [
+    85.0,
+    140.0
+   ],
+   "k": 12,
+   "prm": null,
+   "cpu_exact": 0.5012,
+   "cad_least_mm": 20.1,
+   "group": null,
+   "gpu_exact": 0.4755,
+   "gpu_cam30": 0.5058
+  },
+  {
+   "plan": "20261119-rank_x90_y85_twist_gr_g9_plan.json",
+   "xy": [
+    90.0,
+    85.0
+   ],
+   "k": 9,
+   "prm": null,
+   "cpu_exact": 0.4415,
+   "cad_least_mm": 16.2,
+   "group": null,
+   "gpu_exact": 0.4259,
+   "gpu_cam30": 0.4328
+  },
+  {
+   "plan": "20261119-rank_x90_y100_twist_gr_g5_plan.json",
+   "xy": [
+    90.0,
+    100.0
+   ],
+   "k": 5,
+   "prm": null,
+   "cpu_exact": 0.465,
+   "cad_least_mm": 16.8,
+   "group": null,
+   "gpu_exact": 0.4198,
+   "gpu_cam30": 0.4146
+  },
+  {
+   "plan": "20261119-rank_x90_y115_twist_gr_g6_plan.json",
+   "xy": [
+    90.0,
+    115.0
+   ],
+   "k": 6,
+   "prm": null,
+   "cpu_exact": 0.5011,
+   "cad_least_mm": 16.8,
+   "group": null,
+   "gpu_exact": 0.4592,
+   "gpu_cam30": 0.4691
+  },
+  {
+   "plan": "20261119-rank_x95_y130_twist_gr_g4_plan.json",
+   "xy": [
+    95.0,
+    130.0
+   ],
+   "k": 4,
+   "prm": null,
+   "cpu_exact": 0.4783,
+   "cad_least_mm": 18.1,
+   "group": null,
+   "gpu_exact": 0.5585,
+   "gpu_cam30": 0.5726
+  },
+  {
+   "plan": "20261119-rank_x95_y140_twist_gr_g0_plan.json",
+   "xy": [
+    95.0,
+    140.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.503,
+   "cad_least_mm": 18.4,
+   "group": null,
+   "gpu_exact": 0.4618,
+   "gpu_cam30": 0.5055
+  },
+  {
+   "plan": "20261119-rank_x100_y145_twist_gr_g6_plan.json",
+   "xy": [
+    100.0,
+    145.0
+   ],
+   "k": 6,
+   "prm": null,
+   "cpu_exact": 0.5135,
+   "cad_least_mm": 18.9,
+   "group": null,
+   "gpu_exact": 0.5641,
+   "gpu_cam30": 0.5077
+  },
+  {
+   "plan": "20261119-rank_x100_y155_twist_gr_g10_plan.json",
+   "xy": [
+    100.0,
+    155.0
+   ],
+   "k": 10,
+   "prm": null,
+   "cpu_exact": 0.4877,
+   "cad_least_mm": 19.2,
+   "group": null,
+   "gpu_exact": 0.4974,
+   "gpu_cam30": 0.5377
+  },
+  {
+   "plan": "20261119-rank_x105_y150_twist_gr_g7_plan.json",
+   "xy": [
+    105.0,
+    150.0
+   ],
+   "k": 7,
+   "prm": null,
+   "cpu_exact": 0.5362,
+   "cad_least_mm": 15.0,
+   "group": null,
+   "gpu_exact": 0.5501,
+   "gpu_cam30": 0.3928
+  },
+  {
+   "plan": "20261119-rank_x105_y160_twist_gr_g0_plan.json",
+   "xy": [
+    105.0,
+    160.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.4293,
+   "cad_least_mm": 18.6,
+   "group": null,
+   "gpu_exact": 0.5152,
+   "gpu_cam30": 0.5238
+  },
+  {
+   "plan": "20261119-rank_x110_y165_twist_gr_g0_plan.json",
+   "xy": [
+    110.0,
+    165.0
+   ],
+   "k": 0,
+   "prm": null,
+   "cpu_exact": 0.5036,
+   "cad_least_mm": 17.3,
+   "group": null,
+   "gpu_exact": 0.4295,
+   "gpu_cam30": 0.286
+  }
+ ]
+}

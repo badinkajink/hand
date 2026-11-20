@@ -156,11 +156,26 @@ def install():
 
 
 def job(item):
+    """cad_gap_screen.job with the clearance setting and HOM's forces (item prm) of the item."""
+    from sr2hand.robot import sr2_layouts as SL
     CLEAR.update(item["clear"])
     install()
-    r = CS.job({k: item[k] for k in ("call", "xy", "k", "model", "score", "rank_among_deployable")})
-    return {**{k: item[k] for k in ("call", "xy", "k", "model", "group", "clear")}, "track": r.get("track"),
-            "held": r.get("held"), "least_mm": r.get("least_mm"), "gaps": {p: v["gap_mm"] for p, v in r["gaps"].items()}}
+    e = {"call": item["call"], "xy": item["xy"], "k": item["k"], "prm": item.get("prm")}
+    tr, r = CS.CG.simulated(e, item["model"])
+    SA, FT, HS = CS.lab()
+    plan = {"meta": {"hom": {"d6_P_mm": [float(v) for v in SL.sym6(*item["xy"])]}}}
+    g = CS.CG.gaps_along(plan, tr, SA, FT, HS, "joints")
+    return {**{k: item.get(k) for k in ("call", "xy", "k", "model", "group", "clear", "prm", "stage")},
+            "track": r.get("track"), "held": r.get("held"), "least_mm": min(v["gap_mm"] for v in g.values()),
+            "gaps": {p: v["gap_mm"] for p, v in g.items()}}
+
+
+# the grasp search with the term (08:5x): every grasp of the near-touching layouts at seed 0 under both models, with the
+# strongest setting of the first pass, with stage E's best forces, and with both
+F_BEST = {"f_tripod": 1.0, "w_spin_tripod": 0.25}
+GRASP_SETTINGS = [({"d_s": 0.020, "k_c": 5.0, "w_c": 10.0, "K": 4}, None),
+                  ({"d_s": 0.0, "k_c": 5.0, "w_c": 0.0, "K": 4}, F_BEST),
+                  ({"d_s": 0.020, "k_c": 5.0, "w_c": 10.0, "K": 4}, F_BEST)]
 
 
 def layouts(n_clear):
@@ -182,18 +197,29 @@ def rows():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=("run", "summary"))
+    ap.add_argument("cmd", choices=("run", "grasps", "summary"))
     ap.add_argument("--workers", type=int, default=12)
     ap.add_argument("--n-clear", type=int, default=10)
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
-    if a.cmd == "run":
+    if a.cmd in ("run", "grasps"):
         import multiprocessing as mp
-        done = {(r["call"], r["k"], r["model"], json.dumps(r["clear"], sort_keys=True)) for r in rows()}
-        items = [{"call": int(e["call"]), "xy": e["xy"], "k": int(e["k"]), "model": m, "group": grp, "clear": s,
-                  "score": None, "rank_among_deployable": None}
-                 for e, grp in layouts(a.n_clear) for m in SR.MODELS for s in SETTINGS]
-        items = [i for i in items if (i["call"], i["k"], i["model"], json.dumps(i["clear"], sort_keys=True)) not in done]
+
+        def ident(i):
+            return (i["call"], i["k"], i["model"], json.dumps(i["clear"], sort_keys=True),
+                    json.dumps(i.get("prm"), sort_keys=True))
+        done = {ident(r) for r in rows()}
+        if a.cmd == "run":
+            items = [{"call": int(e["call"]), "xy": e["xy"], "k": int(e["k"]), "model": m, "group": grp, "clear": s,
+                      "prm": None, "stage": "layouts"}
+                     for e, grp in layouts(a.n_clear) for m in SR.MODELS for s in SETTINGS]
+        else:
+            ng = {c: n for c, xy, n in SR.layouts()}
+            items = [{"call": int(e["call"]), "xy": e["xy"], "k": k, "model": m, "group": grp, "clear": s, "prm": prm,
+                      "stage": "grasps"}
+                     for e, grp in layouts(0) if grp == "near" for k in range(ng[int(e["call"])])
+                     for s, prm in GRASP_SETTINGS for m in SR.MODELS]
+        items = [i for i in items if ident(i) not in done]
         if a.limit:
             items = items[:a.limit]
         print(f"{len(items)} runs", flush=True)
@@ -217,7 +243,8 @@ def main():
     for s in SETTINGS:
         ks = json.dumps(s, sort_keys=True)
         for grp in ("near", "clear"):
-            sel = [r for r in rr if json.dumps(r["clear"], sort_keys=True) == ks and r["group"] == grp]
+            sel = [r for r in rr if json.dumps(r["clear"], sort_keys=True) == ks and r["group"] == grp
+                   and r.get("stage", "layouts") == "layouts" and r.get("prm") is None]
             by = {}
             for r in sel:
                 by.setdefault((r["call"], r["k"]), {})[r["model"]] = r
@@ -232,9 +259,40 @@ def main():
                         "track_mean": round(float(np.mean(trk)), 4),
                         "track_feasible_mean": round(float(np.mean([t for t, f in zip(trk, feas) if f])), 4)
                         if any(feas) else None})
+    # per layout: the first pass's plan grasp without and with the strongest term; the grasp search's best feasible
+    # grasp (10 mm or more under both models, held) per setting, by the mean score of both models
+    lay = []
+    for e, grp in layouts(a.n_clear):
+        c, k = int(e["call"]), int(e["k"])
+        rec = {"call": c, "xy": e["xy"], "k": k, "group": grp}
+        for lab, s_ in (("base", SETTINGS[0]), ("d20_w10", SETTINGS[-1])):
+            v = {r["model"]: r for r in rr if r["call"] == c and r["k"] == k and r.get("stage", "layouts") == "layouts"
+                 and r.get("prm") is None and json.dumps(r["clear"], sort_keys=True) == json.dumps(s_, sort_keys=True)}
+            if set(v) == set(SR.MODELS):
+                rec[lab] = {"least_mm": min(x["least_mm"] for x in v.values()),
+                            "track": round(float(np.mean([SR.score(x) if x["held"] else 0.0 for x in v.values()])), 4),
+                            "feasible": all(x["least_mm"] >= 10.0 and x["held"] for x in v.values())}
+        for n_, (s_, prm) in zip(("grasps_clear", "grasps_force", "grasps_clear_force"), GRASP_SETTINGS):
+            by = {}
+            for r in rr:
+                if (r["call"] == c and r.get("stage") == "grasps" and json.dumps(r["clear"], sort_keys=True)
+                        == json.dumps(s_, sort_keys=True) and json.dumps(r.get("prm"), sort_keys=True)
+                        == json.dumps(prm, sort_keys=True)):
+                    by.setdefault(r["k"], {})[r["model"]] = r
+            full = {kk: v for kk, v in by.items() if set(v) == set(SR.MODELS)}
+            if not full:
+                continue
+            fz = {kk: float(np.mean([SR.score(x) if x["held"] else 0.0 for x in v.values()])) for kk, v in full.items()
+                  if all(x["least_mm"] >= 10.0 and x["held"] for x in v.values())}
+            best = max(fz, key=fz.get) if fz else None
+            rec[n_] = {"grasps": len(full), "feasible": len(fz), "best_k": best,
+                       "best_track": round(fz[best], 4) if best is not None else 0.0}
+        lay.append(rec)
     path = STUDY / "data/20261120-clearance_hom.json"
     path.write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "), "written": time.strftime("%F %H:%M"),
-                                "settings": SETTINGS, "summary": out}, indent=1) + "\n")
+                                "settings": SETTINGS, "grasp_settings": [{"clear": c_, "prm": p_} for c_, p_ in
+                                                                         GRASP_SETTINGS],
+                                "summary": out, "layouts": lay}, indent=1) + "\n")
     for o in out:
         c = o["clear"]
         print(f"d_s {1e3 * c['d_s']:4.0f} mm w_c {c['w_c']:5.1f}  {o['group']:5s}: {o['feasible']}/{o['layouts']} feasible, "

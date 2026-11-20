@@ -59,6 +59,31 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   on the contacts helps too? I guess geometric contact from the tag is ultimately better." The lab measured 960 x 540 at
   60 fps on 11-13 (22 ms frame age against 42 ms, every tag decoded) and left the switch until a test with the block
   moving. lane_sense runs HOM with the measured tracker at 30 and 60 fps, with and without the pose filter.
+- 08:5x, hand-4a: a clearance term in HOM's Eq. (2) on the CPU plant (`sim/20261120-clearance_hom.py` of the rematch;
+  rows `logs/20261120-controller_rematch/rows_clear.jsonl`): rows that open a finger-to-finger gap below d_s on HOM's own
+  link spheres, at seed 0 under both models with the CAD check. At d_s 20 mm and weight 10, 5 of the 17 near-touching
+  layouts of the morning list keep 10 mm (none without it); the 10 clear layouts kept their gaps, and 9 of them their
+  scores. The simulation's best layouts owe their scores to the close fingers: (135, 65) g0 fell from 0.610 to 0.039 and
+  still came within 9.3 mm; (115, 70) g7 kept 13.8 mm at 0.317 (0.552 without).
+- 08:5x, hand-4a: the queues asked resguard for 12 GB per run where a run holds 2 GB, so a CPU job beside them closed the
+  gate (two refusals at 08:50 and 08:52); they were stopped between runs and restarted at 4-8 GB.
+- 09:17: the lights stayed on and the series started with the original order (A1 first, then A2bad, A3drop). corvus is
+  still at fdd0f621e: A4feas and the new order are not there. A1's 53 trials end near 13:15.
+- 09:36, hand-4a: HOM with the tracker as measured on 11-13 (45 layouts, seeds 10-12, pads; `logs/20261120-controller_
+  rematch/lane_sense.sh`). At 2.5 N: exact pose 0.386 (3 of 135 dropped), 30 fps 0.362 (11), 60 fps 0.382 (5). At 1.0 N
+  and spin weight 0.5: exact 0.649 (0), 30 fps 0.539 (23), 60 fps 0.583 (13). The pose filter changed no score by more
+  than 0.013; at 60 fps and 1.0 N it cut target reversals from 2.18 to 0.96 per joint per second. The 0.5 mm calibration
+  offset changed scores by 0.01 or less. The 0.538 quoted at 08:2x stands: with the measured jitter, 30 fps gives
+  0.539-0.552 at 1.0 N, so the frame's delay costs the score, not the old model's noise.
+- 09:37, hand-4a: predictions under the 30 fps tracker for every morning plan with one force setting
+  (`docs/experiments/20261120-controller_rematch/data/20261120-tracker_predictions.json`), written after the first A1
+  trials (none read) and before any stage E trial. Most stage E plans keep their exact-pose prediction; (115, 160) g8 at
+  1.0 N drops the sphere at all three seeds under the tracker (0.000 against 0.691), and (110, 155) g3 falls to 0.521
+  (0.739).
+- 09:36, hand-4a: the grasp search of the 17 near-touching layouts (all grasps, seed 0, both models, CAD check). With the
+  clearance term at 2.5 N, 7 have a feasible grasp, the best scoring 0.37. At 1.0 N without the term, 4 have one, scoring
+  0.19-0.70: (70, 155) 0.699, (65, 145) 0.685, (55, 130) 0.664. The simulation's top layouts, (135, 65), (115, 70) and
+  (105, 60), have none at 1.0 N. Feasibility depends on HOM's force: the landscape of 01:38 holds for 2.5 N only.
 - 08:4x: the lab has not taken up A4feas or the new order: corvus's entries file is unchanged since 23:30 and its clone is
   at fdd0f621e. The lights came on at 08:37, so the series starts near 08:47 with A1 as before. A4feas and the new order
   must be in before A1 ends, near 13:00.

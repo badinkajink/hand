@@ -1,0 +1,65 @@
+{
+ "what": "HOM's sensing variants on the GPU cal75 plant in the stem scenes, 45 layouts, seeds 0-2 (controller_rematch.py hom --variant ... --tag _sensing)",
+ "rows": {
+  "notip0|default": {
+   "n": 135,
+   "mean": 0.3878,
+   "dropped": 3
+  },
+  "notip0|f1 w0.5": {
+   "n": 135,
+   "mean": 0.6493,
+   "dropped": 0
+  },
+  "rate50|default": {
+   "n": 135,
+   "mean": 0.388,
+   "dropped": 3
+  },
+  "rate50|f1 w0.5": {
+   "n": 135,
+   "mean": 0.6486,
+   "dropped": 0
+  },
+  "notip|default": {
+   "n": 135,
+   "mean": 0.3807,
+   "dropped": 10
+  },
+  "notip|f1 w0.5": {
+   "n": 135,
+   "mean": 0.5379,
+   "dropped": 24
+  },
+  "tip|default": {
+   "n": 135,
+   "mean": 0.3951,
+   "dropped": 7
+  },
+  "tip|f1 w0.5": {
+   "n": 135,
+   "mean": 0.5548,
+   "dropped": 22
+  },
+  "tip3|default": {
+   "n": 135,
+   "mean": 0.4081,
+   "dropped": 10
+  },
+  "tip3|f1 w0.5": {
+   "n": 135,
+   "mean": 0.5567,
+   "dropped": 24
+  },
+  "tipfl|default": {
+   "n": 135,
+   "mean": 0.3088,
+   "dropped": 8
+  },
+  "tipfl|f1 w0.5": {
+   "n": 135,
+   "mean": 0.4126,
+   "dropped": 46
+  }
+ }
+}
