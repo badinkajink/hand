@@ -10,6 +10,10 @@ each own-pose GP's prediction for the same change (its value at the pose's measu
 The residual's size (uT, 15 components) per pose; its median per finger and sweep says whether a layout needs its own
 term (the five-fold floor on 11-19 was 4.4-5.7 uT).
 
+The thumb's DIP tag (pose_sweep.py since 21:00 on 11-19; the owner, relayed: "maybe tracking the thumb fingertip tag
+would help us understand slop as well?"): per pose its centre and normal against the hand model at the measured joints,
+from both cameras where both saw it (one camera's depth scatters 2.5 mm along its view, both cameras' 0.3 mm).
+
     /usr/bin/python3 sim/20261119-pose_sweep_own_pose.py [SWEEP.jsonl ...] [--out data/s3/20261119-pose_sweep_own_pose.json]
 """
 import argparse
@@ -90,6 +94,21 @@ def main():
                   f"{rec['fingers'][f]['change_median_uT']} uT; residual deployed "
                   f"{rec['fingers'][f]['resid_deployed_median_uT']}, x70y110 {rec['fingers'][f]['resid_x70y110_median_uT']} uT",
                   flush=True)
+        tt = [(r["pose"], r.get("thumb_tag") or {}) for r in poses]
+        two = [(n, t) for n, t in tt if "d_mm_2cam" in t]
+        one = [(n, t) for n, t in tt if "d_mm" in t]
+        rec["thumb_tag"] = {"poses": [{"pose": n, **t} for n, t in tt if t],
+                            "seen_poses": len(one), "two_camera_poses": len(two),
+                            "d_mm_2cam_median": np.round(np.median([t["d_mm_2cam"] for _, t in two], axis=0), 2).tolist()
+                            if two else None,
+                            "normal_deg_2cam_median": round(float(np.median([t["normal_deg_2cam"] for _, t in two])), 2)
+                            if two else None,
+                            "normal_deg_median": round(float(np.median([t["normal_deg"] for _, t in one])), 2)
+                            if one else None}
+        if one:
+            print(f"   thumb tag: seen at {len(one)} poses ({len(two)} by both cameras); normal "
+                  f"{rec['thumb_tag']['normal_deg_median']} deg from the model, both cameras "
+                  f"{rec['thumb_tag']['d_mm_2cam_median']} mm, {rec['thumb_tag']['normal_deg_2cam_median']} deg", flush=True)
         res.append(rec)
     Path(a.out).write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "),
                                        "script": str(Path(__file__).resolve().relative_to(ROOT)), "sweeps": res}, indent=1))
