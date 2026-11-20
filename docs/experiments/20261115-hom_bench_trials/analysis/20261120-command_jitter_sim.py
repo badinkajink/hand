@@ -124,7 +124,8 @@ def run(item):
     if prm or smooth:
         HB.HomBench = Bench
     try:
-        job = {**SR.base_job(int(e["call"]), tuple(e["xy"]), "pads", contact="pads"), "k": int(e["k"]), "seed": 0,
+        model, seed = item.get("model", "pads"), int(item.get("seed", 0))
+        job = {**SR.base_job(int(e["call"]), tuple(e["xy"]), model, contact=model), "k": int(e["k"]), "seed": seed,
                "budget": v["budget"]}
         r = SR._run(job)
     finally:
@@ -134,6 +135,7 @@ def run(item):
                   for f in HB.FINGERS], float).reshape(-1, 9)
     T = np.degrees(T)
     return {"plan": Path(e["plan"]).name, "xy": e["xy"], "k": e["k"], "prm": e.get("prm"), "variant": item["variant"],
+            "model": item.get("model", "pads"), "seed": int(item.get("seed", 0)),
             "track": r.get("track"), "held": r.get("held"), "error": r.get("error"), "periods": len(T),
             "cmd": RM.metrics(T) if len(T) >= 20 else None,
             "budget_below_1_pct": round(100 * float(np.mean([(s.get("budget_scale") or 1.0) < 0.999 for s in st
@@ -146,6 +148,9 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--all", action="store_true", help="every default and stage E plan of the plan list")
+    ap.add_argument("--predict", action="store_true",
+                    help="both models at seeds 0-2 per plan and variant; rows to PRED_ROWS (resumable), the means to "
+                         "the twist ranking's data/20261120-smoothed_predictions.json")
     a = ap.parse_args()
     R = SR.load_replan()
     R.RG.gear_class = R.RC2.clutch_class
@@ -155,6 +160,8 @@ def main():
     es = plans_all() if a.all else plans_run()
     if a.limit:
         es = es[:a.limit]
+    if a.predict:
+        return predict(es, a)
     items = [{"entry": e, "variant": v} for e in es for v in a.variants]
     print(f"{len(es)} plans x {len(a.variants)} variants", flush=True)
     import multiprocessing as mp
@@ -178,6 +185,54 @@ def main():
                   f"hf median {np.median([r['cmd']['hf_deg'] for r in rs]):.2f}, track mean "
                   f"{np.mean([r['track'] or 0 for r in rs]):.3f}, held {sum(bool(r['held']) for r in rs)}/{len(rs)}")
     print("wrote", OUT)
+
+
+PRED_ROWS = ROOT / "logs/20261120-controller_rematch/rows_smoothed_pred.jsonl"
+PRED_OUT = RANK / "data/20261120-smoothed_predictions.json"
+
+
+def predict(es, a):
+    """Predictions of the plans under the variants, written before any trial of a variant (the twist ranking's score:
+    the mean over both models at seeds 0-2, 0 for a run that dropped the sphere)."""
+    import multiprocessing as mp
+    import os
+    done = {}
+    if PRED_ROWS.exists():
+        for x in PRED_ROWS.read_text().splitlines():
+            if x.strip():
+                r = json.loads(x)
+                done[(r["plan"], r["variant"], r["model"], r["seed"])] = r
+    items = [{"entry": e, "variant": v, "model": m, "seed": s} for e in es for v in a.variants for m in SR.MODELS
+             for s in (0, 1, 2) if (Path(e["plan"]).name, v, m, s) not in done]
+    print(f"{len(items)} runs to go ({len(done)} done)", flush=True)
+    PRED_ROWS.parent.mkdir(parents=True, exist_ok=True)
+    with mp.get_context("fork").Pool(a.workers, initializer=SR._init) as pool, PRED_ROWS.open("a") as fh:
+        for n, r in enumerate(pool.imap_unordered(run, items, chunksize=1), 1):
+            fh.write(json.dumps(r) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+            done[(r["plan"], r["variant"], r["model"], r["seed"])] = r
+            if n % 50 == 0 or n == len(items):
+                print(f"  {n}/{len(items)} {time.strftime('%H:%M:%S')}", flush=True)
+    plans = []
+    for e in es:
+        name = Path(e["plan"]).name
+        rec = {"plan": name, "xy": e["xy"], "k": e["k"], "prm": e.get("prm"), "role": e.get("role"),
+               "group": e.get("group"), "prediction_before": e.get("score"), "variants": {}}
+        for v in a.variants:
+            per = {}
+            for m in SR.MODELS:
+                rs = [done.get((name, v, m, s)) for s in (0, 1, 2)]
+                if all(rs):
+                    per[m] = float(np.mean([(r["track"] or 0.0) if r["held"] and not r.get("error") else 0.0
+                                            for r in rs]))
+            rec["variants"][v] = {"both": round(float(np.mean(list(per.values()))), 4) if len(per) == 2 else None,
+                                  **{m: round(x, 4) for m, x in per.items()}}
+        plans.append(rec)
+    PRED_OUT.write_text(json.dumps({"what": predict.__doc__.replace("\n", " "), "written": time.strftime("%F %H:%M"),
+                                    "variants": {v: VARIANTS[v] for v in a.variants}, "noise_deg": NOISE_DEG,
+                                    "script": str(Path(__file__).relative_to(ROOT)), "plans": plans}, indent=1) + "\n")
+    print("wrote", PRED_OUT)
 
 
 if __name__ == "__main__":

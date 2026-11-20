@@ -150,6 +150,15 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   deg") is that misreading. The day's first 89.5 min: stops 78 %, a clean cycle 142 s
   (`docs/experiments/20261115-hom_bench_trials/analysis/20261120-series_time_table.py`).
 - 12:2x, hand-4a: the smoothing flags wait for the owner's yes (asked 12:2x); the lab will not switch without it.
+- 12:4x, hand-4a: the sim-to-real page, first version
+  (`docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html`, builder
+  `scripts/hom/twist_sim_to_real_page.py`): 5 layouts at the default force so far, rho -0.10; the anchor (70, 110) 0.367
+  against 0.376; (115, 160) g8 0.082 against 0.543. Rebuilt through the evening; published from the personal login
+  tonight (hand-off note `docs/handoff/20261120-twist_sim_to_real_evening.md`, not armed).
+- 12:5x, hand-4a (owner, 11:5x: "what if we let the residual annealed sampling also modulate the initial force"): a
+  force channel for the residual planners (`inner_loop_mpc.py --res-force K`: a tenth planned number per knot scales
+  HOM's commanded finger forces by 1 + K u, clipped to 0.5-1.5). Queued after UHAS with a smoke run
+  (`logs/20261120-controller_rematch/force_res_arms.sh`); the full annealed-sampling runs are cut.
 
 ## Waiting on owner
 

@@ -156,6 +156,16 @@ HS_METHODS = tuple("hs_" + m for m in METHODS if m not in ("spider_wc", "grad"))
 # knot within +-PLAN_RES bound rad. The zero plan is HOM.
 RES_METHODS = tuple("res_" + m for m in ("ps", "mppi", "anneal", "grad"))
 PLAN_RES = dict(sigma=0.04, bound=0.3, rate_dps=20.0)
+# The residual's force channel (--res-force K, hand-4a 2026-11-20; owner, 11:5x: "what if we let the residual annealed
+# sampling also modulate the initial force throughout the trajectory"): a tenth number per knot, in the joints' units,
+# sets HOM's commanded finger forces to their configured value times 1 + K u, clipped to 0.5-1.5, in the planner's
+# worlds and in the plant. K 2.5 gives the force factor a sampling spread of 0.1 and the joints' rate cost per unit.
+RES_FORCE = 0.0
+
+
+def force_factor(u):
+    """HOM's force factor (W, 1) for the residual's force numbers u (W,)."""
+    return (1.0 + RES_FORCE * u).clamp(0.5, 1.5)[:, None]
 KNOT_T = np.linspace(0.0, H, KNOTS)
 PLAN_DT = None                  # the planner's physics step, s (--plan-dt); None: the plant's 1 ms
 WARM = "hold"                   # past its last knot the shifted plan holds the last knot, or (extrap) keeps its slope
@@ -524,6 +534,7 @@ class HomRollouts(Rollouts):
     def begin(self, chunk):
         super().begin(chunk)
         self.B.v_add_rows = HS_FREE
+        self.f0 = self.B.force_on.clone()                    # HOM's configured forces, for the force channel
         dt = self.B.prm.dt
         self.B.clock = self.B.clock + [self.B.clock[-1] + (i + 1) * dt for i in range(64)]   # rollouts past the end
 
@@ -546,12 +557,16 @@ class HomRollouts(Rollouts):
         drop = torch.zeros(B.W, dtype=torch.bool, device="cuda")
         for h in range(H):
             if self.mode == "res":
-                B.q_add = Uh[:, h]
+                B.q_add = Uh[:, h, :9]
+                if RES_FORCE:
+                    B.force_on.copy_(self.f0 * force_factor(Uh[:, h, 9]).to(self.f0.dtype))
             else:
                 B.v_add = hs_add(Uh[:, h])
             B.tick(None)
             c += self.period_cost(B.vw["ctrl"][:, B.act_t], ctx, h, drop)
         B.v_add = B.q_add = None
+        if RES_FORCE:
+            B.force_on.copy_(self.f0)
         return torch.nan_to_num(c, nan=1e6, posinf=1e6)
 
 
@@ -866,10 +881,12 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
             mpc = MPC(method[3:], P, -bd, bd, R.n, R.G, seed, D=12, sigma=PLAN_HS["sigma"], rate_scale=PLAN_HS["rate"])
             u = torch.zeros((P, 12), device="cuda")
         elif res:
-            bd = torch.full((9,), PLAN_RES["bound"], device="cuda")
-            mpc = MPC(method[4:], P, -bd, bd, R.n, R.G, seed, D=9, sigma=PLAN_RES["sigma"],
+            Dr = 10 if RES_FORCE else 9
+            bd = torch.full((Dr,), PLAN_RES["bound"], device="cuda")
+            mpc = MPC(method[4:], P, -bd, bd, R.n, R.G, seed, D=Dr, sigma=PLAN_RES["sigma"],
                       rate_scale=math.radians(PLAN_RES["rate_dps"]))
-            u = torch.zeros((P, 9), device="cuda")
+            u = torch.zeros((P, Dr), device="cuda")
+            f0_plant = B.force_on.clone()
         elif il:
             mpc = R
             u = vw["ctrl"][:, B.act_t].float().clone()
@@ -928,7 +945,9 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
                     B.v_add = hs_add(u)
                     B.tick(None)
                 elif res:
-                    B.q_add = u
+                    B.q_add = u[:, :9]
+                    if RES_FORCE:
+                        B.force_on.copy_(f0_plant * force_factor(u[:, 9]).to(f0_plant.dtype))
                     B.tick(None)
                 else:
                     B.tick(u.reshape(P, 3, 3))
@@ -937,6 +956,8 @@ def episode(B, chunk, method, R=None, policy=None, F=None, seed=0, trace=None):
             A.append(wp.to_torch(B.wd.actuator_force)[:, B.act_t].float().clone())
             tau += 1
     B.v_add = B.q_add = None
+    if res and RES_FORCE:
+        B.force_on.copy_(f0_plant)
     out = B.finish()
     M = IU.metrics(B, k0, torch.stack(Q), torch.stack(Cm), torch.stack(A), IU.Limits(B), B.prm.dt,
                    stride=R.S if method == "ilqr" else 1)       # iLQR holds its targets for R.S periods
@@ -948,7 +969,7 @@ def row_key(r):
 
 
 def cmd_run(a):
-    global PLAN_DT, WARM
+    global PLAN_DT, WARM, RES_FORCE
     import hom_landscape as L
     set_task(a.task, a.d)
     a.variant = a.variant or UH.VARIANT[TASK]
@@ -961,6 +982,11 @@ def cmd_run(a):
     if a.plan_dt is not None:
         PLAN_DT = a.plan_dt
         a.tag = f"_pdt{1e3 * a.plan_dt:g}" + a.tag
+    if getattr(a, "res_force", 0.0):
+        if a.method not in RES_METHODS:
+            raise SystemExit("--res-force: the residual planners only")
+        RES_FORCE = float(a.res_force)
+        a.tag = f"_rf{RES_FORCE:g}" + a.tag
     sh = "" if WARM == "hold" else f"_{WARM}"          # the reversal options (owner, 2026-11-13)
     for flag, d, k, nm in ((a.lam_rel, PLAN, "lam_rel", "lam"), (a.sigma, PLAN, "sigma", "sig"),
                            (a.rate_w, COST, "rate", "rw"), (a.acc_w, COST, "acc", "acc"), (a.rev_w, COST, "rev", "rev"),
@@ -1086,7 +1112,7 @@ def cmd_run(a):
                         "meas": dict(MEAS),
                         "pose_filter": HG.POSE_FILTER,
                         "space": "hom" if a.method in HS_METHODS else "residual" if a.method in RES_METHODS else "joint",
-                        "preview_s": a.preview, "hom_param": hp, "prm": prm})
+                        "preview_s": a.preview, "hom_param": hp, "prm": prm, "res_force": RES_FORCE})
             if ILQ is not None:
                 row["ilqr"] = dict(ILQ.IL)
                 row["ilqr_stats"] = R.stats(i)
@@ -1347,6 +1373,9 @@ def main():
     p.add_argument("--pose-tau", type=float, default=None, help="method hom: the pose filter's time constant, s (inf: "
                    "open loop from the task's start; hom_gpu.POSE_FILTER)")
     p.add_argument("--meas-every", type=int, default=1, help="method hom: a tracker frame every this many periods")
+    p.add_argument("--res-force", type=float, default=0.0,
+                   help="residual planners: a tenth planned number per knot sets HOM's commanded forces to their "
+                        "value times 1 + K u (clipped 0.5-1.5); K, 0 off (RES_FORCE)")
     p.add_argument("--plan-delay", type=int, default=0, help="planners: plan from the plant's state this many periods "
                    "earlier (4: the tag tracker's 40 ms)")
     p.add_argument("--plan-noise", action="store_true", help="planners: the tag tracker's noise on the object's pose "
