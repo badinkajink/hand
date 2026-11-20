@@ -120,6 +120,29 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 11:2x, hand-4a (the lab's request): `sim/20261120-trials_vs_prediction.py` keeps trials with a start tilted more than 5 deg
   out of the plan means and rho and lists them under "tilted_starts"; today's corvus records and series rows were copied to
   `docs/experiments/20261115-hom_bench_trials/runs_corvus/`.
+- 11:4x-11:5x, owner: "id like to prioritize (within reason) the 60fps tracking"; videos to the workstation; reset
+  automation on the UR5 ("we really want to maximize real world throughput"); "yea, im down to recompute feasible layouts";
+  tip_contacts.OWN_POSE stays. Relayed to the lab with the owner's words. Owner, leaving: "smooth control enables more
+  predictable control, im highly confident about this."
+- 11:4x, hand-4a: the feasible landscape at 1.0 N (spin weight 0.25) runs (`sim/20261120-feasible_grasps.py --prm ...
+  --tag _f1`, rows `logs/20261119-twist_layout_ranking/rows_FG_f1.jsonl`, 10 workers from 12:00). The UHAS trainings ran
+  out of GPU memory at 2048 worlds on the calibrated plant (11:07); they run at 1024 worlds from 11:48 (`lane_gpu3.sh`).
+  The full annealed-sampling runs are cut.
+- 11:5x, lab: 60 fps (960 x 540, 5 ms exposure) since 11:5x, HOM unchanged; every row carries "camera". Static check:
+  30 fps sd 0.020-0.026 mm and 0.036 deg, frame age 39 ms; 60 fps sd 0.040-0.057 mm and 0.089 deg, frame age 22 ms.
+- 12:1x, hand-4a: the jitter (`docs/experiments/20261115-hom_bench_trials/analysis/20261120-command_jitter_replay.py`,
+  `20261120-command_jitter_sim.py`). The hand's joint readings flicker by 1-2 encoder steps: 0.4-0.5 deg RMS about a
+  7-period mean, reversing in 62-70 % of periods, before and after the budget. HOM's own targets on the same readings
+  (the server records replayed offline without the budget) reversed in 7 % of periods on 11-16 and 17 % under 0.56 N m.
+  The budget sets every target as the measured joint plus an offset, so the flicker passes into the targets: 32 % of
+  periods reversed at 0.84 N m and 45 % at 0.56 N m (39 records; the replay reproduces the recorded rate within 1 point).
+  The simulation's joint readings are exact: the same plans reverse in 0.5-2.3 % of periods with the budget, and in
+  0.4-5.3 % with the encoder step or one period of delay added. On the bad layouts HOM's own targets also swing (2-6 deg
+  RMS about the 7-period mean on (115, 160) g8 and its neighbours).
+- 12:1x, hand-4a: smoothing options in the HOM server, off by default (`hom_bench.HomBench`, `hom_server --budget-joint-tau`
+  and `--target-tau`; written atomically, the default path replays the records unchanged). Replayed open loop on the
+  39 records: the budget's offsets from joints low-passed at 0.1 s cut the reversals from 45 % to 21 % (median); with HOM's
+  targets low-passed at 0.04 s as well, to 11 %.
 
 ## Waiting on owner
 

@@ -115,17 +115,46 @@ def torque_budget(out: dict, joints: dict, budget_nm: float, kp: float = 0.55, d
     return scale
 
 
+def _ema(prev: dict | None, new: dict, a: float) -> dict:
+    """First-order low pass of {finger: {servo: deg}}: prev + a (new - prev), a = dt / tau at most 1. A finite new value
+    without a finite previous one starts the filter; a non-finite new value keeps the previous one."""
+    a = min(1.0, float(a))
+    out = {}
+    for f, js in new.items():
+        out[f] = {}
+        for sv, v in js.items():
+            v = float(v)
+            p = None if prev is None else (prev.get(f) or {}).get(sv)
+            if p is None or not math.isfinite(p):
+                out[f][sv] = v
+            elif not math.isfinite(v):
+                out[f][sv] = p
+            else:
+                out[f][sv] = p + a * (v - p)
+    return out
+
+
 class HomBench:
     """HomController, its Mirror and the task schedule of hom_tasks.py for one task and object on one layout."""
 
     def __init__(self, task: str, d_mm: float, setup: dict, m_pt, q_open: dict, dt: float = DT_BENCH,
                  prm: H.HomParams | None = None, p_pads: Path | None = None, task_prm: dict | None = None,
-                 hold_s: float = 0.0, torque_budget: float | None = None, pose_tau: float | None = None):
+                 hold_s: float = 0.0, torque_budget: float | None = None, pose_tau: float | None = None,
+                 budget_joint_tau: float | None = None, target_tau: float | None = None):
         _paths()
         import hom_tasks as T
         self.T = T
         self.torque_budget = torque_budget                       # N m summed over the nine servos (torque_budget)
         self.pose_tau = pose_tau                                 # s: the tracked pose's filter (_pose_filter); None off
+        # Smoothing (hand-4a, 2026-11-20; owner: "smooth control enables more predictable control"). The hand's joint
+        # readings flicker by 1-2 encoder steps (0.4-0.5 deg RMS about a 7-period mean, reversing in 62-70 % of
+        # periods), and the budget, which sets every target as the measured joint plus an offset, passed that flicker
+        # into the targets: they reversed in 45 % of periods under 0.56 N m against 7 % before the budget
+        # (docs/experiments/20261115-hom_bench_trials/analysis/20261120-command_jitter_replay.py). budget_joint_tau
+        # takes the budget's offsets from the joints low-passed with this time constant; target_tau low-passes HOM's
+        # targets before the budget. Both s; None off.
+        self.budget_joint_tau = budget_joint_tau
+        self.target_tau = target_tau
         self.task, self.d_mm, self.setup, self.p_pads = task, float(d_mm), setup, p_pads
         self.task_prm = {**T.PRM, **(task_prm or {})}          # the schedule's forces, weights and command
         self.hold_s = float(hold_s)                             # the plant holds the object this long (the seat)
@@ -207,6 +236,7 @@ class HomBench:
         self.ctl = H.HomController(self.mirror, self.prm, healthy=self.q_open)
         self.sch = self.T.Schedule(self.task, self.setup, self.task_prm)
         self.pf, self.w_pred = None, np.zeros(3)
+        self.jf, self.tf = None, None                            # the low-passed joints and targets (smoothing)
 
     def _pose_filter(self, t: float, p_mm, q, age_s, frame):
         """The tracked pose after hom_gpu's pose filter (POSE_FILTER, tau = self.pose_tau; owner, 2026-11-17: "results
@@ -279,8 +309,15 @@ class HomBench:
         res = {"phase": info["phase"], "clipped": clipped, "q_cmd": q_cmd, "hom": ci, "schedule": info}
         if filt is not None:
             res["pose_filtered"] = [np.round(filt[0], 3).tolist(), np.round(filt[1], 6).tolist()]
+        if self.target_tau:                                      # HOM's targets low-passed before the budget
+            self.tf = _ema(self.tf, out, self.prm.dt / self.target_tau)
+            out = {f: dict(js) for f, js in self.tf.items()}
         if self.torque_budget is not None:
-            res["budget_scale"] = torque_budget(out, joints, self.torque_budget)
+            anchor = joints
+            if self.budget_joint_tau:                            # the budget's offsets from the low-passed joints
+                self.jf = _ema(self.jf, joints, self.prm.dt / self.budget_joint_tau)
+                anchor = self.jf
+            res["budget_scale"] = torque_budget(out, anchor, self.torque_budget)
         return out, res
 
     @property

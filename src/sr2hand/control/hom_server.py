@@ -82,7 +82,8 @@ def _bench(a):
     configure(a.plant, a.hand)
     from dataclasses import replace
     from . import hom_bench as HB
-    kw = {"torque_budget": getattr(a, "torque_budget", None), "pose_tau": getattr(a, "pose_tau", None)}
+    kw = {"torque_budget": getattr(a, "torque_budget", None), "pose_tau": getattr(a, "pose_tau", None),
+          "budget_joint_tau": getattr(a, "budget_joint_tau", None), "target_tau": getattr(a, "target_tau", None)}
     b = (HB.HomBench.from_plan(a.plan, a.task, a.d, a.dt, **kw) if a.plan
          else HB.HomBench.from_design(a.task, a.d, dt=a.dt, **kw))
     if getattr(a, "tips", "off") == "on":                 # the tip variant's floor (hom_tasks.VARIANTS["tip"])
@@ -163,7 +164,7 @@ class Server:
                 "design": b.setup.get("design"), "mounts_mm": {f: (1e3 * np.asarray(b.setup["mounts"][f][:2])).tolist()
                                                                for f in self.HB.FINGERS},
                 "q_open_rad": b.q_open, "palm_m": b.palm, "prm": b.task_prm, "hold_s": b.hold_s,
-                "torque_budget": b.torque_budget,
+                "torque_budget": b.torque_budget, "budget_joint_tau": b.budget_joint_tau, "target_tau": b.target_tau,
                 "object_mass_kg": None if self.a.object_mass_g is None else self.a.object_mass_g / 1000.0,
                 "git": _git(), "host": socket.gethostname(),
                 "started": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "t0_ms": self.t0_ms,
@@ -494,6 +495,13 @@ def main() -> int:
         p.add_argument("--torque-budget", type=float, default=None,
                        help="N m: the servos' estimated torques summed over the nine kept at or under this "
                             "(hom_bench.torque_budget; 0.84 after the blind twists of 2026-11-16)")
+        p.add_argument("--budget-joint-tau", type=float, default=None,
+                       help="s: the torque budget's offsets taken from the joints low-passed with this time constant "
+                            "(hom_bench.HomBench; off by default; the joint readings' flicker passed into every target "
+                            "through the budget, 2026-11-20)")
+        p.add_argument("--target-tau", type=float, default=None,
+                       help="s: HOM's targets low-passed with this time constant before the budget (hom_bench.HomBench; "
+                            "off by default)")
         p.add_argument("--filter-step-s", type=float, default=None,
                        help="s: the complementary filter (Eqs. 4-6) in sub-steps of at most this inside each period; "
                             "0.002 is the paper's 500 Hz (FilterParams.step_s); off by default: one step per period")
