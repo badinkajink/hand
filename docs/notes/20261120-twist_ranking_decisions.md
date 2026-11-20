@@ -24,12 +24,17 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 23:3x, owner: a protocol for deployment. Written as `.claude/skills/hand-deploy/SKILL.md` and
   `scripts/hom/hand_deploy.py`.
 - 23:5x, owner: judge layouts by their feasible trajectories; do not filter them for collisions of one trajectory. Each
-  layout's best collision-free grasp is being searched (`sim/20261120-feasible_grasps.py`). The touching layouts of the
-  morning list get those grasps where one exists.
+  layout's best collision-free grasp is searched (`sim/20261120-feasible_grasps.py`). Result for the 19 touching or
+  dropping layouts of the morning list: none has a grasp (of 16) whose simulated twist keeps the fingers 10 mm apart.
+  The best reaches -0.0 to 9.2 mm, and the hand runs 8-13 mm closer. Under HOM they have no feasible twist; their
+  feasible prediction is 0. The search over all 404 layouts runs overnight (lane6, done near 02:40).
 
 ## Waiting on owner
 
-- Whether to swap the touching layouts' plans (block 2, A2) for their feasible grasps before 11:00 (proposed: yes).
+- Whether to run the 19 layouts that have no feasible twist under HOM (block 2, A2, A3: 42 trials, about 3 h from about
+  11:00). Their trials test the prediction "infeasible": the hand should fail them by stalls or contact between links.
+  Proposed: run block 2 (the simulation's top layouts) in full and A2 at one trial each, or cut both if the day is short.
+- A collision-aware HOM (a clearance term in its least squares) could give these layouts a feasible twist.
 - A controller rematch on the calibrated plant, with each method's force knob tuned: HOM, annealed and predictive
   sampling, and UHAS with a cost on target rate and the torque budget. This would run after block A's results.
 - tip_contacts.OWN_POSE: switch to the (70, 110) GP of 11-19 or not. The lab found no layout dependence (5.9-8.0 uT).
