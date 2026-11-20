@@ -49,6 +49,10 @@ def sections(N, F, P, link, L):
     pct = lambda v: f"{min(v):.0f}–{max(v):.0f}"                  # noqa: E731
     ratio = lambda k, w: gn[k][FC_][w] / gn[k][FACE][w]           # noqa: E731
     E_fit = [ft[k]["E_fit_MPa"] for k, _ in TIPS]
+    import json as _json
+    from fingertip_calibration_text import IDENT, at_head
+    DW = _json.loads(at_head(IDENT / "data/s3/20261119-hexe_dead_weight.json"))   # the HEX-E against a dead weight, 11-19
+    assert [round(x, 2) for x in DW["ratio_range"]] == [0.56, 0.6] and DW["mass_g"] == 200, "the dead weight of 11-19"
     give = [v["slope_um_per_N"] / v["fe_give_um_per_N"] for t in vc["depth"].values() for v in t.values()]
     ks = [f"{rs[k]['at_press_board']['k']:.2f}" for k in V3]
     k_at = f"{ks[0]} on all three tips" if len(set(ks)) == 1 else ", ".join(ks[:2]) + f" and {ks[2]}"
@@ -600,7 +604,11 @@ def sections(N, F, P, link, L):
     # ------------------------------------------------------------------------------------------------ limitations
     body = (
         "<p>The FE gives Siraya 85A the 12 MPa of a NinjaFlex data sheet; fitted to the N52 tips' presses, the modulus "
-        f"is {min(E_fit):.1f}–{max(E_fit):.1f} MPa. It is linear and frictionless at the indenter. It fixes the pad's cut face, so a pad that shifts in its "
+        f"is {min(E_fit):.1f}–{max(E_fit):.1f} MPa. The presses' forces are in the HEX-E's newtons. On 19 November the "
+        "HEX-E read a 200 g dead weight at 0.56–0.60 of its weight (" + link(str(L["place"]) + "#hexe", "the page on the "
+        "boards by contact place") + ", Section 7). Whether it read as low during the presses is open. If it did, "
+        "the linear model's modulus is 1.7–1.8 times the fitted one. "
+        "It is linear and frictionless at the indenter. It fixes the pad's cut face, so a pad that shifts in its "
         "seat is outside the model; the owner's first presses by hand shifted it by 17–23 µm. The contact patch under a "
         "small sphere is resolved by about 15 face nodes at 1 N. The field model assumes the design's magnet places. The "
         "rest fit trades their strength against their depth, and with four alternating magnets against the board's "

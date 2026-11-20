@@ -37,6 +37,7 @@ L = dict(
     steel=EXP / "20261023-foreign_field_rejection/20261023-foreign_field_rejection.html",
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
     cal=EXP / "20261026-fingertip_calibration/20261026-fingertip_calibration_on_the_ur5.html",
+    place=EXP / "20261117-sr2_system_identification/20261119-fingertip_board_force_by_contact_place.html",
     xt=EXP / "20261027-fingertip_crosstalk/20261027-magnetic_crosstalk_between_neighbouring_fingertips.html",
     overview=ROOT / "docs/overviews/printed_fingertips.html",
     contact=ROOT / "docs/overviews/contact_model.html",
