@@ -101,14 +101,17 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 10:4x, hand-4a: the planners on the GPU plant with the exact pose (45 layouts, pads, seeds 0-2 / 10-12; the planners
   roll out the plant itself at a 2 ms step from its exact state). Predictive sampling (32 samples) 0.641 / 0.637 at 2.5 N (7 and 6 of 135 dropped), 0.636 /
   0.637 at 1.0 N. Annealed sampling (16 samples, 2 iterations) 0.582 / 0.578 at 2.5 N and 0.610 / 0.583 at 1.0 N, with 9-15
-  drops. Residual annealed sampling on HOM 0.776 / 0.768 on HOM at 2.5 N and 0.841 / 0.835 on HOM at 1.0 N (81 and 79 of
-  135 runs so far), no drops. Tuned HOM alone: 0.681 / 0.682 at 0.75 N. The force cost (weight 0.1, target 1 N) changed the
+  drops. Residual annealed sampling on HOM 0.776 / 0.768 on HOM at 2.5 N (no drops) and 0.829 / 0.832 on HOM at 1.0 N (2 and
+  1 of 135 dropped; 0.841 / 0.835 over the first 81 and 79 runs). Tuned HOM alone: 0.681 / 0.682 at 0.75 N. The force cost (weight 0.1, target 1 N) changed the
   samplers by 0.03 or less (`data/20261120-rematch_summary.json`).
 - 10:50, hand-4a: the GPU queue reordered (`logs/20261120-controller_rematch/lane_gpu2.sh`). After residual annealing on
   HOM at 1.0 N: predictive and annealed sampling with the tracker's 40 ms delay (about 15 min), then the two UHAS trainings
   with their scoring (lane_uhas, until about 15:45), then the four annealing runs at 64 samples and 4 iterations (about
   1 h each), the first to cut. Residual annealing does not take the planner delay yet (`--plan-delay` is implemented for the
   joint-space planners only).
+- 10:59, lab: the series restarted from A1_p35_x105y100g15_t1 in the same order. The owner had reset the arm; a letgo,
+  a clear and a lateral move over the sphere put the hand back in position. All three trials on (90, 135) g3 moved the
+  sphere in the grasp: rise 8-10 mm, drift 10-22 mm. t3's row is in the rows file with a "note" field (runbook ce38b11c5).
 
 ## Waiting on owner
 
