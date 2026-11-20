@@ -60,6 +60,17 @@ trial. Three sets, run in this order: the 11 plans with HOM's default forces, th
   stage E plans of the non-touching layouts. Block 4: the other eleven CEM plans that keep the fingers apart on the CAD
   spheres (the six at the touching layouts left out), shuffled. 105 trials on ports 47102-47136; at about 4.5 min a
   trial the list runs past midday, and blocks 3 and 4 can be cut.
+- **The morning's order, rebuilt 00:2x on 11-20 for the denser spread** (owner, relayed 23:2x: "we should shoot for higher
+  density of evaluation (which is just more time, but we have to accept it) to see if we can first ascertain a rough
+  correspondence, including simulation-predicted bad morphologies"; the twist ranking's 361206fa4). Block A first: A1,
+  block 1's 11 layouts (3 trials) shuffled with 10 new layouts over the predicted range 0.25-0.50 (2 trials, all at
+  least 10 mm apart on the CAD spheres); A2, 12 predicted-bad layouts (0.00-0.24), most touching on the CAD spheres
+  (-5.3 to 8.2 mm), 2 trials each; A3, 3 layouts that dropped the sphere in simulation, 2 trials each. Then the anchor's
+  stage E and CEM plans, block 2, block 3, block 4. 155 trials on 60 plans, ports 47102-47161; about 12 h at 4.5 min a
+  trial, so cut from the end. A2 is expected to stall fingers against each other and may trip a servo's overload guard:
+  the putdown then refuses (torque off) and the series stops with the object in the hand, for a person to recover
+  (`hom_setup.py torque-on --go` with every MCP under 60 deg, then `putdown`). After a drop the series goes on when the
+  sphere lands upright or lies near the table's centre (the pick-up), and stops when it rolls away.
 
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 
