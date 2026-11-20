@@ -403,7 +403,9 @@ def main():
                                  "--video-dir", a.video_dir], 300)
                 # released at 19.0 deg the sphere settled at 5.2 deg (13:50); at 21.6 deg it toppled (13:41): go on
                 # when it stands within --upright-deg after the release
-                t = re.findall(r"released: .*?tilt ([\d.]+) deg", out2)
+                # the block's tilt from vertical after letgo (not its tilt in P, which a tilted hand inflates)
+                t = (re.findall(r"settled: the block's axis ([\d.]+) deg from vertical", out2)
+                     or re.findall(r"released: .*?tilt ([\d.]+) deg", out2))
                 row["putdown"] = f"tilted; letgo --tilt-ok; settled at {t[-1] if t else '?'} deg"
                 with open(a.out, "a") as f:
                     f.write(json.dumps(row) + "\n")

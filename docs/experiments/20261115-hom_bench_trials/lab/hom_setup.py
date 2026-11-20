@@ -1458,6 +1458,10 @@ def letgo_sequence(a, plan, st, arm, meas, h):
             raise SystemExit(f"the lift stopped: {why}; look before anything else")
     p_m, q_m, info = meas.pose(a.measure_s)
     report("let go", p_m, q_m, p_n, q_n, shape, info)
+    # the object's own tilt in the world (2026-11-20 12:0x: the tilt in P above read 34 deg off a hand still tilted
+    # 35 deg, and the series took an upright sphere, 1.7 deg off vertical, for a toppled one)
+    tilt_w = math.degrees(math.acos(float(np.clip(quat_to_mat(np.asarray(info["q_B"], float))[2, 1], -1.0, 1.0))))
+    print(f"   settled: the block's axis {tilt_w:.1f} deg from vertical", flush=True)
     note({"cmd": "letgo", "step": "done", "p_PO": p_m.tolist(), "p_B": info["p_B"]})
     print("LET GO: the fingers straight, the hand over the object at the grasp's height + "
           f"{a.clear:g} mm", flush=True)
