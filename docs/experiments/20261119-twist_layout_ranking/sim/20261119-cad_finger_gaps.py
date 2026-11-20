@@ -54,7 +54,7 @@ def deg_dict(sim_rad):
 def cem_setup(entry):
     """The hom_tasks setup of a CEM plan's grasp: meta.hom.v on the layout, as sim/20261119-twist_cem_refine.py builds
     it (setup_from_v); None for the other plans."""
-    if "_cem_" not in entry["plan"]:
+    if "_cem_" not in entry.get("plan", ""):
         return None
     from sr2hand.robot import sr2_layouts as SL
     sp = importlib.util.spec_from_file_location("twist_cem_refine_gaps", HERE / "20261119-twist_cem_refine.py")

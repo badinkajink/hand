@@ -1,6 +1,6 @@
 {
  "what": "Each plant's prediction for the proposed layouts' default-force plans (hand-4a, 2026-11-19 21:2x), so that each plant can be scored against the trials on the hand: per proposed layout and its grasp k (data/20261119-trial_proposal.json), the mean tracking over seeds 0-2 under point contact and the pads (stages A-B) and under stage D's four plants (stage D where it ran the grasp, stage P of sim/20261119-twist_ranking_search.py for the rest).",
- "written": "2026-11-19 22:00",
+ "written": "2026-11-19 23:27",
  "plants": {
   "point": "point contact, 7.5 V, friction 1.0",
   "pads": "pads, 7.5 V, friction 1.0",
@@ -260,6 +260,456 @@
     "point_mu0.6": 0.278,
     "pads_mu0.6": 0.2357,
     "point_5v": 0.22
+   }
+  },
+  {
+   "call": 312,
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x100_y110_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.503,
+    "pads": 0.49,
+    "pads_stiff": 0.1287,
+    "point_mu0.6": 0.51,
+    "pads_mu0.6": 0.4613,
+    "point_5v": 0.389
+   }
+  },
+  {
+   "call": 295,
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x95_y150_twist_gr_g11_plan.json",
+   "predicted": {
+    "point": 0.516,
+    "pads": 0.447,
+    "pads_stiff": 0.2607,
+    "point_mu0.6": 0.4987,
+    "pads_mu0.6": 0.4107,
+    "point_5v": 0.3397
+   }
+  },
+  {
+   "call": 80,
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "k": 10,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x55_y75_twist_gr_g10_plan.json",
+   "predicted": {
+    "point": 0.426,
+    "pads": 0.4103,
+    "pads_stiff": 0.382,
+    "point_mu0.6": 0.4297,
+    "pads_mu0.6": 0.4117,
+    "point_5v": 0.4183
+   }
+  },
+  {
+   "call": 83,
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x55_y90_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.4073,
+    "pads": 0.4023,
+    "pads_stiff": 0.3343,
+    "point_mu0.6": 0.406,
+    "pads_mu0.6": 0.4067,
+    "point_5v": 0.3993
+   }
+  },
+  {
+   "call": 335,
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "predicted": {
+    "point": 0.3487,
+    "pads": 0.3493,
+    "pads_stiff": 0.3667,
+    "point_mu0.6": 0.3497,
+    "pads_mu0.6": 0.3487,
+    "point_5v": 0.35
+   }
+  },
+  {
+   "call": 306,
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x100_y80_twist_gr_g8_plan.json",
+   "predicted": {
+    "point": 0.334,
+    "pads": 0.3053,
+    "pads_stiff": 0.201,
+    "point_mu0.6": 0.2917,
+    "pads_mu0.6": 0.2547,
+    "point_5v": 0.31
+   }
+  },
+  {
+   "call": 392,
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x115_y135_twist_gr_g8_plan.json",
+   "predicted": {
+    "point": 0.3093,
+    "pads": 0.3023,
+    "pads_stiff": 0.2837,
+    "point_mu0.6": 0.2437,
+    "pads_mu0.6": 0.252,
+    "point_5v": 0.361
+   }
+  },
+  {
+   "call": 247,
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x85_y160_twist_gr_g1_plan.json",
+   "predicted": {
+    "point": 0.288,
+    "pads": 0.2873,
+    "pads_stiff": 0.306,
+    "point_mu0.6": 0.217,
+    "pads_mu0.6": 0.177,
+    "point_5v": 0.33
+   }
+  },
+  {
+   "call": 221,
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x80_y155_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.293,
+    "pads": 0.272,
+    "pads_stiff": 0.1417,
+    "point_mu0.6": 0.2653,
+    "pads_mu0.6": 0.28,
+    "point_5v": 0.2713
+   }
+  },
+  {
+   "call": 249,
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "k": 2,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x85_y170_twist_gr_g2_plan.json",
+   "predicted": {
+    "point": 0.2417,
+    "pads": 0.2537,
+    "pads_stiff": 0.2053,
+    "point_mu0.6": 0.2117,
+    "pads_mu0.6": 0.0863,
+    "point_5v": 0.199
+   }
+  },
+  {
+   "call": 459,
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x130_y95_twist_gr_g14_plan.json",
+   "predicted": {
+    "point": 0.254,
+    "pads": 0.2177,
+    "pads_stiff": 0.24,
+    "point_mu0.6": 0.2647,
+    "pads_mu0.6": 0.218,
+    "point_5v": 0.2043
+   }
+  },
+  {
+   "call": 586,
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x155_y105_twist_gr_g7_plan.json",
+   "predicted": {
+    "point": 0.1733,
+    "pads": 0.2403,
+    "pads_stiff": 0.2823,
+    "point_mu0.6": 0.1933,
+    "pads_mu0.6": 0.2543,
+    "point_5v": 0.2423
+   }
+  },
+  {
+   "call": 553,
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x150_y65_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.1927,
+    "pads": 0.1627,
+    "pads_stiff": 0.139,
+    "point_mu0.6": 0.2313,
+    "pads_mu0.6": 0.3057,
+    "point_5v": 0.0117
+   }
+  },
+  {
+   "call": 144,
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x65_y145_twist_gr_g15_plan.json",
+   "predicted": {
+    "point": 0.2237,
+    "pads": 0.1027,
+    "pads_stiff": 0.2083,
+    "point_mu0.6": 0.2203,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.257
+   }
+  },
+  {
+   "call": 91,
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "k": 12,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x55_y130_twist_gr_g12_plan.json",
+   "predicted": {
+    "point": 0.142,
+    "pads": 0.1393,
+    "pads_stiff": 0.3193,
+    "point_mu0.6": 0.0,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.191
+   }
+  },
+  {
+   "call": 171,
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x70_y155_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.144,
+    "pads": 0.1273,
+    "pads_stiff": 0.0887,
+    "point_mu0.6": 0.0,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.1043
+   }
+  },
+  {
+   "call": 607,
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x160_y85_twist_gr_g1_plan.json",
+   "predicted": {
+    "point": 0.122,
+    "pads": 0.1107,
+    "pads_stiff": 0.228,
+    "point_mu0.6": 0.0673,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.25
+   }
+  },
+  {
+   "call": 121,
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x60_y155_twist_gr_g7_plan.json",
+   "predicted": {
+    "point": 0.0967,
+    "pads": 0.0973,
+    "pads_stiff": 0.0153,
+    "point_mu0.6": 0.0477,
+    "pads_mu0.6": 0.0763,
+    "point_5v": 0.012
+   }
+  },
+  {
+   "call": 170,
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x70_y150_twist_gr_g8_plan.json",
+   "predicted": {
+    "point": 0.086,
+    "pads": 0.0887,
+    "pads_stiff": 0.0097,
+    "point_mu0.6": 0.0203,
+    "pads_mu0.6": 0.0263,
+    "point_5v": 0.056
+   }
+  },
+  {
+   "call": 146,
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x65_y155_twist_gr_g1_plan.json",
+   "predicted": {
+    "point": 0.0877,
+    "pads": 0.0783,
+    "pads_stiff": 0.2003,
+    "point_mu0.6": 0.0887,
+    "pads_mu0.6": 0.0247,
+    "point_5v": 0.232
+   }
+  },
+  {
+   "call": 96,
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x55_y155_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.0427,
+    "pads": 0.0403,
+    "pads_stiff": 0.037,
+    "point_mu0.6": 0.0,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.0
+   }
+  },
+  {
+   "call": 577,
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x155_y60_twist_gr_g0_plan.json",
+   "predicted": {
+    "point": 0.0,
+    "pads": 0.0,
+    "pads_stiff": 0.1467,
+    "point_mu0.6": 0.0763,
+    "pads_mu0.6": 0.0,
+    "point_5v": 0.005
+   }
+  },
+  {
+   "call": 356,
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x110_y80_twist_gr_g1_plan.json",
+   "predicted": {
+    "point": 0.5787,
+    "pads": 0.5803,
+    "pads_stiff": 0.4223,
+    "point_mu0.6": 0.5677,
+    "pads_mu0.6": 0.241,
+    "point_5v": 0.303
+   }
+  },
+  {
+   "call": 490,
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x135_y125_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.4243,
+    "pads": 0.3707,
+    "pads_stiff": 0.3983,
+    "point_mu0.6": 0.4943,
+    "pads_mu0.6": 0.525,
+    "point_5v": 0.4857
+   }
+  },
+  {
+   "call": 93,
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "plan": "20261119-rank_x55_y140_twist_gr_g11_plan.json",
+   "predicted": {
+    "point": 0.021,
+    "pads": 0.0553,
+    "pads_stiff": 0.0867,
+    "point_mu0.6": 0.0417,
+    "pads_mu0.6": 0.018,
+    "point_5v": 0.0287
    }
   },
   {

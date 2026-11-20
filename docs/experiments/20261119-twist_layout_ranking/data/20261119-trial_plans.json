@@ -2980,9 +2980,1459 @@
    },
    "cad_least_mm": 15.4,
    "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x100_y110_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 312,
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.4965,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.503,
+     "track_seeds101112": null,
+     "twist_end_deg": 59.7,
+     "rise_max_mm": 15.0,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.49,
+     "track_seeds101112": null,
+     "twist_end_deg": 55.9,
+     "rise_max_mm": 14.62,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -13.69,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -43.8188,
+     2.4004
+    ],
+    "index": [
+     43.8188,
+     51.6003
+    ],
+    "middle": [
+     43.8187,
+     -51.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 16.0,
+   "cad_touch": false,
+   "rank_among_fit": 94,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x95_y150_twist_gr_g11_plan.json",
+   "role": "ranked",
+   "call": 295,
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "score": 0.4815,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.516,
+     "track_seeds101112": null,
+     "twist_end_deg": 60.3,
+     "rise_max_mm": 17.56,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.447,
+     "track_seeds101112": null,
+     "twist_end_deg": 45.4,
+     "rise_max_mm": 15.13,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -41.3188,
+     2.4004
+    ],
+    "index": [
+     41.3188,
+     71.6003
+    ],
+    "middle": [
+     41.3187,
+     -71.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 19.9,
+   "cad_touch": false,
+   "rank_among_fit": 123,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x55_y75_twist_gr_g10_plan.json",
+   "role": "ranked",
+   "call": 80,
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "k": 10,
+   "rank_among_deployable": null,
+   "score": 0.4182,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.426,
+     "track_seeds101112": null,
+     "twist_end_deg": 42.9,
+     "rise_max_mm": 3.82,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.41,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.3,
+     "rise_max_mm": 4.08,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -13.42,
+     -11.0
+    ],
+    "middle": [
+     -10.92,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -21.318800000000003,
+     2.4004
+    ],
+    "index": [
+     21.318800000000003,
+     34.1003
+    ],
+    "middle": [
+     21.3187,
+     -34.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 15.6,
+   "cad_touch": false,
+   "rank_among_fit": 219,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x55_y90_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 83,
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.4048,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.407,
+     "track_seeds101112": null,
+     "twist_end_deg": 41.6,
+     "rise_max_mm": 4.96,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.402,
+     "track_seeds101112": null,
+     "twist_end_deg": 41.8,
+     "rise_max_mm": 5.24,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -11.99,
+     -11.0
+    ],
+    "middle": [
+     -11.99,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -21.318800000000003,
+     2.4004
+    ],
+    "index": [
+     21.318800000000003,
+     41.6003
+    ],
+    "middle": [
+     21.3187,
+     -41.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 18.7,
+   "cad_touch": false,
+   "rank_among_fit": 245,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y100_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 335,
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "score": 0.349,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.349,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.9,
+     "rise_max_mm": 6.28,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.349,
+     "track_seeds101112": null,
+     "twist_end_deg": 45.2,
+     "rise_max_mm": 7.38,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -13.96,
+     -11.0
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     46.6003
+    ],
+    "middle": [
+     46.3187,
+     -46.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 12.5,
+   "cad_touch": false,
+   "rank_among_fit": 310,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x100_y80_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 306,
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "score": 0.3197,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.334,
+     "track_seeds101112": null,
+     "twist_end_deg": 34.8,
+     "rise_max_mm": 15.97,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.305,
+     "track_seeds101112": null,
+     "twist_end_deg": 34.3,
+     "rise_max_mm": 15.77,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -43.8188,
+     2.4004
+    ],
+    "index": [
+     43.8188,
+     36.6003
+    ],
+    "middle": [
+     43.8187,
+     -36.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 10.0,
+   "cad_touch": false,
+   "rank_among_fit": 336,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 392,
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "score": 0.3058,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.309,
+     "track_seeds101112": null,
+     "twist_end_deg": 42.5,
+     "rise_max_mm": 7.97,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.302,
+     "track_seeds101112": null,
+     "twist_end_deg": 39.4,
+     "rise_max_mm": 7.3,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     64.1003
+    ],
+    "middle": [
+     51.3187,
+     -64.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 10.3,
+   "cad_touch": false,
+   "rank_among_fit": 345,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y160_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 247,
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "score": 0.2877,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.288,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.6,
+     "rise_max_mm": 10.61,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.287,
+     "track_seeds101112": null,
+     "twist_end_deg": 47.5,
+     "rise_max_mm": 10.3,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     76.6003
+    ],
+    "middle": [
+     36.3187,
+     -76.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 13.1,
+   "cad_touch": false,
+   "rank_among_fit": 350,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x80_y155_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 221,
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.2825,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.293,
+     "track_seeds101112": null,
+     "twist_end_deg": 34.1,
+     "rise_max_mm": 12.72,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.272,
+     "track_seeds101112": null,
+     "twist_end_deg": 31.8,
+     "rise_max_mm": 12.08,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -33.8188,
+     2.4004
+    ],
+    "index": [
+     33.8188,
+     74.1003
+    ],
+    "middle": [
+     33.8187,
+     -74.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 14.1,
+   "cad_touch": false,
+   "rank_among_fit": 352,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y170_twist_gr_g2_plan.json",
+   "role": "ranked",
+   "call": 249,
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "k": 2,
+   "rank_among_deployable": null,
+   "score": 0.2477,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.242,
+     "track_seeds101112": null,
+     "twist_end_deg": 30.4,
+     "rise_max_mm": 12.74,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.254,
+     "track_seeds101112": null,
+     "twist_end_deg": 27.9,
+     "rise_max_mm": 13.7,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     81.6003
+    ],
+    "middle": [
+     36.3187,
+     -81.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 11.9,
+   "cad_touch": false,
+   "rank_among_fit": 366,
+   "block": "A1"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x130_y95_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 459,
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "k": 14,
+   "rank_among_deployable": null,
+   "score": 0.2358,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.254,
+     "track_seeds101112": null,
+     "twist_end_deg": 38.6,
+     "rise_max_mm": 6.22,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.218,
+     "track_seeds101112": null,
+     "twist_end_deg": 34.8,
+     "rise_max_mm": 7.09,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -58.8188,
+     2.4004
+    ],
+    "index": [
+     58.8188,
+     44.1003
+    ],
+    "middle": [
+     58.8187,
+     -44.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 1.0,
+   "cad_touch": true,
+   "rank_among_fit": 370,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x155_y105_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 586,
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "score": 0.2068,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.173,
+     "track_seeds101112": null,
+     "twist_end_deg": 40.6,
+     "rise_max_mm": 26.85,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.24,
+     "track_seeds101112": null,
+     "twist_end_deg": 39.7,
+     "rise_max_mm": 28.92,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -71.31880000000001,
+     2.4004
+    ],
+    "index": [
+     71.31880000000001,
+     49.1003
+    ],
+    "middle": [
+     71.3187,
+     -49.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 0.4,
+   "cad_touch": true,
+   "rank_among_fit": 382,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x150_y65_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 553,
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.1777,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.193,
+     "track_seeds101112": null,
+     "twist_end_deg": 28.6,
+     "rise_max_mm": 20.36,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.163,
+     "track_seeds101112": null,
+     "twist_end_deg": 22.9,
+     "rise_max_mm": 26.71,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -68.81880000000001,
+     2.4004
+    ],
+    "index": [
+     68.81880000000001,
+     29.100299999999997
+    ],
+    "middle": [
+     68.8187,
+     -29.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -0.0,
+   "cad_touch": true,
+   "rank_among_fit": 385,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y145_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 144,
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "k": 15,
+   "rank_among_deployable": null,
+   "score": 0.1632,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.224,
+     "track_seeds101112": null,
+     "twist_end_deg": 22.4,
+     "rise_max_mm": 13.34,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.103,
+     "track_seeds101112": null,
+     "twist_end_deg": 12.2,
+     "rise_max_mm": 14.89,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     69.1003
+    ],
+    "middle": [
+     26.3187,
+     -69.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 8.2,
+   "cad_touch": false,
+   "rank_among_fit": 386,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x55_y130_twist_gr_g12_plan.json",
+   "role": "ranked",
+   "call": 91,
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "k": 12,
+   "rank_among_deployable": null,
+   "score": 0.1407,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.142,
+     "track_seeds101112": null,
+     "twist_end_deg": 29.1,
+     "rise_max_mm": 13.39,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.139,
+     "track_seeds101112": null,
+     "twist_end_deg": 36.0,
+     "rise_max_mm": 17.41,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -21.318800000000003,
+     2.4004
+    ],
+    "index": [
+     21.318800000000003,
+     61.6003
+    ],
+    "middle": [
+     21.3187,
+     -61.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -2.3,
+   "cad_touch": true,
+   "rank_among_fit": 388,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y155_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 171,
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.1357,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.144,
+     "track_seeds101112": null,
+     "twist_end_deg": 21.3,
+     "rise_max_mm": 14.26,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.127,
+     "track_seeds101112": null,
+     "twist_end_deg": 20.2,
+     "rise_max_mm": 13.97,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     74.1003
+    ],
+    "middle": [
+     28.8187,
+     -74.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 3.6,
+   "cad_touch": false,
+   "rank_among_fit": 390,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x160_y85_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 607,
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "score": 0.1163,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.122,
+     "track_seeds101112": null,
+     "twist_end_deg": 23.5,
+     "rise_max_mm": 21.71,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.111,
+     "track_seeds101112": null,
+     "twist_end_deg": 14.2,
+     "rise_max_mm": 25.58,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -73.81880000000001,
+     2.4004
+    ],
+    "index": [
+     73.81880000000001,
+     39.1003
+    ],
+    "middle": [
+     73.8187,
+     -39.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -0.5,
+   "cad_touch": true,
+   "rank_among_fit": 393,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y155_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 121,
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "k": 7,
+   "rank_among_deployable": null,
+   "score": 0.097,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.097,
+     "track_seeds101112": null,
+     "twist_end_deg": 11.0,
+     "rise_max_mm": 3.69,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.097,
+     "track_seeds101112": null,
+     "twist_end_deg": 9.3,
+     "rise_max_mm": 3.49,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -23.818800000000003,
+     2.4004
+    ],
+    "index": [
+     23.818800000000003,
+     74.1003
+    ],
+    "middle": [
+     23.8187,
+     -74.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 3.3,
+   "cad_touch": false,
+   "rank_among_fit": 394,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y150_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 170,
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "k": 8,
+   "rank_among_deployable": null,
+   "score": 0.0873,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.086,
+     "track_seeds101112": null,
+     "twist_end_deg": 16.4,
+     "rise_max_mm": 2.85,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.089,
+     "track_seeds101112": null,
+     "twist_end_deg": 13.8,
+     "rise_max_mm": 2.57,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     71.6003
+    ],
+    "middle": [
+     28.8187,
+     -71.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": 7.6,
+   "cad_touch": false,
+   "rank_among_fit": 395,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y155_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 146,
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "score": 0.083,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.088,
+     "track_seeds101112": null,
+     "twist_end_deg": 21.9,
+     "rise_max_mm": 9.55,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.078,
+     "track_seeds101112": null,
+     "twist_end_deg": 23.8,
+     "rise_max_mm": 11.83,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     74.1003
+    ],
+    "middle": [
+     26.3187,
+     -74.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -5.3,
+   "cad_touch": true,
+   "rank_among_fit": 396,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x55_y155_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 96,
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.0415,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.043,
+     "track_seeds101112": null,
+     "twist_end_deg": -6.4,
+     "rise_max_mm": 1.55,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.04,
+     "track_seeds101112": null,
+     "twist_end_deg": -9.5,
+     "rise_max_mm": 1.62,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -21.318800000000003,
+     2.4004
+    ],
+    "index": [
+     21.318800000000003,
+     74.1003
+    ],
+    "middle": [
+     21.3187,
+     -74.1002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -1.0,
+   "cad_touch": true,
+   "rank_among_fit": 400,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x155_y60_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 577,
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.0,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.0,
+     "track_seeds101112": null,
+     "twist_end_deg": -8.8,
+     "rise_max_mm": 25.7,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.0,
+     "track_seeds101112": null,
+     "twist_end_deg": -12.4,
+     "rise_max_mm": 31.01,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -71.31880000000001,
+     2.4004
+    ],
+    "index": [
+     71.31880000000001,
+     26.600299999999997
+    ],
+    "middle": [
+     71.3187,
+     -26.6002
+    ]
+   },
+   "group": "dense",
+   "cad_least_mm": -0.1,
+   "cad_touch": true,
+   "rank_among_fit": 404,
+   "block": "A2 bad end"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y80_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 356,
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "k": 1,
+   "rank_among_deployable": null,
+   "score": 0.5795,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.579,
+     "track_seeds101112": 0.374,
+     "twist_end_deg": 43.9,
+     "rise_max_mm": 1.72,
+     "runs": 6,
+     "held": 5
+    },
+    "pads": {
+     "track_seeds012": 0.58,
+     "track_seeds101112": 0.372,
+     "twist_end_deg": 43.6,
+     "rise_max_mm": 1.4,
+     "runs": 6,
+     "held": 5
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -11.98,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     36.6003
+    ],
+    "middle": [
+     48.8187,
+     -36.6002
+    ]
+   },
+   "group": "dropper",
+   "cad_least_mm": -0.0,
+   "cad_touch": true,
+   "rank_among_fit": 6,
+   "block": "A3 droppers"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x135_y125_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 490,
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "k": 5,
+   "rank_among_deployable": null,
+   "score": 0.3375,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.424,
+     "track_seeds101112": null,
+     "twist_end_deg": 59.8,
+     "rise_max_mm": 25.37,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.251,
+     "track_seeds101112": null,
+     "twist_end_deg": 71.4,
+     "rise_max_mm": 34.84,
+     "runs": 3,
+     "held": 2
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -61.3188,
+     2.4004
+    ],
+    "index": [
+     61.3188,
+     59.1003
+    ],
+    "middle": [
+     61.3187,
+     -59.1002
+    ]
+   },
+   "group": "dropper",
+   "cad_least_mm": -3.0,
+   "cad_touch": true,
+   "rank_among_fit": 319,
+   "block": "A3 droppers"
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x55_y140_twist_gr_g11_plan.json",
+   "role": "ranked",
+   "call": 93,
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "k": 11,
+   "rank_among_deployable": null,
+   "score": 0.0382,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.021,
+     "track_seeds101112": null,
+     "twist_end_deg": 49.1,
+     "rise_max_mm": 1.35,
+     "runs": 3,
+     "held": 1
+    },
+    "pads": {
+     "track_seeds012": 0.055,
+     "track_seeds101112": null,
+     "twist_end_deg": 9.3,
+     "rise_max_mm": 1.35,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -21.318800000000003,
+     2.4004
+    ],
+    "index": [
+     21.318800000000003,
+     66.6003
+    ],
+    "middle": [
+     21.3187,
+     -66.6002
+    ]
+   },
+   "group": "dropper",
+   "cad_least_mm": 8.5,
+   "cad_touch": false,
+   "rank_among_fit": 401,
+   "block": "A3 droppers"
   }
  ],
  "relabelled": "2026-11-19 21:1x: the prediction of each plan with stage E's forces set to those forces' scores (force_refine.best_seeds012, best_seeds101112, best_mu06), which the 21:06 list had under force_refine and gave the default forces' prediction as 'prediction'; no number changed",
  "cad_check": "2026-11-19 22:1x: cad_least_mm is the least finger-to-finger gap on the CAD collision spheres along the plan's simulated twist (seed 0, both models; sim/20261119-cad_finger_gaps.py and sim/20261119-cad_gap_screen.py); cad_touch marks plans whose index and middle links touch in it (< 2 mm). On 11-17 the hand's own joints read -2 to -5 mm at (105, 70) g13, where the index and middle met, and 4-9 mm at (70, 110) g0 (17 mm in simulation). Four replacements (role ranked, with 'replaces') were added.",
- "cem_written": "2026-11-19 22:50"
+ "cem_written": "2026-11-19 22:50",
+ "dense": "2026-11-19 23:4x: the owner's denser spread (23:2x); 22 layouts over the predicted range 0-0.5 and 3 predicted droppers (sim/20261119-dense_proposal.py, data/20261119-trial_proposal_dense.json); 'block' gives the proposed order: A1 with block 1 (CAD gap >= 10 mm), A2 the bad end (most touch), A3 the droppers."
 }

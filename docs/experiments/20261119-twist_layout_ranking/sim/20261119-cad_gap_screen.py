@@ -75,42 +75,57 @@ def main():
     ap.add_argument("--ranks", type=int, nargs=2, default=None, help="first and last rank among the deployable layouts "
                     "(in place of --top); the results are added to the file's")
     ap.add_argument("--workers", type=int, default=6)
+    ap.add_argument("--pool", choices=("deployable", "fit"), default="deployable",
+                    help="deployable: the ranking's deployable layouts; fit: every layout whose mounts fit the travel "
+                         "boxes, whatever its finger gap or drops (23:2x: the denser spread of the trials)")
     ap.add_argument("--out", default=str(STUDY / "data/20261119-cad_gap_screen.json"))
     a = ap.parse_args()
     S = json.loads((STUDY / "data/20261119-twist_ranking_summary.json").read_text())
-    dep = [b for b in S["candidates"] if b["fits"] and b["held_all"] and (b["im_gap_min_mm"] or 0) >= 15]
+    if a.pool == "fit":
+        dep = [b for b in S["candidates"] if b["fits"]]
+    else:
+        dep = [b for b in S["candidates"] if b["fits"] and b["held_all"] and (b["im_gap_min_mm"] or 0) >= 15]
     dep.sort(key=lambda b: -b["score"])
     lo, hi = a.ranks if a.ranks else (1, a.top)
     jobs = [{"call": b["call"], "xy": b["xy"], "k": b["k"], "score": b["score"], "rank_among_deployable": i + 1,
-             "model": m} for i, b in enumerate(dep) if lo <= i + 1 <= hi for m in SR.MODELS]
+             "pool": a.pool, "held_all": b["held_all"], "model": m} for i, b in enumerate(dep) if lo <= i + 1 <= hi
+            for m in SR.MODELS]
+    old = json.loads(Path(a.out).read_text())["runs"] if Path(a.out).exists() else []
+    done = {(r["call"], r["k"], r["model"]) for r in old}
+    if a.pool == "fit":                    # layouts screened before keep their runs; only the rest are run
+        jobs = [j_ for j_ in jobs if (j_["call"], j_["k"], j_["model"]) not in done]
     R = SR.load_replan()
     R.RG.gear_class = R.RC2.clutch_class
     R.RC2.STIFF, R.RC2.BREAKAWAY = True, 0.0
     R.RG.RF.RL.rows_file()
     SR._R["mod"] = R
-    old = json.loads(Path(a.out).read_text())["runs"] if a.ranks and Path(a.out).exists() else []
     new_keys = {(j["call"], j["k"], j["model"]) for j in jobs}
     out = [r for r in old if (r["call"], r["k"], r["model"]) not in new_keys]
     with mp.get_context("fork").Pool(a.workers, initializer=SR._init) as pool:
         for r in pool.imap_unordered(job, jobs):
             out.append(r)
-            print(f"#{r['rank_among_deployable']:3d} {tuple(r['xy'])} g{r['k']:2d} {r['model']:5s} track {r['track']} least "
+            print(f"#{r['rank_among_deployable']} {tuple(r['xy'])} g{r['k']:2d} {r['model']:5s} track {r['track']} least "
                   f"{r['least_mm']:6.1f} mm " + " ".join(f"{p} {v['gap_mm']:.1f}" for p, v in r["gaps"].items()),
                   flush=True)
     per = {}
     for r in out:
         per.setdefault((r["call"], r["k"]), []).append(r)
+    rank_fit = {(b["call"], b["k"]): i + 1 for i, b in enumerate(sorted((b for b in S["candidates"] if b["fits"]),
+                                                                         key=lambda b: -b["score"]))}
     lay = []
     for (c, k), rr in per.items():
         lay.append({"call": c, "k": k, "xy": rr[0]["xy"], "score": rr[0]["score"],
-                    "rank_among_deployable": rr[0]["rank_among_deployable"],
+                    "rank_among_deployable": rr[0]["rank_among_deployable"] if rr[0].get("pool", "deployable") ==
+                    "deployable" else None, "rank_among_fit": rank_fit.get((c, k)),
+                    "held_all": rr[0].get("held_all"),
                     "least_mm_both_models": round(min(r["least_mm"] for r in rr), 1),
                     "pair_least": {p: round(min(r["gaps"][p]["gap_mm"] for r in rr), 1) for p in rr[0]["gaps"]}})
-    lay.sort(key=lambda x: x["rank_among_deployable"])
+    lay.sort(key=lambda x: x["rank_among_fit"] or 9999)
     Path(a.out).write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "),
                                        "written": time.strftime("%F %H:%M"), "layouts": lay, "runs": out}, indent=1) + "\n")
     for x in lay:
-        print(f"#{x['rank_among_deployable']:3d} {tuple(x['xy'])} g{x['k']:2d} score {x['score']:.3f} least {x['least_mm_both_models']:6.1f} mm")
+        print(f"#{x['rank_among_fit']} {tuple(x['xy'])} g{x['k']:2d} score {x['score']:.3f} least "
+              f"{x['least_mm_both_models']:6.1f} mm")
     print("wrote", a.out)
 
 

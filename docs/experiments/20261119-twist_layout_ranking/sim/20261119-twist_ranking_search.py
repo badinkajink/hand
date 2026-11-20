@@ -204,8 +204,10 @@ def jobs_for(stage):
         return out
     if stage == "P":           # stage D's plants on the proposed layouts' grasps (hand-4a, 11-19 21:2x), D's runs skipped
         prop = json.loads((STUDY / "data/20261119-trial_proposal.json").read_text())
-        cad = STUDY / "data/20261119-trial_proposal_cad.json"     # the replacements of 22:1x, when written
-        extra = json.loads(cad.read_text())["pick"] if cad.exists() else []
+        extra = []                     # the replacements of 22:1x and the denser spread of 23:3x, when written
+        for nm in ("cad", "dense"):
+            f_ = STUDY / f"data/20261119-trial_proposal_{nm}.json"
+            extra += json.loads(f_.read_text())["pick"] if f_.exists() else []
         have = {key(r) for r in rows("D")}
         out = []
         for name, contact, volts, mu in PLANTS_D:

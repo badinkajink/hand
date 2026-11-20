@@ -1,0 +1,438 @@
+{
+ "what": "A denser spread of layouts for the hand over the whole predicted range (hand-4a, 2026-11-19 23:3x; owner, 23:2x: \"i highly suspect that the top 11 plans will not have a good clean correspondence. i think we should shoot for higher density of evaluation (which is just more time, but we have to accept it) to see if we can first ascertain a rough correspondence, including simulation-predicted bad morphologies\").",
+ "written": "2026-11-19 23:25",
+ "rule": {
+  "bin": 0.05,
+  "per_bin": 3,
+  "clear_mm": 15.0,
+  "drops": 3
+ },
+ "pick": [
+  {
+   "call": 312,
+   "xy": [
+    100.0,
+    110.0
+   ],
+   "k": 5,
+   "score": 0.4965,
+   "held_all": true,
+   "im_gap_min_mm": 19.5,
+   "cad_least_mm": 16.0,
+   "cad_touch": false,
+   "rank_among_fit": 94,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 295,
+   "xy": [
+    95.0,
+    150.0
+   ],
+   "k": 11,
+   "score": 0.4815,
+   "held_all": true,
+   "im_gap_min_mm": 22.2,
+   "cad_least_mm": 19.9,
+   "cad_touch": false,
+   "rank_among_fit": 123,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 80,
+   "xy": [
+    55.0,
+    75.0
+   ],
+   "k": 10,
+   "score": 0.4182,
+   "held_all": true,
+   "im_gap_min_mm": 27.2,
+   "cad_least_mm": 15.6,
+   "cad_touch": false,
+   "rank_among_fit": 219,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 83,
+   "xy": [
+    55.0,
+    90.0
+   ],
+   "k": 0,
+   "score": 0.4048,
+   "held_all": true,
+   "im_gap_min_mm": 25.4,
+   "cad_least_mm": 18.7,
+   "cad_touch": false,
+   "rank_among_fit": 245,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 335,
+   "xy": [
+    105.0,
+    100.0
+   ],
+   "k": 15,
+   "score": 0.349,
+   "held_all": true,
+   "im_gap_min_mm": 16.3,
+   "cad_least_mm": 12.5,
+   "cad_touch": false,
+   "rank_among_fit": 310,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 306,
+   "xy": [
+    100.0,
+    80.0
+   ],
+   "k": 8,
+   "score": 0.3197,
+   "held_all": true,
+   "im_gap_min_mm": 18.8,
+   "cad_least_mm": 10.0,
+   "cad_touch": false,
+   "rank_among_fit": 336,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 392,
+   "xy": [
+    115.0,
+    135.0
+   ],
+   "k": 8,
+   "score": 0.3058,
+   "held_all": true,
+   "im_gap_min_mm": 9.3,
+   "cad_least_mm": 10.3,
+   "cad_touch": false,
+   "rank_among_fit": 345,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 247,
+   "xy": [
+    85.0,
+    160.0
+   ],
+   "k": 1,
+   "score": 0.2877,
+   "held_all": true,
+   "im_gap_min_mm": 25.2,
+   "cad_least_mm": 13.1,
+   "cad_touch": false,
+   "rank_among_fit": 350,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 221,
+   "xy": [
+    80.0,
+    155.0
+   ],
+   "k": 5,
+   "score": 0.2825,
+   "held_all": true,
+   "im_gap_min_mm": 26.5,
+   "cad_least_mm": 14.1,
+   "cad_touch": false,
+   "rank_among_fit": 352,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 249,
+   "xy": [
+    85.0,
+    170.0
+   ],
+   "k": 2,
+   "score": 0.2477,
+   "held_all": true,
+   "im_gap_min_mm": 26.3,
+   "cad_least_mm": 11.9,
+   "cad_touch": false,
+   "rank_among_fit": 366,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 459,
+   "xy": [
+    130.0,
+    95.0
+   ],
+   "k": 14,
+   "score": 0.2358,
+   "held_all": true,
+   "im_gap_min_mm": 6.0,
+   "cad_least_mm": 1.0,
+   "cad_touch": true,
+   "rank_among_fit": 370,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 586,
+   "xy": [
+    155.0,
+    105.0
+   ],
+   "k": 7,
+   "score": 0.2068,
+   "held_all": true,
+   "im_gap_min_mm": 0.7,
+   "cad_least_mm": 0.4,
+   "cad_touch": true,
+   "rank_among_fit": 382,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 553,
+   "xy": [
+    150.0,
+    65.0
+   ],
+   "k": 5,
+   "score": 0.1777,
+   "held_all": true,
+   "im_gap_min_mm": 11.4,
+   "cad_least_mm": -0.0,
+   "cad_touch": true,
+   "rank_among_fit": 385,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 144,
+   "xy": [
+    65.0,
+    145.0
+   ],
+   "k": 15,
+   "score": 0.1632,
+   "held_all": true,
+   "im_gap_min_mm": 25.4,
+   "cad_least_mm": 8.2,
+   "cad_touch": false,
+   "rank_among_fit": 386,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 91,
+   "xy": [
+    55.0,
+    130.0
+   ],
+   "k": 12,
+   "score": 0.1407,
+   "held_all": true,
+   "im_gap_min_mm": 21.6,
+   "cad_least_mm": -2.3,
+   "cad_touch": true,
+   "rank_among_fit": 388,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 171,
+   "xy": [
+    70.0,
+    155.0
+   ],
+   "k": 0,
+   "score": 0.1357,
+   "held_all": true,
+   "im_gap_min_mm": 27.2,
+   "cad_least_mm": 3.6,
+   "cad_touch": false,
+   "rank_among_fit": 390,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 607,
+   "xy": [
+    160.0,
+    85.0
+   ],
+   "k": 1,
+   "score": 0.1163,
+   "held_all": true,
+   "im_gap_min_mm": 4.1,
+   "cad_least_mm": -0.5,
+   "cad_touch": true,
+   "rank_among_fit": 393,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 121,
+   "xy": [
+    60.0,
+    155.0
+   ],
+   "k": 7,
+   "score": 0.097,
+   "held_all": true,
+   "im_gap_min_mm": 20.5,
+   "cad_least_mm": 3.3,
+   "cad_touch": false,
+   "rank_among_fit": 394,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 170,
+   "xy": [
+    70.0,
+    150.0
+   ],
+   "k": 8,
+   "score": 0.0873,
+   "held_all": true,
+   "im_gap_min_mm": 17.9,
+   "cad_least_mm": 7.6,
+   "cad_touch": false,
+   "rank_among_fit": 395,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 146,
+   "xy": [
+    65.0,
+    155.0
+   ],
+   "k": 1,
+   "score": 0.083,
+   "held_all": true,
+   "im_gap_min_mm": 14.6,
+   "cad_least_mm": -5.3,
+   "cad_touch": true,
+   "rank_among_fit": 396,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 96,
+   "xy": [
+    55.0,
+    155.0
+   ],
+   "k": 5,
+   "score": 0.0415,
+   "held_all": true,
+   "im_gap_min_mm": 25.6,
+   "cad_least_mm": -1.0,
+   "cad_touch": true,
+   "rank_among_fit": 400,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 577,
+   "xy": [
+    155.0,
+    60.0
+   ],
+   "k": 0,
+   "score": 0.0,
+   "held_all": true,
+   "im_gap_min_mm": 13.2,
+   "cad_least_mm": -0.1,
+   "cad_touch": true,
+   "rank_among_fit": 404,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dense"
+  },
+  {
+   "call": 356,
+   "xy": [
+    110.0,
+    80.0
+   ],
+   "k": 1,
+   "score": 0.5795,
+   "held_all": false,
+   "im_gap_min_mm": 2.2,
+   "cad_least_mm": -0.0,
+   "cad_touch": true,
+   "rank_among_fit": 6,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dropper"
+  },
+  {
+   "call": 490,
+   "xy": [
+    135.0,
+    125.0
+   ],
+   "k": 5,
+   "score": 0.3375,
+   "held_all": false,
+   "im_gap_min_mm": 1.4,
+   "cad_least_mm": -3.0,
+   "cad_touch": true,
+   "rank_among_fit": 319,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dropper"
+  },
+  {
+   "call": 93,
+   "xy": [
+    55.0,
+    140.0
+   ],
+   "k": 11,
+   "score": 0.0382,
+   "held_all": false,
+   "im_gap_min_mm": 16.9,
+   "cad_least_mm": 8.5,
+   "cad_touch": false,
+   "rank_among_fit": 401,
+   "rank_among_deployable": null,
+   "fits": true,
+   "group": "dropper"
+  }
+ ],
+ "anchors": []
+}
