@@ -44,6 +44,7 @@ F_STAB = S3 / "20261119-board_estimate_stability.json"
 F_TWIST = S3 / "20261119-board_twist_residual.json"
 F_PATCH = S3 / "20261119-board_patch_size_calibration.json"
 F_DW = S3 / "20261119-hexe_dead_weight.json"
+F_DIRGP = S3 / "20261119-direction_gp_hand.json"
 GROUPS = ["index, PIP 0", "middle, PIP 0", "thumb, PIP 0", "index, PIP 10", "index, PIP 20"]
 C_GP, C_PAT, C_GEO, C_FORCE = "#1f4e9c", "#d9822b", "#111111", "#8a8a8a"
 F_EDGES = [0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0]
@@ -291,6 +292,18 @@ def build():
     gp_off = [r["hold_place_z_mm"] - geo[r["group"]][0] for r in hold_b]
     tag_z = [v[1] for v in geo.values()]
     tag_off = [r["hold_place_z_mm"] - geo[r["group"]][1] for r in hold_b]
+    dirgp = json.loads(F_DIRGP.read_text())
+    dg_low_b = [r["board_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
+    dg_low_d = [r["direction_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
+    dg_tow_b = [r["board_gp"]["0.1-0.5"]["toward_share"] for r in dirgp["rig"] if r["board_gp"]["0.1-0.5"]["toward_share"]]
+    dg_tow_d = [r["direction_gp"]["0.1-0.5"]["toward_share"] for r in dirgp["rig"]
+                if r["direction_gp"]["0.1-0.5"]["toward_share"]]
+    dg_all_b = [r["board_gp"]["all"]["place_mm"] for r in dirgp["rig"]]
+    dg_all_d = [r["direction_gp"]["all"]["place_mm"] for r in dirgp["rig"]]
+    hb = [r for r in dirgp["hand"] if r["board_gp"]["force_per_hexe_N"]]
+    dg_st = [r["direction_gp"]["hold_z"] for r in hb if r["group"] in ("index, PIP 0", "middle, PIP 0")]
+    dg_st_b = [r["board_gp"]["hold_z"] for r in hb if r["group"] in ("index, PIP 0", "middle, PIP 0")]
+    dg_low_hand = [r[k]["low_force_z"] - r[k]["hold_z"] for r in hb if r["group"] in GROUPS[3:] for k in ("board_gp", "direction_gp")]
     tilt = [r["tilt_deg"] for r in arm["rows"] if r.get("z_gp") is not None and r["group"] != "middle, PIP 0"]
     by_turn = {}
     for r in tw["rows"]:
@@ -443,7 +456,13 @@ direction, the change divided by its size, was tested in October on v2 ID 1 and 
 0.26-0.28 mm overall and 0.59-0.75 mm under 1 N. Trained on presses up to 2 N, it placed 2-8 N presses within
 0.25-0.31 mm and read their force within 5-6 %. There the board GP missed by 1-4 mm and read 45-87 % too little, falling
 back on its training mean. The direction GP was never deployed. Its input does not shrink with the force, which is what
-pulls the board GP toward the apex below 0.5 N.</p>"""))
+pulls the board GP toward the apex below 0.5 N.</p>
+<p>Tried tonight on the same held-out sessions, it helps but does not cure
+({link(STUDY / 'sim/20261119-direction_gp_hand.py', 'sim/20261119-direction_gp_hand.py')}). Overall it places contacts within {rng(dg_all_d)} mm against
+{rng(dg_all_b)} for the board GP. At 0.1-0.5 N it gives {rng(dg_low_d)} mm against {rng(dg_low_b)}. There
+{rng([x * 100 for x in dg_tow_d], '{:.0f}')} % of its errors point toward the apex, against
+{rng([x * 100 for x in dg_tow_b], '{:.0f}')} %. At such forces the field is 3-15 uT against 0.7 uT of noise per 50 ms,
+and no input transform can restore what the noise hides.</p>"""))
     S.append(("shear", "Shear: the force along the surface", (f"""
 <p>Shear is the part of the force along the pad's surface: friction, and what a twisting or sliding object exerts. With
 a session held out, the GP's shear vector is off by {rng(sh_med('error_N'))} N (median). Its size reads
@@ -508,7 +527,11 @@ the uncorrected joints, not the boards.</p>
 <p>The straight fingers press a flat face onto the pad's flat proximal half, where the 22 mm semi-axis keeps the
 surface within 12 deg of the apex normal. There the contact is a broad patch, no calibrated press matched its field
 above cosine 0.45, and the GP's place drifts with the force (Figure 3, left). On the flat half the place is also the
-least defined physically: a 1 deg change of the finger's lean moves a flat contact about 1 mm.</p>""")))
+least defined physically: a 1 deg change of the finger's lean moves a flat contact about 1 mm.
+The direction GP puts the straight index's and middle's contacts at z {rng(dg_st, '{:.1f}')} mm, near the geometry at
+the joint readings (7.5-7.8), where the board GP gives {rng(dg_st_b, '{:.1f}')}. If that is right, the extra flexion the
+tags saw is there with the PIP bent but not at PIP 0, as backlash off a stop would be. Both GPs extrapolate there, so
+this is a lead to test, not a result.</p>""")))
     S.append(("hand2", "On the hand: own pose, drift, neighbours and blind spots", f"""
 <ul>
 <li>Own pose. With nothing touching, a finger's own motion changes its board by up to 166 uT, 5.8 N to the
@@ -604,10 +627,12 @@ contact's lever arm and shear (Section 6), at 2-5 Hz.</li>
     ], caption="Earlier results this page corrects or replaces.", n=4)))
     S.append(("open", "Open questions, in order", f"""
 <ol>
-<li>Run the direction GP offline on the hand's recorded presses and trials (11-16 to 11-19). Does it remove the
-low-force pull toward the apex and the quarter of force the board GP loses?</li>
-<li>Fix the index's and middle's joint offsets: 9 and 12 deg at the DIP link. Plate presses at several PIP angles, and
-DIP tags seen at less curl, can tell zero offsets from pots that read low near the top of their range.</li>
+<li>Low force is the weak point, and the direction GP only eases it (Section 5): on the hand both GPs still sit
+{rng([-x for x in dg_low_hand], '{:.1f}')} mm toward the apex at 0.3-0.6 N. Treat places below about 1 N as weak in the filter, and
+check whether a finer chip gain (item 5) lowers the noise floor that causes it.</li>
+<li>Fix the index's and middle's joint offsets: 9 and 12 deg at the DIP link with the PIP bent, perhaps none
+straight (Section 9). Plate presses at several PIP angles, and DIP tags seen at less curl, can tell a zero offset from
+backlash off the PIP's stop and from pots that read low near the top of their range.</li>
 <li>Load the per-layout own-pose GP in the trials, and run the short free-air sweep at each new layout.</li>
 <li>The HEX-E's scale along its lateral axes: a dead weight whose line loads x or y.</li>
 <li>A finer chip gain: the four-magnet pads use under 5 mT of a 38.4 mT range. Does it lower the noise?</li>
@@ -615,7 +640,7 @@ DIP tags seen at less curl, can tell zero offsets from pots that read low near t
 bent so their contacts land where the calibration is.</li>
 <li>The pose filter of Section 14 with the HOM loop, tested on recorded trials before the bench.</li>
 </ol>"""))
-    files = [STUDY / f"sim/20261119-{n}.py" for n in ("board_contact_place_rig", "arm_press_contact_place",
+    files = [STUDY / f"sim/20261119-{n}.py" for n in ("board_contact_place_rig", "arm_press_contact_place", "direction_gp_hand",
                                                      "board_estimate_stability", "board_twist_residual",
                                                      "board_patch_size_calibration", "arm_press_boards")]
     S.append(("data", "Data and scripts", "<ul>" + "".join(f"<li>{link(f, P.esc(str(f.relative_to(ROOT))))}</li>"
