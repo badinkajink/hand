@@ -1,0 +1,157 @@
+{
+ "what": "Whether the middle board's high readings in the tips-on twists of 2026-11-17 at (70, 110) came from the sphere or from the thumb (the twist ranking's check of 11-19 night: on the CAD collision spheres, the measured joints put the thumb's tip 5-11 mm into the middle or index finger in four of them, and the middle read 5.3 and 4.0 N in two).",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261119-thumb_middle_contact.py",
+ "split_N": 3.0,
+ "trials": [
+  {
+   "corvus": "182434",
+   "server": "182443",
+   "periods": 246,
+   "high": {
+    "periods": 78,
+    "t_s": [
+     3.36,
+     4.9
+    ],
+    "force_N": 6.84,
+    "to_sphere_surface_mm": 15.0,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 10.7,
+    "place_y_mm": 1.7,
+    "place_z_mm": 8.4
+   },
+   "low": {
+    "periods": 44,
+    "t_s": [
+     2.38,
+     3.34
+    ],
+    "force_N": 1.03,
+    "to_sphere_surface_mm": -4.2,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 20.2,
+    "place_y_mm": 1.8,
+    "place_z_mm": 15.1
+   }
+  },
+  {
+   "corvus": "194718",
+   "server": "194727",
+   "periods": 326,
+   "high": {
+    "periods": 87,
+    "t_s": [
+     4.44,
+     6.5
+    ],
+    "force_N": 5.95,
+    "to_sphere_surface_mm": 4.8,
+    "tracked_share": 0.98,
+    "to_thumb_mm": 1.4,
+    "place_y_mm": 1.0,
+    "place_z_mm": 9.6
+   },
+   "low": {
+    "periods": 61,
+    "t_s": [
+     3.46,
+     6.46
+    ],
+    "force_N": 1.09,
+    "to_sphere_surface_mm": -0.0,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 20.0,
+    "place_y_mm": 0.3,
+    "place_z_mm": 15.1
+   }
+  },
+  {
+   "corvus": "194913",
+   "server": null,
+   "periods": 418,
+   "high": null,
+   "low": {
+    "periods": 183,
+    "t_s": [
+     3.54,
+     8.34
+    ],
+    "force_N": 1.24,
+    "to_sphere_surface_mm": -4.5,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 27.3,
+    "place_y_mm": 5.2,
+    "place_z_mm": 15.0
+   }
+  },
+  {
+   "corvus": "195729",
+   "server": null,
+   "periods": 416,
+   "high": null,
+   "low": {
+    "periods": 287,
+    "t_s": [
+     2.6,
+     8.33
+    ],
+    "force_N": 1.65,
+    "to_sphere_surface_mm": -6.2,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 23.0,
+    "place_y_mm": 3.9,
+    "place_z_mm": 11.6
+   }
+  },
+  {
+   "corvus": "195922",
+   "server": "195931",
+   "periods": 417,
+   "high": null,
+   "low": {
+    "periods": 151,
+    "t_s": [
+     5.35,
+     8.35
+    ],
+    "force_N": 1.22,
+    "to_sphere_surface_mm": -4.0,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 29.0,
+    "place_y_mm": 3.8,
+    "place_z_mm": 11.6
+   }
+  },
+  {
+   "corvus": "200757",
+   "server": "200806",
+   "periods": 271,
+   "high": {
+    "periods": 35,
+    "t_s": [
+     4.75,
+     5.43
+    ],
+    "force_N": 8.55,
+    "to_sphere_surface_mm": 21.1,
+    "tracked_share": 0.91,
+    "to_thumb_mm": 12.4,
+    "place_y_mm": 1.2,
+    "place_z_mm": 8.6
+   },
+   "low": {
+    "periods": 54,
+    "t_s": [
+     3.53,
+     4.73
+    ],
+    "force_N": 0.82,
+    "to_sphere_surface_mm": -2.0,
+    "tracked_share": 1.0,
+    "to_thumb_mm": 18.1,
+    "place_y_mm": 1.9,
+    "place_z_mm": 16.6
+   }
+  }
+ ]
+}

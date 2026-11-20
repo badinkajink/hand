@@ -48,6 +48,7 @@ F_DW = S3 / "20261119-hexe_dead_weight.json"
 F_DIRGP = S3 / "20261119-direction_gp_hand.json"
 F_TRIALS = S3 / "20261119-trial_contacts.json"
 F_SWEEPS = S3 / "20261119-pose_sweep_own_pose.json"
+F_TMC = S3 / "20261119-thumb_middle_contact.json"
 GROUPS = ["index, PIP 0", "middle, PIP 0", "thumb, PIP 0", "index, PIP 10", "index, PIP 20"]
 C_GP, C_PAT, C_GEO, C_FORCE = "#1f4e9c", "#d9822b", "#111111", "#8a8a8a"
 F_EDGES = [0.1, 0.3, 0.5, 1.0, 2.0, 4.0, 8.0]
@@ -310,6 +311,9 @@ def build():
                 pool[k][f] += [r[f"resid_{k}_uT"] for r in Fs[f]["poses"] if max(abs(x) for x in r["q"]) > 3]
     sw_pool = {k: [float(np.median(v[f])) for f in ("thumb", "index", "middle")] for k, v in pool.items()}
     same = [sw for sw in sweeps if "x70_y110" in sw["design"]]
+    tmc = json.loads(F_TMC.read_text())["trials"]
+    tm_hi = [t["high"] for t in tmc if t["high"]]
+    tm_lo = [t["low"] for t in tmc if t["low"]]
     sw_same = [[sw["fingers"][f]["resid_deployed_median_uT"] for f in ("thumb", "index", "middle")]
                for sw in (same[0], same[-1])]
     dg_low_b = [r["board_gp"]["0.1-0.5"]["place_mm"] for r in dirgp["rig"]]
@@ -597,6 +601,16 @@ index's MCPs 6-7.5 deg short. On the CAD hand's collision spheres their DIP link
 the bench's check, three balls per finger, had them 27 mm apart. Both boards read 12-13 uT above their own-pose
 prediction there, more than at any other layout in that pose; the middle's read nothing extra. Whether through the
 pads or through the joints giving under the load, the boards saw the collision.</li>
+<li>The thumb on the middle finger. In {len(tm_hi)} of the {len(tmc)} tips-on twists of 11-17 at (70, 110) the middle
+board read {rng([h['force_N'] for h in tm_hi], '{:.1f}')} N for {rng([h['t_s'][1] - h['t_s'][0] for h in tm_hi], '{:.1f}')} s,
+against {rng([l['force_N'] for l in tm_lo], '{:.1f}')} N on the sphere. Its contact then sat at z
+{rng([h['place_z_mm'] for h in tm_hi], '{:.1f}')} mm on the pad, {rng([h['to_sphere_surface_mm'] for h in tm_hi], '{:.0f}')} mm
+outside the tracked sphere and {rng([h['to_thumb_mm'] for h in tm_hi], '{:.0f}')} mm from the thumb's tip balls, where on
+the sphere it sat {rng([-l['to_sphere_surface_mm'] for l in tm_lo], '{:.0f}')} mm inside its surface and
+{rng([l['to_thumb_mm'] for l in tm_lo], '{:.0f}')} mm from the thumb. On the CAD collision spheres the measured joints put
+the thumb's tip 5-11 mm into the middle or index finger in four of these trials (the twist ranking's check of 11-19). The films do not resolve it. A reading
+of several newtons in a grasp of a 29 g sphere is a cue to check for a finger, not the object
+({link(STUDY / 'sim/20261119-thumb_middle_contact.py', 'sim/20261119-thumb_middle_contact.py')}).</li>
 <li>Turning the hand. The own-pose GP knows the palm only at the attitude of its sweep. Turned another way, each board
 sees the Earth's field from another angle: about 1 uT per degree (Section §torsion§), 0.07 N per degree. Re-zero after a wrist
 turn.</li>
