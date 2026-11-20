@@ -207,14 +207,23 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   0.83, rho 0.56, mean absolute error 0.080; at 150 mm or more (5 layouts) the hand lost the sphere and the scores fell
   0.337 below the predictions. The measured score falls with y (rho -0.64), the predicted does not (0.03). The page's
   Figure 2 shows it; the feasible landscapes are now Figure 3.
+- 16:1x, owner: "we should get some metrics on the pickup, drop rate incidence, pick up success, push->pickup
+  mitigation" and, on smoothness, "doing so would kind of ruin this data, so i expect not". The smoothing stays off for
+  today's series (the HOM server record of 16:12: budget 0.56 N m, budget_joint_tau and target_tau None).
+- 16:2x, hand-4a (`docs/experiments/20261115-hom_bench_trials/analysis/20261120-recovery_metrics.py`, 68 trials to 16:12):
+  the sphere left the grasp in 9 trials (13 %, corvus's drift guard). Putdowns: 52 clean (76 %), 9 stopped and finished by
+  the lab session (13 %), 5 tilted releases (7 %), 2 lost in the trial (3 %). Pick-up grasps of a lying sphere: 4 of 9
+  succeeded; 4 of 6 with a push first, 0 of 3 without; the 2 failures with a push were pushes that met the cables (14:49,
+  14:53); 2 more pick-ups found no plan.
+- 16:2x, hand-4a: the residual's force channel (--res-force 2.5) on HOM at 1.0 N: 0.832 / 0.848 at seeds 0-2 / 10-12 (1
+  drop each) against 0.829 / 0.832 without; on HOM at 2.5 N it runs (0.850 / 0.841 over its first 9 and 7 runs, against
+  0.776 / 0.768 without).
 
 ## Waiting on owner
 
 - The cables (lab, 15:01): someone routes the blue and red cable bundle away from the table's centre, so a dropped
   sphere lies on bare table, where the pinch pick-up works.
 
-- The smoothed budget on the bench (`hom_server --budget-joint-tau 0.1 --target-tau 0.04`) from the next block boundary,
-  yes or no (asked 12:1x). Without it HOM stays as it was.
 
 - A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,
   about 4 h. The landscape of 01:38 holds for 2.5 N only (09:36).

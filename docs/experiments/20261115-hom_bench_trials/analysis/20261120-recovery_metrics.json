@@ -1,0 +1,225 @@
+{
+ "what": "Trial losses, putdowns and pick-ups of the bench series of 2026-11-20 (hand-4a, 16:2x; owner, 16:1x: \"we should get some metrics on the pickup, drop rate incidence, pick up success, push->pickup mitigation\").",
+ "generated": "2026-11-20 16:21",
+ "trials": 68,
+ "sphere_lost_in_trial": {
+  "count": 9,
+  "of": 68,
+  "share": 0.132,
+  "labels": [
+   "A1_r3_x115y160g8_t1",
+   "A1_p25_x85y170g2_t1",
+   "A1_p25_x85y170g2_t2",
+   "A1_p29_x85y160g1_t1",
+   "A1_p29_x85y160g1_t2",
+   "A1_r4_x110y155g3_t1",
+   "A1_r4_x110y155g3_t2",
+   "A1_p28_x80y155g5_t1",
+   "A4feas_f60_x105y170g13_t2"
+  ]
+ },
+ "putdowns": {
+  "clean": {
+   "count": 52,
+   "of": 68,
+   "share": 0.765,
+   "labels": [
+    "A1_r15_x90y135g3_t1",
+    "A1_r15_x90y135g3_t2",
+    "A1_p35_x105y100g15_t1",
+    "A1_anchor_x70y110g0_t1",
+    "A1_anchor_x70y110g0_t2",
+    "A1_anchor_x70y110g0_t3",
+    "A1_r109_x70y90g1_t1",
+    "A1_r109_x70y90g1_t2",
+    "A1_r109_x70y90g1_t3",
+    "A1_p40_x55y90g0_t2",
+    "A1_p42_x55y75g10_t2",
+    "A1_r179_x60y135g8_t2",
+    "A1_r179_x60y135g8_t3",
+    "A1_p50_x100y110g5_t1",
+    "A1_p50_x100y110g5_t2",
+    "A1_r75_x65y110g0_t1",
+    "A1_r75_x65y110g0_t2",
+    "A1_r75_x65y110g0_t3",
+    "A1_p32_x100y80g8_t1",
+    "A1_p32_x100y80g8_t2",
+    "A1_p29_x85y160g1_t1",
+    "A1_r4_x110y155g3_t1",
+    "A1_r130_x95y90g14_t1",
+    "A1_r130_x95y90g14_t2",
+    "A1_r130_x95y90g14_t3",
+    "A1_p48_x95y150g11_t1",
+    "A1_p48_x95y150g11_t2",
+    "A1_r163_x75y140g5_t1",
+    "A1_r163_x75y140g5_t2",
+    "A1_r163_x75y140g5_t3",
+    "A1_r40_x85y120g15_t1",
+    "A1_r40_x85y120g15_t2",
+    "A1_r40_x85y120g15_t3",
+    "A1_p31_x115y135g8_t2",
+    "A1_r16_x80y130g15_t1",
+    "A1_r16_x80y130g15_t2",
+    "A1_r16_x80y130g15_t3",
+    "A1_p28_x80y155g5_t1",
+    "A1_p28_x80y155g5_t2",
+    "A4feas_f60_x105y170g13_t1",
+    "A4feas_f72_x70y80g6_t1",
+    "A4feas_f72_x70y80g6_t2",
+    "A4feas_f37_x95y130g4_t1",
+    "A4feas_f37_x95y130g4_t2",
+    "A4feas_f58_x75y120g0_t1",
+    "A4feas_f58_x75y120g0_t2",
+    "A4feas_f73_x60y105g0_t1",
+    "A4feas_f73_x60y105g0_t2",
+    "A4feas_f9_x100y145g6_t1",
+    "A4feas_f9_x100y145g6_t2",
+    "A4feas_f47_x80y115g7_t1",
+    "A4feas_f47_x80y115g7_t2"
+   ]
+  },
+  "stopped, finished by the session": {
+   "count": 9,
+   "of": 68,
+   "share": 0.132,
+   "labels": [
+    "A1_r15_x90y135g3_t3",
+    "A1_r3_x115y160g8_t1",
+    "A1_r3_x115y160g8_t2",
+    "A1_p42_x55y75g10_t1",
+    "A1_r179_x60y135g8_t1",
+    "A1_p29_x85y160g1_t2",
+    "A1_r4_x110y155g3_t2",
+    "A1_p31_x115y135g8_t1",
+    "A4feas_f60_x105y170g13_t2"
+   ]
+  },
+  "tilted release": {
+   "count": 5,
+   "of": 68,
+   "share": 0.074,
+   "labels": [
+    "A1_p35_x105y100g15_t2",
+    "A1_r3_x115y160g8_t3",
+    "A1_p40_x55y90g0_t1",
+    "A1_r4_x110y155g3_t3",
+    "A4feas_f5_x105y150g7_t1"
+   ]
+  },
+  "lost in the trial": {
+   "count": 2,
+   "of": 68,
+   "share": 0.029,
+   "labels": [
+    "A1_p25_x85y170g2_t1",
+    "A1_p25_x85y170g2_t2"
+   ]
+  }
+ },
+ "pickup_grasps": {
+  "count": 4,
+  "of": 9,
+  "share": 0.444
+ },
+ "pickup_with_push_first": {
+  "count": 4,
+  "of": 6,
+  "share": 0.667
+ },
+ "pickup_without_push": {
+  "count": 0,
+  "of": 3,
+  "share": 0.0
+ },
+ "pickup_planner_refusals": 2,
+ "attempts": {
+  "manual": [
+   {
+    "t": "11:5x",
+    "push": false,
+    "ok": null,
+    "refused": true,
+    "on_cables": null,
+    "words": "A1_r3_x115y160g8_t3 toppled and the pick-up failed: no pick-up plan keeps 8 mm off the table"
+   },
+   {
+    "t": "12:4x",
+    "push": false,
+    "ok": false,
+    "refused": false,
+    "on_cables": true,
+    "words": "at the (105, 70) pickup layout it plans (thumb-index, 9 mm above the table), but twice a fingertip came down on the ball (first of two)"
+   },
+   {
+    "t": "12:4x",
+    "push": false,
+    "ok": false,
+    "refused": false,
+    "on_cables": true,
+    "words": "twice a fingertip came down on the ball (second of two)"
+   },
+   {
+    "t": "13:31",
+    "push": true,
+    "ok": true,
+    "refused": false,
+    "on_cables": false,
+    "words": "the dropped sphere pushed off the cables (push_sphere.py, middle fingertip, 50 mm along the stem, 13:28) and picked up by the pinch (13:31-13:34, settled 0.4 deg)"
+   },
+   {
+    "t": "13:3x",
+    "push": false,
+    "ok": null,
+    "refused": true,
+    "on_cables": null,
+    "words": "A1_p25_x85y170g2_t2 dropped the object ... no pick-up plan (the stem 47.5 deg off, the wrist's limit 45)"
+   },
+   {
+    "t": "13:56",
+    "push": true,
+    "ok": true,
+    "refused": false,
+    "on_cables": false,
+    "words": "recovered at (105, 70) by a push (19 mm across, then on bare table) and the pinch pick-up (13:56-13:59)"
+   },
+   {
+    "t": "14:58",
+    "push": true,
+    "ok": true,
+    "refused": false,
+    "on_cables": false,
+    "words": "the automated pick-up's push and grasp met the cables three times; pushed off them at 5 N and picked up by hand 14:55-15:01 (settled 0.6 deg)"
+   }
+  ],
+  "automated": [
+   {
+    "t": "1445",
+    "push": false,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1445_pickup.log"
+   },
+   {
+    "t": "1449",
+    "push": true,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1449_pickup.log"
+   },
+   {
+    "t": "1453",
+    "push": true,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1453_pickup.log"
+   },
+   {
+    "t": "1614",
+    "push": true,
+    "ok": true,
+    "result": "OK",
+    "log": "20261120-1614_pickup.log"
+   }
+  ]
+ }
+}
