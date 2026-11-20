@@ -2,6 +2,10 @@
 experiment now"; the sphere "we can reliably not drop"): for each entry PLAN:PORT:LABEL, the established cycle of
 hom_setup.py and hom_trial.py, each step a subprocess whose output is checked before the next runs:
 
+    gate     before each trial, the station's servo diagnostics (no motion): all nine with torque, and with a servo at
+             --hot-c (55 C) or more the series waits, the hand idle, until all are below --cool-c (40 C), the owner's
+             thermal rule. With --serve, the plan's HOM server is started on the workstation before its first trial
+             and stopped after its last, one server at a time
     clear    only for a new layout (pose_sweep.py clear, 2026-11-19): the palm straight up until the fingers, straight
              and in the sweep's poses, clear the object's top by 25 mm; after letgo they can hang beside it
     layout   only when the station's mounts are not the plan's (the gantries move with the fingers straight)
@@ -37,6 +41,78 @@ from sr2hand.geometry.rotations import quat_to_mat  # noqa: E402
 
 PY = "/usr/bin/python3"
 TRIALS = ROOT / "logs/20261116-hom_trials"
+WS = "humanoid@100.65.73.59"
+KEY = str(Path.home() / ".ssh/id_wxie")
+SERVE = "bash ~/Programs/hand/logs/20261116-hom_setup/hom_serve_budget.sh"
+
+
+def ws(cmd, timeout=90):
+    """A command on the workstation (the HOM servers' host)."""
+    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", "-i", KEY, WS, cmd],
+                       capture_output=True, text=True, timeout=timeout)
+    return r.returncode, r.stdout + r.stderr
+
+
+def server_pids(port):
+    """The HOM server listening on port (the bracket keeps pgrep from matching its own shell)."""
+    _, out = ws(f'pgrep -f "[h]om_server serve .*--listen {port}( |$)"', 30)
+    return [int(x) for x in out.split() if x.isdigit()]
+
+
+def server_start(a, plan, port):
+    """The plan's HOM server, started before its first trial (2026-11-19 night: one at a time, 410 MB each, the
+    workstation 6 GB short of free memory under the twist ranking's jobs). None when it answers, else the reason."""
+    if server_pids(port):
+        return None
+    task, d, mass, budget = a.serve.split()
+    rel = f"docs/experiments/20261115-hom_bench_trials/plans/{Path(plan).name}"
+    tag = "s_" + Path(plan).stem.replace("_plan", "")[:48]
+    _, out = ws(f"{SERVE} {task} {d} {rel} {port} {tag} {mass} {budget}", 120)
+    for _ in range(10):
+        if "HOM server:" in out:
+            print(f"   server {port}: {[x for x in out.splitlines() if 'HOM server:' in x][-1][:150]}", flush=True)
+            return None
+        time.sleep(5)
+        _, out = ws(f"grep -v -i warn ~/Programs/hand/logs/20261116-hom_setup/20261116-server_{tag}.log | tail -3", 30)
+    return out.strip()[-300:]
+
+
+def server_stop(port):
+    for pid in server_pids(port):
+        ws(f"kill {pid}", 30)
+        print(f"   server {port} stopped (pid {pid})", flush=True)
+
+
+def servo_gate(a):
+    """The owner's thermal rule (pause at 55 C, go on below 40 C) and torque on all nine servos, from the station's
+    diagnostics (one read of each servo, no motion) before each trial. Above --hot-c the series waits with the hand
+    where letgo left it (fingers straight, the palm lifted, nothing held), reading every 60 s, until every servo is below
+    --cool-c. Returns (None or the reason to stop, the hottest servo's temperature)."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    st = HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token"))
+    t0, waited = time.time(), False
+    while True:
+        try:
+            d = st.call("POST", "/api/v1/servos/diagnostics")
+        except Exception as e:                             # noqa: BLE001
+            return f"no servo diagnostics ({repr(e)[:120]})", None
+        T = {k: float(v) for k, v in (d.get("temperature") or {}).items() if v is not None}
+        off = [k for k, v in (d.get("torque_enable") or {}).items() if not v]
+        if off or d.get("no_answer") or len(T) < 9:
+            return f"servos without torque {off}, no answer {d.get('no_answer')}, temperatures {T}", None
+        hot = max(T.values())
+        if hot < (a.cool_c if waited else a.hot_c):
+            if waited:
+                print(f"   {time.strftime('%H:%M:%S')} servos at most {hot:.0f} C: going on", flush=True)
+            return None, hot
+        if not waited:
+            print(f"   {time.strftime('%H:%M:%S')} a servo at {hot:.0f} C ({T}): waiting until all are below "
+                  f"{a.cool_c:g} C", flush=True)
+        waited = True
+        if time.time() - t0 > a.cool_wait_s:
+            return f"servos still at {hot:.0f} C after {a.cool_wait_s / 60:.0f} min", hot
+        time.sleep(60)
 
 
 def run(cmd, timeout):
@@ -151,6 +227,12 @@ def main():
                          "series goes on; without it the series stops")
     ap.add_argument("--sweep", action="store_true",
                     help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
+    ap.add_argument("--serve", default="",
+                    help="'TASK D MASS_G BUDGET', e.g. 'twist 40 28.8 0.56': start each plan's HOM server on the "
+                         "workstation before its first trial and stop it after its last (hom_serve_budget.sh)")
+    ap.add_argument("--hot-c", type=float, default=55.0, help="pause before a trial with a servo this hot")
+    ap.add_argument("--cool-c", type=float, default=40.0, help="go on when every servo is below this")
+    ap.add_argument("--cool-wait-s", type=float, default=5400.0)
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
     common = ["--object", a.object, "--map", a.map]
@@ -160,6 +242,15 @@ def main():
               flush=True)
         if not a.go:
             continue
+        if a.serve and k > 0 and a.entries[k - 1].split(":")[1] != port:
+            server_stop(a.entries[k - 1].split(":")[1])
+        why, servo_c = servo_gate(a)
+        if why:
+            sys.exit(f"STOP before {label}: {why}")
+        if a.serve:
+            why = server_start(a, plan, port)
+            if why:
+                sys.exit(f"STOP: the HOM server for {label} did not start: {why}")
         # a new layout (2026-11-19): after letgo the straight fingers may hang beside the object, so the palm goes up
         # until they clear it before the gantries move (pose_sweep.py clear), and with --sweep the fingers then run
         # the free-air pose sweep at the new mounts
@@ -195,7 +286,8 @@ def main():
             sys.exit(f"STOP: trial failed for {label}")
         s = summary(rec.group(1))
         row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": label, "plan": plan, "port": int(port),
-               "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))], **s}
+               "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))],
+               "servo_c_before": servo_c, **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
@@ -228,6 +320,8 @@ def main():
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")
             sys.exit(f"STOP: putdown did not finish for {label}: {row['putdown']}")
+    if a.go and a.serve:
+        server_stop(a.entries[-1].split(":")[1])
     print(f"\n=== {time.strftime('%H:%M:%S')} series done", flush=True)
     return 0
 
