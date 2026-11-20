@@ -112,6 +112,14 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 10:59, lab: the series restarted from A1_p35_x105y100g15_t1 in the same order. The owner had reset the arm; a letgo,
   a clear and a lateral move over the sphere put the hand back in position. All three trials on (90, 135) g3 moved the
   sphere in the grasp: rise 8-10 mm, drift 10-22 mm. t3's row is in the rows file with a "note" field (runbook ce38b11c5).
+- 11:12, lab: three of the day's first five trials started 12-25 deg off the plan's grasp (the sphere's axis against z_P
+  at ready): (90, 135) g3 t2 12.2 deg and t3 13.0 deg, (105, 100) g15 t2 25.5 deg; the good starts were 0.6 and 1.2 deg,
+  and the 11-19 trials started within 0.3-1.5 deg. A putdown had stood a tilted sphere up by tilting the hand, and letgo
+  re-levelled the hand only within its --max-level. Since 11:12 hom_series levels the hand before every recentre and writes
+  ready_tilt_deg (9a98f3cad). The series restarted at 11:12 at A1_anchor_x70y110g0_t1, order unchanged.
+- 11:2x, hand-4a (the lab's request): `sim/20261120-trials_vs_prediction.py` keeps trials with a start tilted more than 5 deg
+  out of the plan means and rho and lists them under "tilted_starts"; today's corvus records and series rows were copied to
+  `docs/experiments/20261115-hom_bench_trials/runs_corvus/`.
 
 ## Waiting on owner
 

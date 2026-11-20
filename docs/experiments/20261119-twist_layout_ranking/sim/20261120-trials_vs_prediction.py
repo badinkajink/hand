@@ -16,6 +16,14 @@ between them, with a two-sided p from scipy and an interval from resampling each
 same per plant from data/20261119-plant_predictions.json (point, pads and stage D's four plants). The CEM and stage-E
 plans are compared with their own layout's default plan.
 
+A trial that started with the sphere tilted more than TILT_MAX_DEG from its plan's grasp (the angle between the sphere's
+axis and z_P at hom_setup ready) is scored but kept out of the plan means and rho, and listed under "tilted_starts" (lab
+session, 2026-11-20 11:1x: three of the first five trials of the day started 12-25 deg off, because a putdown stood a
+tilted sphere up by tilting the hand and letgo re-levelled the hand only within its --max-level; the 11-19 trials started
+within 0.3-1.5 deg). The tilt is the series row's ready_tilt_deg (hom_series since 9a98f3cad, 11:12); for the rows written
+before, the values the lab read from the series log's ready lines (READY_TILT_LAB). Series rows are matched to the
+trials by corvus's record file; copy them from corvus's logs/20261116-hom_trials/ into runs_corvus/ with the records.
+
     .venv/bin/python docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py [--since STAMP]
 Writes data/20261120-trials_vs_prediction.json and prints the table.
 """
@@ -42,6 +50,31 @@ PLANS = STUDY / "data/20261119-trial_plans.json"
 OUT = STUDY / "data/20261120-trials_vs_prediction.json"
 SINCE = "20261119-210000"
 DRAWS = 5000
+SERIES = ROOT / "docs/experiments/20261115-hom_bench_trials/runs_corvus"   # hom_series's rows (*series*.jsonl)
+TILT_MAX_DEG = 5.0                 # deg: a start tilted more than this is reported apart
+READY_TILT_LAB = {"A1_r15_x90y135g3_t1": 1.2, "A1_r15_x90y135g3_t2": 12.2, "A1_r15_x90y135g3_t3": 13.0,
+                  "A1_p35_x105y100g15_t1": 0.6, "A1_p35_x105y100g15_t2": 25.5}   # the lab's message, 11-20 11:1x
+
+
+def series_rows():
+    """{corvus record file name: hom_series row} over the series rows copied into SERIES."""
+    out = {}
+    for p in sorted(SERIES.glob("*series*.jsonl")):
+        for line in p.read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                if r.get("record"):
+                    out[Path(r["record"]).name] = r
+    return out
+
+
+def ready_tilt(row):
+    """The sphere's tilt at ready (deg) of a series row, or None."""
+    if not row:
+        return None
+    if row.get("ready_tilt_deg") is not None:
+        return float(row["ready_tilt_deg"])
+    return READY_TILT_LAB.get(row.get("label"))
 
 
 def scorer():
@@ -98,6 +131,7 @@ def main():
     lst = json.loads(Path(a.plans).read_text())["plans"]
     by_plan = {Path(e["plan"]).name: e for e in lst}
     cidx = M.corvus_index()
+    srows = series_rows()
     trials = defaultdict(list)
     skipped = []
     for p in sorted(RUNS.glob("*_trial*.jsonl")):
@@ -113,14 +147,18 @@ def main():
             continue
         tr = rec["track"].get("score")
         ended = rec["ended"].get("class")
-        trials[plan].append({"stamp": rec["stamp"], "track": tr, "ended": ended,
+        row = srows.get(Path((rec.get("corvus") or {}).get("file") or "").name)
+        tilt = ready_tilt(row)
+        trials[plan].append({"stamp": rec["stamp"], "label": (row or {}).get("label"), "ready_tilt_deg": tilt,
+                             "tilted_start": tilt is not None and tilt > TILT_MAX_DEG, "track": tr, "ended": ended,
                              "track_held": (tr if ended == "end of schedule" else 0.0) if tr is not None else None,
                              "twist_task_end_deg": rec["track"].get("twist_task_end_deg"),
                              "twist_ref_end_deg": rec["track"].get("twist_ref_end_deg"),
                              "notes": rec.get("notes"), "file": rec["file"]})
     plans = []
+    tilted = [{"plan": name, **t} for name, tt in trials.items() for t in tt if t["tilted_start"]]
     for name, e in by_plan.items():
-        tt = trials.get(name, [])
+        tt = [t for t in trials.get(name, []) if not t["tilted_start"]]
         both, pt, pd = predicted(e)
         sc = [t["track_held"] for t in tt if t["track_held"] is not None]
         plans.append({"plan": name, "role": e["role"], "call": e["call"], "xy": e["xy"], "k": e["k"],
@@ -135,6 +173,7 @@ def main():
     out = {"what": __doc__.split("\n\n")[0].replace("\n", " "), "script": str(Path(__file__).relative_to(ROOT)),
            "generated": time.strftime("%F %H:%M"), "since": a.since,
            "trials_scored": sum(x["n"] for x in plans), "skipped": skipped,
+           "tilt_max_deg": TILT_MAX_DEG, "tilted_starts": tilted,
            "rho": {"both models": rho_ci(default, "predicted_both"), "point": rho_ci(default, "predicted_point"),
                    "pads": rho_ci(default, "predicted_pads"),
                    "both models, partial trials scored": rho_ci(
@@ -166,7 +205,11 @@ def main():
     print(json.dumps(out["rho"], indent=1))
     for m, v in (out.get("rho_per_plant") or {}).items():
         print(f"  plant {m:12s} rho {v.get('rho')} over {v.get('layouts')} layouts, interval {v.get('rho_trials_resampled_95')}")
-    print(f"{out['trials_scored']} trials scored, {len(skipped)} records skipped -> {a.out}")
+    for t in tilted:
+        print(f"  tilted start {t['label'] or t['stamp']}: {t['ready_tilt_deg']:.1f} deg at ready, track "
+              f"{t['track_held'] if t['track_held'] is not None else float('nan'):.3f} (not in the means)")
+    print(f"{out['trials_scored']} trials scored, {len(tilted)} with a tilted start apart, {len(skipped)} records skipped"
+          f" -> {a.out}")
 
 
 if __name__ == "__main__":
