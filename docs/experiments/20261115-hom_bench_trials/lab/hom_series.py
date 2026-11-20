@@ -73,11 +73,13 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
-def station_design():
-    """The design name of the plan the station holds."""
+def station_plan_file():
+    """The file name of the plan the station holds (hom_setup.py layout records it in the plan's meta.plan_file); plans
+    can share a design name and differ in their poses (the mcpstop variants of 11-17)."""
     sys.path.insert(0, str(HERE))
     import hom_setup as HS
-    return (HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token")).state().get("plan") or {}).get("design")
+    pl = HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token")).state().get("plan") or {}
+    return (pl.get("meta") or {}).get("plan_file")
 
 
 def layout_differs(plan):
@@ -129,7 +131,7 @@ def main():
                 sys.exit(f"STOP: the palm could not clear the object before {label}'s layout")
         # layout loads the plan into the station; its gantries move only where the mounts differ. Skipped when the
         # station holds this plan at its mounts already (a plan's second and third trials)
-        if new_layout or station_design() != json.loads(Path(plan).read_text())["design"]:
+        if new_layout or station_plan_file() != Path(plan).name:
             rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
             if rc != 0 or "applied True" not in out:
                 sys.exit(f"STOP: layout failed for {label}")
