@@ -2,7 +2,11 @@
 experiment now"; the sphere "we can reliably not drop"): for each entry PLAN:PORT:LABEL, the established cycle of
 hom_setup.py and hom_trial.py, each step a subprocess whose output is checked before the next runs:
 
+    clear    only for a new layout (pose_sweep.py clear, 2026-11-19): the palm straight up until the fingers, straight
+             and in the sweep's poses, clear the object's top by 25 mm; after letgo they can hang beside it
     layout   only when the station's mounts are not the plan's (the gantries move with the fingers straight)
+    sweep    only for a new layout with --sweep (pose_sweep.py sweep): 12 free-air poses in about 50 s while the
+             boards record, the data for the own-pose term's dependence on the layout
     ready    the tracked recentre and the pre-grasp ramp; READY, or NOT READY within --max-off mm and --max-yaw deg
              (a finger's open pose nudging the object), else the series stops
     trial    hom_trial.py trial --live --arm --ft with --max-drift-mm, recorded into --video-dir
@@ -69,6 +73,14 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
+def layout_differs(plan):
+    """Whether the station's mounts differ from the plan's (hom_setup.mounts_off, 1 mm)."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    st = HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token"))
+    return bool(HS.mounts_off(HS.load_plan(plan), st.state()))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("entries", nargs="+", help="PLAN:PORT:LABEL")
@@ -83,6 +95,8 @@ def main():
     ap.add_argument("--max-yaw", type=float, default=5.0)
     ap.add_argument("--upright-deg", type=float, default=8.0,
                     help="after a tilted release, go on when the object stands within this of vertical")
+    ap.add_argument("--sweep", action="store_true",
+                    help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
     common = ["--object", a.object, "--map", a.map]
@@ -92,10 +106,22 @@ def main():
               flush=True)
         if not a.go:
             continue
+        # a new layout (2026-11-19): after letgo the straight fingers may hang beside the object, so the palm goes up
+        # until they clear it before the gantries move (pose_sweep.py clear), and with --sweep the fingers then run
+        # the free-air pose sweep at the new mounts
+        new_layout = layout_differs(plan)
+        if new_layout:
+            rc, out = run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--go"], 180)
+            if rc != 0 or "CLEAR OK" not in out:
+                sys.exit(f"STOP: the palm could not clear the object before {label}'s layout")
         # layout loads the plan into the station; its gantries move only where the mounts differ
         rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
         if rc != 0 or "applied True" not in out:
             sys.exit(f"STOP: layout failed for {label}")
+        if new_layout and a.sweep:
+            rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, "--go"], 300)
+            if rc != 0 or "SWEEP DONE" not in out:
+                sys.exit(f"STOP: the free-air sweep failed at {label}'s layout")
         rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
         if rc != 0 or m is None:
