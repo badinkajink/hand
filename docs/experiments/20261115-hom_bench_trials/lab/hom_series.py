@@ -445,6 +445,13 @@ def main():
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
                        "--video-dir", a.video_dir], 400)
+        if "LET GO" not in out and "poses of the object" in out:
+            # the held object hidden behind the hand at the trial's end (2026-11-20 15:43: 0 poses; lifted straight up the
+            # sphere was in view, still held, and the putdown then went through): up, then the putdown once more
+            print(f"   {label}: the object hidden from the cameras: the hand up, then the putdown again", flush=True)
+            run([PY, "hom_setup.py", "up", "--to-z", "200", "--go"], 120)
+            rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
+                           "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
         if "the object is not in the hand" in out:
             # dropped during the trial (2026-11-20 12:36): the fingers straightened (zero refuses while they are round
