@@ -7,7 +7,7 @@
   "topic": "design",
   "summary": "Sphere twist ranked over 482 layouts on the calibrated SR2 simulation: best (110, 105) (point, tracking 0.63); point vs pads ρ 0.91; plans for 11 layouts on the hand.",
   "builder": "scripts/hom/twist_ranking_page.py",
-  "artifact": null,
+  "artifact": "https://claude.ai/artifact/XiBYaBDci8QPCjNzyZqSue",
   "status": "current",
   "mb": 0.6
  },
