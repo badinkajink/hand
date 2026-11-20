@@ -1154,7 +1154,9 @@ def cmd_putdown(a):
             c = np.asarray(info["p_B"], float)
             # in steps of at most LEVEL_STEP_DEG (2026-11-20: a 35 deg turn in one move ran past its 12 s after 96 mm,
             # a 32 deg one after 89 mm, the HEX-E's change near 10 N from the hand's weight alone): each step the same
-            # turn about the object's centre, with its own force reference; the touch watched against the pose before
+            # turn about the object's centre, with its own force reference; the object's motion against the hand watched
+            # against the pose before, past --carry-slip-mm only (in the air it can only be slip: 15:17, 2.01 mm of slip
+            # stopped a 35 deg levelling at its third step)
             n = max(1, math.ceil(lev / LEVEL_STEP_DEG))
             T_step = tf(None, c) @ tf(quat_to_mat(quat_from_rotvec(ax * math.radians(lev / n))), None) @ tf(None, -c)
             print(f"   the object's axis {tilt0:.1f} deg from vertical: the hand turns {lev:.1f} deg about its centre "
@@ -1170,7 +1172,7 @@ def cmd_putdown(a):
                     why, _ = arm.move(T_step @ arm.T_BE(), a.v, a.acc,
                                       a.level_stop_n if a.stop_n is not None else None, 12.0,
                                       f"level {lev:.1f} deg" + (f", step {k}/{n}" if n > 1 else ""),
-                                      check=meas.watch_touch(ref[0], 2.0, 2.0))
+                                      check=meas.watch_touch(ref[0], a.carry_slip_mm, a.carry_slip_mm))
                     if why:
                         raise SystemExit(f"the levelling stopped: {why}; look before anything else")
                 p_m, q_m, info = meas.pose(a.measure_s)
