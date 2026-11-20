@@ -104,6 +104,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   drops. Residual annealed sampling on HOM 0.776 / 0.768 on HOM at 2.5 N and 0.841 / 0.835 on HOM at 1.0 N (81 and 79 of
   135 runs so far), no drops. Tuned HOM alone: 0.681 / 0.682 at 0.75 N. The force cost (weight 0.1, target 1 N) changed the
   samplers by 0.03 or less (`data/20261120-rematch_summary.json`).
+- 10:50, hand-4a: the GPU queue reordered (`logs/20261120-controller_rematch/lane_gpu2.sh`). After residual annealing on
+  HOM at 1.0 N: predictive and annealed sampling with the tracker's 40 ms delay (about 15 min), then the two UHAS trainings
+  with their scoring (lane_uhas, until about 15:45), then the four annealing runs at 64 samples and 4 iterations (about
+  1 h each), the first to cut. Residual annealing does not take the planner delay yet (`--plan-delay` is implemented for the
+  joint-space planners only).
 
 ## Waiting on owner
 
