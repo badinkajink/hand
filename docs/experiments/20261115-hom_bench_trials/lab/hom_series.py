@@ -73,6 +73,13 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
+def station_design():
+    """The design name of the plan the station holds."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    return (HS.Station("http://10.99.99.2:8765", str(Path.home() / ".sr2_station_token")).state().get("plan") or {}).get("design")
+
+
 def layout_differs(plan):
     """Whether the station's mounts differ from the plan's (hom_setup.mounts_off, 1 mm)."""
     sys.path.insert(0, str(HERE))
@@ -114,10 +121,12 @@ def main():
             rc, out = run([PY, "pose_sweep.py", "clear", "--plan", plan, "--map", a.map, "--go"], 180)
             if rc != 0 or "CLEAR OK" not in out:
                 sys.exit(f"STOP: the palm could not clear the object before {label}'s layout")
-        # layout loads the plan into the station; its gantries move only where the mounts differ
-        rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
-        if rc != 0 or "applied True" not in out:
-            sys.exit(f"STOP: layout failed for {label}")
+        # layout loads the plan into the station; its gantries move only where the mounts differ. Skipped when the
+        # station holds this plan at its mounts already (a plan's second and third trials)
+        if new_layout or station_design() != json.loads(Path(plan).read_text())["design"]:
+            rc, out = run([PY, "hom_setup.py", "layout", "--plan", plan, "--go", "--video-dir", a.video_dir], 300)
+            if rc != 0 or "applied True" not in out:
+                sys.exit(f"STOP: layout failed for {label}")
         if new_layout and a.sweep:
             rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, "--go"], 300)
             if rc != 0 or "SWEEP DONE" not in out:
@@ -128,8 +137,9 @@ def main():
             sys.exit(f"STOP: ready failed for {label}")
         if m.group(1) == "NOT READY" and (float(m.group(2)) > a.max_off or abs(float(m.group(3))) > a.max_yaw):
             sys.exit(f"STOP: {label} not ready ({m.group(2)} mm, {m.group(3)} deg)")
+        # --plan: the trial's fingertip estimator places the boards' contacts with the plan's mounts (since 11-17)
         rc, out = run([PY, "hom_trial.py", "trial", "--task", a.task, "--controller", f"{a.controller_host}:{port}",
-                       *common, "--station", "http://10.99.99.2:8765", "--live", "--arm", "--ft", "--out-dir",
+                       *common, "--plan", plan, "--station", "http://10.99.99.2:8765", "--live", "--arm", "--ft", "--out-dir",
                        str(TRIALS), "--video-dir", a.video_dir, "--label", label, "--max-drift-mm",
                        f"{a.max_drift_mm:g}"], 200)
         rec = re.search(r"-> (\S+_corvus\.jsonl)\s*$", out, re.M)
