@@ -77,6 +77,8 @@ def main():
     ap.add_argument("--min-seen", type=float, default=0.3)
     ap.add_argument("--checks", default=str(ROOT / "logs/20261116-hom_trials/wait_for_lights.jsonl"))
     a = ap.parse_args(argv[:k])
+    import claude_login                                    # the login of the session watching the run (2026-11-20)
+    print(claude_login.line(), flush=True)
     cmd = argv[k + 1:]
     floor = {x.split("=")[0]: float(x.split("=")[1]) for x in a.min_luma}
     hh, mm = (int(x) for x in a.not_before.split(":"))

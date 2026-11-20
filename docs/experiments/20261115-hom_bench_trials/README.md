@@ -4,6 +4,33 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-20 10:5x: the morning's two stops, the owner's order
+
+- **The login.** The Claude login of the session watching the bench reached its fixed time limit before 08:04 ("this
+  login reached its time limit and cannot be renewed"). A claude.ai login lasts about four weeks, and using Claude Code
+  does not extend it. Nothing could act on the bench until the owner logged in again at 10:33. `lab/claude_login.py`
+  now prints the renew-by date when `hom_series.py` and `wait_for_lights.py` start, with WARNING within 2 days of it.
+  The current login: renew by 2026-12-15, ends 12-18 19:10. Before arming an unattended run, read that line. The
+  one-year token of `claude setup-token` makes model requests only: no Remote Control, no claude.ai connectors.
+- **09:17-09:21.** The lights were on from 09:07, and the watcher started the morning series at 09:17.
+  A1_r15_x90y135g3 t1 and t2 twisted -11..53 and -6..55 deg, with a rise of 10.2 mm each. t2's putdown stopped in
+  the levelling turn: the sphere moved 2.18 mm against the hand (limit 2). The sphere hung 49 mm above the table until
+  10:38, servo 0 reached 52 C and servos 1, 3 and 6 flagged overload. `putdown --level-max 0` set it down and let go
+  at 10:39. t2's row was added to the morning jsonl by hand (field `note`).
+- **hom_series:** when a putdown's levelling stops, the series now runs the putdown again without levelling.
+- **The owner's order (08:0x, `docs/notes/20261120-twist_ranking_decisions.md`):** "We don't have to run the full
+  infeasible set, we should get more coverage among the probably good and feasible set of hands first."
+  `lab/series_entries_20261120_day.txt` (`lab/series_20261120_day_order.json`) has 170 trials: the rest of A1 (51),
+  A4feas (40: the 20 predicted-good feasible layouts of 0ec04cd54, 2 trials each, ports 47162-47181), the (70, 110)
+  anchors (9), b3E (18), b4cem (33), then b2touch, A2bad and A3drop at t1 only (19). Started at 10:43, log
+  `logs/20261116-hom_trials/20261120-day_series.log`, rows to the same `20261120-series_morning_seed20261120.jsonl`.
+- **10:45, stopped again.** A1_r15_x90y135g3_t3 twisted -4..58 deg, but the sphere rolled in the grasp: drift 22 mm,
+  49.6 deg off P's axis. The 35 deg levelling turn ran out of time after 96 mm. The putdown without levelling then set
+  the sphere down, seated, and released it. But both ways of straightening were refused: the index tip end starts
+  3.3 mm into the block in the model, and the paths take it to 4.0 and 4.9 mm. The hand holds its open pose over the
+  standing sphere, the sphere 18 mm off the grasp's axis. No coded step backs out of this (`--rise-open` refuses past
+  its lateral limit); the next step waits for the owner. t3's row is not written yet.
+
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 
 The owner's go (relayed 18:1x): "if you finish analysis early, i give you the go ahead to just start running the

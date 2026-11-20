@@ -255,6 +255,8 @@ def main():
                     help="the control file read before every trial: 'hold' pauses, 'skip PREFIX' skips labels")
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
+    import claude_login                                    # the login of the session watching the run (2026-11-20)
+    print(claude_login.line(), flush=True)
     common = ["--object", a.object, "--map", a.map]
     served = None                                          # the port whose HOM server this series started last
     for k, e in enumerate(a.entries):
@@ -329,6 +331,15 @@ def main():
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
                        "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
+        if "LET GO" not in out and "the levelling stopped" in out:
+            # 2026-11-20 09:21: the levelling turn stopped on the object moving 2.18 mm against the hand (limit 2), and
+            # the series stopped with the sphere held 49 mm above the table until 10:38 (one servo at 52 C, three
+            # flagging overload). The same putdown without the levelling set it down and let go at 10:39
+            print(f"   {label}: the levelling stopped; the putdown again without levelling", flush=True)
+            rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(),
+                           "--level-max", "0", "--go", "--video-dir", a.video_dir], 400)
+            row["putdown"] = "levelling stopped; without levelling: " + (
+                "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:160])
         if rc == 0 and "LET GO" in out:
             with open(a.out, "a") as f:
                 f.write(json.dumps(row) + "\n")
