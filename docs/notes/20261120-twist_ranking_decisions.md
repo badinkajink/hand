@@ -187,6 +187,12 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   Annealed sampling with 64 samples x 4 iterations at 1.0 N, its state 40 ms late (the run lane_gpu2 had started at
   11:09): 0.832 / 0.837, 3 and 2 drops, 2.2 s per replanning for a chunk of 58 worlds; with 16 x 2 samples 0.584 / 0.555.
   The rematch page carries them (Table 3, sorted, plain names).
+- 14:13, lane_f1: the feasible landscape at 1.0 N (spin weight 0.25; `data/20261120-feasible_ranking_f1.json`). 196 of 404
+  layouts have a grasp whose simulated twist keeps the fingers 10 mm apart under both models with the sphere held, against
+  214 at 2.5 N (182 at both). Over those 182 the mean score rises from 0.407 to 0.644, and the two forces rank them with
+  rho 0.20. The best feasible layouts move from (115, 155), (115, 160), (95, 105), (110, 155), (105, 150) at 2.5 N (0.54-
+  0.55) to (85, 170), (90, 165), (80, 150), (85, 115), (85, 155) at 1.0 N (0.74-0.77). The sim-to-real page's Figure 2
+  shows both.
 
 ## Waiting on owner
 

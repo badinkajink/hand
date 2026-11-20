@@ -176,38 +176,45 @@ def fig_landscape(S, T, F25, F10):
     """The predicted landscape over the lattice of layouts, with the tested layouts; the feasible landscapes beside."""
     plt = plt_setup()
     from matplotlib.colors import LinearSegmentedColormap
+    from matplotlib.lines import Line2D
     cmap = LinearSegmentedColormap.from_list("ramp", RAMP)
-    panels = [("Predicted tracking at 2.5 N, best grasp", {tuple(c["xy"]): c["score"] for c in S["candidates"]
-                                                           if c["fits"]})]
-    for lab, F in (("Best feasible grasp at 2.5 N (fingers 10 mm apart)", F25),
-                   ("Best feasible grasp at 1.0 N (fingers 10 mm apart)", F10)):
+    panels = [("(a) Predicted, 2.5 N", {tuple(c["xy"]): c["score"] for c in S["candidates"] if c["fits"]}, set())]
+    for lab, F in (("(b) Best feasible grasp, 2.5 N", F25), ("(c) Best feasible grasp, 1.0 N", F10)):
         if F:
             panels.append((lab, {tuple(L["xy"]): (L["seeds012"] if L["seeds012"] is not None else L["seed0"])
-                                 for L in F["layouts"]}))
+                                 for L in F["layouts"] if L["k"] is not None},
+                           {tuple(L["xy"]) for L in F["layouts"] if L["k"] is None}))
     allxy = [tuple(c["xy"]) for c in S["candidates"]]
     tested = {}
     for x in T["plans"]:
         if x["n"] > 0 and not x.get("prm") and not x.get("role", "").startswith("cem"):
             tested[tuple(x["xy"])] = x["measured_mean"]
-    fg, axs = plt.subplots(1, len(panels), figsize=(6.2 * len(panels), 5.6), squeeze=False)
-    vmax = 0.65
-    for ax, (lab, vals) in zip(axs[0], panels):
-        xs = np.array([p[0] for p in allxy])
-        ys = np.array([p[1] for p in allxy])
-        ax.scatter(xs, ys, s=34, marker="s", color="#eeeeee", lw=0, zorder=1)
+    vmax = max(0.65, max(max((v for v in vals.values() if v is not None), default=0) for _, vals, _ in panels))
+    plt.rcParams.update({"font.size": 14})
+    fg, axs = plt.subplots(1, len(panels), figsize=(4.7 * len(panels) + 1.2, 5.4), squeeze=False, sharey=True)
+    for i, (ax, (lab, vals, infeasible)) in enumerate(zip(axs[0], panels)):
+        ax.scatter([p[0] for p in allxy], [p[1] for p in allxy], s=30, marker="s", color="#eeeeee", lw=0, zorder=1)
         k = [p for p in allxy if p in vals and vals[p] is not None]
         im = ax.scatter([p[0] for p in k], [p[1] for p in k], c=[vals[p] for p in k], cmap=cmap, vmin=0, vmax=vmax,
-                        s=34, marker="s", lw=0, zorder=2)
+                        s=30, marker="s", lw=0, zorder=2)
+        if infeasible:
+            ax.scatter([p[0] for p in infeasible], [p[1] for p in infeasible], s=16, marker="x", color="#9a9a9a",
+                       lw=1.0, zorder=2)
         for p, m in tested.items():
             ax.scatter([p[0]], [p[1]], s=150, facecolors="none", edgecolors=INK, lw=1.6, zorder=3)
-            ax.annotate(f(m, 2), p, xytext=(8, -4), textcoords="offset points", fontsize=11, color=INK,
+            ax.annotate(f(m, 2), p, xytext=(8, -4), textcoords="offset points", fontsize=12, color=INK,
                         bbox=dict(boxstyle="round,pad=0.15", fc="white", ec=INK2, lw=0.6), zorder=4)
-        ax.set_title(lab, fontsize=13, color=INK)
-        ax.set_xlabel("Thumb-to-finger separation x (mm)")
-        ax.set_ylabel("Index-to-middle separation y (mm)")
+        ax.set_title(lab, fontsize=14, color=INK, loc="left")
+        ax.set_xlabel("Separation x (mm)")
+        if i == 0:
+            ax.set_ylabel("Separation y (mm)")
         ax.set_aspect("equal")
     cb = fg.colorbar(im, ax=axs[0].tolist(), shrink=0.8, pad=0.02)
     cb.set_label("Tracking score")
+    handles = [Line2D([], [], marker="s", ls="", color="#eeeeee", ms=8, label="Does not fit the hand"),
+               Line2D([], [], marker="x", ls="", color="#9a9a9a", ms=7, label="No feasible grasp"),
+               Line2D([], [], marker="o", ls="", mfc="none", mec=INK, ms=10, label="Tried on the hand (measured mean)")]
+    fg.legend(handles=handles, loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.45, -0.06), fontsize=13)
     return png_uri(fg)
 
 
@@ -323,14 +330,35 @@ plan's grasp is listed apart and left out (Table 2).</li>
                         caption="Each plan tried on the hand. Trial scores in order; a trial that ended early names "
                                 "its ending.")))
 
-    cap2 = ("The lattice of layouts. Left: the ranking's predicted score at each fitting layout's best grasp; grey "
-            "squares do not fit the hand. Further panels: the score of each layout's best feasible grasp, at HOM's "
-            "default force and, once computed, at 1.0 N. A grasp is feasible when its simulated twist keeps every pair "
-            "of fingers 10 mm apart on the CAD collision spheres under both contact models, with the sphere held. The "
-            "layouts tried on the hand at the default force are ringed and labelled with their measured mean score.")
+    cap2 = ("The lattice of layouts: x is the thumb-to-finger separation and y the index-to-middle separation, in mm "
+            "of the palm frame. (a) The ranking's predicted score at each fitting layout's best grasp, HOM at its "
+            "default 2.5 N. (b, c) The score of each layout's best feasible grasp at 2.5 N and at 1.0 N. A grasp is "
+            "feasible when its simulated twist keeps every pair of fingers 10 mm apart on the CAD collision spheres "
+            "under both contact models, with the sphere held. The layouts tried on the hand at the default force are "
+            "ringed and labelled with their measured mean score.")
+    land = ("<p>The trials sample the predicted landscape across its range, from layouts whose fingers touch in "
+            "simulation to the clear layouts of block A4feas.</p>")
+    if F25 and F10:
+        from scipy import stats as _st
+        a = {tuple(L["xy"]): L for L in F25["layouts"]}
+        b = {tuple(L["xy"]): L for L in F10["layouts"]}
+        both = [xy for xy in a if xy in b and a[xy]["k"] is not None and b[xy]["k"] is not None]
+        sa = np.array([a[xy]["seeds012"] if a[xy]["seeds012"] is not None else a[xy]["seed0"] for xy in both])
+        sb = np.array([b[xy]["seeds012"] if b[xy]["seeds012"] is not None else b[xy]["seed0"] for xy in both])
+        n25 = sum(1 for L in F25["layouts"] if L["k"] is not None)
+        n10 = sum(1 for L in F10["layouts"] if L["k"] is not None)
+        top = sorted(F10["layouts"], key=lambda L: -((L["seeds012"] if L["seeds012"] is not None else L["seed0"]) or 0))[:5]
+        top25 = sorted(F25["layouts"], key=lambda L: -((L["seeds012"] if L["seeds012"] is not None else L["seed0"]) or 0))[:5]
+        land += (f"<p>With HOM's force lowered to 1.0 N, {n10} of the {len(F10['layouts'])} fitting layouts have a "
+                 f"feasible grasp, against {n25} at 2.5 N. Over the {len(both)} layouts feasible at both forces, the mean "
+                 f"score rises from {f(float(sa.mean()))} to {f(float(sb.mean()))}. The two forces rank these layouts "
+                 f"with &rho; = {f(float(_st.spearmanr(sa, sb)[0]), 2)}. The five best feasible layouts at 1.0 N are "
+                 + ", ".join(f"{xy_s(L['xy'])}" for L in top)
+                 + f", scoring {f(top[-1]['seeds012'], 2)} to {f(top[0]['seeds012'], 2)}. At 2.5 N they were "
+                 + ", ".join(f"{xy_s(L['xy'])}" for L in top25)
+                 + f", scoring {f(top25[-1]['seeds012'], 2)} to {f(top25[0]['seeds012'], 2)}.</p>")
     sec.append(("landscape", "The ranking's landscape and the tested layouts",
-                "<p>The trials sample the predicted landscape across its range, from layouts whose fingers touch in "
-                "simulation to the clear layouts of block A4feas.</p>" + fig(2, fig_landscape(S, T, F25, F10), cap2)))
+                land + fig(2, fig_landscape(S, T, F25, F10), cap2)))
 
     if RP and SM:
         uri, J = fig_jitter(RP, SM)
