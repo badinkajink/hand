@@ -1204,7 +1204,7 @@ def cmd_putdown(a):
             return 0
         if arm.c is None:
             arm.connect(a.stop_n is not None)
-        touched, total, slips = None, 0.0, 0
+        touched, total, slips, forces = None, 0.0, 0, 0
         for name, dist, v, zmm in legs:
             left = dist
             while True:
@@ -1226,6 +1226,16 @@ def cmd_putdown(a):
                     slips += 1
                     print(f"   {d - total:.1f} mm above the expected touchdown: the object slipping in the grasp, "
                           f"not the table; going on ({slips} of {a.max_slips})", flush=True)
+                    continue
+                # a force stop well above the expected touchdown, over open table (15:26: 2.03 N 38 mm above it, and
+                # the same descent from a fresh reference went down to the touchdown): once more, at most twice, from a
+                # new reference after 1 s; a real obstacle stops it again
+                if (why and " changed " in why and "N (limit" in why and total < d - a.touch_window - 5.0
+                        and left > 0.5 and forces < 2):
+                    forces += 1
+                    print(f"   a force stop {d - total:.1f} mm above the expected touchdown: going on from a new "
+                          f"reference ({forces} of 2)", flush=True)
+                    time.sleep(1.0)
                     continue
                 break
             if why:
