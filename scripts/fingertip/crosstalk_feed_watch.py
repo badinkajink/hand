@@ -60,14 +60,17 @@ WATCHED = (V3 + "data/", V3 + "README.md")
 # the flexion presses' fits and any shear analysis there (*press_fits*, *shear*: the afternoon runs of fd299780); and the
 # lab's sensing analyses of 11-19 and their pages (a482d935 to ef99bc6b: data/s3/*board_*, *arm_press*, *hexe_*, *twist*,
 # *contact_place*, *direction_gp*, *trial_contacts*, *estimate_stability*; the pages' folder *fingertip_sensing/ and the
-# board-force page and NOTES.md in the study's folder, which the pattern missed for 27dab96a, 8141686b and ef99bc6b)
+# board-force page and NOTES.md in the study's folder, which the pattern missed for 27dab96a, 8141686b and ef99bc6b); and
+# HOM's runs with and without the fingertip model on the calibrated plant, the controller rematch's data/*sensing* (another
+# session's page, 9a61fba2 of 11-20; its Table 2 is in the overview's section on the fingertip in the simulations)
 ANALYSES = re.compile(r"docs/experiments/(20261030-inverted_rig_seat_block/data/(holds/|[^/]*rod_joint_registration)"
                       r"|20261022-ur5_tip_calibration/(data/[^/]*(v3_|board_gp)|QUEUE\.md)"
                       r"|\d{8}-sr2_[^/]*/(lab/|data/[^/]*(analysis|crosstalk_hand)|data/sweep/[^/]*own_pose"
                       r"|data/s\d/[^/]*(board_|friction|drag|shear|press_fits|arm_press|hexe_|twist|contact_place"
                       r"|direction_gp|trial_contacts|estimate_stability)|\d{8}-[^/]*\.html|NOTES\.md)"
                       r"|\d{8}-fingertip_sensing/"
-                      r"|20261115-hom_bench_trials/data/\d{8}-tip_contacts/)")
+                      r"|20261115-hom_bench_trials/data/\d{8}-tip_contacts/"
+                      r"|\d{8}-controller_rematch/data/[^/]*sensing)")
 # the SR2 analysis's scripts change many times before its result page does (owner's high priority, 18:2x on 11-05): a commit
 # that changes only these is not news, whatever its subject; its page and data files are
 DEV_ONLY = re.compile(r"scripts/fingertip/sr2_crosstalk_")
