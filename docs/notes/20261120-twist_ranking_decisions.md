@@ -175,6 +175,13 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 13:2x, owner (relayed to the lab at 13:25 as the go for this recovery): "looks pretty salvageable to me. rotate the wrist
   to align with the stem (parallel), and set up for a two finger pinch. alternative: instead of pinch, slowly push, with
   one of the index or middle finger, the sphere. either along the stem's axis or perpendicular to it."
+- 13:28-13:34, lab: the owner's recovery worked. push_sphere.py pushed the lying sphere 50 mm along its stem with the
+  middle fingertip, off the cables (13:28); the pinch picked it up (13:31); the series restarted at 13:34 at
+  A1_p25_x85y170g2_t2. That trial dropped the sphere again; the pick-up planner found no plan (the stem 47.5 deg off
+  across x_P, the wrist's turn limit 45 deg). (85, 170) g2 dropped in both of its trials; hand-4a proposed to the owner to
+  skip its third (13:4x).
+- 13:54, hand-4a: UHAS's published-settings training on the calibrated plant finished at 1024 worlds (lane_gpu3); its
+  scoring on the 45 layouts runs.
 
 ## Waiting on owner
 
