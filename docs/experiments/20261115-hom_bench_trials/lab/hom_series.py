@@ -128,9 +128,9 @@ def servo_gate(a):
         time.sleep(60)
 
 
-def run(cmd, timeout):
+def run(cmd, timeout, env=None):
     print(f"$ {' '.join(cmd)}", flush=True)
-    r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True, timeout=timeout)
+    r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True, timeout=timeout, env=env)
     out = r.stdout + r.stderr
     keep = [x for x in out.splitlines() if x.strip() and "video:" not in x]
     print("\n".join("   " + x[:220] for x in keep[-8:]), flush=True)
@@ -320,11 +320,14 @@ def main():
     print(claude_login.line(), flush=True)
     # the tracker's camera mode for every step this series runs (hom_trial.cam_mode reads it; 2026-11-20, owner: "id
     # like to prioritize (within reason) the 60fps tracking"), written into each row
-    os.environ["HOM_CAM_MODE"] = a.cam_mode
+    # the trial alone at --cam-mode (60 fps for HOM's loop); every other step at 1920 x 1080, 30 fps and the calibration's
+    # exposure (2026-11-20 16:1x: at 540p the levelling lost a sphere's tags behind the turning hand, and the tracker
+    # lost a held sphere at a putdown's start; twice the pixels per tag at 1080p)
+    os.environ["HOM_CAM_MODE"] = "1920x1080@30"
+    os.environ.pop("HOM_CAM_EXPOSURE", None)
+    trial_env = dict(os.environ, HOM_CAM_MODE=a.cam_mode)
     if a.cam_exposure:
-        os.environ["HOM_CAM_EXPOSURE"] = f"{a.cam_exposure:g}"
-    else:
-        os.environ.pop("HOM_CAM_EXPOSURE", None)
+        trial_env["HOM_CAM_EXPOSURE"] = f"{a.cam_exposure:g}"
     camera = f"{a.cam_mode}, exposure {a.cam_exposure or 166:g}"
     print(f"camera: {camera}", flush=True)
     common = ["--object", a.object, "--map", a.map]
@@ -433,7 +436,7 @@ def main():
         rc, out = run([PY, "hom_trial.py", "trial", "--task", a.task, "--controller", f"{a.controller_host}:{port}",
                        *common, "--plan", plan, "--station", "http://10.99.99.2:8765", "--live", "--arm", "--ft", "--out-dir",
                        str(TRIALS), "--video-dir", a.video_dir, "--label", label, "--max-drift-mm",
-                       f"{a.max_drift_mm:g}"], 200)
+                       f"{a.max_drift_mm:g}"], 200, env=trial_env)
         rec = re.search(r"-> (\S+_corvus\.jsonl)\s*$", out, re.M)
         if rc != 0 or rec is None or "trial done" not in out:
             sys.exit(f"STOP: trial failed for {label}")
@@ -484,8 +487,8 @@ def main():
             if "is not seated" in out:
                 # the object held tilted past --seat-deg: let go of it rather than hold it for hours under the servos'
                 # load, though it may topple (13:41, 2026-11-16), and stop: a person must stand it up again
-                rc2, out2 = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--go",
-                                 "--video-dir", a.video_dir], 300)
+                rc2, out2 = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--max-level", "0",
+                                 "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
                 # released at 19.0 deg the sphere settled at 5.2 deg (13:50); at 21.6 deg it toppled (13:41): go on
                 # when it stands within --upright-deg after the release
                 # the block's tilt from vertical after letgo (not its tilt in P, which a tilted hand inflates)
