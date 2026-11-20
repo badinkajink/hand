@@ -821,7 +821,25 @@ layouts, the drop was 0.112. Its 95&#8202;% interval, from a bootstrap over the 
 torsional friction is a torque about the contact normal of up to a coefficient times the normal force. At coefficients of
 0.5 and 2&#8202;mm the score was 0.308 and 0.351
 ([sampling MPC and HOM](exp:20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html#contact), section on the
-contact model).</p>"""),
+contact model).</p>
+<p>On 20 November HOM was run with and without the fingertips at 45 layouts of the hand in the calibrated plant,
+with three seeds per layout. This plant&#8217;s blind prediction for the bench of 17 November was a score of 0.437,
+against the hand&#8217;s 0.447. There a run&#8217;s score is one minus the ratio of the RMS angle error to the RMS commanded
+rotation of 59.4&#176;. It is 0 when the sphere is not held at the end. With the sphere&#8217;s pose exact, the mean score
+was the same with exact fingertip contacts as without them. With the tracker model of 13 November, the mean score was 0.014 higher with the fingertip
+model than without the fingertips, at HOM&#8217;s default commanded force of 2.5&#8202;N. At 1.0&#8202;N it was 0.017 higher.
+At that force the weight of the spin rows in HOM&#8217;s least squares was halved. With HOM&#8217;s loop on the
+fingertips&#8217; force the score was lower at both forces, and at 1.0&#8202;N the sphere was dropped in 46 of 135 runs.
+The tracker model&#8217;s noise, 0.5&#8202;mm and 1&#176; per frame, is about 20 times the jitter measured by the lab
+([inner-loop controllers on the calibrated plant](exp:20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html#tips), Table 2).</p>
+<div class="tw"><table class="index"><thead><tr><th>HOM&#8217;s sensing</th><th>Mean score, 2.5&#8202;N</th><th>Runs dropped of 135, 2.5&#8202;N</th><th>Mean score, 1.0&#8202;N</th><th>Runs dropped of 135, 1.0&#8202;N</th></tr></thead><tbody>
+<tr><td>No fingertips, exact pose</td><td>0.388</td><td>3</td><td>0.649</td><td>0</td></tr>
+<tr><td>Exact fingertip contacts, exact pose</td><td>0.388</td><td>3</td><td>0.649</td><td>0</td></tr>
+<tr><td>No fingertips, tracker model of 13 November</td><td>0.381</td><td>10</td><td>0.538</td><td>24</td></tr>
+<tr><td>Fingertip model, the same tracker model</td><td>0.395</td><td>7</td><td>0.555</td><td>22</td></tr>
+<tr><td>Fingertip model with its errors tripled</td><td>0.408</td><td>10</td><td>0.557</td><td>24</td></tr>
+<tr><td>Fingertip model and HOM&#8217;s force loop</td><td>0.309</td><td>8</td><td>0.413</td><td>46</td></tr>
+</tbody></table></div>"""),
     ("hardware", "Hardware built and measured",
      r"""<p>The DIP link holds the board against the pad. Three concepts were drawn: the window plate with a clamp (a), a
 cover that clamps the board behind the pad on rails (b) and a board printed over (c). On 2026-10-20 the owner chose b
@@ -1083,6 +1101,8 @@ PAGES = [
     ("Method", "20261112-inner_loop_benchmark/20261113-sampling_mpc_vs_hom.html",
      "HOM and sampling planners on the sphere twist; the tip&#8217;s contact model in the plant; HOM with the tag tracker, "
      "the fingertip model and a filter on the pose"),
+    ("Method", "20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html",
+     "HOM on the calibrated plant at 45 layouts: its commanded force, and the fingertip model with and without a force loop"),
     ("Design", "20261019-v2_tip_fe_checks/20261019-v2_fingertip_stiffness_checks.html",
      "The v2 tips and b&#8217;s pad: print deviations, magnet count and depth, cover walls, resolution"),
     ("Design", "20261014-tip_codesign/20261014-sphere_pad_accuracy_and_fingertip_codesign.html",
