@@ -1129,6 +1129,13 @@ def cmd_putdown(a):
     try:
         p_m, q_m, info = meas.pose(a.measure_s, settle=0.0)
         report("held", p_m, q_m, p_n, q_n, shape, info)
+        # the object still in the hand at all (2026-11-20 12:36: a twist dropped the sphere on its side 106 mm from the
+        # grasp, and the putdown "levelled" the hand about the lying sphere and descended toward it; held but drifted
+        # spheres sat 22-26 mm from the grasp that day)
+        off = float(np.linalg.norm(np.asarray(p_m, float) - np.asarray(p_n, float)))
+        if off > a.held_mm:
+            raise SystemExit(f"the object is not in the hand: {off:.1f} mm from the grasp's nominal pose (over "
+                             f"--held-mm {a.held_mm:g})")
         # a minor turn of the hand about the object's centre toward a level putdown (owner, 2026-11-16: "really minor
         # wrist reorientation to get a more level putdown ... dont have to get perfectly level, the slow release once
         # we get touchdown will probably do the trick"): a share --level-frac of the axis' tilt, at most --level-max
@@ -1650,6 +1657,8 @@ def main():
             p.add_argument("--touch-mm", type=float, default=0.8, help="the object's motion along z_P: touchdown")
             p.add_argument("--fast-touch-mm", type=float, default=2.0, help="the same on the fast leg")
             p.add_argument("--touch-lat", type=float, default=1.5, help="the object's motion in P's xy: a stop")
+            p.add_argument("--held-mm", type=float, default=45.0,
+                           help="the object farther than this from the grasp's nominal pose is not in the hand")
             p.add_argument("--max-slips", type=int, default=3,
                            help="stops on the object's motion well above the expected touchdown taken as slip in "
                                 "the grasp, the descent going on")
