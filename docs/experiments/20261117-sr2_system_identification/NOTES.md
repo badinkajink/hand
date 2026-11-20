@@ -482,3 +482,17 @@ post, you can also run experiments on the sphere".
   - Give C45 its own fitted map before tracking. Faces 37 and 38 still need a frontal view.
 - Page: `20261119-fingertip_board_force_by_contact_place.html`, by `scripts/fingertip/fingertip_board_force_place_page.py`
   (built on corvus with DOCS_REFRESH=0; the docs index needs a refresh on the workstation).
+- **The release, 17:59:17** (owner: "i also removed the mass btw"). The force stepped (-0.178, -0.163, -1.180) N, |dF|
+  1.205 N, against 1.155 N when the mass went on. So two steps give 0.56-0.60 of the 2.00-2.06 N weight.
+- **Large blocks' map fit** (owner at the bench, 17:57, relayed by hand-9b). `block_map_capture.py` recorded both cameras
+  continuously from 17:58:22 to 18:03:24, no motion, while the owner set C45 and S67 down in new poses. The second capture
+  was stopped at the owner's "can we stop now". `block_map_views.py` turned the still stretches into views (C45 17 poses,
+  S67 8). The 11-13 `block_map_fit.py` (cameras' baseline sets the scale, each tag's pose and size free) wrote
+  `docs/experiments/20261113-camera_arm_calibration/data/fits/20261119-block_map_{C45,S67}.json` and `_fit_` files.
+  - C45: rms 0.25 px; tags 12.99-13.03 mm; every face sits 0.27-0.31 mm inside the CAD, so the across-flats is 29.4
+    against the calipers' 29.985. The two cameras place held-out views 0.11-0.58 mm apart with the fitted map, against
+    3.0-3.6 mm with the CAD map.
+  - S67: rms 0.18 px over 8 views; tags 12.99-13.07 mm; the held-out view is 1.7 mm apart with the fitted map, against
+    4.5 mm with the CAD map. Map A and the caliper-scaled map B differ by 0.5 mm rms: more views would firm it up.
+  - Faces 37 and 38 decode with no bits corrected seen near head-on (margins 56 and 50). Their bit corrections at
+    17:34-17:48 came from edge-on views.
