@@ -29,7 +29,14 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   the sphere down, seated, and released it. But both ways of straightening were refused: the index tip end starts
   3.3 mm into the block in the model, and the paths take it to 4.0 and 4.9 mm. The hand holds its open pose over the
   standing sphere, the sphere 18 mm off the grasp's axis. No coded step backs out of this (`--rise-open` refuses past
-  its lateral limit); the next step waits for the owner. t3's row is not written yet.
+  its lateral limit), so it waited for the owner.
+- **10:5x, the owner reset the arm** (level, the palm 107 mm beside the upright sphere, 118 mm from the table's centre).
+  `letgo` straightened the fingers and lifted the palm at 10:55 (the path to zero kept 28.6 mm from the ball). The
+  approach's lateral limit (40 mm) refuses a move that long, and at the letgo height the straight thumb hung 22.6 mm
+  below the sphere's top. So: `pose_sweep.py clear --go` (up 49.6 mm, the fingers 27 mm above the top), then the lateral
+  move alone, `hom_setup.py approach --plan NEXT_PLAN --fine --fine-max 130 --go` (120 mm, no descent). The cylinder
+  stood at x_B -44 mm, outside the fingers' path. t3's row was added by hand (field `note`), and the series restarted
+  at 10:59 from entry 2 of the day file (`$(cut -d" " -f2- series_entries_20261120_day.txt)`), appending to the same log.
 
 ## State on 2026-11-19 21:1x: the ranked layouts' series, unattended
 
