@@ -169,6 +169,12 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   failed: no pinch at (85, 170); at the (105, 70) pick-up layout a fingertip came down on the ball twice (1-2 tags see the
   lying sphere, 6.5 mm between pad and ball). The hand is safe (fingers straight, level, high). Relayed to the owner by
   push at 12:5x. Restart at A1_p25_x85y170g2_t2 once the sphere stands near the table's centre.
+- 13:19, lab: colour snapshots of both cameras (`logs/20261116-hom_trials/20261120-snapshot/` on corvus), sent to the
+  owner. The ball lies on its side among the cables, centre about (-139, -318) mm in B and 23 mm up, 118 mm from the
+  table's centre toward the arm's base.
+- 13:2x, owner (relayed to the lab at 13:25 as the go for this recovery): "looks pretty salvageable to me. rotate the wrist
+  to align with the stem (parallel), and set up for a two finger pinch. alternative: instead of pinch, slowly push, with
+  one of the index or middle finger, the sphere. either along the stem's axis or perpendicular to it."
 
 ## Waiting on owner
 
