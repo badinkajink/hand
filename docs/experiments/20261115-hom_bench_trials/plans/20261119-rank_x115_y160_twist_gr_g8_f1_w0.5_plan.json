@@ -1,0 +1,491 @@
+{
+ "design": "hom_film_x115_y160_twist_grg8_mcpstop_f1_w0.5",
+ "mounts_palm_mm": {
+  "thumb": [
+   -51.3188,
+   2.4004
+  ],
+  "index": [
+   51.3188,
+   76.6003
+  ],
+  "middle": [
+   51.3187,
+   -76.6002
+  ]
+ },
+ "poses": [
+  {
+   "name": "open",
+   "ramp_s": 1.0,
+   "hold_s": 0.5,
+   "joints": {
+    "thumb": {
+     "yaw": 5.119154479356384,
+     "mcp": 19.400786388825264,
+     "pip": 43.86039199243404
+    },
+    "index": {
+     "yaw": -38.53225851760391,
+     "mcp": -11.0,
+     "pip": 35.69973571000279
+    },
+    "middle": {
+     "yaw": 38.35572880869045,
+     "mcp": -9.5,
+     "pip": 36.73076367946681
+    }
+   }
+  },
+  {
+   "name": "grip",
+   "ramp_s": 1.0,
+   "hold_s": 0.0,
+   "joints": {
+    "thumb": {
+     "yaw": 4.103418723373968,
+     "mcp": 48.61952170094912,
+     "pip": 0.0
+    },
+    "index": {
+     "yaw": -41.880270723051765,
+     "mcp": 12.147942985735911,
+     "pip": 0.0
+    },
+    "middle": {
+     "yaw": 41.727902619156296,
+     "mcp": 12.20589639289744,
+     "pip": 0.0
+    }
+   }
+  }
+ ],
+ "meta": {
+  "object": "sphere, 40 mm",
+  "written": "2026-11-19 21:06",
+  "source": "film_plan.py (2026-11-16): the abstract-hand film's twist, grid2dgr grasp 8 at call 397 (115, 160) mm, the best mean tracking score None of {} (/home/humanoid/Programs/hand/logs/20261116-hom_setup/gr_rows), HOM's default prm, variant base, built by hom_bench_plans.build_plan",
+  "frames": "mounts_palm_mm are the driver's palm coordinates (manta_hand.plan); meta.hom.d6_P_mm and meta.mounts.fingers.<f>.P_mm are the simulator's palm frame P (assets/cad_v3/frames.json); poses are simulator degrees (yaw, mcp, pip)",
+  "trial": "HOM runs the trial in closed loop from the open pose (HomBench); the grip pose is the touch pose, for the driver's checks and an open-loop look",
+  "hom": {
+   "task": "twist",
+   "d_mm": 40.0,
+   "shape": "sphere",
+   "role": "film",
+   "xy_mm": [
+    115.0,
+    160.0
+   ],
+   "call": 397,
+   "d6_P_mm": [
+    -57.5,
+    0.0,
+    57.5,
+    80.0,
+    57.5,
+    -80.0
+   ],
+   "pick": "grid2dgr grasp 8",
+   "v": [
+    0.023498,
+    -8.5e-05,
+    0.062197,
+    -0.154067,
+    -0.332634,
+    0.328115,
+    0.095156
+   ],
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "task_prm": {
+    "f_pinch": 3.0,
+    "f_drive": 1.5,
+    "f_press": 0.5,
+    "rot_deg": 15.0,
+    "rot_dps": 15.0,
+    "press_deg": 20.0,
+    "press_dps": 20.0,
+    "w_roll_pinch": 0.0,
+    "w_roll_push": 1.0,
+    "f_tripod": 1.0,
+    "ramp_dps": 30.0,
+    "w_step_dps": 40.0,
+    "rail": 0.0,
+    "w_spin_pinch": 0.0,
+    "w_slide_pinch": 1.0,
+    "w_spin_push": 1.0,
+    "w_slide_push": 1.0,
+    "w_spin_tripod": 0.5,
+    "w_roll_tripod": 0.0,
+    "w_slide_tripod": 1.0
+   },
+   "variant": "base",
+   "hold_s": 0.0,
+   "dt_world_s": 0.01,
+   "homparams": "hom.HomParams() at dt",
+   "plant": {
+    "name": "sv25",
+    "spec": null,
+    "SCALE_HAND": "cad_v2",
+    "HOS_PLANT": "servo",
+    "HOS_SCENES": "logs/20261102-hom_servo_plant/scenes",
+    "HOM_ROWS_TAG": "_sv25r"
+   },
+   "scores": {
+    "search_mean_seeds_0_2": null,
+    "val_seeds": [],
+    "val_scores": [],
+    "val_mean": null,
+    "score": "hom_landscape.track_score (the film's choice), seeds 0-2 of the rerun grid"
+   },
+   "rows": "rows//home/humanoid/Programs/hand/logs/20261116-hom_setup/gr_rows/twist_d40.jsonl (track_score)",
+   "setup": {
+    "palm_m": [
+     -0.023498,
+     8.5e-05,
+     0.182197
+    ],
+    "quat": [
+     0.70710678,
+     0.70710678,
+     0.0,
+     0.0
+    ],
+    "r_m": 0.02,
+    "hl_m": 0.0,
+    "psi_rad": 0.0,
+    "mounts_m": {
+     "thumb": [
+      -0.0575,
+      0.0,
+      0.0
+     ],
+     "index": [
+      0.0575,
+      0.08,
+      0.0
+     ],
+     "middle": [
+      0.0575,
+      -0.08,
+      0.0
+     ]
+    },
+    "targets_m": {
+     "thumb": [
+      -0.006548656735393933,
+      0.004613473539119793,
+      -0.06509963077700169
+     ],
+     "index": [
+      0.043872432107982605,
+      0.02249285974909071,
+      -0.06509963077700169
+     ],
+     "middle": [
+      0.04378753115947841,
+      -0.022739186365900617,
+      -0.06509963077700169
+     ]
+    },
+    "n_out": {
+     "thumb": [
+      -0.9835239520587212,
+      0.15379618785989502,
+      -0.0950124640589752
+     ],
+     "index": [
+      0.6669208545984485,
+      0.7390461456330837,
+      -0.0950124640589752
+     ],
+     "middle": [
+      0.6641417728143505,
+      -0.741544561895274,
+      -0.0950124640589752
+     ]
+    }
+   },
+   "body_mounts_m": {
+    "thumb": [
+     -0.0575,
+     0.0,
+     0.0
+    ],
+    "index": [
+     0.0575,
+     0.08,
+     0.0
+    ],
+    "middle": [
+     0.0575,
+     -0.08,
+     0.0
+    ]
+   },
+   "q_open_rad": {
+    "thumb": [
+     0.08934610058298499,
+     0.3386075999611017,
+     0.7655082514833298
+    ],
+    "index": [
+     -0.6725147793618176,
+     -0.1971388594354565,
+     0.6230779302313443
+    ],
+    "middle": [
+     0.6694337547136906,
+     -0.2057517113058453,
+     0.6410727629786429
+    ]
+   },
+   "q_touch_rad": {
+    "thumb": [
+     0.07161816731085814,
+     0.8485707344263961,
+     0.0
+    ],
+    "index": [
+     -0.7309486157438395,
+     0.2120216024456422,
+     0.0
+    ],
+    "middle": [
+     0.7282892906558428,
+     0.21303308021335973,
+     0.0
+    ]
+   },
+   "scenes": {
+    "pads": "logs/20261102-hom_servo_plant/scenes/sph040.0/x092.5_y102.5_pads_bv2__kp0.72_kv0_fr0.18_fl0_dp0.0144.xml",
+    "pt": "logs/20261102-hom_servo_plant/scenes/sph040.0/x092.5_y102.5_pt__kp0.72_kv0_fr0.18_fl0_dp0.0144.xml",
+    "pads_with_mounts": "logs/20261102-hom_servo_plant/scenes/sph040.0/x092.5_y102.5_pads_bv2__kp0.72_kv0_fr0.18_fl0_dp0.0144__bench_m57p5_0_57p5_80_57p5_m80.xml"
+   }
+  },
+  "mounts": {
+   "d6_P_mm": [
+    -57.5,
+    0.0,
+    57.5,
+    80.0,
+    57.5,
+    -80.0
+   ],
+   "fingers": {
+    "thumb": {
+     "P_mm": [
+      -57.5,
+      0.0
+     ],
+     "driver_mm": [
+      -51.3188,
+      2.4004
+     ],
+     "gantry_mm": [
+      -1.3188,
+      2.4004
+     ],
+     "steppers_mm": {
+      "J0": 57.4004,
+      "J1": 28.6812
+     },
+     "box_margin_mm": {
+      "x_lo": 28.6812,
+      "x_hi": 31.3188,
+      "y_lo": 57.4004,
+      "y_hi": 52.5996,
+      "min": 28.6812,
+      "edge": "x_lo"
+     },
+     "stop_margin_mm": {
+      "J0": {
+       "stage": "x_stage",
+       "disp_mm": 15.6884,
+       "box_mm": 52.5996,
+       "stop_mm": 57.3996
+      },
+      "J1": {
+       "stage": "y_stage",
+       "disp_mm": 16.8137,
+       "box_mm": 28.6812,
+       "stop_mm": 28.6812
+      }
+     },
+     "driver_violations": []
+    },
+    "index": {
+     "P_mm": [
+      57.5,
+      80.0
+     ],
+     "driver_mm": [
+      51.3188,
+      76.6003
+     ],
+     "gantry_mm": [
+      1.3188,
+      21.6003
+     ],
+     "steppers_mm": {
+      "J2": 8.3997,
+      "J3": 28.6812
+     },
+     "box_margin_mm": {
+      "x_lo": 31.3188,
+      "x_hi": 28.6812,
+      "y_lo": 51.6003,
+      "y_hi": 8.3997,
+      "min": 8.3997,
+      "edge": "y_hi"
+     },
+     "stop_margin_mm": {
+      "J2": {
+       "stage": "x_stage",
+       "disp_mm": 45.7323,
+       "box_mm": 8.3997,
+       "stop_mm": 8.3997
+      },
+      "J3": {
+       "stage": "y_stage",
+       "disp_mm": -19.2032,
+       "box_mm": 28.6812,
+       "stop_mm": 28.6812
+      }
+     },
+     "driver_violations": []
+    },
+    "middle": {
+     "P_mm": [
+      57.5,
+      -80.0
+     ],
+     "driver_mm": [
+      51.3187,
+      -76.6002
+     ],
+     "gantry_mm": [
+      1.3187,
+      -21.6002
+     ],
+     "steppers_mm": {
+      "J4": 8.3998,
+      "J5": 28.6813
+     },
+     "box_margin_mm": {
+      "x_lo": 31.3187,
+      "x_hi": 28.6813,
+      "y_lo": 8.3998,
+      "y_hi": 51.6002,
+      "min": 8.3998,
+      "edge": "y_lo"
+     },
+     "stop_margin_mm": {
+      "J4": {
+       "stage": "x_stage",
+       "disp_mm": -37.3862,
+       "box_mm": 8.3998,
+       "stop_mm": 8.3998
+      },
+      "J5": {
+       "stage": "y_stage",
+       "disp_mm": -16.1453,
+       "box_mm": 28.6813,
+       "stop_mm": 28.6813
+      }
+     },
+     "driver_violations": []
+    }
+   },
+   "fits": true,
+   "min_margin_mm": 8.3997,
+   "min_margin_at": "index y_hi",
+   "xy_mm": [
+    115.0,
+    160.0
+   ]
+  },
+  "driver": {
+   "schema_errors": [],
+   "violations": []
+  },
+  "film_check": {
+   "palm_vs_grid_m": 0.0,
+   "quat_vs_grid": 0.0,
+   "grid_key": {
+    "call": 397,
+    "grasp": 8
+   }
+  },
+  "open_pose_stops": "2026-11-19 21:06: the index and middle MCPs of the open pose raised to -11.0 and -9.5 deg where lower (the lab's mcpstop of 2026-11-17): {'index': [-11.3, -11.0], 'middle': [-11.79, -9.5]}",
+  "ranking": {
+   "study": "docs/experiments/20261119-twist_layout_ranking",
+   "role": "ranked",
+   "rank_among_deployable": 3,
+   "score_mean_both_models": 0.5435,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.541,
+     "track_seeds101112": 0.472,
+     "twist_end_deg": 61.9,
+     "rise_max_mm": 14.18,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.546,
+     "track_seeds101112": 0.546,
+     "twist_end_deg": 72.0,
+     "rise_max_mm": 24.36,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "written_before_trials": "2026-11-19 21:06",
+   "force_refine": {
+    "call": 397,
+    "xy": [
+     115.0,
+     160.0
+    ],
+    "k": 8,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.5
+    },
+    "best_seeds012": 0.686,
+    "best_seeds101112": 0.6892,
+    "default_seeds012": 0.5435,
+    "best_mu06": 0.689,
+    "default_mu06": 0.302,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6833,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.686,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6712,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5987,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6613,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.665,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6473,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4905,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.64,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6415,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6208,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.3858,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.6007,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5898,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5847,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3585,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5215,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5145,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5435,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3625,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4662,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.465,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.465,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3522
+    }
+   }
+  }
+ }
+}

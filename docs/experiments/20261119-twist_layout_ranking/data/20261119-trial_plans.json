@@ -1,0 +1,1589 @@
+{
+ "what": "Bench plans for the layouts proposed for the hand (hand-4a, 2026-11-19), with the simulation's predictions written into each plan before any trial runs.",
+ "written": "2026-11-19 21:06",
+ "plans": [
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 1,
+   "score": 0.6023,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.617,
+     "track_seeds101112": 0.535,
+     "twist_end_deg": 65.5,
+     "rise_max_mm": 21.25,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.588,
+     "track_seeds101112": 0.595,
+     "twist_end_deg": 66.0,
+     "rise_max_mm": 27.83,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -61.3188,
+     2.4004
+    ],
+    "index": [
+     61.3188,
+     29.100299999999997
+    ],
+    "middle": [
+     61.3187,
+     -29.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": 2,
+   "score": 0.5593,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.539,
+     "track_seeds101112": 0.544,
+     "twist_end_deg": 67.5,
+     "rise_max_mm": 21.5,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.579,
+     "track_seeds101112": 0.57,
+     "twist_end_deg": 67.5,
+     "rise_max_mm": 24.62,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     31.600299999999997
+    ],
+    "middle": [
+     51.3187,
+     -31.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "rank_among_deployable": 2,
+   "score": 0.5593,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.539,
+     "track_seeds101112": 0.544,
+     "twist_end_deg": 67.5,
+     "rise_max_mm": 21.5,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.579,
+     "track_seeds101112": 0.57,
+     "twist_end_deg": 67.5,
+     "rise_max_mm": 24.62,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     31.600299999999997
+    ],
+    "middle": [
+     51.3187,
+     -31.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 379,
+    "xy": [
+     115.0,
+     70.0
+    ],
+    "k": 7,
+    "best_prm": {
+     "f_tripod": 1.25,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.661,
+    "best_seeds101112": 0.6623,
+    "default_seeds012": 0.5593,
+    "best_mu06": 0.7043,
+    "default_mu06": 0.446,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6512,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6523,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6408,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.588,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.661,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6538,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6348,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5817,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6595,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6507,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.62,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.574,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.627,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.6102,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5895,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5527,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5898,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5787,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5593,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.5148,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.5492,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.5368,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5223,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4698
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 3,
+   "score": 0.5435,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.541,
+     "track_seeds101112": 0.472,
+     "twist_end_deg": 61.9,
+     "rise_max_mm": 14.18,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.546,
+     "track_seeds101112": 0.546,
+     "twist_end_deg": 72.0,
+     "rise_max_mm": 24.36,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -11.3,
+     -11.0
+    ],
+    "middle": [
+     -11.79,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     76.6003
+    ],
+    "middle": [
+     51.3187,
+     -76.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 3,
+   "score": 0.5435,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.541,
+     "track_seeds101112": 0.472,
+     "twist_end_deg": 61.9,
+     "rise_max_mm": 14.18,
+     "runs": 6,
+     "held": 6
+    },
+    "pads": {
+     "track_seeds012": 0.546,
+     "track_seeds101112": 0.546,
+     "twist_end_deg": 72.0,
+     "rise_max_mm": 24.36,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -11.3,
+     -11.0
+    ],
+    "middle": [
+     -11.79,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     76.6003
+    ],
+    "middle": [
+     51.3187,
+     -76.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "force_refine": {
+    "call": 397,
+    "xy": [
+     115.0,
+     160.0
+    ],
+    "k": 8,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.5
+    },
+    "best_seeds012": 0.686,
+    "best_seeds101112": 0.6892,
+    "default_seeds012": 0.5435,
+    "best_mu06": 0.689,
+    "default_mu06": 0.302,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6833,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.686,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6712,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5987,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6613,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.665,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6473,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4905,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.64,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6415,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6208,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.3858,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.6007,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5898,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5847,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3585,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5215,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5145,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5435,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3625,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4662,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.465,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.465,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3522
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 4,
+   "score": 0.542,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.52,
+     "track_seeds101112": null,
+     "twist_end_deg": 56.0,
+     "rise_max_mm": 17.11,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.564,
+     "track_seeds101112": 0.557,
+     "twist_end_deg": 80.9,
+     "rise_max_mm": 26.81,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     74.1003
+    ],
+    "middle": [
+     48.8187,
+     -74.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 4,
+   "score": 0.542,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.52,
+     "track_seeds101112": null,
+     "twist_end_deg": 56.0,
+     "rise_max_mm": 17.11,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.564,
+     "track_seeds101112": 0.557,
+     "twist_end_deg": 80.9,
+     "rise_max_mm": 26.81,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     74.1003
+    ],
+    "middle": [
+     48.8187,
+     -74.1002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "force_refine": {
+    "call": 371,
+    "xy": [
+     110.0,
+     155.0
+    ],
+    "k": 3,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.5
+    },
+    "best_seeds012": 0.7053,
+    "best_seeds101112": 0.7052,
+    "default_seeds012": 0.542,
+    "best_mu06": 0.672,
+    "default_mu06": 0.4047,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6873,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.7053,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6857,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.597,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6613,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.681,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6728,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.583,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6432,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6602,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6528,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5702,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5915,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.6163,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.594,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5158,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4995,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5798,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.542,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.436,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4718,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4802,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4463,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3553
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": 5,
+   "score": 0.5403,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.524,
+     "track_seeds101112": null,
+     "twist_end_deg": 63.7,
+     "rise_max_mm": 19.9,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.556,
+     "track_seeds101112": 0.551,
+     "twist_end_deg": 62.0,
+     "rise_max_mm": 23.35,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     46.3187,
+     -26.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "rank_among_deployable": 5,
+   "score": 0.5403,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.524,
+     "track_seeds101112": null,
+     "twist_end_deg": 63.7,
+     "rise_max_mm": 19.9,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.556,
+     "track_seeds101112": 0.551,
+     "twist_end_deg": 62.0,
+     "rise_max_mm": 23.35,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     46.3187,
+     -26.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 327,
+    "xy": [
+     105.0,
+     60.0
+    ],
+    "k": 9,
+    "best_prm": {
+     "f_tripod": 1.25,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.6473,
+    "best_seeds101112": 0.6442,
+    "default_seeds012": 0.5403,
+    "best_mu06": 0.6853,
+    "default_mu06": 0.5457,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6345,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6338,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6195,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5592,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6473,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6347,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6155,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5565,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.638,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6263,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.605,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5472,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.6033,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.598,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5805,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5285,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5752,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5667,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5403,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.4912,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.537,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.5273,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5038,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4552
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 40,
+   "score": 0.4775,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.471,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.9,
+     "rise_max_mm": 11.09,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.484,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.9,
+     "rise_max_mm": 12.77,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -14.26,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     56.6003
+    ],
+    "middle": [
+     36.3187,
+     -56.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 40,
+   "score": 0.4775,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.471,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.9,
+     "rise_max_mm": 11.09,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.484,
+     "track_seeds101112": null,
+     "twist_end_deg": 52.9,
+     "rise_max_mm": 12.77,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -14.26,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     56.6003
+    ],
+    "middle": [
+     36.3187,
+     -56.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "force_refine": {
+    "call": 239,
+    "xy": [
+     85.0,
+     120.0
+    ],
+    "k": 15,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.5
+    },
+    "best_seeds012": 0.6613,
+    "best_seeds101112": 0.6522,
+    "default_seeds012": 0.4775,
+    "best_mu06": 0.633,
+    "default_mu06": 0.4807,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6408,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6613,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6475,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5832,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6348,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6455,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6323,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5602,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6253,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6322,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.5985,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5277,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5538,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5628,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5298,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.4457,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4947,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4993,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.4775,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3895,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4488,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4423,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4215,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.341
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 75,
+   "score": 0.4285,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.444,
+     "track_seeds101112": null,
+     "twist_end_deg": 50.7,
+     "rise_max_mm": 9.91,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.413,
+     "track_seeds101112": null,
+     "twist_end_deg": 51.8,
+     "rise_max_mm": 9.85,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     51.6003
+    ],
+    "middle": [
+     26.3187,
+     -51.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": 75,
+   "score": 0.4285,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.444,
+     "track_seeds101112": null,
+     "twist_end_deg": 50.7,
+     "rise_max_mm": 9.91,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.413,
+     "track_seeds101112": null,
+     "twist_end_deg": 51.8,
+     "rise_max_mm": 9.85,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     51.6003
+    ],
+    "middle": [
+     26.3187,
+     -51.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 137,
+    "xy": [
+     65.0,
+     110.0
+    ],
+    "k": 0,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.6528,
+    "best_seeds101112": 0.6528,
+    "default_seeds012": 0.4285,
+    "best_mu06": 0.6463,
+    "default_mu06": 0.4513,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6528,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6355,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5948,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5207,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6358,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6227,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5808,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.496,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6093,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.61,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.564,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4767,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.54,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5302,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4918,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.391,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4787,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4643,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.4285,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.337,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4232,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4033,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3737,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2943
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": 109,
+   "score": 0.398,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.397,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.0,
+     "rise_max_mm": 10.0,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.399,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.4,
+     "rise_max_mm": 10.49,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     41.6003
+    ],
+    "middle": [
+     28.8187,
+     -41.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "rank_among_deployable": 109,
+   "score": 0.398,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.397,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.0,
+     "rise_max_mm": 10.0,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.399,
+     "track_seeds101112": null,
+     "twist_end_deg": 43.4,
+     "rise_max_mm": 10.49,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     41.6003
+    ],
+    "middle": [
+     28.8187,
+     -41.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 158,
+    "xy": [
+     70.0,
+     90.0
+    ],
+    "k": 1,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.6653,
+    "best_seeds101112": 0.6618,
+    "default_seeds012": 0.398,
+    "best_mu06": 0.7077,
+    "default_mu06": 0.4387,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6653,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6392,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5628,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.409,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6483,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6338,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5367,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.3412,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.625,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6063,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.5038,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.3167,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5518,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5328,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4537,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3002,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.482,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4443,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.398,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3132,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4025,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3818,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3532,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2807
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 144,
+   "score": 0.3507,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.344,
+     "track_seeds101112": null,
+     "twist_end_deg": 45.2,
+     "rise_max_mm": 7.73,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.358,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.1,
+     "rise_max_mm": 8.24,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -13.68,
+     -11.0
+    ],
+    "middle": [
+     -12.71,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     36.3187,
+     -26.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "role": "ranked",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 144,
+   "score": 0.3507,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.344,
+     "track_seeds101112": null,
+     "twist_end_deg": 45.2,
+     "rise_max_mm": 7.73,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.358,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.1,
+     "rise_max_mm": 8.24,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -13.68,
+     -11.0
+    ],
+    "middle": [
+     -12.71,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     36.3187,
+     -26.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "force_refine": {
+    "call": 227,
+    "xy": [
+     85.0,
+     60.0
+    ],
+    "k": 14,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.5
+    },
+    "best_seeds012": 0.5265,
+    "best_seeds101112": 0.5253,
+    "default_seeds012": 0.3507,
+    "best_mu06": 0.448,
+    "default_mu06": 0.3373,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.5252,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.5265,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.511,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.4622,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.5232,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.5155,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.4922,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4412,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.5005,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.4928,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.4697,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4172,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.4395,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.4372,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4092,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3618,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.3798,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.3735,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.3507,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3007,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.3128,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3053,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.2838,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2408
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 179,
+   "score": 0.028,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.032,
+     "track_seeds101112": null,
+     "twist_end_deg": 5.5,
+     "rise_max_mm": 0.89,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.024,
+     "track_seeds101112": null,
+     "twist_end_deg": 3.3,
+     "rise_max_mm": 0.91,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -23.818800000000003,
+     2.4004
+    ],
+    "index": [
+     23.818800000000003,
+     64.1003
+    ],
+    "middle": [
+     23.8187,
+     -64.1002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "role": "ranked",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "rank_among_deployable": 179,
+   "score": 0.028,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.032,
+     "track_seeds101112": null,
+     "twist_end_deg": 5.5,
+     "rise_max_mm": 0.89,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.024,
+     "track_seeds101112": null,
+     "twist_end_deg": 3.3,
+     "rise_max_mm": 0.91,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -23.818800000000003,
+     2.4004
+    ],
+    "index": [
+     23.818800000000003,
+     64.1003
+    ],
+    "middle": [
+     23.8187,
+     -64.1002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 117,
+    "xy": [
+     60.0,
+     135.0
+    ],
+    "k": 8,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.2362,
+    "best_seeds101112": 0.2335,
+    "default_seeds012": 0.028,
+    "best_mu06": 0.069,
+    "default_mu06": 0.0023,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.2362,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.2308,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.1352,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.1092,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.2303,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.2292,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.2188,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.1708,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.2062,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.1997,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.1738,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.1278,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.0978,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.1083,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.0948,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.0498,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.0447,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.0457,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.028,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.0072,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.0,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.0007,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.0,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.0
+    }
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "role": "anchor",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.3755,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.39,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.2,
+     "rise_max_mm": 10.4,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.361,
+     "track_seeds101112": null,
+     "twist_end_deg": 48.2,
+     "rise_max_mm": 9.68,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     51.6003
+    ],
+    "middle": [
+     28.8187,
+     -51.6002
+    ]
+   }
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "anchor",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "rank_among_deployable": null,
+   "score": 0.3755,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.39,
+     "track_seeds101112": null,
+     "twist_end_deg": 54.2,
+     "rise_max_mm": 10.4,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.361,
+     "track_seeds101112": null,
+     "twist_end_deg": 48.2,
+     "rise_max_mm": 9.68,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     51.6003
+    ],
+    "middle": [
+     28.8187,
+     -51.6002
+    ]
+   },
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "force_refine": {
+    "call": 162,
+    "xy": [
+     70.0,
+     110.0
+    ],
+    "k": 0,
+    "best_prm": {
+     "f_tripod": 1.0,
+     "w_spin_tripod": 0.25
+    },
+    "best_seeds012": 0.6303,
+    "best_seeds101112": 0.625,
+    "default_seeds012": 0.3755,
+    "best_mu06": 0.6197,
+    "default_mu06": 0.389,
+    "grid": {
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6303,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.629,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5843,
+     "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5002,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.5948,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.603,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5618,
+     "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4815,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.566,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.5718,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.539,
+     "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4647,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5002,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.493,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4647,
+     "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3808,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4195,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4005,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.3755,
+     "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3252,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.3665,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3535,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3285,
+     "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2878
+    }
+   }
+  }
+ ]
+}

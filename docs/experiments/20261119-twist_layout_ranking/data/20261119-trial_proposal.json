@@ -1,0 +1,174 @@
+{
+ "what": "Layouts proposed for the hand on 2026-11-20, from the twist layout ranking: the four best and six at evenly spaced ranks of the deployable layouts (fit the travel boxes, index-middle gap at least 15 mm in every simulated run, held in every run under both models), and the two anchors run on the hand before. score = mean tracking over both contact models and seeds 0-2.",
+ "deployable": 179,
+ "of": 464,
+ "excluded": {
+  "do not fit the travel boxes": 60,
+  "sphere dropped or HOM failed in a run": 20,
+  "index-middle gap under 15 mm": 227
+ },
+ "pick": [
+  {
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "score": 0.6023,
+   "held_all": true,
+   "im_gap_min_mm": 15.2,
+   "runs": 12,
+   "twist_end": 65.8,
+   "fits": true,
+   "rank_among_deployable": 1
+  },
+  {
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "score": 0.5593,
+   "held_all": true,
+   "im_gap_min_mm": 18.2,
+   "runs": 12,
+   "twist_end": 67.5,
+   "fits": true,
+   "rank_among_deployable": 2
+  },
+  {
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "score": 0.5435,
+   "held_all": true,
+   "im_gap_min_mm": 16.0,
+   "runs": 12,
+   "twist_end": 67.0,
+   "fits": true,
+   "rank_among_deployable": 3
+  },
+  {
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "score": 0.542,
+   "held_all": true,
+   "im_gap_min_mm": 16.5,
+   "runs": 9,
+   "twist_end": 72.6,
+   "fits": true,
+   "rank_among_deployable": 4
+  },
+  {
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "score": 0.5403,
+   "held_all": true,
+   "im_gap_min_mm": 18.0,
+   "runs": 9,
+   "twist_end": 62.5,
+   "fits": true,
+   "rank_among_deployable": 5
+  },
+  {
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "score": 0.4775,
+   "held_all": true,
+   "im_gap_min_mm": 23.9,
+   "runs": 6,
+   "twist_end": 52.9,
+   "fits": true,
+   "rank_among_deployable": 40
+  },
+  {
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "score": 0.4285,
+   "held_all": true,
+   "im_gap_min_mm": 23.9,
+   "runs": 6,
+   "twist_end": 51.2,
+   "fits": true,
+   "rank_among_deployable": 75
+  },
+  {
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "score": 0.398,
+   "held_all": true,
+   "im_gap_min_mm": 20.5,
+   "runs": 6,
+   "twist_end": 43.2,
+   "fits": true,
+   "rank_among_deployable": 109
+  },
+  {
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "score": 0.3507,
+   "held_all": true,
+   "im_gap_min_mm": 20.7,
+   "runs": 6,
+   "twist_end": 45.6,
+   "fits": true,
+   "rank_among_deployable": 144
+  },
+  {
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "score": 0.028,
+   "held_all": true,
+   "im_gap_min_mm": 18.9,
+   "runs": 6,
+   "twist_end": 4.4,
+   "fits": true,
+   "rank_among_deployable": 179
+  }
+ ],
+ "anchors": [
+  {
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "score": 0.3755,
+   "runs": 6
+  }
+ ]
+}

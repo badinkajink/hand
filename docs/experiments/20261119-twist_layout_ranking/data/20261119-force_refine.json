@@ -1,0 +1,493 @@
+{
+ "what": "HOM's twist forces refined per layout on the calibrated bench simulation (stage E of the twist layout ranking; hand-4a, 2026-11-19; owner 17:2x: \"improve our controls as much as we feasibly can\" and deploy \"top-N controls\").",
+ "f_tripod": [
+  1.0,
+  1.25,
+  1.5,
+  2.0,
+  2.5,
+  3.0
+ ],
+ "w_spin_tripod": [
+  0.25,
+  0.5,
+  1.0,
+  2.0
+ ],
+ "written": "2026-11-19 21:06",
+ "layouts": [
+  {
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "best_prm": {
+    "f_tripod": 2.0,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.674,
+   "best_seeds101112": 0.6178,
+   "default_seeds012": 0.6023,
+   "best_mu06": 0.6597,
+   "default_mu06": 0.6347,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.1212,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.0,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.3662,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.1245,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.4623,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.4137,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.1067,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.3575,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.5107,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.665,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6388,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5867,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.674,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.6535,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.6267,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5607,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.6502,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.6312,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.6023,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.5652,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.6172,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.6003,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5747,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.5013
+   }
+  },
+  {
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "best_prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.661,
+   "best_seeds101112": 0.6623,
+   "default_seeds012": 0.5593,
+   "best_mu06": 0.7043,
+   "default_mu06": 0.446,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6512,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6523,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6408,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.588,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.661,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6538,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6348,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5817,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6595,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6507,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.62,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.574,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.627,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.6102,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5895,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5527,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5898,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5787,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5593,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.5148,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.5492,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.5368,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5223,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4698
+   }
+  },
+  {
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "best_seeds012": 0.686,
+   "best_seeds101112": 0.6892,
+   "default_seeds012": 0.5435,
+   "best_mu06": 0.689,
+   "default_mu06": 0.302,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6833,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.686,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6712,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5987,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6613,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.665,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6473,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4905,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.64,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6415,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6208,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.3858,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.6007,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5898,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5847,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3585,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5215,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5145,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5435,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3625,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4662,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.465,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.465,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3522
+   }
+  },
+  {
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "best_seeds012": 0.7053,
+   "best_seeds101112": 0.7052,
+   "default_seeds012": 0.542,
+   "best_mu06": 0.672,
+   "default_mu06": 0.4047,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6873,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.7053,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6857,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.597,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6613,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.681,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6728,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.583,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6432,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6602,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.6528,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5702,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5915,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.6163,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.594,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5158,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4995,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5798,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.542,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.436,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4718,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4802,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4463,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3553
+   }
+  },
+  {
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "best_prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.6473,
+   "best_seeds101112": 0.6442,
+   "default_seeds012": 0.5403,
+   "best_mu06": 0.6853,
+   "default_mu06": 0.5457,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6345,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6338,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6195,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5592,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6473,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6347,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6155,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5565,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.638,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6263,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.605,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5472,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.6033,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.598,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5805,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.5285,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.5752,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.5667,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.5403,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.4912,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.537,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.5273,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5038,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4552
+   }
+  },
+  {
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "best_seeds012": 0.6613,
+   "best_seeds101112": 0.6522,
+   "default_seeds012": 0.4775,
+   "best_mu06": 0.633,
+   "default_mu06": 0.4807,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6408,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6613,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.6475,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5832,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6348,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6455,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.6323,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.5602,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6253,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6322,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.5985,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.5277,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5538,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5628,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.5298,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.4457,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4947,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4993,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.4775,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3895,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4488,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4423,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4215,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.341
+   }
+  },
+  {
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.6528,
+   "best_seeds101112": 0.6528,
+   "default_seeds012": 0.4285,
+   "best_mu06": 0.6463,
+   "default_mu06": 0.4513,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6528,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6355,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5948,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5207,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6358,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6227,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5808,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.496,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.6093,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.61,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.564,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4767,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.54,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5302,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4918,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.391,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4787,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4643,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.4285,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.337,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4232,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.4033,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3737,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2943
+   }
+  },
+  {
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.6653,
+   "best_seeds101112": 0.6618,
+   "default_seeds012": 0.398,
+   "best_mu06": 0.7077,
+   "default_mu06": 0.4387,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6653,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.6392,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5628,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.409,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.6483,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.6338,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5367,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.3412,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.625,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.6063,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.5038,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.3167,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5518,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.5328,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4537,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3002,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.482,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4443,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.398,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3132,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.4025,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3818,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3532,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2807
+   }
+  },
+  {
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "best_seeds012": 0.5265,
+   "best_seeds101112": 0.5253,
+   "default_seeds012": 0.3507,
+   "best_mu06": 0.448,
+   "default_mu06": 0.3373,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.5252,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.5265,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.511,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.4622,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.5232,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.5155,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.4922,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4412,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.5005,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.4928,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.4697,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4172,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.4395,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.4372,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4092,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3618,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.3798,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.3735,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.3507,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3007,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.3128,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3053,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.2838,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2408
+   }
+  },
+  {
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.2362,
+   "best_seeds101112": 0.2335,
+   "default_seeds012": 0.028,
+   "best_mu06": 0.069,
+   "default_mu06": 0.0023,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.2362,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.2308,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.1352,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.1092,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.2303,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.2292,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.2188,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.1708,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.2062,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.1997,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.1738,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.1278,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.0978,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.1083,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.0948,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.0498,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.0447,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.0457,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.028,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.0072,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.0,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.0007,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.0,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.0
+   }
+  },
+  {
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "best_prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "best_seeds012": 0.6303,
+   "best_seeds101112": 0.625,
+   "default_seeds012": 0.3755,
+   "best_mu06": 0.6197,
+   "default_mu06": 0.389,
+   "grid": {
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}": 0.6303,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.5}": 0.629,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 1.0}": 0.5843,
+    "{\"f_tripod\": 1.0, \"w_spin_tripod\": 2.0}": 0.5002,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.25}": 0.5948,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 0.5}": 0.603,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 1.0}": 0.5618,
+    "{\"f_tripod\": 1.25, \"w_spin_tripod\": 2.0}": 0.4815,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.25}": 0.566,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 0.5}": 0.5718,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 1.0}": 0.539,
+    "{\"f_tripod\": 1.5, \"w_spin_tripod\": 2.0}": 0.4647,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.25}": 0.5002,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 0.5}": 0.493,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 1.0}": 0.4647,
+    "{\"f_tripod\": 2.0, \"w_spin_tripod\": 2.0}": 0.3808,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.25}": 0.4195,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 0.5}": 0.4005,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 1.0}": 0.3755,
+    "{\"f_tripod\": 2.5, \"w_spin_tripod\": 2.0}": 0.3252,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.25}": 0.3665,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 0.5}": 0.3535,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3285,
+    "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2878
+   }
+  }
+ ]
+}
