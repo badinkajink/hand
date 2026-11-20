@@ -3,22 +3,25 @@
  "command": "check --fine",
  "params": {
   "Gz": -7.0,
-  "proximal": 60.0,
-  "beam_z": 21.9,
-  "beam_y": [
-   -12.5,
-   11.3
-  ],
+  "proximal": 66.0,
   "half_width": 28.4,
-  "yaw_spline_x": 37.0,
+  "yaw_spline_x": 17.0,
   "mcp_spline_y": -18.0,
   "idler_gap": 2.5,
-  "l2_y3_gap": 0.925,
-  "cross_r": 14.5,
+  "l2_y3_gap": 0.9,
+  "cross_r": 13.0,
+  "block_depth": 9.0,
+  "yaw_rear_gap": 2.5,
+  "web": {
+   "r": 12.5,
+   "t": 3.0,
+   "w": 14.0
+  },
+  "rear_wall_t": 4.0,
   "cut_clear": 0.1,
   "pip": {
    "spline_x": 13.0,
-   "spline_z": -28.0,
+   "spline_z": -34.0,
    "spacer": 5.0,
    "r": 12.0,
    "lug_r": 9.0,
@@ -26,7 +29,8 @@
    "pip_rest": 0.0,
    "knuckle_e": 5.0,
    "rod_offset_c": 5.5,
-   "horn_limit_deg": 80.0
+   "horn_limit_deg": 80.0,
+   "long_end": "down"
   },
   "disc": {
    "d": 18.0,
@@ -65,6 +69,7 @@
    6.1
   ],
   "lower_y": 7.0,
+  "cheek_out_y": 10.5,
   "tip_box": {
    "x": [
     -11.0,
@@ -75,13 +80,40 @@
     -44.0,
     -20.0
    ]
+  },
+  "carriage": {
+   "x0": -10.5,
+   "col_z": [
+    20.0,
+    46.9
+   ],
+   "plate_x1": 5.3,
+   "plate_y": [
+    -19.5,
+    -14.5
+   ],
+   "plate_top": 65.0,
+   "rail_y": [
+    11.0,
+    15.0
+   ],
+   "rail_top": 40.0,
+   "rail_low": 0.5,
+   "roof_top": 21.4,
+   "front_roof_x0": 15.8,
+   "pocket_y": [
+    6.1,
+    11.0
+   ],
+   "pocket_low_rel": -4.0,
+   "tab_gap_rel": 22.0
   }
  },
  "module_half_width_mm": [
-  27.04,
+  24.97,
   [
-   "Y1 yoke back plate",
-   5.0,
+   "Y3 idler arm",
+   -10.0,
    90.0,
    92.0
   ]
@@ -90,7 +122,7 @@
  "pip_rod_mm": 37.41,
  "least": [
   [
-   "link:flange_L45 | dip:dip_cheek",
+   "link:flange_PIP | dip:dip_cheek",
    [
     0.3,
     85.0,
@@ -99,7 +131,7 @@
    ]
   ],
   [
-   "link:flange_L45 | dip:dip_lugarm",
+   "link:flange_PIP | dip:dip_lugarm",
    [
     0.3,
     85.0,
@@ -108,7 +140,7 @@
    ]
   ],
   [
-   "phorn:H1 PIP horn arm | rod:R1 PIP rod",
+   "phorn:H1 PIP crank | rod:R1 PIP rod",
    [
     0.5,
     85.0,
@@ -117,12 +149,48 @@
    ]
   ],
   [
-   "yoke:Y2 MCP servo plate | link:L3 link cross plate",
+   "carriage:C roof over horn | yoke:yawdisc",
    [
-    0.57,
-    -85.0,
-    27.0,
-    -25.0
+    0.55,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rear wall | yoke:flange_Y4",
+   [
+    0.6,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:Y1 web root | link:L merge block",
+   [
+    0.6,
+    85.0,
+    -15.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:Y web | link:L merge block",
+   [
+    0.6,
+    85.0,
+    -15.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:yawservo_tabs | yoke:Y web",
+   [
+    0.63,
+    35.0,
+    90.0,
+    92.0
    ]
   ],
   [
@@ -144,6 +212,123 @@
    ]
   ],
   [
+   "yoke:Y2 collar | link:L merge block",
+   [
+    0.78,
+    -85.0,
+    30.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C pocket side -y | yoke:Y web",
+   [
+    0.8,
+    -70.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y1 idler bar",
+   [
+    0.8,
+    20.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y1 collar root",
+   [
+    0.8,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C roof over horn | yoke:Y1 front arm",
+   [
+    0.8,
+    -40.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C roof over horn | yoke:Y1 idler bar",
+   [
+    0.8,
+    35.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C roof over horn | yoke:Y1 collar root",
+   [
+    0.8,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C roof over horn | yoke:Y2 collar root",
+   [
+    0.8,
+    -55.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y3 idler arm",
+   [
+    0.8,
+    50.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C roof over horn | yoke:Y3 idler arm",
+   [
+    0.8,
+    50.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C pocket side +y | yoke:Y web",
+   [
+    0.84,
+    65.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C column | link:L1 horn side",
+   [
+    0.86,
+    -70.0,
+    18.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y2 collar root",
+   [
+    0.87,
+    -85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
    "dip:dip_cheek | rod:sph_ring",
    [
     0.87,
@@ -162,7 +347,7 @@
    ]
   ],
   [
-   "link:L4 lower plate + | dip:dip_cheek",
+   "yoke:Y3 idler arm | link:L2 idler side",
    [
     0.9,
     85.0,
@@ -171,7 +356,43 @@
    ]
   ],
   [
-   "link:L4 lower plate + | dip:dip_lugarm",
+   "link:L cheek root -y | dip:dip_cheek",
+   [
+    0.9,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L PIP cheek -y | dip:dip_cheek",
+   [
+    0.9,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L PIP cheek -y | dip:dip_lugarm",
+   [
+    0.9,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L cheek root +y | dip:dip_cheek",
+   [
+    0.9,
+    85.0,
+    90.0,
+    83.0
+   ]
+  ],
+  [
+   "link:L PIP cheek +y | dip:dip_cheek",
    [
     0.9,
     85.0,
@@ -180,38 +401,38 @@
    ]
   ],
   [
-   "link:L5 lower plate - | dip:dip_cheek",
+   "link:L PIP cheek +y | dip:dip_lugarm",
    [
     0.9,
     85.0,
+    90.0,
+    89.0
+   ]
+  ],
+  [
+   "carriage:C rail -y | yoke:Y1 collar root",
+   [
+    0.92,
+    35.0,
     90.0,
     92.0
    ]
   ],
   [
-   "link:L5 lower plate - | dip:dip_lugarm",
+   "carriage:C rail -y | yoke:Y2 collar root",
    [
-    0.9,
-    85.0,
+    0.98,
+    35.0,
     90.0,
-    77.0
+    92.0
    ]
   ],
   [
-   "yoke:Y3 yoke idler plate | link:L2 link idler plate",
+   "yoke:mcpservo_tabs | link:L merge block",
    [
-    0.92,
-    -85.0,
-    -15.0,
-    -25.0
-   ]
-  ],
-  [
-   "yoke:Y2 MCP servo plate | link:L5 lower plate -",
-   [
-    1.15,
+    1.09,
     85.0,
-    27.0,
+    30.0,
     92.0
    ]
   ],
@@ -225,10 +446,46 @@
    ]
   ],
   [
-   "link:L6b PIP servo strip, long end | rod:R1 PIP rod",
+   "carriage:C rear wall | yoke:Y web",
    [
-    1.44,
+    1.2,
+    -55.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C rear wall | yoke:Y4 rear arm",
+   [
+    1.2,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rear wall | yoke:Y4 web root",
+   [
+    1.2,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rail -y | yoke:Y4 web root",
+   [
+    1.43,
     -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y4 web root",
+   [
+    1.43,
+    85.0,
     -15.0,
     -25.0
    ]
@@ -243,21 +500,66 @@
    ]
   ],
   [
-   "yoke:Y1 yoke back plate | knuckle:knuckle",
+   "yoke:Y web | knuckle:knuckle",
    [
-    1.45,
+    1.48,
     -85.0,
     -15.0,
     -25.0
    ]
   ],
   [
-   "beam:beam | yoke:Y1 yoke back plate",
+   "carriage:C rail -y | yoke:Y web",
    [
-    1.86,
+    1.62,
+    -85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y web",
+   [
+    1.62,
     85.0,
     90.0,
     92.0
+   ]
+  ],
+  [
+   "carriage:C rail -y | yoke:Y1 web root",
+   [
+    1.64,
+    -85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:C rail +y | yoke:Y1 web root",
+   [
+    1.64,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "link:L tab frame lower | dip:dip_cheek",
+   [
+    1.79,
+    85.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:Y1 front arm | link:L merge block",
+   [
+    1.89,
+    -85.0,
+    -15.0,
+    -25.0
    ]
   ],
   [
@@ -270,7 +572,70 @@
    ]
   ],
   [
-   "yoke:mcpservo_boss | link:L1 link horn plate",
+   "carriage:C rail +y | knuckle:knuckle",
+   [
+    1.94,
+    85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "carriage:yawservo_boss | yoke:Y1 front arm",
+   [
+    2.0,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:yawservo_boss | yoke:Y1 web root",
+   [
+    2.0,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:yawservo_boss | yoke:Y1 idler bar",
+   [
+    2.0,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:yawservo_boss | yoke:Y1 collar root",
+   [
+    2.0,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "carriage:yawservo_boss | yoke:Y2 collar root",
+   [
+    2.0,
+    5.0,
+    90.0,
+    92.0
+   ]
+  ],
+  [
+   "yoke:mcpservo_boss | link:L1 horn side",
+   [
+    2.0,
+    85.0,
+    87.0,
+    92.0
+   ]
+  ],
+  [
+   "link:pipservo_boss | phorn:H1 PIP crank",
    [
     2.0,
     85.0,
@@ -279,174 +644,21 @@
    ]
   ],
   [
-   "link:pipservo_boss | phorn:H1 PIP horn arm",
+   "carriage:C column | yoke:Y3 idler arm",
    [
-    2.0,
-    85.0,
+    2.03,
+    80.0,
     90.0,
     92.0
    ]
   ],
   [
-   "beam:beam | link:L3 link cross plate",
+   "link:L cradle side -y | dip:tip",
    [
-    2.08,
-    -70.0,
-    90.0,
-    -25.0
-   ]
-  ],
-  [
-   "link:L6b PIP servo strip, long end | dip:dip_cheek",
-   [
-    2.12,
-    85.0,
-    90.0,
-    47.0
-   ]
-  ],
-  [
-   "mount:yawservo_boss | yoke:Y2 MCP servo plate",
-   [
-    2.21,
-    -85.0,
-    -15.0,
-    -25.0
-   ]
-  ],
-  [
-   "phorn:flange_H1 | rod:flange_R1",
-   [
-    2.22,
+    2.13,
     85.0,
     90.0,
     92.0
-   ]
-  ],
-  [
-   "phorn:H1 PIP horn arm | rod:flange_R1",
-   [
-    2.43,
-    -85.0,
-    -15.0,
-    11.0
-   ]
-  ],
-  [
-   "yoke:mcpservo_case | link:L2 link idler plate",
-   [
-    2.5,
-    85.0,
-    90.0,
-    92.0
-   ]
-  ],
-  [
-   "yoke:Y1 yoke back plate | knuckle:pin_a_head",
-   [
-    2.5,
-    -85.0,
-    -15.0,
-    -25.0
-   ]
-  ],
-  [
-   "yoke:mcpservo_tabs | link:L3 link cross plate",
-   [
-    2.59,
-    85.0,
-    30.0,
-    92.0
-   ]
-  ],
-  [
-   "link:pipservo_tabs | dip:dip_cheek",
-   [
-    2.93,
-    85.0,
-    90.0,
-    41.0
-   ]
-  ],
-  [
-   "yoke:mcpservo_tabs | link:L5 lower plate -",
-   [
-    3.09,
-    85.0,
-    30.0,
-    92.0
-   ]
-  ],
-  [
-   "link:pipservo_case | dip:tip",
-   [
-    3.09,
-    85.0,
-    90.0,
-    92.0
-   ]
-  ],
-  [
-   "link:L6b PIP servo strip, long end | rod:sph_ring",
-   [
-    3.4,
-    85.0,
-    90.0,
-    -25.0
-   ]
-  ],
-  [
-   "link:flange_L45 | rod:R1 PIP rod",
-   [
-    3.5,
-    85.0,
-    90.0,
-    23.0
-   ]
-  ],
-  [
-   "beam:beam | link:L1 link horn plate",
-   [
-    3.54,
-    -70.0,
-    12.0,
-    92.0
-   ]
-  ],
-  [
-   "link:pipservo_tabs | rod:R1 PIP rod",
-   [
-    3.59,
-    85.0,
-    90.0,
-    -25.0
-   ]
-  ],
-  [
-   "link:flange_L45 | rod:sph_ring",
-   [
-    3.61,
-    -85.0,
-    -15.0,
-    11.0
-   ]
-  ],
-  [
-   "link:L4 lower plate + | rod:R1 PIP rod",
-   [
-    3.63,
-    -85.0,
-    -15.0,
-    35.0
-   ]
-  ],
-  [
-   "link:pipservo_case | rod:R1 PIP rod",
-   [
-    3.64,
-    85.0,
-    90.0,
-    -25.0
    ]
   ]
  ]

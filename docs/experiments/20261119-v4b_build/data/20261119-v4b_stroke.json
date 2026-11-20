@@ -1,0 +1,549 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "stroke",
+ "stroke_mm": [
+  -32.58,
+  30.0
+ ],
+ "gantry": [
+  [
+   "beam",
+   [
+    -55.7,
+    -7.5,
+    47.4
+   ],
+   [
+    101.2,
+    7.5,
+    71.8
+   ]
+  ],
+  [
+   "rail",
+   [
+    -55.5,
+    -11.3,
+    52.4
+   ],
+   [
+    44.5,
+    -6.5,
+    59.4
+   ]
+  ],
+  [
+   "palmar end",
+   [
+    -55.7,
+    -7.5,
+    41.9
+   ],
+   [
+    -50.0,
+    7.5,
+    47.4
+   ]
+  ],
+  [
+   "palmar bearing block",
+   [
+    -50.0,
+    -7.5,
+    24.4
+   ],
+   [
+    -44.0,
+    7.5,
+    47.4
+   ]
+  ],
+  [
+   "dorsal bearing block",
+   [
+    38.0,
+    -7.5,
+    24.4
+   ],
+   [
+    44.0,
+    7.5,
+    47.4
+   ]
+  ],
+  [
+   "motor end",
+   [
+    44.0,
+    -10.0,
+    41.9
+   ],
+   [
+    101.2,
+    10.0,
+    47.4
+   ]
+  ],
+  [
+   "stepper plate",
+   [
+    70.0,
+    -10.0,
+    21.9
+   ],
+   [
+    74.0,
+    10.0,
+    41.9
+   ]
+  ],
+  [
+   "coupler",
+   [
+    44.0,
+    -9.5,
+    22.4
+   ],
+   [
+    69.0,
+    9.5,
+    41.4
+   ]
+  ],
+  [
+   "stepper",
+   [
+    72.6,
+    -10.1,
+    21.9
+   ],
+   [
+    101.2,
+    9.9,
+    45.4
+   ]
+  ],
+  [
+   "lead screw",
+   [
+    -53.9,
+    -2.5,
+    29.1
+   ],
+   [
+    46.6,
+    2.5,
+    34.1
+   ]
+  ]
+ ],
+ "curl_reaches_gantry": [
+  142.0,
+  90.0,
+  52.0,
+  0.0,
+  30.0
+ ],
+ "least": [
+  [
+   "palmar bearing block | dip:tip",
+   [
+    0.0,
+    3.92,
+    0.0,
+    92.0,
+    92.0
+   ]
+  ],
+  [
+   "lead screw | dip:tip",
+   [
+    0.0,
+    -1.29,
+    0.0,
+    92.0,
+    92.0
+   ]
+  ],
+  [
+   "beam | carriage:C column",
+   [
+    0.5,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper plate | carriage:C rear wall",
+   [
+    0.5,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper plate | carriage:C roof",
+   [
+    0.5,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper | carriage:C rear wall",
+   [
+    0.5,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper | carriage:C roof",
+   [
+    0.5,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper | carriage:C rail -y",
+   [
+    0.9,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "palmar bearing block | carriage:C column",
+   [
+    0.92,
+    -32.58,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C rear wall",
+   [
+    1.0,
+    -11.72,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C roof",
+   [
+    1.0,
+    -11.72,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper plate | carriage:C rail -y",
+   [
+    1.0,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper plate | carriage:C rail +y",
+   [
+    1.0,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C roof over horn",
+   [
+    1.0,
+    24.78,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C front roof",
+   [
+    1.0,
+    19.57,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "stepper | carriage:C rail +y",
+   [
+    1.1,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C rail -y",
+   [
+    1.5,
+    -11.72,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C rail +y",
+   [
+    1.5,
+    -11.72,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C rail front -y",
+   [
+    1.5,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | carriage:C rail front +y",
+   [
+    1.5,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "palmar end | dip:tip",
+   [
+    2.08,
+    19.57,
+    0.0,
+    92.0,
+    92.0
+   ]
+  ],
+  [
+   "motor end | carriage:C rail -y",
+   [
+    2.15,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "motor end | carriage:C rail +y",
+   [
+    2.15,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "motor end | carriage:C rail front -y",
+   [
+    2.15,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "motor end | carriage:C rail front +y",
+   [
+    2.15,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C roof",
+   [
+    3.0,
+    -22.15,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C rear wall",
+   [
+    3.0,
+    -22.15,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C column",
+   [
+    3.0,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C roof over horn",
+   [
+    3.0,
+    19.57,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C front roof",
+   [
+    3.0,
+    14.36,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "rail | carriage:C block plate",
+   [
+    3.2,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C rail -y",
+   [
+    3.5,
+    -22.15,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C rail +y",
+   [
+    3.5,
+    -22.15,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C rail front -y",
+   [
+    3.5,
+    24.78,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "dorsal bearing block | carriage:C rail front +y",
+   [
+    3.5,
+    24.78,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | yoke:Y3 idler arm",
+   [
+    4.84,
+    30.0,
+    85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | yoke:Y1 idler bar",
+   [
+    4.97,
+    30.0,
+    85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "rail | carriage:C column",
+   [
+    5.5,
+    30.0,
+    -85.0,
+    -15.0,
+    -25.0
+   ]
+  ],
+  [
+   "coupler | link:L1 horn side",
+   [
+    6.31,
+    30.0,
+    -85.0,
+    50.0,
+    92.0
+   ]
+  ],
+  [
+   "palmar bearing block | link:L1 horn side",
+   [
+    6.74,
+    -32.58,
+    -85.0,
+    92.0,
+    92.0
+   ]
+  ]
+ ]
+}

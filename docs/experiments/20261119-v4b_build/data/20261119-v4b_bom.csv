@@ -1,21 +1,22 @@
 item,qty,specification,where,example source,note
 STS3032 servo,3,"Feetech STS3032, 6 V, 4.5 kg cm, 25-tooth spline","yaw, MCP, PIP",on hand,each comes with an 18 mm aluminium disc horn and its M2.3 horn screw
-Acrylic sheet,1,"1/8 in (3.175 mm) cast acrylic, at least 300 x 110 mm",every plate but Y3,,
-Flanged ball bearing,5,"MF63ZZ: 3 x 6 x 2.5 mm, flange 7.2 x 0.6 mm","L2 (MCP idler), L4 and L5 (PIP), H1 (pin a), R1 (pin b)",any MF63ZZ,order 10; the fit coupon C1 picks the hole for a press fit
+Carriage P1 (printed),1,"PLA, 4 walls, 40 % infill: data/20261119-v4b_carriage.stl",gantry block and lead nut; yaw servo; rear dowel,printed,
+Yoke P2 (printed),1,"PLA, 4 walls, 40 % infill: data/20261119-v4b_yoke.stl","yaw stage, MCP servo, MCP idler",printed,
+Proximal link P3 (printed),1,"PLA, 4 walls, 40 % infill: data/20261119-v4b_link.stl",MCP to PIP; PIP servo,printed,
+Knuckle P4 (printed),1,"PLA or PETG, 100 % infill: data/20261119-v4b_knuckle.stl",between H1 and R1,printed,
+Print fit coupon P0 (printed),1,PLA: data/20261119-v4b_print_fit_coupon.stl,print first,printed,"picks the bearing bores, the dowel press fit and the M2 hole"
+Acrylic sheet,1,"1/8 in (3.175 mm) cast acrylic, at least 130 x 60 mm","H1, R1 (with spares) and C1",,
+Flanged ball bearing,6,"MF63ZZ: 3 x 6 x 2.5 mm, flange 7.2 x 0.6 mm","P3 idler side, P3 PIP cheeks (2), P2 rear arm, H1 (pin a), R1 (pin b)",any MF63ZZ,order 10
 Spherical plain bearing,1,"3 mm bore, 12 mm outside, inner ring 4.8 mm, outer ring 3.6 mm wide, steel",R1 at the lug,RS PRO 382-380,order 2; bonded into R1
 Shoulder screw 3 x 12,1,"3 mm precision shoulder, 12 mm long, M2 x 4 thread, low head 5 x 1.3 mm",pin a (knuckle to H1),McMaster 90323A609,
 Shoulder screw 3 x 7,1,"as above, 7 mm shoulder",pin b (knuckle to R1),McMaster 90323A606,
-Dowel pin 3 x 8,1,"3 mm steel dowel, 8 mm long, h8 or m6","MCP idler, pressed into Y3",ISO 2338 or ISO 8734,slides in L2's bearing
-Dowel pin 3 x 6,2,"3 mm steel dowel, 6 mm long, h8 or m6","PIP pins, pressed into the DIP link's cheeks",ISO 2338 or ISO 8734,slides in the PIP bearings' inner rings
-Dowel pin 3 x 12,1,"3 mm steel dowel, 12 mm long","lug pin, pressed through both cheeks and the spherical bearing",ISO 2338 or ISO 8734,
-M2 hex nut,14,"M2, 4 mm across flats, 1.6 mm thick","pins a and b (2, inside the bearings' bores), servo tabs (12)",,
-M2 x 8 screw,12,M2 x 8 socket or pan head,"servo tabs: M1, Y2, L6a and L6b (4 per servo)",,
-M2 x 5 screw,10,M2 x 5 socket head,"disc horns: Y1 (4), L1 (4), H1 (2)",,into the disc horns' tapped holes
-M3 x 10 screw and nut,4,M3 x 10,M2 to the test stand,,
-Acrylic cement,1,solvent cement (Weld-On 4 or similar),tab-and-slot joints,,
-Retaining compound or epoxy,1,Loctite 638 or 5-minute epoxy,spherical bearing in R1; any loose bearing,,
-Cyanoacrylate,1,medium CA glue,Y3's tab into Y1 (printed into acrylic),,
-Knuckle (printed),1,"PETG or PLA, 100 % infill: data/20261119-v4b_knuckle.stl",between H1 and R1,printed,
-Yoke idler plate Y3 (printed),1,"PETG or PLA, 100 % infill: data/20261119-v4b_y3_idler_plate.stl","yoke, MCP idler",printed,ream the 2.95 mm hole to a press fit for the dowel
+Dowel pin 3 x 8,2,"3 mm steel dowel, 8 mm long, h8 or m6",MCP idler (pressed into P2's idler arm); yaw rear dowel (bonded into P1's rear wall),ISO 2338 or ISO 8734,each slides in a bearing's inner ring
+Dowel pin 3 x 6,2,"3 mm steel dowel, 6 mm long, h8 or m6","PIP pins, pressed into the DIP link's cheeks",ISO 2338 or ISO 8734,slide in the PIP bearings' inner rings
+Dowel pin 3 x 12,1,"3 mm steel dowel, 12 mm long","lug pin, through both cheeks and the spherical bearing",ISO 2338 or ISO 8734,
+M2 hex nut,2,"M2, 4 mm across flats, 1.6 mm thick","pins a and b, inside the bearings' bores",,
+M2 x 6 screw,10,M2 x 6 socket head,"yaw servo tabs into P1 (2); disc horns: P2 to the yaw horn (4), P3 to the MCP horn (4)",,into the horns' tapped holes or 1.8 mm printed holes
+M2 x 5 screw,10,M2 x 5 socket head,"MCP servo tabs into P2 (4), PIP servo tabs into P3 (4), H1 to the PIP horn (2)",,self-forming threads in 1.8 mm printed holes
+Gantry screws,7,"4 x M2 into the MGN7C block, 3 x M3 x 10 into the lead nut's flange",P1 to the index or middle gantry,as on the v3 carriage,M2 length: the 5 mm plate plus the block's thread depth
+Retaining compound or epoxy,1,Loctite 638 or 5-minute epoxy,spherical bearing in R1; yaw rear dowel in P1; any loose bearing,,
 DIP link (printed),1,"b v4's tongue, board seat and column on new cheeks (the page's interface table)",PIP to fingertip,printed,to be drawn from b v4 in Inventor
 Fingertip,1,v4b tip: cassette 3T and cap TW15H3 with the ReSkin board,on the DIP link,existing prints,

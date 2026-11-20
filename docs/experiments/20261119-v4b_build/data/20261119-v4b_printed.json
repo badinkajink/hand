@@ -1,41 +1,155 @@
 {
  "script": "scripts/cad/v4b_build.py",
  "command": "printed",
- "knuckle_stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_knuckle.stl",
- "knuckle_mm": [
-  9.987,
-  12.5,
-  5.625
- ],
- "knuckle_watertight": true,
- "knuckle_c_mm": -5.5,
- "x_a_mm": 24.7625,
- "pin_a": {
-  "ring": [
-   -5.987499999999997,
-   -8.487499999999997
-  ],
-  "shoulder": 12.0,
-  "shoulder_end": -7.5,
-  "nut": [
-   -8.487499999999997,
-   -10.087499999999997
-  ],
-  "thread_end": -11.5
+ "parts": {
+  "P1 carriage": {
+   "file": "20261119-v4b_carriage",
+   "volume_mm3": 46830.4,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    -10.5,
+    -19.5,
+    -13.0,
+    60.1,
+    15.0,
+    65.0
+   ],
+   "facets": 3526,
+   "stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_carriage.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_carriage.step"
+  },
+  "P2 yoke": {
+   "file": "20261119-v4b_yoke",
+   "volume_mm3": 5865.0,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    -8.5,
+    -10.5,
+    -22.5,
+    54.9,
+    24.3,
+    15.5
+   ],
+   "facets": 4632,
+   "stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_yoke.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_yoke.step"
+  },
+  "P3 link": {
+   "file": "20261119-v4b_link",
+   "volume_mm3": 17431.9,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    -18.9,
+    -24.0,
+    -81.0,
+    10.0,
+    19.9,
+    3.0
+   ],
+   "facets": 5432,
+   "stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_link.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_link.step"
+  },
+  "P4 knuckle": {
+   "file": "20261119-v4b_knuckle",
+   "volume_mm3": 567.2,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    -5.99,
+    -3.5,
+    -3.31,
+    4.5,
+    9.0,
+    2.81
+   ],
+   "facets": 1280,
+   "stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_knuckle.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_knuckle.step"
+  },
+  "P0 print fit coupon": {
+   "file": "20261119-v4b_print_fit_coupon",
+   "volume_mm3": 5436.7,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    0.0,
+    0.0,
+    0.0,
+    64.0,
+    24.0,
+    4.0
+   ],
+   "facets": 3596,
+   "stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_print_fit_coupon.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_print_fit_coupon.step"
+  },
+  "H1 PIP crank": {
+   "file": "20261119-v4b_H1",
+   "volume_mm3": 614.1,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    15.0,
+    -9.2,
+    -45.75,
+    18.18,
+    16.75,
+    -33.56
+   ],
+   "facets": 1372,
+   "stl": "assets/mjcf/experimental/20261120-v4b_mixed/meshes/20261119-v4b_H1.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_H1.step"
+  },
+  "R1 PIP rod": {
+   "file": "20261119-v4b_R1",
+   "volume_mm3": 997.0,
+   "closed": true,
+   "solids": 1,
+   "bbox_mm": [
+    -5.0,
+    -8.0,
+    -1.59,
+    45.41,
+    8.0,
+    1.59
+   ],
+   "facets": 1408,
+   "stl": "assets/mjcf/experimental/20261120-v4b_mixed/meshes/20261119-v4b_R1.stl",
+   "step_local": "assets/cad_v4/v4b_build/step/20261119-v4b_R1.step"
+  }
  },
- "pin_b": {
-  "ring": [
-   -3.3125,
-   -5.8125
-  ],
-  "shoulder": 7.0,
-  "shoulder_end": -5.4875,
-  "nut": [
-   -5.8125,
-   -7.4125
-  ],
-  "thread_end": -9.4875
- },
- "y3_stl": "docs/experiments/20261119-v4b_build/data/20261119-v4b_y3_idler_plate.stl",
- "y3_watertight": true
+ "knuckle": {
+  "c_mm": -5.5,
+  "x_a_mm": 24.7625,
+  "pin_a": {
+   "ring": [
+    -5.987499999999997,
+    -8.487499999999997
+   ],
+   "shoulder": 12.0,
+   "shoulder_end": -7.5,
+   "nut": [
+    -8.487499999999997,
+    -10.087499999999997
+   ],
+   "thread_end": -11.5
+  },
+  "pin_b": {
+   "ring": [
+    -3.3125,
+    -5.8125
+   ],
+   "shoulder": 7.0,
+   "shoulder_end": -5.4875,
+   "nut": [
+    -5.8125,
+    -7.4125
+   ],
+   "thread_end": -9.4875
+  }
+ }
 }

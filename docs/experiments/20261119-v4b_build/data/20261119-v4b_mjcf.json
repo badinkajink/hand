@@ -1,0 +1,54 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "mjcf",
+ "v4b_mixed_index": {
+  "xml": "assets/mjcf/experimental/20261120-v4b_mixed/v4b_mixed_index.xml",
+  "nbody": 10,
+  "ngeom": 134,
+  "nu": 4,
+  "closure_mm_max": 0.0,
+  "keys": [
+   "home",
+   "flexed",
+   "abducted",
+   "curled"
+  ]
+ },
+ "v4b_mixed_pair": {
+  "xml": "assets/mjcf/experimental/20261120-v4b_mixed/v4b_mixed_pair.xml",
+  "nbody": 18,
+  "ngeom": 257,
+  "nu": 8,
+  "closure_mm_max": 0.0,
+  "keys": [
+   "home",
+   "flexed",
+   "abducted",
+   "curled"
+  ]
+ },
+ "drive_targets": [
+  [
+   20.0,
+   30.0,
+   45.0,
+   60.0
+  ],
+  [
+   -25.0,
+   -40.0,
+   80.0,
+   85.0
+  ],
+  [
+   10.0,
+   60.0,
+   -10.0,
+   -20.0
+  ]
+ ],
+ "drive_secs": 3.0,
+ "tracking_deg_max": 0.72,
+ "closure_mm_moving": 1.072,
+ "penetration_mm_max": 0.0
+}

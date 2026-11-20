@@ -24,16 +24,16 @@
   "mb": 0.2
  },
  {
-  "date": "2026-11-19",
+  "date": "2026-11-20",
   "file": "docs/experiments/20261119-v4b_build/20261119-v4b_finger_build.html",
-  "title": "Parts and clearances of a laser-cut v4b index finger",
-  "page_title": "Parts and clearances of a laser-cut v4b index finger",
+  "title": "Printed v4b index finger with an acrylic PIP linkage and its gantry carriage",
+  "page_title": "Printed v4b index finger with an acrylic PIP linkage and its gantry carriage",
   "topic": "hardware",
-  "summary": "A v4b index finger from 15 acrylic plates, three STS3032s, five MF63ZZ bearings, a spherical plain bearing and three printed parts keeps its moving parts at least 0.50 mm apart over the driver's ranges, and its PIP drive gives 1.48 times the current hand's PIP torque. The cut sheet (DXF) and the bill of materials are in the folder.",
+  "summary": "A mixed-manufacture v4b finger (printed bodies, acrylic crank and rod) puts its yaw servo 17 mm behind the gimbal instead of 37 mm, with a rear dowel that leaves the servo's output without bending; a 3 N pinch loads it with 8.2 N. Its printed carriage clears the index gantry over the full stroke, and an MJCF of the index and middle modules is in the folder.",
   "builder": "scripts/cad/v4b_build_page.py",
   "artifact": "https://claude.ai/artifact/VDjQHLiKz157eU9sNfXn4x",
   "status": "current",
-  "mb": 0.4
+  "mb": 0.7
  },
  {
   "date": "2026-11-19",

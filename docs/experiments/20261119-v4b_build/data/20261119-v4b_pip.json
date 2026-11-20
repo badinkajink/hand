@@ -3,7 +3,7 @@
  "command": "pip",
  "params": {
   "spline_x": 13.0,
-  "spline_z": -28.0,
+  "spline_z": -34.0,
   "spacer": 5.0,
   "r": 12.0,
   "lug_r": 9.0,
@@ -13,7 +13,7 @@
   "rod_offset_c": 5.5,
   "horn_limit_deg": 80.0
  },
- "proximal_mm": 60.0,
+ "proximal_mm": 66.0,
  "rod_mm": 37.414,
  "range_deg": [
   -45.0,
@@ -30,15 +30,6 @@
  "horn_deg_at_ends": [
   49.5,
   -72.3
- ],
- "horn_deg_span": [
-  -72.3,
-  49.5
- ],
- "upper_end_cause": [
-  "closure",
-  "horn_limit",
-  "torque"
  ],
  "curve": {
   "pip": [

@@ -1,0 +1,343 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "flush",
+ "tip_palmar_x": -11.0,
+ "variants": [
+  {
+   "name": "as built",
+   "params": {
+    "spline_x": 13.0
+   },
+   "servo_base_x": -18.9,
+   "pip_range_deg": [
+    -45.0,
+    96.0
+   ],
+   "closes_m18_92": true,
+   "torque_min_m18_92": 1.48,
+   "rod_mm": 37.41,
+   "least": [
+    "carriage:C roof over horn | yoke:yawdisc",
+    [
+     0.51,
+     30.0,
+     90.0,
+     92.0
+    ]
+   ],
+   "next": [
+    [
+     "carriage:yawservo_tabs | yoke:Y web",
+     [
+      0.59,
+      30.0,
+      90.0,
+      92.0
+     ]
+    ],
+    [
+     "yoke:Y1 web root | link:L merge block",
+     [
+      0.6,
+      85.0,
+      -15.0,
+      92.0
+     ]
+    ],
+    [
+     "yoke:Y web | link:L merge block",
+     [
+      0.6,
+      85.0,
+      -15.0,
+      92.0
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "2 mm dorsal",
+   "params": {
+    "spline_x": 15.0
+   },
+   "servo_base_x": -16.9,
+   "pip_range_deg": [
+    -45.0,
+    89.0
+   ],
+   "closes_m18_92": false,
+   "torque_min_m18_92": null,
+   "rod_mm": 38.75,
+   "least": [
+    "carriage:C roof over horn | yoke:yawdisc",
+    [
+     0.51,
+     30.0,
+     90.0,
+     92.0
+    ]
+   ],
+   "next": [
+    [
+     "carriage:yawservo_tabs | yoke:Y web",
+     [
+      0.59,
+      30.0,
+      90.0,
+      92.0
+     ]
+    ],
+    [
+     "dip:dip_cheek | rod:R1 PIP rod",
+     [
+      0.59,
+      -85.0,
+      -15.0,
+      92.0
+     ]
+    ],
+    [
+     "yoke:Y1 web root | link:L merge block",
+     [
+      0.6,
+      85.0,
+      -15.0,
+      92.0
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "8 mm dorsal, drive centred at PIP 20",
+   "params": {
+    "spline_x": 21.0,
+    "spline_z": -35.0,
+    "pip_rest": 20.0,
+    "rod_offset_c": 4.3
+   },
+   "servo_base_x": -10.9,
+   "pip_range_deg": [
+    -36.0,
+    92.0
+   ],
+   "closes_m18_92": true,
+   "torque_min_m18_92": 1.83,
+   "rod_mm": 42.36,
+   "least": [
+    "yoke:Y web | phorn:flange_H1",
+    [
+     0.0,
+     -85.0,
+     -15.0,
+     -18.0
+    ]
+   ],
+   "next": [
+    [
+     "yoke:Y web | phorn:H1 PIP crank",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ],
+    [
+     "yoke:Y web | knuckle:pin_a_head",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ],
+    [
+     "link:pipservo_case | rod:R1 PIP rod",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "8 mm dorsal, centred, link 3 mm longer",
+   "params": {
+    "spline_x": 21.0,
+    "spline_z": -38.0,
+    "pip_rest": 20.0,
+    "rod_offset_c": 4.3,
+    "proximal": 69.0
+   },
+   "servo_base_x": -10.9,
+   "pip_range_deg": [
+    -36.0,
+    92.0
+   ],
+   "closes_m18_92": true,
+   "torque_min_m18_92": 1.83,
+   "rod_mm": 42.36,
+   "least": [
+    "link:pipservo_case | rod:R1 PIP rod",
+    [
+     0.0,
+     -85.0,
+     -15.0,
+     -18.0
+    ]
+   ],
+   "next": [
+    [
+     "link:L tab frame lower | rod:R1 PIP rod",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ],
+    [
+     "phorn:pipdisc | rod:R1 PIP rod",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ],
+    [
+     "phorn:H1 PIP crank | rod:R1 PIP rod",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ]
+   ]
+  },
+  {
+   "name": "8 mm dorsal, long end toward the MCP",
+   "params": {
+    "spline_x": 21.0,
+    "spline_z": -42.0,
+    "long_end": "up",
+    "lug_r": 7.0,
+    "pip_rest": 20.0,
+    "rod_offset_c": 4.3
+   },
+   "servo_base_x": -10.9,
+   "pip_range_deg": [
+    -42.0,
+    94.0
+   ],
+   "closes_m18_92": true,
+   "torque_min_m18_92": 1.7,
+   "rod_mm": 38.77,
+   "least": [
+    "phorn:pipdisc | rod:R1 PIP rod",
+    [
+     0.0,
+     -85.0,
+     -15.0,
+     -18.0
+    ]
+   ],
+   "next": [
+    [
+     "phorn:H1 PIP crank | rod:R1 PIP rod",
+     [
+      0.0,
+      -85.0,
+      -15.0,
+      -18.0
+     ]
+    ],
+    [
+     "dip:dip_cheek | rod:R1 PIP rod",
+     [
+      0.11,
+      -85.0,
+      -15.0,
+      20.0
+     ]
+    ],
+    [
+     "dip:dip_lugarm | rod:R1 PIP rod",
+     [
+      0.12,
+      85.0,
+      90.0,
+      45.0
+     ]
+    ]
+   ]
+  }
+ ],
+ "searches": {
+  "rest 0-40, r 9-14, lug 7-13": {
+   "combinations": 96,
+   "close": 11,
+   "close_long_end_up": 2,
+   "best": {
+    "down": {
+     "long_end": "down",
+     "r": 12.0,
+     "lug_r": 9.0,
+     "pip_rest": 20.0,
+     "torque_min": 1.83,
+     "least": [
+      "yoke:Y web | phorn:flange_H1",
+      [
+       0.0,
+       -85.0,
+       -15.0,
+       -18.0
+      ]
+     ]
+    },
+    "up": {
+     "long_end": "up",
+     "r": 12.0,
+     "lug_r": 7.0,
+     "pip_rest": 20.0,
+     "torque_min": 1.7,
+     "least": [
+      "phorn:pipdisc | rod:R1 PIP rod",
+      [
+       0.0,
+       -85.0,
+       -15.0,
+       -18.0
+      ]
+     ]
+    }
+   }
+  },
+  "larger lug, r 12-18, lug 11-17": {
+   "combinations": 96,
+   "close": 1,
+   "close_long_end_up": 0,
+   "best": {
+    "down": {
+     "long_end": "down",
+     "r": 14.0,
+     "lug_r": 11.0,
+     "pip_rest": 30.0,
+     "torque_min": 1.83,
+     "least": [
+      "carriage:C rail +y | phorn:H1 PIP crank",
+      [
+       0.0,
+       85.0,
+       -15.0,
+       -18.0
+      ]
+     ]
+    }
+   }
+  }
+ }
+}

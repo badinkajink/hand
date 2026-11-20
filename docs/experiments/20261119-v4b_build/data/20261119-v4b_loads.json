@@ -1,0 +1,108 @@
+{
+ "script": "scripts/cad/v4b_build.py",
+ "command": "loads",
+ "nut_axis_z_mm": 31.96,
+ "designs": {
+  "v3": {
+   "pad_mm": [
+    -7.4,
+    0.0,
+    -87.91
+   ],
+   "nut_to_pad_mm": 119.9,
+   "gimbal_to_pad_mm": 87.9
+  },
+  "v4b acrylic (2026-11-19)": {
+   "pad_mm": [
+    -7.4,
+    0.0,
+    -103.36
+   ],
+   "nut_to_pad_mm": 135.3,
+   "gimbal_to_pad_mm": 96.4,
+   "horn_reach_mm": 36.0,
+   "pinch_3N": {
+    "bending_Nm_at_horn": 0.289,
+    "yaw_torque_Nm": 0.0,
+    "horn_radial_N": 0.0
+   },
+   "lateral_3N": {
+    "bending_Nm_at_horn": 0.13,
+    "yaw_torque_Nm": 0.289,
+    "horn_radial_N": 3.0
+   },
+   "vertical_3N": {
+    "bending_Nm_at_horn": 0.13,
+    "yaw_torque_Nm": 0.0,
+    "horn_radial_N": 3.0
+   },
+   "pinch_12.1N": {
+    "bending_Nm_at_horn": 1.166,
+    "yaw_torque_Nm": 0.0,
+    "horn_radial_N": 0.0
+   },
+   "lateral_12.1N": {
+    "bending_Nm_at_horn": 0.525,
+    "yaw_torque_Nm": 1.166,
+    "horn_radial_N": 12.1
+   },
+   "vertical_12.1N": {
+    "bending_Nm_at_horn": 0.525,
+    "yaw_torque_Nm": 0.0,
+    "horn_radial_N": 12.1
+   }
+  },
+  "v4b mixed (this build)": {
+   "pad_mm": [
+    -7.4,
+    0.0,
+    -109.36
+   ],
+   "nut_to_pad_mm": 141.3,
+   "gimbal_to_pad_mm": 102.4,
+   "horn_reach_mm": 16.0,
+   "pinch_3N": {
+    "bending_Nm_at_horn": 0.307,
+    "yaw_torque_Nm": 0.0,
+    "span_mm": 37.6,
+    "rear_radial_N": 8.16,
+    "horn_radial_N": 8.16
+   },
+   "lateral_3N": {
+    "bending_Nm_at_horn": 0.07,
+    "yaw_torque_Nm": 0.307,
+    "span_mm": 37.6,
+    "rear_radial_N": 1.86,
+    "horn_radial_N": 4.86
+   },
+   "vertical_3N": {
+    "bending_Nm_at_horn": 0.07,
+    "yaw_torque_Nm": 0.0,
+    "span_mm": 37.6,
+    "rear_radial_N": 1.86,
+    "horn_radial_N": 4.86
+   },
+   "pinch_12.1N": {
+    "bending_Nm_at_horn": 1.239,
+    "yaw_torque_Nm": 0.0,
+    "span_mm": 37.6,
+    "rear_radial_N": 32.9,
+    "horn_radial_N": 32.9
+   },
+   "lateral_12.1N": {
+    "bending_Nm_at_horn": 0.283,
+    "yaw_torque_Nm": 1.239,
+    "span_mm": 37.6,
+    "rear_radial_N": 7.52,
+    "horn_radial_N": 19.62
+   },
+   "vertical_12.1N": {
+    "bending_Nm_at_horn": 0.283,
+    "yaw_torque_Nm": 0.0,
+    "span_mm": 37.6,
+    "rear_radial_N": 7.52,
+    "horn_radial_N": 19.62
+   }
+  }
+ }
+}
