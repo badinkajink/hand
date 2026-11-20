@@ -25,6 +25,8 @@ def score(r):
 
 def main():
     prop = json.loads((STUDY / "data/20261119-trial_proposal.json").read_text())
+    cad = STUDY / "data/20261119-trial_proposal_cad.json"         # the replacements of 22:1x, when written
+    prop["pick"] += json.loads(cad.read_text())["pick"] if cad.exists() else []
     want = {(int(p["call"]), int(p["k"])) for p in prop["pick"] + prop["anchors"]}
     sc = defaultdict(dict)                     # (plant, call, k) -> {seed: score}
     for st in ("A", "B", "D", "P"):

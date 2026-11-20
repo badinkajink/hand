@@ -47,7 +47,9 @@
      61.3187,
      -29.1002
     ]
-   }
+   },
+   "cad_least_mm": -0.1,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y70_twist_gr_g7_plan.json",
@@ -94,7 +96,9 @@
      51.3187,
      -31.6002
     ]
-   }
+   },
+   "cad_least_mm": -0.1,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
@@ -193,7 +197,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5223,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4698
     }
-   }
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_gr_g8_plan.json",
@@ -249,7 +255,9 @@
      51.3187,
      -76.6002
     ]
-   }
+   },
+   "cad_least_mm": 13.4,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
@@ -357,7 +365,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.465,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3522
     }
-   }
+   },
+   "cad_least_mm": 16.0,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_gr_g3_plan.json",
@@ -413,7 +423,9 @@
      48.8187,
      -74.1002
     ]
-   }
+   },
+   "cad_least_mm": 10.6,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
@@ -521,7 +533,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4463,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.3553
     }
-   }
+   },
+   "cad_least_mm": 15.8,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_gr_g9_plan.json",
@@ -568,7 +582,9 @@
      46.3187,
      -26.6002
     ]
-   }
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
@@ -667,7 +683,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.5038,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.4552
     }
-   }
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_gr_g15_plan.json",
@@ -723,7 +741,9 @@
      36.3187,
      -56.6002
     ]
-   }
+   },
+   "cad_least_mm": 17.8,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
@@ -831,7 +851,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.4215,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.341
     }
-   }
+   },
+   "cad_least_mm": 15.8,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_gr_g0_plan.json",
@@ -887,7 +909,9 @@
      26.3187,
      -51.6002
     ]
-   }
+   },
+   "cad_least_mm": 18.8,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
@@ -995,7 +1019,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3737,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2943
     }
-   }
+   },
+   "cad_least_mm": 16.7,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_gr_g1_plan.json",
@@ -1042,7 +1068,9 @@
      28.8187,
      -41.6002
     ]
-   }
+   },
+   "cad_least_mm": 15.0,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
@@ -1141,7 +1169,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3532,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2807
     }
-   }
+   },
+   "cad_least_mm": 9.9,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_gr_g14_plan.json",
@@ -1197,7 +1227,9 @@
      36.3187,
      -26.6002
     ]
-   }
+   },
+   "cad_least_mm": 0.9,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
@@ -1305,7 +1337,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.2838,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2408
     }
-   }
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y135_twist_gr_g8_plan.json",
@@ -1361,7 +1395,9 @@
      23.8187,
      -64.1002
     ]
-   }
+   },
+   "cad_least_mm": 8.5,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
@@ -1469,7 +1505,9 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.0,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.0
     }
-   }
+   },
+   "cad_least_mm": 8.9,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_gr_g0_plan.json",
@@ -1525,7 +1563,9 @@
      28.8187,
      -51.6002
     ]
-   }
+   },
+   "cad_least_mm": 16.9,
+   "cad_touch": false
   },
   {
    "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
@@ -1633,8 +1673,247 @@
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 1.0}": 0.3285,
      "{\"f_tripod\": 3.0, \"w_spin_tripod\": 2.0}": 0.2878
     }
-   }
+   },
+   "cad_least_mm": 13.3,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "call": 267,
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 15,
+   "score": 0.5118,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.493,
+     "track_seeds101112": null,
+     "twist_end_deg": 65.4,
+     "rise_max_mm": 12.5,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.531,
+     "track_seeds101112": 0.533,
+     "twist_end_deg": 68.1,
+     "rise_max_mm": 14.74,
+     "runs": 6,
+     "held": 6
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -13.34,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -38.8188,
+     2.4004
+    ],
+    "index": [
+     38.8188,
+     64.1003
+    ],
+    "middle": [
+     38.8187,
+     -64.1002
+    ]
+   },
+   "replaces": "(135, 65) g0",
+   "cad_least_mm": 17.6,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "call": 216,
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 16,
+   "score": 0.5103,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.509,
+     "track_seeds101112": null,
+     "twist_end_deg": 61.7,
+     "rise_max_mm": 13.94,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.512,
+     "track_seeds101112": null,
+     "twist_end_deg": 59.2,
+     "rise_max_mm": 14.98,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -33.8188,
+     2.4004
+    ],
+    "index": [
+     33.8188,
+     61.6003
+    ],
+    "middle": [
+     33.8187,
+     -61.6002
+    ]
+   },
+   "replaces": "(115, 70) g7",
+   "cad_least_mm": 19.2,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "call": 283,
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 130,
+   "score": 0.3697,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.36,
+     "track_seeds101112": null,
+     "twist_end_deg": 46.7,
+     "rise_max_mm": 10.09,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.38,
+     "track_seeds101112": null,
+     "twist_end_deg": 50.5,
+     "rise_max_mm": 11.38,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -11.71,
+     -11.0
+    ],
+    "middle": [
+     -9.55,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -41.3188,
+     2.4004
+    ],
+    "index": [
+     41.3188,
+     41.6003
+    ],
+    "middle": [
+     41.3187,
+     -41.6002
+    ]
+   },
+   "replaces": "(105, 60) g9",
+   "cad_least_mm": 15.5,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "role": "ranked",
+   "call": 193,
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "k": 5,
+   "rank_among_deployable": 163,
+   "score": 0.2705,
+   "prediction": {
+    "point": {
+     "track_seeds012": 0.287,
+     "track_seeds101112": null,
+     "twist_end_deg": 39.5,
+     "rise_max_mm": 11.48,
+     "runs": 3,
+     "held": 3
+    },
+    "pads": {
+     "track_seeds012": 0.254,
+     "track_seeds101112": null,
+     "twist_end_deg": 30.6,
+     "rise_max_mm": 11.08,
+     "runs": 3,
+     "held": 3
+    }
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -31.318800000000003,
+     2.4004
+    ],
+    "index": [
+     31.318800000000003,
+     66.6003
+    ],
+    "middle": [
+     31.3187,
+     -66.6002
+    ]
+   },
+   "replaces": "(85, 60) g14",
+   "cad_least_mm": 15.0,
+   "cad_touch": false
   }
  ],
- "relabelled": "2026-11-19 21:1x: the prediction of each plan with stage E's forces set to those forces' scores (force_refine.best_seeds012, best_seeds101112, best_mu06), which the 21:06 list had under force_refine and gave the default forces' prediction as 'prediction'; no number changed"
+ "relabelled": "2026-11-19 21:1x: the prediction of each plan with stage E's forces set to those forces' scores (force_refine.best_seeds012, best_seeds101112, best_mu06), which the 21:06 list had under force_refine and gave the default forces' prediction as 'prediction'; no number changed",
+ "cad_check": "2026-11-19 22:1x: cad_least_mm is the least finger-to-finger gap on the CAD collision spheres along the plan's simulated twist (seed 0, both models; sim/20261119-cad_finger_gaps.py and sim/20261119-cad_gap_screen.py); cad_touch marks plans whose index and middle links touch in it (< 2 mm). On 11-17 the hand's own joints read -2 to -5 mm at (105, 70) g13, where the index and middle met, and 4-9 mm at (70, 110) g0 (17 mm in simulation). Four replacements (role ranked, with 'replaces') were added."
 }

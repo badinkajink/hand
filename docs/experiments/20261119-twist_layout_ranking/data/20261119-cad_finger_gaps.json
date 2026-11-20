@@ -1,0 +1,2817 @@
+{
+ "what": "Finger-to-finger gaps of the bench plans along their simulated twists, on the CAD hand's collision spheres (hand-4a, 2026-11-19 21:5x). The lab found at 21:3x that at (70, 90) in the sweep pose \"curl 40/40\" the thumb's and index's DIP links met: the bench check's three balls per finger (tip pad, tip end, PIP joint) were 27 mm apart there, the cad_v3 scene's collision spheres -0.6 mm, and 4.5 mm at the joints where the MCPs stopped. The ranking's deployable test (index and middle at least 15 mm apart in every simulated run) measured the same three balls.",
+ "written": "2026-11-19 21:52",
+ "every_nth_period": 2,
+ "plans": [
+  {
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "point",
+   "track": 0.621,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 23.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.1,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 6.04
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.3,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 3.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 6.96
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 6.12
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x135_y65_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "pads",
+   "track": 0.599,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 16.3,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 14.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.1,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 6.08
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -1.8,
+      "parts": "thumb pip_frame and index tip end",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 4.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 6.4
+     },
+     "index-middle": {
+      "gap_mm": -11.7,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 6.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": null,
+   "model": "point",
+   "track": 0.538,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.0,
+      "parts": "thumb pip_frame and index tip end",
+      "t_s": 6.52
+     },
+     "thumb-middle": {
+      "gap_mm": 22.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.1,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.12
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.2,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.36
+     },
+     "thumb-middle": {
+      "gap_mm": -0.2,
+      "parts": "thumb tip end and middle pip_frame",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.16
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": null,
+   "model": "pads",
+   "track": 0.566,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 17.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 18.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.1,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.04
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.3,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 6.0
+     },
+     "thumb-middle": {
+      "gap_mm": -0.7,
+      "parts": "thumb tip pad and middle tip end",
+      "t_s": 7.56
+     },
+     "index-middle": {
+      "gap_mm": -11.9,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.12
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.642,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.5,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.64
+     },
+     "thumb-middle": {
+      "gap_mm": 27.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.0
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.44
+     },
+     "thumb-middle": {
+      "gap_mm": 7.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.8
+     },
+     "index-middle": {
+      "gap_mm": -6.7,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.6
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_gr_g7_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.679,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.5,
+      "parts": "thumb pip_frame and index tip end",
+      "t_s": 6.2
+     },
+     "thumb-middle": {
+      "gap_mm": 26.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.96
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.68
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.4,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.44
+     },
+     "thumb-middle": {
+      "gap_mm": 7.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.44
+     },
+     "index-middle": {
+      "gap_mm": -7.3,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 6.16
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": null,
+   "model": "point",
+   "track": 0.556,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.3,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.36
+     },
+     "index-middle": {
+      "gap_mm": 17.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.04
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.4,
+      "parts": "thumb pip_frame and index tip end",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 3.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -7.7,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.92
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": null,
+   "model": "pads",
+   "track": 0.574,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 17.7,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 24.1,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": 13.4,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 7.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.5,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 7.44
+     },
+     "thumb-middle": {
+      "gap_mm": -6.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 7.44
+     },
+     "index-middle": {
+      "gap_mm": -8.9,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 7.76
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "point",
+   "track": 0.689,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 26.5,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.76
+     },
+     "thumb-middle": {
+      "gap_mm": 28.8,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.04
+     },
+     "index-middle": {
+      "gap_mm": 16.3,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.8
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 7.7,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 2.48
+     },
+     "thumb-middle": {
+      "gap_mm": 12.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.96
+     },
+     "index-middle": {
+      "gap_mm": -4.2,
+      "parts": "index tip end and middle tip end",
+      "t_s": 1.88
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "pads",
+   "track": 0.69,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.7,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.72
+     },
+     "thumb-middle": {
+      "gap_mm": 27.8,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.08
+     },
+     "index-middle": {
+      "gap_mm": 16.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 7.9,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 2.48
+     },
+     "thumb-middle": {
+      "gap_mm": 12.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.96
+     },
+     "index-middle": {
+      "gap_mm": -4.2,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 3.72
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": null,
+   "model": "point",
+   "track": 0.54,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.4,
+      "parts": "thumb pip_frame and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 19.9,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": 17.3,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.04
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.8,
+      "parts": "thumb pip_frame and index tip end",
+      "t_s": 7.64
+     },
+     "thumb-middle": {
+      "gap_mm": 3.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -9.6,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.56
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "role": "ranked",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": null,
+   "model": "pads",
+   "track": 0.571,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 16.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 23.6,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": 10.6,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 7.24
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -8.3,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 7.72
+     },
+     "thumb-middle": {
+      "gap_mm": -6.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 7.44
+     },
+     "index-middle": {
+      "gap_mm": -8.4,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.64
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "point",
+   "track": 0.708,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.9,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.4
+     },
+     "index-middle": {
+      "gap_mm": 16.2,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.8
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.6,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.28
+     },
+     "thumb-middle": {
+      "gap_mm": 9.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.96
+     },
+     "index-middle": {
+      "gap_mm": -6.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 2.08
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "pads",
+   "track": 0.705,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.9,
+      "parts": "thumb tip end and index tip pad",
+      "t_s": 3.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.32
+     },
+     "index-middle": {
+      "gap_mm": 15.8,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.8
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.6,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.24
+     },
+     "thumb-middle": {
+      "gap_mm": 9.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.96
+     },
+     "index-middle": {
+      "gap_mm": -6.6,
+      "parts": "index tip end and middle tip end",
+      "t_s": 2.08
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": null,
+   "model": "point",
+   "track": 0.525,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 19.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.16
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -2.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.24
+     },
+     "thumb-middle": {
+      "gap_mm": 0.6,
+      "parts": "thumb tip end and middle pip_frame",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -14.3,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 6.12
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_plan.json",
+   "role": "ranked",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": null,
+   "model": "pads",
+   "track": 0.563,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 17.4,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 13.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.12
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.12
+     },
+     "thumb-middle": {
+      "gap_mm": -1.3,
+      "parts": "thumb pip_frame and middle pip_frame",
+      "t_s": 7.32
+     },
+     "index-middle": {
+      "gap_mm": -14.0,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 6.12
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.642,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 26.2,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.6
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.56
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.8
+     },
+     "thumb-middle": {
+      "gap_mm": 8.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.08
+     },
+     "index-middle": {
+      "gap_mm": -8.8,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.0
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_gr_g9_f1.25_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.25,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.654,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.0,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.84
+     },
+     "thumb-middle": {
+      "gap_mm": 26.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.16
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.68
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.4,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.8
+     },
+     "thumb-middle": {
+      "gap_mm": 8.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.08
+     },
+     "index-middle": {
+      "gap_mm": -7.9,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 5.6
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": null,
+   "model": "point",
+   "track": 0.48,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.9,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.84
+     },
+     "index-middle": {
+      "gap_mm": 18.3,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.9,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.92
+     },
+     "thumb-middle": {
+      "gap_mm": 1.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -10.3,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 1.96
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": null,
+   "model": "pads",
+   "track": 0.487,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.24
+     },
+     "thumb-middle": {
+      "gap_mm": 26.1,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.8
+     },
+     "index-middle": {
+      "gap_mm": 17.8,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -7.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 1.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -10.7,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 1.96
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "point",
+   "track": 0.67,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.5,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 30.1,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.24
+     },
+     "index-middle": {
+      "gap_mm": 15.8,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 6.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.36
+     },
+     "thumb-middle": {
+      "gap_mm": 12.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -8.3,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "pads",
+   "track": 0.673,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 29.4,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.2
+     },
+     "index-middle": {
+      "gap_mm": 17.3,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 6.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.4
+     },
+     "thumb-middle": {
+      "gap_mm": 12.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -8.6,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "point",
+   "track": 0.443,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.3,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.16
+     },
+     "index-middle": {
+      "gap_mm": 19.4,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -6.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.16
+     },
+     "thumb-middle": {
+      "gap_mm": -0.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 3.32
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_plan.json",
+   "role": "ranked",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "pads",
+   "track": 0.418,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 25.8,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.12
+     },
+     "index-middle": {
+      "gap_mm": 18.8,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -7.1,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 5.28
+     },
+     "thumb-middle": {
+      "gap_mm": -0.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.72
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.666,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.36
+     },
+     "thumb-middle": {
+      "gap_mm": 29.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.52
+     },
+     "index-middle": {
+      "gap_mm": 17.7,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.44
+     },
+     "thumb-middle": {
+      "gap_mm": 12.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -5.9,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 2.24
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.647,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.4
+     },
+     "thumb-middle": {
+      "gap_mm": 29.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.36
+     },
+     "index-middle": {
+      "gap_mm": 16.7,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -1.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.6
+     },
+     "thumb-middle": {
+      "gap_mm": 12.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -5.8,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 2.24
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": null,
+   "model": "point",
+   "track": 0.391,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.8,
+      "parts": "thumb tip pad and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.2,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": 15.1,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -10.2,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 6.72
+     },
+     "thumb-middle": {
+      "gap_mm": -0.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -11.2,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 3.68
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "role": "ranked",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": null,
+   "model": "pads",
+   "track": 0.406,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.7,
+      "parts": "thumb tip pad and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 25.9,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": 15.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.32
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -9.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.2
+     },
+     "thumb-middle": {
+      "gap_mm": -1.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -12.2,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 3.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.663,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.4
+     },
+     "thumb-middle": {
+      "gap_mm": 31.7,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 5.68
+     },
+     "index-middle": {
+      "gap_mm": 10.4,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.12
+     },
+     "thumb-middle": {
+      "gap_mm": 10.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -6.5,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 2.36
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.675,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.52
+     },
+     "thumb-middle": {
+      "gap_mm": 31.0,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 5.6
+     },
+     "index-middle": {
+      "gap_mm": 9.9,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -1.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.12
+     },
+     "thumb-middle": {
+      "gap_mm": 10.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.92
+     },
+     "index-middle": {
+      "gap_mm": -6.5,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 2.56
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": null,
+   "model": "point",
+   "track": 0.357,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 25.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.68
+     },
+     "index-middle": {
+      "gap_mm": 1.8,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.0,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.28
+     },
+     "thumb-middle": {
+      "gap_mm": -0.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.4
+     },
+     "index-middle": {
+      "gap_mm": -11.9,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 7.08
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": null,
+   "model": "pads",
+   "track": 0.367,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 24.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.68
+     },
+     "index-middle": {
+      "gap_mm": 0.9,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.2,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.28
+     },
+     "thumb-middle": {
+      "gap_mm": -1.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.36
+     },
+     "index-middle": {
+      "gap_mm": -11.5,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 2.72
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "point",
+   "track": 0.55,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.72
+     },
+     "thumb-middle": {
+      "gap_mm": 26.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.08
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.7,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.88
+     },
+     "thumb-middle": {
+      "gap_mm": 9.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.2,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 7.16
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_gr_g14_f1_w0.5_plan.json",
+   "role": "ranked",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "model": "pads",
+   "track": 0.525,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 25.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.08
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.08
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.0
+     },
+     "thumb-middle": {
+      "gap_mm": 9.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 0.8
+     },
+     "index-middle": {
+      "gap_mm": -10.3,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 7.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": null,
+   "model": "point",
+   "track": 0.045,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 29.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 9.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 2.16
+     },
+     "index-middle": {
+      "gap_mm": 15.2,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.28
+     },
+     "thumb-middle": {
+      "gap_mm": -3.7,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 0.84
+     },
+     "index-middle": {
+      "gap_mm": -7.3,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 3.84
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_plan.json",
+   "role": "ranked",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": null,
+   "model": "pads",
+   "track": 0.028,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 29.1,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 8.5,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 2.16
+     },
+     "index-middle": {
+      "gap_mm": 14.5,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.0,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 3.88
+     },
+     "thumb-middle": {
+      "gap_mm": -3.8,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 0.84
+     },
+     "index-middle": {
+      "gap_mm": -7.6,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 3.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.276,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 28.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 9.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 2.08
+     },
+     "index-middle": {
+      "gap_mm": 16.2,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 4.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 4.68
+     },
+     "thumb-middle": {
+      "gap_mm": 1.9,
+      "parts": "thumb tip pad and middle pip_frame",
+      "t_s": 6.68
+     },
+     "index-middle": {
+      "gap_mm": -10.5,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_gr_g8_f1_w0.25_plan.json",
+   "role": "ranked",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.233,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 28.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 8.9,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 2.08
+     },
+     "index-middle": {
+      "gap_mm": 15.6,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 4.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 4.68
+     },
+     "thumb-middle": {
+      "gap_mm": 1.7,
+      "parts": "thumb tip pad and middle pip_frame",
+      "t_s": 6.32
+     },
+     "index-middle": {
+      "gap_mm": -10.9,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "role": "anchor",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "point",
+   "track": 0.39,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.4
+     },
+     "index-middle": {
+      "gap_mm": 17.4,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.48
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -6.1,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 5.24
+     },
+     "thumb-middle": {
+      "gap_mm": 1.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 1.04
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "role": "anchor",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "model": "pads",
+   "track": 0.375,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.4,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.4,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.24
+     },
+     "index-middle": {
+      "gap_mm": 16.9,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.52
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -6.5,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 5.2
+     },
+     "thumb-middle": {
+      "gap_mm": 0.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "anchor",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "point",
+   "track": 0.647,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.56
+     },
+     "thumb-middle": {
+      "gap_mm": 30.3,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.52
+     },
+     "index-middle": {
+      "gap_mm": 14.3,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.72
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.4,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.48
+     },
+     "thumb-middle": {
+      "gap_mm": 12.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.32
+     },
+     "index-middle": {
+      "gap_mm": -6.1,
+      "parts": "index pip_frame and middle tip end",
+      "t_s": 2.24
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "role": "anchor",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "model": "pads",
+   "track": 0.621,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.4
+     },
+     "thumb-middle": {
+      "gap_mm": 29.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.52
+     },
+     "index-middle": {
+      "gap_mm": 13.3,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.64
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 5.64
+     },
+     "thumb-middle": {
+      "gap_mm": 12.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.04
+     },
+     "index-middle": {
+      "gap_mm": -6.1,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 1.96
+     }
+    }
+   }
+  }
+ ],
+ "hand_11_17": [
+  {
+   "file": "20261117-091523_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x105_y70_twist_gr_plan.json",
+   "label": "(105, 70) g13",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 22.4,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 2.3
+    },
+    "thumb-middle": {
+     "gap_mm": 23.5,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 2.3
+    },
+    "index-middle": {
+     "gap_mm": -2.2,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.5
+    }
+   }
+  },
+  {
+   "file": "20261117-092112_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x105_y70_twist_gr_plan.json",
+   "label": "(105, 70) g13",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 26.8,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.18
+    },
+    "thumb-middle": {
+     "gap_mm": 26.7,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.6
+    },
+    "index-middle": {
+     "gap_mm": -2.9,
+     "parts": "index tip pad and middle pip_frame",
+     "t_s": 8.14
+    }
+   }
+  },
+  {
+   "file": "20261117-170919_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x105_y70_twist_gr_plan.json",
+   "label": "(105, 70) g13",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 24.5,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 2.9
+    },
+    "thumb-middle": {
+     "gap_mm": 24.4,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 5.02
+    },
+    "index-middle": {
+     "gap_mm": -2.9,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.78
+    }
+   }
+  },
+  {
+   "file": "20261117-171157_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x105_y70_twist_gr_plan.json",
+   "label": "(105, 70) g13",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.0,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.12
+    },
+    "thumb-middle": {
+     "gap_mm": 25.5,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.88
+    },
+    "index-middle": {
+     "gap_mm": -5.3,
+     "parts": "index mcp_frame and middle pip_frame",
+     "t_s": 5.28
+    }
+   }
+  },
+  {
+   "file": "20261117-181336_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x105_y70_twist_gr_plan.json",
+   "label": "(105, 70) g13",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 25.0,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 3.32
+    },
+    "thumb-middle": {
+     "gap_mm": 25.0,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.76
+    },
+    "index-middle": {
+     "gap_mm": -5.0,
+     "parts": "index tip pad and middle pip_frame",
+     "t_s": 6.4
+    }
+   }
+  },
+  {
+   "file": "20261117-182123_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.7,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 1.1
+    },
+    "thumb-middle": {
+     "gap_mm": 15.0,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.7
+    },
+    "index-middle": {
+     "gap_mm": 8.9,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.7
+    }
+   }
+  },
+  {
+   "file": "20261117-182443_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 15.4,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 4.88
+    },
+    "thumb-middle": {
+     "gap_mm": -10.8,
+     "parts": "thumb tip pad and middle pip_frame",
+     "t_s": 4.32
+    },
+    "index-middle": {
+     "gap_mm": 8.4,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.76
+    }
+   }
+  },
+  {
+   "file": "20261117-194243_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 20.4,
+     "parts": "thumb tip pad and index tip pad",
+     "t_s": 5.16
+    },
+    "thumb-middle": {
+     "gap_mm": 15.4,
+     "parts": "thumb tip end and middle tip pad",
+     "t_s": 5.2
+    },
+    "index-middle": {
+     "gap_mm": 7.9,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.4
+    }
+   }
+  },
+  {
+   "file": "20261117-194506_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 18.4,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.68
+    },
+    "thumb-middle": {
+     "gap_mm": 20.0,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.96
+    },
+    "index-middle": {
+     "gap_mm": 5.3,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.04
+    }
+   }
+  },
+  {
+   "file": "20261117-194727_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 15.6,
+     "parts": "thumb pip_frame and index tip pad",
+     "t_s": 5.28
+    },
+    "thumb-middle": {
+     "gap_mm": -8.0,
+     "parts": "thumb tip end and middle tip pad",
+     "t_s": 5.8
+    },
+    "index-middle": {
+     "gap_mm": 8.3,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.48
+    }
+   }
+  },
+  {
+   "file": "20261117-194922_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 15.9,
+     "parts": "thumb pip_frame and index tip end",
+     "t_s": 3.64
+    },
+    "thumb-middle": {
+     "gap_mm": 13.8,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.88
+    },
+    "index-middle": {
+     "gap_mm": 7.8,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.6
+    }
+   }
+  },
+  {
+   "file": "20261117-195313_twist_d40_trial002.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 20.2,
+     "parts": "thumb tip pad and index tip pad",
+     "t_s": 5.0
+    },
+    "thumb-middle": {
+     "gap_mm": 16.1,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.6
+    },
+    "index-middle": {
+     "gap_mm": 8.1,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.32
+    }
+   }
+  },
+  {
+   "file": "20261117-195517_twist_d40_trial002.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.9,
+     "parts": "thumb tip pad and index tip pad",
+     "t_s": 5.0
+    },
+    "thumb-middle": {
+     "gap_mm": 14.6,
+     "parts": "thumb tip end and middle tip pad",
+     "t_s": 5.16
+    },
+    "index-middle": {
+     "gap_mm": 7.5,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 2.44
+    }
+   }
+  },
+  {
+   "file": "20261117-195738_twist_d40_trial002.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 8.6,
+     "parts": "thumb pip_frame and index tip pad",
+     "t_s": 5.26
+    },
+    "thumb-middle": {
+     "gap_mm": 16.9,
+     "parts": "thumb tip pad and middle tip pad",
+     "t_s": 5.26
+    },
+    "index-middle": {
+     "gap_mm": 5.4,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.82
+    }
+   }
+  },
+  {
+   "file": "20261117-195931_twist_d40_trial002.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": -4.7,
+     "parts": "thumb tip pad and index tip end",
+     "t_s": 7.1
+    },
+    "thumb-middle": {
+     "gap_mm": 15.5,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.62
+    },
+    "index-middle": {
+     "gap_mm": 7.2,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.26
+    }
+   }
+  },
+  {
+   "file": "20261117-200137_twist_d40_trial003.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 18.4,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 2.02
+    },
+    "thumb-middle": {
+     "gap_mm": 13.5,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.98
+    },
+    "index-middle": {
+     "gap_mm": 8.8,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.54
+    }
+   }
+  },
+  {
+   "file": "20261117-200542_twist_d40_trial004.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 18.5,
+     "parts": "thumb tip end and index tip pad",
+     "t_s": 2.98
+    },
+    "thumb-middle": {
+     "gap_mm": 12.9,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.94
+    },
+    "index-middle": {
+     "gap_mm": 7.0,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.34
+    }
+   }
+  },
+  {
+   "file": "20261117-200806_twist_d40_trial003.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 14.7,
+     "parts": "thumb pip_frame and index tip end",
+     "t_s": 3.94
+    },
+    "thumb-middle": {
+     "gap_mm": -9.3,
+     "parts": "thumb tip pad and middle tip end",
+     "t_s": 5.3
+    },
+    "index-middle": {
+     "gap_mm": 8.1,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.1
+    }
+   }
+  },
+  {
+   "file": "20261117-210621_twist_d40_trial004.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.8,
+     "parts": "thumb tip pad and index tip pad",
+     "t_s": 5.04
+    },
+    "thumb-middle": {
+     "gap_mm": 15.9,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 5.04
+    },
+    "index-middle": {
+     "gap_mm": 8.4,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.16
+    }
+   }
+  },
+  {
+   "file": "20261117-210830_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 20.1,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.84
+    },
+    "thumb-middle": {
+     "gap_mm": 18.4,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 5.12
+    },
+    "index-middle": {
+     "gap_mm": 4.5,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 4.48
+    }
+   }
+  },
+  {
+   "file": "20261117-211021_twist_d40_trial004.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 17.6,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.52
+    },
+    "thumb-middle": {
+     "gap_mm": 15.6,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.36
+    },
+    "index-middle": {
+     "gap_mm": 6.6,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.36
+    }
+   }
+  },
+  {
+   "file": "20261117-211226_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 18.7,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 3.32
+    },
+    "thumb-middle": {
+     "gap_mm": 14.7,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 2.52
+    },
+    "index-middle": {
+     "gap_mm": 9.1,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.16
+    }
+   }
+  },
+  {
+   "file": "20261117-211615_twist_d40_trial005.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 20.3,
+     "parts": "thumb tip pad and index pip_frame",
+     "t_s": 5.5
+    },
+    "thumb-middle": {
+     "gap_mm": 18.9,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.38
+    },
+    "index-middle": {
+     "gap_mm": 4.7,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.78
+    }
+   }
+  },
+  {
+   "file": "20261117-211835_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.1,
+     "parts": "thumb tip end and index tip end",
+     "t_s": 3.04
+    },
+    "thumb-middle": {
+     "gap_mm": 14.8,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.64
+    },
+    "index-middle": {
+     "gap_mm": 7.5,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.68
+    }
+   }
+  },
+  {
+   "file": "20261117-212039_twist_d40_trial005.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 14.9,
+     "parts": "thumb pip_frame and index tip end",
+     "t_s": 4.54
+    },
+    "thumb-middle": {
+     "gap_mm": 15.3,
+     "parts": "thumb tip end and middle tip pad",
+     "t_s": 5.06
+    },
+    "index-middle": {
+     "gap_mm": 4.2,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 2.58
+    }
+   }
+  },
+  {
+   "file": "20261117-212250_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "on",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 18.2,
+     "parts": "thumb pip_frame and index tip end",
+     "t_s": 2.46
+    },
+    "thumb-middle": {
+     "gap_mm": 14.3,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.9
+    },
+    "index-middle": {
+     "gap_mm": 8.3,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 1.14
+    }
+   }
+  },
+  {
+   "file": "20261117-212455_twist_d40_trial006.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.6,
+     "parts": "thumb tip end and index tip pad",
+     "t_s": 4.0
+    },
+    "thumb-middle": {
+     "gap_mm": 15.4,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.64
+    },
+    "index-middle": {
+     "gap_mm": 8.0,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.92
+    }
+   }
+  },
+  {
+   "file": "20261119-191459_twist_d40_trial000.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.3,
+     "parts": "thumb tip end and index tip pad",
+     "t_s": 4.18
+    },
+    "thumb-middle": {
+     "gap_mm": 14.5,
+     "parts": "thumb tip end and middle tip pad",
+     "t_s": 4.94
+    },
+    "index-middle": {
+     "gap_mm": 7.9,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.14
+    }
+   }
+  },
+  {
+   "file": "20261119-191748_twist_d40_trial001.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "label": "(70, 110) g0",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 19.8,
+     "parts": "thumb tip end and index tip pad",
+     "t_s": 4.26
+    },
+    "thumb-middle": {
+     "gap_mm": 15.2,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.82
+    },
+    "index-middle": {
+     "gap_mm": 7.8,
+     "parts": "index pip_frame and middle pip_frame",
+     "t_s": 3.42
+    }
+   }
+  },
+  {
+   "file": "20261119-192629_twist_d40_trial000.jsonl",
+   "plan": "20261117-film_x105_y70_twist_gr_g13_mcpstop_plan.json",
+   "label": "(105, 70) g13 mcpstop",
+   "tips": "off",
+   "gaps": {
+    "thumb-index": {
+     "gap_mm": 20.6,
+     "parts": "thumb pip_frame and index tip end",
+     "t_s": 6.68
+    },
+    "thumb-middle": {
+     "gap_mm": 24.0,
+     "parts": "thumb tip end and middle tip end",
+     "t_s": 4.96
+    },
+    "index-middle": {
+     "gap_mm": -4.1,
+     "parts": "index mcp_frame and middle pip_frame",
+     "t_s": 8.24
+    }
+   }
+  }
+ ]
+}

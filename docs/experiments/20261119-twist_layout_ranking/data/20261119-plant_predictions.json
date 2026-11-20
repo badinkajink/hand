@@ -1,6 +1,6 @@
 {
  "what": "Each plant's prediction for the proposed layouts' default-force plans (hand-4a, 2026-11-19 21:2x), so that each plant can be scored against the trials on the hand: per proposed layout and its grasp k (data/20261119-trial_proposal.json), the mean tracking over seeds 0-2 under point contact and the pads (stages A-B) and under stage D's four plants (stage D where it ran the grasp, stage P of sim/20261119-twist_ranking_search.py for the rest).",
- "written": "2026-11-19 21:16",
+ "written": "2026-11-19 22:00",
  "plants": {
   "point": "point contact, 7.5 V, friction 1.0",
   "pads": "pads, 7.5 V, friction 1.0",
@@ -188,6 +188,78 @@
     "point_mu0.6": 0.0023,
     "pads_mu0.6": 0.0,
     "point_5v": 0.0
+   }
+  },
+  {
+   "call": 267,
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "k": 3,
+   "rank_among_deployable": 15,
+   "plan": "20261119-rank_x90_y135_twist_gr_g3_plan.json",
+   "predicted": {
+    "point": 0.493,
+    "pads": 0.5307,
+    "pads_stiff": 0.3883,
+    "point_mu0.6": 0.6057,
+    "pads_mu0.6": 0.6347,
+    "point_5v": 0.4447
+   }
+  },
+  {
+   "call": 216,
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "k": 15,
+   "rank_among_deployable": 16,
+   "plan": "20261119-rank_x80_y130_twist_gr_g15_plan.json",
+   "predicted": {
+    "point": 0.5087,
+    "pads": 0.512,
+    "pads_stiff": 0.378,
+    "point_mu0.6": 0.566,
+    "pads_mu0.6": 0.5023,
+    "point_5v": 0.436
+   }
+  },
+  {
+   "call": 283,
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "k": 14,
+   "rank_among_deployable": 130,
+   "plan": "20261119-rank_x95_y90_twist_gr_g14_plan.json",
+   "predicted": {
+    "point": 0.3597,
+    "pads": 0.3797,
+    "pads_stiff": 0.1847,
+    "point_mu0.6": 0.3763,
+    "pads_mu0.6": 0.4047,
+    "point_5v": 0.3253
+   }
+  },
+  {
+   "call": 193,
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "k": 5,
+   "rank_among_deployable": 163,
+   "plan": "20261119-rank_x75_y140_twist_gr_g5_plan.json",
+   "predicted": {
+    "point": 0.2873,
+    "pads": 0.2537,
+    "pads_stiff": 0.1607,
+    "point_mu0.6": 0.278,
+    "pads_mu0.6": 0.2357,
+    "point_5v": 0.22
    }
   },
   {

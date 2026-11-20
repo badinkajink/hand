@@ -1,0 +1,74 @@
+{
+ "what": "Replacements proposed at 22:1x on 2026-11-19 for the four proposed layouts whose index and middle links touched (0 mm on the CAD collision spheres) in their simulated twists (sim/20261119-cad_finger_gaps.py): deployable layouts whose least finger gap on the CAD spheres along the simulated twist, under both models at seed 0, is at least 15 mm (sim/20261119-cad_gap_screen.py), two from the top of the ranking and two spanning the predicted range below the anchor.",
+ "pick": [
+  {
+   "call": 267,
+   "xy": [
+    90.0,
+    135.0
+   ],
+   "k": 3,
+   "score": 0.5118,
+   "held_all": true,
+   "im_gap_min_mm": 17.5,
+   "runs": 9,
+   "twist_end": 67.2,
+   "fits": true,
+   "rank_among_deployable": 15,
+   "cad_least_mm": 17.6,
+   "replaces": "(135, 65) g0"
+  },
+  {
+   "call": 216,
+   "xy": [
+    80.0,
+    130.0
+   ],
+   "k": 15,
+   "score": 0.5103,
+   "held_all": true,
+   "im_gap_min_mm": 22.9,
+   "runs": 6,
+   "twist_end": 60.4,
+   "fits": true,
+   "rank_among_deployable": 16,
+   "cad_least_mm": 19.2,
+   "replaces": "(115, 70) g7"
+  },
+  {
+   "call": 283,
+   "xy": [
+    95.0,
+    90.0
+   ],
+   "k": 14,
+   "score": 0.3697,
+   "held_all": true,
+   "im_gap_min_mm": 22.0,
+   "runs": 6,
+   "twist_end": 48.6,
+   "fits": true,
+   "rank_among_deployable": 130,
+   "cad_least_mm": 15.5,
+   "replaces": "(105, 60) g9"
+  },
+  {
+   "call": 193,
+   "xy": [
+    75.0,
+    140.0
+   ],
+   "k": 5,
+   "score": 0.2705,
+   "held_all": true,
+   "im_gap_min_mm": 25.3,
+   "runs": 6,
+   "twist_end": 35.1,
+   "fits": true,
+   "rank_among_deployable": 163,
+   "cad_least_mm": 15.0,
+   "replaces": "(85, 60) g14"
+  }
+ ],
+ "anchors": []
+}

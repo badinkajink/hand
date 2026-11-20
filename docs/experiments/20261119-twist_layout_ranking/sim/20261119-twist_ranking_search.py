@@ -204,10 +204,12 @@ def jobs_for(stage):
         return out
     if stage == "P":           # stage D's plants on the proposed layouts' grasps (hand-4a, 11-19 21:2x), D's runs skipped
         prop = json.loads((STUDY / "data/20261119-trial_proposal.json").read_text())
+        cad = STUDY / "data/20261119-trial_proposal_cad.json"     # the replacements of 22:1x, when written
+        extra = json.loads(cad.read_text())["pick"] if cad.exists() else []
         have = {key(r) for r in rows("D")}
         out = []
         for name, contact, volts, mu in PLANTS_D:
-            for p in prop["pick"] + prop["anchors"]:
+            for p in prop["pick"] + prop["anchors"] + extra:
                 c, k = int(p["call"]), int(p["k"])
                 out += [j for j in ({**base_job(c, lays[c][0], name, contact=contact, volts=volts, mu=mu), "k": k,
                                      "seed": s} for s in (0, 1, 2)) if (name, c, k, j["seed"]) not in have]
