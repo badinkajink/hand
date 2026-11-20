@@ -22,6 +22,7 @@ import io
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -61,9 +62,16 @@ IDENT = EXP / "20261117-sr2_system_identification"
 # commit 2f295223e (11-17 23:24): the boards' free-air sweep of 2026-11-17 at the HOM roll layout, the GP of Table 9
 # (the HOM trials' tip_contacts.OWN_POSE) tested on it, with one offset per joint, and the GP refitted on it
 SWEEP17 = IDENT / "data/sweep/20261117-own_pose_sweep_fit.json"
+# commit bda4d2865 (11-19 16:12): the same sweep and tests on 2026-11-19 afternoon at the trials' layout (70, 110), with
+# the GP refitted on 11-17 also tested on it
+SWEEP19 = IDENT / "data/sweep/20261119-own_pose_sweep_fit.json"
+# commit 6070a84e0 (11-19 21:40): that evening's 13 short free-air sweeps of 11 named poses at 12 layouts, with the GP of
+# Table 9 and the afternoon's refit tested on them (sim/20261119-pose_sweep_own_pose.py)
+SWEEPS19 = IDENT / "data/s3/20261119-pose_sweep_own_pose.json"
 SEC = dict(terms=1, field=2, holder=3, hand=4, layouts=5, subtract=6, fit=7, sharpie=8, limits=9, future=10)
 FIG = dict(budget=1, holder=2, hovers=3, force=4, sweep=5, hand=6, layouts_camera=7, layouts_film=8, layouts=9, sharpie=10, render=11)
-TAB = dict(field=1, holder=2, hovers=3, force=4, floor=5, moved=6, left=7, apart=8, layouts_own=9, viewer=10, presses=11, sweep17=12, crb=13)
+TAB = dict(field=1, holder=2, hovers=3, force=4, floor=5, moved=6, left=7, apart=8, layouts_own=9, viewer=10, presses=11, sweep17=12,
+           sweeps19=13, crb=14)
 SHIFTED = ("-x+", "-x-", "-y+", "-y-")   # hover ids of the apex shifted 3 mm; the others are centred
 SHARPIE_W = (7.0, 11.0)   # about a sharpie's width (the coordinator's 01:28 line)
 L = dict(
@@ -73,6 +81,7 @@ L = dict(
     holder=EXP / "20261027-fingertip_holder/README.md",
     v3=EXP / "20261027-v3_tip_calibration_and_crosstalk/README.md",
     gt=EXP / "20261022-ur5_tip_calibration/20261022-ur5_tip_ground_truth_and_predictors.html",
+    sensing=EXP / "20261119-fingertip_sensing/20261119-magnetic_fingertip_contact_sensing_on_the_sr2_hand.html",
 )
 BLUE, ORANGE, GREY = "#2e5fa8", "#b06010", "0.45"
 GREEN = "#1b9e77"
@@ -1020,7 +1029,36 @@ def fig_layouts(A, Z):
     return out
 
 
-def layouts_section(A, Ln, rn, fl, W):
+def sweeps19_numbers(W19, SW):
+    """The evening sweeps of 2026-11-19 (SWEEPS19) as the lab's sensing page pools them: the poses with a joint moved more
+    than 3 deg, from all sweeps; with the afternoon's fit (SWEEP19) for the force equivalent."""
+    moved = lambda r: max(abs(x) for x in r["q"]) > 3  # noqa: E731
+    lay = lambda d: tuple(int(v) for v in re.match(r"hom_film_x(\d+)_y(\d+)_", d).groups())  # noqa: E731
+    sw = sorted(SW["sweeps"], key=lambda s: s["sweep"])
+    clock = lambda s: f"{s['sweep'][9:11]}:{s['sweep'][11:13]}"  # noqa: E731
+    rows = []
+    for s in sw:
+        Fs = s["fingers"]
+        n = [Fs[f]["n_moved"] for f in FINGERS]
+        assert n == [sum(map(moved, Fs[f]["poses"])) for f in FINGERS], s["sweep"]
+        rows.append(dict(t=clock(s), layout="(%d, %d)" % lay(s["design"]),
+                         moved=", ".join(str(x) for x in n) if len(set(n)) > 1 else str(n[0]),
+                         change=[Fs[f]["change_median_uT"] for f in FINGERS], deployed=[Fs[f]["resid_deployed_median_uT"] for f in FINGERS],
+                         x70y110=[Fs[f]["resid_x70y110_median_uT"] for f in FINGERS]))
+    pool = {k: [float(np.median([r[f"{k}_uT" if k == "change" else f"resid_{k}_uT"] for s in sw for r in s["fingers"][f]["poses"] if moved(r)]))
+                for f in FINGERS] for k in ("change", "deployed", "x70y110")}
+    n_pool = [sum(moved(r) for s in sw for r in s["fingers"][f]["poses"]) for f in FINGERS]
+    same = [s for s in sw if lay(s["design"]) == (70, 110)]
+    assert len(same) == 2, [s["sweep"] for s in same]
+    return dict(rows=rows, pool=pool, n_pool=n_pool, n_sweeps=len(sw), n_layouts=len({lay(s["design"]) for s in sw}),
+                first=clock(sw[0]), last=clock(sw[-1]), script=SW["script"],
+                pool_N=[pool["deployed"][k] / W19["uT_per_N"][f] for k, f in enumerate(FINGERS)],
+                per_sweep=[x for r in rows for x in r["deployed"]],
+                same_t=[clock(s) for s in same], same_dep=[[s["fingers"][f]["resid_deployed_median_uT"] for f in FINGERS] for s in same],
+                same_refit=[s["fingers"][f]["resid_x70y110_median_uT"] for s in same for f in FINGERS])
+
+
+def layouts_section(A, Ln, rn, fl, W, W19, V):
     uT = "&#8202;&#181;T"
     ref = lambda k: f"Table&#160;{TAB[k]}"  # noqa: E731
     def rng(xs, f="{:.1f}"):
@@ -1140,16 +1178,57 @@ def layouts_section(A, Ln, rn, fl, W):
           f"Table&#160;{TAB['layouts_own']} leaves {rng(wm('five_folds_11_04_05'))}{uT} on its own poses. The fit is <code>{W['script']}</code>, with its numbers in <code>{SWEEP17.relative_to(ROOT)}</code>. The refitted GP, "
           f"<code>{Path(W['gp_new']).name}</code>, lies beside the trials&#8217; GP.</p>")
     sgn = lambda x: f"{x:+.1f}".replace("-", "&#8722;")  # noqa: E731
-    rows_w = [(FINGER_NAME[f], f"{wb[f]['rows']:,}", f"{wb[f]['change']['median_uT']:.1f}", f"{wm('old_gp_on_new')[k]:.1f}", f"{w95('old_gp_on_new')[k]:.1f}",
-               f"{wm('old_gp_with_joint_offset')[k]:.1f}", f"{w95('old_gp_with_joint_offset')[k]:.1f}", ", ".join(sgn(x) for x in offs[f]),
-               f"{wm('five_folds_new')[k]:.2f}", f"{w95('five_folds_new')[k]:.1f}") for k, f in enumerate(FINGERS)]
-    tab_w = P.table(["Board", "Poses", "Change, median (&#181;T)", f"GP of Table&#160;{TAB['layouts_own']}, median (&#181;T)", f"GP of Table&#160;{TAB['layouts_own']}, 95th percentile (&#181;T)",
+    vm = lambda key: [W19["boards"][f][key]["median_uT"] for f in FINGERS]  # noqa: E731
+    vN = lambda key: [W19["boards"][f][key]["median_N"] for f in FINGERS]  # noqa: E731
+    voff = {f: W19["boards"][f]["old_gp_with_joint_offset"]["offset_deg"] for f in FINGERS}
+    vf, vk = max(((f, k) for f in FINGERS for k in range(3)), key=lambda fk: abs(voff[fk[0]][fk[1]]))
+    vmax = abs(voff[vf][vk])
+    assert (vf, vk) == ("index", 0), (vf, vk)   # the sentence names the index's yaw
+    p7 = (f"<p>On the afternoon of 19 November, after the day&#8217;s presses, the lab ran the same sweep at the trials&#8217; layout, (70, 110). "
+          f"Each board changed by a median of {rng(vm('change'), '{:.0f}')}{uT} (Table&#160;{TAB['sweep17']}). The GP of Table&#160;{TAB['layouts_own']} left "
+          f"{vm('old_gp_on_new')[0]:.1f}, {vm('old_gp_on_new')[1]:.1f} and {vm('old_gp_on_new')[2]:.1f}{uT} on the thumb&#8217;s, index&#8217;s and middle finger&#8217;s boards, "
+          f"or {rng(vN('old_gp_on_new'), '{:.2f}')}&#8202;N. With one offset per joint fitted to the sweep, it left {rng(vm('old_gp_with_joint_offset'))}{uT}. "
+          f"The largest offset was {vmax:.1f}&#176; at the index&#8217;s yaw. A GP refitted on these poses left {rng(vm('five_folds_new'))}{uT} over five folds. "
+          f"The GP refitted on 17 November at the roll layout left {rng(vm('gp_11_17_on_new'))}{uT} here.</p>")
+    rows_w = [(day, FINGER_NAME[f], f"{Wx['boards'][f]['rows']:,}", f"{Wx['boards'][f]['change']['median_uT']:.1f}",
+               *(f"{Wx['boards'][f][key][q]:.1f}" for key in ("old_gp_on_new", "old_gp_with_joint_offset") for q in ("median_uT", "p95_uT")),
+               ", ".join(sgn(x) for x in Wx["boards"][f]["old_gp_with_joint_offset"]["offset_deg"]),
+               f"{Wx['boards'][f]['five_folds_new']['median_uT']:.2f}", f"{Wx['boards'][f]['five_folds_new']['p95_uT']:.1f}")
+              for day, Wx in (("17 Nov., HOM roll", W), ("19 Nov., (70, 110)", W19)) for f in FINGERS]
+    tab_w = P.table(["Sweep", "Board", "Poses", "Change, median (&#181;T)", f"GP of Table&#160;{TAB['layouts_own']}, median (&#181;T)", f"GP of Table&#160;{TAB['layouts_own']}, 95th percentile (&#181;T)",
                      "With joint offsets, median (&#181;T)", "With joint offsets, 95th percentile (&#181;T)", "Offsets of yaw, MCP and PIP (&#176;)",
                      "Refitted GP, five folds, median (&#181;T)", "Refitted GP, five folds, 95th percentile (&#181;T)"],
-                    rows_w, num_cols=(1, 2, 3, 4, 5, 6, 8, 9), n=TAB["sweep17"],
-                    caption="The boards&#8217; sweep of 2026-11-17 at the HOM roll layout, after the servos were re-zeroed: what the GP of "
-                            f"Table&#160;{TAB['layouts_own']} leaves of each board&#8217;s change, with one offset per joint fitted to the new poses, and what a GP refitted on them leaves.")
-    return p1 + p2 + camera + film + p3 + tab_own + fig + tab_view + p4 + tab_press + p5 + p6 + tab_w
+                    rows_w, num_cols=(2, 3, 4, 5, 6, 7, 9, 10), n=TAB["sweep17"],
+                    caption="The boards&#8217; sweeps of 300 random poses on 2026-11-17 at the HOM roll layout, after the servos were re-zeroed, and on 2026-11-19 at the "
+                            f"trials&#8217; layout: what the GP of Table&#160;{TAB['layouts_own']} leaves of each board&#8217;s change, with one offset per joint fitted to the "
+                            f"sweep&#8217;s poses, and what a GP refitted on them leaves. Numbers: <code>{SWEEP17.relative_to(ROOT)}</code> and <code>{SWEEP19.name}</code> beside it.")
+    pd, pr_ = V["pool"]["deployed"], V["pool"]["x70y110"]
+    p8 = (f"<p>That evening the lab ran a short sweep at each layout of the twist ranking&#8217;s bench series (owner, relayed at 18:1x: &#8220;a short free-air pose "
+          f"sweep at each layout ... just to see if it actually matters&#8221;). In each sweep the fingers took up to 11 named poses, from the open hand to every MCP and PIP at 40&#176;. "
+          f"From {V['first']} to {V['last']}, {V['n_sweeps']} sweeps ran at {V['n_layouts']} layouts, two of them at (70, 110) (Table&#160;{TAB['sweeps19']}). "
+          f"Pooled over the {min(V['n_pool'])} or {max(V['n_pool'])} poses per board that moved a joint more than 3&#176;, the GP of Table&#160;{TAB['layouts_own']} left "
+          f"{pd[0]:.1f}, {pd[1]:.1f} and {pd[2]:.1f}{uT} on the thumb&#8217;s, index&#8217;s and middle finger&#8217;s boards. That is {rng(V['pool_N'], '{:.2f}')}&#8202;N. "
+          f"Its median per sweep ranged from {rng(V['per_sweep'])}{uT}, with no trend across the layouts. "
+          f"The GP refitted at (70, 110) that afternoon left {pr_[0]:.1f}, {pr_[1]:.1f} and {pr_[2]:.1f}{uT}. "
+          f"At (70, 110) itself it left {rng(V['same_refit'])}{uT} in the two evening sweeps, against {rng(vm('five_folds_new'))}{uT} over its five folds. "
+          f"In the same two sweeps the GP of Table&#160;{TAB['layouts_own']} left {rng(V['same_dep'][0])}{uT} at {V['same_t'][0]} and {rng(V['same_dep'][1])}{uT} at {V['same_t'][1]}. "
+          f"The lab dropped the sweep at each new layout from the bench series, and the trials keep the GP of Table&#160;{TAB['layouts_own']} "
+          f"({link(str(L['sensing']) + '#hand2', 'contact sensing on the SR2 hand')}).</p>")
+    three_ = lambda xs: " / ".join(f"{x:.1f}" for x in xs)  # noqa: E731
+    tab_s = P.table(["Began", "Layout (mm)", "Poses with a joint moved", "Change, median: thumb / index / middle (&#181;T)",
+                     f"GP of Table&#160;{TAB['layouts_own']}, median: thumb / index / middle (&#181;T)", "GP refitted at (70, 110), median: thumb / index / middle (&#181;T)"],
+                    [(r["t"], r["layout"], r["moved"], three_(r["change"]), three_(r["deployed"]), three_(r["x70y110"])) for r in V["rows"]]
+                    + [(f"All {V['n_sweeps']}", f"{V['n_layouts']} layouts", ", ".join(str(n) for n in V["n_pool"]), three_(V["pool"]["change"]),
+                        three_(pd), three_(pr_))],
+                    num_cols=(), n=TAB["sweeps19"],
+                    caption="The short free-air sweeps of 2026-11-19 evening at the layouts of the twist ranking. A pose&#8217;s change is its hold&#8217;s mean reading less the "
+                            "zero pose&#8217;s, as the norm over the 15 components. What a GP leaves is the norm of that change less the GP&#8217;s predicted change from the zero pose. "
+                            "Medians are over the poses with a joint moved more than 3&#176;; where the counts differ they are the thumb&#8217;s, index&#8217;s and middle finger&#8217;s. "
+                            "The last row pools all sweeps. At (70, 90) the sweep stopped after every MCP and "
+                            "PIP went to 40&#176;, the pose in which the thumb&#8217;s and index&#8217;s DIP links met. The later sweeps skipped the poses that brought two fingers "
+                            f"within 30&#8202;mm of each other in the bench&#8217;s check. Numbers: <code>{SWEEPS19.relative_to(ROOT)}</code>, by "
+                            f"<code>{Path(V['script']).name}</code>.")
+    return p1 + p2 + camera + film + p3 + tab_own + fig + tab_view + p4 + tab_press + p5 + p6 + p7 + tab_w + p8 + tab_s
 
 
 def fig_hovers(H):
@@ -1247,7 +1326,7 @@ def fig_force(H, B, pg):
     return out
 
 
-def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl, W):
+def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl, W, W19, V):
     rb = rows_by(B)
     r5 = lambda kind, x: rb[("five N52", kind, float(x))]  # noqa: E731
     r4 = lambda kind, x: rb[("four N52", kind, float(x))]  # noqa: E731
@@ -1285,16 +1364,16 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
     f5 = fn["five10"] / pg["v2"]
     pc, pn = Ln["press_comp"], Ln["press_noise"]
     nlay = len(A["own"]["thumb"]["layouts"])
-    w17 = [W["boards"][f]["old_gp_on_new"]["median_uT"] for f in FINGERS]
-    w17o = [W["boards"][f]["old_gp_with_joint_offset"]["median_uT"] for f in FINGERS]
+    v19 = V["pool"]["deployed"]
     lede = (
         f"Over two days and {nlay} layouts of the SR2 hand, the contact viewer with no compensation would show a contact in {Ln['share']['thumb']:.1f}&#8202;% of the thumb&#8217;s "
         f"50&#8202;ms frames with nothing touching, at a median of {Ln['press']:.1f}&#8202;N. The change comes mostly from the finger&#8217;s own pose, a median of "
         f"{min(Ln['change']):.0f} to {max(Ln['change']):.0f}&#8202;&#181;T. With a Gaussian process on the finger&#8217;s own three joint angles subtracted, {min(Ln['shown'])} to {max(Ln['shown'])} of "
         f"{min(Ln['frames']):,} to {max(Ln['frames']):,} frames per board still show a contact, {'and the same' if Ln['shown'] == Ln['shown_out'] else 'and ' + str(min(Ln['shown_out'])) + ' to ' + str(max(Ln['shown_out']))} with each layout left out of its fit. "
-        f"After the servos were re-zeroed on 17 November, the Gaussian process&#8217;s error on a new sweep&#8217;s poses was {min(w17):.1f} to {max(w17):.1f}&#8202;&#181;T at the "
-        f"median. With one offset per joint it was {min(w17o):.1f} to {max(w17o):.1f}&#8202;&#181;T. UR5 presses added to "
+        f"UR5 presses added to "
         f"those frames read with a median force error of {min(pc):.0f} to {max(pc):.0f}&#8202;%, against {min(pn):.0f} to {max(pn):.0f}&#8202;% on the zero pose&#8217;s noise. "
+        f"In {V['n_sweeps']} short free-air sweeps at {V['n_layouts']} layouts on 19 November, the Gaussian process left {min(v19):.1f} to {max(v19):.1f}&#8202;&#181;T at the median, "
+        "with no trend across the layouts. "
         f"At the home layout a finger moving alone changed the other fingertips&#8217; boards by at most {rn['other_max']:.1f}&#8202;&#181;T, {rn['other_max_N']:.2f}&#8202;N. On the UR5, two "
         f"four-magnet v3 tips with their pads touching changed each other&#8217;s boards by {min(con):.0f} to {max(con):.0f}&#8202;&#181;T. "
         f"A dipole model with each tip&#8217;s net moment, {min(shr):.0f} to {max(shr):.0f}&#8202;% of one magnet&#8217;s, explains {both(hov_held)} of the "
@@ -1303,8 +1382,9 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
         f"Magnetic crosstalk between neighbouring fingertips: over two days and {nlay} layouts of the SR2 hand the contact viewer with no compensation would show a contact in "
         f"{Ln['share']['thumb']:.1f} % of the thumb's 50 ms frames with nothing touching (median {Ln['press']:.1f} N; middle {Ln['share']['middle']:.1f} %, index {Ln['share']['index']:.1f} %). "
         f"A GP on the finger's own three angles leaves {min(Ln['shown'])}-{max(Ln['shown'])} of {min(Ln['frames']):,}-{max(Ln['frames']):,} frames per board ({min(Ln['shown_out'])}-{max(Ln['shown_out'])} with each layout "
-        f"left out); on 2026-11-17, after the servos were re-zeroed, it missed a new sweep by {min(w17):.1f}-{max(w17):.1f} uT at the median "
-        f"({min(w17o):.1f}-{max(w17o):.1f} uT with one offset per joint), and injected UR5 presses read with {min(pc):.0f}-{max(pc):.0f} % median force error ({min(pn):.0f}-{max(pn):.0f} % on the zero pose's noise). At the home layout a finger moving alone changed the other "
+        f"left out), injected UR5 presses read with {min(pc):.0f}-{max(pc):.0f} % median force error ({min(pn):.0f}-{max(pn):.0f} % on the zero pose's noise), and in "
+        f"{V['n_sweeps']} short free-air sweeps at {V['n_layouts']} layouts on 2026-11-19 it left {min(v19):.1f}-{max(v19):.1f} uT at the median with no trend across layouts. "
+        "At the home layout a finger moving alone changed the other "
         f"boards by at most {rn['other_max']:.1f} uT ({rn['other_max_N']:.2f} N), against up to {rn['own_max']:.0f} uT ({rn['own_max_N']:.1f} N) from a tip's own pose. On the UR5 two four-magnet v3 tips touching changed each other's "
         f"boards by {min(con):.0f}-{max(con):.0f} uT, against {pg['v3']:.1f} uT per newton of face press on v3 ID 1; at a sharpie's width "
         f"(W {SHARPIE_W[0]:.0f}-{SHARPIE_W[1]:.0f} mm) the change equals a {fsh[0]:.2f}-{fsh[1]:.2f} N face press, {fsl[0]:.2f}-{fsl[1]:.2f} N after the "
@@ -1379,7 +1459,8 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
         ("Structured steps, random poses, five folds", "The structured steps are the single-finger families and the steps of the thumb and "
          "the middle finger toward each other. The random poses move all three fingers at once. In five folds, each fifth of the "
          "random poses is predicted by a GP trained on the other four fifths and the structured steps."),
-        ("Layout", "The three mounts&#8217; positions in the palm frame, set by the stepper gantries. g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308 are grasp layouts of the transfer study. HOM roll, press, generalist, twist and cover are layouts of the HOM task-conflict study."),
+        ("Layout", "The three mounts&#8217; positions in the palm frame, set by the stepper gantries. g12, sv1_w6689, rv04_mid, sv1_w0099 and sv1_u0308 are grasp layouts of the transfer study. HOM roll, press, generalist, twist and cover are layouts of the HOM task-conflict study. "
+         "On 19 November a layout is named (x, y) by its spacings in mm: x across the palm, from the thumb&#8217;s mount to the line of the other two, and y between the index&#8217;s and the middle finger&#8217;s mounts."),
         ("Own-angle GP, layout left out, home only", f"The GP on the finger&#8217;s own three angles, with each change taken against the zero pose at the same layout. In Section&#160;{SEC['layouts']} its five folds split all of a "
          "board&#8217;s poses at random. With a layout left out, every pose of that layout is predicted by the GP fitted on the other layouts. Home only: the poses at the other layouts are predicted by the GP fitted at home."),
         ("Force equivalent", "A change in &#181;T over the tip&#8217;s change per newton on the UR5, 28.0 to 28.7&#8202;&#181;T/N."),
@@ -1471,7 +1552,7 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
 
     # 4. measured on the SR2 hand
     S_.append(("hand", "Crosstalk and own-pose change measured on the SR2 hand", hand_section(R, rn, fa, mp4, poster)))
-    S_.append(("layouts", f"False contacts and the own-angle GP at {nlay} layouts of the SR2 hand", layouts_section(A, Ln, rn, fl, W)))
+    S_.append(("layouts", f"False contacts and the own-angle GP at {nlay} layouts of the SR2 hand", layouts_section(A, Ln, rn, fl, W, W19, V)))
 
     # 5. subtraction from the joint angles
     sub = (
@@ -1575,7 +1656,9 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
         f"Only {rn['near_n']} of its poses lie under 20&#8202;mm, and none under {CLOSEST_MM}&#8202;mm. The index&#8217;s board ended at 19:43:52. "
         "The GP&#8217;s five folds predict random poses of the session that trained it, with the drift between zero dwells taken out.</p>"
         f"<p>In Section&#160;{SEC['layouts']} nothing touched the tips, so contacts are only injected, and a press on the hand also moves the finger, which the injection does not include. "
-        "The pad frames come from the cad_v2 model at the stepper counts.</p>")))
+        "The pad frames come from the cad_v2 model at the stepper counts. "
+        f"The evening sweeps of 19 November took each named pose once, so a sweep&#8217;s median in Table&#160;{TAB['sweeps19']} rests on {min(int(n) for r in V['rows'] for n in r['moved'].split(', '))} to "
+        f"{max(int(n) for r in V['rows'] for n in r['moved'].split(', '))} poses per board.</p>")))
 
     # 9. future work
     fw = [
@@ -1586,11 +1669,6 @@ def sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln,
          f"{min(Ln['after_far']):.1f} to {max(Ln['after_far']):.1f}&#8202;&#181;T beyond 70&#8202;mm. A plan of its own brings the pads within 25&#8202;mm, the thumb against the index and against the middle finger. There a gain near 1 at cad_v3&#8217;s spacing supports the "
          "CAD&#8217;s finger positions, and a gain near 0.4 at the driver&#8217;s spacing supports the driver&#8217;s. Measuring each finger&#8217;s yaw axis in the palm frame with the UR5 fixes that spacing (the cad_v3 page&#8217;s Future work). "
          f"The neighbour&#8217;s field is then predicted from the joint angles with the net moments of Section&#160;{SEC['holder']}. If more than the far poses&#8217; value is left, the net moments do not describe the neighbour on the hand."),
-        ("Random poses in a session with the servos&#8217; zeros unchanged.", f"The sweep of 2026-11-17 (Table&#160;{TAB['sweep17']}) came after the servos were re-zeroed. In what an "
-         "earlier session&#8217;s GP leaves there, the change of the joints&#8217; zeros and any change of the boards are mixed. The refitted GP "
-         f"(<code>{Path(W['gp_new']).name}</code>) is tested by a sweep at the same layout in a later session, with the same zeros. More than its five folds&#8217; 95th percentile, "
-         f"{min(W['boards'][f]['five_folds_new']['p95_uT'] for f in FINGERS):.1f} to {max(W['boards'][f]['five_folds_new']['p95_uT'] for f in FINGERS):.1f}&#8202;&#181;T, "
-         "left at that percentile means that the boards changed between the sessions."),
         ("The hand&#8217;s orientation.", "The arm stayed still through the sweep, so the GP was fitted at one orientation of the hand in the "
          "room&#8217;s field. Zero dwells and about 20 random poses at a second orientation of the flange test this, moved under program control (owner: "
          f"no freedrive with the hand on the UR5). More than {rn['gp'][1]['p95_uT']:.1f}&#8202;&#181;T left at the 95th percentile means the GP needs the "
@@ -1668,7 +1746,9 @@ def build():
     Ln = layouts_numbers(A)
     fl = fig_layouts(A, np.load(io.BytesIO(at_head(LAYOUT_ROWS)), allow_pickle=False))
     W = json.loads(at_head(SWEEP17))
-    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl, W)
+    W19 = json.loads(at_head(SWEEP19))
+    V = sweeps19_numbers(W19, json.loads(at_head(SWEEPS19)))
+    S_, lede, summary = sections(B, S, Sn, H, f1, f2, fh, fv, pg, ff, R, rn, fa, mp4, poster, A, Ln, fl, W, W19, V)
     assert [sid for sid, _, _ in S_] == list(SEC), [sid for sid, _, _ in S_]
     toc = "\n".join(f'<li><a href="#{sid}">{k}. {P.esc(hd)}</a></li>' for k, (sid, hd, _) in enumerate(S_, 1))
     secs = "\n".join(f'<section id="{sid}"><h2>{k}. {P.esc(hd)}</h2>{body}</section>' for k, (sid, hd, body) in enumerate(S_, 1))
@@ -1679,7 +1759,8 @@ def build():
               "sphere in session 225213-spherev3id1 against v2 ID 1&#8217;s, compared by "
               "<code>scripts/ur5/ur5_tip_calibration_four_vs_five.py</code> (commit 449464c4); the lab&#8217;s sweep of three v3 tips on the SR2 hand "
               "on 2026-11-04, analysed by <code>scripts/fingertip/sr2_crosstalk_night.py</code> (commit 9a0e05a5), and with the lab&#8217;s plan of 2026-11-05 by "
-              "<code>scripts/fingertip/sr2_crosstalk_hand.py</code> (commit 52593152). Analysis "
+              "<code>scripts/fingertip/sr2_crosstalk_hand.py</code> (commit 52593152); the lab&#8217;s free-air sweeps on the hand of 2026-11-17 and 11-19, tested by the SR2 "
+              "identification study&#8217;s <code>sim/20261117-own_pose_sweep_fit.py</code> and <code>sim/20261119-pose_sweep_own_pose.py</code> (commits 2f295223, bda4d286 and 6070a84e). Analysis "
               "<code>scripts/fingertip/fingertip_crosstalk.py</code> (commit bc508a6e); "
               "page by <code>scripts/fingertip/fingertip_crosstalk_page.py</code>; rows in " + link(DATA, "data/") + ". The fingertip and its "
               "calibration are described on " + link(L["overview"], "the fingertip overview") + " and "
