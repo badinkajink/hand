@@ -1912,8 +1912,1077 @@
    "replaces": "(85, 60) g14",
    "cad_least_mm": 15.0,
    "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x135_y65_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 478,
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6128,
+    "w_spin_tripod": 0.7853,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.9365
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -61.3188,
+     2.4004
+    ],
+    "index": [
+     61.3188,
+     29.100299999999997
+    ],
+    "middle": [
+     61.3187,
+     -29.1002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6673,
+    "both_models_seeds101112": 0.6715,
+    "point_mu06_seeds012": 0.6497,
+    "start_seeds012": 0.6023333333333333
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.4579,
+    "w_spin_tripod": 0.4327,
+    "w_roll_tripod": 0.0066,
+    "w_slide_tripod": 0.8454
+   },
+   "mcp_moved": {
+    "index": [
+     -11.57,
+     -11.0
+    ],
+    "middle": [
+     -11.63,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     76.6003
+    ],
+    "middle": [
+     51.3187,
+     -76.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.647,
+    "both_models_seeds101112": 0.642,
+    "point_mu06_seeds012": 0.647,
+    "start_seeds012": 0.5435
+   },
+   "cad_least_mm": 15.6,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.2085,
+    "w_spin_tripod": 0.6646,
+    "w_roll_tripod": 0.0014,
+    "w_slide_tripod": 1.0
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     74.1003
+    ],
+    "middle": [
+     48.8187,
+     -74.1002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.676,
+    "both_models_seeds101112": 0.68,
+    "point_mu06_seeds012": 0.6923,
+    "start_seeds012": 0.5419999999999999
+   },
+   "cad_least_mm": 15.5,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.5485,
+    "w_spin_tripod": 0.2553,
+    "w_roll_tripod": 0.0396,
+    "w_slide_tripod": 0.9067
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     46.3187,
+     -26.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6617,
+    "both_models_seeds101112": 0.6583,
+    "point_mu06_seeds012": 0.696,
+    "start_seeds012": 0.5403333333333333
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.5034,
+    "w_spin_tripod": 0.3819,
+    "w_roll_tripod": 0.0085,
+    "w_slide_tripod": 0.87
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -14.88,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     56.6003
+    ],
+    "middle": [
+     36.3187,
+     -56.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6545,
+    "both_models_seeds101112": 0.6418,
+    "point_mu06_seeds012": 0.6803,
+    "start_seeds012": 0.47750000000000004
+   },
+   "cad_least_mm": 18.1,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6431,
+    "w_spin_tripod": 0.4369,
+    "w_roll_tripod": 0.0712,
+    "w_slide_tripod": 0.9773
+   },
+   "mcp_moved": {
+    "index": [
+     -14.23,
+     -11.0
+    ],
+    "middle": [
+     -14.32,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     51.6003
+    ],
+    "middle": [
+     26.3187,
+     -51.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.618,
+    "both_models_seeds101112": 0.6115,
+    "point_mu06_seeds012": 0.5823,
+    "start_seeds012": 0.42849999999999994
+   },
+   "cad_least_mm": 16.7,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.407,
+    "w_spin_tripod": 0.2111,
+    "w_roll_tripod": 0.0326,
+    "w_slide_tripod": 0.9975
+   },
+   "mcp_moved": {
+    "index": [
+     -12.82,
+     -11.0
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     41.6003
+    ],
+    "middle": [
+     28.8187,
+     -41.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6397,
+    "both_models_seeds101112": 0.64,
+    "point_mu06_seeds012": 0.6283,
+    "start_seeds012": 0.39799999999999996
+   },
+   "cad_least_mm": 13.3,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0712,
+    "w_spin_tripod": 0.4256,
+    "w_roll_tripod": 0.0007,
+    "w_slide_tripod": 1.0
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     36.3187,
+     -26.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.5755,
+    "both_models_seeds101112": 0.5702,
+    "point_mu06_seeds012": 0.5733,
+    "start_seeds012": 0.3506666666666667
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.4013,
+    "w_spin_tripod": 0.0,
+    "w_roll_tripod": 0.0973,
+    "w_slide_tripod": 0.8077
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     51.6003
+    ],
+    "middle": [
+     28.8187,
+     -51.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6975,
+    "both_models_seeds101112": 0.6893,
+    "point_mu06_seeds012": 0.6977,
+    "start_seeds012": 0.3755
+   },
+   "cad_least_mm": 12.2,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y70_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 379,
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 2.0274,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.0274
+     ],
+     [
+      3.4,
+      1.9977
+     ],
+     [
+      4.9,
+      1.2704
+     ],
+     [
+      6.4,
+      1.3117
+     ]
+    ],
+    "w_spin_tripod": 0.5346,
+    "w_roll_tripod": 0.6224,
+    "w_slide_tripod": 1.0
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     31.600299999999997
+    ],
+    "middle": [
+     51.3187,
+     -31.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6807,
+    "both_models_seeds101112": 0.6797,
+    "point_mu06_seeds012": 0.6503,
+    "start_seeds012": 0.5593333333333333
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 397,
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.7237,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.7237
+     ],
+     [
+      3.4,
+      2.0399
+     ],
+     [
+      4.9,
+      1.9956
+     ],
+     [
+      6.4,
+      1.0182
+     ]
+    ],
+    "w_spin_tripod": 0.3402,
+    "w_roll_tripod": 0.0008,
+    "w_slide_tripod": 0.9135
+   },
+   "mcp_moved": {
+    "index": [
+     -11.38,
+     -11.0
+    ],
+    "middle": [
+     -11.71,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -51.3188,
+     2.4004
+    ],
+    "index": [
+     51.3188,
+     76.6003
+    ],
+    "middle": [
+     51.3187,
+     -76.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6542,
+    "both_models_seeds101112": 0.6492,
+    "point_mu06_seeds012": 0.6483,
+    "start_seeds012": 0.5435
+   },
+   "cad_least_mm": 16.1,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 371,
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 2.4978,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.4978
+     ],
+     [
+      3.4,
+      2.4148
+     ],
+     [
+      4.9,
+      1.1059
+     ],
+     [
+      6.4,
+      1.5425
+     ]
+    ],
+    "w_spin_tripod": 0.514,
+    "w_roll_tripod": 0.0002,
+    "w_slide_tripod": 0.8611
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -48.8188,
+     2.4004
+    ],
+    "index": [
+     48.8188,
+     74.1003
+    ],
+    "middle": [
+     48.8187,
+     -74.1002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6685,
+    "both_models_seeds101112": 0.6672,
+    "point_mu06_seeds012": 0.622,
+    "start_seeds012": 0.5419999999999999
+   },
+   "cad_least_mm": 16.5,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x105_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 327,
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 3.9492,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.9492
+     ],
+     [
+      3.4,
+      1.6598
+     ],
+     [
+      4.9,
+      1.4625
+     ],
+     [
+      6.4,
+      1.2747
+     ]
+    ],
+    "w_spin_tripod": 0.2316,
+    "w_roll_tripod": 0.003,
+    "w_slide_tripod": 0.9737
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -46.3188,
+     2.4004
+    ],
+    "index": [
+     46.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     46.3187,
+     -26.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6818,
+    "both_models_seeds101112": 0.6775,
+    "point_mu06_seeds012": 0.6653,
+    "start_seeds012": 0.5403333333333333
+   },
+   "cad_least_mm": -0.0,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 239,
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 2.377,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.377
+     ],
+     [
+      3.4,
+      1.4994
+     ],
+     [
+      4.9,
+      1.6149
+     ],
+     [
+      6.4,
+      1.3626
+     ]
+    ],
+    "w_spin_tripod": 0.4498,
+    "w_roll_tripod": 0.1761,
+    "w_slide_tripod": 0.8779
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -14.67,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     56.6003
+    ],
+    "middle": [
+     36.3187,
+     -56.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6482,
+    "both_models_seeds101112": 0.642,
+    "point_mu06_seeds012": 0.595,
+    "start_seeds012": 0.4775
+   },
+   "cad_least_mm": 17.4,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 137,
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.8899,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8899
+     ],
+     [
+      3.4,
+      1.8287
+     ],
+     [
+      4.9,
+      1.4225
+     ],
+     [
+      6.4,
+      1.5432
+     ]
+    ],
+    "w_spin_tripod": 0.8159,
+    "w_roll_tripod": 0.031,
+    "w_slide_tripod": 1.0
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -26.318800000000003,
+     2.4004
+    ],
+    "index": [
+     26.318800000000003,
+     51.6003
+    ],
+    "middle": [
+     26.3187,
+     -51.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.591,
+    "both_models_seeds101112": 0.5908,
+    "point_mu06_seeds012": 0.571,
+    "start_seeds012": 0.42849999999999994
+   },
+   "cad_least_mm": 19.1,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 158,
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.8135,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8135
+     ],
+     [
+      3.4,
+      1.7459
+     ],
+     [
+      4.9,
+      1.0
+     ],
+     [
+      6.4,
+      1.6783
+     ]
+    ],
+    "w_spin_tripod": 0.3827,
+    "w_roll_tripod": 0.0696,
+    "w_slide_tripod": 0.7849
+   },
+   "mcp_moved": {},
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     41.6003
+    ],
+    "middle": [
+     28.8187,
+     -41.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6363,
+    "both_models_seeds101112": 0.638,
+    "point_mu06_seeds012": 0.6277,
+    "start_seeds012": 0.3980000000000001
+   },
+   "cad_least_mm": 12.9,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x85_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 227,
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 2.2649,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.2649
+     ],
+     [
+      3.4,
+      1.2377
+     ],
+     [
+      4.9,
+      1.1385
+     ],
+     [
+      6.4,
+      1.9105
+     ]
+    ],
+    "w_spin_tripod": 0.2622,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.7583
+   },
+   "mcp_moved": {
+    "middle": [
+     -9.88,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -36.3188,
+     2.4004
+    ],
+    "index": [
+     36.3188,
+     26.600299999999997
+    ],
+    "middle": [
+     36.3187,
+     -26.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.5345,
+    "both_models_seeds101112": 0.5338,
+    "point_mu06_seeds012": 0.532,
+    "start_seeds012": 0.3506666666666667
+   },
+   "cad_least_mm": 0.6,
+   "cad_touch": true
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 117,
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 2.31,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.31
+     ],
+     [
+      3.4,
+      1.2106
+     ],
+     [
+      4.9,
+      1.7674
+     ],
+     [
+      6.4,
+      1.1664
+     ]
+    ],
+    "w_spin_tripod": 0.013,
+    "w_roll_tripod": 0.0143,
+    "w_slide_tripod": 0.7633
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -23.818800000000003,
+     2.4004
+    ],
+    "index": [
+     23.818800000000003,
+     64.1003
+    ],
+    "middle": [
+     23.8187,
+     -64.1002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.258,
+    "both_models_seeds101112": 0.2447,
+    "point_mu06_seeds012": 0.2127,
+    "start_seeds012": 0.027999999999999997
+   },
+   "cad_least_mm": 7.5,
+   "cad_touch": false
+  },
+  {
+   "plan": "docs/experiments/20261115-hom_bench_trials/plans/20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "call": 162,
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 3.2094,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.2094
+     ],
+     [
+      3.4,
+      3.1605
+     ],
+     [
+      4.9,
+      1.0704
+     ],
+     [
+      6.4,
+      1.418
+     ]
+    ],
+    "w_spin_tripod": 0.0595,
+    "w_roll_tripod": 0.0037,
+    "w_slide_tripod": 0.8505
+   },
+   "mcp_moved": {
+    "index": [
+     -15.0,
+     -11.0
+    ],
+    "middle": [
+     -15.0,
+     -9.5
+    ]
+   },
+   "fits": true,
+   "violations": [],
+   "mounts_palm_mm": {
+    "thumb": [
+     -28.818800000000003,
+     2.4004
+    ],
+    "index": [
+     28.818800000000003,
+     51.6003
+    ],
+    "middle": [
+     28.8187,
+     -51.6002
+    ]
+   },
+   "prediction": {
+    "both_models_seeds012": 0.6752,
+    "both_models_seeds101112": 0.6738,
+    "point_mu06_seeds012": 0.735,
+    "start_seeds012": 0.3755
+   },
+   "cad_least_mm": 15.4,
+   "cad_touch": false
   }
  ],
  "relabelled": "2026-11-19 21:1x: the prediction of each plan with stage E's forces set to those forces' scores (force_refine.best_seeds012, best_seeds101112, best_mu06), which the 21:06 list had under force_refine and gave the default forces' prediction as 'prediction'; no number changed",
- "cad_check": "2026-11-19 22:1x: cad_least_mm is the least finger-to-finger gap on the CAD collision spheres along the plan's simulated twist (seed 0, both models; sim/20261119-cad_finger_gaps.py and sim/20261119-cad_gap_screen.py); cad_touch marks plans whose index and middle links touch in it (< 2 mm). On 11-17 the hand's own joints read -2 to -5 mm at (105, 70) g13, where the index and middle met, and 4-9 mm at (70, 110) g0 (17 mm in simulation). Four replacements (role ranked, with 'replaces') were added."
+ "cad_check": "2026-11-19 22:1x: cad_least_mm is the least finger-to-finger gap on the CAD collision spheres along the plan's simulated twist (seed 0, both models; sim/20261119-cad_finger_gaps.py and sim/20261119-cad_gap_screen.py); cad_touch marks plans whose index and middle links touch in it (< 2 mm). On 11-17 the hand's own joints read -2 to -5 mm at (105, 70) g13, where the index and middle met, and 4-9 mm at (70, 110) g0 (17 mm in simulation). Four replacements (role ranked, with 'replaces') were added.",
+ "cem_written": "2026-11-19 22:50"
 }

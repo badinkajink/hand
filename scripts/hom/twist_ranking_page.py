@@ -377,6 +377,13 @@ def page():
         lede += (f"The {spread['layouts']} best layouts differ little (standard deviation {spread['sd']:.3f}). Among "
                  f"them, ρ is {f(r_('point vs pads (stage D layouts)'))} between the two contact models and "
                  f"{min(plant_rho):.2f} to {max(plant_rho):.2f} between four other plants and their mean. ")
+    if FR_ok and CEM_ok:
+        fr_ = [L["best_seeds101112"] for L in FR["layouts"] if L.get("best_seeds101112") is not None]
+        d_ = [L["default_seeds012"] for L in FR["layouts"] if L.get("default_seeds012") is not None]
+        if fr_ and d_:
+            lede += (f"Lower force targets for HOM, 1.0-1.7 N in place of 2.5 N, raise the proposed layouts' predicted "
+                     f"tracking from {np.mean(d_):.2f} to {np.mean(fr_):.2f} on average at fresh seeds; refining the "
+                     f"grasp with them (CEM) adds nothing on average. ")
     if CADG and SCR:
         lede += ("Four of the eleven layouts first proposed, ranks 1, 2, 5 and 144 among the deployable ones, touch index "
                  "to middle on those spheres in their simulated twists. Layouts at least 15 mm apart replace them in the "
@@ -607,6 +614,12 @@ seeds, and with the default at friction 0.6 (Table {T_FORCE}, Figure {F_FORCE}).
                             f"{np.mean([c['start_seeds012'] for c in cc]):.3f} at seeds 0-2.")
         cem_res += (f" {len(ok_c)} of the {len(CP)} picks gained at least 0.05 at the fresh seeds and lost at most 0.05 "
                     f"at friction 0.6; these have a plan.")
+        if FR_ok:
+            fr_ = [L["best_seeds101112"] for L in FR["layouts"] if L.get("best_seeds101112") is not None]
+            if fr_:
+                cem_res += (f" At the fresh seeds, stage E's grid over the force and the spin weight alone scored "
+                            f"{np.mean(fr_):.3f} on average over the same layouts: refining the grasp and the other "
+                            f"weights with them added nothing on average.")
         sec.append(("cem", "Grasp and HOM refined together", f"""
 <p>The cross-entropy method (CEM) of the refinement study of 2026-11-03 was run on this simulation for each proposed
 layout (sim/20261119-twist_cem_refine.py). Its level full searches the grasp's variables, the tripod's force and the

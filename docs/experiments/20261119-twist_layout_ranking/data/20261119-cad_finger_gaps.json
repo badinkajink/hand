@@ -1,6 +1,6 @@
 {
  "what": "Finger-to-finger gaps of the bench plans along their simulated twists, on the CAD hand's collision spheres (hand-4a, 2026-11-19 21:5x). The lab found at 21:3x that at (70, 90) in the sweep pose \"curl 40/40\" the thumb's and index's DIP links met: the bench check's three balls per finger (tip pad, tip end, PIP joint) were 27 mm apart there, the cad_v3 scene's collision spheres -0.6 mm, and 4.5 mm at the joints where the MCPs stopped. The ranking's deployable test (index and middle at least 15 mm apart in every simulated run) measured the same three balls.",
- "written": "2026-11-19 21:52",
+ "written": "2026-11-19 22:57",
  "every_nth_period": 2,
  "plans": [
   {
@@ -2117,6 +2117,2418 @@
       "gap_mm": -6.1,
       "parts": "index pip_frame and middle tip pad",
       "t_s": 1.96
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x135_y65_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6128,
+    "w_spin_tripod": 0.7853,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.9365
+   },
+   "model": "point",
+   "track": 0.668,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.2,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.0
+     },
+     "thumb-middle": {
+      "gap_mm": 23.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.48
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 5.68
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.9,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.08
+     },
+     "thumb-middle": {
+      "gap_mm": 7.4,
+      "parts": "thumb pip_frame and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -8.4,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 5.48
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x135_y65_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    135.0,
+    65.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6128,
+    "w_spin_tripod": 0.7853,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.9365
+   },
+   "model": "pads",
+   "track": 0.673,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.7,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 17.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 5.64
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.7,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.08
+     },
+     "thumb-middle": {
+      "gap_mm": 6.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.8
+     },
+     "index-middle": {
+      "gap_mm": -8.6,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 7.76
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.4579,
+    "w_spin_tripod": 0.4327,
+    "w_roll_tripod": 0.0066,
+    "w_slide_tripod": 0.8454
+   },
+   "model": "point",
+   "track": 0.656,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 26.5,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.8
+     },
+     "thumb-middle": {
+      "gap_mm": 28.1,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.24
+     },
+     "index-middle": {
+      "gap_mm": 16.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.72
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 2.44
+     },
+     "thumb-middle": {
+      "gap_mm": 7.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -8.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.4579,
+    "w_spin_tripod": 0.4327,
+    "w_roll_tripod": 0.0066,
+    "w_slide_tripod": 0.8454
+   },
+   "model": "pads",
+   "track": 0.648,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.5,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.24
+     },
+     "index-middle": {
+      "gap_mm": 15.6,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.84
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.2,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.24
+     },
+     "thumb-middle": {
+      "gap_mm": 7.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -8.9,
+      "parts": "index tip end and middle tip end",
+      "t_s": 1.16
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.2085,
+    "w_spin_tripod": 0.6646,
+    "w_roll_tripod": 0.0014,
+    "w_slide_tripod": 1.0
+   },
+   "model": "point",
+   "track": 0.691,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.9,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.8
+     },
+     "thumb-middle": {
+      "gap_mm": 27.8,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.12
+     },
+     "index-middle": {
+      "gap_mm": 15.8,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.84
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.28
+     },
+     "thumb-middle": {
+      "gap_mm": 7.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -8.6,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 0.84
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.2085,
+    "w_spin_tripod": 0.6646,
+    "w_roll_tripod": 0.0014,
+    "w_slide_tripod": 1.0
+   },
+   "model": "pads",
+   "track": 0.675,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.5,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.48
+     },
+     "index-middle": {
+      "gap_mm": 15.5,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.84
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 3.7,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.24
+     },
+     "thumb-middle": {
+      "gap_mm": 7.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -8.6,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.5485,
+    "w_spin_tripod": 0.2553,
+    "w_roll_tripod": 0.0396,
+    "w_slide_tripod": 0.9067
+   },
+   "model": "point",
+   "track": 0.649,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.2,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.84
+     },
+     "thumb-middle": {
+      "gap_mm": 24.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.8
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.0,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.88
+     },
+     "thumb-middle": {
+      "gap_mm": 4.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.56
+     },
+     "index-middle": {
+      "gap_mm": -11.4,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 6.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 1.5485,
+    "w_spin_tripod": 0.2553,
+    "w_roll_tripod": 0.0396,
+    "w_slide_tripod": 0.9067
+   },
+   "model": "pads",
+   "track": 0.686,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 20.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.5,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.84
+     },
+     "thumb-middle": {
+      "gap_mm": 4.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.6
+     },
+     "index-middle": {
+      "gap_mm": -10.1,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 7.76
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.5034,
+    "w_spin_tripod": 0.3819,
+    "w_roll_tripod": 0.0085,
+    "w_slide_tripod": 0.87
+   },
+   "model": "point",
+   "track": 0.66,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.7,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 29.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.92
+     },
+     "index-middle": {
+      "gap_mm": 18.4,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.2,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.8
+     },
+     "thumb-middle": {
+      "gap_mm": 5.6,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.56
+     },
+     "index-middle": {
+      "gap_mm": -12.6,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 2.0
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.5034,
+    "w_spin_tripod": 0.3819,
+    "w_roll_tripod": 0.0085,
+    "w_slide_tripod": 0.87
+   },
+   "model": "pads",
+   "track": 0.65,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.0
+     },
+     "thumb-middle": {
+      "gap_mm": 28.9,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.84
+     },
+     "index-middle": {
+      "gap_mm": 18.1,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.3,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.72
+     },
+     "thumb-middle": {
+      "gap_mm": 5.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -12.7,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 1.96
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6431,
+    "w_spin_tripod": 0.4369,
+    "w_roll_tripod": 0.0712,
+    "w_slide_tripod": 0.9773
+   },
+   "model": "point",
+   "track": 0.62,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.56
+     },
+     "thumb-middle": {
+      "gap_mm": 30.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.12
+     },
+     "index-middle": {
+      "gap_mm": 17.1,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.24
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.3,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.96
+     },
+     "thumb-middle": {
+      "gap_mm": 3.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -15.2,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.52
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.6431,
+    "w_spin_tripod": 0.4369,
+    "w_roll_tripod": 0.0712,
+    "w_slide_tripod": 0.9773
+   },
+   "model": "pads",
+   "track": 0.615,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 29.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.04
+     },
+     "index-middle": {
+      "gap_mm": 16.7,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.32
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.9,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.88
+     },
+     "thumb-middle": {
+      "gap_mm": 2.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -16.5,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.48
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.407,
+    "w_spin_tripod": 0.2111,
+    "w_roll_tripod": 0.0326,
+    "w_slide_tripod": 0.9975
+   },
+   "model": "point",
+   "track": 0.645,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.3,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.08
+     },
+     "thumb-middle": {
+      "gap_mm": 29.3,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 5.08
+     },
+     "index-middle": {
+      "gap_mm": 13.5,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.16
+     },
+     "thumb-middle": {
+      "gap_mm": 2.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.16
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 3.4
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.407,
+    "w_spin_tripod": 0.2111,
+    "w_roll_tripod": 0.0326,
+    "w_slide_tripod": 0.9975
+   },
+   "model": "pads",
+   "track": 0.634,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.6
+     },
+     "thumb-middle": {
+      "gap_mm": 28.7,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 5.08
+     },
+     "index-middle": {
+      "gap_mm": 13.3,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.16
+     },
+     "thumb-middle": {
+      "gap_mm": 2.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.2
+     },
+     "index-middle": {
+      "gap_mm": -12.0,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 2.92
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0712,
+    "w_spin_tripod": 0.4256,
+    "w_roll_tripod": 0.0007,
+    "w_slide_tripod": 1.0
+   },
+   "model": "point",
+   "track": 0.564,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 19.9,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.28
+     },
+     "thumb-middle": {
+      "gap_mm": 27.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.6
+     },
+     "index-middle": {
+      "gap_mm": 0.9,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 4.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.92
+     },
+     "thumb-middle": {
+      "gap_mm": 8.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -9.9,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.2
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 1.0712,
+    "w_spin_tripod": 0.4256,
+    "w_roll_tripod": 0.0007,
+    "w_slide_tripod": 1.0
+   },
+   "model": "pads",
+   "track": 0.585,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.36
+     },
+     "thumb-middle": {
+      "gap_mm": 27.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.08
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 4.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.96
+     },
+     "thumb-middle": {
+      "gap_mm": 8.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -10.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.4013,
+    "w_spin_tripod": 0.0,
+    "w_roll_tripod": 0.0973,
+    "w_slide_tripod": 0.8077
+   },
+   "model": "point",
+   "track": 0.702,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.5,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 32.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.32
+     },
+     "index-middle": {
+      "gap_mm": 12.9,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.8,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.72
+     },
+     "thumb-middle": {
+      "gap_mm": 6.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -12.2,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 2.64
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_full_plan.json",
+   "role": "cem full",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.4013,
+    "w_spin_tripod": 0.0,
+    "w_roll_tripod": 0.0973,
+    "w_slide_tripod": 0.8077
+   },
+   "model": "pads",
+   "track": 0.697,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.36
+     },
+     "thumb-middle": {
+      "gap_mm": 32.4,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.28
+     },
+     "index-middle": {
+      "gap_mm": 12.2,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.0,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.68
+     },
+     "thumb-middle": {
+      "gap_mm": 6.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.0
+     },
+     "index-middle": {
+      "gap_mm": -12.2,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 2.64
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 2.0274,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.0274
+     ],
+     [
+      3.4,
+      1.9977
+     ],
+     [
+      4.9,
+      1.2704
+     ],
+     [
+      6.4,
+      1.3117
+     ]
+    ],
+    "w_spin_tripod": 0.5346,
+    "w_roll_tripod": 0.6224,
+    "w_slide_tripod": 1.0
+   },
+   "model": "point",
+   "track": 0.666,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.8,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 25.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.44
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.5,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.64
+     },
+     "thumb-middle": {
+      "gap_mm": 1.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.48
+     },
+     "index-middle": {
+      "gap_mm": -8.3,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y70_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    70.0
+   ],
+   "k": 7,
+   "prm": {
+    "f_tripod": 2.0274,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.0274
+     ],
+     [
+      3.4,
+      1.9977
+     ],
+     [
+      4.9,
+      1.2704
+     ],
+     [
+      6.4,
+      1.3117
+     ]
+    ],
+    "w_spin_tripod": 0.5346,
+    "w_roll_tripod": 0.6224,
+    "w_slide_tripod": 1.0
+   },
+   "model": "pads",
+   "track": 0.695,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.5,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 21.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 6.32
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -0.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.64
+     },
+     "thumb-middle": {
+      "gap_mm": 0.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.4
+     },
+     "index-middle": {
+      "gap_mm": -9.1,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.44
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.7237,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.7237
+     ],
+     [
+      3.4,
+      2.0399
+     ],
+     [
+      4.9,
+      1.9956
+     ],
+     [
+      6.4,
+      1.0182
+     ]
+    ],
+    "w_spin_tripod": 0.3402,
+    "w_roll_tripod": 0.0008,
+    "w_slide_tripod": 0.9135
+   },
+   "model": "point",
+   "track": 0.661,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 26.6,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 3.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.12
+     },
+     "index-middle": {
+      "gap_mm": 16.5,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.08
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 5.1,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.32
+     },
+     "thumb-middle": {
+      "gap_mm": 6.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -7.8,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.8
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.7237,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.7237
+     ],
+     [
+      3.4,
+      2.0399
+     ],
+     [
+      4.9,
+      1.9956
+     ],
+     [
+      6.4,
+      1.0182
+     ]
+    ],
+    "w_spin_tripod": 0.3402,
+    "w_roll_tripod": 0.0008,
+    "w_slide_tripod": 0.9135
+   },
+   "model": "pads",
+   "track": 0.656,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.0
+     },
+     "thumb-middle": {
+      "gap_mm": 26.5,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.36
+     },
+     "index-middle": {
+      "gap_mm": 16.1,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.12
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 4.5,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 4.32
+     },
+     "thumb-middle": {
+      "gap_mm": 6.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -7.9,
+      "parts": "index tip end and middle tip end",
+      "t_s": 0.92
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 2.4978,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.4978
+     ],
+     [
+      3.4,
+      2.4148
+     ],
+     [
+      4.9,
+      1.1059
+     ],
+     [
+      6.4,
+      1.5425
+     ]
+    ],
+    "w_spin_tripod": 0.514,
+    "w_roll_tripod": 0.0002,
+    "w_slide_tripod": 0.8611
+   },
+   "model": "point",
+   "track": 0.676,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 25.0,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.4
+     },
+     "index-middle": {
+      "gap_mm": 16.7,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.0
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 1.8,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 3.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.32
+     },
+     "index-middle": {
+      "gap_mm": -5.6,
+      "parts": "index tip pad and middle tip end",
+      "t_s": 6.08
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 2.4978,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.4978
+     ],
+     [
+      3.4,
+      2.4148
+     ],
+     [
+      4.9,
+      1.1059
+     ],
+     [
+      6.4,
+      1.5425
+     ]
+    ],
+    "w_spin_tripod": 0.514,
+    "w_roll_tripod": 0.0002,
+    "w_slide_tripod": 0.8611
+   },
+   "model": "pads",
+   "track": 0.668,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 26.5,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.28
+     },
+     "index-middle": {
+      "gap_mm": 16.5,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.96
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": 0.2,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 7.64
+     },
+     "thumb-middle": {
+      "gap_mm": 3.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.32
+     },
+     "index-middle": {
+      "gap_mm": -6.3,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.72
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 3.9492,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.9492
+     ],
+     [
+      3.4,
+      1.6598
+     ],
+     [
+      4.9,
+      1.4625
+     ],
+     [
+      6.4,
+      1.2747
+     ]
+    ],
+    "w_spin_tripod": 0.2316,
+    "w_roll_tripod": 0.003,
+    "w_slide_tripod": 0.9737
+   },
+   "model": "point",
+   "track": 0.672,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 21.3,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 6.0
+     },
+     "thumb-middle": {
+      "gap_mm": 24.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 5.56
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.96
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -1.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.88
+     },
+     "thumb-middle": {
+      "gap_mm": 1.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 2.92
+     },
+     "index-middle": {
+      "gap_mm": -9.6,
+      "parts": "index mcp_frame and middle mcp_frame",
+      "t_s": 5.92
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x105_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    105.0,
+    60.0
+   ],
+   "k": 9,
+   "prm": {
+    "f_tripod": 3.9492,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.9492
+     ],
+     [
+      3.4,
+      1.6598
+     ],
+     [
+      4.9,
+      1.4625
+     ],
+     [
+      6.4,
+      1.2747
+     ]
+    ],
+    "w_spin_tripod": 0.2316,
+    "w_roll_tripod": 0.003,
+    "w_slide_tripod": 0.9737
+   },
+   "model": "pads",
+   "track": 0.681,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 19.7,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 5.84
+     },
+     "thumb-middle": {
+      "gap_mm": 22.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 7.76
+     },
+     "index-middle": {
+      "gap_mm": -0.0,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 5.8
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -1.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.84
+     },
+     "thumb-middle": {
+      "gap_mm": 0.9,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.24
+     },
+     "index-middle": {
+      "gap_mm": -10.2,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.24
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 2.377,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.377
+     ],
+     [
+      3.4,
+      1.4994
+     ],
+     [
+      4.9,
+      1.6149
+     ],
+     [
+      6.4,
+      1.3626
+     ]
+    ],
+    "w_spin_tripod": 0.4498,
+    "w_roll_tripod": 0.1761,
+    "w_slide_tripod": 0.8779
+   },
+   "model": "point",
+   "track": 0.648,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.5,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 29.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.92
+     },
+     "index-middle": {
+      "gap_mm": 17.8,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.4
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.1,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.88
+     },
+     "thumb-middle": {
+      "gap_mm": 2.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.6
+     },
+     "index-middle": {
+      "gap_mm": -12.6,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 2.88
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 2.377,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.377
+     ],
+     [
+      3.4,
+      1.4994
+     ],
+     [
+      4.9,
+      1.6149
+     ],
+     [
+      6.4,
+      1.3626
+     ]
+    ],
+    "w_spin_tripod": 0.4498,
+    "w_roll_tripod": 0.1761,
+    "w_slide_tripod": 0.8779
+   },
+   "model": "pads",
+   "track": 0.654,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.7,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.24
+     },
+     "thumb-middle": {
+      "gap_mm": 28.0,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.84
+     },
+     "index-middle": {
+      "gap_mm": 17.4,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.36
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -5.1,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.88
+     },
+     "thumb-middle": {
+      "gap_mm": 2.1,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.28
+     },
+     "index-middle": {
+      "gap_mm": -13.2,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.8899,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8899
+     ],
+     [
+      3.4,
+      1.8287
+     ],
+     [
+      4.9,
+      1.4225
+     ],
+     [
+      6.4,
+      1.5432
+     ]
+    ],
+    "w_spin_tripod": 0.8159,
+    "w_roll_tripod": 0.031,
+    "w_slide_tripod": 1.0
+   },
+   "model": "point",
+   "track": 0.592,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.1,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 28.3,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.76
+     },
+     "index-middle": {
+      "gap_mm": 19.5,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.32
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.0,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 4.96
+     },
+     "thumb-middle": {
+      "gap_mm": 1.5,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.08
+     },
+     "index-middle": {
+      "gap_mm": -14.4,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.44
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x65_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    65.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.8899,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8899
+     ],
+     [
+      3.4,
+      1.8287
+     ],
+     [
+      4.9,
+      1.4225
+     ],
+     [
+      6.4,
+      1.5432
+     ]
+    ],
+    "w_spin_tripod": 0.8159,
+    "w_roll_tripod": 0.031,
+    "w_slide_tripod": 1.0
+   },
+   "model": "pads",
+   "track": 0.593,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 22.6,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 27.7,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 4.68
+     },
+     "index-middle": {
+      "gap_mm": 19.1,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 2.32
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.4,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.68
+     },
+     "thumb-middle": {
+      "gap_mm": 1.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.84
+     },
+     "index-middle": {
+      "gap_mm": -15.0,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.48
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.8135,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8135
+     ],
+     [
+      3.4,
+      1.7459
+     ],
+     [
+      4.9,
+      1.0
+     ],
+     [
+      6.4,
+      1.6783
+     ]
+    ],
+    "w_spin_tripod": 0.3827,
+    "w_roll_tripod": 0.0696,
+    "w_slide_tripod": 0.7849
+   },
+   "model": "point",
+   "track": 0.644,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.24
+     },
+     "thumb-middle": {
+      "gap_mm": 29.2,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 4.84
+     },
+     "index-middle": {
+      "gap_mm": 13.4,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -2.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 6.4
+     },
+     "thumb-middle": {
+      "gap_mm": -0.0,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.36
+     },
+     "index-middle": {
+      "gap_mm": -14.9,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.56
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.8135,
+    "f_tripod_knots": [
+     [
+      1.6,
+      1.8135
+     ],
+     [
+      3.4,
+      1.7459
+     ],
+     [
+      4.9,
+      1.0
+     ],
+     [
+      6.4,
+      1.6783
+     ]
+    ],
+    "w_spin_tripod": 0.3827,
+    "w_roll_tripod": 0.0696,
+    "w_slide_tripod": 0.7849
+   },
+   "model": "pads",
+   "track": 0.637,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 20.0,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.84
+     },
+     "thumb-middle": {
+      "gap_mm": 28.7,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 4.8
+     },
+     "index-middle": {
+      "gap_mm": 12.9,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.1,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 6.4
+     },
+     "thumb-middle": {
+      "gap_mm": -1.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -15.9,
+      "parts": "index tip pad and middle tip pad",
+      "t_s": 3.52
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 2.2649,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.2649
+     ],
+     [
+      3.4,
+      1.2377
+     ],
+     [
+      4.9,
+      1.1385
+     ],
+     [
+      6.4,
+      1.9105
+     ]
+    ],
+    "w_spin_tripod": 0.2622,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.7583
+   },
+   "model": "point",
+   "track": 0.527,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 19.2,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.36
+     },
+     "thumb-middle": {
+      "gap_mm": 28.8,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.56
+     },
+     "index-middle": {
+      "gap_mm": 1.3,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.0,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 2.08
+     },
+     "thumb-middle": {
+      "gap_mm": -1.4,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -11.7,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 2.0
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y60_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    85.0,
+    60.0
+   ],
+   "k": 14,
+   "prm": {
+    "f_tripod": 2.2649,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.2649
+     ],
+     [
+      3.4,
+      1.2377
+     ],
+     [
+      4.9,
+      1.1385
+     ],
+     [
+      6.4,
+      1.9105
+     ]
+    ],
+    "w_spin_tripod": 0.2622,
+    "w_roll_tripod": 0.0024,
+    "w_slide_tripod": 0.7583
+   },
+   "model": "pads",
+   "track": 0.534,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 19.1,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 6.36
+     },
+     "thumb-middle": {
+      "gap_mm": 28.2,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 4.56
+     },
+     "index-middle": {
+      "gap_mm": 0.6,
+      "parts": "index mcp_frame and middle pip_frame",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -3.8,
+      "parts": "thumb tip end and index tip end",
+      "t_s": 2.08
+     },
+     "thumb-middle": {
+      "gap_mm": -2.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 1.96
+     },
+     "index-middle": {
+      "gap_mm": -12.1,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 2.0
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 2.31,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.31
+     ],
+     [
+      3.4,
+      1.2106
+     ],
+     [
+      4.9,
+      1.7674
+     ],
+     [
+      6.4,
+      1.1664
+     ]
+    ],
+    "w_spin_tripod": 0.013,
+    "w_roll_tripod": 0.0143,
+    "w_slide_tripod": 0.7633
+   },
+   "model": "point",
+   "track": 0.31,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 28.8,
+      "parts": "thumb mcp_frame and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 8.1,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 3.8
+     },
+     "index-middle": {
+      "gap_mm": 16.7,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 4.08
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -2.3,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 2.36
+     },
+     "thumb-middle": {
+      "gap_mm": -2.8,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 0.84
+     },
+     "index-middle": {
+      "gap_mm": -11.5,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 2.92
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x60_y135_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    60.0,
+    135.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 2.31,
+    "f_tripod_knots": [
+     [
+      1.6,
+      2.31
+     ],
+     [
+      3.4,
+      1.2106
+     ],
+     [
+      4.9,
+      1.7674
+     ],
+     [
+      6.4,
+      1.1664
+     ]
+    ],
+    "w_spin_tripod": 0.013,
+    "w_roll_tripod": 0.0143,
+    "w_slide_tripod": 0.7633
+   },
+   "model": "pads",
+   "track": 0.236,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 28.5,
+      "parts": "thumb pip_frame and index tip pad",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 7.5,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 3.72
+     },
+     "index-middle": {
+      "gap_mm": 16.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 3.88
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -2.9,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 2.36
+     },
+     "thumb-middle": {
+      "gap_mm": -3.0,
+      "parts": "thumb tip pad and middle tip pad",
+      "t_s": 0.92
+     },
+     "index-middle": {
+      "gap_mm": -11.8,
+      "parts": "index tip pad and middle pip_frame",
+      "t_s": 3.28
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 3.2094,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.2094
+     ],
+     [
+      3.4,
+      3.1605
+     ],
+     [
+      4.9,
+      1.0704
+     ],
+     [
+      6.4,
+      1.418
+     ]
+    ],
+    "w_spin_tripod": 0.0595,
+    "w_roll_tripod": 0.0037,
+    "w_slide_tripod": 0.8505
+   },
+   "model": "point",
+   "track": 0.677,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 24.6,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 33.5,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.36
+     },
+     "index-middle": {
+      "gap_mm": 16.0,
+      "parts": "index pip_frame and middle pip_frame",
+      "t_s": 0.84
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.2,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.68
+     },
+     "thumb-middle": {
+      "gap_mm": 0.7,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -10.9,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.88
+     }
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_cem_knots_plan.json",
+   "role": "cem knots",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 3.2094,
+    "f_tripod_knots": [
+     [
+      1.6,
+      3.2094
+     ],
+     [
+      3.4,
+      3.1605
+     ],
+     [
+      4.9,
+      1.0704
+     ],
+     [
+      6.4,
+      1.418
+     ]
+    ],
+    "w_spin_tripod": 0.0595,
+    "w_roll_tripod": 0.0037,
+    "w_slide_tripod": 0.8505
+   },
+   "model": "pads",
+   "track": 0.667,
+   "held": true,
+   "gaps": {
+    "joints": {
+     "thumb-index": {
+      "gap_mm": 23.9,
+      "parts": "thumb tip pad and index pip_frame",
+      "t_s": 7.76
+     },
+     "thumb-middle": {
+      "gap_mm": 32.6,
+      "parts": "thumb tip end and middle tip pad",
+      "t_s": 5.44
+     },
+     "index-middle": {
+      "gap_mm": 15.4,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 7.76
+     }
+    },
+    "targets": {
+     "thumb-index": {
+      "gap_mm": -4.1,
+      "parts": "thumb tip pad and index tip end",
+      "t_s": 4.64
+     },
+     "thumb-middle": {
+      "gap_mm": -0.3,
+      "parts": "thumb tip end and middle tip end",
+      "t_s": 3.28
+     },
+     "index-middle": {
+      "gap_mm": -11.7,
+      "parts": "index pip_frame and middle tip pad",
+      "t_s": 3.84
      }
     }
    }
