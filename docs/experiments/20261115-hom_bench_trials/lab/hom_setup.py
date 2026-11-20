@@ -1189,16 +1189,30 @@ def cmd_putdown(a):
             return 0
         if arm.c is None:
             arm.connect(a.stop_n is not None)
-        touched, total = None, 0.0
+        touched, total, slips = None, 0.0, 0
         for name, dist, v, zmm in legs:
-            ref = meas.latest(5, 0.5)
-            if ref is None:
-                raise SystemExit("the tracker does not see the object: not moving")
-            T_goal = arm.T_BE()
-            T_goal[2, 3] -= dist
-            why, moved = arm.move(T_goal, v, a.acc, a.stop_n, dist / (1e3 * v) + 5.0, f"putdown, {name} leg, "
-                                  f"{dist:.1f} mm down", check=meas.watch_touch(ref[0], zmm, a.touch_lat))
-            total += moved
+            left = dist
+            while True:
+                ref = meas.latest(5, 0.5)
+                if ref is None:
+                    raise SystemExit("the tracker does not see the object: not moving")
+                T_goal = arm.T_BE()
+                T_goal[2, 3] -= left
+                why, moved = arm.move(T_goal, v, a.acc, a.stop_n, left / (1e3 * v) + 5.0, f"putdown, {name} leg, "
+                                      f"{left:.1f} mm down", check=meas.watch_touch(ref[0], zmm, a.touch_lat))
+                total += moved
+                left -= moved
+                # the object moving against the hand well above the expected touchdown is the object slipping in a
+                # loose grasp, not the table (2026-11-20: 1.5-3.5 mm of slip stopped descents 41-65 mm up three times,
+                # each leaving the sphere held over the table): the leg goes on from a new reference, at most
+                # --max-slips times; the force and a touchdown near the expected height still stop it
+                if (why and why.startswith("TOUCHDOWN") and total < d - a.touch_window and left > 0.5
+                        and slips < a.max_slips):
+                    slips += 1
+                    print(f"   {d - total:.1f} mm above the expected touchdown: the object slipping in the grasp, "
+                          f"not the table; going on ({slips} of {a.max_slips})", flush=True)
+                    continue
+                break
             if why:
                 touched = why
                 break
@@ -1636,6 +1650,9 @@ def main():
             p.add_argument("--touch-mm", type=float, default=0.8, help="the object's motion along z_P: touchdown")
             p.add_argument("--fast-touch-mm", type=float, default=2.0, help="the same on the fast leg")
             p.add_argument("--touch-lat", type=float, default=1.5, help="the object's motion in P's xy: a stop")
+            p.add_argument("--max-slips", type=int, default=3,
+                           help="stops on the object's motion well above the expected touchdown taken as slip in "
+                                "the grasp, the descent going on")
             p.add_argument("--touch-window", type=float, default=4.0,
                            help="mm short of the expected touchdown within which the HEX-E's backstop counts as one")
             p.add_argument("--seat-mm", type=float, default=3.0)
