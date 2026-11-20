@@ -125,3 +125,6 @@ assets/cad_v2/20261118-onshape_fingertip/*.step
 
 # cad_v4 STEP envelopes (scripts/cad/cad_v4_step.py) stay on the workstation like every CAD file
 assets/cad_v4/concepts/step/
+
+# the controller rematch's per-run rows (2026-11-20): several over 2 MB; data/ holds the summaries
+docs/experiments/20261120-controller_rematch/rows/

@@ -99,7 +99,8 @@ def dkey(task, d_mm, lever=None):
         return f"{task}_{'' if lever is None else f'l{lever:g}_'}{shape}{d_mm:g}"
     return f"{'eq_' if shape == 'cylinder' else ''}{shape}{d_mm:g}"
 KP = 4.0
-DT_C = 0.01
+DT_C = float(os.environ.get("HOM_DT_C", "0.01"))   # the control period, s; HOM_DT_C=0.02 for the bench server's 50 Hz
+                                                   # (2026-11-20, the controller rematch)
 FILLET = 0.0027
 SPHERE_Q = (0.70710678, 0.70710678, 0.0, 0.0)       # the scale study's object orientation: body z (a cylinder's axis)
                                                     # along palm -y
@@ -1083,6 +1084,14 @@ VARIANTS = {
     # 2026-10-29, the fingertip sensing review (docs/experiments/20261029-hom_control_review): 50 Hz, the tag tracker
     # as in "sense" (0.5 mm, 1 deg, every measurement 40 ms late), and the fingertips absent or as measured
     "notip0": ({"dt": 0.02}, {"no_tip": True}),                            # no fingertips, exact object pose
+    # 2026-11-20 (owner: "why don't we run tracking at 60hz?"): the bench's two-camera tag tracker as the lab measured it
+    # on 11-13 with the block still (docs/experiments/20261113-tag_tracking_throughput): 1920 x 1080 at 30 fps, frame age
+    # 42 ms, jitter 0.013 mm and 0.049 deg; 960 x 540 at 60 fps, 22 ms, 0.018 mm and 0.070 deg; the delays in 20 ms
+    # periods. The b variants add the object frame's calibration error of 0.5 mm (sigma per axis, once per rollout).
+    "cam30": ({"dt": 0.02}, {"pos_mm": 0.013, "rot_deg": 0.049, "delay_s": 0.04, "no_tip": True}),
+    "cam60": ({"dt": 0.02}, {"pos_mm": 0.018, "rot_deg": 0.070, "delay_s": 0.02, "no_tip": True}),
+    "cam30b": ({"dt": 0.02}, {"pos_mm": 0.013, "rot_deg": 0.049, "delay_s": 0.04, "no_tip": True, "pos_bias_mm": 0.5}),
+    "cam60b": ({"dt": 0.02}, {"pos_mm": 0.018, "rot_deg": 0.070, "delay_s": 0.02, "no_tip": True, "pos_bias_mm": 0.5}),
     "notip": ({"dt": 0.02}, {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "no_tip": True}),
     "tip": ({"dt": 0.02, "contact_force_min": TIP_F_MIN},
             {"pos_mm": 0.5, "rot_deg": 1.0, "delay_s": 0.04, "tip_model": 1.0}),

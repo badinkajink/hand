@@ -97,6 +97,33 @@ DMAX = 4                               # longest measurement delay, control peri
 # step: kp (target - q) outside the band, none inside, within the force range. A band of 0 reproduces the position
 # actuators (their force is computed from the step's starting state as well).
 DEADBAND = math.radians(float(os.environ.get("HOS_DEADBAND_DEG", "0") or 0.0))
+# HOM_GPU_PLANT=cal75 (hand-4a, 2026-11-20; owner, 08:0x, the controller rematch): the calibrated plant of the 11-17
+# blind predictions (docs/experiments/20261117-sr2_system_identification/sim/20261117-g13_open_pose_replan.py at 7.5 V
+# with the stops), on top of HOS_PLANT's 5 V servo (kp0.55_kv0_fr0.18_fl0_dp0.011). The servos' gain and torque limit
+# are 1.5 times the scene's, the index's and the middle's yaw gain 0.35 x 1.5 N m/rad, the MCPs stop where the hand's
+# stopped (index -11.4, middle -10.0 deg), and the gears cannot be backdriven by the load (logs/20261116-sim_real_reversal/
+# rev_clutch2.py, c_f 0.6, stiff): before every physics step each finger joint's friction loss is c_f times its servo's
+# torque, raised to the load where the contacts' and gravity's torque on the joint opposes the servo's and exceeds it.
+# HOM keeps converting at the scene's servo gain, the server's 0.55 N m/rad.
+# The 5 V servo (kp 0.55 N m/rad, 0.18 N m, damping 0.011 N m s/rad, no friction loss), impratio 1 and friction 1.0 are
+# set here whatever the scene cache holds. Every controller's targets then pass the bench server's torque budget
+# (sr2hand.control.hom_bench.torque_budget at 0.56 N m: the nine servos' estimated torques, 0.55 N m/rad past the 0.59 deg
+# dead band up to 0.18 N m, summed and cut by one factor per world) at the start of every control period.
+PLANT_CAL = os.environ.get("HOM_GPU_PLANT", "")
+CAL = {"gain": 1.5, "kp_server": 0.55, "tau_5v": 0.18, "damping": 0.011, "kp_yaw_im": 0.35,
+       "stop_deg": {"index": -11.4, "middle": -10.0}, "c_f": 0.6, "budget_nm": 0.56, "budget_db_deg": 0.59}
+if PLANT_CAL not in ("", "cal75"):
+    raise SystemExit(f"HOM_GPU_PLANT={PLANT_CAL}: only cal75")
+# HOM_GPU_SCENE=stem (2026-11-20, the controller rematch): the plant's scenes are those of the CPU plant of the 11-17
+# predictions, the bench's 40 mm sphere on its stem (20261117-g13_open_pose_replan.SCENES), in place of the cell's post
+# scene; the open pose still comes from the cell's point-contact model. With the post scene the GPU's HOM dropped the
+# sphere before the lift in 38 of 135 runs that the CPU plant held; with the stem scene it scored 0.390 against the CPU's
+# 0.395 over the rematch's 45 layouts (docs/experiments/20261120-controller_rematch/data/20261120-gpu_vs_cpu.json).
+SCENE_KIND = os.environ.get("HOM_GPU_SCENE", "")
+STEM_DIR = ROOT / "logs/20261116-sim_real_reversal/scenes"
+STEM_SCENES = {"pads": "sph040_stem_block_tape0_imp1.xml", "pt": "sph040_stem_block_pt_imp1.xml"}
+if SCENE_KIND not in ("", "stem"):
+    raise SystemExit(f"HOM_GPU_SCENE={SCENE_KIND}: only stem")
 OVER_OK = {"dt", "contact_force_min", "force_loop_gain", "reanchor"}    # the HomParams a variant may change here
 # The object's measured pose through a complementary filter (owner, 2026-11-13: "for a known geometry, can't we use the
 # complementary filter to have some belief model of the object pose?"): None, or {"tau": s, "every": periods}. From
@@ -119,6 +146,69 @@ def servo_deadband(qpos: wp.array2d(dtype=float), target: wp.array2d(dtype=float
     if wp.abs(e) > db:
         tau = kp[j] * e
     ctrl[w, act[j]] = wp.clamp(tau, -tau_max[j], tau_max[j])
+
+
+@wp.kernel
+def gear_clutch(nefc: wp.array(dtype=int), efc_type: wp.array2d(dtype=int), efc_J: wp.array3d(dtype=float),
+                efc_force: wp.array2d(dtype=float), qfrc_bias: wp.array2d(dtype=float),
+                act_force: wp.array2d(dtype=float), dof: wp.array(dtype=int), act: wp.array(dtype=int), c_f: float,
+                cmin: int, frictionloss: wp.array2d(dtype=float)):
+    """Per world and finger joint, rev_clutch2.ClutchPlant.advance: the contacts' torque on the joint (J^T f over the
+    contact rows of the last step) less gravity's; where it opposes the servo's torque and exceeds it, the joint's friction
+    loss holds it, else the forward gear friction c_f |torque|."""
+    w, j = wp.tid()
+    v = dof[j]
+    n = wp.min(nefc[w], efc_J.shape[1])
+    qc = float(0.0)
+    for r in range(n):
+        if efc_type[w, r] >= cmin:
+            qc += efc_J[w, r, v] * efc_force[w, r]
+    ext = qc - qfrc_bias[w, v]
+    tau = act_force[w, act[j]]
+    fl = c_f * wp.abs(tau)
+    if ext * tau < 0.0 and wp.abs(ext) > wp.abs(tau):
+        fl = wp.max(fl, wp.abs(ext))
+    frictionloss[w, v] = fl
+
+
+@wp.kernel
+def torque_budget_cut(qpos: wp.array2d(dtype=float), ctrl: wp.array2d(dtype=float), qadr: wp.array(dtype=int),
+                      act: wp.array(dtype=int), kp: float, tau_max: float, db: float, budget: float):
+    """Per world, sr2hand.control.hom_bench.torque_budget on the nine servo targets (in radians here): every offset from
+    the joint cut to the saturation tau_max / kp + db, then, when the estimated torques kp (|offset| - db) (each at most
+    tau_max) sum past the budget, every offset past the dead band scaled by one factor found by bisection."""
+    w = wp.tid()
+    sat = tau_max / kp + db
+    scale = float(1.0)
+    tot = float(0.0)
+    for j in range(9):
+        e = wp.min(wp.abs(ctrl[w, act[j]] - qpos[w, qadr[j]]), sat)
+        tot += wp.min(kp * wp.max(e - db, 0.0), tau_max)
+    if tot > budget:
+        lo = float(0.0)
+        hi = float(1.0)
+        for _it in range(40):
+            mid = 0.5 * (lo + hi)
+            t = float(0.0)
+            for j in range(9):
+                e = wp.min(wp.abs(ctrl[w, act[j]] - qpos[w, qadr[j]]), sat)
+                t += wp.min(kp * mid * wp.max(e - db, 0.0), tau_max)
+            if t <= budget:
+                lo = mid
+            else:
+                hi = mid
+        scale = lo
+    for j in range(9):
+        q = qpos[w, qadr[j]]
+        d = ctrl[w, act[j]] - q
+        e = wp.min(wp.abs(d), sat)
+        s = float(1.0)
+        if d < 0.0:
+            s = -1.0
+        if e > db:
+            ctrl[w, act[j]] = q + s * (db + scale * (e - db))
+        else:
+            ctrl[w, act[j]] = q + s * e
 
 
 @wp.kernel
@@ -336,6 +426,10 @@ class Scene:
         self.mount_bid = {f: self.m_pt.body(f"{f}_mount").id for f in FINGERS}
         ref_xy = mount_xy(sym6(*REF))
         self.base = {f: self.m_pt.body_pos[self.mount_bid[f]].copy() - np.array([*ref_xy[f], 0.0]) for f in FINGERS}
+        if SCENE_KIND == "stem":                      # the plant's scenes; m_pt (the open pose) stays the cell's
+            if shape != "sphere" or self.d_mm != 40.0:
+                raise RuntimeError("HOM_GPU_SCENE=stem holds the 40 mm sphere only")
+            self.pads_path, self.pt_path = STEM_DIR / STEM_SCENES["pads"], STEM_DIR / STEM_SCENES["pt"]
 
     def body_mounts(self, mxy):
         return {f: self.base[f] + np.array([mxy[f][0], mxy[f][1], 0.0]) for f in FINGERS}
@@ -496,6 +590,33 @@ class Batch:
         m.opt.tolerance, m.opt.iterations, m.opt.ls_iterations = 1e-6, 20, 10
         act9 = np.array([m.actuator(f"a_{f}_{j}").id for f in FINGERS for j in JOINTS])
         kp9 = m.actuator_gainprm[act9, 0].copy()                     # read before the motors replace the servos
+        vadr9 = np.array([m.jnt_dofadr[m.joint(f"{f}_{j}").id] for f in FINGERS for j in JOINTS])
+        if PLANT_CAL:
+            kp9[:] = CAL["kp_server"]                                # HOM converts at the server's gain
+            m.dof_damping[vadr9] = CAL["damping"]
+            m.dof_frictionloss[vadr9] = 0.0
+            m.opt.impratio = 1.0
+            m.geom_friction[:, 0] = 1.0
+        kp_plant9 = kp9.copy()                                       # the plant's servo gain (HOM converts at kp9)
+        if PLANT_CAL:
+            kp_plant9 *= CAL["gain"]
+            for k, f in enumerate(FINGERS):
+                if f in CAL["stop_deg"]:
+                    kp_plant9[3 * k] = CAL["kp_yaw_im"] * CAL["gain"]          # JOINTS[0], the yaw
+                    jm = m.joint(f"{f}_{JOINTS[1]}").id                        # JOINTS[1], the MCP
+                    m.jnt_range[jm, 0] = max(m.jnt_range[jm, 0], math.radians(CAL["stop_deg"][f]))
+                    m.jnt_limited[jm] = 1
+            m.actuator_gaintype[act9] = mujoco.mjtGain.mjGAIN_FIXED
+            m.actuator_biastype[act9] = mujoco.mjtBias.mjBIAS_AFFINE
+            m.actuator_gainprm[act9] = 0.0
+            m.actuator_biasprm[act9] = 0.0
+            m.actuator_gainprm[act9, 0] = kp_plant9
+            m.actuator_biasprm[act9, 1] = -kp_plant9
+            m.actuator_forcelimited[act9] = 1
+            tau = CAL["tau_5v"] * CAL["gain"]
+            m.actuator_forcerange[act9] = (-tau, tau)
+            m.dof_solref[vadr9] = (2.0 * float(m.opt.timestep), 1.0)          # rev_clutch2's STIFF
+            m.dof_solimp[vadr9, :2] = (0.99, 0.999)
         if DEADBAND > 0:
             tmax9 = np.abs(m.actuator_forcerange[act9, 1]).copy()
             m.actuator_gaintype[act9] = mujoco.mjtGain.mjGAIN_FIXED
@@ -507,10 +628,23 @@ class Batch:
             m.actuator_ctrlrange[act9] = np.stack([-tmax9, tmax9], 1)
             self.db_args = [wp.array(np.array([m.jnt_qposadr[m.joint(f"{f}_{j}").id] for f in FINGERS for j in JOINTS],
                                               np.int32), dtype=int), wp.array(act9.astype(np.int32), dtype=int),
-                            wp.array(kp9.astype(np.float32), dtype=float), wp.array(tmax9.astype(np.float32), dtype=float)]
+                            wp.array(kp_plant9.astype(np.float32), dtype=float), wp.array(tmax9.astype(np.float32), dtype=float)]
             self.target = wp.zeros((W, 9), dtype=float)
         self.wm = mjw.put_model(m)
         self.wm.opt.contact_sensor_maxmatch = max(int(self.wm.opt.contact_sensor_maxmatch), 256)
+        if PLANT_CAL:                                  # one friction-loss row per world: the gears' state differs
+            if self.wm.is_sparse:
+                raise RuntimeError("gear_clutch reads the dense constraint Jacobian")
+            self.wm.dof_frictionloss = wp.array(np.repeat(m.dof_frictionloss[None], W, 0).astype(np.float32),
+                                                dtype=float)
+            self.clutch_args = [wp.array(vadr9.astype(np.int32), dtype=int), wp.array(act9.astype(np.int32), dtype=int),
+                                float(CAL["c_f"]), int(mujoco.mjtConstraint.mjCNSTR_CONTACT_FRICTIONLESS)]
+            if DEADBAND > 0:
+                raise RuntimeError("HOM_GPU_PLANT=cal75 cuts the position servos' targets; the dead band is off there")
+            qadr9 = np.array([m.jnt_qposadr[m.joint(f"{f}_{j}").id] for f in FINGERS for j in JOINTS])
+            self.budget_args = [wp.array(qadr9.astype(np.int32), dtype=int), wp.array(act9.astype(np.int32), dtype=int),
+                                float(CAL["kp_server"]), float(CAL["tau_5v"]), math.radians(CAL["budget_db_deg"]),
+                                float(CAL["budget_nm"])]
         bp = np.repeat(m.body_pos[None].astype(np.float32), W, 0)
         mount_bid = {f: m.body(f"{f}_mount").id for f in FINGERS}
         for w, wd_ in enumerate(worlds):
@@ -625,10 +759,17 @@ class Batch:
         self.nsub = int(round(self.prm.dt / self.m.opt.timestep))
 
         def block():
+            if PLANT_CAL:                                         # the server's torque budget, once per period
+                wp.launch(torque_budget_cut, dim=self.W, inputs=[self.wd.qpos, self.wd.ctrl, *self.budget_args])
             for _ in range(self.nsub):
                 if DEADBAND > 0:
                     wp.launch(servo_deadband, dim=(self.W, 9),
                               inputs=[self.wd.qpos, self.target, *self.db_args, float(DEADBAND), self.wd.ctrl])
+                if PLANT_CAL:
+                    wp.launch(gear_clutch, dim=(self.W, 9),
+                              inputs=[self.wd.nefc, self.wd.efc.type, self.wd.efc.J, self.wd.efc.force,
+                                      self.wd.qfrc_bias, self.wd.actuator_force, *self.clutch_args,
+                                      self.wm.dof_frictionloss])
                 mjw.step(self.wm, self.wd)
             mjw.kinematics(self.wm, self.wd)
             self._launch_forces()

@@ -1,0 +1,64 @@
+{
+ "what": "HOM with a clearance term in Eq. (2), on the CPU calibrated plant of the twist ranking (hand-4a, 2026-11-20; owner, 08:0x, \"Sure on all three decisions\": the collision-aware HOM of the decision log, \"a clearance term in its least squares could give these layouts a feasible twist\").",
+ "written": "2026-11-20 08:48",
+ "settings": [
+  {
+   "d_s": 0.0,
+   "k_c": 5.0,
+   "w_c": 0.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.01,
+   "k_c": 5.0,
+   "w_c": 1.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.01,
+   "k_c": 5.0,
+   "w_c": 10.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.015,
+   "k_c": 5.0,
+   "w_c": 1.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.015,
+   "k_c": 5.0,
+   "w_c": 10.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.02,
+   "k_c": 5.0,
+   "w_c": 1.0,
+   "K": 4
+  },
+  {
+   "d_s": 0.02,
+   "k_c": 5.0,
+   "w_c": 10.0,
+   "K": 4
+  }
+ ],
+ "summary": [
+  {
+   "clear": {
+    "d_s": 0.0,
+    "k_c": 5.0,
+    "w_c": 0.0,
+    "K": 4
+   },
+   "group": "near",
+   "layouts": 1,
+   "feasible": 0,
+   "least_mm_median": -0.1,
+   "track_mean": 0.61,
+   "track_feasible_mean": null
+  }
+ ]
+}

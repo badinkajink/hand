@@ -118,7 +118,8 @@ def xy_of(key):
 def grid_entries(task):
     """Every grasp of every lattice layout that reaches the task's pose: [(key, mounts xy, setup)] (hom_gpu.layout_list
     on the grids' grasp sets, the plant's finger clearance)."""
-    return HG.layout_list(task, "grid2dff_size", 0, D_MM[task])
+    return HG.layout_list(task, os.environ.get("UH_GRID", "grid2dff_size"), 0, D_MM[task])   # UH_GRID: grid2dgr_size
+                                                                                            # for the twist ranking's grasps
 
 
 def split(task, seed=0, test_share=0.2, keep_best=5):
@@ -638,7 +639,12 @@ def evaluate(task, policy, worlds_list, W=2048, seed=0, device="cuda", start="ha
 
 # ------------------------------------------------------------------------------------------------ commands
 def train_entries(task, split_seed=0):
-    train, test, J = split(task, split_seed)
+    sp = os.environ.get("UH_SPLIT")       # 2026-11-20, the controller rematch: {"train": [[x, y], ...], "test": [...]}
+    if sp:
+        d = json.loads(Path(sp).read_text())
+        train, test, J = [tuple(v) for v in d["train"]], [tuple(v) for v in d["test"]], {}
+    else:
+        train, test, J = split(task, split_seed)
     tr = set(train)
     return [e for e in grid_entries(task) if xy_of(e[0]) in tr], train, test, J
 
@@ -673,6 +679,11 @@ def cmd_train(a):
     if LIMITS and a.limits_cap is not None:
         REW_LIMITS["tau_cap"] = a.limits_cap if a.limits_cap > 0 else None
         tag += f"_cap{a.limits_cap:g}"
+    if LIMITS and a.limits_rate is not None:
+        REW_LIMITS["rate"] = a.limits_rate
+        tag += f"_rate{abs(a.limits_rate):g}"
+    if os.environ.get("HOM_GPU_PLANT"):
+        tag += f"_{os.environ['HOM_GPU_PLANT']}"
     if a.only:                                        # UHAS's single-hand baseline: one layout, its own grasps
         one = (float(a.only[0]), float(a.only[1]))
         entries = [e for e in grid_entries(a.task) if xy_of(e[0]) == one]
@@ -850,6 +861,8 @@ def main():
     t.add_argument("--limits", action="store_true", help="the joint and actuator limit terms (REW_LIMITS) in the "
                    "reward")
     t.add_argument("--limits-tau", type=float, default=None, help="weight of the servo-demand term (-0.2)")
+    t.add_argument("--limits-rate", type=float, default=None, help="weight of the action-change term |a - a_prev|^2 "
+                   "(-0.04)")
     t.add_argument("--limits-cap", type=float, default=None, help="cap of the servo-demand hinge per joint (3); 0 "
                    "removes the cap")
     e = sub.add_parser("eval")

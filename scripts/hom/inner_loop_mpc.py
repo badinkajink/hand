@@ -125,12 +125,16 @@ def set_task(task, d=None):
 
 def pairs_path(name=""):
     return ROWS / f"mpc_pairs_{TASK}{DTAG}{name}.json"
-ROWS = UH.OUT / "rows"
+ROWS = Path(os.environ["MPC_ROWS"]) if os.environ.get("MPC_ROWS") else UH.OUT / "rows"   # MPC_ROWS: another study's
 RUN = "20261112-1244_twist_s0"           # the UHAS run whose test split and usability rows choose the pairs
 SHARED = ROOT / "docs/experiments/20261103-hom_score_refine/rows/sv25_track/shared"
 REPLAN, H, KNOTS = 10, 30, 3             # periods between replannings, horizon (periods), knots (the first pinned)
 COST = dict(rot_deg=5.0, pos_mm=3.0, pad=2.0, f_on=0.05, drop=100.0, drop_m=0.015, tau=0.5, tau_on=0.8, q=0.25,
-            q_band_deg=3.0, rate=1.0, rate_dps=20.0, acc=0.0, rev=0.0, err_db_deg=0.0)
+            q_band_deg=3.0, rate=1.0, rate_dps=20.0, acc=0.0, rev=0.0, err_db_deg=0.0, f_w=0.0, f_target=1.0,
+            f_scale=0.5)
+# f_w (2026-11-20, the controller rematch; owner, 11-19: the force schedule "added to the action space or otherwise more
+# intelligently controlled"): a weight on each pad's normal force against f_target, f_w ((F - f_target) / f_scale)^2 per
+# pad and period; 0 leaves the cost as it was.
 PLAN = dict(iters=4, sigma=0.08, lam_rel=0.03, elite_frac=0.15, momentum=0.1, sigma_min=0.005,
             ar_alpha=0.7, keep=2, beta1=0.5, beta2=0.5, sp_first=0.5, sp_last=1.0, sp_final=0.1, sp_exploit=0.01,
             sp_exploit_scale=0.01, sp_temp=0.3, sp_top=0.1, sp_improve=0.01, frictions=(0.4, 0.7, 1.0),
@@ -497,7 +501,8 @@ class Rollouts:
                 + ((pt - pref).norm(dim=-1) / (1e-3 * COST["pos_mm"])) ** 2
                 + COST["pad"] * (B.ft_t < COST["f_on"]).float().sum(-1) + COST["drop"] * drop.float()
                 + COST["tau"] * ((dmd - COST["tau_on"]) / (1.0 - COST["tau_on"])).clamp(0.0, 3.0).sum(-1)
-                + COST["q"] * (((band - near) / band).clamp(0.0, 1.0) * lim.limited.float()).sum(-1))
+                + COST["q"] * (((band - near) / band).clamp(0.0, 1.0) * lim.limited.float()).sum(-1)
+                + COST["f_w"] * (((B.ft_t - COST["f_target"]) / COST["f_scale"]) ** 2).sum(-1))
 
 
 def hs_add(u):
@@ -959,7 +964,8 @@ def cmd_run(a):
     sh = "" if WARM == "hold" else f"_{WARM}"          # the reversal options (owner, 2026-11-13)
     for flag, d, k, nm in ((a.lam_rel, PLAN, "lam_rel", "lam"), (a.sigma, PLAN, "sigma", "sig"),
                            (a.rate_w, COST, "rate", "rw"), (a.acc_w, COST, "acc", "acc"), (a.rev_w, COST, "rev", "rev"),
-                           (a.err_db, COST, "err_db_deg", "db")):
+                           (a.err_db, COST, "err_db_deg", "db"), (a.f_w, COST, "f_w", "fw"),
+                           (a.f_target, COST, "f_target", "ftg")):
         if flag is not None:
             d[k] = flag
             sh += f"_{nm}{flag:g}"
@@ -1378,6 +1384,9 @@ def main():
                    "replanning: max(0, -r_new r_executed) in the rate scale squared (COST rev, 0)")
     p.add_argument("--err-db", type=float, default=None, help="dead band on the rotation error in the cost, deg "
                    "(COST err_db_deg, 0)")
+    p.add_argument("--f-w", type=float, default=None, help="weight of each pad's normal force against --f-target in the "
+                   "cost, per (f_scale 0.5 N)^2 (COST f_w, 0)")
+    p.add_argument("--f-target", type=float, default=None, help="the pads' target normal force, N (COST f_target, 1.0)")
     sub.choices["timing"].add_argument("--configs", nargs="+", default=None, help="instead of the flags: "
                                        "iterations,horizon,knots,replanning interval,planner step in ms,samples")
     p = sub.add_parser("film")
