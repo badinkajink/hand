@@ -71,6 +71,13 @@ trial. Three sets, run in this order: the 11 plans with HOM's default forces, th
   the putdown then refuses (torque off) and the series stops with the object in the hand, for a person to recover
   (`hom_setup.py torque-on --go` with every MCP under 60 deg, then `putdown`). After a drop the series goes on when the
   sphere lands upright or lies near the table's centre (the pick-up), and stops when it rolls away.
+- **The owner's call on the layouts without a feasible twist** (owner, relayed 23:5x: "we should not be filtering bad
+  hands because of collisions from infeasible trajectories, we should be judging them by their feasible trajectories").
+  The twist ranking searched all 16 ground-clear grasps of the 19 touching layouts (block 2, A2, A3; cf510eb97): none
+  keeps the fingers 10 mm apart on the CAD spheres through its twist, so their feasible prediction is 0, and their
+  trials test that. They start after A1, near 11:00. **To skip or pause them while the series runs**, write
+  `lab/series_control.txt` (read before every trial; no file runs everything): a line `skip A2bad` (or `skip A3drop`,
+  `skip b2touch`) skips those labels, a line `hold` pauses before the next trial until the line is removed.
 
 ## State on 2026-11-19 19:1x: series across layouts, with a lift and a free-air sweep at each
 

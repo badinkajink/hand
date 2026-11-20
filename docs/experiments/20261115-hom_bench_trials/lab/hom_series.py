@@ -83,6 +83,18 @@ def server_stop(port):
         print(f"   server {port} stopped (pid {pid})", flush=True)
 
 
+def control(path):
+    """(hold, skip prefixes) from the series' control file, read before every trial (2026-11-20 00:0x: the owner decides in
+    the morning whether the layouts without a feasible twist run): a line 'hold' pauses the series before its next
+    trial, the hand idle, until the line is gone; a line 'skip PREFIX' skips every entry whose label starts with PREFIX
+    (A2bad, A3drop, b2touch, ...). '#' starts a comment. No file: run everything."""
+    try:
+        lines = [x.split("#")[0].strip() for x in Path(path).read_text().splitlines()]
+    except OSError:
+        return False, []
+    return "hold" in lines, [x.split(None, 1)[1].strip() for x in lines if x.startswith("skip ") and len(x.split(None, 1)) > 1]
+
+
 def servo_gate(a):
     """The owner's thermal rule (pause at 55 C, go on below 40 C) and torque on all nine servos, from the station's
     diagnostics (one read of each servo, no motion) before each trial. Above --hot-c the series waits with the hand
@@ -239,17 +251,31 @@ def main():
     ap.add_argument("--hot-c", type=float, default=55.0, help="pause before a trial with a servo this hot")
     ap.add_argument("--cool-c", type=float, default=40.0, help="go on when every servo is below this")
     ap.add_argument("--cool-wait-s", type=float, default=5400.0)
+    ap.add_argument("--control", default=str(HERE / "series_control.txt"),
+                    help="the control file read before every trial: 'hold' pauses, 'skip PREFIX' skips labels")
     ap.add_argument("--go", action="store_true")
     a = ap.parse_args()
     common = ["--object", a.object, "--map", a.map]
+    served = None                                          # the port whose HOM server this series started last
     for k, e in enumerate(a.entries):
         plan, port, label = e.split(":")
         print(f"\n=== {time.strftime('%H:%M:%S')} trial {k + 1}/{len(a.entries)}: {label} ({plan}, port {port})",
               flush=True)
+        hold, skips = control(a.control)
+        if a.go and hold:
+            print(f"   {time.strftime('%H:%M:%S')} held by {a.control}: waiting", flush=True)
+            while control(a.control)[0]:
+                time.sleep(30)
+            print(f"   {time.strftime('%H:%M:%S')} hold lifted", flush=True)
+            hold, skips = control(a.control)
+        if any(label.startswith(x) for x in skips):
+            print(f"   skipped: {label} ({a.control}: skip)", flush=True)
+            continue
         if not a.go:
             continue
-        if a.serve and k > 0 and a.entries[k - 1].split(":")[1] != port:
-            server_stop(a.entries[k - 1].split(":")[1])
+        if a.serve and served is not None and served != port and not a.sweep_only:
+            server_stop(served)
+            served = None
         why, servo_c = servo_gate(a)
         if why:
             sys.exit(f"STOP before {label}: {why}")
@@ -257,6 +283,7 @@ def main():
             why = server_start(a, plan, port)
             if why:
                 sys.exit(f"STOP: the HOM server for {label} did not start: {why}")
+            served = port
         # a new layout (2026-11-19): after letgo the straight fingers may hang beside the object, so the palm goes up
         # until they clear it before the gantries move (pose_sweep.py clear), and with --sweep the fingers then run
         # the free-air pose sweep at the new mounts
@@ -329,8 +356,8 @@ def main():
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")
             sys.exit(f"STOP: putdown did not finish for {label}: {row['putdown']}")
-    if a.go and a.serve and not a.sweep_only:
-        server_stop(a.entries[-1].split(":")[1])
+    if a.go and a.serve and served is not None:
+        server_stop(served)
     print(f"\n=== {time.strftime('%H:%M:%S')} series done", flush=True)
     return 0
 
