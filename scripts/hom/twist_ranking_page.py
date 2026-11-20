@@ -452,6 +452,18 @@ error of HOM's least squares (the SVD did not converge) and scored 0.</p>"""))
                     f"one part: the pads at impratio 100, friction 0.6 under either contact model, or the servos at 5 V. "
                     f"Between each plant's order and that of the two models' mean, ρ is {min(plant_rho):.2f} to "
                     f"{max(plant_rho):.2f}. ")
+    PPRED = j(DATA / "20261119-plant_predictions.json")
+    if PPRED and PPRED.get("layouts"):
+        import itertools
+        from sr2hand.numerics.stats import spearman
+        P_ = [L["predicted"] for L in PPRED["layouts"]]
+        ms_ = [m for m in P_[0] if all(p.get(m) is not None for p in P_)]
+        pr_ = {(a_, b_): spearman([p[a_] for p in P_], [p[b_] for p in P_]) for a_, b_ in itertools.combinations(ms_, 2)}
+        if pr_:
+            agree_p += (f"Over the {len(P_)} layouts proposed for the hand, which span the predicted range, ρ between "
+                        f"any two of the {len(ms_)} plants' orders is {min(pr_.values()):.2f} to "
+                        f"{max(pr_.values()):.2f}; it is {pr_.get(('point', 'pads'), float('nan')):.2f} between point "
+                        f"contact and the pads (data/20261119-plant_predictions.json). ")
     if "point" in wc and "pads" in wc:
         agree_p += (f"At the fresh seeds, the 60 best layouts scored {-wc['point']['change_mean']:.3f} less under point "
                     f"contact and {-wc['pads']['change_mean']:.3f} less under the pads, on average (Table {T_FRESH}). "
