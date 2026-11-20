@@ -73,6 +73,42 @@ def summary(record):
             "drift_end_mm": round(dr[-1], 1) if dr else None, "stop": stops[0] if stops else None}
 
 
+def pickup(a, plan, label):
+    """Stand a toppled sphere up again by the controlled-slip pick-up (pinch_pickup.py, the skill's steps; 2026-11-19
+    19:28 after g13 at (105, 70) toppled it): plan at the station's layout (the trial's plan as the base), contacts 5,
+    4, 6 then 3 deg above the equator until the touch keeps 8 mm off the table on both fingers and the joints 4 deg from
+    their limits; then grasp, lift, slip, putdown (--level-max 0) and unturn, each checked for its own success line.
+    Returns None when the sphere stands again, else the reason."""
+    pm = ["--map", a.map]
+    best = None
+    for lat in ("5", "4", "6", "3"):
+        rc, out = run([PY, "pinch_pickup.py", "plan", *pm, "--gap", "8", "--lat-deg", lat, "--base-plan", plan,
+                       "--turn"], 240)
+        m_margin = re.search(r"joint margin ([\d.]+) deg", out)
+        tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)", out.split("at touch:")[-1].split("\n")[0])] \
+            if "at touch:" in out else []
+        m_plan = re.search(r"plan -> (\S+_plan\.json)", out)
+        if rc == 0 and m_margin and m_plan and tables and float(m_margin.group(1)) >= 4.0 and min(tables) >= 8.0:
+            best = m_plan.group(1)
+            break
+    if best is None:
+        return "no pick-up plan keeps 8 mm off the table and 4 deg from the joint limits"
+    for step, token, extra, tmo in (("grasp", "GRASPED", [], 400), ("lift", "LIFTED", [], 400),
+                                    ("slip", "SLIP DONE", [], 500)):
+        rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, "--go", "--video-dir", a.video_dir], tmo)
+        if rc != 0 or token not in out:
+            return f"the pick-up's {step} did not finish"
+    rc, out = run([PY, "hom_setup.py", "putdown", "--plan", best, "--object", "sphere", *pm, "--level-max", "0", "--go",
+                   "--video-dir", a.video_dir], 450)
+    if rc != 0 or "LET GO" not in out:
+        return "the pick-up's putdown did not finish"
+    rc, out = run([PY, "pinch_pickup.py", "unturn", "--plan", best, *pm, "--go", "--video-dir", a.video_dir], 300)
+    if rc != 0 or ("UNTURNED" not in out and "no turn" not in out.lower()):
+        return "the pick-up's unturn did not finish"
+    print(f"   {label}: the sphere picked up and set down upright ({Path(best).name})", flush=True)
+    return None
+
+
 def station_plan_file():
     """The file name of the plan the station holds (hom_setup.py layout records it in the plan's meta.plan_file); plans
     can share a design name and differ in their poses (the mcpstop variants of 11-17)."""
@@ -110,6 +146,9 @@ def main():
     ap.add_argument("--putdown-args", default="",
                     help="extra arguments for putdown and letgo, e.g. \"--no-centre\" while another object stands at the "
                          "table's centre (2026-11-19)")
+    ap.add_argument("--pickup", action="store_true",
+                    help="a sphere that toppled at a release is picked up and stood up again (pinch_pickup.py) and the "
+                         "series goes on; without it the series stops")
     ap.add_argument("--sweep", action="store_true",
                     help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
     ap.add_argument("--go", action="store_true")
@@ -180,6 +219,11 @@ def main():
                 if "LET GO" in out2 and t and float(t[-1]) <= a.upright_deg:
                     print(f"   {label}: released tilted, settled at {t[-1]} deg: going on", flush=True)
                     continue
+                if a.pickup and "LET GO" in out2 and a.object == "sphere":
+                    why = pickup(a, plan, label)
+                    if why is None:
+                        continue
+                    sys.exit(f"STOP: {label} toppled and the pick-up failed: {why}")
                 sys.exit(f"STOP: {label} ended tilted; released with letgo --tilt-ok "
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")

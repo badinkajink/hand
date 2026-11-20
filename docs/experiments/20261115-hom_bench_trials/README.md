@@ -30,6 +30,13 @@ the workstation run on its CPU (`hom_serve.sh`, `CUDA_VISIBLE_DEVICES=` empty), 
   on the table, torque off. `logs/20261116-hom_setup/hom_serve_budget.sh` on the workstation takes the same arguments
   plus the budget. Recovery: `torque-on --go` (every MCP under 0), `zero` (the object 40 mm below the grasp's height
   after the trial's lift), then the series again.
+- **Topples (19:2x).** g13 at (105, 70) over-rotated at budget 0.56 (72 deg, 9.4 mm rise, tilted 42 deg in the hand);
+  the putdown's default levelling takes out at most 8 deg, so the block was not seated, and `letgo --tilt-ok` let the
+  sphere topple (94 deg). The controlled-slip pick-up stood it up again in 5 min (19:28-19:33; plan at the station's
+  layout, contacts 5 deg above the equator: joint margin 4.9 deg, 8.5-9.3 mm off the table; 85 -> 35 deg in the lift,
+  4.3 deg after the slip; set down upright at 1.2 deg and the wrist turned back). For the series: `--putdown-args="--level-frac
+  1 --level-max 35"` (the 11-17 recovery's levelling) and `--pickup` (hom_series runs that pick-up after a topple and
+  goes on; any failed step stops it).
 
 ## State on 2026-11-17 19:30: the evening's commands, and the night's runs
 
