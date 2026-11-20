@@ -191,7 +191,7 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   layouts have a grasp whose simulated twist keeps the fingers 10 mm apart under both models with the sphere held, against
   214 at 2.5 N (182 at both). Over those 182 the mean score rises from 0.407 to 0.644, and the two forces rank them with
   rho 0.20. The best feasible layouts move from (115, 155), (115, 160), (95, 105), (110, 155), (105, 150) at 2.5 N (0.54-
-  0.55) to (85, 170), (90, 165), (80, 150), (85, 115), (85, 155) at 1.0 N (0.74-0.77). The sim-to-real page's Figure 2
+  0.55) to (85, 170), (90, 165), (80, 150), (85, 115), (85, 155) at 1.0 N (0.74-0.77). The sim-to-real page's Figure 3
   shows both.
 - 15:01, lab: the series restarted at A1_r130_x95y90g14_t1 (entry 34 of 170); since 14:04, 23 trials ran and five stops
   were recovered on the bench. A1_r4_x110y155g3_t3 set the sphere down seated but tilted 22.7 deg; released, it toppled;
@@ -202,6 +202,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   the pinch pick-up worked first time all three times (13:31, 13:56, 14:58); among the cables a push or a pinch descent
   hit them five times (3.2-3.6 N). Request relayed to the owner at 15:0x: route the blue and red cable bundle away from
   the table's centre.
+- 15:1x, hand-4a (refresh of 15:15, 36 clean trials on 17 layouts at the default force): rho 0.33 (interval 0.17-0.42),
+  measured 0.075 below predicted on average. Split by the index-to-middle spacing y: under 150 mm (12 layouts) Pearson's r
+  0.83, rho 0.56, mean absolute error 0.080; at 150 mm or more (5 layouts) the hand lost the sphere and the scores fell
+  0.337 below the predictions. The measured score falls with y (rho -0.64), the predicted does not (0.03). The page's
+  Figure 2 shows it; the feasible landscapes are now Figure 3.
 
 ## Waiting on owner
 

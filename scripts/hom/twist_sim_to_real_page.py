@@ -45,6 +45,7 @@ BLOCK = {"A1": ("#2a78d6", "o", "Block A1, ranked layouts"), "A4feas": ("#eb6834
          "b4cem": ("#e87ba4", "v", "CEM plans"), "other": ("#008300", "P", "Touching or dropping layouts")}
 RAMP = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 INK, INK2, GRID = "#222222", "#555555", "#d9d9d9"
+Y_WIDE = 150.0                     # mm: index-to-middle spacing from which the hand lost the sphere (2026-11-20)
 
 
 def j(p):
@@ -121,11 +122,11 @@ def plt_setup():
     return plt
 
 
-def label_points(ax, placed, span, fs=10):
+def label_points(ax, placed, span, fs=10, others=()):
     """Labels beside points, each at the first of four offsets whose box clears the boxes and points placed before (a
     greedy placement in data units; a character is about 0.0108 of a 0.8-wide axis at 10 pt)."""
     cw, h = 0.0108 * span / 0.8, 0.03 * span / 0.8
-    boxes = [(px - 0.008, py - 0.008, px + 0.008, py + 0.008) for px, py, _ in placed]
+    boxes = [(px - 0.012, py - 0.012, px + 0.012, py + 0.012) for px, py in [q[:2] for q in placed] + list(others)]
     for px, py, lab in sorted(placed, key=lambda q: (-q[1], q[0])):
         w = cw * len(lab)
         for dx, dy, ha in ((0.012, 0.006, "left"), (0.012, -0.036, "left"), (-0.012, 0.006, "right"),
@@ -153,22 +154,74 @@ def fig_scatter(T):
         c, mk, lab = BLOCK[b]
         px = x["predicted_both"]
         sc = x["scores"]
+        lost = any(t["ended"] != "end of schedule" for t in x["trials"] if not t.get("tilted_start"))
         ax.scatter([px] * len(sc), sc, s=22, color=c, alpha=0.45, lw=0, zorder=2)
         sd = x["measured_sd"] or 0.0
-        ax.errorbar(px, x["measured_mean"], yerr=sd if x["n"] > 1 else None, fmt=mk, ms=9, color=c, mec="white",
-                    mew=1.5, elinewidth=1.5, capsize=0, zorder=3, label=lab if b not in seen else None)
+        ax.errorbar(px, x["measured_mean"], yerr=sd if x["n"] > 1 else None, fmt=mk, ms=9, color=c,
+                    mfc="white" if lost else c, mec=c, mew=1.8, elinewidth=1.5, capsize=0, zorder=3)
         seen.add(b)
-        placed.append((px, x["measured_mean"], f"{xy_s(x['xy'])} g{x['k']}"))
+        if (x.get("role") == "anchor" or x["xy"][1] >= Y_WIDE
+                or abs(x["measured_mean"] - px) >= 0.15):
+            placed.append((px, x["measured_mean"], f"{xy_s(x['xy'])} g{x['k']}"))
     lo = 0.0
     hi = max(0.8, max([x["predicted_both"] for x in tested] + [max(x["scores"]) for x in tested if x["scores"]] + [0.0])
              + 0.05)
     ax.set_xlim(lo, hi)
     ax.set_ylim(lo, hi)
     ax.set_aspect("equal")
-    label_points(ax, placed, hi - lo)
+    label_points(ax, placed, hi - lo, others=[(x["predicted_both"], x["measured_mean"]) for x in tested])
     ax.set_xlabel("Predicted tracking score (simulation)")
     ax.set_ylabel("Measured tracking score on the hand")
-    ax.legend(loc="upper left", frameon=False, fontsize=11)
+    from matplotlib.lines import Line2D
+    hs = [Line2D([], [], marker=BLOCK[b][1], ls="", color=BLOCK[b][0], ms=9, label=BLOCK[b][2]) for b in BLOCK
+          if b in seen]
+    hs.append(Line2D([], [], marker="o", ls="", mfc="white", mec=INK2, mew=1.8, ms=9,
+                     label="A trial lost the sphere"))
+    ax.legend(handles=hs, loc="upper left", frameon=False, fontsize=11)
+    return png_uri(fg)
+
+
+def split_stats(default):
+    """Predicted against measured over the default-force layouts, all of them and split at Y_WIDE."""
+    from scipy import stats as st
+    out = {}
+    for lab, sel in (("all", lambda x: True), ("narrow", lambda x: x["xy"][1] < Y_WIDE),
+                     ("wide", lambda x: x["xy"][1] >= Y_WIDE)):
+        s = [x for x in default if sel(x)]
+        if not s:
+            continue
+        pr = np.array([x["predicted_both"] for x in s])
+        me = np.array([x["measured_mean"] for x in s])
+        o = {"n": len(s), "bias": float(np.mean(me - pr)), "mae": float(np.mean(np.abs(me - pr)))}
+        if len(s) > 2:
+            o.update({"rho": float(st.spearmanr(pr, me)[0]), "r": float(np.corrcoef(pr, me)[0, 1])})
+        out[lab] = o
+    return out
+
+
+def fig_spacing(default):
+    """Measured less predicted tracking against the index-to-middle spacing, per default-force layout."""
+    plt = plt_setup()
+    fg, ax = plt.subplots(figsize=(7.4, 4.6))
+    ax.axhline(0, color=GRID, lw=1.5, zorder=0)
+    ax.axvline(Y_WIDE, color=INK2, lw=1.0, ls="--", zorder=0)
+    ax.grid(color=GRID, lw=0.6, zorder=0)
+    seen = set()
+    for x in default:
+        b = block_of(x)
+        c, mk, lab = BLOCK[b]
+        lost = any(t["ended"] != "end of schedule" for t in x["trials"] if not t.get("tilted_start"))
+        ax.scatter([x["xy"][1]], [x["measured_mean"] - x["predicted_both"]], s=70, marker=mk,
+                   facecolors=c if not lost else "white", edgecolors=c, lw=1.8, zorder=3)
+        seen.add(b)
+    from matplotlib.lines import Line2D
+    hs = [Line2D([], [], marker=BLOCK[b][1], ls="", color=BLOCK[b][0], ms=9, label=BLOCK[b][2]) for b in BLOCK
+          if b in seen]
+    hs.append(Line2D([], [], marker="o", ls="", mfc="white", mec=INK2, mew=1.8, ms=9,
+                     label="A trial lost the sphere"))
+    ax.set_xlabel("Index-to-middle spacing y (mm)")
+    ax.set_ylabel("Measured less predicted score")
+    ax.legend(handles=hs, loc="lower left", frameon=False, fontsize=11)
     return png_uri(fg)
 
 
@@ -295,8 +348,8 @@ RMS angle between the sphere's tracked rotation and the commanded one from 2.0 s
 RMS is 59.4&deg;, so a sphere held still scores 0. A trial or run that drops the sphere, or that corvus's drift guard
 stops, scores 0.</li>
 <li><b>Prediction</b>: the mean score over the simulation's two contact models (point contact and the 1 mm sphere pads)
-at seeds 0-2, on the calibrated plant of 2026-11-17 (7.5 V servo gains, non-backdrivable gears, MCP stops, the bench's
-torque budget). Every prediction was written before the first trial of its plan.</li>
+at seeds 0-2. The plant is the calibrated one of 2026-11-17: 7.5 V servo gains, non-backdrivable gears, MCP stops and the
+bench's torque budget. Every prediction was written before the first trial of its plan.</li>
 <li><b>Measured score</b>: the mean over a plan's trials on the hand. A trial whose sphere started more than 5&deg; from the
 plan's grasp is listed apart and left out (Table 2).</li>
 <li><b>&rho;</b>: Spearman's rank correlation between predicted and measured scores over the layouts at the default force
@@ -316,15 +369,28 @@ plan's grasp is listed apart and left out (Table 2).</li>
                      f(x.get("measured_mean_60")), tr])
     cap1 = (f"Predicted against measured tracking for the {len(tested)} plans tried on the hand ({n_trials} trials). "
             "Large marks: a plan's mean over its trials, with the standard deviation over trials as a bar; small "
-            "marks: single trials. The grey line is equality.")
+            "marks: single trials; hollow marks: the sphere was lost in at least one trial. Labelled: the anchor, the "
+            f"layouts {Y_WIDE:g} mm wide or more, and misses of 0.15 or more. The grey line is equality.")
     rho_txt = (f"Over the {rho['layouts']} layouts at the default force, &rho; = {f(rho.get('rho'), 2)} "
                f"(95 % interval {rho.get('rho_trials_resampled_95')}), and the measured scores lay "
                f"{f(abs(rho.get('mean_measured_minus_predicted') or 0), 3)} "
                f"{'below' if (rho.get('mean_measured_minus_predicted') or 0) < 0 else 'above'} the predictions on "
                "average." if rho.get("rho") is not None else
                f"The {rho['layouts']} layouts tried so far at the default force are too few for &rho;.")
+    sp = split_stats(default)
+    split_txt = ""
+    if sp.get("narrow") and sp.get("wide") and "r" in sp["narrow"]:
+        nw, wd = sp["narrow"], sp["wide"]
+        split_txt = (f"<p>The misses depend on the index-to-middle spacing y. For the {nw['n']} layouts with y under "
+                     f"{Y_WIDE:g} mm, the hand's scores were predicted closely: Pearson's r is {f(nw['r'], 2)}, "
+                     f"&rho; is {f(nw.get('rho'), 2)} and the mean absolute error is {f(nw['mae'])}. With the "
+                     f"{wd['n']} layouts at {Y_WIDE:g} mm or more, the hand lost the sphere, in drops or at corvus's "
+                     f"drift guard. Their scores fell {f(abs(wd['bias']))} below the predictions on average (Figure 2). "
+                     "No such fall with the spacing was predicted.</p>")
+    cap1b = (f"Measured less predicted score per layout at the default force, against the index-to-middle spacing. "
+             f"Hollow marks: the sphere was lost in at least one of the layout's trials. The dashed line is {Y_WIDE:g} mm.")
     sec.append(("scatter", "Predicted and measured tracking per layout",
-                f"<p>{rho_txt}</p>" + fig(1, fig_scatter(T), cap1)
+                f"<p>{rho_txt}</p>" + fig(1, fig_scatter(T), cap1) + split_txt + fig(2, fig_spacing(default), cap1b)
                 + table(["Layout, grasp", "HOM's force", "Block", "Predicted", "Measured", "SD", "Trials",
                          "Measured at 60 fps", "Trial scores"], rows, num=(3, 4, 5, 6, 7), n=1,
                         caption="Each plan tried on the hand. Trial scores in order; a trial that ended early names "
@@ -358,7 +424,7 @@ plan's grasp is listed apart and left out (Table 2).</li>
                  + ", ".join(f"{xy_s(L['xy'])}" for L in top25)
                  + f", scoring {f(top25[-1]['seeds012'], 2)} to {f(top25[0]['seeds012'], 2)}.</p>")
     sec.append(("landscape", "The ranking's landscape and the tested layouts",
-                land + fig(2, fig_landscape(S, T, F25, F10), cap2)))
+                land + fig(3, fig_landscape(S, T, F25, F10), cap2)))
 
     if RP and SM:
         uri, J = fig_jitter(RP, SM)
@@ -375,7 +441,7 @@ taken from joints low-passed at 0.1 s; with the second, HOM's targets are low-pa
 readings, the two together lower the share to
 {h['jt']:.0f} %; in closed-loop simulation with the flicker, to
 {s.get('jt', float('nan')):.0f} % at the same tracking score. Whether the trials use them is
-recorded in each server record's header.</p>""" + fig(3, uri, "The share of control periods in which a joint's command "
+recorded in each server record's header.</p>""" + fig(4, uri, "The share of control periods in which a joint's command "
                                                          "reversed. Upper bars: the hand's trials under the 0.56 N m "
                                                          "budget, as sent and replayed offline; lower bars: the "
                                                          f"simulation of {J['n_plans']} plans at seed 0.")))
@@ -416,12 +482,15 @@ variant budget_noise) and compare that ranking with the trials.</li>
                 f"{rho.get('rho_trials_resampled_95')}). ")
     else:
         lede = f"<p>{len(tested)} plans of the twist ranking have run on the SR2 hand so far ({n_trials} trials). "
-    if anchor:
+    sp0 = split_stats(default) if default else {}
+    if sp0.get("narrow") and sp0.get("wide") and "r" in sp0["narrow"]:
+        lede += (f"For the {sp0['narrow']['n']} layouts whose index and middle fingers sit less than {Y_WIDE:g} mm "
+                 f"apart, the hand's scores were predicted closely (Pearson's r {f(sp0['narrow']['r'], 2)}, mean "
+                 f"absolute error {f(sp0['narrow']['mae'])}). With the {sp0['wide']['n']} wider layouts the hand lost "
+                 f"the sphere, and their scores fell {f(abs(sp0['wide']['bias']))} below the predictions. ")
+    elif anchor:
         lede += (f"The anchor layout (70, 110) scored {f(anchor['measured_mean'])} against its prediction of "
                  f"{f(anchor['predicted_both'])}. ")
-    if worst:
-        lede += (f"The largest miss was {xy_s(worst['xy'])} g{worst['k']}, {f(worst['measured_mean'])} against "
-                 f"{f(worst['predicted_both'])}. ")
     lede += ("HOM's commands chattered on the hand, because the torque budget passed the joint readings' flicker into "
              "them. The simulation's joint readings are exact, and smooth commands were predicted.</p>")
     summary = re.sub(r"<[^>]+>", "", lede).replace("&rho;", "rho").strip()
