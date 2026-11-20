@@ -1,0 +1,324 @@
+{
+ "what": "The fingertip contacts in the HOM trials of 2026-11-19 night: what the boards say during real manipulation (the owner, 18:4x: pose sensing first, its smoothness and stability).",
+ "script": "docs/experiments/20261117-sr2_system_identification/sim/20261119-trial_contacts.py",
+ "trials": [
+  {
+   "record": "20261119-191148_twist_corvus.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "task": "twist",
+   "object": "sphere",
+   "periods": 113,
+   "stop": "object drifted 30.4 mm from its start in P (limit 30)",
+   "fingers": {
+    "thumb": {
+     "contact_share": 0.407,
+     "estimates": 18,
+     "place_z_mm": [
+      16.05,
+      16.45,
+      16.97
+     ],
+     "place_y_mm": [
+      -1.26,
+      -0.25,
+      -0.25
+     ],
+     "jitter_z_mm": [
+      0.578,
+      1.223
+     ],
+     "jitter_y_mm": [
+      0.012,
+      1.017
+     ],
+     "force_N": [
+      3.05,
+      3.39
+     ],
+     "surface_mm": [
+      -3.45,
+      -2.95,
+      -1.86
+     ],
+     "w_median": 0.84
+    },
+    "index": {
+     "contact_share": 0.407,
+     "estimates": 18,
+     "place_z_mm": [
+      11.71,
+      14.74,
+      15.13
+     ],
+     "place_y_mm": [
+      -3.71,
+      -3.43,
+      -3.22
+     ],
+     "jitter_z_mm": [
+      0.519,
+      2.103
+     ],
+     "jitter_y_mm": [
+      0.397,
+      0.979
+     ],
+     "force_N": [
+      1.2,
+      1.31
+     ],
+     "surface_mm": [
+      -7.13,
+      -6.15,
+      -3.44
+     ],
+     "w_median": 0.86
+    },
+    "middle": {
+     "contact_share": 0.283,
+     "estimates": 13,
+     "place_z_mm": [
+      14.04,
+      14.33,
+      14.69
+     ],
+     "place_y_mm": [
+      4.91,
+      5.33,
+      5.64
+     ],
+     "jitter_z_mm": [
+      0.54,
+      1.004
+     ],
+     "jitter_y_mm": [
+      0.53,
+      1.166
+     ],
+     "force_N": [
+      0.87,
+      0.96
+     ],
+     "surface_mm": [
+      -8.88,
+      -8.47,
+      -7.97
+     ],
+     "w_median": 0.74
+    }
+   }
+  },
+  {
+   "record": "20261119-191450_twist_corvus.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "task": "twist",
+   "object": "sphere",
+   "periods": 416,
+   "stop": "controller",
+   "fingers": {
+    "thumb": {
+     "contact_share": 0.938,
+     "estimates": 157,
+     "place_z_mm": [
+      11.12,
+      15.58,
+      16.63
+     ],
+     "place_y_mm": [
+      -3.48,
+      -1.27,
+      -0.26
+     ],
+     "jitter_z_mm": [
+      0.238,
+      0.582
+     ],
+     "jitter_y_mm": [
+      0.24,
+      0.466
+     ],
+     "force_N": [
+      2.66,
+      3.06
+     ],
+     "surface_mm": [
+      -2.6,
+      -2.25,
+      -1.59
+     ],
+     "w_median": 0.85
+    },
+    "index": {
+     "contact_share": 0.514,
+     "estimates": 87,
+     "place_z_mm": [
+      12.61,
+      12.9,
+      13.64
+     ],
+     "place_y_mm": [
+      -2.72,
+      -2.29,
+      -1.03
+     ],
+     "jitter_z_mm": [
+      0.735,
+      1.412
+     ],
+     "jitter_y_mm": [
+      0.332,
+      1.125
+     ],
+     "force_N": [
+      0.71,
+      0.96
+     ],
+     "surface_mm": [
+      -3.59,
+      -2.57,
+      -0.49
+     ],
+     "w_median": 0.91
+    },
+    "middle": {
+     "contact_share": 0.421,
+     "estimates": 70,
+     "place_z_mm": [
+      12.89,
+      13.34,
+      14.09
+     ],
+     "place_y_mm": [
+      3.09,
+      3.37,
+      4.18
+     ],
+     "jitter_z_mm": [
+      0.243,
+      0.535
+     ],
+     "jitter_y_mm": [
+      0.379,
+      0.981
+     ],
+     "force_N": [
+      1.23,
+      1.36
+     ],
+     "surface_mm": [
+      -4.57,
+      -3.26,
+      -2.55
+     ],
+     "w_median": 0.79
+    }
+   }
+  },
+  {
+   "record": "20261119-191739_twist_corvus.jsonl",
+   "plan": "20261116-film_x70_y110_twist_gr_plan.json",
+   "task": "twist",
+   "object": "sphere",
+   "periods": 416,
+   "stop": "controller",
+   "fingers": {
+    "thumb": {
+     "contact_share": 0.938,
+     "estimates": 158,
+     "place_z_mm": [
+      10.17,
+      16.05,
+      16.63
+     ],
+     "place_y_mm": [
+      -3.97,
+      -1.27,
+      -0.51
+     ],
+     "jitter_z_mm": [
+      0.245,
+      0.585
+     ],
+     "jitter_y_mm": [
+      0.225,
+      0.499
+     ],
+     "force_N": [
+      2.48,
+      2.93
+     ],
+     "surface_mm": [
+      -2.32,
+      -1.56,
+      -0.87
+     ],
+     "w_median": 0.81
+    },
+    "index": {
+     "contact_share": 0.214,
+     "estimates": 36,
+     "place_z_mm": [
+      16.06,
+      16.63,
+      17.1
+     ],
+     "place_y_mm": [
+      -3.16,
+      -2.76,
+      -2.25
+     ],
+     "jitter_z_mm": [
+      0.701,
+      1.688
+     ],
+     "jitter_y_mm": [
+      0.604,
+      1.638
+     ],
+     "force_N": [
+      0.69,
+      0.8
+     ],
+     "surface_mm": [
+      -4.44,
+      -3.57,
+      -2.03
+     ],
+     "w_median": 0.91
+    },
+    "middle": {
+     "contact_share": 0.425,
+     "estimates": 71,
+     "place_z_mm": [
+      12.89,
+      14.07,
+      14.88
+     ],
+     "place_y_mm": [
+      3.09,
+      3.37,
+      4.18
+     ],
+     "jitter_z_mm": [
+      0.25,
+      0.941
+     ],
+     "jitter_y_mm": [
+      0.355,
+      0.909
+     ],
+     "force_N": [
+      1.22,
+      1.37
+     ],
+     "surface_mm": [
+      -3.71,
+      -2.67,
+      -2.06
+     ],
+     "w_median": 0.8
+    }
+   }
+  }
+ ]
+}

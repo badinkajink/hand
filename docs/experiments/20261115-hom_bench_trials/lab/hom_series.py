@@ -102,6 +102,12 @@ def main():
     ap.add_argument("--max-yaw", type=float, default=5.0)
     ap.add_argument("--upright-deg", type=float, default=8.0,
                     help="after a tilted release, go on when the object stands within this of vertical")
+    ap.add_argument("--ready-args", default="",
+                    help="extra arguments for ready, e.g. \"--watch-mm 3\": the descent's watch stopped at a 1.98 mm "
+                         "apparent move while the object stood still in B (19:18, 2026-11-19; fingers hiding tags)")
+    ap.add_argument("--putdown-args", default="",
+                    help="extra arguments for putdown and letgo, e.g. \"--no-centre\" while another object stands at the "
+                         "table's centre (2026-11-19)")
     ap.add_argument("--sweep", action="store_true",
                     help="the free-air pose sweep (pose_sweep.py) at each new layout, after its gantry move")
     ap.add_argument("--go", action="store_true")
@@ -131,7 +137,8 @@ def main():
             rc, out = run([PY, "pose_sweep.py", "sweep", "--plan", plan, "--map", a.map, "--go"], 300)
             if rc != 0 or "SWEEP DONE" not in out:
                 sys.exit(f"STOP: the free-air sweep failed at {label}'s layout")
-        rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 300)
+        rc, out = run([PY, "hom_setup.py", "ready", "--plan", plan, *common, *a.ready_args.split(), "--go",
+                       "--video-dir", a.video_dir], 300)
         m = re.search(r"(READY for the trial|NOT READY): ([\d.]+) mm, ([-+\d.]+) deg", out)
         if rc != 0 or m is None:
             sys.exit(f"STOP: ready failed for {label}")
@@ -150,7 +157,8 @@ def main():
                "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))], **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
-        rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, "--go", "--video-dir", a.video_dir], 400)
+        rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
+                       "--video-dir", a.video_dir], 400)
         row["putdown"] = "LET GO" if "LET GO" in out else out.strip().splitlines()[-1][:200]
         if rc == 0 and "LET GO" in out:
             with open(a.out, "a") as f:
