@@ -706,8 +706,13 @@ def cmd_grasp(a):
         # lateral: the ball's centre under the pinch's centre, at this height; with a planned turn the hand turns about
         # the ball's vertical (joint 6) so the stem lies across x_P (owner, 16:4x: "rotate the wrist first")
         turn = float(pp.get("turn_deg", 0.0))
+        p_lat = None
         for leg in ("lateral", "fine"):
+            if a.blind and leg == "fine":
+                break          # blind: the turned hand hides the lying block's tags (its pose jumped 5-13 mm, 17:38-17:41)
             p, q, info, stem_P, tilt = measure_object(meas, a)
+            if leg == "lateral":
+                p_lat = p
             d = p - c
             lat = float(np.hypot(d[0], d[1]))
             psi = 0.0
@@ -729,14 +734,18 @@ def cmd_grasp(a):
             # high over the object no finger can touch it; the hand passing a camera shifts the estimate 1-2 mm (16:32)
             why, _ = arm.move(arm.T_BP() @ C @ tf_inv(T_EP), a.v_lat, a.acc, a.stop_n,
                               lat / (1e3 * a.v_lat) + 6.0 + 0.5 * abs(psi), f"{leg} {lat:.1f} mm, turn {psi:+.1f} deg",
-                              check=obj_watch(meas, info, a.lat_watch_mm))
+                              check=None if a.blind else obj_watch(meas, info, a.lat_watch_mm))
             if why:
                 raise SystemExit(f"the {leg} move stopped: {why}")
         # the descent: fast to --slow-mm over the grasp's height, then slowly, each leg watched
         for leg in ("fast", "slow"):
-            p, q, info, stem_P, tilt = measure_object(meas, a)
-            dz = float(c[2] - p[2])                               # the palm down by dz puts the ball at c's height in P
-            dist = dz - a.slow_mm if leg == "fast" else dz
+            if a.blind:                                           # the lateral move and the turn keep the palm's height
+                dz = float(c[2] - p_lat[2])
+                dist = dz - a.slow_mm if leg == "fast" else min(dz, a.slow_mm)
+            else:
+                p, q, info, stem_P, tilt = measure_object(meas, a)
+                dz = float(c[2] - p[2])                           # the palm down by dz puts the ball at c's height in P
+                dist = dz - a.slow_mm if leg == "fast" else dz
             v = a.v_down if leg == "fast" else a.v_slow
             if dist < 0.5:
                 continue
@@ -745,13 +754,20 @@ def cmd_grasp(a):
             T_goal = arm.T_BE()
             T_goal[2, 3] -= dist
             why, _ = arm.move(T_goal, v, a.acc, a.stop_n, dist / (1e3 * v) + 6.0, f"descent, {leg} leg, {dist:.1f} mm",
-                              check=both(obj_watch(meas, info, a.watch_mm), joint_watch(st, jr, a.deflect_deg)))
+                              check=(joint_watch(st, jr, a.deflect_deg) if a.blind else
+                                     both(obj_watch(meas, info, a.watch_mm), joint_watch(st, jr, a.deflect_deg))))
             if why:
                 raise SystemExit(f"the descent stopped: {why}; look before anything else")
-        p, q, info, stem_P, tilt = measure_object(meas, a)
-        d = p - c
-        print(f"   at the grasp's height: the ball {np.round(d, 2).tolist()} mm from the pinch's centre", flush=True)
-        if np.hypot(d[0], d[1]) > 0.7:
+        if a.blind:
+            o = obj_now(meas)
+            print("   at the grasp's height (blind): " + ("the tracker gives no fresh pose" if o is None else
+                  f"the tracker puts the ball {np.round(o[0] - c, 1).tolist()} mm from the pinch's centre (not used)"),
+                  flush=True)
+        else:
+            p, q, info, stem_P, tilt = measure_object(meas, a)
+            d = p - c
+            print(f"   at the grasp's height: the ball {np.round(d, 2).tolist()} mm from the pinch's centre", flush=True)
+        if not a.blind and np.hypot(d[0], d[1]) > 0.7:
             if np.hypot(d[0], d[1]) > 3.0:
                 raise SystemExit("more than 3 mm off at the grasp's height: look")
             stream.mark("fine at height")
@@ -773,7 +789,8 @@ def cmd_grasp(a):
                 return None
             dd = float(np.linalg.norm(o[0] - p0[0]))
             return f"the object moved {dd:.1f} mm during the close (limit {a.close_mm:g})" if dd > a.close_mm else None
-        why, at = ramp(st, {f: jo[f] for f in HS.FINGERS}, poses["touch"], a.close_s, a.speed, check=moved)
+        why, at = ramp(st, {f: jo[f] for f in HS.FINGERS}, poses["touch"], a.close_s, a.speed,
+                       check=None if a.blind else moved)
         if why:
             print(f"   the close stopped: {why}; holding there", flush=True)
             raise SystemExit("look before anything else")
@@ -821,8 +838,14 @@ def cmd_lift(a):
     meas = HS.Measure(a, video=HS.recorder(a, "pinch_lift"))
     stream = None
     try:
-        p, q, info, stem_P, tilt = measure_object(meas, a)
-        above = float(info["p_B"][2]) - a.table_z
+        try:
+            p, q, info, stem_P, tilt = measure_object(meas, a)
+            above = float(info["p_B"][2]) - a.table_z
+        except SystemExit as e:
+            if not (a.blind and a.lift_mm is not None):
+                raise
+            print(f"   the tracker gives no pose ({e}); blind: the lift is --lift-mm", flush=True)
+            p, above, tilt = None, float("nan"), float("nan")
         lift = a.lift_mm if a.lift_mm is not None else (h + a.lift_extra) - above
         print(f"object: ball centre {above:.1f} mm above the table, tilt {tilt:.1f} deg; lift {lift:.1f} mm at "
               f"{1e3 * a.v_lift:g} mm/s (the ball's centre to {above + lift:.1f} mm; standing it is at {h:.1f})", flush=True)
@@ -833,11 +856,11 @@ def cmd_lift(a):
         arm.connect(a.stop_n is not None)
         stream = Stream(st, meas, arm, STREAMS / f"{stamp}_pinch_lift_telemetry.jsonl",
                         pads=pads)
-        z_ref = float(p[2])
+        z_ref = None if p is None else float(p[2])
 
         def slipping():
             o = obj_now(meas, 3, 0.4)
-            if o is None:
+            if o is None or z_ref is None:
                 return None                                    # the tags may turn away as the object stands up
             dz = float(o[0][2] - z_ref)
             return (f"the ball slid {dz:+.1f} mm along z_P in the pinch (limit {a.slip_mm:g})"
@@ -846,18 +869,26 @@ def cmd_lift(a):
         T_goal[2, 3] += lift
         stream.mark("lift")
         why, moved = arm.move(T_goal, a.v_lift, a.acc, a.stop_n, lift / (1e3 * a.v_lift) + 8.0, f"lift {lift:.1f} mm",
-                              check=slipping)
+                              check=None if a.blind else slipping)
         time.sleep(1.5)
-        p, q, info, stem_P, tilt = measure_object(meas, a)
+        try:
+            p, q, info, stem_P, tilt = measure_object(meas, a)
+        except SystemExit as e:
+            if not a.blind:
+                raise
+            print(f"   after the lift ({moved:.1f} mm{', STOPPED: ' + why if why else ''}): the tracker gives no pose "
+                  f"({e})", flush=True)
+            print(f"{'LIFTED' if not why else 'LIFT STOPPED'}: tilt unknown", flush=True)
+            return 0
         above = float(info["p_B"][2]) - a.table_z
         print(f"   after the lift ({moved:.1f} mm{', STOPPED: ' + why if why else ''}): ball centre {above:.1f} mm above "
-              f"the table, z_P {p[2] - z_ref:+.1f} mm in the pinch, tilt {tilt:.1f} deg; the block's bottom "
-              f"{above - h:+.1f} mm from the table if upright", flush=True)
+              f"the table, z_P {p[2] - (z_ref if z_ref is not None else p[2]):+.1f} mm in the pinch, tilt {tilt:.1f} deg; "
+              f"the block's bottom {above - h:+.1f} mm from the table if upright", flush=True)
         dB = None if pads is None else pads.change()
         print("   " + pads_text(dB) + "; " + tips_text(None if pads is None else pads.contacts(servo_joints(st.state()))),
               flush=True)
-        note({"cmd": "lift", "moved": moved, "stopped": why, "tilt": tilt, "above": above, "dz_pinch": float(p[2] - z_ref),
-              "pads_dB": dB})
+        note({"cmd": "lift", "moved": moved, "stopped": why, "tilt": tilt, "above": above, "blind": a.blind,
+              "dz_pinch": None if z_ref is None else float(p[2] - z_ref), "pads_dB": dB})
         print(f"{'LIFTED' if not why else 'LIFT STOPPED'}: tilt {tilt:.1f} deg", flush=True)
     finally:
         if stream is not None:
@@ -1124,6 +1155,11 @@ def main():
     p.add_argument("--close-mm", type=float, default=5.0, help="the object's motion that stops the close")
     p.add_argument("--squeeze", type=float, default=8.0)
     p.add_argument("--squeeze-s", type=float, default=1.5)
+    p.add_argument("--blind", action="store_true",
+                   help="one measurement before the lateral move (the hand high and unturned), then the turn, the "
+                        "descent and the close watched only by the HEX-E and the finger joints (owner, 2026-11-20 17:5x: "
+                        "\"fly blind here and go for the pinch\"; behind the turned hand the lying block's 1-2 tags gave "
+                        "poses that jumped 5-13 mm and flipped 110 deg, and every watched descent stopped)")
     p = sub.add_parser("lift")
     common(p)
     p.add_argument("--plan", required=True)
@@ -1132,6 +1168,8 @@ def main():
     p.add_argument("--max-lift", type=float, default=90.0)
     p.add_argument("--v-lift", type=float, default=0.003)
     p.add_argument("--slip-mm", type=float, default=5.0)
+    p.add_argument("--blind", action="store_true", help="no slide watch; with --lift-mm, lift even when the tracker "
+                                                        "gives no pose")
     p = sub.add_parser("slip")
     common(p)
     p.add_argument("--plan", required=True)
