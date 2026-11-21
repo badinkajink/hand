@@ -218,6 +218,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 16:2x, hand-4a: the residual's force channel (--res-force 2.5) on HOM at 1.0 N: 0.832 / 0.848 at seeds 0-2 / 10-12 (1
   drop each) against 0.829 / 0.832 without; on HOM at 2.5 N it runs (0.850 / 0.841 over its first 9 and 7 runs, against
   0.776 / 0.768 without).
+- 17:43, lab: held, needs a person (entry 90 of 170). A4feas_f76_x105y160g0_t2 toppled the sphere; the automated
+  pick-up failed four times (17:24-17:41): its pose of the lying sphere jumped 11-13 mm and once flipped 110 deg behind
+  the hand turned 62 deg, so every grasp descent stopped. The series had stood up two topples by itself (16:44, 17:00) and
+  the lab session a third (17:24-17:30). Relayed to the owner by push with a camera frame at 17:4x; the cables still lie
+  across the table. wait_upright.py restarts at entry 91 (A4feas_f17_x95y140g0) once the sphere stands still.
 
 ## Waiting on owner
 
