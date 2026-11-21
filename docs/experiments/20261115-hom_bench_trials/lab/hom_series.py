@@ -235,7 +235,7 @@ def pickup(a, plan, label):
         best = plan_pinch(a, PICKUP_BASE)
         if best is None:
             return "no pick-up plan at (105, 70)"
-        for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "4"], 400),
+        for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "10"], 400),
                                         ("lift", "LIFTED", [], 400), ("slip", "SLIP DONE", [], 500)):
             rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, *extra, "--go", "--video-dir", a.video_dir],
                           tmo)
