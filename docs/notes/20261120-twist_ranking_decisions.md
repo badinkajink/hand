@@ -279,6 +279,14 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   joint flicker): the smoothing changes the predicted score by -0.013 on average at friction 1.0 (-0.068 to +0.001) and
   -0.014 at 0.4 (-0.120 to +0.049). The scorer now keeps smoothed trials apart (record header) and lists
   smoothed_vs_plain; `20261120-command_reversals.py` gives each trial's reversal share. Sent to the lab session.
+- 20:4x, lab (c0abdb6a2): the series is ready on corvus. series_entries_20261121_smoothing.txt and
+  series_20261121_smoothing_order.json hold 10 plans x 4 blocks (sm, pl, pl, sm), shuffled within each block (seed
+  20261121), on ports 47201-47210. hom_series now restarts a server whose plan or flags differ from the entry
+  (--serve-mode sm='--budget-joint-tau 0.1 --target-tau 0.04'), checks the flags in the server's command line, and stops
+  when the wrist yaw is more than 3 deg from its first trial's (-36.5 deg now). Rows carry serve_flags and wrist_yaw_deg.
+  The camera stays 960x540@60. hand-4a, 20:44: hom_serve_budget.sh on the workstation passes the arguments after the
+  seventh to hom_server ("${@:8}"), at the lab's request. Before any trial: the middle finger needs a physical check (the
+  owner saw it off zero while the station reads it within 0.3 deg). The lights went off about 19:5x.
 
 ## Waiting on owner
 
