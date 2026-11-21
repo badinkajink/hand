@@ -1,7 +1,7 @@
 {
  "what": "The twist layout ranking's trials on the hand against the simulation's predictions (hand-4a, 2026-11-19/20; owner, 2026-11-19 17:2x: deploy many layouts \"and seeing how well our real results match with sim\").",
  "script": "docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py",
- "generated": "2026-11-20 20:36",
+ "generated": "2026-11-20 20:56",
  "since": "20261119-210000",
  "trials_scored": 134,
  "skipped": [
