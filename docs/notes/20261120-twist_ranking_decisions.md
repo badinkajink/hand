@@ -244,6 +244,18 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 19:49, lab (114b50e74): the trials' wrist angle moved twice today, -69 deg until 13:35, -22 deg from 14:01 and -37 deg
   from 15:02, because the unturns used an overwritten turn_deg; the pick-up now measures the turn against the newest trial
   record. The trials' scoring should carry the wrist angle (camera views and cables differ with it).
+- 20:0x, owner: "we finished for the day. time to wrap up, fill outa anlysis, queue up simulation studies?"
+- 20:1x, hand-4a: friction sweep of the 48 plans tried (all but the CEM plans; both models, seeds 0-2;
+  `data/20261120-friction_predictions.json`): against the hand, friction 0.4 gives rho 0.72, Pearson's r 0.72, mean absolute
+  error 0.105 and the wide layouts 0.008 below their predictions; 0.5: 0.63 / 0.71 / 0.109; 0.6: 0.67 / 0.72 / 0.114; 0.8:
+  0.55 / 0.63 / 0.128; 1.0: 0.48 / 0.57 / 0.136. The UR5 rig measured 0.37-0.44 for TPU on bare PLA; the scenes' 1.0 stands
+  for grip tape, which the sphere does not have. The sim-to-real page carries it (Table 2, the lede) and two films (the same
+  layouts at 2.5 N and 1.0 N).
+- 20:1x, hand-4a, queued overnight: lane_mu04 (GPU, `logs/20261120-controller_rematch/lane_mu04.sh`): HOM's force grid at
+  friction 0.4 (0.75-2.5 N x spin weight 0.25 and 1.0) and two arms at 0.6, about 30 min; lane_f1mu04 (CPU, 12 workers,
+  `logs/20261119-twist_layout_ranking/lane_f1mu04.sh`): the 404 layouts' feasible grasp search at 1.0 N and friction 0.4,
+  about 2 h 10 min, summary `data/20261120-feasible_ranking_f1mu0.4.json`. The publish job of both pages re-armed on the
+  personal login.
 
 ## Waiting on owner
 
@@ -251,6 +263,7 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 
 - The cables (lab, 15:01): someone routes the blue and red cable bundle away from the table's centre, so a dropped
   sphere lies on bare table, where the pinch pick-up works.
+- The smoothed budget on the bench, for a later series (off for the day's data, owner 16:1x).
 
 
 - A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,

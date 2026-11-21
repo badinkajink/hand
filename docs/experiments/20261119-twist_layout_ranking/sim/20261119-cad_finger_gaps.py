@@ -90,8 +90,8 @@ def simulated(entry, model):
     if su is not None:
         RP.toy_setup = lambda *a, **k: su
     try:
-        job = {**SR.base_job(int(entry["call"]), tuple(entry["xy"]), model, contact=model), "k": int(entry["k"]),
-               "seed": 0}
+        job = {**SR.base_job(int(entry["call"]), tuple(entry["xy"]), model, contact=model,
+                             mu=float(entry.get("mu", 1.0))), "k": int(entry["k"]), "seed": 0}
         r = SR._run(job)
     finally:
         HB.simulate, HB.HomBench, RP.toy_setup = sim0, orig, setup0

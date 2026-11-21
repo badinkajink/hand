@@ -1,4 +1,4 @@
-Status: active
+Status: done (20:2x: the page is final for the day; publishing is docs/handoff/20261120-publish_sim_to_real_pages.md)
 Task: 2026-11-20, owner 11:5x: "we have ~9 hours left of light time ... you deliver me a wonderful chart showing whatever
 sim2real landscape/ranking correspondence we've determined"; owner 11:5x: "this jitter just seems highly problematic.
 smooth control enables more predictable control, im highly confident about this". The owner is writing the paper and

@@ -52,6 +52,7 @@ VARIANTS = {"budget": {"budget": 0.56}, "none": {"budget": None},
             "budget_noise_jt8": {"budget": 0.56, "noise": True, "quant": True, "budget_joint_tau": 0.1,
                                  "target_tau": 0.08},
             "budget_j": {"budget": 0.56, "budget_joint_tau": 0.1},
+            **{f"mu{m:g}": {"budget": 0.56, "mu": m} for m in (0.4, 0.5, 0.6, 0.8, 1.0)},
             "budget_jt": {"budget": 0.56, "budget_joint_tau": 0.1, "target_tau": 0.04}}
 
 spec = importlib.util.spec_from_file_location("replay_metrics", HERE / "20261120-command_jitter_replay.py")
@@ -125,8 +126,8 @@ def run(item):
         HB.HomBench = Bench
     try:
         model, seed = item.get("model", "pads"), int(item.get("seed", 0))
-        job = {**SR.base_job(int(e["call"]), tuple(e["xy"]), model, contact=model), "k": int(e["k"]), "seed": seed,
-               "budget": v["budget"]}
+        job = {**SR.base_job(int(e["call"]), tuple(e["xy"]), model, contact=model, mu=v.get("mu", 1.0)),
+               "k": int(e["k"]), "seed": seed, "budget": v["budget"]}
         r = SR._run(job)
     finally:
         HB.simulate, HB.bench_sample, HB.HomBench = sim0, bs0, Bench0
@@ -148,6 +149,9 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--all", action="store_true", help="every default and stage E plan of the plan list")
+    ap.add_argument("--sweep", choices=("smoothed", "friction"), default="smoothed",
+                    help="with --predict: the rows and output files (friction: rows_friction.jsonl and "
+                         "data/20261120-friction_predictions.json)")
     ap.add_argument("--predict", action="store_true",
                     help="both models at seeds 0-2 per plan and variant; rows to PRED_ROWS (resumable), the means to "
                          "the twist ranking's data/20261120-smoothed_predictions.json")
@@ -161,6 +165,9 @@ def main():
     if a.limit:
         es = es[:a.limit]
     if a.predict:
+        global PRED_ROWS, PRED_OUT
+        if a.sweep == "friction":
+            PRED_ROWS, PRED_OUT = FRICTION_ROWS, FRICTION_OUT
         return predict(es, a)
     items = [{"entry": e, "variant": v} for e in es for v in a.variants]
     print(f"{len(es)} plans x {len(a.variants)} variants", flush=True)
@@ -189,6 +196,9 @@ def main():
 
 PRED_ROWS = ROOT / "logs/20261120-controller_rematch/rows_smoothed_pred.jsonl"
 PRED_OUT = RANK / "data/20261120-smoothed_predictions.json"
+# the friction sweep against the day's trials (hand-4a, 2026-11-20 20:0x): its own rows and output (--sweep friction)
+FRICTION_ROWS = ROOT / "logs/20261120-controller_rematch/rows_friction.jsonl"
+FRICTION_OUT = RANK / "data/20261120-friction_predictions.json"
 
 
 def predict(es, a):
