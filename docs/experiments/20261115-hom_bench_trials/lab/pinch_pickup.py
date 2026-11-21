@@ -315,6 +315,40 @@ def wrap180(deg):
     return (deg + 180.0) % 360.0 - 180.0
 
 
+def tcp_yaw(rv):
+    """The yaw (deg) in B of the TCP's x axis, for a UR rotation vector (rad)."""
+    R = quat_to_mat(HS.quat_from_rotvec(np.asarray(rv, float)))
+    return math.degrees(math.atan2(R[1, 0], R[0, 0]))
+
+
+def trial_yaw():
+    """(yaw deg, record name): the TCP's x-axis yaw in B at the start of the newest trial record (*_twist_corvus.jsonl),
+    the wrist's angle the trials run at; (None, None) without one. On 2026-11-20 it moved twice (-69 deg until 13:35,
+    -22 from 14:01, -37 from 15:02): pick-ups that stopped mid-turn were turned back by their plan's turn_deg, which a
+    new plan overwrote, not by the wrist's."""
+    for rec in sorted(STREAMS.glob("*_twist_corvus.jsonl"), reverse=True):
+        try:
+            with open(rec) as f:
+                for line in f:
+                    if '"seq"' in line:
+                        arm = json.loads(line).get("arm")
+                        if arm and len(arm) == 6:
+                            return tcp_yaw(arm[3:]), rec.name
+                        break
+        except (OSError, ValueError):
+            continue
+    return None, None
+
+
+def wrist_turn(arm):
+    """(deg, record name): the wrist's turn about the vertical from the trials' angle (trial_yaw), measured on the arm,
+    in the sense of the plans' turn_deg (a turn psi about z_P); (None, None) without a trial record."""
+    ref, rec = trial_yaw()
+    if ref is None:
+        return None, None
+    return wrap180(tcp_yaw(arm.r.getActualTCPPose()[3:]) - ref), rec
+
+
 def turn_across(stem_P):
     """(psi deg, stem in the turned P): the least turn of the hand about the vertical (joint 6) that puts the object's
     stem across x_P, at azimuth +-90 deg in P. hom_setup.correction(p, c, psi) turns the object by -psi in P, so a
@@ -600,9 +634,12 @@ def cmd_plan(a):
     try:
         p, q, info, stem_P, tilt = measure_object(meas, a)
         T_BP = arm.T_BP()
+        turned, rec = wrist_turn(arm)
     finally:
         meas.stop()
         arm.close()
+    print("   the trials' wrist angle is unknown (no trial record)" if turned is None else
+          f"   the wrist is turned {turned:+.1f} deg from the trials' angle ({rec})", flush=True)
     above = float(info["p_B"][2]) - a.table_z
     sh = stem_P[:2] / np.linalg.norm(stem_P[:2])
     off = math.degrees(math.asin(min(1.0, abs(float(sh[0])))))
@@ -617,6 +654,9 @@ def cmd_plan(a):
         psi, stem_used = turn_across(stem_P)
         if abs(psi) > a.max_turn:
             raise SystemExit(f"the turn that puts the stem across x_P is {psi:+.1f} deg (limit {a.max_turn:g})")
+        if turned is not None and abs(turned + psi) > a.max_turn:
+            raise SystemExit(f"the wrist is turned {turned:+.1f} deg already; with this plan's {psi:+.1f} deg it would "
+                             f"stand {turned + psi:+.1f} deg from the trials' angle (limit {a.max_turn:g}): unturn first")
         print(f"   the wrist (joint 6) turns {psi:+.1f} deg about the ball first: the stem then lies at "
               f"{math.degrees(math.atan2(stem_used[1], stem_used[0])):+.1f} deg in P", flush=True)
     elif off > a.max_axis_deg:
@@ -1042,18 +1082,25 @@ def cmd_setdown(a):
 
 def cmd_unturn(a):
     """After the putdown and letgo: the hand up until its straight fingers clear the object's top by --clear-mm, then
-    turned back about its own vertical axis by the plan's turn (owner: "reversal is fine")."""
+    turned back about its own vertical axis to the trials' angle (owner: "reversal is fine"). The turn is the wrist's,
+    measured against the newest trial record (wrist_turn), not the plan's turn_deg: a plan made after a grasp that stopped
+    mid-turn holds only its own part (19:29: 12.3 of 84.8 deg). Without a trial record, the plan's turn_deg."""
     plan = HS.load_plan(a.plan)
     pp, _ = load_sol(plan)
-    turn = float(pp.get("turn_deg", 0.0))
+    arm = HS.Arm(a.ur_ft, a.blank_s)
+    turned, rec = wrist_turn(arm)
+    turn = turned if turned is not None else float(pp.get("turn_deg", 0.0))
+    print(f"the wrist is turned {turn:+.1f} deg from the trials' angle ({rec or 'no trial record: the plan'}); the "
+          f"plan's turn {float(pp.get('turn_deg', 0.0)):+.1f} deg", flush=True)
     if abs(turn) < 0.5:
-        print("the plan made no turn: nothing to undo")
+        print("the wrist has no turn to undo")
+        arm.close()
         return 0
     st = HS.Station(a.station, a.token_file)
     j = HS.sim_joints(st.state())
     if j is None or max(abs(j[f][k]) for f in j for k in j[f]) > 5.0:
+        arm.close()
         raise SystemExit("the fingers are not straight: run hom_setup.py letgo first")
-    arm = HS.Arm(a.ur_ft, a.blank_s)
     meas = HS.Measure(a, video=HS.recorder(a, "pinch_unturn"))
     try:
         p, q, info, stem_P, tilt = measure_object(meas, a)
