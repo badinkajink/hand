@@ -19,6 +19,15 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   `unturn` turned the wrist back.
 - **The series** restarted from entry 90 (A4feas_f17_x95y140g0_t1) through `wait_upright.py` at about 17:58. Its own
   pick-up still runs the watched grasp.
+- **19:22, the release lifted the sphere.** In b4cem_x115y160_knots_t2 (118 deg, rise 17.2 mm), the thumb pad started
+  on the ball, and the lift after straightening moved the sphere 6.6 mm (limit 6). It toppled, and the series stopped
+  before writing the row (written by hand). The series' pick-up pushed the sphere to 14 mm from the table's centre. Its
+  watched grasp then lost the sphere 72.5 deg into an 84.9 deg turn. The blind pinch (19:30-19:34) took it up: 1.75 N
+  at most, a slip to 10.8 deg, and 0.7 deg after the putdown. The series restarted from field 136 at 19:36.
+- **The wrist's angle.** The trials' TCP yaw in B moved twice on 11-20: -69 deg until 13:35, -22 from 14:01, -37 from
+  15:02. Pick-ups turned the wrist back by their plan's turn_deg, which a later plan had overwritten. Since 114b50e74,
+  `pinch_pickup.py` measures the wrist's turn against the newest trial record: `plan` limits the total to 90 deg, and
+  `unturn` undoes all of it. The series' pick-up unturns after a grasp that does not finish.
 
 ## State on 2026-11-20 10:5x: the morning's two stops, the owner's order
 
