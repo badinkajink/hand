@@ -1,6 +1,6 @@
 {
  "what": "per arm of the controller rematch (controller_rematch.py summary)",
- "written": "2026-11-20 16:21",
+ "written": "2026-11-20 17:44",
  "arms": {
   "anneal _ft1_d2_pdt2_n16_r10h15k3i2": {
    "n": 270,
@@ -1425,19 +1425,19 @@
    "replan_s_mean": 0.9224
   },
   "res_anneal _rf2.5_pdt2_n32_r5h15k3i2": {
-   "n": 16,
-   "s012": 0.8502,
-   "s012_n": 9,
-   "s012_dropped": 0,
-   "s101112": 0.8406,
-   "s101112_n": 7,
-   "s101112_dropped": 0,
-   "reversals_ps": 1.8358,
-   "cmd_rate_dps": 14.0034,
+   "n": 270,
+   "s012": 0.7813,
+   "s012_n": 135,
+   "s012_dropped": 3,
+   "s101112": 0.7797,
+   "s101112_n": 135,
+   "s101112_dropped": 1,
+   "reversals_ps": 2.2876,
+   "cmd_rate_dps": 16.5869,
    "sat_frac": 0.0,
-   "link_mean_N": 1.3026,
-   "pad_share": 0.6639,
-   "replan_s_mean": 0.9878
+   "link_mean_N": 1.4623,
+   "pad_share": 0.5443,
+   "replan_s_mean": 0.9377
   },
   "uhas ": {
    "n": 270,
@@ -1452,6 +1452,20 @@
    "sat_frac": 0.0,
    "link_mean_N": 1.5789,
    "pad_share": 0.5713
+  },
+  "uhas _limits": {
+   "n": 270,
+   "s012": 0.7091,
+   "s012_n": 135,
+   "s012_dropped": 17,
+   "s101112": 0.7237,
+   "s101112_n": 135,
+   "s101112_dropped": 14,
+   "reversals_ps": 29.0561,
+   "cmd_rate_dps": 327.8439,
+   "sat_frac": 0.0,
+   "link_mean_N": 1.5134,
+   "pad_share": 0.6323
   }
  }
 }

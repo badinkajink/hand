@@ -223,6 +223,12 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   the hand turned 62 deg, so every grasp descent stopped. The series had stood up two topples by itself (16:44, 17:00) and
   the lab session a third (17:24-17:30). Relayed to the owner by push with a camera frame at 17:4x; the cables still lie
   across the table. wait_upright.py restarts at entry 91 (A4feas_f17_x95y140g0) once the sphere stands still.
+- 17:4x, hand-4a: the GPU queue finished at 16:40. The force channel over HOM at 2.5 N: 0.781 / 0.780 (3 and 1 drops)
+  against 0.776 / 0.768 without; the 0.841 told the owner at 16:2x came from its first 7 runs. UHAS with limit and rate
+  penalties: 0.709 / 0.724, 17 and 14 drops, 29.1 reversals per joint per second (published settings 0.659 / 0.632 and
+  24.1). The hand's joint flicker added to the simulation does not reproduce the wide layouts' losses: (115, 160) g8 0.574
+  -> 0.541, (110, 155) g3 0.571 -> 0.558, (85, 170) g2 0.275 -> 0.248, (85, 160) g1 0.334 -> 0.320, all held (seed 0,
+  pads). Their cause on the hand is open.
 
 ## Waiting on owner
 
