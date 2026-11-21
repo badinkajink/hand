@@ -4,6 +4,22 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-20 17:5x: the blind pick-up
+
+- **17:30-17:41.** A4feas_f76_x105y160g0_t2 stopped on the drift guard (30.3 mm), and the sphere toppled against the
+  cable bundle in front of the arm's base. The series' pick-up refused the 62.4 deg wrist turn (the limit was 60; it is
+  90 since 7969e33cb). The pick-ups run by hand at 17:38-17:41 stopped in the descent on the tracker. Behind the turned
+  hand the lying block showed 1-2 tags, and its pose jumped 11.1, 13.3 and 5.3 mm, the last with a 110 deg flip. The
+  HEX-E read at most 1.4 N.
+- **17:51-17:55: the user's go, "lets just fly blind here and go for the pinch".** `pinch_pickup.py grasp --blind`
+  measures the sphere once, with the hand high and unturned. The turn, the descent and the close then run without the
+  tracker, watched by the HEX-E (3 N) and the finger joints (4 deg). The grasp went 124 mm down with at most 1.6 N; the
+  tracker gave no pose at the grasp's height. `lift --blind --lift-mm 65.2` (standing height 73.9 + 12 - 20.7 mm lying)
+  lifted it, the slip took it from 59 to 10.7 deg, and the putdown left it 0.7 deg from vertical at the table's centre.
+  `unturn` turned the wrist back.
+- **The series** restarted from entry 90 (A4feas_f17_x95y140g0_t1) through `wait_upright.py` at about 17:58. Its own
+  pick-up still runs the watched grasp.
+
 ## State on 2026-11-20 10:5x: the morning's two stops, the owner's order
 
 - **The login.** The Claude login of the session watching the bench reached its fixed time limit before 08:04 ("this
