@@ -1,4 +1,4 @@
-Status: active
+Status: done
 Task (owner, 2026-11-20 11:5x): "deliver me a wonderful chart showing whatever sim2real landscape/ranking correspondence
 we've determined". After the light goes (about 21:00), refresh the sim-to-real page from the day's last trials, publish it
 and the controller rematch page from the personal login, and send the owner one notification with both local paths and links.
@@ -24,7 +24,7 @@ Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap s
 - [x] 1. Run `bash logs/20261120-controller_rematch/refresh_s2r.sh` from the repository, read the last lines of logs/2… Done 11-20 20:58: refresh at 20:56 clean (0.70 MB, prose within targets); no trials after 20:03 (134 on 56 plans); committed 2dc618d8f and pushed
 - [x] 2. Publish docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html as a new claude.a… Done 11-20 21:00: https://claude.ai/artifact/9kwvgF1pN6cvPGqBrcQQMf with both films (served as video/mp4, byte-identical, 420 frames decode; no browser here to watch playback); artifact_url.txt, INDEX row; 3b9dc9363 pushed
 - [x] 3. Publish docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html … Done 11-20 21:01: https://claude.ai/artifact/M15KPLJ9VkqdheGMVye486 (the 13:58 build, published as is); artifact_url.txt, INDEX row, two overviews; eb7823176 pushed
-- [ ] 4. Send the owner one PushNotification naming both local paths and both links (under 200 characters each, or two notifications at most), and add a line with both URLs to docs/notes/20261120-twist_ranking_decisions.md under its last entry; commit; push.
+- [x] 4. Send the owner one PushNotification naming both local paths and both links (under 200 characters each, or two… Done 11-20 21:02: two terminal notifications (no phone push: Remote Control off); decision-log line with both URLs and a Waiting-on-owner item on the sim-to-real lede (8 of 12 wide layouts lost the sphere, not 12) and Figure 4's labels; 5cf913651 pushed
 Standing directions (for every step):
 - Publish the sim-to-real page with its two films: pass the output of 'python3 scripts/docs/page_films.py files docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html' as the publish's files, and check both films play in the artifact.
 <!-- /ap:steps -->
