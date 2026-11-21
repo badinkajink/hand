@@ -171,7 +171,7 @@ def plan_pinch(a, base):
     8 mm off the table on both fingers and the joints 4 deg from their limits; the file, or None."""
     for lat in ("5", "4", "6", "3"):
         rc, out = run([PY, "pinch_pickup.py", "plan", "--map", a.map, "--gap", "8", "--lat-deg", lat, "--base-plan",
-                       str(base), "--turn", "--max-turn", "60"], 240)
+                       str(base), "--turn", "--max-turn", "90"], 240)                # the owner's limit for joint 6: 90 deg
         m_margin = re.search(r"joint margin ([\d.]+) deg", out)
         tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)",
                                                out.split("at touch:")[-1].split("\n")[0])] if "at touch:" in out else []
@@ -207,6 +207,13 @@ def pickup(a, plan, label):
     os.environ.pop("HOM_CAM_EXPOSURE", None)
     try:
         lift_clear(a, plan)
+        # a sphere still standing after a release that stopped short needs no pick-up (2026-11-20 16:57: the release's
+        # levelling about the ball stopped on 4.8 mm): lifted clear, the series goes on
+        rc, out = run([PY, "push_sphere.py", "--plan", plan, *pm, "--tip-z", "14"], 120)
+        m = re.search(r"tilt ([\d.]+) deg;", out)
+        if m and float(m.group(1)) < 15.0:
+            print(f"   {label}: the sphere stands ({m.group(1)} deg): no pick-up needed", flush=True)
+            return None
         # always at (105, 70) with its pinch plan of 11-19, after a push toward the table's centre when the sphere lies
         # more than 40 mm from it (14:4x: a pinch that planned at the trial's own layout, (110, 155), put a fingertip on
         # a ball lying among the cables, where the recovery by hand at (105, 70) with a push had worked twice)
@@ -228,7 +235,7 @@ def pickup(a, plan, label):
         best = plan_pinch(a, PICKUP_BASE)
         if best is None:
             return "no pick-up plan at (105, 70)"
-        for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "4"], 400),
+        for step, token, extra, tmo in (("grasp", "GRASPED", ["--max-lat", "130", "--watch-mm", "10"], 400),
                                         ("lift", "LIFTED", [], 400), ("slip", "SLIP DONE", [], 500)):
             rc, out = run([PY, "pinch_pickup.py", step, "--plan", best, *pm, *extra, "--go", "--video-dir", a.video_dir],
                           tmo)
@@ -471,6 +478,22 @@ def main():
             if why is None:
                 continue
             sys.exit(f"STOP: {label} dropped the object; the fingers straight and the hand lifted; the pick-up: {why}")
+        if "LET GO" not in out and "the levelling about the ball stopped" in out:
+            # the object released and seated, the hand partly levelled about it (2026-11-20 16:38: the sphere moved 4.2 mm
+            # in the second turn; it stood at 0.4 deg, the hand at 3 deg): the rest of letgo without that levelling
+            print(f"   {label}: the levelling about the ball stopped; letgo without it", flush=True)
+            rc, out = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--ball-level-deg", "0",
+                           "--max-level", "0", "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
+            # the sphere may have toppled in the stopped turn (17:24: it lay at 86 deg, and letgo refused it untilted)
+            st_ = re.findall(r"settled: the block's axis ([\d.]+) deg from vertical", out)
+            if "LET GO" not in out or (st_ and float(st_[-1]) > 15.0):
+                row["putdown"] = "the levelling about the ball stopped; the sphere toppled or the release stopped short"
+                with open(a.out, "a") as f:
+                    f.write(json.dumps(row) + "\n")
+                why = pickup(a, plan, label) if a.pickup and a.object == "sphere" else "no --pickup"
+                if why is None:
+                    continue
+                sys.exit(f"STOP: {label} toppled at the release and the pick-up failed: {why}")
         if "LET GO" not in out and "the levelling stopped" in out:
             # 2026-11-20 09:21: the levelling turn stopped on the object moving 2.18 mm against the hand (limit 2), and
             # the series stopped with the sphere held 49 mm above the table until 10:38 (one servo at 52 C, three
@@ -488,7 +511,8 @@ def main():
                 # the object held tilted past --seat-deg: let go of it rather than hold it for hours under the servos'
                 # load, though it may topple (13:41, 2026-11-16), and stop: a person must stand it up again
                 rc2, out2 = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--max-level", "0",
-                                 "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
+                                 "--lift-still-mm", "6", "--ball-level-still", "6", "--go", "--video-dir", a.video_dir],
+                                300)
                 # released at 19.0 deg the sphere settled at 5.2 deg (13:50); at 21.6 deg it toppled (13:41): go on
                 # when it stands within --upright-deg after the release
                 # the block's tilt from vertical after letgo (not its tilt in P, which a tilted hand inflates)
