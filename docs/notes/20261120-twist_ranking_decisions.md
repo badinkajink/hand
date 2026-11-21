@@ -218,6 +218,17 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 - 16:2x, hand-4a: the residual's force channel (--res-force 2.5) on HOM at 1.0 N: 0.832 / 0.848 at seeds 0-2 / 10-12 (1
   drop each) against 0.829 / 0.832 without; on HOM at 2.5 N it runs (0.850 / 0.841 over its first 9 and 7 runs, against
   0.776 / 0.768 without).
+- 17:43, lab: held, needs a person (entry 90 of 170). A4feas_f76_x105y160g0_t2 toppled the sphere; the automated
+  pick-up failed four times (17:24-17:41): its pose of the lying sphere jumped 11-13 mm and once flipped 110 deg behind
+  the hand turned 62 deg, so every grasp descent stopped. The series had stood up two topples by itself (16:44, 17:00) and
+  the lab session a third (17:24-17:30). Relayed to the owner by push with a camera frame at 17:4x; the cables still lie
+  across the table. wait_upright.py restarts at entry 91 (A4feas_f17_x95y140g0) once the sphere stands still.
+- 17:4x, hand-4a: the GPU queue finished at 16:40. The force channel over HOM at 2.5 N: 0.781 / 0.780 (3 and 1 drops)
+  against 0.776 / 0.768 without; the 0.841 told the owner at 16:2x came from its first 7 runs. UHAS with limit and rate
+  penalties: 0.709 / 0.724, 17 and 14 drops, 29.1 reversals per joint per second (published settings 0.659 / 0.632 and
+  24.1). The hand's joint flicker added to the simulation does not reproduce the wide layouts' losses: (115, 160) g8 0.574
+  -> 0.541, (110, 155) g3 0.571 -> 0.558, (85, 170) g2 0.275 -> 0.248, (85, 160) g1 0.334 -> 0.320, all held (seed 0,
+  pads). Their cause on the hand is open.
 
 ## Waiting on owner
 
