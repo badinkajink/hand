@@ -6,15 +6,19 @@ Read first: docs/notes/20261120-twist_ranking_decisions.md (the day's decisions,
 docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html (builder scripts/hom/twist_sim_to_real_page.py);
 docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html (builder scripts/hom/controller_rematch_page.py);
 CLAUDE.md "Result pages"; ~/.claude/CLAUDE.md "Artifacts are never the only copy".
-State (2026-11-20 20:2x, hand-4a on colorado): both pages final for the day and pushed (d4ae823be). The sim-to-real
-page has 134 trials on 56 plans (rho 0.58), the friction fit (0.4: r 0.72, mean absolute error 0.105), two films in its
-media/ (films.json) and the bench events; the bench ended at 19:49. Neither page has an artifact yet. The refresh script
-logs/20261120-controller_rematch/refresh_s2r.sh pulls corvus's records and rows, scores, counts the bench events and
-rebuilds the sim-to-real page (log refresh_s2r.log next to it). Overnight lanes (lane_mu04 on the GPU, lane_f1mu04 on the
-CPU) are not this job's.
+State (2026-11-20 20:58, autopilot on personal): step 1 done. The refresh at 20:56 found no trials after 20:03; only
+Table 5's "up to" time changed (2dc618d8f, pushed). Next: publish the sim-to-real page with its films (step 2).
+State (2026-11-20 20:4x, hand-4a on colorado): both pages final for the day and pushed (9edb54880). The sim-to-real
+page was corrected at 20:4x after the owner's note that the sphere is covered in grip tape (the page had said it was
+bare): friction 0.4 is now an effective fit, the plants section gives the fit per contact model and for narrow and wide
+layouts, and the jitter section has Table 3 (commands by force). It has 134 trials on 56 plans (rho 0.58), two films in
+its media/ (films.json) and the bench events; the bench ended at 19:49. Neither page has an artifact yet. The refresh
+script logs/20261120-controller_rematch/refresh_s2r.sh pulls corvus's records and rows, scores, counts the bench events
+and rebuilds the sim-to-real page (log refresh_s2r.log next to it). Overnight lanes (lane_mu04 on the GPU, lane_f1mu04
+on the CPU) are not this job's.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
-- [ ] 1. Run `bash logs/20261120-controller_rematch/refresh_s2r.sh` from the repository, read the last lines of logs/20261120-controller_rematch/refresh_s2r.log (no Traceback; a page size and a prose line), then commit by path (never `git commit -a`): the page folder, docs/experiments/20261119-twist_layout_ranking/data/20261120-trials_vs_prediction.json, docs/experiments/20261115-hom_bench_trials/analysis/20261120-recovery_metrics.json, the new runs_corvus/*_corvus.jsonl and series rows, docs/experiments/INDEX.md, docs/changelog.html, docs/index.html, docs/pages.html, docs/pages.json and docs/overviews/morphology_design.html; push (pull --no-rebase and push again when refused).
+- [x] 1. Run `bash logs/20261120-controller_rematch/refresh_s2r.sh` from the repository, read the last lines of logs/2… Done 11-20 20:58: refresh at 20:56 clean (0.70 MB, prose within targets); no trials after 20:03 (134 on 56 plans); committed 2dc618d8f and pushed
 - [ ] 2. Publish docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html as a new claude.ai artifact (icon chart), read the whole file first; write its URL to docs/experiments/20261120-twist_sim_to_real/artifact_url.txt; run `python3 scripts/docs/docs_index.py`; commit and push as in step 1.
 - [ ] 3. Publish docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html the same way (artifact_url.txt in its folder); docs_index.py; commit; push.
 - [ ] 4. Send the owner one PushNotification naming both local paths and both links (under 200 characters each, or two notifications at most), and add a line with both URLs to docs/notes/20261120-twist_ranking_decisions.md under its last entry; commit; push.
