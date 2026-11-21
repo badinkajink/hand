@@ -297,6 +297,13 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   The 11-16 pinch hang is the one hand test where the contact model decided the prediction: the hand held the pinched
   sphere at 43-41 deg for about 60 s, point contact let it swing free, the pads held 41/40/36 deg at 1/3/10 s only with
   impratio 100 and noslip (dropped at 3.6 s with the twist's settings). On the twist the two models predict alike.
+- 21:0x, autopilot on the personal login: both pages published. The sim-to-real page is
+  https://claude.ai/artifact/9kwvgF1pN6cvPGqBrcQQMf
+  (`docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html`), with its two films; its refresh
+  at 20:56 found no trials after 20:03. The controller rematch page is https://claude.ai/artifact/M15KPLJ9VkqdheGMVye486
+  (`docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html`), the build of
+  13:58; its tables end with the runs reported at 14:0x. Both links went to the owner's terminal at 21:0x; no phone push
+  was sent, as Remote Control was off.
 
 ## Waiting on owner
 
@@ -306,6 +313,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   sphere lies on bare table, where the pinch pick-up works.
 - The smoothing series (owner 20:2x: "let's get ready to trt smoothing"): proposed at 20:4x, ready to run once the
   middle finger is checked; the lab runs it with the owner's go on the day.
+- The sim-to-real page's wording (autopilot, 21:0x): its lede and its scatter section say the hand lost the sphere with
+  all 12 layouts at y of 150 mm or more. At the default force the hand lost it with 8 of the 12, at corvus's drift guard
+  in 11 of their 26 trials. With (95, 150) g11, (95, 165) g13, (100, 155) g10 and (105, 150) g7 it held the sphere in
+  every trial. The measured means labelled in Figure 4 overlap near the top of each panel. The text and the labels come
+  from `scripts/hom/twist_sim_to_real_page.py`; after a fix the page is rebuilt and republished to the same URL.
 
 
 - A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,

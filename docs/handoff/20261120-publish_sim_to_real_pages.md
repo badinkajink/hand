@@ -6,8 +6,11 @@ Read first: docs/notes/20261120-twist_ranking_decisions.md (the day's decisions,
 docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html (builder scripts/hom/twist_sim_to_real_page.py);
 docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html (builder scripts/hom/controller_rematch_page.py);
 CLAUDE.md "Result pages"; ~/.claude/CLAUDE.md "Artifacts are never the only copy".
-State (2026-11-20 20:58, autopilot on personal): step 1 done. The refresh at 20:56 found no trials after 20:03; only
-Table 5's "up to" time changed (2dc618d8f, pushed). Next: publish the sim-to-real page with its films (step 2).
+State (2026-11-20 21:0x, autopilot on personal): steps 1-4 done. Sim-to-real page
+https://claude.ai/artifact/9kwvgF1pN6cvPGqBrcQQMf with both films (served as video/mp4, byte-identical to media/, 420
+frames decode); controller rematch page https://claude.ai/artifact/M15KPLJ9VkqdheGMVye486 (the 13:58 build). Two
+terminal notifications; no phone push (Remote Control off). For the owner, in the decision log's "Waiting on owner": the
+sim-to-real lede says all 12 wide layouts lost the sphere (8 did), and Figure 4's labels overlap.
 State (2026-11-20 20:4x, hand-4a on colorado): both pages final for the day and pushed (9edb54880). The sim-to-real
 page was corrected at 20:4x after the owner's note that the sphere is covered in grip tape (the page had said it was
 bare): friction 0.4 is now an effective fit, the plants section gives the fit per contact model and for narrow and wide
@@ -19,8 +22,8 @@ on the CPU) are not this job's.
 <!-- ap:steps: rendered by ~/.claude/autopilot/ap from its ledger; change it with `ap step`, not by hand -->
 Steps, in order (the ledger; `ap step done <job> <id> "result"` marks one, `ap step add <job> "text"` adds one):
 - [x] 1. Run `bash logs/20261120-controller_rematch/refresh_s2r.sh` from the repository, read the last lines of logs/2… Done 11-20 20:58: refresh at 20:56 clean (0.70 MB, prose within targets); no trials after 20:03 (134 on 56 plans); committed 2dc618d8f and pushed
-- [ ] 2. Publish docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html as a new claude.ai artifact (icon chart), read the whole file first; write its URL to docs/experiments/20261120-twist_sim_to_real/artifact_url.txt; run `python3 scripts/docs/docs_index.py`; commit and push as in step 1.
-- [ ] 3. Publish docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html the same way (artifact_url.txt in its folder); docs_index.py; commit; push.
+- [x] 2. Publish docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html as a new claude.a… Done 11-20 21:00: https://claude.ai/artifact/9kwvgF1pN6cvPGqBrcQQMf with both films (served as video/mp4, byte-identical, 420 frames decode; no browser here to watch playback); artifact_url.txt, INDEX row; 3b9dc9363 pushed
+- [x] 3. Publish docs/experiments/20261120-controller_rematch/20261120-controllers_tuned_forces_calibrated_plant.html … Done 11-20 21:01: https://claude.ai/artifact/M15KPLJ9VkqdheGMVye486 (the 13:58 build, published as is); artifact_url.txt, INDEX row, two overviews; eb7823176 pushed
 - [ ] 4. Send the owner one PushNotification naming both local paths and both links (under 200 characters each, or two notifications at most), and add a line with both URLs to docs/notes/20261120-twist_ranking_decisions.md under its last entry; commit; push.
 Standing directions (for every step):
 - Publish the sim-to-real page with its two films: pass the output of 'python3 scripts/docs/page_films.py files docs/experiments/20261120-twist_sim_to_real/20261120-twist_ranking_sim_to_real.html' as the publish's files, and check both films play in the artifact.
