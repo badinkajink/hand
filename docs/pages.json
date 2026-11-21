@@ -19,7 +19,7 @@
   "topic": "design",
   "summary": "On the calibrated SR2 plant, HOM's commanded force changed its tracking most: 0.75 N in place of 2.5 N raised it from 0.387 to 0.678 over 45 layouts at fresh seeds; the GPU port of the plant matches the CPU plant (0.390 against 0.395).",
   "builder": "scripts/hom/controller_rematch_page.py",
-  "artifact": null,
+  "artifact": "https://claude.ai/artifact/M15KPLJ9VkqdheGMVye486",
   "status": "current",
   "mb": 0.2
  },
