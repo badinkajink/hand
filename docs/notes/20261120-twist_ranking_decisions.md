@@ -234,8 +234,20 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   descended 124 mm (at most 1.6 N on the HEX-E) and closed without the tracker; the lift went 65.2 mm, the slip took the
   tilt from 59 to 10.7 deg, and the putdown left the sphere 0.7 deg from vertical at the table's centre (17:54, 6fb83e9c8).
   The 17:43 request for a person is withdrawn; the series restarts from entry 90 (A4feas_f17_x95y140g0_t1) near 17:58.
+- 19:49, lab: held, needs a person to look at the hand (field 137 of 170, b4cem_x85y120_full_t1; the sphere upright,
+  the hand clear). 19:22: the release after b4cem_x115y160_knots_t2 lifted the sphere 6.6 mm and it toppled; the watched
+  pick-up lost it 72.5 deg into an 84.9 deg wrist turn and the blind pinch stood it up (0.7 deg). At 19:37, 19:42 and
+  19:47 the open pose pushed the centred, upright sphere 8-15 mm toward -x/+y in P and tipped it 6-13 deg; the same plans
+  had opened clear since 15:02. The middle finger's yaw stopped 3.2-3.8 deg short of the open pose at (115, 160): a
+  finger, likely the middle, or its gantry carriage may not be where the station thinks (the blind pinch's squeeze, or a
+  skipped step in the layout changes of 19:26-19:46). Relayed to the owner by push at 19:5x.
+- 19:49, lab (114b50e74): the trials' wrist angle moved twice today, -69 deg until 13:35, -22 deg from 14:01 and -37 deg
+  from 15:02, because the unturns used an overwritten turn_deg; the pick-up now measures the turn against the newest trial
+  record. The trials' scoring should carry the wrist angle (camera views and cables differ with it).
 
 ## Waiting on owner
+
+- The hand (since 19:49): someone checks the middle finger and its gantry carriage; opening the fingers pushes the sphere.
 
 - The cables (lab, 15:01): someone routes the blue and red cable bundle away from the table's centre, so a dropped
   sphere lies on bare table, where the pinch pick-up works.
