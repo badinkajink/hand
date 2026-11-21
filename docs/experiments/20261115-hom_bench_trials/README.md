@@ -28,6 +28,13 @@ sequence and the series are those of `docs/notes/20261105-object_seating_and_tra
   15:02. Pick-ups turned the wrist back by their plan's turn_deg, which a later plan had overwritten. Since 114b50e74,
   `pinch_pickup.py` measures the wrist's turn against the newest trial record: `plan` limits the total to 90 deg, and
   `unturn` undoes all of it. The series' pick-up unturns after a grasp that does not finish.
+- **19:37-19:49, held: the open pose pushes the sphere.** In three readies, two at (115, 160) CEM knots and one at
+  (85, 120) CEM full, the tracker had the sphere centred within 0.05 mm and upright (0.7 deg) after the descent. Opening
+  the fingers then pushed it 8-15 mm toward -x/+y in P and tipped it 6-13 deg. The same plans opened clean until 19:21.
+  The cameras did not move: the backgrounds of good and bad frames line up within 0.2 px. The sphere looks intact. The
+  push runs away from the middle finger, and its yaw stopped 3.2-3.8 deg short of the open pose at (115, 160). So the
+  middle finger, or its gantry carriage, may no longer be where the station thinks. `letgo` released the sphere each
+  time. The series waits at field 137 (b4cem_x85y120_full_t1; field 136 skipped) for a person to check the hand.
 
 ## State on 2026-11-20 10:5x: the morning's two stops, the owner's order
 
