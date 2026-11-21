@@ -160,9 +160,14 @@ def fig_scatter(T):
         ax.errorbar(px, x["measured_mean"], yerr=sd if x["n"] > 1 else None, fmt=mk, ms=9, color=c,
                     mfc="white" if lost else c, mec=c, mew=1.8, elinewidth=1.5, capsize=0, zorder=3)
         seen.add(b)
-        if (x.get("role") == "anchor" or x["xy"][1] >= Y_WIDE
-                or abs(x["measured_mean"] - px) >= 0.15):
+        if x.get("role") == "anchor" and not x.get("prm") and not x["role"].startswith("cem"):
             placed.append((px, x["measured_mean"], f"{xy_s(x['xy'])} g{x['k']}"))
+    worst6 = sorted([x for x in tested if x.get("role") != "anchor"],
+                    key=lambda x: -abs(x["measured_mean"] - x["predicted_both"]))[:6]
+    for x in worst6:
+        lab = f"{xy_s(x['xy'])}" + (" CEM" if x["role"].startswith("cem") else f" g{x['k']}"
+                                         + (" 1.0 N" if x.get("prm") else ""))
+        placed.append((x["predicted_both"], x["measured_mean"], lab))
     lo = 0.0
     hi = max(0.8, max([x["predicted_both"] for x in tested] + [max(x["scores"]) for x in tested if x["scores"]] + [0.0])
              + 0.05)
@@ -222,6 +227,36 @@ def fig_spacing(default):
     ax.set_xlabel("Index-to-middle spacing y (mm)")
     ax.set_ylabel("Measured less predicted score")
     ax.legend(handles=hs, loc="lower left", frameon=False, fontsize=11)
+    return png_uri(fg)
+
+
+def fig_gain(T):
+    """Per refined plan (lower force, CEM), its gain over its layout's default plan: predicted against measured."""
+    plt = plt_setup()
+    rv = [x for x in T["refined_vs_default"] if x["n"] > 0 and x["default_measured_mean"] is not None]
+    fg, ax = plt.subplots(figsize=(6.4, 5.6))
+    ax.axhline(0, color=GRID, lw=1.2, zorder=0)
+    ax.axvline(0, color=GRID, lw=1.2, zorder=0)
+    ax.plot([-0.1, 0.8], [-0.1, 0.8], color=GRID, lw=1.5, zorder=0)
+    ax.grid(color=GRID, lw=0.6, zorder=0)
+    for x in rv:
+        b = "b4cem" if x["role"].startswith("cem") else "b3E"
+        if x["role"] == "anchor":
+            b = "anchor"
+        c, mk, _ = BLOCK[b]
+        ax.scatter([x["predicted_both"] - x["default_predicted_both"]], [x["measured_mean"] - x["default_measured_mean"]],
+                   s=80, marker=mk, color=c, edgecolors="white", lw=1.2, zorder=3)
+    from matplotlib.lines import Line2D
+    hs = [Line2D([], [], marker=BLOCK["b3E"][1], ls="", color=BLOCK["b3E"][0], ms=9, label="HOM at 1.0 N"),
+          Line2D([], [], marker=BLOCK["b4cem"][1], ls="", color=BLOCK["b4cem"][0], ms=9, label="CEM force schedule"),
+          Line2D([], [], marker=BLOCK["anchor"][1], ls="", color=BLOCK["anchor"][0], ms=9,
+                 label="Anchor (70, 110) at 1.0 N")]
+    ax.legend(handles=hs, loc="lower right", frameon=False, fontsize=11)
+    ax.set_xlabel("Predicted gain over the default plan")
+    ax.set_ylabel("Measured gain over the default plan")
+    ax.set_xlim(-0.1, 0.8)
+    ax.set_ylim(-0.1, 0.8)
+    ax.set_aspect("equal")
     return png_uri(fg)
 
 
@@ -326,6 +361,7 @@ def page():
     F25 = j(RANK / "data/20261120-feasible_ranking.json")
     F10 = j(RANK / "data/20261120-feasible_ranking_f1.json")
     RP = j(BENCH / "analysis/20261120-command_jitter_replay.json")
+    RM = j(BENCH / "analysis/20261120-recovery_metrics.json")
     SM = j(BENCH / "analysis/20261120-command_jitter_sim.json")
     tested = [x for x in T["plans"] if x["n"] > 0]
     default = [x for x in tested if x["role"] in ("ranked", "anchor") and not x.get("prm")]
@@ -368,9 +404,9 @@ plan's grasp is listed apart and left out (Table 2).</li>
                      f(x["predicted_both"]), f(x["measured_mean"]), f(x["measured_sd"]), str(x["n"]),
                      f(x.get("measured_mean_60")), tr])
     cap1 = (f"Predicted against measured tracking for the {len(tested)} plans tried on the hand ({n_trials} trials). "
-            "Large marks: a plan's mean over its trials, with the standard deviation over trials as a bar; small "
-            "marks: single trials; hollow marks: the sphere was lost in at least one trial. Labelled: the anchor, the "
-            f"layouts {Y_WIDE:g} mm wide or more, and misses of 0.15 or more. The grey line is equality.")
+            "Large marks: a plan's mean over its trials, with the standard deviation over trials as a bar. Small "
+            "marks: single trials. Hollow marks: the sphere was lost in at least one trial. Labelled: the anchor at "
+            "the default force and the six largest misses. The grey line is equality.")
     rho_txt = (f"Over the {rho['layouts']} layouts at the default force, &rho; = {f(rho.get('rho'), 2)} "
                f"(95 % interval {rho.get('rho_trials_resampled_95')}), and the measured scores lay "
                f"{f(abs(rho.get('mean_measured_minus_predicted') or 0), 3)} "
@@ -382,7 +418,7 @@ plan's grasp is listed apart and left out (Table 2).</li>
     if sp.get("narrow") and sp.get("wide") and "r" in sp["narrow"]:
         nw, wd = sp["narrow"], sp["wide"]
         split_txt = (f"<p>The misses depend on the index-to-middle spacing y. For the {nw['n']} layouts with y under "
-                     f"{Y_WIDE:g} mm, the hand's scores were predicted closely: Pearson's r is {f(nw['r'], 2)}, "
+                     f"{Y_WIDE:g} mm, Pearson's r between predicted and measured scores is {f(nw['r'], 2)}, "
                      f"&rho; is {f(nw.get('rho'), 2)} and the mean absolute error is {f(nw['mae'])}. With the "
                      f"{wd['n']} layouts at {Y_WIDE:g} mm or more, the hand lost the sphere, in drops or at corvus's "
                      f"drift guard. Their scores fell {f(abs(wd['bias']))} below the predictions on average (Figure 2). "
@@ -396,6 +432,25 @@ plan's grasp is listed apart and left out (Table 2).</li>
                         caption="Each plan tried on the hand. Trial scores in order; a trial that ended early names "
                                 "its ending.")))
 
+    rv = [x for x in T["refined_vs_default"] if x["n"] > 0 and x["default_measured_mean"] is not None]
+    if rv:
+        dp = np.array([x["predicted_both"] - x["default_predicted_both"] for x in rv])
+        dm = np.array([x["measured_mean"] - x["default_measured_mean"] for x in rv])
+        agree = int(np.sum(np.sign(dp) == np.sign(dm)))
+        an = next((x for x in rv if x["role"] == "anchor"), None)
+        gain_txt = (f"<p>Each lower-force plan (stage E: HOM at 1.0 N in place of 2.5 N) and each CEM plan (a force schedule "
+                    f"refined in simulation) was run on a layout whose default plan also ran. On {agree} of these "
+                    f"{len(rv)} plans the hand's score moved in the predicted direction. The mean gain was "
+                    f"{f(float(dm.mean()))} on the hand against {f(float(dp.mean()))} predicted. The size of each plan's "
+                    f"gain was not predicted: Pearson's r between predicted and measured gains is "
+                    f"{f(float(np.corrcoef(dp, dm)[0, 1]), 2)} (Figure 3).")
+        if an:
+            gain_txt += (f" The anchor (70, 110) rose from {f(an['default_measured_mean'])} to {f(an['measured_mean'])} at "
+                         f"1.0 N; {f(an['default_predicted_both'])} and {f(an['predicted_both'])} were predicted.")
+        gain_txt += "</p>"
+        sec.append(("gain", "The lower force and the CEM plans on the hand", gain_txt + fig(
+            3, fig_gain(T), "The gain of each lower-force and CEM plan over its layout's default plan at 2.5 N: "
+                            "predicted against measured. The grey diagonal is equality.")))
     cap2 = ("The lattice of layouts: x is the thumb-to-finger separation and y the index-to-middle separation, in mm "
             "of the palm frame. (a) The ranking's predicted score at each fitting layout's best grasp, HOM at its "
             "default 2.5 N. (b, c) The score of each layout's best feasible grasp at 2.5 N and at 1.0 N. A grasp is "
@@ -424,7 +479,7 @@ plan's grasp is listed apart and left out (Table 2).</li>
                  + ", ".join(f"{xy_s(L['xy'])}" for L in top25)
                  + f", scoring {f(top25[-1]['seeds012'], 2)} to {f(top25[0]['seeds012'], 2)}.</p>")
     sec.append(("landscape", "The ranking's landscape and the tested layouts",
-                land + fig(3, fig_landscape(S, T, F25, F10), cap2)))
+                land + fig(4, fig_landscape(S, T, F25, F10), cap2)))
 
     if RP and SM:
         uri, J = fig_jitter(RP, SM)
@@ -441,7 +496,7 @@ taken from joints low-passed at 0.1 s; with the second, HOM's targets are low-pa
 readings, the two together lower the share to
 {h['jt']:.0f} %; in closed-loop simulation with the flicker, to
 {s.get('jt', float('nan')):.0f} % at the same tracking score. Whether the trials use them is
-recorded in each server record's header.</p>""" + fig(4, uri, "The share of control periods in which a joint's command "
+recorded in each server record's header.</p>""" + fig(5, uri, "The share of control periods in which a joint's command "
                                                          "reversed. Upper bars: the hand's trials under the 0.56 N m "
                                                          "budget, as sent and replayed offline; lower bars: the "
                                                          f"simulation of {J['n_plans']} plans at seed 0.")))
@@ -455,6 +510,35 @@ recorded in each server record's header.</p>""" + fig(4, uri, "The share of cont
                                                        num=(1, 2), n=2, caption="Trials whose sphere started more "
                                                        "than 5&deg; from the plan's grasp.")))
 
+    if RM:
+        pdn = RM["putdowns"]
+        lost = RM["sphere_lost_in_trial"]
+
+        def pc(k):
+            v = pdn.get(k) or {"count": 0, "of": RM["trials"]}
+            return f"{v['count']} ({100 * v['count'] / max(1, v['of']):.0f} %)"
+        rows3 = [["Trials", str(RM["trials"]), ""],
+                 ["Sphere left the grasp in the trial (drift guard)", f"{lost['count']} ({100 * lost['share']:.0f} %)", ""],
+                 ["Putdown, clean release", pc("clean"), ""],
+                 ["Putdown stopped, finished by the lab session", pc("stopped, finished by the session"), ""],
+                 ["Putdown, tilted release", pc("tilted release"), ""],
+                 ["Pick-up of a lying sphere, all grasps", f"{RM['pickup_grasps']['count']} of {RM['pickup_grasps']['of']}",
+                  "succeeded"],
+                 ["Pick-up with a push first", f"{RM['pickup_with_push_first']['count']} of "
+                  f"{RM['pickup_with_push_first']['of']}", "succeeded"],
+                 ["Pick-up without a push", f"{RM['pickup_without_push']['count']} of {RM['pickup_without_push']['of']}",
+                  "succeeded"],
+                 ["Blind pinch (the tracker only before the descent)", f"{(RM.get('pickup_blind') or {}).get('count', 0)} of "
+                  f"{(RM.get('pickup_blind') or {}).get('of', 0)}", "succeeded"],
+                 ["Pick-ups that found no plan", str(RM["pickup_planner_refusals"]), ""]]
+        sec.append(("bench", "Trial losses, putdowns and pick-ups on the bench", f"""<p>The series ran its trials one after
+another without a person at the bench for most of the day. When a trial lost the sphere or a putdown stopped, the lab
+session finished the putdown or picked the sphere up with the hand. A pick-up succeeded when the ball lay on bare table.
+The cables across the table caught pushes and grasps, and the tracker saw a lying sphere with one or two tags.</p>"""
+                    + table(["Event", "Count", ""], rows3, num=(1,), n=3,
+                            caption=f"Bench events of 2026-11-20 up to {RM['generated'][11:]}, from hom_series's rows, "
+                                    "its log and the pick-up logs.")))
+
     sec.append(("data", "Data and scripts", """<ul>
 <li>Trials: the HOM server's records <code>docs/experiments/20261115-hom_bench_trials/runs/</code>, corvus's records and
 hom_series's rows <code>runs_corvus/</code>; scored by
@@ -464,6 +548,8 @@ before the trials; the landscape <code>data/20261119-twist_ranking_summary.json<
 <code>data/20261120-feasible_ranking.json</code> and <code>_f1.json</code>.</li>
 <li>Jitter: <code>docs/experiments/20261115-hom_bench_trials/analysis/20261120-command_jitter_replay.py</code> and
 <code>20261120-command_jitter_sim.py</code>.</li>
+<li>Bench events: <code>docs/experiments/20261115-hom_bench_trials/analysis/20261120-recovery_metrics.py</code> and
+<code>20261120-series_time_table.py</code>.</li>
 <li>Decisions: <code>docs/notes/20261120-twist_ranking_decisions.md</code>.</li>
 </ul>"""))
     sec.append(("future", "Future work", """<ul>
@@ -476,18 +562,30 @@ measured scores rise or their spread falls.</li>
 variant budget_noise) and compare that ranking with the trials.</li>
 </ul>"""))
 
-    if default and rho.get("rho") is not None:
+    allp = [x for x in tested if x["predicted_both"] is not None]
+    if len(allp) > 2:
+        from scipy import stats as _st
+        pa = np.array([x["predicted_both"] for x in allp])
+        ma = np.array([x["measured_mean"] for x in allp])
+        lede = (f"<p>Over all {len(allp)} plans tried on the SR2 hand ({n_trials} trials), the measured tracking "
+                f"correlated with the simulation's predictions at &rho; = {f(float(_st.spearmanr(pa, ma)[0]), 2)} "
+                f"(Pearson's r {f(float(np.corrcoef(pa, ma)[0, 1]), 2)}). ")
+        rvl = [x for x in T["refined_vs_default"] if x["n"] > 0 and x["default_measured_mean"] is not None]
+        if rvl:
+            g_m = float(np.mean([x["measured_mean"] - x["default_measured_mean"] for x in rvl]))
+            g_p = float(np.mean([x["predicted_both"] - x["default_predicted_both"] for x in rvl]))
+            lede += (f"With HOM's lower force and the CEM force schedules, the hand's score rose over each layout's "
+                     f"default plan by {f(g_m)} on average, against {f(g_p)} predicted. ")
+    elif default and rho.get("rho") is not None:
         lede = (f"<p>On the SR2 hand, the measured tracking of {rho['layouts']} layouts at HOM's default force "
-                f"correlated with the simulation's predictions at &rho; = {f(rho['rho'], 2)} (95 % interval "
-                f"{rho.get('rho_trials_resampled_95')}). ")
+                f"correlated with the simulation's predictions at &rho; = {f(rho['rho'], 2)}. ")
     else:
         lede = f"<p>{len(tested)} plans of the twist ranking have run on the SR2 hand so far ({n_trials} trials). "
     sp0 = split_stats(default) if default else {}
     if sp0.get("narrow") and sp0.get("wide") and "r" in sp0["narrow"]:
-        lede += (f"For the {sp0['narrow']['n']} layouts whose index and middle fingers sit less than {Y_WIDE:g} mm "
-                 f"apart, the hand's scores were predicted closely (Pearson's r {f(sp0['narrow']['r'], 2)}, mean "
-                 f"absolute error {f(sp0['narrow']['mae'])}). With the {sp0['wide']['n']} wider layouts the hand lost "
-                 f"the sphere, and their scores fell {f(abs(sp0['wide']['bias']))} below the predictions. ")
+        lede += (f"At the default force, the hand lost the sphere with the {sp0['wide']['n']} layouts whose index and "
+                 f"middle fingers sit {Y_WIDE:g} mm apart or more; their scores fell {f(abs(sp0['wide']['bias']))} below "
+                 "the predictions. ")
     elif anchor:
         lede += (f"The anchor layout (70, 110) scored {f(anchor['measured_mean'])} against its prediction of "
                  f"{f(anchor['predicted_both'])}. ")
