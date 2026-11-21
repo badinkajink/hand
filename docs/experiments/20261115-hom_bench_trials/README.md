@@ -4,6 +4,38 @@ How to run a HOM trial on the SR2 hand on the UR5, record it, and use it to cali
 2026-11-15: "make sure we are ready to start collecting data and calibrating from real trials of HOM"). The trial
 sequence and the series are those of `docs/notes/20261105-object_seating_and_tracking/20261105-object_seating_and_tracking_plan.md`.
 
+## State on 2026-11-20 17:5x: the blind pick-up
+
+- **17:30-17:41.** A4feas_f76_x105y160g0_t2 stopped on the drift guard (30.3 mm), and the sphere toppled against the
+  cable bundle in front of the arm's base. The series' pick-up refused the 62.4 deg wrist turn (the limit was 60; it is
+  90 since 7969e33cb). The pick-ups run by hand at 17:38-17:41 stopped in the descent on the tracker. Behind the turned
+  hand the lying block showed 1-2 tags, and its pose jumped 11.1, 13.3 and 5.3 mm, the last with a 110 deg flip. The
+  HEX-E read at most 1.4 N.
+- **17:51-17:55: the user's go, "lets just fly blind here and go for the pinch".** `pinch_pickup.py grasp --blind`
+  measures the sphere once, with the hand high and unturned. The turn, the descent and the close then run without the
+  tracker, watched by the HEX-E (3 N) and the finger joints (4 deg). The grasp went 124 mm down with at most 1.6 N; the
+  tracker gave no pose at the grasp's height. `lift --blind --lift-mm 65.2` (standing height 73.9 + 12 - 20.7 mm lying)
+  lifted it, the slip took it from 59 to 10.7 deg, and the putdown left it 0.7 deg from vertical at the table's centre.
+  `unturn` turned the wrist back.
+- **The series** restarted from entry 90 (A4feas_f17_x95y140g0_t1) through `wait_upright.py` at about 17:58. Its own
+  pick-up still runs the watched grasp.
+- **19:22, the release lifted the sphere.** In b4cem_x115y160_knots_t2 (118 deg, rise 17.2 mm), the thumb pad started
+  on the ball, and the lift after straightening moved the sphere 6.6 mm (limit 6). It toppled, and the series stopped
+  before writing the row (written by hand). The series' pick-up pushed the sphere to 14 mm from the table's centre. Its
+  watched grasp then lost the sphere 72.5 deg into an 84.9 deg turn. The blind pinch (19:30-19:34) took it up: 1.75 N
+  at most, a slip to 10.8 deg, and 0.7 deg after the putdown. The series restarted from field 136 at 19:36.
+- **The wrist's angle.** The trials' TCP yaw in B moved twice on 11-20: -69 deg until 13:35, -22 from 14:01, -37 from
+  15:02. Pick-ups turned the wrist back by their plan's turn_deg, which a later plan had overwritten. Since 114b50e74,
+  `pinch_pickup.py` measures the wrist's turn against the newest trial record: `plan` limits the total to 90 deg, and
+  `unturn` undoes all of it. The series' pick-up unturns after a grasp that does not finish.
+- **19:37-19:49, held: the open pose pushes the sphere.** In three readies, two at (115, 160) CEM knots and one at
+  (85, 120) CEM full, the tracker had the sphere centred within 0.05 mm and upright (0.7 deg) after the descent. Opening
+  the fingers then pushed it 8-15 mm toward -x/+y in P and tipped it 6-13 deg. The same plans opened clean until 19:21.
+  The cameras did not move: the backgrounds of good and bad frames line up within 0.2 px. The sphere looks intact. The
+  push runs away from the middle finger, and its yaw stopped 3.2-3.8 deg short of the open pose at (115, 160). So the
+  middle finger, or its gantry carriage, may no longer be where the station thinks. `letgo` released the sphere each
+  time. The series waits at field 137 (b4cem_x85y120_full_t1; field 136 skipped) for a person to check the hand.
+
 ## State on 2026-11-20 10:5x: the morning's two stops, the owner's order
 
 - **The login.** The Claude login of the session watching the bench reached its fixed time limit before 08:04 ("this

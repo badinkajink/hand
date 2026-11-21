@@ -241,7 +241,10 @@ def pickup(a, plan, label):
                           tmo)
             if rc != 0 or token not in out:
                 if step == "grasp":
+                    # a grasp stopped mid-turn leaves the wrist turned (19:28: 72.5 of 84.9 deg); turn it back to the
+                    # trials' angle, measured, so the next plan and the next trial start from it
                     lift_clear(a, str(PICKUP_LAYOUT))
+                    run([PY, "pinch_pickup.py", "unturn", "--plan", best, *pm, "--go", "--video-dir", a.video_dir], 300)
                 return f"the pick-up's {step} did not finish"
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", best, "--object", "sphere", *pm, "--level-max", "0",
                        "--go", "--video-dir", a.video_dir], 450)
