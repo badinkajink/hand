@@ -482,8 +482,18 @@ def main():
             # the object released and seated, the hand partly levelled about it (2026-11-20 16:38: the sphere moved 4.2 mm
             # in the second turn; it stood at 0.4 deg, the hand at 3 deg): the rest of letgo without that levelling
             print(f"   {label}: the levelling about the ball stopped; letgo without it", flush=True)
-            rc, out = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--ball-level-deg", "0", "--max-level",
-                           "0", "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
+            rc, out = run([PY, "hom_setup.py", "letgo", "--plan", plan, *common, "--tilt-ok", "--ball-level-deg", "0",
+                           "--max-level", "0", "--lift-still-mm", "6", "--go", "--video-dir", a.video_dir], 300)
+            # the sphere may have toppled in the stopped turn (17:24: it lay at 86 deg, and letgo refused it untilted)
+            st_ = re.findall(r"settled: the block's axis ([\d.]+) deg from vertical", out)
+            if "LET GO" not in out or (st_ and float(st_[-1]) > 15.0):
+                row["putdown"] = "the levelling about the ball stopped; the sphere toppled or the release stopped short"
+                with open(a.out, "a") as f:
+                    f.write(json.dumps(row) + "\n")
+                why = pickup(a, plan, label) if a.pickup and a.object == "sphere" else "no --pickup"
+                if why is None:
+                    continue
+                sys.exit(f"STOP: {label} toppled at the release and the pick-up failed: {why}")
         if "LET GO" not in out and "the levelling stopped" in out:
             # 2026-11-20 09:21: the levelling turn stopped on the object moving 2.18 mm against the hand (limit 2), and
             # the series stopped with the sphere held 49 mm above the table until 10:38 (one servo at 52 C, three
