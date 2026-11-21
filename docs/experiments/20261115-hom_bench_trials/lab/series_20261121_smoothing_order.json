@@ -1,0 +1,84 @@
+{
+ "source": "owner 2026-11-20 20:2x via the workstation (hand-4a, 20:4x): the smoothing series, 10 plans x 4 blocks in the order smoothed, plain, plain, smoothed, the plan order shuffled within each block",
+ "seed": 20261121,
+ "serve_mode_sm": "--budget-joint-tau 0.1 --target-tau 0.04",
+ "camera": "960x540@60, exposure 50",
+ "ports": {
+  "../plans/20261119-rank_x70_y90_twist_gr_g1_plan.json": 47201,
+  "../plans/20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json": 47202,
+  "../plans/20261119-rank_x70_y110_twist_gr_g0_plan.json": 47203,
+  "../plans/20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json": 47204,
+  "../plans/20261119-rank_x85_y120_twist_gr_g15_plan.json": 47205,
+  "../plans/20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json": 47206,
+  "../plans/20261119-rank_x110_y155_twist_gr_g3_plan.json": 47207,
+  "../plans/20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json": 47208,
+  "../plans/20261119-rank_x115_y160_twist_gr_g8_plan.json": 47209,
+  "../plans/20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json": 47210
+ },
+ "blocks": [
+  {
+   "block": 1,
+   "server": "smoothed",
+   "labels": [
+    "sm1_x70y90g1f",
+    "sm1_x70y110g0f",
+    "sm1_x85y120g15f",
+    "sm1_x110y155g3",
+    "sm1_x70y90g1",
+    "sm1_x110y155g3f",
+    "sm1_x115y160g8f",
+    "sm1_x85y120g15",
+    "sm1_x70y110g0",
+    "sm1_x115y160g8"
+   ]
+  },
+  {
+   "block": 2,
+   "server": "plain",
+   "labels": [
+    "pl2_x70y90g1",
+    "pl2_x70y110g0f",
+    "pl2_x85y120g15",
+    "pl2_x110y155g3",
+    "pl2_x110y155g3f",
+    "pl2_x70y90g1f",
+    "pl2_x115y160g8",
+    "pl2_x85y120g15f",
+    "pl2_x115y160g8f",
+    "pl2_x70y110g0"
+   ]
+  },
+  {
+   "block": 3,
+   "server": "plain",
+   "labels": [
+    "pl3_x70y110g0",
+    "pl3_x85y120g15",
+    "pl3_x115y160g8",
+    "pl3_x115y160g8f",
+    "pl3_x110y155g3",
+    "pl3_x70y90g1",
+    "pl3_x110y155g3f",
+    "pl3_x70y110g0f",
+    "pl3_x70y90g1f",
+    "pl3_x85y120g15f"
+   ]
+  },
+  {
+   "block": 4,
+   "server": "smoothed",
+   "labels": [
+    "sm4_x115y160g8f",
+    "sm4_x85y120g15",
+    "sm4_x85y120g15f",
+    "sm4_x110y155g3f",
+    "sm4_x110y155g3",
+    "sm4_x70y90g1",
+    "sm4_x70y110g0",
+    "sm4_x115y160g8",
+    "sm4_x70y110g0f",
+    "sm4_x70y90g1f"
+   ]
+  }
+ ]
+}

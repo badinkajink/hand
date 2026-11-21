@@ -1,11 +1,14 @@
 """A series of HOM trials on the SR2 hand, unattended (owner, 2026-11-16 13:25: "you have authority to independently
-experiment now"; the sphere "we can reliably not drop"): for each entry PLAN:PORT:LABEL, the established cycle of
-hom_setup.py and hom_trial.py, each step a subprocess whose output is checked before the next runs:
+experiment now"; the sphere "we can reliably not drop"): for each entry PLAN:PORT:LABEL[:MODE], the established cycle
+of hom_setup.py and hom_trial.py, each step a subprocess whose output is checked before the next runs. MODE names a
+--serve-mode, extra flags for that entry's HOM server (the smoothing series of 2026-11-21: sm='--budget-joint-tau 0.1
+--target-tau 0.04'); the series restarts the server when the plan or the flags differ from the running one's.
 
     gate     before each trial, the station's servo diagnostics (no motion): all nine with torque, and with a servo at
              --hot-c (55 C) or more the series waits, the hand idle, until all are below --cool-c (40 C), the owner's
              thermal rule. With --serve, the plan's HOM server is started on the workstation before its first trial
-             and stopped after its last, one server at a time
+             and stopped after its last, one server at a time. The wrist's angle (the TCP's yaw in B) is read and
+             compared with its angle before the series' first trial: more than --wrist-tol-deg off stops the series
     clear    only for a new layout (pose_sweep.py clear, 2026-11-19): the palm straight up until the fingers, straight
              and in the sweep's poses, clear the object's top by 25 mm; after letgo they can hang beside it
     layout   only when the station's mounts are not the plan's (the gantries move with the fingers straight)
@@ -60,22 +63,65 @@ def server_pids(port):
     return [int(x) for x in out.split() if x.isdigit()]
 
 
-def server_start(a, plan, port):
+def server_lines(port):
+    """The command lines of the HOM servers listening on port."""
+    _, out = ws(f'pgrep -af "[h]om_server serve .*--listen {port}( |$)"', 30)
+    return [x for x in out.splitlines() if x.strip() and x.split()[0].isdigit()]
+
+
+def server_runs(line, rel, extra):
+    """(True, "") when a running server's command line serves plan rel with exactly the flags extra, else (False, what
+    it runs). hom_serve_budget.sh puts the series' extra flags after --torque-budget's value."""
+    t = line.split()
+    have_plan = t[t.index("--plan") + 1] if "--plan" in t[:-1] else "?"
+    have_extra = " ".join(t[t.index("--torque-budget") + 2:]) if "--torque-budget" in t else "?"
+    ok = have_plan == rel and have_extra == " ".join(extra.split())
+    return ok, f"plan {have_plan}, flags '{have_extra}'"
+
+
+def server_start(a, plan, port, extra=""):
     """The plan's HOM server, started before its first trial (2026-11-19 night: one at a time, 410 MB each, the
-    workstation 6 GB short of free memory under the twist ranking's jobs). None when it answers, else the reason."""
-    if server_pids(port):
-        return None
-    task, d, mass, budget = a.serve.split()
+    workstation 6 GB short of free memory under the twist ranking's jobs), with the entry's extra flags. A server already
+    on the port is kept only when it serves this plan with these flags (11-20's entries gave one port to two plans in
+    different series); else it is stopped and started again. After the start its command line must show the flags (the
+    workstation's hom_serve_budget.sh forwards its arguments after the seventh). None when it answers, else the
+    reason."""
     rel = f"docs/experiments/20261115-hom_bench_trials/plans/{Path(plan).name}"
-    tag = "s_" + Path(plan).stem.replace("_plan", "")[:48]
-    _, out = ws(f"{SERVE} {task} {d} {rel} {port} {tag} {mass} {budget}", 120)
+    lines = server_lines(port)
+    if lines:
+        ok, what = server_runs(lines[0], rel, extra)
+        if ok:
+            return None
+        print(f"   server {port} runs {what}: restarting it for {Path(plan).name}, flags '{extra}'", flush=True)
+        server_stop(port)
+        time.sleep(3)
+    task, d, mass, budget = a.serve.split()
+    tag = "s_" + Path(plan).stem.replace("_plan", "")[:48] + ("_x" + "".join(c for c in extra if c.isalnum())[:24]
+                                                             if extra else "")
+    _, out = ws(f"{SERVE} {task} {d} {rel} {port} {tag} {mass} {budget} {extra}".rstrip(), 120)
     for _ in range(10):
         if "HOM server:" in out:
             print(f"   server {port}: {[x for x in out.splitlines() if 'HOM server:' in x][-1][:150]}", flush=True)
-            return None
+            lines = server_lines(port)
+            ok, what = server_runs(lines[0], rel, extra) if lines else (False, "nothing")
+            return None if ok else (f"the server on {port} runs {what}, not flags '{extra}' (does hom_serve_budget.sh "
+                                    "forward its arguments after the seventh?)")
         time.sleep(5)
         _, out = ws(f"grep -v -i warn ~/Programs/hand/logs/20261116-hom_setup/20261116-server_{tag}.log | tail -3", 30)
     return out.strip()[-300:]
+
+
+def wrist_yaw():
+    """The TCP's x-axis yaw in B (deg) from the arm (rtde_receive only; pinch_pickup.tcp_yaw). The trials' angle moved
+    twice on 2026-11-20 (-69, -22, -37 deg) when pick-ups turned the wrist back by the wrong amount."""
+    sys.path.insert(0, str(HERE))
+    import hom_setup as HS
+    import pinch_pickup as PP
+    arm = HS.Arm()
+    try:
+        return PP.tcp_yaw(arm.r.getActualTCPPose()[3:])
+    finally:
+        arm.close()
 
 
 def server_stop(port):
@@ -314,6 +360,12 @@ def main():
     ap.add_argument("--serve", default="",
                     help="'TASK D MASS_G BUDGET', e.g. 'twist 40 28.8 0.56': start each plan's HOM server on the "
                          "workstation before its first trial and stop it after its last (hom_serve_budget.sh)")
+    ap.add_argument("--serve-mode", action="append", default=[],
+                    help="NAME=FLAGS, repeatable: extra flags for the HOM server of the entries PLAN:PORT:LABEL:NAME, "
+                         "e.g. sm='--budget-joint-tau 0.1 --target-tau 0.04'")
+    ap.add_argument("--wrist-tol-deg", type=float, default=3.0,
+                    help="stop before a trial when the wrist's angle (TCP yaw in B) is this far from its angle before "
+                         "the series' first trial (0: no check)")
     ap.add_argument("--hot-c", type=float, default=55.0, help="pause before a trial with a servo this hot")
     ap.add_argument("--cool-c", type=float, default=40.0, help="go on when every servo is below this")
     ap.add_argument("--cool-wait-s", type=float, default=5400.0)
@@ -341,9 +393,16 @@ def main():
     camera = f"{a.cam_mode}, exposure {a.cam_exposure or 166:g}"
     print(f"camera: {camera}", flush=True)
     common = ["--object", a.object, "--map", a.map]
-    served = None                                          # the port whose HOM server this series started last
+    modes = dict(m.split("=", 1) for m in a.serve_mode)
+    for e in a.entries:
+        mode = (e.split(":") + [""])[3]
+        if mode and mode not in modes:
+            sys.exit(f"STOP: the entry {e} names the server mode '{mode}', not one of --serve-mode {sorted(modes)}")
+    served = None                                          # (port, flags) of the HOM server this series started last
+    yaw0 = None                                            # the wrist's angle before the first trial
     for k, e in enumerate(a.entries):
-        plan, port, label = e.split(":")
+        plan, port, label, *rest = e.split(":")
+        extra = modes.get(rest[0], "") if rest else ""
         print(f"\n=== {time.strftime('%H:%M:%S')} trial {k + 1}/{len(a.entries)}: {label} ({plan}, port {port})",
               flush=True)
         hold, skips = control(a.control)
@@ -358,17 +417,25 @@ def main():
             continue
         if not a.go:
             continue
-        if a.serve and served is not None and served != port and not a.sweep_only:
-            server_stop(served)
+        if a.serve and served is not None and served != (port, extra) and not a.sweep_only:
+            server_stop(served[0])
             served = None
+        if a.wrist_tol_deg > 0:
+            yaw = wrist_yaw()
+            if yaw0 is None:
+                yaw0 = yaw
+                print(f"   the wrist's angle (TCP yaw in B) {yaw:+.2f} deg: held within {a.wrist_tol_deg:g} deg", flush=True)
+            elif abs((yaw - yaw0 + 180.0) % 360.0 - 180.0) > a.wrist_tol_deg:
+                sys.exit(f"STOP before {label}: the wrist's angle is {yaw:+.2f} deg, {yaw - yaw0:+.2f} from the series' "
+                         f"first trial (limit {a.wrist_tol_deg:g})")
         why, servo_c = servo_gate(a)
         if why:
             sys.exit(f"STOP before {label}: {why}")
         if a.serve and not a.sweep_only:
-            why = server_start(a, plan, port)
+            why = server_start(a, plan, port, extra)
             if why:
                 sys.exit(f"STOP: the HOM server for {label} did not start: {why}")
-            served = port
+            served = (port, extra)
         # a new layout (2026-11-19): after letgo the straight fingers may hang beside the object, so the palm goes up
         # until they clear it before the gantries move (pose_sweep.py clear), and with --sweep the fingers then run
         # the free-air pose sweep at the new mounts
@@ -453,7 +520,8 @@ def main():
         s = summary(rec.group(1))
         row = {"t": time.strftime("%Y-%m-%dT%H:%M:%S"), "label": label, "plan": plan, "port": int(port),
                "record": rec.group(1), "ready": [m.group(1), float(m.group(2)), float(m.group(3))],
-               "ready_tilt_deg": ready_tilt, "camera": camera, "servo_c_before": servo_c, **s}
+               "ready_tilt_deg": ready_tilt, "camera": camera, "servo_c_before": servo_c,
+               "serve_flags": extra if a.serve else None, "wrist_yaw_deg": None if yaw0 is None else round(yaw0, 2), **s}
         print(f"   {label}: twist {s['twist_min_deg']} .. {s['twist_max_deg']} deg, rise {s['rise_max_mm']} mm, "
               f"drift {s['drift_end_mm']} mm, stop {s['stop']}", flush=True)
         rc, out = run([PY, "hom_setup.py", "putdown", "--plan", plan, *common, *a.putdown_args.split(), "--go",
@@ -537,9 +605,11 @@ def main():
                 sys.exit(f"STOP: {label} ended tilted; released with letgo --tilt-ok "
                          f"({'LET GO' if 'LET GO' in out2 else 'letgo did not finish'}, tilt after "
                          f"{t[-1] if t else '?'} deg): stand the object up to go on")
+            with open(a.out, "a") as f:                     # the trial ran: its row before the stop (11-20 19:22)
+                f.write(json.dumps(row) + "\n")
             sys.exit(f"STOP: putdown did not finish for {label}: {row['putdown']}")
     if a.go and a.serve and served is not None:
-        server_stop(served)
+        server_stop(served[0])
     print(f"\n=== {time.strftime('%H:%M:%S')} series done", flush=True)
     return 0
 
