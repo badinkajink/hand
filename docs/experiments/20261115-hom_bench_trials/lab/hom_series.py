@@ -171,7 +171,7 @@ def plan_pinch(a, base):
     8 mm off the table on both fingers and the joints 4 deg from their limits; the file, or None."""
     for lat in ("5", "4", "6", "3"):
         rc, out = run([PY, "pinch_pickup.py", "plan", "--map", a.map, "--gap", "8", "--lat-deg", lat, "--base-plan",
-                       str(base), "--turn", "--max-turn", "60"], 240)
+                       str(base), "--turn", "--max-turn", "90"], 240)                # the owner's limit for joint 6: 90 deg
         m_margin = re.search(r"joint margin ([\d.]+) deg", out)
         tables = [float(x) for x in re.findall(r"(?:thumb|index|middle) table ([\d.]+)",
                                                out.split("at touch:")[-1].split("\n")[0])] if "at touch:" in out else []
