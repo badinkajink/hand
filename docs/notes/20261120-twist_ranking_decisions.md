@@ -249,13 +249,36 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   `data/20261120-friction_predictions.json`): against the hand, friction 0.4 gives rho 0.72, Pearson's r 0.72, mean absolute
   error 0.105 and the wide layouts 0.008 below their predictions; 0.5: 0.63 / 0.71 / 0.109; 0.6: 0.67 / 0.72 / 0.114; 0.8:
   0.55 / 0.63 / 0.128; 1.0: 0.48 / 0.57 / 0.136. The UR5 rig measured 0.37-0.44 for TPU on bare PLA; the scenes' 1.0 stands
-  for grip tape, which the sphere does not have. The sim-to-real page carries it (Table 2, the lede) and two films (the same
-  layouts at 2.5 N and 1.0 N).
+  for grip tape, which the sphere does not have [wrong: the sphere is covered in grip tape, owner 20:2x; see 20:4x below].
+  The sim-to-real page carries it (Table 2, the lede) and two films (the same layouts at 2.5 N and 1.0 N).
 - 20:1x, hand-4a, queued overnight: lane_mu04 (GPU, `logs/20261120-controller_rematch/lane_mu04.sh`): HOM's force grid at
   friction 0.4 (0.75-2.5 N x spin weight 0.25 and 1.0) and two arms at 0.6, about 30 min; lane_f1mu04 (CPU, 12 workers,
   `logs/20261119-twist_layout_ranking/lane_f1mu04.sh`): the 404 layouts' feasible grasp search at 1.0 N and friction 0.4,
   about 2 h 10 min, summary `data/20261120-feasible_ranking_f1mu0.4.json`. The publish job of both pages re-armed on the
   personal login.
+- 20:2x, owner: "the sphere does have grip tape on it though. so thats just the friction? is this with point contact or
+  sphere packed contact model? is there a difference or are they still the same? let's get ready to trt smoothing i guess.
+  i imagine there was much less jitter on the 1.0 N trials."
+- 20:4x, hand-4a: the publish job held at 20:26 (the page said the sphere has no tape) and re-armed after the fixes below.
+  The friction fit is an effective value. The friction moved only the wide layouts' predictions: for y under 150 mm the
+  mean absolute error was 0.097 at friction 1.0 and 0.101 at 0.4; the wide layouts' measured less predicted went from
+  -0.228 to -0.008. The two contact models fit alike at 0.4 (Pearson's r 0.70 point, 0.71 pads; mean absolute error 0.112
+  each); a plan's two predictions differ by 0.023 on average at 1.0 and 0.051 at 0.4 (pads lower). The fingertip boards
+  of 11-19 at (70, 110), 2.5 N (`data/20261119-tip_forces_vs_sim.json`): index median 0.62 N against 1.74 N simulated
+  (0.36), middle 1.24 against 1.54 N and in contact 62 % of the periods against 100 %, thumb 2.50 against 2.12 N. Friction
+  limits the tangential force at mu N, so the fitted 0.4 can stand for the index's and middle's lower forces; the tests are
+  a drag of a pad on the taped sphere (UR5) and the boards' forces on a wide layout.
+  Jitter by force (`analysis/20261120-command_reversals.py`, the commands sent, 132 trials of the day): reversals 27 % at
+  1.0 N (21 trials) against 45 % at 2.5 N (88), the budget cutting HOM's targets in 11 % and 95 % of the periods; lower at
+  1.0 N on each of the 6 layouts run at both forces at 60 fps (18-33 % against 39-55 %). The high-frequency amplitude
+  depends on the layout: 0.23-0.29 deg at (70, 90) and (65, 110), 2.03-2.56 deg at the wide (110, 155) and (115, 160).
+  Smoothing series proposed for the next bench day: the default and 1.0 N plans of (70, 90), (70, 110), (85, 120),
+  (110, 155), (115, 160), one trial per plan per block, blocks smoothed / plain / plain / smoothed (40 trials; the first
+  two blocks give a first read), server `--budget-joint-tau 0.1 --target-tau 0.04` for the smoothed blocks. Predictions
+  written before the series (`data/20261121-smoothing_series_predictions.json`, both models, seeds 0-2, with the hand's
+  joint flicker): the smoothing changes the predicted score by -0.013 on average at friction 1.0 (-0.068 to +0.001) and
+  -0.014 at 0.4 (-0.120 to +0.049). The scorer now keeps smoothed trials apart (record header) and lists
+  smoothed_vs_plain; `20261120-command_reversals.py` gives each trial's reversal share. Sent to the lab session.
 
 ## Waiting on owner
 
@@ -263,7 +286,8 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
 
 - The cables (lab, 15:01): someone routes the blue and red cable bundle away from the table's centre, so a dropped
   sphere lies on bare table, where the pinch pick-up works.
-- The smoothed budget on the bench, for a later series (off for the day's data, owner 16:1x).
+- The smoothing series (owner 20:2x: "let's get ready to trt smoothing"): proposed at 20:4x, ready to run once the
+  middle finger is checked; the lab runs it with the owner's go on the day.
 
 
 - A feasible landscape at HOM's tuned force (1.0 N or 0.75 N): the 404 layouts' grasp search again, on six CPU cores,

@@ -26,6 +26,10 @@ trials by corvus's record file; copy them from corvus's logs/20261116-hom_trials
 Each trial also carries its camera mode (the row's "camera"; rows without it ran at 1920x1080@30, exposure 166, the lab
 11:5x) and its block (the label's prefix); rho is given again over the trials at 60 fps alone.
 
+A trial whose server ran the smoothed budget (the record header's budget_joint_tau or target_tau, hom_server since
+af94c6028; owner, 2026-11-20 20:2x: "let's get ready to trt smoothing") is kept out of the plan means and rho as well. Each
+plan gives its smoothed trials' scores and mean apart, and "smoothed_vs_plain" lists the plans with trials of both kinds.
+
     .venv/bin/python docs/experiments/20261119-twist_layout_ranking/sim/20261120-trials_vs_prediction.py [--since STAMP]
 Writes data/20261120-trials_vs_prediction.json and prints the table.
 """
@@ -141,6 +145,9 @@ def main():
         if p.name[:15] < a.since:
             continue
         rec = M.score_record(p, cidx)
+        with p.open() as fh:
+            head = json.loads(fh.readline())
+        smooth = {k: head.get(k) for k in ("budget_joint_tau", "target_tau") if head.get(k)}
         plan = Path((rec.get("plan") or {}).get("path") or "").name
         if plan not in by_plan:
             skipped.append({"file": p.name, "why": f"plan {plan or '?'} not in the list"})
@@ -160,11 +167,13 @@ def main():
                              "track_held": (tr if ended == "end of schedule" else 0.0) if tr is not None else None,
                              "twist_task_end_deg": rec["track"].get("twist_task_end_deg"),
                              "twist_ref_end_deg": rec["track"].get("twist_ref_end_deg"),
-                             "notes": rec.get("notes"), "file": rec["file"]})
+                             "notes": rec.get("notes"), "file": rec["file"], "smoothed": bool(smooth), **smooth})
     plans = []
     tilted = [{"plan": name, **t} for name, tt in trials.items() for t in tt if t["tilted_start"]]
     for name, e in by_plan.items():
-        tt = [t for t in trials.get(name, []) if not t["tilted_start"]]
+        tt = [t for t in trials.get(name, []) if not t["tilted_start"] and not t["smoothed"]]
+        ts = [t["track_held"] for t in trials.get(name, []) if not t["tilted_start"] and t["smoothed"]
+              and t["track_held"] is not None]
         both, pt, pd = predicted(e)
         sc = [t["track_held"] for t in tt if t["track_held"] is not None]
         plans.append({"plan": name, "role": e["role"], "call": e["call"], "xy": e["xy"], "k": e["k"],
@@ -176,7 +185,9 @@ def main():
                       "measured_partial_mean": round(float(np.mean([t["track"] for t in tt if t["track"] is not None])), 3)
                       if tt else None,
                       "scores_60": [t["track_held"] for t in tt if t["fps60"] and t["track_held"] is not None],
-                      "blocks": sorted({t["block"] for t in tt if t["block"]}), "trials": tt})
+                      "blocks": sorted({t["block"] for t in tt if t["block"]}), "trials": tt,
+                      "scores_smoothed": ts, "measured_mean_smoothed": round(float(np.mean(ts)), 3) if ts else None,
+                      "trials_smoothed": [t for t in trials.get(name, []) if t["smoothed"]]})
     for x in plans:
         x["measured_mean_60"] = round(float(np.mean(x["scores_60"])), 3) if x["scores_60"] else None
     default = [x for x in plans if x["role"] in ("ranked", "anchor") and not x["prm"]]
@@ -192,7 +203,12 @@ def main():
                    "both models, partial trials scored": rho_ci(
                        [{**x, "scores": x["scores_partial"], "n": len(x["scores_partial"]),
                          "measured_mean": x["measured_partial_mean"]} for x in default], "predicted_both")},
-           "plans": plans}
+           "plans": plans,
+           "smoothed_trials": sum(len(x["scores_smoothed"]) for x in plans),
+           "smoothed_vs_plain": [{"plan": x["plan"], "xy": x["xy"], "prm": x["prm"], "predicted_both": x["predicted_both"],
+                                  "plain_mean": x["measured_mean"], "plain_n": x["n"],
+                                  "smoothed_mean": x["measured_mean_smoothed"], "smoothed_n": len(x["scores_smoothed"])}
+                                 for x in plans if x["scores_smoothed"] and x["n"]]}
     # each plant's prediction (sim/20261119-plant_predictions.py) against the same trials
     pp = STUDY / "data/20261119-plant_predictions.json"
     if pp.exists():
@@ -221,7 +237,11 @@ def main():
     for t in tilted:
         print(f"  tilted start {t['label'] or t['stamp']}: {t['ready_tilt_deg']:.1f} deg at ready, track "
               f"{t['track_held'] if t['track_held'] is not None else float('nan'):.3f} (not in the means)")
-    print(f"{out['trials_scored']} trials scored, {len(tilted)} with a tilted start apart, {len(skipped)} records skipped"
+    for x in out["smoothed_vs_plain"]:
+        print(f"  smoothed {x['plan'][:50]}: {x['smoothed_mean']} ({x['smoothed_n']}) against plain {x['plain_mean']} "
+              f"({x['plain_n']}), predicted {x['predicted_both']}")
+    print(f"{out['trials_scored']} trials scored, {out['smoothed_trials']} smoothed apart, {len(tilted)} with a tilted start "
+          f"apart, {len(skipped)} records skipped"
           f" -> {a.out}")
 
 

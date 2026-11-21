@@ -1,0 +1,498 @@
+{
+ "what": "Predictions of the plans under the variants, written before any trial of a variant (the twist ranking's score:     the mean over both models at seeds 0-2, 0 for a run that dropped the sphere).",
+ "written": "2026-11-20 20:39",
+ "variants": {
+  "budget": {
+   "budget": 0.56
+  },
+  "budget_noise": {
+   "budget": 0.56,
+   "noise": true,
+   "quant": true
+  },
+  "budget_noise_jt": {
+   "budget": 0.56,
+   "noise": true,
+   "quant": true,
+   "budget_joint_tau": 0.1,
+   "target_tau": 0.04
+  },
+  "mu0.4": {
+   "budget": 0.56,
+   "mu": 0.4
+  },
+  "budget_noise_mu0.4": {
+   "budget": 0.56,
+   "noise": true,
+   "quant": true,
+   "mu": 0.4
+  },
+  "budget_noise_jt_mu0.4": {
+   "budget": 0.56,
+   "noise": true,
+   "quant": true,
+   "budget_joint_tau": 0.1,
+   "target_tau": 0.04,
+   "mu": 0.4
+  }
+ },
+ "noise_deg": 0.45,
+ "script": "docs/experiments/20261115-hom_bench_trials/analysis/20261120-command_jitter_sim.py",
+ "plans": [
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_plan.json",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": null,
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.5435,
+   "variants": {
+    "budget": {
+     "both": 0.5435,
+     "point": 0.541,
+     "pads": 0.546
+    },
+    "budget_noise": {
+     "both": 0.5343,
+     "point": 0.5483,
+     "pads": 0.5203
+    },
+    "budget_noise_jt": {
+     "both": 0.5225,
+     "point": 0.531,
+     "pads": 0.514
+    },
+    "mu0.4": {
+     "both": 0.3115,
+     "point": 0.311,
+     "pads": 0.312
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.3853,
+     "point": 0.3157,
+     "pads": 0.455
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.265,
+     "point": 0.12,
+     "pads": 0.41
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x115_y160_twist_gr_g8_f1_w0.5_plan.json",
+   "xy": [
+    115.0,
+    160.0
+   ],
+   "k": 8,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.5435,
+   "variants": {
+    "budget": {
+     "both": 0.686,
+     "point": 0.6807,
+     "pads": 0.6913
+    },
+    "budget_noise": {
+     "both": 0.6875,
+     "point": 0.6853,
+     "pads": 0.6897
+    },
+    "budget_noise_jt": {
+     "both": 0.6883,
+     "point": 0.6893,
+     "pads": 0.6873
+    },
+    "mu0.4": {
+     "both": 0.4032,
+     "point": 0.4943,
+     "pads": 0.312
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.3745,
+     "point": 0.4567,
+     "pads": 0.2923
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.4233,
+     "point": 0.4513,
+     "pads": 0.3953
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_plan.json",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": null,
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.542,
+   "variants": {
+    "budget": {
+     "both": 0.542,
+     "point": 0.5197,
+     "pads": 0.5643
+    },
+    "budget_noise": {
+     "both": 0.514,
+     "point": 0.5063,
+     "pads": 0.5217
+    },
+    "budget_noise_jt": {
+     "both": 0.4463,
+     "point": 0.428,
+     "pads": 0.4647
+    },
+    "mu0.4": {
+     "both": 0.2883,
+     "point": 0.3023,
+     "pads": 0.2743
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.3782,
+     "point": 0.396,
+     "pads": 0.3603
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.3312,
+     "point": 0.2797,
+     "pads": 0.3827
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x110_y155_twist_gr_g3_f1_w0.5_plan.json",
+   "xy": [
+    110.0,
+    155.0
+   ],
+   "k": 3,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.542,
+   "variants": {
+    "budget": {
+     "both": 0.7053,
+     "point": 0.7083,
+     "pads": 0.7023
+    },
+    "budget_noise": {
+     "both": 0.6912,
+     "point": 0.6933,
+     "pads": 0.689
+    },
+    "budget_noise_jt": {
+     "both": 0.688,
+     "point": 0.691,
+     "pads": 0.685
+    },
+    "mu0.4": {
+     "both": 0.5505,
+     "point": 0.519,
+     "pads": 0.582
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.536,
+     "point": 0.5103,
+     "pads": 0.5617
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.5013,
+     "point": 0.4863,
+     "pads": 0.5163
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_plan.json",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": null,
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.4775,
+   "variants": {
+    "budget": {
+     "both": 0.4775,
+     "point": 0.4713,
+     "pads": 0.4837
+    },
+    "budget_noise": {
+     "both": 0.444,
+     "point": 0.442,
+     "pads": 0.446
+    },
+    "budget_noise_jt": {
+     "both": 0.4378,
+     "point": 0.4257,
+     "pads": 0.45
+    },
+    "mu0.4": {
+     "both": 0.4942,
+     "point": 0.5457,
+     "pads": 0.4427
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.5333,
+     "point": 0.583,
+     "pads": 0.4837
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.5597,
+     "point": 0.5823,
+     "pads": 0.537
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x85_y120_twist_gr_g15_f1_w0.5_plan.json",
+   "xy": [
+    85.0,
+    120.0
+   ],
+   "k": 15,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.5
+   },
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.4775,
+   "variants": {
+    "budget": {
+     "both": 0.6613,
+     "point": 0.6597,
+     "pads": 0.663
+    },
+    "budget_noise": {
+     "both": 0.6627,
+     "point": 0.6623,
+     "pads": 0.663
+    },
+    "budget_noise_jt": {
+     "both": 0.6498,
+     "point": 0.646,
+     "pads": 0.6537
+    },
+    "mu0.4": {
+     "both": 0.6762,
+     "point": 0.677,
+     "pads": 0.6753
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.6652,
+     "point": 0.6813,
+     "pads": 0.649
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.6485,
+     "point": 0.6633,
+     "pads": 0.6337
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_plan.json",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": null,
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.398,
+   "variants": {
+    "budget": {
+     "both": 0.398,
+     "point": 0.397,
+     "pads": 0.399
+    },
+    "budget_noise": {
+     "both": 0.3793,
+     "point": 0.3867,
+     "pads": 0.372
+    },
+    "budget_noise_jt": {
+     "both": 0.3673,
+     "point": 0.3787,
+     "pads": 0.356
+    },
+    "mu0.4": {
+     "both": 0.4422,
+     "point": 0.4667,
+     "pads": 0.4177
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.409,
+     "point": 0.4303,
+     "pads": 0.3877
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.4028,
+     "point": 0.4187,
+     "pads": 0.387
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y90_twist_gr_g1_f1_w0.25_plan.json",
+   "xy": [
+    70.0,
+    90.0
+   ],
+   "k": 1,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "role": "ranked",
+   "group": null,
+   "prediction_before": 0.398,
+   "variants": {
+    "budget": {
+     "both": 0.6653,
+     "point": 0.6597,
+     "pads": 0.671
+    },
+    "budget_noise": {
+     "both": 0.659,
+     "point": 0.6523,
+     "pads": 0.6657
+    },
+    "budget_noise_jt": {
+     "both": 0.6602,
+     "point": 0.6577,
+     "pads": 0.6627
+    },
+    "mu0.4": {
+     "both": 0.602,
+     "point": 0.5907,
+     "pads": 0.6133
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.636,
+     "point": 0.6153,
+     "pads": 0.6567
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.6512,
+     "point": 0.6497,
+     "pads": 0.6527
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_plan.json",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": null,
+   "role": "anchor",
+   "group": null,
+   "prediction_before": 0.3755,
+   "variants": {
+    "budget": {
+     "both": 0.3755,
+     "point": 0.3903,
+     "pads": 0.3607
+    },
+    "budget_noise": {
+     "both": 0.3905,
+     "point": 0.4073,
+     "pads": 0.3737
+    },
+    "budget_noise_jt": {
+     "both": 0.3777,
+     "point": 0.387,
+     "pads": 0.3683
+    },
+    "mu0.4": {
+     "both": 0.3737,
+     "point": 0.3757,
+     "pads": 0.3717
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.4317,
+     "point": 0.4513,
+     "pads": 0.412
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.4328,
+     "point": 0.4357,
+     "pads": 0.43
+    }
+   }
+  },
+  {
+   "plan": "20261119-rank_x70_y110_twist_gr_g0_f1_w0.25_plan.json",
+   "xy": [
+    70.0,
+    110.0
+   ],
+   "k": 0,
+   "prm": {
+    "f_tripod": 1.0,
+    "w_spin_tripod": 0.25
+   },
+   "role": "anchor",
+   "group": null,
+   "prediction_before": 0.3755,
+   "variants": {
+    "budget": {
+     "both": 0.6303,
+     "point": 0.6433,
+     "pads": 0.6173
+    },
+    "budget_noise": {
+     "both": 0.6287,
+     "point": 0.6387,
+     "pads": 0.6187
+    },
+    "budget_noise_jt": {
+     "both": 0.625,
+     "point": 0.637,
+     "pads": 0.613
+    },
+    "mu0.4": {
+     "both": 0.5862,
+     "point": 0.5837,
+     "pads": 0.5887
+    },
+    "budget_noise_mu0.4": {
+     "both": 0.5685,
+     "point": 0.5597,
+     "pads": 0.5773
+    },
+    "budget_noise_jt_mu0.4": {
+     "both": 0.5608,
+     "point": 0.5553,
+     "pads": 0.5663
+    }
+   }
+  }
+ ]
+}
