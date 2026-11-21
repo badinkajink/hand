@@ -1,11 +1,11 @@
 {
  "what": "Trial losses, putdowns and pick-ups of the bench series of 2026-11-20 (hand-4a, 16:2x; owner, 16:1x: \"we should get some metrics on the pickup, drop rate incidence, pick up success, push->pickup mitigation\").",
- "generated": "2026-11-20 16:21",
- "trials": 68,
+ "generated": "2026-11-20 20:04",
+ "trials": 137,
  "sphere_lost_in_trial": {
-  "count": 9,
-  "of": 68,
-  "share": 0.132,
+  "count": 16,
+  "of": 137,
+  "share": 0.117,
   "labels": [
    "A1_r3_x115y160g8_t1",
    "A1_p25_x85y170g2_t1",
@@ -15,14 +15,21 @@
    "A1_r4_x110y155g3_t1",
    "A1_r4_x110y155g3_t2",
    "A1_p28_x80y155g5_t1",
-   "A4feas_f60_x105y170g13_t2"
+   "A4feas_f60_x105y170g13_t2",
+   "A4feas_f16_x110y165g0_t1",
+   "A4feas_f83_x65y120g0_t2",
+   "A4feas_f20_x85y140g12_t1",
+   "A4feas_f20_x85y140g12_t2",
+   "A4feas_f76_x105y160g0_t2",
+   "b3E_r3_x115y160g8f_t3",
+   "b4cem_x115y160_knots_t1"
   ]
  },
  "putdowns": {
   "clean": {
-   "count": 52,
-   "of": 68,
-   "share": 0.765,
+   "count": 114,
+   "of": 137,
+   "share": 0.832,
    "labels": [
     "A1_r15_x90y135g3_t1",
     "A1_r15_x90y135g3_t2",
@@ -75,13 +82,75 @@
     "A4feas_f9_x100y145g6_t1",
     "A4feas_f9_x100y145g6_t2",
     "A4feas_f47_x80y115g7_t1",
-    "A4feas_f47_x80y115g7_t2"
+    "A4feas_f47_x80y115g7_t2",
+    "A4feas_f5_x105y150g7_t2",
+    "A4feas_f65_x90y85g9_t1",
+    "A4feas_f65_x90y85g9_t2",
+    "A4feas_f80_x85y95g14_t1",
+    "A4feas_f80_x85y95g14_t2",
+    "A4feas_f23_x105y135g8_t1",
+    "A4feas_f23_x105y135g8_t2",
+    "A4feas_f86_x95y165g13_t2",
+    "A4feas_f16_x110y165g0_t2",
+    "A4feas_f83_x65y120g0_t1",
+    "A4feas_f45_x90y100g5_t1",
+    "A4feas_f45_x90y100g5_t2",
+    "A4feas_f20_x85y140g12_t2",
+    "A4feas_f21_x90y115g6_t1",
+    "A4feas_f21_x90y115g6_t2",
+    "A4feas_f30_x100y155g10_t1",
+    "A4feas_f30_x100y155g10_t2",
+    "A4feas_f17_x95y140g0_t1",
+    "A4feas_f17_x95y140g0_t2",
+    "b1E_anchor_x70y110g0f_t1",
+    "b1E_anchor_x70y110g0f_t2",
+    "b1E_anchor_x70y110g0f_t3",
+    "b4cem_anchor_x70y110_knots_t1",
+    "b4cem_anchor_x70y110_knots_t2",
+    "b4cem_anchor_x70y110_knots_t3",
+    "b4cem_anchor_x70y110_full_t1",
+    "b4cem_anchor_x70y110_full_t2",
+    "b4cem_anchor_x70y110_full_t3",
+    "b3E_r3_x115y160g8f_t1",
+    "b3E_r3_x115y160g8f_t2",
+    "b3E_r3_x115y160g8f_t3",
+    "b3E_r179_x60y135g8f_t1",
+    "b3E_r179_x60y135g8f_t2",
+    "b3E_r179_x60y135g8f_t3",
+    "b3E_r109_x70y90g1f_t1",
+    "b3E_r109_x70y90g1f_t2",
+    "b3E_r109_x70y90g1f_t3",
+    "b3E_r75_x65y110g0f_t1",
+    "b3E_r75_x65y110g0f_t2",
+    "b3E_r75_x65y110g0f_t3",
+    "b3E_r4_x110y155g3f_t1",
+    "b3E_r4_x110y155g3f_t2",
+    "b3E_r4_x110y155g3f_t3",
+    "b3E_r40_x85y120g15f_t1",
+    "b3E_r40_x85y120g15f_t2",
+    "b3E_r40_x85y120g15f_t3",
+    "b4cem_x70y90_full_t1",
+    "b4cem_x70y90_full_t2",
+    "b4cem_x70y90_full_t3",
+    "b4cem_x65y110_knots_t1",
+    "b4cem_x65y110_knots_t2",
+    "b4cem_x65y110_knots_t3",
+    "b4cem_x65y110_full_t1",
+    "b4cem_x65y110_full_t2",
+    "b4cem_x65y110_full_t3",
+    "b4cem_x110y155_knots_t1",
+    "b4cem_x110y155_knots_t2",
+    "b4cem_x110y155_knots_t3",
+    "b4cem_x85y120_knots_t1",
+    "b4cem_x85y120_knots_t2",
+    "b4cem_x85y120_knots_t3",
+    "b4cem_x115y160_knots_t1"
    ]
   },
   "stopped, finished by the session": {
-   "count": 9,
-   "of": 68,
-   "share": 0.132,
+   "count": 12,
+   "of": 137,
+   "share": 0.088,
    "labels": [
     "A1_r15_x90y135g3_t3",
     "A1_r3_x115y160g8_t1",
@@ -91,25 +160,32 @@
     "A1_p29_x85y160g1_t2",
     "A1_r4_x110y155g3_t2",
     "A1_p31_x115y135g8_t1",
-    "A4feas_f60_x105y170g13_t2"
+    "A4feas_f60_x105y170g13_t2",
+    "A4feas_f86_x95y165g13_t1",
+    "A4feas_f76_x105y160g0_t1",
+    "b4cem_x115y160_knots_t2"
    ]
   },
   "tilted release": {
-   "count": 5,
-   "of": 68,
-   "share": 0.074,
+   "count": 9,
+   "of": 137,
+   "share": 0.066,
    "labels": [
     "A1_p35_x105y100g15_t2",
     "A1_r3_x115y160g8_t3",
     "A1_p40_x55y90g0_t1",
     "A1_r4_x110y155g3_t3",
-    "A4feas_f5_x105y150g7_t1"
+    "A4feas_f5_x105y150g7_t1",
+    "A4feas_f16_x110y165g0_t1",
+    "A4feas_f83_x65y120g0_t2",
+    "A4feas_f20_x85y140g12_t1",
+    "A4feas_f76_x105y160g0_t2"
    ]
   },
   "lost in the trial": {
    "count": 2,
-   "of": 68,
-   "share": 0.029,
+   "of": 137,
+   "share": 0.015,
    "labels": [
     "A1_p25_x85y170g2_t1",
     "A1_p25_x85y170g2_t2"
@@ -117,19 +193,24 @@
   }
  },
  "pickup_grasps": {
-  "count": 4,
-  "of": 9,
-  "share": 0.444
+  "count": 7,
+  "of": 15,
+  "share": 0.467
  },
  "pickup_with_push_first": {
-  "count": 4,
-  "of": 6,
-  "share": 0.667
+  "count": 5,
+  "of": 10,
+  "share": 0.5
  },
  "pickup_without_push": {
-  "count": 0,
-  "of": 3,
-  "share": 0.0
+  "count": 2,
+  "of": 5,
+  "share": 0.4
+ },
+ "pickup_blind": {
+  "count": 2,
+  "of": 2,
+  "share": 1.0
  },
  "pickup_planner_refusals": 2,
  "attempts": {
@@ -189,6 +270,24 @@
     "refused": false,
     "on_cables": false,
     "words": "the automated pick-up's push and grasp met the cables three times; pushed off them at 5 N and picked up by hand 14:55-15:01 (settled 0.6 deg)"
+   },
+   {
+    "t": "17:54",
+    "push": false,
+    "ok": true,
+    "refused": false,
+    "on_cables": null,
+    "blind": true,
+    "words": "owner 17:5x: 'lets just fly blind here and go for the pinch'; pinch_pickup.py grasp --blind: the grasp went 124 mm down with at most 1.6 N; the putdown left the sphere 0.7 deg from vertical (lab, 17:5x)"
+   },
+   {
+    "t": "19:34",
+    "push": false,
+    "ok": true,
+    "refused": false,
+    "on_cables": null,
+    "blind": true,
+    "words": "the watched pick-up lost the sphere 72.5 deg into an 84.9 deg wrist turn; the blind pinch then stood it up (0.7 deg) (lab, 19:49)"
    }
   ],
   "automated": [
@@ -219,6 +318,34 @@
     "ok": true,
     "result": "OK",
     "log": "20261120-1614_pickup.log"
+   },
+   {
+    "t": "1724",
+    "push": true,
+    "ok": true,
+    "result": "OK",
+    "log": "20261120-1724_pickup.log"
+   },
+   {
+    "t": "1737",
+    "push": true,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1737_pickup.log"
+   },
+   {
+    "t": "1740",
+    "push": true,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1740_pickup.log"
+   },
+   {
+    "t": "1927",
+    "push": true,
+    "ok": false,
+    "result": "the pick-up's grasp did not finish",
+    "log": "20261120-1927_pickup.log"
    }
   ]
  }

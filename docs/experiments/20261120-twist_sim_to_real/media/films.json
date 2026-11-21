@@ -1,0 +1,12 @@
+[
+ {
+  "file": "20261120-x110y155g3_2p5N_vs_1N.mp4",
+  "poster": "20261120-x110y155g3_2p5N_vs_1N_poster.jpg",
+  "label": "Layout (110, 155), grasp 3, on the hand, camera 836612071918. Left: HOM at its default 2.5 N (14:35); the sphere drifted 30 mm and corvus's guard stopped the trial. Right: HOM at 1.0 N (18:42), score 0.73."
+ },
+ {
+  "file": "20261120-anchor_x70y110g0_2p5N_vs_1N.mp4",
+  "poster": "20261120-anchor_x70y110g0_2p5N_vs_1N_poster.jpg",
+  "label": "The anchor layout (70, 110), grasp 0. Left: HOM at 2.5 N (11:15), score 0.39. Right: HOM at 1.0 N (18:05), score 0.72."
+ }
+]

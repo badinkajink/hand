@@ -12,7 +12,8 @@ Sources, copied from corvus's logs/20261116-hom_trials/ into runs_corvus/ (rsync
                    stopped and was finished by the lab session
     pick-up        a pinch grasp of a sphere lying on the table: each automated attempt's "PICKUP RESULT" line, with a
                    push first when push_sphere.py ran before it in the same log; and the attempts the lab session ran
-                   before the automation (14:04), listed in MANUAL with the series log's words
+                   before the automation (14:04), listed in MANUAL with the series log's words, and those the
+                   lab session ran itself later (MANUAL_LATE), the blind pinches of 17:54 and 19:34 among them
     planner refusal  a pick-up that found no plan (the pinch's clearances or the wrist's 45 deg limit)
 Rates are counts over counts; with this few events the interval of each is wide, and the counts are given beside them.
 
@@ -50,6 +51,12 @@ MANUAL_LATE = [
     {"t": "14:58", "push": True, "ok": True, "refused": False, "on_cables": False,
      "words": "the automated pick-up's push and grasp met the cables three times; pushed off them at 5 N and picked up "
               "by hand 14:55-15:01 (settled 0.6 deg)"},
+    {"t": "17:54", "push": False, "ok": True, "refused": False, "on_cables": None, "blind": True,
+     "words": "owner 17:5x: 'lets just fly blind here and go for the pinch'; pinch_pickup.py grasp --blind: the grasp went "
+              "124 mm down with at most 1.6 N; the putdown left the sphere 0.7 deg from vertical (lab, 17:5x)"},
+    {"t": "19:34", "push": False, "ok": True, "refused": False, "on_cables": None, "blind": True,
+     "words": "the watched pick-up lost the sphere 72.5 deg into an 84.9 deg wrist turn; the blind pinch then stood it up "
+              "(0.7 deg) (lab, 19:49)"},
 ]
 
 
@@ -96,6 +103,7 @@ def main():
     refused = [e for e in MANUAL if e["refused"]]
     with_push = [e for e in grasps if e["push"]]
     no_push = [e for e in grasps if not e["push"]]
+    blind = [e for e in grasps if e.get("blind")]
     out = {"what": __doc__.split("\n\n")[0].replace("\n", " "), "generated": time.strftime("%F %H:%M"),
            "trials": n,
            "sphere_lost_in_trial": rate(len(drift), n) | {"labels": [r["label"] for r in drift]},
@@ -103,13 +111,14 @@ def main():
            "pickup_grasps": rate(sum(1 for e in grasps if e["ok"]), len(grasps)),
            "pickup_with_push_first": rate(sum(1 for e in with_push if e["ok"]), len(with_push)),
            "pickup_without_push": rate(sum(1 for e in no_push if e["ok"]), len(no_push)),
+           "pickup_blind": rate(sum(1 for e in blind if e["ok"]), len(blind)),
            "pickup_planner_refusals": len(refused),
            "attempts": {"manual": MANUAL + MANUAL_LATE, "automated": auto}}
     OUT.write_text(json.dumps(out, indent=1) + "\n")
     print(f"{n} trials; sphere lost in the trial (drift guard) {len(drift)} ({100 * len(drift) / n:.0f} %)")
     for k, v in pc.items():
         print(f"  putdown {k}: {len(v)} ({100 * len(v) / n:.0f} %)")
-    for k in ("pickup_grasps", "pickup_with_push_first", "pickup_without_push"):
+    for k in ("pickup_grasps", "pickup_with_push_first", "pickup_without_push", "pickup_blind"):
         print(f"  {k}: {out[k]['count']} of {out[k]['of']}")
     print(f"  planner refusals: {len(refused)}; automated attempts {len(auto)}: "
           + ", ".join(f"{a['t']} {'push+' if a['push'] else ''}{'OK' if a['ok'] else 'failed'}" for a in auto))

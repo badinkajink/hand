@@ -14,7 +14,7 @@ layouts named with --first run before the rest.
         docs/experiments/20261119-twist_layout_ranking/sim/20261120-feasible_grasps.py run --workers 12 [--first X,Y ...]
     ... summary     writes data/20261120-feasible_ranking.json
 
---prm runs every run with HOM's forces and contact modes set to it (the task schedule's prm, as
+--prm runs every run with HOM's forces and contact modes set to it, and --mu at another scene friction (the task schedule's prm, as
 cad_finger_gaps.simulated sets them); --tag, required with it, names the rows file rows_FG<tag>.jsonl and the summary
 data/20261120-feasible_ranking<tag>.json (owner, 2026-11-20 11:4x: "yea, im down to recompute feasible layouts", at HOM's
 tuned force: the grasp search of the near-touching layouts had found other feasible layouts at 1.0 N than at 2.5 N).
@@ -69,11 +69,12 @@ def with_prm(prm, fn):
 
 def job(item):
     prm = item.get("prm")
-    tag = {"prm": prm} if prm else {}
+    mu = float(item.get("mu") or 1.0)
+    tag = ({"prm": prm} if prm else {}) | ({"mu": mu} if mu != 1.0 else {})
     if item.get("seed", 0) == 0:
-        if prm:                                       # cad_gap_screen.job with the item's forces
+        if prm or mu != 1.0:                          # cad_gap_screen.job with the item's forces and friction
             from sr2hand.robot import sr2_layouts as SL
-            tr, r0 = CS.CG.simulated({"call": item["call"], "xy": item["xy"], "k": item["k"], "prm": prm},
+            tr, r0 = CS.CG.simulated({"call": item["call"], "xy": item["xy"], "k": item["k"], "prm": prm, "mu": mu},
                                      item["model"])
             SA, FT, HS = CS.lab()
             plan = {"meta": {"hom": {"d6_P_mm": [float(v) for v in SL.sym6(*item["xy"])]}}}
@@ -84,8 +85,8 @@ def job(item):
             r = CS.job(item)
         return {k: r[k] for k in ("call", "xy", "k", "model", "track", "held", "least_mm")} | {
             "seed": 0, "gaps": {p: v["gap_mm"] for p, v in r["gaps"].items()}} | tag
-    job_ = {**SR.base_job(item["call"], tuple(item["xy"]), item["model"], contact=item["model"]), "k": item["k"],
-            "seed": item["seed"]}
+    job_ = {**SR.base_job(item["call"], tuple(item["xy"]), item["model"], contact=item["model"], mu=mu),
+            "k": item["k"], "seed": item["seed"]}
     r = with_prm(prm, lambda: SR._run(job_)) if prm else SR._run(job_)
     out = {"call": item["call"], "xy": item["xy"], "k": item["k"], "model": item["model"], "seed": item["seed"],
            "track": r.get("track"), "held": r.get("held")} | tag
@@ -137,9 +138,10 @@ def main():
     ap.add_argument("--only-first", action="store_true")
     ap.add_argument("--prm", default=None, help="HOM's forces for every run, JSON, e.g. "
                     "'{\"f_tripod\": 1.0, \"w_spin_tripod\": 0.25}'")
+    ap.add_argument("--mu", type=float, default=1.0, help="the scene's friction for every run (SR.base_job mu)")
     ap.add_argument("--tag", default="", help="rows_FG<tag>.jsonl and feasible_ranking<tag>.json (required with --prm)")
     a = ap.parse_args()
-    if a.prm and not a.tag:
+    if (a.prm or a.mu != 1.0) and not a.tag:
         ap.error("--prm needs --tag, so that its rows stay apart from the 2.5 N rows")
     global ROWS
     ROWS = SR.LOGS / f"rows_FG{a.tag}.jsonl"
@@ -154,7 +156,7 @@ def main():
     if a.cmd == "run":
         done = {(r["call"], r["k"], r["model"], r["seed"]) for r in rows()}
         p1 = [{"call": c, "xy": list(xy), "k": k, "model": m, "seed": 0, "score": None, "rank_among_deployable": None,
-               "prm": prm} for c, xy, n in lays for k in range(n) for m in SR.MODELS if (c, k, m, 0) not in done]
+               "prm": prm, "mu": a.mu} for c, xy, n in lays for k in range(n) for m in SR.MODELS if (c, k, m, 0) not in done]
         print(f"pass 1: {len(p1)} runs ({len(lays)} layouts)", flush=True)
         if p1:
             run_pass(p1, a.workers)
@@ -166,7 +168,7 @@ def main():
                 best[c] = (k, v)
         xy = {c: xy for c, xy, n in lays}
         done = {(r["call"], r["k"], r["model"], r["seed"]) for r in rr}
-        p2 = [{"call": c, "xy": list(xy[c]), "k": k, "model": m, "seed": s, "prm": prm} for c, (k, v) in best.items()
+        p2 = [{"call": c, "xy": list(xy[c]), "k": k, "model": m, "seed": s, "prm": prm, "mu": a.mu} for c, (k, v) in best.items()
               if c in xy for m in SR.MODELS for s in (1, 2) if (c, k, m, s) not in done]
         print(f"pass 2: {len(p2)} runs", flush=True)
         if p2:
@@ -194,7 +196,7 @@ def main():
         out.append(rec)
     path = STUDY / f"data/20261120-feasible_ranking{a.tag}.json"
     path.write_text(json.dumps({"what": __doc__.split("\n\n")[0].replace("\n", " "), "written": time.strftime("%F %H:%M"),
-                                "clear_mm": a.clear, "prm": prm, "rows": str(ROWS.relative_to(SR.LOGS.parents[1])),
+                                "clear_mm": a.clear, "prm": prm, "mu": a.mu, "rows": str(ROWS.relative_to(SR.LOGS.parents[1])),
                                 "layouts": out}, indent=1) + "\n")
     print(f"{len(out)} layouts, {sum(1 for o in out if o['k'] is not None)} with a feasible grasp -> {path}")
     for o in sorted(out, key=lambda o: -(o["seeds012"] or o["seed0"] or 0))[:15]:
