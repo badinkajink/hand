@@ -229,6 +229,11 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   24.1). The hand's joint flicker added to the simulation does not reproduce the wide layouts' losses: (115, 160) g8 0.574
   -> 0.541, (110, 155) g3 0.571 -> 0.558, (85, 170) g2 0.275 -> 0.248, (85, 160) g1 0.334 -> 0.320, all held (seed 0,
   pads). Their cause on the hand is open.
+- 17:5x, owner at the bench (by the lab session): "lets just fly blind here and go for the pinch". The lab's
+  `pinch_pickup.py grasp --blind` measured the lying sphere once with the hand high and unturned, turned the wrist 62.4 deg,
+  descended 124 mm (at most 1.6 N on the HEX-E) and closed without the tracker; the lift went 65.2 mm, the slip took the
+  tilt from 59 to 10.7 deg, and the putdown left the sphere 0.7 deg from vertical at the table's centre (17:54, 6fb83e9c8).
+  The 17:43 request for a person is withdrawn; the series restarts from entry 90 (A4feas_f17_x95y140g0_t1) near 17:58.
 
 ## Waiting on owner
 
