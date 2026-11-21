@@ -287,6 +287,16 @@ Detail: page `docs/experiments/20261119-twist_layout_ranking/20261119-sphere_twi
   The camera stays 960x540@60. hand-4a, 20:44: hom_serve_budget.sh on the workstation passes the arguments after the
   seventh to hom_server ("${@:8}"), at the lab's request. Before any trial: the middle finger needs a physical check (the
   owner saw it off zero while the station reads it within 0.3 deg). The lights went off about 19:5x.
+- 20:5x, hand-4a: lane_mu04 done (GPU, 45 layouts, seeds 0-2 and 10-12; `controller_rematch.py summary`,
+  `data/20261120-rematch_summary.json`). HOM at scene friction 0.4 scores highest at the lowest force tried, as at 1.0:
+  spin weight 0.25 gives 0.646 at 0.75 N, 0.609 at 1.0 N, 0.450 at 1.5 N, 0.410 at 2.0 N and 0.322 at 2.5 N (spin weight
+  1.0: 0.607 to 0.258). The drops grow with the force: 14 of 135 runs at 0.75 N and 30 at 2.5 N, against 0 and 4 at friction
+  1.0 (0.682 and 0.449). At 0.6: 0.619 at 1.0 N (5 drops), 0.413 at 2.5 N (14). The force advice is unchanged by the
+  friction fit. On the bench's 7 stage E pairs (1.0 N against the default plan of the same layout, friction sweep): the
+  hand gained 0.291 on average; friction 1.0 predicted 0.206 (per-pair r -0.40), friction 0.4 predicted 0.172 (r 0.70).
+  The 11-16 pinch hang is the one hand test where the contact model decided the prediction: the hand held the pinched
+  sphere at 43-41 deg for about 60 s, point contact let it swing free, the pads held 41/40/36 deg at 1/3/10 s only with
+  impratio 100 and noslip (dropped at 3.6 s with the twist's settings). On the twist the two models predict alike.
 
 ## Waiting on owner
 
